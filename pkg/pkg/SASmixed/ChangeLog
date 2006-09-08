@@ -1,0 +1,46 @@
+2006-01-04  Douglas Bates  <bates@stat.wisc.edu>
+
+	* man/BIB.Rd: Remove calls to gplot in this and other examples.
+
+2005-04-01  Douglas Bates  <bates@bates1-home>
+
+	* DESCRIPTION: Upgrade dependency to lme4_0.95-1 or later.  Change
+	all calls to lme to calls to lmer.
+
+2004-11-04  Douglas Bates  <bates@bates1-home>
+
+	* DESCRIPTION (Depends): Change dependency to lme4
+
+	* data/: All data sets converted to new groupedData format and
+	stored as compressed .rda objects.
+
+	* man/: Examples in manual pages converted to use the lme4 package
+	and gplot.
+
+2004-10-03  Douglas Bates  <bates@bates1-home>
+
+	* DESCRIPTION (Depends): Add Depends and LazyData
+
+	* R/zzz.R (.onLoad): Move the require(nlme) to an .onLoad function
+
+2003-06-04  Douglas Bates  <bates@stat.wisc.edu>
+
+	* man/HR.Rd: Change starting estimate in ill-considered fit with a
+	variance function.
+
+2003-04-29  Douglas Bates  <bates@stat.wisc.edu>
+
+	* man/Multilocation.Rd: Comment out the fm1MultR example.  In some
+	cases it converges but always to a 'boundary' answer.
+
+2001-12-30  Douglas Bates  <bates@stat.wisc.edu>
+
+	* man/Multilocation.Rd: Commented out the call to intervals in the
+	examples section because it caused an error on some systems.
+
+2001-12-10  Douglas Bates  <bates@stat.wisc.edu>
+
+	* man/Animal.Rd: Removed the library(SASmixed) from the example in
+	this help page and in all the others.
+	
+

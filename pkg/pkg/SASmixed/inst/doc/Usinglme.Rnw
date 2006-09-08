@@ -1,0 +1,427 @@
+\documentclass[12pt]{article}
+\usepackage{Sweave}
+\usepackage{myVignette}
+\usepackage[authoryear,round]{natbib}
+\newcommand{\s}{\textsf{S}}
+\newcommand{\R}{\textsf{R}}
+\bibliographystyle{plainnat}
+\DefineVerbatimEnvironment{Sinput}{Verbatim}
+{formatcom={\vspace{-2.5ex}},fontshape=sl,
+  fontfamily=courier,fontseries=b, fontsize=\small}
+\DefineVerbatimEnvironment{Example}{Verbatim}
+{formatcom={\vspace{-2.5ex}},
+  fontfamily=courier,fontseries=b, fontsize=\small}
+\DefineVerbatimEnvironment{Soutput}{Verbatim}
+{formatcom={\vspace{-2.5ex}},fontfamily=courier,fontseries=b,%
+  fontsize=\small}
+%%\VignetteIndexEntry{lmer for SAS PROC MIXED Users}
+%%\VignetteDepends{SASmixed}
+%%\VignetteDepends{lattice}
+\begin{document}
+\SweaveOpts{engine=R,eps=FALSE,pdf=TRUE,width=5,height=3,strip.white=TRUE}
+\SweaveOpts{prefix=TRUE,prefix.string=figs/f,include=FALSE}
+\setkeys{Gin}{width=\textwidth}
+\title{\textbf{\textsf{lmer} for \textsf{SAS PROC MIXED} Users}}
+\author{Douglas Bates\\Department of Statistics\\University of
+  Wisconsin -- Madison\\\email{Bates@wisc.edu}}
+\date{}
+\maketitle
+<<preliminaries,echo=FALSE,results=hide>>=
+options(width=75, contrasts=c(unordered="contr.SAS",ordered="contr.poly"))
+library(SASmixed)
+library(lattice)
+@ 
+\section{Introduction}
+\label{sec:intro}
+
+The \code{lmer} function from the \code{Matrix} library for \textsf{R} is used
+to fit linear mixed-effects models.  It is similar in scope to the
+\textsf{SAS} procedure \code{PROC MIXED} described in
+\citet{litt:mill:stro:wolf:1996}.
+
+A file on the SAS Institute web site (\textsf{http://www.sas.com})
+contains all the data sets in the book and all the SAS programs used
+in \citet{litt:mill:stro:wolf:1996}.  We have converted the data
+sets from the tabular representation used for SAS to the
+\code{groupedData} objects used by \code{lmer}.  To help users familiar
+with \code{SAS PROC MIXED} get up to speed with \code{lmer} more quickly,
+we provide transcripts of some \code{lmer} analyses paralleling the
+\code{SAS PROC MIXED} analyses in \citet{litt:mill:stro:wolf:1996}.
+
+In this paper we highlight some of the similarities and differences of
+\code{lmer} analysis and \code{SAS PROC MIXED} analysis.
+
+\section{Similarities between lmer and SAS PROC MIXED}
+\label{sec:similarities}
+
+Both \code{SAS PROC MIXED} and \code{lmer} can fit linear mixed-effects
+models expressed in the Laird-Ware formulation.  For a single level of
+grouping \citet{lair:ware:1982} write the $n_i\/$-dimensional
+response vector $\by_i$ for the $i\/$th experimental unit as
+\begin{gather}
+  \label{eqn:oneLevel}
+  \by_i = \bX_i \bbeta + \bZ_i \bb_i + \beps_i,\quad i=1,\dots,M\\
+  \bb_i\sim\mathcal{N}(\bzer,\bSigma),
+  \quad\beps_i\sim\mathcal{N}(\bzer,\sigma^2 \bI)\notag
+\end{gather}
+where $\bbeta$ is the $p$-dimensional vector of \emph{fixed effects},
+$\bb_i$ is the $q$-dimensional vector of \emph{random effects},
+$\bX_i$ (of size $n_i\times p$) and $\bZ_i$ (of size $n_i\times q$)
+are known fixed-effects and random-effects regressor matrices, and
+$\beps_i$ is the $n_i\/$-dimensional \emph{within-group error} vector
+with a spherical Gaussian distribution.  The assumption
+$\mathrm{Var}(\beps_i)=\sigma^2\bI$ can be relaxed using additional
+arguments in the model fitting.
+
+The basic specification of the model requires a linear model
+expression for the fixed effects and a linear model expression for the 
+random effects.  In \code{SAS PROC MIXED} the fixed-effects part is
+specified in the \code{model} statement and the random-effects
+part in the \code{random} statement.  In \code{lmer} the
+arguments are called \code{fixed} and \code{random}.
+
+Both \code{SAS PROC MIXED} and \code{lmer} allow a mixed-effects model
+to be fit by maximum likelihood (\code{method = ml} in SAS) or by
+maximum residual likelihood, sometimes also called restricted maximum
+likelihood or \textsf{REML}.  This is the default criterion in
+\code{SAS PROC MIXED} and in \code{lmer}.  To get \textsf{ML}
+estimates in \code{lmer}, set the optional argument
+\code{method="REML"}.
+
+\section{Important differences}
+\label{sec:differences}
+
+The output from \code{PROC MIXED} typically includes values of the
+Akaike Information Criterion (\textsf{AIC}) and Schwartz's Bayesian
+Criterion (\textsf{SBC}).  These are used to compare different models
+fit to the same data.  The output of the \code{summary} function applied
+to the object created by \code{lmer} also produces values of \textsf{AIC}
+and \textsf{BIC} but the definitions used in \code{PROC MIXED} and in
+\code{lmer} are different.  In \code{lmer} the definitions are such that
+``smaller is better''.  In \code{PROC MIXED} the definitions are such
+that ``bigger is better''.
+
+When models are fit by \textsf{REML}, the values of \textsf{AIC},
+\textsf{SBC} (or \textsf{BIC}) and the log-likelihood can only be
+compared between models with exactly the same fixed-effects structure.
+When models are fit by maximum likelihood these criteria can be
+compared between any models fit to the same data.  That is, these
+quality-of-fit criteria can be used to evaluate different
+fixed-effects specifications or different random-effects
+specifications or different specifications of both fixed effects and
+random effects.  The greater flexibility of model comparisons when
+using maximum likelihood is the reason that this is the default
+criterion in \code{lmer}.
+
+We encourage developing and testing the model using likelihood ratio
+tests or the \textsf{AIC} and \textsf{BIC} criteria.  Once a form
+for both the random effects and the fixed effects has been determined,
+the model can be refit with \code{REML = TRUE} if the restricted
+estimates of the variance components are desired.
+
+\section{Data manipulation}
+\label{sec:data}
+
+Both \code{PROC MIXED} and \code{lmer} work with data in a tabular form
+with one row per observation.  There are, however, important
+differences in the internal representations of variables in the data.
+
+In \textsf{SAS} a qualitative factor can be stored either as numerical
+values or alphanumeric labels.  When a factor stored as numerical
+values is used in \code{PROC MIXED} it is listed in the \code{class}
+statement to indicate that it is a factor.  In \s{} this information
+is stored with the data itself by converting the variable to a factor
+when it is first stored.  If the factor represents an ordered set of
+levels, it should be converted to an \code{ordered} factor.
+
+For example the SAS code
+\begin{Example}
+data animal;
+ input trait animal y;
+ datalines;
+1 1 6
+1 2 8
+1 3 7
+2 1 9
+2 2 5
+2 3 .
+;
+\end{Example}
+would require that the \code{trait} and \code{animal} variables be
+specified in a class statement in any model that is fit.
+
+In \s{} these data could be read from a file, say \texttt{animal.dat},
+and converted to factors by
+\begin{Schunk}
+\begin{Sinput}
+animal <- read.table("animal.dat", header = TRUE)
+animal$trait <- as.factor(animal$trait)
+animal$animal <- as.factor(animal$animal)
+\end{Sinput}
+\end{Schunk}
+In general it is a good idea to check the types of variables in a data 
+frame before working with it.  One way of doing this is to apply
+the function \textsf{data.class} to each variable in turn using the
+\code{sapply} function.
+<<applyClass>>=
+sapply(Animal, data.class)
+str(Animal)
+@
+
+To make specification of models in \code{lmer} easier and to make graphic
+presentations more informative, we recommend converting from a
+\code{data.frame} object to a \code{groupedData} object.  This class of
+objects contains a formula specifying the response, the primary
+covariate (if there is one) and the grouping factor or factors.  The
+data sets from \citet{litt:mill:stro:wolf:1996} have been
+converted to \code{groupedData} objects in this directory.
+
+\subsection{Unique levels of factors}
+\label{sec:nested}
+
+Designs with nested grouping factors are indicated differently in the
+two languages.  An example of such an experimental design is the
+semiconductor experiment described in section 2.2 of
+\citet{litt:mill:stro:wolf:1996} where twelve wafers are 
+assigned to four experimental treatments with three wafers per
+treatment.  The levels for the wafer factor are \code{1}, \code{2}, and
+\code{3} but the wafer factor is only meaningful within the same level
+of the treatment factor, \code{et}.  There is nothing associating wafer
+\code{1} of the third treatment group with wafer \code{1} of the first
+treatment group.
+
+In \code{SAS} this nesting of factors is denoted by \code{wafer(et)}.  In
+\s{} the nesting is written with \code{~ ET/Wafer} and read ``wafer
+within ET''.  If both levels of nested factors are to be associated
+with random effects then this is all you need to know.  You would use
+an expression with a \code{"/"} in the grouping factor part of the
+formula for the \code{groupedData} object.  Then the random effects
+could be specified as
+\begin{Example}
+  random = list( ET = ~ 1, Wafer = ~ 1 )
+\end{Example}
+or, equivalently
+\begin{Example}
+  random = ~ 1 | ET/Wafer
+\end{Example}
+
+In this case, however, there would not usually be any random effects
+associated with the ``experimental treatment'' or \code{ET} factor.  The 
+only random effects are at the \code{Wafer} level.  It is necessary to
+create a factor that will have unique levels for each \code{Wafer}
+within each level of \code{ET}.  One way to do this is to assign
+<<semiconductorGrp>>=
+Semiconductor$Grp <- with(Semiconductor, ET:Wafer)
+@ 
+%$
+after which we could specify a random effects term of \code{(1 | Grp)}.
+
+\subsection{General approach}
+\label{sec:generalApproach}
+
+As a general approach to importing data into \s{} for mixed-effects
+analysis you should:
+\begin{itemize}
+\item Create a \code{data.frame} with one row per observation and one
+  column per variable.
+\item Use \code{ordered} or \code{as.ordered} to explicitly convert any
+  ordered factors to class \code{ordered}.
+\item Use \code{ordered} or \code{as.ordered} to explicitly convert any
+  ordered factors to class \code{ordered}.
+\item If necessary, use \code{getGroups} to create a factor with unique
+  levels from inner nested factors.
+\item Specify the formula for the response, the primary covariate and
+  the grouping structure to create a \code{groupedData} object from the
+  data frame.  Labels and units for the response and the primary
+  covariate can also be specified at this time as can \code{outer} and
+  \code{inner} factor expressions.
+\item Plot the data.  Plot it several ways.  The use of trellis
+  graphics is closely integrated with the \code{nlme} library.  The
+  trellis plots can provide invaluable insight into the structure of
+  the data.  Use them.
+\end{itemize}
+
+\section{Contrasts}
+\label{sec:contrasts}
+
+When comparing estimates produced by \code{SAS PROC MIXED} and by
+\code{lmer} one must be careful to consider the contrasts that are
+used to define the effects of factors.  In \textsf{SAS} a model with
+an intercept and a qualitative factor is defined in terms of the
+intercept and the indicator variables for all but the last level of
+the factor.  The default behaviour in \s{} is to use the Helmert
+contrasts for the factor.  On a balanced factor these provide a set of 
+orthogonal contrasts.  In \R{} the default is the ``treatment''
+contrasts which are almost the same as the SAS parameterization except 
+that they drop the indicator of the first level, not the last level.
+
+When in doubt, check which contrasts are being used with the
+\textsf{contrasts} function.
+
+To make comparisons easier, you may find it worthwhile to declare
+<<contrasts,echo=TRUE,eval=FALSE>>=
+options(contrasts = c(factor = "contr.SAS", ordered = "contr.poly"))
+@ 
+at the beginning of your session.
+
+\bibliography{Usinglme}
+\appendix
+
+\section{AvgDailyGain}
+\label{sec:AvgDailyGain}
+
+<<adg1,fig=TRUE,echo=TRUE,width=5,height=6>>=
+print(xyplot(adg ~ Treatment | Block, AvgDailyGain, type = c("g", "p", "r"),
+       xlab = "Treatment (amount of feed additive)",
+       ylab = "Average daily weight gain (lb.)", aspect = "xy",
+       index.cond = function(x, y) coef(lm(y ~ x))[1]))
+@ 
+\begin{figure}[tbp]
+  \centering
+  \includegraphics{figs/f-adg1}
+  \caption{Average daily weight gain}
+  \label{fig:adg1}
+\end{figure}
+<<adg>>=
+## compare with output 5.1, p. 178
+(fm1Adg <- lmer(adg ~ (Treatment - 1)*InitWt + (1 | Block), AvgDailyGain))
+anova(fm1Adg)   # checking significance of terms
+## common slope model
+(fm2Adg <- lmer(adg ~ InitWt + Treatment + (1 | Block), AvgDailyGain))
+anova(fm2Adg)
+(fm3Adg <- lmer(adg ~ InitWt + Treatment - 1 + (1 | Block), AvgDailyGain))
+@ 
+
+
+\section{BIB}
+\label{sec:BIB}
+<<bib1,fig=TRUE,echo=TRUE,width=6,height=6>>=
+print(xyplot(y ~ x | Block, BIB, groups = Treatment, type = c("g", "p"),
+             aspect = "xy", auto.key = list(points = TRUE, space = "right",
+             lines = FALSE)))
+@ 
+\begin{figure}[tbp]
+  \centering
+  \includegraphics{figs/f-bib1}
+  \caption{Balanced incomplete block design}
+  \label{fig:bib1}
+\end{figure}
+<<bib>>=
+## compare with Output 5.7, p. 188
+(fm1BIB <- lmer(y ~ Treatment * x + (1|Block), BIB))
+anova(fm1BIB)     # strong evidence of different slopes
+## compare with Output 5.9, p. 193
+(fm2BIB <- lmer(y ~ Treatment + x:Grp + (1|Block), BIB))
+anova(fm2BIB)
+@ 
+
+
+\section{Bond}
+\label{sec:Bond}
+
+<<bond>>=
+## compare with output 1.1 on p. 6
+(fm1Bond <- lmer(pressure ~ Metal + (1|Ingot), Bond))
+anova(fm1Bond)
+@
+
+\section{Cultivation}
+\label{sec:Cultivation}
+
+<<Cultivation>>=
+str(Cultivation)
+xtabs(~Block+Cult, Cultivation)
+(fm1Cult <- lmer(drywt ~ Inoc * Cult + (1|Block) + (1|Cult), Cultivation))
+anova(fm1Cult)
+(fm2Cult <- lmer(drywt ~ Inoc + Cult + (1|Block) + (1|Cult), Cultivation))
+anova(fm2Cult)
+(fm3Cult <- lmer(drywt ~ Inoc + (1|Block) + (1|Cult), Cultivation))
+anova(fm3Cult)
+@ 
+
+
+
+\section{Demand}
+\label{sec:Demand}
+
+<<Demand>>=
+## compare to output 3.13, p. 132
+(fm1Demand <-
+ lmer(log(d) ~ log(y) + log(rd) + log(rt) + log(rs) + (1|State) + (1|Year),
+      Demand))
+@ 
+
+\section{HR}
+\label{sec:HR}
+<<HR>>=
+## linear trend in time
+(fm1HR <- lmer(HR ~ Time * Drug + baseHR + (Time|Patient), HR))
+anova(fm1HR)
+## remove interaction
+(fm3HR <- lmer(HR ~ Time + Drug + baseHR + (Time|Patient), HR))
+anova(fm3HR)
+## remove Drug term
+(fm4HR <- lmer(HR ~ Time + baseHR + (Time|Patient), HR))
+anova(fm4HR)
+@ 
+
+
+\section{Mississippi}
+\label{sec:Mississippi}
+
+<<Mississippi>>=
+## compare with output 4.1, p. 142
+(fm1Miss <- lmer(y ~ 1 + (1 | influent), Mississippi))
+## compare with output 4.2, p. 143
+(fm1MLMiss <- lmer(y ~ 1 + (1 | influent), Mississippi, method = "ML"))
+ranef(fm1MLMiss)          # BLUP's of random effects on p. 144
+ranef(fm1Miss)            # BLUP's of random effects on p. 142
+VarCorr(fm1Miss)          # compare to output 4.7, p. 148
+## compare to output 4.8 and 4.9, pp. 150-152
+(fm2Miss <- lmer(y ~ Type + (1 | influent), Mississippi))
+anova(fm2Miss)
+@ 
+
+\section{Multilocation}
+\label{sec:Multilocation}
+
+<<Multilocation>>=
+str(Multilocation)
+### Create a Block %in% Location factor
+Multilocation$Grp <- with(Multilocation, Block:Location)
+(fm1Mult <- lmer(Adj ~ Location * Trt + (1|Grp), Multilocation))
+anova(fm1Mult)
+(fm2Mult <- lmer(Adj ~ Location + Trt + (1|Grp), Multilocation))
+(fm3Mult <- lmer(Adj ~ Location + (1|Grp), Multilocation))
+(fm4Mult <- lmer(Adj ~ Trt + (1|Grp), Multilocation))
+(fm5Mult <- lmer(Adj ~ 1 + (1|Grp), Multilocation))
+anova(fm2Mult)
+(fm2MultR <- lmer(Adj ~ Trt + (Trt - 1|Location) + (1|Block), Multilocation,
+                  control = list(msV = 1, niterEM = 200)))
+@
+
+
+\section{PBIB}
+\label{sec:PBIB}
+
+<<PBIB>>= 
+str(PBIB)
+## compare with output 1.7  pp. 24-25
+(fm1PBIB <- lmer(response ~ Treatment + (1 | Block), PBIB))
+@ 
+
+
+\section{SIMS}
+\label{sec:SIMS}
+
+<<SIMS>>=
+str(SIMS)
+## compare to output 7.4, p. 262
+(fm1SIMS <- lmer(Gain ~ Pretot + (Pretot | Class), SIMS))
+@ 
+\end{document}
+
+%%% Local Variables: 
+%%% mode: latex
+%%% TeX-master: t
+%%% End: 

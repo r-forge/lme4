@@ -1,0 +1,35 @@
+\name{PBIB}
+\alias{PBIB}
+\non_function{}
+\title{A partially balanced incomplete block experiment}
+\description{
+    The \code{PBIB} data frame has 60 rows and 3 columns.
+}
+\format{
+    This data frame contains the following columns:
+    \describe{
+	\item{response}{
+	    a numeric vector
+	}
+	\item{Treatment}{
+	    a factor with levels \code{1} to \code{15} 
+	}
+	\item{Block}{
+	    an ordered factor with levels \code{1} to \code{15} 
+	}
+    }
+}
+%\details{}
+\source{
+    Littel, R. C., Milliken, G. A., Stroup, W. W., and Wolfinger,
+    R. D. (1996), \emph{SAS System for Mixed Models}, SAS Institute
+    (Data Set 1.5.1).
+}
+\examples{
+options(contrasts = c(unordered = "contr.SAS", ordered = "contr.poly"))
+str(PBIB)
+fm1PBIB <- lmer(response ~ Treatment + (1|Block), PBIB)
+summary(fm1PBIB)     # compare with output 1.7  pp. 24-25
+anova(fm1PBIB)
+}
+\keyword{datasets}

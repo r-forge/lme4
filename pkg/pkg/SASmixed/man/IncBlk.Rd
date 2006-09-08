@@ -1,0 +1,37 @@
+\name{IncBlk}
+\alias{IncBlk}
+\non_function{}
+\title{An unbalanced incomplete block experiment}
+\description{
+    The \code{IncBlk} data frame has 24 rows and 4 columns.
+}
+\format{
+    This data frame contains the following columns:
+    \describe{
+	\item{Block}{
+	    an ordered factor giving the block
+	}
+	\item{Treatment}{
+	    a factor with levels \code{1} to \code{4} 
+	}
+	\item{y}{
+	    a numeric vector
+	}
+	\item{x}{
+	    a numeric vector
+	}
+    }
+}
+\details{
+    These data are probably constructed data.
+}
+\source{
+    Littel, R. C., Milliken, G. A., Stroup, W. W., and Wolfinger,
+    R. D. (1996), \emph{SAS System for Mixed Models}, SAS Institute
+    (Data Set 5.5).
+}
+\examples{
+data(IncBlk)
+str(IncBlk)
+}
+\keyword{datasets}
