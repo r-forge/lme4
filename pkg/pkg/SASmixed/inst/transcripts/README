@@ -1,0 +1,45 @@
+## $Id: README,v 1.1 1999/10/13 00:50:09 saikat Exp $
+
+	     Transcripts of lme analyses of examples from
+		    "SAS System for Mixed Models"
+
+			    Douglas Bates
+	     Dept. of Statistics, U. of Wisconsin-Madison
+
+			   Jose C. Pinheiro
+		    Bell Labs, Lucent Technologies
+
+This directory contains transcripts of analyses of some of the
+examples from the book "SAS System for Mixed Models" by Littell,
+Milliken, Stroup, and Wolfinger (SAS Institute, 1996).  These
+alternate analyses were done in S-PLUS 3.4 using version 3.0 of the
+nlme library.  They primarily use the lme function for fitting linear
+mixed effects models.
+
+For each example there is a file with a .St extension which is an
+S-transcript file.  Another file with a .q extension contains the
+commands and comments only.  If you have the data files available as S 
+objects in the directory ../data/.Data, you should be able to
+reproduce the HR.St transcript, for example, by defining a .First
+function so that the NLME/.Data and the SAS_Mixed/.Data directories
+get attached and so that the NLME/NLME.so shared object gets
+dyn.loaded.   We also use a setting for the options of
+ options( width = 65, length = 10000, digits = 5, prompt = "S> " )
+
+Then
+ Splus BATCH HR.q HR.out
+should produce a file HR.out similar to the HR.St file.  The graphics
+will be in a file with a name like ps.out.0001.ps
+
+An alternative, if you use ESS (Emacs Speaks Statistics) within the
+emacs editor is to start an Splus process, attach the appropriate
+directories, dyn.load the shared object and set the options then find
+the .q file and used C-c C-n to step through the file sending the
+commands to the S-PLUS process.  Of course this can also be done in
+ESS by finding the transcript file itself then using C-m in the
+transcript file.  ESS is available from 
+		  http://franz.stat.wisc.edu/pub/ESS
+
+
+
+
