@@ -28,13 +28,11 @@ The \code{Genetics} data frame has 60 rows and 4 columns.
     (Data Set 4.5).
 }
 \examples{
-options(contrasts = c(unordered = "contr.SAS", ordered = "contr.poly"))
 str(Genetics)
-Genetics$LocFam <- with(Genetics, Location:Family)
-Genetics$LocBloc <- with(Genetics, Location:Block)
-\dontrun{
-(fm1Gen <- lmer(Yield ~ 1 + (1|LocBloc) + (1|LocFam) + (1|Location), Genetics))
-(fm2Gen <- lmer(Yield ~ Family + (1|LocBloc) + (1|LocFam) + (1|Location), Genetics))
+if (require("lme4", quietly = TRUE, character = TRUE)) {
+  options(contrasts = c(unordered = "contr.SAS", ordered = "contr.poly"))
+  summary(fm1Gen <- lmer(Yield ~ 1 + (1|Location/Block/Family), Genetics))
+  summary(fm2Gen <- lmer(Yield ~ Family + (1|Location/Block), Genetics))
 }
 }
 \keyword{datasets}

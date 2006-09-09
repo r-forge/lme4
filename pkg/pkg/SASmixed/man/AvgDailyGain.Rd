@@ -38,7 +38,7 @@
     (Data Set 5.3).
 }
 \examples{
-options(contrasts = c(unordered = "contr.SAS", ordered = "contr.poly"))
+str(AvgDailyGain)
 if (require("lattice", quietly = TRUE, character = TRUE)) {
   ## plot of adg versus Treatment by Block
   xyplot(adg ~ Treatment | Block, AvgDailyGain, type = c("g", "p", "r"),
@@ -46,11 +46,16 @@ if (require("lattice", quietly = TRUE, character = TRUE)) {
          ylab = "Average daily weight gain (lb.)", aspect = "xy",
          index.cond = function(x, y) coef(lm(y ~ x))[1])
 }
-# compare with output 5.1, p. 178
-(fm1Adg <- lmer(adg ~ InitWt * Treatment - 1 + (1 | Block), AvgDailyGain))
-anova(fm1Adg)   # checking significance of terms
-(fm2Adg <- lmer(adg ~ InitWt + Treatment + (1 | Block), AvgDailyGain))
-anova(fm2Adg)
-summary(lmer(adg ~ InitWt + Treatment - 1 + (1 | Block), AvgDailyGain))
+if (require("lme4", quietly = TRUE, character = TRUE)) {
+  options(contrasts = c(unordered = "contr.SAS", ordered = "contr.poly"))
+  ## compare with output 5.1, p. 178
+  print(fm1Adg <- lmer(adg ~ InitWt * Treatment - 1 + (1 | Block),
+                         AvgDailyGain))
+  print(anova(fm1Adg))   # checking significance of terms
+  print(fm2Adg <- lmer(adg ~ InitWt + Treatment + (1 | Block),
+                         AvgDailyGain))
+  print(anova(fm2Adg))
+  print(lmer(adg ~ InitWt + Treatment - 1 + (1 | Block), AvgDailyGain))
+}
 }
 \keyword{datasets}

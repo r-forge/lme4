@@ -35,14 +35,14 @@
   (Data Set 3.2(a)).
 }
 \examples{
-options(contrasts = c(unordered = "contr.SAS", ordered = "contr.poly"))
 str(Weights)
-fm1Weight <- lmer(strength ~ Program * Time + (1|Subj), Weights)
-summary(fm1Weight)               # compare with output 3.1, p. 91
-anova(fm1Weight)
-fm2Weight <- lmer(strength ~ Program * Time + (Time|Subj), Weights)
-anova(fm1Weight, fm2Weight)
-summary(fm2Weight)
+if (require("lme4", quietly = TRUE, character = TRUE)) {
+  options(contrasts = c(unordered = "contr.SAS", ordered = "contr.poly"))
+  ## compare with output 3.1, p. 91
+  print(fm1Weight <- lmer(strength ~ Program * Time + (1|Subj), Weights))
+  print(anova(fm1Weight))
+  print(fm2Weight <- lmer(strength ~ Program * Time + (Time|Subj), Weights))
+  print(anova(fm1Weight, fm2Weight))
 \dontrun{
 intervals(fm2Weight)
 fm3Weight <- update(fm2Weight, correlation = corAR1())
@@ -52,6 +52,7 @@ fm4Weight <- update(fm3Weight, strength ~ Program * (Time + I(Time^2)),
 summary(fm4Weight)
 anova(fm4Weight)
 intervals(fm4Weight)
+}
 }
 }
 \keyword{datasets}
