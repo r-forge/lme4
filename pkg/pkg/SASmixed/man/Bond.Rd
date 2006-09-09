@@ -32,9 +32,12 @@
     \emph{Mathematical Statistics}, Wadsworth (Exercise 13.36).
 }
 \examples{
+str(Bond)
 options(contrasts = c(unordered = "contr.SAS", ordered = "contr.poly"))
-fm1Bond <- lmer(pressure ~ Metal + (1|Ingot), Bond)
-summary(fm1Bond)               # compare with output 1.1 on p. 6
-anova(fm1Bond)
+if (require("lme4", quietly = TRUE, character = TRUE)) {
+  ## compare with output 1.1 on p. 6
+  print(fm1Bond <- lmer(pressure ~ Metal + (1|Ingot), Bond))
+  print(anova(fm1Bond))
+}
 }
 \keyword{datasets}

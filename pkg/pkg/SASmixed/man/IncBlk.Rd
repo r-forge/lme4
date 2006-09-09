@@ -31,7 +31,6 @@
     (Data Set 5.5).
 }
 \examples{
-data(IncBlk)
 str(IncBlk)
 }
 \keyword{datasets}

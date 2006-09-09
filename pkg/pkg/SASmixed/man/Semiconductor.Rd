@@ -35,11 +35,13 @@
 
 }
 \examples{
-options(contrasts = c(unordered = "contr.SAS", ordered = "contr.poly"))
 str(Semiconductor)
-(fm1Semi <- lmer(resistance ~ ET * position + (1|Grp), Semiconductor))
-anova(fm1Semi)
-(fm2Semi <- lmer(resistance ~ ET + position + (1|Grp), Semiconductor))
-anova(fm2Semi)
+if (require("lme4", quietly = TRUE, character = TRUE)) {
+  options(contrasts = c(unordered = "contr.SAS", ordered = "contr.poly"))
+  print(fm1Semi <- lmer(resistance ~ ET * position + (1|Grp), Semiconductor))
+  print(anova(fm1Semi))
+  print((fm2Semi <- lmer(resistance ~ ET + position + (1|Grp), Semiconductor)))
+  print(anova(fm2Semi))
+}
 }
 \keyword{datasets}

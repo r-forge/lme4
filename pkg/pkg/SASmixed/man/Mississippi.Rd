@@ -29,18 +29,24 @@ The \code{Mississippi} data frame has 37 rows and 3 columns.
     (Data Set 4.2).
 }
 \examples{
-options(contrasts = c(unordered = "contr.SAS", ordered = "contr.poly"))
 str(Mississippi)
-#plot(Mississippi)
-fm1Miss <- lmer(y ~ 1 + (1|influent), Mississippi)
-summary(fm1Miss)        # compare with output 4.1, p. 142
-fm1MLMiss <- update(fm1Miss, method = "ML")
-summary(fm1MLMiss)        # compare with output 4.2, p. 143
-ranef(fm1MLMiss)          # BLUP's of random effects on p. 144
-ranef(fm1Miss)            # BLUP's of random effects on p. 142
+if (require("lattice", quietly = TRUE, character = TRUE)) {
+  dotplot(drop(influent:Type) ~ y, groups = Type, Mississippi)
+} 
+if (require("lme4", quietly = TRUE, character = TRUE)) {
+  options(contrasts = c(unordered = "contr.SAS", ordered = "contr.poly"))
+  ## compare with output 4.1, p. 142
+  print(fm1Miss <- lmer(y ~ 1 + (1|influent), Mississippi))
+  ## compare with output 4.2, p. 143
+  print(fm1MLMiss <- update(fm1Miss, method = "ML"))
+  ## BLUP's of random effects on p. 142
+  ranef(fm1Miss)            
+  ## BLUP's of random effects on p. 144
+  print(ranef(fm1MLMiss))
 #intervals(fm1Miss)       # interval estimates of variance components
-fm2Miss <- lmer(y ~ Type+(1|influent), Mississippi, method = "REML")
-summary(fm2Miss)         # compare to output 4.8 and 4.9, pp. 150-152
-anova(fm2Miss)
+  ## compare to output 4.8 and 4.9, pp. 150-152
+  print(fm2Miss <- lmer(y ~ Type+(1|influent), Mississippi, method = "REML"))
+  print(anova(fm2Miss))
+}
 }
 \keyword{datasets}

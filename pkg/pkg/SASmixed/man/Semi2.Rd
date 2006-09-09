@@ -32,18 +32,19 @@
     (Data Set 4.4).
 }
 \examples{
-options(contrasts = c(unordered = "contr.SAS", ordered = "contr.poly"))
 str(Semi2)
 xtabs(~Lot + Wafer, Semi2)
-Semi2$LotWafer <- with(Semi2, Lot:Wafer)
-fm1Semi2 <- lmer(Thickness ~ 1 + (1|LotWafer) + (1|Lot), Semi2)
-summary(fm1Semi2)       # compare with output 4.13, p. 156
-fm2Semi2 <- lmer(Thickness ~ Source + (1|LotWafer) + (1|Lot), Semi2)
-summary(fm2Semi2)       # compare with output 4.15, p. 159
-anova(fm2Semi2)
-Semi2$LotSrc <- with(Semi2, Lot:Source)
-fm3Semi2 <- lmer(Thickness ~ Source + (1|LotWafer) + (1|LotSrc), Semi2)
-summary(fm3Semi2)       # compare with output 4.17, p. 163
-## This is not the same as the SAS model.
+if (require("lme4", quietly = TRUE, character = TRUE)) {
+  options(contrasts = c(unordered = "contr.SAS", ordered = "contr.poly"))
+  ## compare with output 4.13, p. 156
+  print(fm1Semi2 <- lmer(Thickness ~ 1 + (1|Lot/Wafer), Semi2))
+  ## compare with output 4.15, p. 159
+  print(fm2Semi2 <- lmer(Thickness ~ Source + (1|Lot/Wafer), Semi2))
+  print(anova(fm2Semi2))
+  ## compare with output 4.17, p. 163
+  print(fm3Semi2 <- lmer(Thickness ~ Source + (1|Lot/Wafer) + (1|Lot:Source),
+                         Semi2))
+  ## This is not the same as the SAS model.
+}
 }
 \keyword{datasets}

@@ -45,9 +45,11 @@
 }
 \examples{
 str(Demand)
-fm1Demand <-
-  lmer(log(d) ~ log(y) + log(rd) + log(rt) + log(rs) + (1|State) + (1|Year),
-       Demand)
-summary(fm1Demand)        # compare to output 3.13, p. 132
+if (require("lme4", quietly = TRUE, character = TRUE)) {
+  ## compare to output 3.13, p. 132
+  summary(fm1Demand <-
+      lmer(log(d) ~ log(y) + log(rd) + log(rt) + log(rs) + (1|State) + (1|Year),
+         Demand))
+}
 }
 \keyword{datasets}
