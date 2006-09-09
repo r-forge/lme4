@@ -1,3 +1,8 @@
+2006-09-09  Douglas Bates  <bates@R-project.org>
+
+	* man/BIB.Rd: Update this and all other examples for lmer back in
+	the lme4 package
+
 2006-01-04  Douglas Bates  <bates@stat.wisc.edu>
 
 	* man/BIB.Rd: Remove calls to gplot in this and other examples.
