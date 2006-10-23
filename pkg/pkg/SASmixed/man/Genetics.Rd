@@ -31,8 +31,7 @@ The \code{Genetics} data frame has 60 rows and 4 columns.
 str(Genetics)
 if (require("lme4", quietly = TRUE, character = TRUE)) {
   options(contrasts = c(unordered = "contr.SAS", ordered = "contr.poly"))
-  summary(fm1Gen <- lmer(Yield ~ 1 + (1|Location/Block/Family), Genetics))
-  summary(fm2Gen <- lmer(Yield ~ Family + (1|Location/Block), Genetics))
+  summary(fm1Gen <- lmer(Yield ~ Family + (1|Location/Block), Genetics))
 }
 }
 \keyword{datasets}
