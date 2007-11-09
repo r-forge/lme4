@@ -41,11 +41,11 @@ setMethod("lmList", signature(formula = "formula", data = "data.frame"),
                         }, formula = mform$model)
           } else {
               val <- lapply(split(frm, eval(mform$groups, frm)),
-                            function(dat, formula)
+                            function(dat, formula, family)
                         {
                             ans <- try({
                                 data <- as.data.frame(dat)
-                                glm(formula, data, family)
+                                glm(formula, family, data)
                             })
                             if (inherits(ans, "try-error"))
                                 NULL
