@@ -1,0 +1,224 @@
+2007-11-09 18:33  Douglas Bates <bates@stat.wisc.edu>
+
+	* [r4845] R/AllGeneric.R,lmer.R, NAMESPACE: new functions lmer2, for
+	  back-compatibility, and devvals
+	* [r4847] DESCRIPTION: standardized LICENSE information
+	* [r4848] src/lmer.c: Minor clean-up
+	* [r4849] inst/doc/Implementation.Rnw: Switch location of datasets to
+	  MEMSS package
+	
+2007-10-06 18:06  Douglas Bates <bates@stat.wisc.edu>
+
+	* [r4816] DESCRIPTION, R/lmer.R: Update fitted and resid methods; new
+	  version of R
+
+2007-10-04 20:33  Douglas Bates <bates@stat.wisc.edu>
+
+	* [r4809] src/lmer.c: remove alloc3DArray (part of R from 2.6.0)
+
+2007-09-26 17:32  Douglas Bates <bates@stat.wisc.edu>
+
+	* [r4787] R/lmer.R: Reinstitute the names of variance components from
+	  formatVC
+
+2007-09-25 15:08  Douglas Bates <bates@stat.wisc.edu>
+
+	* [r4782] src/lmer.h: Provide definition of alloca for Solaris 10
+
+2007-09-11 22:17  Douglas Bates <bates@stat.wisc.edu>
+
+	* [r4767] src/init.c, src/lmer.c, src/lmer.h: Cleanup, add new functions
+	  for .Call
+
+2007-08-31 10:50  Douglas Bates <bates@stat.wisc.edu>
+
+	* [r4750] man/lmer-class.Rd, man/ranef.Rd: Update documentation
+	* [r4751] Done, ToDo: Update
+	* [r4752] R/AllClass.R: Incorporate mu and resid slots in mer class
+	* [r4753] R/lmer.R: Incorporate mu and resid slots in mer class
+
+2007-08-14 13:07  Douglas Bates <bates@stat.wisc.edu>
+
+	* [r4731] src/lmer.h: declare alloca
+	* [r4732] src/lmer.c: unused variable
+	
+2007-08-12 13:21  Douglas Bates <bates@stat.wisc.edu>
+
+	* [r4728] R/AllClass.R, R/lmer.R, src/Syms.h, src/init.c, src/lmer.c:
+	  changes for glmer (not yet complete), code cleanup
+
+2007-08-04 23:44  Douglas Bates <bates@stat.wisc.edu>
+
+	* [r4709] R/AllClass.R, R/lmer.R, man/lmer.Rd, src/Syms.h, src/init.c,
+	  src/lmer.c, src/lmer.h: Got nlmer working
+
+2007-08-03 19:19  Douglas Bates <bates@stat.wisc.edu>
+
+	* [r4705] NAMESPACE, R/AllClass.R, man/lmer-class.Rd, man/ranef.Rd:
+	  Change name of ranef.mer class
+	* [r4706] R/lmList.R, R/lmer.R, R/pedigree.R: Use seq_along
+	* [r4707] DESCRIPTION, src/init.c, src/lme4_utils.h, src/lmer.c,
+	  src/lmer.h, src/pedigree.c, src/pedigree.h: Update Matrix API,
+	  amalgamate source files, include R.h before other R headers
+
+2007-08-01 16:29  Douglas Bates <bates@stat.wisc.edu>
+
+	* [r4688] src/lme4_utils.h: Preparing to remove this file
+	* [r4689] src/pedigree.h: Preparing to remove this file
+
+2007-07-26 14:28  Douglas Bates <bates@stat.wisc.edu>
+
+	* [r4664] R/lmer.R, inst/doc/Implementation.Rnw, inst/doc/Theory.Rnw,
+	  man/cbpp.Rd, man/lmer-class.Rd, man/lmer.Rd, src/init.c, src/lmer.c,
+	  src/lmer.h: work on glmer, nlmer, and lmer_postVar
+	* [r4678] src/lmer.c: Conditional compilation of alloc3DArray
+
+2007-07-23 13:26  Douglas Bates <bates@stat.wisc.edu>
+
+	* [r4658] R/lmer.R, src/init.c, src/lmer.c, src/lmer.h: More work on
+	  nlmer
+
+2007-07-20 20:41  Douglas Bates <bates@stat.wisc.edu>
+
+	* [r4654] R/lmer.R, src/init.c, src/lmer.c, src/lmer.h: Got nlmer
+	  running for simple models but still problems with multiple random
+	  effects per level
+
+2007-07-19 21:28  Douglas Bates <bates@stat.wisc.edu>
+
+	* [r4640] R/AllGeneric.R, R/lmer.R, src/init.c, src/lmer.c, src/lmer.h:
+	  More work on nlmer and glmer
+	* [r4645] Done, ToDo: Tracking
+	* [r4646] R/AllClass.R, R/lmer.R, man/lmer.Rd, src/init.c, src/lmer.c,
+	  src/lmer.h: More work on nlmer. Consistency of classes.
+
+2007-07-17 22:12  Douglas Bates <bates@stat.wisc.edu>
+	
+	* [r4715] R/AllClass.R, R/lmer.R, ToDo, inst/doc/Implementation.Rnw,
+	  man/lmer-class.Rd, src/init.c, src/lmer.c, src/lmer.h: Update nlmer
+	  and clean up
+	* [r4717] src/lmer.c: Work on glmer
+	* [r4635] R/lmer.R, man/cbpp.Rd, src/init.c, src/lmer.c, src/lmer.h:
+	  Working on glmer_condDev
+
+2007-07-16 23:02  Douglas Bates <bates@stat.wisc.edu>
+	* [r4620] R/AllClass.R, R/AllGeneric.R, R/lmer.R, man/lmer.Rd,
+	  src/init.c, src/lmer.c, src/lmer.h: Preparing for a beta release
+	* [r4621] man/lmer-class.Rd, man/mcmcsamp.Rd, man/ranef.Rd,
+	  tests/lmer.R: Adjust tests and examples for unimplemented or broken
+	  functions and methods
+	* [r4622] src/lmer.c: documentation infelicity
+	* [r4623] R/AllClass.R, R/lmer.R: Rationalize summary class structure
+	* [r4624] R/mlirt.R: Remove references to defunct C functions
+	* [r4627] src/lmer.c: New version of calculation of update in glmer
+	  conditional modes
+	
+2007-07-13 21:34  Douglas Bates <bates@stat.wisc.edu>
+	* [r4613] inst/doc/Theory.Rnw: Use Poisson mixed model as example of
+	  GLMM
+	* [r4614] man/lmer.Rd: Incorporate glmer example
+	* [r4615] R/lmer.R: Add mkdims utility for lmer and glmer
+
+2007-07-12 20:11  Douglas Bates <bates@stat.wisc.edu>
+
+	* [r4607] R/lmer.R, man/cbpp.Rd: glmer skeleton and test
+
+2007-07-11 20:30  Douglas Bates <bates@stat.wisc.edu>
+
+	* [r4602] src/lmer.c: Part of the extension of lmer to correlated random
+	  effects
+	* [r4603] inst/doc/Theory.Rnw: Minor cleanup
+	* [r4604] src/init.c, src/lmer.c, src/lmer.h: Correct ordering of
+	  operations in PSTp_dense_mult; allow external access to mer_update_VtL
+	
+2007-07-10 16:36  Douglas Bates <bates@stat.wisc.edu>
+
+	* [r4591] inst/doc/Theory.Rnw, inst/doc/lme4.bib: Move definitive
+	  version of vignette sources to this branch
+	* [r4592] R/lmer.R, src/init.c, src/lmer.c, src/lmer.h: Clean up the
+	  code.
+	
+2007-07-09 23:08  Douglas Bates <bates@stat.wisc.edu>
+
+	* [r4576] R/lmer.R, src/init.c, src/lmer.c, src/lmer.h: Change name
+	  famType to ftyp and Nested to nest in the dims vector (output form is
+	  easier to read)
+	* [r4577] inst/doc/Implementation.Rnw, inst/doc/Theory.Rnw: updates of
+	  vignettes
+	* [r4584] src/lmer.c: Use Alloca macro, call update_VtL from
+	  within lmer_update_dev and not in update_deviance
+	
+2007-07-06 16:34  Douglas Bates <bates@stat.wisc.edu>
+
+	* [r4562] man/lmer-class.Rd: Move nlmer class documentation to
+	  lmer-class.Rd
+	* [r4563] R/lmer.R, src/lmer.c, src/pedigree.c: Got new lmer running on
+	  models with independent r.e.'s
+
+2007-07-05 23:05  Douglas Bates <bates@stat.wisc.edu>
+
+	* [r4557] NAMESPACE, R/AllClass.R, R/carryOver.R, R/lmer.R, R/mlirt.R,
+	  man/VarCorr.Rd, man/fixef.Rd, man/hatTrace.Rd, man/lmer-class.Rd,
+	  man/lmer.Rd, man/mcmcsamp.Rd, man/nlmer-class.Rd, man/nlmer.Rd,
+	  man/ranef.Rd, src/init.c, src/lmer.c, src/lmer.h: First cut at the
+	  docs and some methods including printing
+	
+2007-07-04 18:38  Douglas Bates <bates@stat.wisc.edu>
+
+	* [r4546] R/AllClass.R, R/lmer.R, src/init.c, src/lmer.c, src/lmer.h:
+	  Replaced the C functions glmer_create and nlmer_create by R code
+
+2007-07-03 14:43  Douglas Bates <bates@stat.wisc.edu>
+
+	* [r4539] inst/doc/Doxyfile: Added Doxyfile (not yet working to my
+	  satisfaction).
+	* [r4540] inst/doc/Doxyfile: Change version number (should take this
+	  from the DESCRIPTION file).
+	* [r4541] src/lmer.c: Use a macro to obtain the L slot as a CHM_FR
+	  object
+
+2007-07-02 22:38  Douglas Bates <bates@stat.wisc.edu>
+
+	* [r4537] R/AllClass.R, R/lmer.R, ToDo, src/Syms.h, src/init.c,
+	  src/lmer.c, src/lmer.h: Got a version that runs a simple model fit!
+	  Hooray!
+
+2007-06-29 03:41  Douglas Bates <bates@stat.wisc.edu>
+
+	* [r4516] src/Syms.h, src/init.c, src/lmer2.c: rationalizing the symbols
+	* [r4517] src/Syms.h, src/lme4_utils.h, src/lmer.c, src/lmer.h,
+	  src/lmer2.c, src/lmer2.h: re-arranging file names
+
+2007-06-28 21:00  Douglas Bates <bates@stat.wisc.edu>
+
+	* [r4514] ChangeLog, DESCRIPTION, NAMESPACE, R/AllClass.R, R/lmer.R,
+	  inst/doc/Theory.Rnw, man/gsummary.Rd, man/lmList.Rd, src/Syms.h,
+	  src/Wishart.c, src/Wishart.h, src/glmer.c, src/glmer.h, src/init.c,
+	  src/lme4_utils.c, src/lme4_utils.h, src/lmer.c, src/lmer.h,
+	  src/lmer2.c, src/lmer2.h, src/pedigree.h: Switch lmer2 to lmer, glmer
+	  and nlmer
+	* [r4515] src/unused: incorporated useful parts into lmer.c
+	
+2007-06-20 14:08  Douglas Bates <bates@stat.wisc.edu>
+
+	* [r4490] R/lmer.R: Do not throw an error when nlev[i] == nobs for the
+	  Poisson family
+	* [r4491] inst/doc/Theory.Rnw: Tighten up the description of GLMMs
+	* [r4492] DESCRIPTION: Version 0.99875-2
+	
+2007-06-11 19:02  Douglas Bates <bates@stat.wisc.edu>
+
+	* [r4449] DESCRIPTION, inst/doc/Theory.Rnw, inst/doc/lme4.bib: Added
+	  Theory vignette, release 0.99875-1
+	
+2007-06-07 21:15  Douglas Bates <bates@stat.wisc.edu>
+
+	* [r4446] DESCRIPTION, NAMESPACE, R/AllClass.R, R/lmer.R,
+	  man/VarCorr.Rd, man/nlmer-class.Rd, man/nlmer.Rd, src/init.c,
+	  src/lmer2.c, src/lmer2.h: A working nlmer - hooray!
+
+2007-06-03 19:16  Douglas Bates <bates@stat.wisc.edu>
+
+	* [r4414] R/AllClass.R, R/lmer.R, src/init.c, src/lmer2.c, src/lmer2.h:
+	  More modifications to nlmer
+
