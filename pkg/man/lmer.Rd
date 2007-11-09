@@ -1,5 +1,6 @@
 \name{lmer}
 \alias{lmer}
+\alias{lmer2}
 \alias{glmer}
 \alias{nlmer}
 \concept{GLMM}% << so it's found
@@ -11,6 +12,9 @@
 }
 \usage{
 lmer(formula, data, family, method, control, start,
+     verbose, subset, weights, na.action, offset,
+     contrasts, model, x, \dots)
+lmer2(formula, data, family, method, control, start,
      verbose, subset, weights, na.action, offset,
      contrasts, model, x, \dots)
 glmer(formula, data, family, method, control, start,
@@ -101,6 +105,9 @@ nlmer(formula, data, control, start, verbose,
       components of the fit (the model frame, the model matrices)
       are returned.}
   }
+
+  The \code{lmer2} name exists only for backwards compatibility.
+  Calling this function simply produces an equivalent call to \code{lmer}.
 }
 \value{
   An object of class \code{"\linkS4class{lmer}"}.
