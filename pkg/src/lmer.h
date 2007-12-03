@@ -37,13 +37,13 @@ extern
 #endif
 
 
-SEXP ST_getPars(SEXP x);
-SEXP ST_initialize(SEXP ST, SEXP Gp, SEXP Zt);
-SEXP ST_setPars(SEXP x, SEXP pars);
+SEXP mer_ST_getPars(SEXP x);
+SEXP mer_ST_initialize(SEXP ST, SEXP Gp, SEXP Zt);
+SEXP mer_ST_setPars(SEXP x, SEXP pars);
 
-SEXP glmer_dev_resids(SEXP x);
-SEXP glmer_dmu_deta(SEXP x);
-SEXP glmer_var(SEXP x);
+/* SEXP glmer_dev_resids(SEXP x); */
+/* SEXP glmer_dmu_deta(SEXP x); */
+/* SEXP glmer_var(SEXP x); */
 
 SEXP lme4_rWishart(SEXP ns, SEXP dfp, SEXP scal);
 
@@ -57,11 +57,10 @@ SEXP mer_optimize(SEXP x, SEXP verb);
 SEXP mer_postVar(SEXP x, SEXP useScale);
 SEXP mer_sigma(SEXP x, SEXP which);
 SEXP mer_update_L(SEXP x);
-SEXP mer_update_Vt(SEXP x);
 SEXP mer_update_effects(SEXP x);
 SEXP mer_update_eta(SEXP x);
-SEXP mer_update_mu_res(SEXP x);
-SEXP mer_update_lpdisc(SEXP x);
+SEXP mer_update_mu(SEXP x);
+SEXP mer_update_dev(SEXP x);
 SEXP mer_validate(SEXP x);
 
 SEXP nlmer_create_Mt(SEXP Vt, SEXP sP);

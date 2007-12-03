@@ -273,7 +273,7 @@ mkdims <- function(fr, FL, start)
     rm(Ztl, FL)                         # because they could be large
     nc <- sapply(cnames, length)        # # of columns in els of ST
     ST <- lapply(nc, function(n) matrix(0, n, n))
-    .Call(ST_initialize, ST, Gp, Zt)
+    .Call(mer_ST_initialize, ST, Gp, Zt)
     if (!is.null(start) && checkSTform(ST, start)) ST <- start
     Vt <- .Call(mer_create_Vt, Zt, ST, Gp)
 
@@ -312,16 +312,11 @@ mkFltype <- function(family)
     as.integer(fltype)
 }
 
+### This is probably no longer needed but we'll keep it for the time being
 mkFamilyEnv <- function(glmFit)
 ### Create and populate the family function evaluation environment.
 {
-    env <- new.env()
-    n <- length(glmFit$linear.predictors)
-    assign("devResid", unname(resid(glmFit, type = "deviance")), env = env)
-    assign("dmu_deta", numeric(n), env = env)
-    assign("var", numeric(n), env = env)
-### FIXME: install the family functions and create evaluation expressions in the environment
-    env
+    new.env()
 }
 
 convergenceMessage <- function(cvg)
@@ -353,8 +348,7 @@ mer_finalize <- function(ans, verbose)
     .Call(mer_optimize, ans, verbose)
     if (ans@dims["cvg"] > 6) warning(convergenceMessage(ans@dims["cvg"]))
     .Call(mer_update_effects, ans)
-    .Call(mer_update_eta, ans)
-    .Call(mer_update_mu_res, ans)
+    .Call(mer_update_mu, ans)
     ans
 }
 
@@ -407,7 +401,7 @@ lmer <-
 ### frame are dropped.  Really?  Are they part of the frame slot (if not
 ### reduced to 0 rows)?
                y = unname(Y), ZtXy = ZtXy, XytXy = XytXy,
-               weights = unname(fr$wts), offset = unname(fr$off),
+               sqrtWt = unname(fr$wts), offset = unname(fr$off),
                cnames = unname(dm$cnames), Gp = unname(dm$Gp),
                dims = dm$dd, ST = dm$ST, Vt = dm$Vt,
                L = .Call(mer_create_L, dm$Vt),
@@ -422,7 +416,7 @@ lmer <-
     mer_finalize(ans, verbose)
 }
 
-## for back-compatibility
+## for backward compatibility
 lmer2 <- 
     function(formula, data, family = NULL, method = c("REML", "ML"),
              control = list(), start = NULL, verbose, subset,
@@ -464,6 +458,8 @@ function(formula, data, family = gaussian, method = c("Laplace", "AGQ"),
     dm$dd["ftyp"] <- mkFltype(glmFit$family)
     dm$dd["mtyp"] <- 2L                 # generalized linear mixed model
     dimnames(fr$X) <- NULL
+    RXy <- crossprod(fr$X)
+    RXy[] <- 0
 
     ans <- new("glmer",
                env = mkFamilyEnv(glmFit),
@@ -472,21 +468,27 @@ function(formula, data, family = gaussian, method = c("Laplace", "AGQ"),
                call = mc, terms = fr$mt, flist = dm$flist,
                Zt = dm$Zt, X = fr$X,
                y = unname(as.double(glmFit$y)),
-               weights = unname(glmFit$prior.weights),
+               priorWt = unname(glmFit$prior.weights),
                offset = unname(fr$off),
                cnames = unname(dm$cnames), Gp = unname(dm$Gp),
-               dims = dm$dd, ST = dm$ST, Vt = dm$Vt,
+               dims = dm$dd, ST = dm$ST, Vt = dm$Vt, A = dm$Vt,
                L = .Call(mer_create_L, dm$Vt),
                deviance = dm$dev,
                fixef = coef(glmFit),
+               ranef = numeric(dm$dd["q"]),
+               uvec = numeric(dm$dd["q"]),
                eta = unname(glmFit$linear.predictors),
                mu = unname(glmFit$fitted.values),
-               ranef = numeric(dm$dd["q"]),
+               muEta = numeric(dm$dd["n"]),
+               var = numeric(dm$dd["n"]),
                resid = unname(glmFit$residuals),
-               uvec = numeric(dm$dd["q"]))
+               sqrtWt = numeric(dm$dd["n"]),
+               RVXy = as(dm$Zt %*% fr$X, "matrix"),
+               RXy = RXy)
     cv <- do.call("lmerControl", control)
     if (missing(verbose)) verbose <- cv$msVerbose
     mer_finalize(ans, verbose)
+    ans
 }
 
 nlmer <- function(formula, data, control = list(), start = NULL,
@@ -564,7 +566,7 @@ nlmer <- function(formula, data, control = list(), start = NULL,
                Mt = Mt, frame = if (model) fr$mf else fr$mf[0,],
                call = mc, terms = fr$mt, flist = dm$flist, X = X,
                Zt = dm$Zt, Vt = dm$Vt, y = unname(as.double(fr$Y)),
-               weights = unname(fr$wts), 
+               sqrtWt = unname(sqrt(fr$wts)), 
                cnames = unname(dm$cnames), Gp = unname(dm$Gp),
                dims = dm$dd, ST = dm$ST,
                L = .Call(mer_create_L, Mt),
@@ -777,7 +779,7 @@ setMethod("logLik", signature(object="mer"),
           val <- -deviance(object, REML = REML)/2
           attr(val, "nall") <- attr(val, "nobs") <- dims["n"]
           attr(val, "df") <-
-              dims["p"] + length(.Call(ST_getPars, object))
+              dims["p"] + length(.Call(mer_ST_getPars, object))
           attr(val, "REML") <-  as.logical(REML)
           class(val) <- "logLik"
           val
@@ -1255,7 +1257,7 @@ devvals <- function(fm, pmat, sigma1 = FALSE)
 {
     if (!is(fm, "lmer"))
         stop('fm must be an "lmer" fitted model')
-    np <- length(p0 <- .Call("ST_getPars", fm))
+    np <- length(p0 <- .Call(mer_ST_getPars, fm))
     pmat <- as.matrix(pmat)
     if (ncol(pmat) != np + sigma1)
         stop(gettextf("pmat must have %d columns", np + sigma1))
@@ -1267,7 +1269,7 @@ devvals <- function(fm, pmat, sigma1 = FALSE)
     ans <- matrix(0, nrow(pmat), ncol(pmat) + length(dev),
                   dimnames = list(NULL, c(pnms, names(dev))))
     for (i in seq_len(nrow(pmat))) {
-        .Call("ST_setPars", fm,
+        .Call(mer_ST_setPars, fm,
               ## This expression does not allow for correlated random
               ## effects.  It would be best to make the appropriate
               ## changes in the C code for ST_setPars.
@@ -1275,8 +1277,8 @@ devvals <- function(fm, pmat, sigma1 = FALSE)
         .Call("mer_update_lpdisc", fm)
         ans[i, ] <- c(pmat[i, ], fm@deviance)
     }
-    .Call("ST_setPars", fm, p0)
-    .Call("mer_update_lpdisc", fm)
+    .Call(mer_ST_setPars, fm, p0)
+    .Call(mer_update_lpdisc, fm)
     as.data.frame(ans)
 }
                    
