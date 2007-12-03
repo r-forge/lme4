@@ -14,12 +14,10 @@ setOldClass("family")
 setOldClass("logLik")
 setOldClass("terms")
 
-### FIXME: the nlmer class has 'mu' and 'resid' slots.  Should those
-### be part of the mer class?  Should eta, the linear predictor, be a
-### slot in the mer class?
-
 setClass("mer", ## Slots common to all three types of mixed models
 	 representation(## original data
+                        famName = "character", # name of GLM family and link
+                        env = "environment",  # evaluation env for family
                         frame = "data.frame", # model frame (or empty frame)
                         call = "call",      # matched call
                         terms = "terms",    # terms for fixed-effects
@@ -27,7 +25,7 @@ setClass("mer", ## Slots common to all three types of mixed models
                         X = "matrix",       # fixed effects model matrix
                                             # (may have 0 rows in lmer)
 			Zt = "dgCMatrix",   # sparse form of Z'
-			weights = "numeric", #  length 0 -> constant wts
+			priorWt = "numeric",# prior weights,
                         offset = "numeric", # length 0 -> no offset
                         y = "numeric",      # response vector
 			cnames = "list",    # row/column names of els of ST
@@ -35,40 +33,40 @@ setClass("mer", ## Slots common to all three types of mixed models
                         dims = "integer",   # dimensions and indicators
                         ## slots that vary during optimization
 			ST = "list", # list of TSST' rep of rel. var. mats
-			L = "CHMfactor",    # Cholesky factor of P(V'V + I)P'
-			Vt = "dgCMatrix",   # sparse form of V'=(ZTS)'
+			Vt = "dgCMatrix",   # V'=(ZTS)'
+                        v = "numeric",      # linear predictor for nonlinear models
+                                            # (length 0 when no nonlinear component)
+                                            # must have an n by s "gradient" attribute 
+                        A = "dgCMatrix",    # sparse form of (W^{.5}G^{-1}HV)'
+			L = "CHMfactor",    # Cholesky factor of P(AA' + I)P'
 			deviance = "numeric", # ML and REML deviance and components
 			fixef = "numeric",  # fixed effects (length p)
 			ranef = "numeric",  # random effects (length q)
                         uvec = "numeric",   # orthogonal random effects (q)
-                        eta = "numeric",    # linear predictor
+                        eta = "numeric",    # unbounded predictor
                         mu = "numeric",     # fitted values at current beta and b
+                        muEta = "numeric",  # d mu/d eta evaluated at current eta
+                        var = "numeric",    # conditional variances of Y
                         resid = "numeric",  # raw residuals at current beta and b
+                        sqrtWt = "numeric", # square root of current weights
+                        RVXy = "matrix",    # dense sol. to L RVXy = S T'ZtXy
+                        RXy = "matrix",     # Cholesky factor of downdated XytXy
                         "VIRTUAL"),
          validity = function(object) .Call(mer_validate, object))
 
 setClass("lmer", ## linear mixed models
 	 representation(## original data
-                        ZtXy = "matrix",  # dense form of Z'[X:y]
-                        XytXy = "matrix", # dense form of [X:y]'[X:y]
-                        ## slots that vary during optimization
-                        RVXy = "matrix",  # dense sol. to L RVXy = S T'ZtXy
-                        RXy = "matrix"),  # Cholesky factor of downdated XytXy
+                        ZtXy = "matrix",    # dense form of Z'[X:y]
+                        XytXy = "matrix"),  # dense form of [X:y]'[X:y]
          contains = "mer")
 
 setClass("glmer", ## generalized linear mixed models
-	 representation(## original data
-                        env = "environment", # evaluation env for family
-                        famName = "character"), # name of GLM family and link
          contains = "mer")
 
 setClass("nlmer", ## nonlinear mixed models
 	 representation(## original data
-                        env = "environment", # evaluation environment for model
                         model = "call",    # nonlinear model
-                        pnames = "character", # parameter names for nonlinear model
-                        ## slots that vary during optimization
-                        Mt = "dgCMatrix"), # transpose of gradient matrix d mu/d u
+                        pnames = "character"), # parameter names for nonlinear model
          contains = "mer")
 
 setClass("summary.mer",                 # Additional slots in a summary object
