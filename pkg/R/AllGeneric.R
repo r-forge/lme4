@@ -11,9 +11,6 @@ setGeneric("gsummary",
                      invariantsOnly = FALSE, ...)
            standardGeneric("gsummary"))
 
-### FIXME: Probably don't need this
-setGeneric("isNested", function(x, ...) standardGeneric("isNested"))
-
 setGeneric("fixef", function(object, ...) standardGeneric("fixef"))
 
 fixed.effects <- function(object, ...) {
