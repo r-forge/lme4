@@ -184,12 +184,29 @@ lmerFrames <- function(mc, formula, contrasts, vnms = character(0))
     list(Y = Y, X = X, wts = wts, off = off, mt = mt, mf = mf)
 }
 
+isNested <- function(f1, f2)
+### Is f1 nested within f2?  That is, does every level of f1 occur
+### in conjunction with exactly one level of f2?
+{
+    f1 <- as.factor(f1)
+    f2 <- as.factor(f2)
+    stopifnot(length(f1) == length(f2))
+    sm <- as(new("ngTMatrix",
+                 i = as.integer(f2) - 1L,
+                 j = as.integer(f1) - 1L,
+                 Dim = c(length(levels(f2)),
+                 length(levels(f1)))),
+             "CsparseMatrix")
+    all(diff(sm@p) < 2)
+}
+
 lmerFactorList <- function(formula, mf, rmInt, drop)
 ### Create the list of grouping factors and the corresponding
 ### transposed model matrices.
 ### rmInt is a logical scalar indicating if the `(Intercept)` column
 ### should be removed before creating Zt
-### drop is a logical scalar indicating if 0 should be dropped
+### drop is a logical scalar indicating if elements with numeric value
+### 0 should be dropped from the sparse model matrices
 {
     ## create factor list for the random effects
     bars <- expandSlash(findbars(formula[[3]]))
@@ -280,7 +297,7 @@ mkdims <- function(fr, FL, start)
     ## record dimensions and algorithm settings
     dd <-
         VecFromNames(c("nf", "n", "p", "q", "s", "np", "REML", "ftyp",
-                       "mtyp", "nest", "cvg"), "integer")
+                       "nest", "cvg"), "integer")
     dd["nf"] <- length(cnames)          # number of random-effects terms
     dd["n"] <- nrow(fr$mf)              # number of observations
     dd["p"] <- ncol(fr$X)               # number of fixed-effects coefficients
@@ -290,7 +307,6 @@ mkdims <- function(fr, FL, start)
 ### FIXME: Check number of variance components versus number of
 ### levels in the factor for each term. Warn or stop as appropriate
     dd["np"] <- as.integer(sum(nvc))    # number of parameters in optimization
-    dd["mtyp"] <- 0L                    # 0 => lmer, 1 => nlmer, 2 => glmer
     dd["REML"] <- 0L                    # glmer and nlmer don't use REML
     dd["cvg"]  <- 0L                    # no optimization attempted
 
@@ -379,7 +395,6 @@ lmer <-
 ### the most levels.
     dm$dd["REML"] <- match.arg(method) == "REML"
     dm$dd["ftyp"] <- -1L              # gaussian family, identity link
-    dm$dd["mtyp"] <-  0L              # linear mixed model
 
     ## Create the dense matrices to be used in the deviance evaluation
 ### FIXME: incorporate weights and offset in the creation of ZtXy et al.
@@ -456,7 +471,6 @@ function(formula, data, family = gaussian, method = c("Laplace", "AGQ"),
     FL <- lmerFactorList(formula, fr$mf, 0L, 0L) # flist, Zt, cnames
     dm <- mkdims(fr, FL, start)
     dm$dd["ftyp"] <- mkFltype(glmFit$family)
-    dm$dd["mtyp"] <- 2L                 # generalized linear mixed model
     dimnames(fr$X) <- NULL
     RXy <- crossprod(fr$X)
     RXy[] <- 0
@@ -555,7 +569,6 @@ nlmer <- function(formula, data, control = list(), start = NULL,
     Mt <- .Call(nlmer_create_Mt, dm$Vt, s)
     dm$dd["s"] <- s
     dm$dd["ftyp"] <- -1L              # gaussian family, identity link
-    dm$dd["mtyp"] <-  1L                # nonlinear mixed model
     dm$dd["p"] <- length(start$fixed)
     n <- dm$dd["n"]
 

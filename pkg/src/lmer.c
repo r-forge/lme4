@@ -13,7 +13,7 @@ enum devP {ML_POS=0, REML_POS, ldL2_POS, ldRX2_POS,
 	   lpdisc_POS, disc_POS, bqd_POS};
 				/* positions in the dims vector */
 enum dimP {nf_POS=0, n_POS, p_POS, q_POS, s_POS, np_POS,
-	   isREML_POS, fTyp_POS, mTyp_POS, nest_POS, cvg_POS};
+	   isREML_POS, fTyp_POS, nest_POS, cvg_POS};
 
 #define isREML(x) INTEGER(GET_SLOT(x, lme4_dimsSym))[isREML_POS]
 #define L_SLOT(x) AS_CHM_FR(GET_SLOT(x, lme4_LSym))
@@ -82,35 +82,6 @@ Mer_sigma(int REML, const int* dims, const double* deviance)
 {
     return sqrt(exp(deviance[lpdisc_POS])/
 		((double)(dims[n_POS] - (REML ? dims[p_POS] : 0))));
-}
-
-/** 
- * Evaluate x/(1 - x). An inline function is used so that x is
- * only evaluated once. 
- * 
- * @param x input in the range (0, 1)
- * 
- * @return x/(1 - x) 
- */
-static R_INLINE double x_d_omx(double x) {
-    if (x < 0 || x > 1)
-	error(_("Value %d out of range (0, 1)"), x);
-    return x/(1 - x);
-}
-
-/** 
- * Evaluate x/(1 + x). An inline function is used so that x is
- * evaluated once only.
- * 
- * @param x input
- * 
- * @return x/(1 + x) 
- */
-static R_INLINE double x_d_opx(double x) {return x/(1 + x);}
-
-static R_INLINE double y_log_y(double y, double mu)
-{
-    return (y) ? (y * log(y/mu)) : 0;
 }
 
 /**
@@ -549,99 +520,6 @@ SEXP nlmer_create_Mt(SEXP Vt, SEXP sP)
     return M_chm_sparse_to_SEXP(ans, 1, 0, 0, "", R_NilValue);
 }
 
-/* Generalized linear mixed models */
-				/* utilities */
-static const double LTHRESH = 30.;
-static const double MLTHRESH = -30.;
-static double MPTHRESH = 0;
-static double PTHRESH = 0;
-static const double INVEPS = 1/DOUBLE_EPS;
-
-#if 0
-
-/**
- * Evaluate the variance function for the link
- *
- * @param x pointer to a glmer object
- */
-SEXP glmer_var(SEXP x)
-{
-    int *dims = INTEGER(GET_SLOT(x, lme4_dimsSym));
-    int i, n = dims[n_POS], fltype = dims[fTyp_POS];
-    double *mu = REAL(GET_SLOT(x, lme4_muSym)),
-	*var = REAL(findVarInFrame(GET_SLOT(x, lme4_envSym),
-				   lme4_varSym));
-		    
-
-    switch(fltype) {
-    case 1: 			/* binomial family with logit or probit link */
-    case 2:
-	for (i = 0; i < n; i++) {
-	    double mui = mu[i];
-	    var[i] = mui * (1 - mui);
-	}
-	break;
-    case 3:			/* Poisson with log link */
-	for (i = 0; i < n; i++) {
-	    var[i] = mu[i];
-	}
-	break;
-    default:
-	error(_("General form of glmer_var not yet written"));
-    }
-    return R_NilValue;
-}
-
-/**
- * Evaluate the derivative of mu wrt eta for the link
- *
- * @param x pointer to a glmer object
- */
-SEXP glmer_dmu_deta(SEXP x)
-{
-    int *dims = INTEGER(GET_SLOT(x, lme4_dimsSym));
-    int i, n = dims[n_POS], fltype = dims[fTyp_POS];
-    double *eta = REAL(GET_SLOT(x, lme4_etaSym)),
-	*dmu_deta = REAL(GET_SLOT(x, lme4_muEtaSym));
-
-    switch(fltype) {
-    case 1: 			/* binomial with logit link */
-	for (i = 0; i < n; i++) {
-	    double etai = eta[i];
-	    double opexp = 1 + exp(etai);
-	    
-	    dmu_deta[i] = (etai > LTHRESH || etai < MLTHRESH) ?
-		DOUBLE_EPS : exp(etai)/(opexp * opexp);
-	}
-	break;
-    case 2:			/* binomial with probit link */
-	for (i = 0; i < n; i++) {
-	    double tmp = dnorm4(eta[i], 0, 1, 0);
-	    dmu_deta[i] = (tmp < DOUBLE_EPS) ? DOUBLE_EPS : tmp;
-	}
-	break;
-    case 3:			/* Poisson with log link */
-	for (i = 0; i < n; i++) {
-	    double tmp = exp(eta[i]);
-	    dmu_deta[i] = (tmp < DOUBLE_EPS) ? DOUBLE_EPS : tmp;
-	}
-	break;
-    default:
-	error(_("General form of glmer_dmu_deta not yet written"));
-    }
-    return R_NilValue;
-}
-
-
-/**
- * Evaluate the deviance residuals
- *
- * @param x pointer to a glmer object
- * @param dev_res pointer to an area to hold the result
- *
- * @return sum of the deviance residuals
- */
-#endif
 
 /* Functions common to all forms of mixed models */
 
@@ -770,14 +648,16 @@ SEXP mer_validate(SEXP x)
 	fixefP = GET_SLOT(x, lme4_fixefSym),
 	flistP = GET_SLOT(x, lme4_flistSym),
 	muP = GET_SLOT(x, lme4_muSym),
+	muEtaP = GET_SLOT(x, lme4_muEtaSym),
 	offsetP = GET_SLOT(x, lme4_offsetSym),
 	ranefP = GET_SLOT(x, lme4_ranefSym),
 	residP = GET_SLOT(x, lme4_residSym),
 	uvecP = GET_SLOT(x, lme4_uvecSym),
+	vP = GET_SLOT(x, lme4_vSym),
 	weightsP = GET_SLOT(x, lme4_priorWtSym),
 	y = GET_SLOT(x, lme4_ySym);
     int *Gp = INTEGER(GpP), *dd = INTEGER(dimsP);
-    int i, mtyp = dd[mTyp_POS], n = dd[n_POS], nf = dd[nf_POS],
+    int i, n = dd[n_POS], nf = dd[nf_POS],
 	nq, p = dd[p_POS], q = dd[q_POS], s = dd[s_POS];
     int neta = n * s;
     CHM_SP Zt = AS_CHM_SP(GET_SLOT(x, lme4_ZtSym)),
@@ -845,9 +725,7 @@ SEXP mer_validate(SEXP x)
 #ifndef BUF_SIZE
 #define BUF_SIZE 127
 #endif	
-    if (mtyp < 0 || mtyp > 2)
-	return mkString(_("unknown model type in dims['mTyp']"));
-    if (!mtyp) {		/* linear mixed model */
+    if (!(LENGTH(vP) || LENGTH(muEtaP))) { /* linear mixed model */
 	int pp1 = p + 1;
 	char *buf = Alloca(BUF_SIZE + 1, char);
 	R_CheckStack();
@@ -867,6 +745,48 @@ SEXP mer_validate(SEXP x)
     }
     return ScalarLogical(1);
 }
+
+/* Utilities and constants for generalized linear models */
+
+static const double LTHRESH = 30.;
+static const double MLTHRESH = -30.;
+static double MPTHRESH = 0;
+static double PTHRESH = 0;
+static const double INVEPS = 1/DOUBLE_EPS;
+
+#if 0
+
+/** 
+ * Evaluate x/(1 - x). An inline function is used so that x is
+ * only evaluated once. 
+ * 
+ * @param x input in the range (0, 1)
+ * 
+ * @return x/(1 - x) 
+ */
+static R_INLINE double x_d_omx(double x) {
+    if (x < 0 || x > 1)
+	error(_("Value %d out of range (0, 1)"), x);
+    return x/(1 - x);
+}
+
+#endif
+
+/** 
+ * Evaluate x/(1 + x). An inline function is used so that x is
+ * evaluated once only.
+ * 
+ * @param x input
+ * 
+ * @return x/(1 + x) 
+ */
+static R_INLINE double x_d_opx(double x) {return x/(1 + x);}
+
+static R_INLINE double y_log_y(double y, double mu)
+{
+    return (y) ? (y * log(y/mu)) : 0;
+}
+
 
 /**
  * Evaluate eta, mu, resid, var and sqrtWt.
@@ -1402,7 +1322,7 @@ mer_optimize(SEXP x, SEXP verbp)
     int lmm = !(LENGTH(GET_SLOT(x, lme4_muEtaSym)) ||
 		LENGTH(GET_SLOT(x, lme4_vSym))),
 	nf = dims[nf_POS];
-/* FIXME: need to add 1 to nv for mtyp == 2 when scale par is introduced. */
+/* FIXME: need to add 1 to nv for GLMM with a scale par (maybe). */
     int nv = dims[np_POS] + (lmm ? 0 : dims[p_POS]);
     int liv = S_iv_length(OPT, nv), lv = S_v_length(OPT, nv);
     double *g = (double*)NULL, *h = (double*)NULL, fx = R_PosInf;
