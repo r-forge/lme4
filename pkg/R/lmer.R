@@ -1445,6 +1445,23 @@ ST2Omega <- function(ST)
 ##           list(ml = ml, nco = nco, nlev = nlev)
 ##       })
 
+## Utilities for the fitted mer object
+slotsz <- function(obj)
+    rev(sort(sapply(slotNames(obj), function(s) object.size(slot(obj, s)))))
 
+yfrm <- function(fm)
+{
+    stopifnot(is(fm, "mer"))
+    snms <-
+        c("y", "eta", "mu", "resid", "muEta", "var", "priorWt", "sqrtWt")
+    slots <- lapply(snms, slot, object = fm)
+    names(slots) <- snms
+    slots <- slots[sapply(slots, function(x) length(x) > 0)]
+    do.call(data.frame, slots)
+}
 
-
+bfrm <- function(fm)
+{
+    stopifnot(is(fm, "mer"))
+    data.frame(u = fm@uvec, b = fm@ranef)
+}

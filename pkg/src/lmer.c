@@ -383,9 +383,9 @@ static double *ST_getPars(SEXP x, double *pars)
 }
 
 /**
- * Extract the parameters from the ST slot of an lmer object
+ * Extract the parameters from the ST slot of an mer object
  *
- * @param x an lmer object
+ * @param x an mer object
  *
  * @return pointer to a REAL vector
  */
@@ -400,7 +400,7 @@ SEXP mer_ST_getPars(SEXP x)
 }
 
 /**
- * Update the ST and Vt slots of an lmer object.
+ * Update the ST and Vt slots of an mer object.
  *
  * @param x an mer object
  * @param pars double vector of the appropriate length
@@ -415,7 +415,7 @@ ST_setPars(SEXP x, const double *pars)
 	cZt = AS_CHM_SP(GET_SLOT(x, lme4_ZtSym));
     int *vi = (int*)(cVt->i), *vp = (int*)(cVt->p),
 	*zi = (int*)(cZt->i), *zp = (int*)(cZt->p),
-	i, j, nf = LENGTH(ST), p, pos = 0;
+	i, j, ncmax, nf = LENGTH(ST), p, pos = 0;
     int vnnz = vp[cVt->ncol], znnz = zp[cZt->ncol];
     int *nc = Alloca(nf, int), *nlev = Alloca(nf, int);
     double **st = Alloca(nf, double*),
@@ -423,20 +423,20 @@ ST_setPars(SEXP x, const double *pars)
 	one[] = {1,0};
     R_CheckStack();
 
-    /* install the parameters in the ST slot */
+    ncmax = ST_nc_nlev(ST, Gp, st, nc, nlev);
+				/* install the parameters in the ST slot */
     for (i = 0; i < nf; i++) {
-	SEXP STi = VECTOR_ELT(ST, i);
-	double *st = REAL(STi);
-	int nci = INTEGER(getAttrib(STi, R_DimSymbol))[0];
-	int j, k, ncp1 = nci + 1;
+	int j, k, nci = nc[i], ncp1 = nc[i] + 1;
+	double *sti = st[i];
 
 	for (j = 0; j < nci; j++)
-	    st[j * ncp1] = pars[pos++];
+	    sti[j * ncp1] = pars[pos++];
 	for (j = 0; j < (nci - 1); j++)
 	    for (k = j + 1; k < nci; k++)
 		st[k + j * nci] = pars[pos++];
     }
-    /* Copy Z' to V' except when V' has nonzero positions not in Z' */
+				/* Copy Z' to V' unless V' has nonzero
+				 * positions not in Z' */ 
     if (vnnz == znnz) Memcpy(vx, zx, znnz); 
     else { /* Only occurs in nonlinear models with correlated random effects */
 	AZERO(vx, vnnz); 	/* Initialize the potential nonzeros to 0 */
@@ -450,9 +450,8 @@ ST_setPars(SEXP x, const double *pars)
 	    }
 	}
     }
-
-    /* Multiply Vt on the left by T' if T is nontrivial */
-    if (ST_nc_nlev(ST, Gp, st, nc, nlev) > 1) /* T' == I when ncmax == 1 */
+				/* When T != I multiply Vt on the left by T' */
+    if (ncmax > 1)		/* T' == I when ncmax == 1 */
 	for (j = 0; j < cVt->ncol; j++) /* multiply column j by T' */
 	    for (p = vp[j]; p < vp[j + 1];) {
 		int i = Gp_grp(vi[p], nf, Gp);
@@ -467,7 +466,7 @@ ST_setPars(SEXP x, const double *pars)
 		    p += (nr * nc[i]);
 		}
 	    }
-    /* Multiply Vt on the left by S */
+				/* Multiply Vt on the left by S */
     for (p = 0; p < vnnz; p++) {
 	int i = Gp_grp(vi[p], nf, Gp);
 	vx[p] *= st[i][((vi[p] - Gp[i]) / nlev[i]) * (nc[i] + 1)];
@@ -475,10 +474,10 @@ ST_setPars(SEXP x, const double *pars)
 }
 
 /**
- * Update the ST slot of an lmer object from a REAL vector of
+ * Update the ST slot of an mer object from a REAL vector of
  * parameters and update the Cholesky factorization
  *
- * @param x an lmer object
+ * @param x an mer object
  * @param pars a REAL vector of the appropriate length
  *
  * @return R_NilValue
@@ -496,35 +495,38 @@ SEXP mer_ST_setPars(SEXP x, SEXP pars)
 /* Nonlinear mixed models */
 
 /**
- * Create a dgCMatrix object in the form of the transpose of M
+ * Create the dgCMatrix object A
  *
  * @param Vt V' as a dgCMatrix object
  * @param sP pointer to the INTEGER object s
  *
  */
-SEXP nlmer_create_Mt(SEXP Vt, SEXP sP)
+SEXP nlmer_create_A(SEXP Vt, SEXP sP)
 {
     int n, p, s = asInteger(sP);
     CHM_SP ans;
-    CHM_TR tMt = M_cholmod_sparse_to_triplet(AS_CHM_SP(Vt), &c);
+    CHM_TR tA = M_cholmod_sparse_to_triplet(AS_CHM_SP(Vt), &c);
     R_CheckStack();
 
     if (s <= 0) error(_("s must be > 0"));
-    if (tMt->ncol % s)
+    if (tA->ncol % s)
 	error(_("Number of columns in Vt, %d, is not a multiple of s = %d"),
-	      tMt->ncol, s);
-    n = tMt->ncol /= s;
-    for (p = 0; p < tMt->nnz; p++) ((int*)(tMt->j))[p] %= tMt->ncol;
-    ans = M_cholmod_triplet_to_sparse(tMt, tMt->nnz, &c);
-    M_cholmod_free_triplet(&tMt, &c);
+	      tA->ncol, s);
+    n = tA->ncol /= s;
+    for (p = 0; p < tA->nnz; p++) ((int*)(tA->j))[p] %= tA->ncol;
+    ans = M_cholmod_triplet_to_sparse(tA, tA->nnz, &c);
+    M_cholmod_free_triplet(&tA, &c);
     return M_chm_sparse_to_SEXP(ans, 1, 0, 0, "", R_NilValue);
 }
 
 
 /* Functions common to all forms of mixed models */
 
+/* FIXME: Watch the definition of this scale factor.  It may be more
+ * appropriate to use the weighted, penalized residual sum of squares
+ * than to use the deviance. */
 /**
- * Extract the estimate of the scale factor from an lmer object
+ * Extract the estimate of the common scale factor from an mer object
  *
  * @param x an lmer object
  * @param which scalar integer (< 0 => REML, 0 => native, > 0 => ML)
@@ -754,34 +756,6 @@ static double MPTHRESH = 0;
 static double PTHRESH = 0;
 static const double INVEPS = 1/DOUBLE_EPS;
 
-#if 0
-
-/** 
- * Evaluate x/(1 - x). An inline function is used so that x is
- * only evaluated once. 
- * 
- * @param x input in the range (0, 1)
- * 
- * @return x/(1 - x) 
- */
-static R_INLINE double x_d_omx(double x) {
-    if (x < 0 || x > 1)
-	error(_("Value %d out of range (0, 1)"), x);
-    return x/(1 - x);
-}
-
-#endif
-
-/** 
- * Evaluate x/(1 + x). An inline function is used so that x is
- * evaluated once only.
- * 
- * @param x input
- * 
- * @return x/(1 + x) 
- */
-static R_INLINE double x_d_opx(double x) {return x/(1 + x);}
-
 static R_INLINE double y_log_y(double y, double mu)
 {
     return (y) ? (y * log(y/mu)) : 0;
@@ -798,20 +772,17 @@ static R_INLINE double y_log_y(double y, double mu)
 static double update_mu(SEXP x)
 {
     SEXP muEta = GET_SLOT(x, lme4_muEtaSym),
-	priorWt = GET_SLOT(x, lme4_priorWtSym),
 	sqrtWtp = GET_SLOT(x, lme4_sqrtWtSym),
 	v = GET_SLOT(x, lme4_vSym),
 	varp = GET_SLOT(x, lme4_varSym);
     int *dims = INTEGER(GET_SLOT(x, lme4_dimsSym));
-    int i, n = dims[n_POS], sw = LENGTH(sqrtWtp),
-	pw = LENGTH(priorWt), vr = LENGTH(varp);
+    int i, n = dims[n_POS], sw = LENGTH(sqrtWtp);
     double *d = REAL(GET_SLOT(x, lme4_devianceSym)),
 	*eta = REAL(GET_SLOT(x, lme4_etaSym)),
 	*mu = REAL(GET_SLOT(x, lme4_muSym)),
 	*mueta = REAL(muEta),
-	*pwts = REAL(priorWt),
 	*res = REAL(GET_SLOT(x, lme4_residSym)),
-	*sqrtWt = REAL(GET_SLOT(x, lme4_sqrtWtSym)),
+	*sqrtWt = REAL(sqrtWtp),
 	*var = REAL(varp),
 	*y = REAL(GET_SLOT(x, lme4_ySym));
 
@@ -854,7 +825,7 @@ static double update_mu(SEXP x)
 		double etai = eta[i];
 		double tmp = (etai < MLTHRESH) ? DOUBLE_EPS :
 		    ((etai > LTHRESH) ? INVEPS : exp(etai));
-		mu[i] = x_d_opx(tmp);
+		mu[i] = tmp/(1 + tmp);
 		mueta[i] = var[i] = mu[i] * (1 - mu[i]);
 	    }
 	    break;
@@ -886,13 +857,12 @@ static double update_mu(SEXP x)
 	} 
     } else { mu = eta; }
 				/* update elements of deviance slot,
-				 * resid slot, and sqrtWt slot (if used) */
+				 * resid slot and accumulate weighted
+				 * RSS. Update sqrtWt in mer_update_L,
+				 * not here. */
     d[bqd_POS] = lme4_sumsq(REAL(GET_SLOT(x, lme4_uvecSym)), dims[q_POS]);
     for (i = 0, d[disc_POS] = 0; i < n; i++) {
-	double tmp =
-	    (sw ? (sqrtWt[i] = sqrt((pw ? 1 : pwts[i])/
-				    (vr ? var[i] : 1))) : 1) *
-	    (res[i] = y[i] - mu[i]);
+	double tmp = (sw ? sqrtWt[i] : 1) * (res[i] = y[i] - mu[i]);
 	d[disc_POS] += tmp * tmp;
     }
     return (d[disc_POS] + d[bqd_POS]);
@@ -921,7 +891,7 @@ SEXP mer_update_L(SEXP x)
     SEXP muEta = GET_SLOT(x, lme4_muEtaSym),
 	swtsp = GET_SLOT(x, lme4_sqrtWtSym),
 	vvpt = GET_SLOT(x, lme4_vSym);
-    int nl = LENGTH(vvpt), gen = LENGTH(muEta), wts = LENGTH(swtsp);
+    int nl = LENGTH(vvpt), gen = LENGTH(muEta);
     int lmm = !(nl || gen);	/* linear mixed model */
     int *dims = INTEGER(GET_SLOT(x, lme4_dimsSym));
     int j, jv, n = dims[n_POS], s = dims[s_POS];
@@ -966,11 +936,16 @@ SEXP mer_update_L(SEXP x)
 	}
     }
 
-    if (wts) {		  /* apply sqrtWt */
-	double *sqrtWt = REAL(swtsp);
-	int p;
+    if (LENGTH(swtsp)) {	/* update and apply sqrtWt */
+	SEXP pwtp = GET_SLOT(x, lme4_priorWtSym),
+	    varp = GET_SLOT(x, lme4_varSym);
+	int p, pw = LENGTH(pwtp), vr = LENGTH(varp);
+	double *sqrtWt = REAL(swtsp),
+	    *pwt = pw ? REAL(pwtp) : (double*) NULL,
+	    *var = vr ? REAL(varp) : (double*) NULL;
 
 	for (j = 0; j < n; j++) { 
+	    sqrtWt[j] = sqrt((pw ? pwt[j] : 1) / (vr ? var[j] : 1));
 	    for (p = ap[j]; p < ap[j + 1]; p++)
 		ax[p] *= sqrtWt[j];
 	}
@@ -1274,9 +1249,7 @@ eval_profiled_deviance(SEXP x)
     R_CheckStack();
 
     mer_update_L(x);
-/* FIXME: Would it be better to evaluate V'[X:y] on the fly so
- * weights could be incorporated? Also, the ZtXy slot could be
- * eliminated. */
+/* FIXME: PAW^{1/2}[X:y] on the fly and eliminate the ZtXy slot.
 				/* Evaluate PST'Z'[X:y] in RVXy */
     PSTp_dense_mult(RVXy, GET_SLOT(x, lme4_STSym),
 		    INTEGER(GET_SLOT(x, lme4_GpSym)),
