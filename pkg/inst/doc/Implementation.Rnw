@@ -248,7 +248,7 @@ in the \code{deviance} slot of the fitted model
 <<devRm1ML>>=
 Rm1ML@deviance
 @
-The element labelled \code{ldZ} is the logarithm of the square of
+The element labelled \code{ldL2} is the logarithm of the square of
 the determinant of the upper left $6\times 6$ section of $\bm{L}$.
 This corresponds to
 $\log\left|{\bm{Z}^*}\trans\bm{Z}^*+\bm{I}_q\right|$ where
@@ -315,15 +315,15 @@ nc <- length(dev)
 nms <- names(dev)
 vals <- matrix(0, nrow = length(sg), ncol = nc, dimnames = list(NULL, nms))
 for (i in seq(along = sg)) {
-    .Call("ST_setPars", mm, sg[i], PACKAGE = "lme4")
-    res <- try(.Call("lmer_update_dev", mm, PACKAGE = "lme4"), silent = TRUE)
-    vals[i,] <- if (is.null(res)) mm@deviance else NA
+    .Call("mer_ST_setPars", mm, sg[i], PACKAGE = "lme4")
+    res <- try(.Call("lmer_profiled_deviance", mm, PACKAGE = "lme4"), silent = TRUE)
+    vals[i,] <- if (inherits(res, "try-error")) NA else mm@deviance
 }
 vals[,"lpdisc"] <- mm@dims["n"] * vals[,"lpdisc"]
 df <- data.frame(x = rep(sg, nc), y = as.vector(vals),
                  type = gl(nc, length(sg), labels = nms))
 print(xyplot(y ~ x | type, df, type = c("g", "l"),
-             subset = !(type %in% c("REML", "ldRX2", "bqd")),
+             subset = !(type %in% c("REML", "ldRX2", "bqd", "disc")),
              scales = list(x = list(axs = 'i'),
              y = list(relation = "free", rot = 0)),
              aspect = 0.75, xlab = expression(sigma[1]), ylab = '',
@@ -374,9 +374,9 @@ nc <- length(dev)
 nms <- names(dev)
 vals <- matrix(0, nrow = length(sg), ncol = nc, dimnames = list(NULL, nms))
 for (i in seq(along = sg)) {
-    .Call("ST_setPars", mm, sg[i], PACKAGE = "lme4")
-    res <- try(.Call("lmer_update_dev", mm, PACKAGE = "lme4"), silent = TRUE)
-    vals[i,] <- if (is.null(res)) mm@deviance else NA
+    .Call("mer_ST_setPars", mm, sg[i], PACKAGE = "lme4")
+    res <- try(.Call("lmer_profiled_deviance", mm, PACKAGE = "lme4"), silent = TRUE)
+    vals[i,] <- if (inherits(res, "try-error")) NA else mm@deviance
 }
 base <- 18 * log(deviance(lm(travel ~ Rail, Rail)))
 print(xyplot(devC + ldL2 ~ sg,
