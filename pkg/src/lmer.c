@@ -824,16 +824,17 @@ SEXP mer_update_L(SEXP x)
  * Iterate to determine the conditional modes of the random effects.
  *
  * @param x pointer to an mer object
+ * @param verb indicator of verbose iterations 
+ *             (negative values produce a lot of output)
  *
- * @return R_NilValue
+ * @return number of iterations to convergence (0 for non-convergence) 
  */
-SEXP mer_condMode(SEXP x)
+static int cond_mode(SEXP x, int verb)
 {
     SEXP swtP = GET_SLOT(x, lme4_sqrtWtSym);
     int *dims = INTEGER(GET_SLOT(x, lme4_dimsSym));
     int i, j, n = dims[n_POS], q = dims[q_POS], sw = LENGTH(swtP);
-    double *dev = REAL(GET_SLOT(x, lme4_devianceSym)),
-	*swt = REAL(swtP),
+    double *swt = sw ? REAL(swtP) : (double*) NULL,
 	*u = REAL(GET_SLOT(x, lme4_uvecSym)),
 	*res = REAL(GET_SLOT(x, lme4_residSym)), 
 	cfac = ((double)(n - q)) / ((double)q),
@@ -863,44 +864,49 @@ SEXP mer_condMode(SEXP x)
 	mer_update_L(x);
 	Memcpy(uold, u, q);
 
+				/* tmp := A %*% W^{1/2} %*% (y-mu) */
 	if (sw) for (j = 0; j < n; j++) res[j] *= swt[i];
 	if (!(M_cholmod_sdmult(A, 0 /* no trans */, one, zero,
-			       cres, ctmp, &c))) /* A %*% W^{1/2} %*% (y-mu) */
+			       cres, ctmp, &c))) 
 	    error(_("cholmod_sdmult returned error code"));
-				/* permute */
+				/* tmp := P %*% tmp - u */
 	sol = M_cholmod_solve(CHOLMOD_P, L, ctmp, &c);
 	for (j = 0; j < q; j++) tmp[j] = ((double*)(sol->x))[j] - u[j];
 	M_cholmod_free_dense(&sol, &c);
+				/* solve L %*% sol = tmp */
 	if (!(sol = M_cholmod_solve(CHOLMOD_L, L, ctmp, &c)))
 	    error(_("cholmod_solve (CHOLMOD_L) failed"));
 	Memcpy(tmp, (double*)(sol->x), q);
 	M_cholmod_free_dense(&sol, &c);
-				/* check convergence criterion */
+				/* evaluate convergence criterion */
 	crit = cfac * lme4_sumsq(tmp, q) / pwrss_old;
 	if (crit < CM_TOL) break; /* don't do needless evaluations */
+				/* solve t(L) %*% sol = tmp */
 	if (!(sol = M_cholmod_solve(CHOLMOD_Lt, L, ctmp, &c)))
 	    error(_("cholmod_solve (CHOLMOD_Lt) failed"));
 	Memcpy(tmp, (double*)(sol->x), q);
 	M_cholmod_free_dense(&sol, &c);
+
 	for (step = 1; step > CM_SMIN;
 	     step /= 2) {	/* step halving */
 	    double pwrss;
 	    for (j = 0; j < q; j++) u[j] = uold[j] + step * tmp[j];
 	    pwrss = update_mu(x);
-#ifdef NGLMER_DEBUG
-	    Rprintf("%2d,%6.4f: %15.6g\n", i, step, pwrss);
-#endif
+	    if (verb < 0)
+		Rprintf("%2d,%6.4f: %15.6g\n", i, step, pwrss);
 	    if (pwrss < pwrss_old) {
 		pwrss_old = pwrss;
 		break;
 	    }
 	}
-	if (step <= CM_SMIN || i > CM_MAXITER) {
-	    dev[lpdisc_POS] = DOUBLE_XMAX;
-	    break;
-	}
+	if (step <= CM_SMIN || i > CM_MAXITER) return 0;
     }
-    return R_NilValue;
+    return i;
+}
+
+SEXP mer_condMode(SEXP x, SEXP verbP)
+{
+    return ScalarInteger(cond_mode(x, asInteger(verbP)));
 }
 
 /**
@@ -1138,6 +1144,12 @@ eval_profiled_deviance(SEXP x)
     return d[dims[isREML_POS] ? REML_POS : ML_POS];
 }
 
+SEXP
+lmer_profiled_deviance(SEXP x)
+{
+    return ScalarReal(eval_profiled_deviance(x));
+}
+
 /**
  * Optimize the profiled deviance of an lmer object or the Laplace
  * approximation to the deviance of a nlmer or glmer object.
@@ -1152,7 +1164,7 @@ mer_optimize(SEXP x, SEXP verbp)
 {
     SEXP ST = GET_SLOT(x, lme4_STSym);
     int *dims = INTEGER(GET_SLOT(x, lme4_dimsSym)),
-	i, j, pos, verb = asLogical(verbp);
+	i, j, pos, verb = asInteger(verbp);
     int lmm = !(LENGTH(GET_SLOT(x, lme4_muEtaSym)) ||
 		LENGTH(GET_SLOT(x, lme4_vSym))),
 	nf = dims[nf_POS];
@@ -1194,7 +1206,7 @@ mer_optimize(SEXP x, SEXP verbp)
 	    fx = eval_profiled_deviance(x);
 	else {
 	    Memcpy(fixef, xv + dims[np_POS], dims[p_POS]);
-	    mer_condMode(x);
+	    cond_mode(x, verb);
 	    mer_update_dev(x);
 	    fx = REAL(GET_SLOT(x, lme4_devianceSym))[ML_POS];
 	}

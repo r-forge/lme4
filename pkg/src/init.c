@@ -9,11 +9,13 @@
 static R_CallMethodDef CallEntries[] = {
     {"lme4_rWishart", (DL_FUNC) &lme4_rWishart, 3},
 
+    {"lmer_profiled_deviance", (DL_FUNC) &lmer_profiled_deviance, 1},
+
     {"mer_MCMCsamp", (DL_FUNC) &mer_MCMCsamp, 6},
     {"mer_ST_getPars", (DL_FUNC) &mer_ST_getPars, 1},
     {"mer_ST_initialize", (DL_FUNC) &mer_ST_initialize, 3},
     {"mer_ST_setPars", (DL_FUNC) &mer_ST_setPars, 2},
-    {"mer_condMode", (DL_FUNC) &mer_condMode, 1},
+    {"mer_condMode", (DL_FUNC) &mer_condMode, 2},
     {"mer_create_L", (DL_FUNC) &mer_create_L, 1},
     {"mer_create_Vt", (DL_FUNC) &mer_create_Vt, 3},
     {"mer_optimize", (DL_FUNC) &mer_optimize, 2},

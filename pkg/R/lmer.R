@@ -1287,11 +1287,10 @@ devvals <- function(fm, pmat, sigma1 = FALSE)
               ## effects.  It would be best to make the appropriate
               ## changes in the C code for ST_setPars.
               if (sigma1) pmat[i,-1]/pmat[i,1] else pmat[i,])
-        .Call("mer_update_lpdisc", fm)
-        ans[i, ] <- c(pmat[i, ], fm@deviance)
+        ans[i, ] <- c(pmat[i, ], .Call(lmer_profiled_deviance, fm))
     }
     .Call(mer_ST_setPars, fm, p0)
-    .Call(mer_update_lpdisc, fm)
+    .Call(lmer_profiled_deviance, fm)
     as.data.frame(ans)
 }
                    
