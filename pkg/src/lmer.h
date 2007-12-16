@@ -63,7 +63,7 @@ SEXP mer_update_mu(SEXP x);
 SEXP mer_update_dev(SEXP x);
 SEXP mer_validate(SEXP x);
 
-SEXP nlmer_create_Mt(SEXP Vt, SEXP sP);
+SEXP nlmer_create_A(SEXP Vt, SEXP sP);
 
 SEXP pedigree_chol(SEXP x, SEXP ans);
 
