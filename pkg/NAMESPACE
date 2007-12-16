@@ -2,11 +2,25 @@ useDynLib(lme4, .registration=TRUE)
 
 import("Matrix")
 importFrom("graphics", plot)
-import("stats", "lattice")
-#importFrom("utils", head, tail)  ## already available in Matrix
+import("lattice")
+importFrom("stats",
+           anova,
+           coef,
+           confint,
+           deviance,
+           fitted,
+           formula,
+           logLik,
+           resid,
+           residuals,
+           simulate,
+           terms,
+           update,
+           vcov
+           )
 
 export(
-       "devvals",
+#       "devvals",
        "glmer",
        "gsummary",
        "hatTrace",
