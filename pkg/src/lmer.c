@@ -85,32 +85,6 @@ Mer_sigma(int REML, const int* dims, const double* deviance)
 }
 
 /**
- * Check the dimensions of the matrix pointer MP.
- *
- * @param buf character buffer of length nb + 1
- * @param nb number of writable positions in the buffer
- * @param nm name of matrix - used in the error message
- * @param MP pointer to a matrix
- * @param nr expected number of rows
- * @param nc expected number of columns
- *
- * @return error message or 0-length string in buffer
- */
-static char
-*chkDims(char *buf, int nb, char *nm, SEXP MP, int nr, int nc)
-{
-    int *dd = isMatrix(MP) ? INTEGER(getAttrib(MP, R_DimSymbol)) :
-	(int *)NULL;
-
-    if (!dd) error(_("Argument MP to chkDims is not a matrix"));
-    buf[0] = '\0';
-    if (!isReal(MP) || dd[0] != nr || dd[1] != nc)
-	snprintf(buf, nb, "Matrix %s must be a %d by %d numeric matrix",
-		nm, nr, nc);
-    return buf;
-}
-
-/**
  * Evaluate the logarithm of the square of the determinant of L
  * (i.e. the logarithm of the determinant of LL')
  *
@@ -433,7 +407,7 @@ ST_setPars(SEXP x, const double *pars)
 	    sti[j * ncp1] = pars[pos++];
 	for (j = 0; j < (nci - 1); j++)
 	    for (k = j + 1; k < nci; k++)
-		st[k + j * nci] = pars[pos++];
+		sti[k + j * nci] = pars[pos++];
     }
 				/* Copy Z' to V' unless V' has nonzero
 				 * positions not in Z' */ 
@@ -631,122 +605,6 @@ SEXP mer_create_L(SEXP Vt)
     return M_chm_factor_to_SEXP(L, 1);
 }
 
-/**
- * Check validity of an object that inherits from the mer class.
- *
- * @param x Pointer to an lmer or glmer or nlmer object
- *
- * @return TRUE if the object is a valid mer object, otherwise a string
- *         that describes the violation.
- */
-SEXP mer_validate(SEXP x)
-{
-    SEXP GpP = GET_SLOT(x, lme4_GpSym),
-	ST = GET_SLOT(x, lme4_STSym),
-	XP = GET_SLOT(x, lme4_XSym),
-	devianceP = GET_SLOT(x, lme4_devianceSym),
-	dimsP = GET_SLOT(x, lme4_dimsSym),
-	etaP = GET_SLOT(x, lme4_etaSym),
-	fixefP = GET_SLOT(x, lme4_fixefSym),
-	flistP = GET_SLOT(x, lme4_flistSym),
-	muP = GET_SLOT(x, lme4_muSym),
-	muEtaP = GET_SLOT(x, lme4_muEtaSym),
-	offsetP = GET_SLOT(x, lme4_offsetSym),
-	ranefP = GET_SLOT(x, lme4_ranefSym),
-	residP = GET_SLOT(x, lme4_residSym),
-	uvecP = GET_SLOT(x, lme4_uvecSym),
-	vP = GET_SLOT(x, lme4_vSym),
-	weightsP = GET_SLOT(x, lme4_priorWtSym),
-	y = GET_SLOT(x, lme4_ySym);
-    int *Gp = INTEGER(GpP), *dd = INTEGER(dimsP);
-    int i, n = dd[n_POS], nf = dd[nf_POS],
-	nq, p = dd[p_POS], q = dd[q_POS], s = dd[s_POS];
-    int neta = n * s;
-    CHM_SP Zt = AS_CHM_SP(GET_SLOT(x, lme4_ZtSym)),
-	Vt =  AS_CHM_SP(GET_SLOT(x, lme4_VtSym));
-    CHM_FR L = L_SLOT(x);
-    R_CheckStack();
-				/* check lengths */
-    if (nf < 1 || LENGTH(flistP) != nf || LENGTH(ST) != nf)
-	return mkString(_("Slots ST, and flist must have length dims['nf']"));
-    if (LENGTH(GpP) != nf + 1)
-	return mkString(_("Slot Gp must have length dims['nf'] + 1"));
-    if (LENGTH(y) != n)
-	return mkString(_("Slot y must have length dims['n']"));
-    if (LENGTH(muP) != n)
-	return mkString(_("Slot mu must have length dims['n']"));
-    if (LENGTH(residP) != n)
-	return mkString(_("Slot resid must have length dims['n']"));
-    if (Gp[0] != 0 || Gp[nf] != q)
-	return mkString(_("Gp[1] != 0 or Gp[dims['nf'] + 1] != dims['q']"));
-    if (LENGTH(fixefP) != p)
-	return mkString(_("Slot fixef must have length ['p']"));
-    if (LENGTH(ranefP) != q)
-	return mkString(_("Slot ranef must have length dims['q']"));
-    if (LENGTH(uvecP) != q)
-	return mkString(_("Slot uvec must have length dims['q']"));
-    if (LENGTH(etaP) != neta)
-	return mkString(_("Slot eta must have length dims['n']*dims['s']"));
-    if (LENGTH(weightsP) && LENGTH(weightsP) != n)
-	return mkString(_("Slot weights must have length 0 or dims['n']"));
-    if (LENGTH(offsetP) && LENGTH(offsetP) != n)
-	return mkString(_("Slot offset must have length 0 or dims['n']*dims['s']"));
-    if (LENGTH(devianceP) != (bqd_POS + 1) ||
-	LENGTH(getAttrib(devianceP, R_NamesSymbol)) != (bqd_POS + 1))
-	return mkString(_("deviance slot not named or incorrect length"));
-    if (LENGTH(dimsP) != (cvg_POS + 1) ||
-	LENGTH(getAttrib(dimsP, R_NamesSymbol)) != (cvg_POS + 1))
-	return mkString(_("dims slot not named or incorrect length"));
-    if (L->n != q || !L->is_ll || !L->is_monotonic)
-	return mkString(_("Slot L must be a monotonic LL' factorization of size dims['q']"));
-    if (Zt->nrow != q || Zt->ncol != neta)
-	return mkString(_("Slot Zt must by dims['q']  by dims['n']*dims['s']"));
-    if (Vt->nrow != q || Vt->ncol != neta)
-	return mkString(_("Slot Zt must be dims['q']  by dims['n']*dims['s']"));
-    dd = INTEGER(getAttrib(XP, R_DimSymbol)); 
-    if (!isReal(XP) || dd[1] != p)
-	return mkString(_("Slot X must be a numeric matrix with dims['p'] columns"));
-    if (dd[0] != 0 && dd[0] != (n * s)) /* special case */
-	return mkString(_("Slot X must be have 0 or dims['n']*dims['s'] rows"));
-
-    nq = 0;
-    for (i = 0; i < nf; i++) {
-	SEXP STi = VECTOR_ELT(ST, i), fli = VECTOR_ELT(flistP, i);
-	int *dm = INTEGER(getAttrib(STi, R_DimSymbol));
-	if (!isMatrix(STi) || !isReal(STi) || dm[0] != dm[1])
-	    return
-		mkString(_("Slot ST must be a list of square numeric matrices"));
-	if (Gp[i] > Gp[i + 1])
-	    return mkString(_("Gp must be non-decreasing"));
-	if (!isFactor(fli))
-	    return mkString(_("flist must be a list of factors"));
-	nq += dm[0] * LENGTH(getAttrib(fli, R_LevelsSymbol));
-    }
-    if (q != nq)
-	return mkString(_("q is not sum of columns by levels"));
-#ifndef BUF_SIZE
-#define BUF_SIZE 127
-#endif	
-    if (!(LENGTH(vP) || LENGTH(muEtaP))) { /* linear mixed model */
-	int pp1 = p + 1;
-	char *buf = Alloca(BUF_SIZE + 1, char);
-	R_CheckStack();
-
-	if (strlen(chkDims(buf, (int) BUF_SIZE, "ZtXy",
-			   GET_SLOT(x, lme4_ZtXySym), q, pp1)))
-	    return mkString(buf);
-	if (strlen(chkDims(buf, (int) BUF_SIZE, "XytXy",
-			   GET_SLOT(x, lme4_XytXySym), pp1, pp1)))
-	    return mkString(buf);
-	if (strlen(chkDims(buf, (int) BUF_SIZE, "RXy",
-			   GET_SLOT(x, lme4_RXySym), pp1, pp1)))
-	    return mkString(buf);
-	if (strlen(chkDims(buf, (int) BUF_SIZE, "RVXy",
-			   GET_SLOT(x, lme4_RVXySym), q, pp1)))
-	    return mkString(buf);
-    }
-    return ScalarLogical(1);
-}
 
 /* Utilities and constants for generalized linear models */
 
@@ -971,9 +829,11 @@ SEXP mer_update_L(SEXP x)
  */
 SEXP mer_condMode(SEXP x)
 {
+    SEXP swtP = GET_SLOT(x, lme4_sqrtWtSym);
     int *dims = INTEGER(GET_SLOT(x, lme4_dimsSym));
-    int i, j, n = dims[n_POS], q = dims[q_POS];
+    int i, j, n = dims[n_POS], q = dims[q_POS], sw = LENGTH(swtP);
     double *dev = REAL(GET_SLOT(x, lme4_devianceSym)),
+	*swt = REAL(swtP),
 	*u = REAL(GET_SLOT(x, lme4_uvecSym)),
 	*res = REAL(GET_SLOT(x, lme4_residSym)), 
 	cfac = ((double)(n - q)) / ((double)q),
@@ -1003,6 +863,7 @@ SEXP mer_condMode(SEXP x)
 	mer_update_L(x);
 	Memcpy(uold, u, q);
 
+	if (sw) for (j = 0; j < n; j++) res[j] *= swt[i];
 	if (!(M_cholmod_sdmult(A, 0 /* no trans */, one, zero,
 			       cres, ctmp, &c))) /* A %*% W^{1/2} %*% (y-mu) */
 	    error(_("cholmod_sdmult returned error code"));
@@ -1249,7 +1110,7 @@ eval_profiled_deviance(SEXP x)
     R_CheckStack();
 
     mer_update_L(x);
-/* FIXME: PAW^{1/2}[X:y] on the fly and eliminate the ZtXy slot.
+/* FIXME: PAW^{1/2}[X:y] on the fly and eliminate the ZtXy slot. */
 				/* Evaluate PST'Z'[X:y] in RVXy */
     PSTp_dense_mult(RVXy, GET_SLOT(x, lme4_STSym),
 		    INTEGER(GET_SLOT(x, lme4_GpSym)),
@@ -1618,6 +1479,149 @@ SEXP mer_MCMCsamp(SEXP x, SEXP savebp, SEXP nsampp, SEXP transp,
 /*     lmer_update_effects(x); */
     UNPROTECT(2);
     return ans;
+}
+
+/**
+ * Check the dimensions of the matrix pointer MP.
+ *
+ * @param buf character buffer of length nb + 1
+ * @param nb number of writable positions in the buffer
+ * @param nm name of matrix - used in the error message
+ * @param MP pointer to a matrix
+ * @param nr expected number of rows
+ * @param nc expected number of columns
+ *
+ * @return error message or 0-length string in buffer
+ */
+static char
+*chkDims(char *buf, int nb, char *nm, SEXP MP, int nr, int nc)
+{
+    int *dd = isMatrix(MP) ? INTEGER(getAttrib(MP, R_DimSymbol)) :
+	(int *)NULL;
+
+    if (!dd) error(_("Argument MP to chkDims is not a matrix"));
+    buf[0] = '\0';
+    if (!isReal(MP) || dd[0] != nr || dd[1] != nc)
+	snprintf(buf, nb, "Matrix %s must be a %d by %d numeric matrix",
+		nm, nr, nc);
+    return buf;
+}
+
+/**
+ * Check validity of an object that inherits from the mer class.
+ *
+ * @param x Pointer to an lmer or glmer or nlmer object
+ *
+ * @return TRUE if the object is a valid mer object, otherwise a string
+ *         that describes the violation.
+ */
+SEXP mer_validate(SEXP x)
+{
+    SEXP GpP = GET_SLOT(x, lme4_GpSym),
+	ST = GET_SLOT(x, lme4_STSym),
+	XP = GET_SLOT(x, lme4_XSym),
+	devianceP = GET_SLOT(x, lme4_devianceSym),
+	dimsP = GET_SLOT(x, lme4_dimsSym),
+	etaP = GET_SLOT(x, lme4_etaSym),
+	fixefP = GET_SLOT(x, lme4_fixefSym),
+	flistP = GET_SLOT(x, lme4_flistSym),
+	muP = GET_SLOT(x, lme4_muSym),
+	muEtaP = GET_SLOT(x, lme4_muEtaSym),
+	offsetP = GET_SLOT(x, lme4_offsetSym),
+	ranefP = GET_SLOT(x, lme4_ranefSym),
+	residP = GET_SLOT(x, lme4_residSym),
+	uvecP = GET_SLOT(x, lme4_uvecSym),
+	vP = GET_SLOT(x, lme4_vSym),
+	weightsP = GET_SLOT(x, lme4_priorWtSym),
+	y = GET_SLOT(x, lme4_ySym);
+    int *Gp = INTEGER(GpP), *dd = INTEGER(dimsP);
+    int i, n = dd[n_POS], nf = dd[nf_POS],
+	nq, p = dd[p_POS], q = dd[q_POS], s = dd[s_POS];
+    int neta = n * s;
+    CHM_SP Zt = AS_CHM_SP(GET_SLOT(x, lme4_ZtSym)),
+	Vt =  AS_CHM_SP(GET_SLOT(x, lme4_VtSym));
+    CHM_FR L = L_SLOT(x);
+    R_CheckStack();
+				/* check lengths */
+    if (nf < 1 || LENGTH(flistP) != nf || LENGTH(ST) != nf)
+	return mkString(_("Slots ST, and flist must have length dims['nf']"));
+    if (LENGTH(GpP) != nf + 1)
+	return mkString(_("Slot Gp must have length dims['nf'] + 1"));
+    if (LENGTH(y) != n)
+	return mkString(_("Slot y must have length dims['n']"));
+    if (LENGTH(muP) != n)
+	return mkString(_("Slot mu must have length dims['n']"));
+    if (LENGTH(residP) != n)
+	return mkString(_("Slot resid must have length dims['n']"));
+    if (Gp[0] != 0 || Gp[nf] != q)
+	return mkString(_("Gp[1] != 0 or Gp[dims['nf'] + 1] != dims['q']"));
+    if (LENGTH(fixefP) != p)
+	return mkString(_("Slot fixef must have length ['p']"));
+    if (LENGTH(ranefP) != q)
+	return mkString(_("Slot ranef must have length dims['q']"));
+    if (LENGTH(uvecP) != q)
+	return mkString(_("Slot uvec must have length dims['q']"));
+    if (LENGTH(etaP) != neta)
+	return mkString(_("Slot eta must have length dims['n']*dims['s']"));
+    if (LENGTH(weightsP) && LENGTH(weightsP) != n)
+	return mkString(_("Slot weights must have length 0 or dims['n']"));
+    if (LENGTH(offsetP) && LENGTH(offsetP) != n)
+	return mkString(_("Slot offset must have length 0 or dims['n']*dims['s']"));
+    if (LENGTH(devianceP) != (bqd_POS + 1) ||
+	LENGTH(getAttrib(devianceP, R_NamesSymbol)) != (bqd_POS + 1))
+	return mkString(_("deviance slot not named or incorrect length"));
+    if (LENGTH(dimsP) != (cvg_POS + 1) ||
+	LENGTH(getAttrib(dimsP, R_NamesSymbol)) != (cvg_POS + 1))
+	return mkString(_("dims slot not named or incorrect length"));
+    if (L->n != q || !L->is_ll || !L->is_monotonic)
+	return mkString(_("Slot L must be a monotonic LL' factorization of size dims['q']"));
+    if (Zt->nrow != q || Zt->ncol != neta)
+	return mkString(_("Slot Zt must by dims['q']  by dims['n']*dims['s']"));
+    if (Vt->nrow != q || Vt->ncol != neta)
+	return mkString(_("Slot Zt must be dims['q']  by dims['n']*dims['s']"));
+    dd = INTEGER(getAttrib(XP, R_DimSymbol)); 
+    if (!isReal(XP) || dd[1] != p)
+	return mkString(_("Slot X must be a numeric matrix with dims['p'] columns"));
+    if (dd[0] != 0 && dd[0] != (n * s)) /* special case */
+	return mkString(_("Slot X must be have 0 or dims['n']*dims['s'] rows"));
+
+    nq = 0;
+    for (i = 0; i < nf; i++) {
+	SEXP STi = VECTOR_ELT(ST, i), fli = VECTOR_ELT(flistP, i);
+	int *dm = INTEGER(getAttrib(STi, R_DimSymbol));
+	if (!isMatrix(STi) || !isReal(STi) || dm[0] != dm[1])
+	    return
+		mkString(_("Slot ST must be a list of square numeric matrices"));
+	if (Gp[i] > Gp[i + 1])
+	    return mkString(_("Gp must be non-decreasing"));
+	if (!isFactor(fli))
+	    return mkString(_("flist must be a list of factors"));
+	nq += dm[0] * LENGTH(getAttrib(fli, R_LevelsSymbol));
+    }
+    if (q != nq)
+	return mkString(_("q is not sum of columns by levels"));
+#ifndef BUF_SIZE
+#define BUF_SIZE 127
+#endif	
+    if (!(LENGTH(vP) || LENGTH(muEtaP))) { /* linear mixed model */
+	int pp1 = p + 1;
+	char *buf = Alloca(BUF_SIZE + 1, char);
+	R_CheckStack();
+
+	if (strlen(chkDims(buf, (int) BUF_SIZE, "ZtXy",
+			   GET_SLOT(x, lme4_ZtXySym), q, pp1)))
+	    return mkString(buf);
+	if (strlen(chkDims(buf, (int) BUF_SIZE, "XytXy",
+			   GET_SLOT(x, lme4_XytXySym), pp1, pp1)))
+	    return mkString(buf);
+	if (strlen(chkDims(buf, (int) BUF_SIZE, "RXy",
+			   GET_SLOT(x, lme4_RXySym), pp1, pp1)))
+	    return mkString(buf);
+	if (strlen(chkDims(buf, (int) BUF_SIZE, "RVXy",
+			   GET_SLOT(x, lme4_RVXySym), q, pp1)))
+	    return mkString(buf);
+    }
+    return ScalarLogical(1);
 }
 
 /* Functions for the pedigree class */

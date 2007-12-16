@@ -566,28 +566,28 @@ nlmer <- function(formula, data, control = list(), start = NULL,
     if (length(xnms) > 0)
         Xt <- cbind(Xt, fr$X[rep.int(seq_len(n), s), xnms, drop = FALSE])
     dm <- mkdims(fr, FL, start$STpars)
-    Mt <- .Call(nlmer_create_Mt, dm$Vt, s)
     dm$dd["s"] <- s
     dm$dd["ftyp"] <- -1L              # gaussian family, identity link
     dm$dd["p"] <- length(start$fixed)
     n <- dm$dd["n"]
+    A <- .Call(nlmer_create_A, dm$Vt, s)
 
     ans <- new("nlmer",
                env = env, model = nlmod, pnames = pnames,
-               eta = numeric(n * s),
-               mu = numeric(n), resid = numeric(n),
-               Mt = Mt, frame = if (model) fr$mf else fr$mf[0,],
+               eta = numeric(n * s), v = numeric(n),
+               mu = numeric(n), resid = numeric(n), A = A,
+               frame = if (model) fr$mf else fr$mf[0,],
                call = mc, terms = fr$mt, flist = dm$flist, X = X,
                Zt = dm$Zt, Vt = dm$Vt, y = unname(as.double(fr$Y)),
                sqrtWt = unname(sqrt(fr$wts)), 
                cnames = unname(dm$cnames), Gp = unname(dm$Gp),
                dims = dm$dd, ST = dm$ST,
-               L = .Call(mer_create_L, Mt),
+               L = .Call(mer_create_L, A),
                deviance = dm$dev, fixef = start$fixed,
                ranef = numeric(dm$dd["q"]),
                uvec = numeric(dm$dd["q"]))
-    .Call(mer_update_lpdisc, ans)
-    if (!all.equal(colnames(attr(ans@mu, "gradient")), ans@pnames))
+    .Call(mer_update_mu, ans)
+    if (!all.equal(colnames(attr(ans@v, "gradient")), ans@pnames))
         stop("parameter names do not match column names of gradient")
     cv <- do.call("lmerControl", control)
     if (missing(verbose)) verbose <- cv$msVerbose
