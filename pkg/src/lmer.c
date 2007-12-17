@@ -752,7 +752,7 @@ SEXP mer_update_L(SEXP x)
     int nl = LENGTH(vvpt), gen = LENGTH(muEta);
     int lmm = !(nl || gen);	/* linear mixed model */
     int *dims = INTEGER(GET_SLOT(x, lme4_dimsSym));
-    int j, jv, n = dims[n_POS], s = dims[s_POS];
+    int j, jv, n = dims[n_POS], p, s = dims[s_POS];
     double *dev = REAL(GET_SLOT(x, lme4_devianceSym)),
 	one[] = {1,0};
     CHM_SP Vt = AS_CHM_SP(GET_SLOT(x, lme4_VtSym));
@@ -785,7 +785,6 @@ SEXP mer_update_L(SEXP x)
 
 	if (gen) {		/* update using d mu/d eta */
 	    double *dmu_deta = REAL(muEta);
-	    int p;
 	    
 	    for (j = 0; j < n; j++) { 
 		for (p = ap[j]; p < ap[j + 1]; p++)
@@ -794,16 +793,10 @@ SEXP mer_update_L(SEXP x)
 	}
     }
 
-    if (LENGTH(swtsp)) {	/* update and apply sqrtWt */
-	SEXP pwtp = GET_SLOT(x, lme4_priorWtSym),
-	    varp = GET_SLOT(x, lme4_varSym);
-	int p, pw = LENGTH(pwtp), vr = LENGTH(varp);
-	double *sqrtWt = REAL(swtsp),
-	    *pwt = pw ? REAL(pwtp) : (double*) NULL,
-	    *var = vr ? REAL(varp) : (double*) NULL;
+    if (LENGTH(swtsp)) {	/* apply sqrtWt */
+	double *sqrtWt = REAL(swtsp);
 
 	for (j = 0; j < n; j++) { 
-	    sqrtWt[j] = sqrt((pw ? pwt[j] : 1) / (vr ? var[j] : 1));
 	    for (p = ap[j]; p < ap[j + 1]; p++)
 		ax[p] *= sqrtWt[j];
 	}
@@ -820,6 +813,51 @@ SEXP mer_update_L(SEXP x)
 #define CM_TOL      1e-10
 #define CM_SMIN     1e-5
 
+static void update_swts(SEXP swtP, SEXP varP, SEXP pwtP)
+{
+    int n = LENGTH(swtP);
+    if (n) {
+	int i, pw = LENGTH(pwtP), vr = LENGTH(varP);
+	double *pwt = pw ? REAL(pwtP) : (double*) NULL,
+	    *swt = REAL(swtP),
+	    *var = vr ? REAL(varP) : (double*) NULL;
+
+	for (i = 0; i < n; i++)
+	    swt[i] = sqrt((pw ? pwt[i] : 1) / (vr ? var[i] : 1));
+    }
+}
+
+SEXP mer_update_swts(SEXP x)
+{
+    update_swts(GET_SLOT(x, lme4_sqrtWtSym),
+		GET_SLOT(x, lme4_varSym),
+		GET_SLOT(x, lme4_priorWtSym));
+    return R_NilValue;
+}
+
+/* FIXME: Change this to store the weighted residuals and update the weighted resids */
+static double eval_pwrss(SEXP swtP, double res[], double u[], int n, int q)
+{
+    int i, sw = LENGTH(swtP);
+    double *swt = sw ? REAL(swtP) : (double*) NULL,
+	ans = lme4_sumsq(u, q);
+
+    for (i = 0; i < n; i++) {
+	double tmp = res[i] * (sw ? swt[i] : 1);
+	ans += tmp * tmp;
+    }
+    return ans;
+}
+
+SEXP mer_pwrss(SEXP x)
+{
+    int *dims = INTEGER(GET_SLOT(x, lme4_dimsSym));
+    return ScalarReal(eval_pwrss(GET_SLOT(x, lme4_sqrtWtSym),
+				 REAL(GET_SLOT(x, lme4_residSym)),
+				 REAL(GET_SLOT(x, lme4_uvecSym)),
+				 dims[n_POS], dims[q_POS]));
+}
+
 /**
  * Iterate to determine the conditional modes of the random effects.
  *
@@ -831,15 +869,17 @@ SEXP mer_update_L(SEXP x)
  */
 static int cond_mode(SEXP x, int verb)
 {
-    SEXP swtP = GET_SLOT(x, lme4_sqrtWtSym);
+    SEXP swtP = GET_SLOT(x, lme4_sqrtWtSym),
+	varP = GET_SLOT(x, lme4_varSym),
+	pwtP = GET_SLOT(x, lme4_priorWtSym);
     int *dims = INTEGER(GET_SLOT(x, lme4_dimsSym));
     int i, j, n = dims[n_POS], q = dims[q_POS], sw = LENGTH(swtP);
     double *swt = sw ? REAL(swtP) : (double*) NULL,
 	*u = REAL(GET_SLOT(x, lme4_uvecSym)),
 	*res = REAL(GET_SLOT(x, lme4_residSym)), 
-	cfac = ((double)(n - q)) / ((double)q),
-	crit = DOUBLE_XMAX,
-	pwrss_old, one[] = {1,0}, step, zero[] = {0,0};
+	cfac = ((double)n) / ((double)q), 
+	crit, pwrss_old, one[] = {1,0},
+	step, zero[] = {0,0};
     double *tmp = Alloca(q, double),
 	*uold = Alloca(q, double);
     CHM_FR L = L_SLOT(x);
@@ -857,13 +897,13 @@ static int cond_mode(SEXP x, int verb)
      * algorithm can take wild steps. */
 
     AZERO(u, q);
-
-    pwrss_old = update_mu(x);
+    update_mu(x);
     for (i = 0; ; i++) {
 
-	mer_update_L(x);
 	Memcpy(uold, u, q);
-
+	update_swts(swtP, varP, pwtP);
+	mer_update_L(x);
+	pwrss_old = eval_pwrss(swtP, res, u, n, q);
 				/* tmp := A %*% W^{1/2} %*% (y-mu) */
 	if (sw) for (j = 0; j < n; j++) res[j] *= swt[i];
 	if (!(M_cholmod_sdmult(A, 0 /* no trans */, one, zero,
@@ -891,9 +931,11 @@ static int cond_mode(SEXP x, int verb)
 	     step /= 2) {	/* step halving */
 	    double pwrss;
 	    for (j = 0; j < q; j++) u[j] = uold[j] + step * tmp[j];
-	    pwrss = update_mu(x);
+	    update_mu(x);
+	    pwrss = eval_pwrss(swtP, res, u, n, q);
 	    if (verb < 0)
-		Rprintf("%2d,%6.4f: %15.6g\n", i, step, pwrss);
+		Rprintf("%2d,%8.6f,%12.4g: %15.6g %15.6g %15.6g %15.6g\n",
+			i, step, crit, pwrss, pwrss_old, u[1], u[2]);
 	    if (pwrss < pwrss_old) {
 		pwrss_old = pwrss;
 		break;
