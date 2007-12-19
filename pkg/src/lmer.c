@@ -625,24 +625,19 @@ static R_INLINE double y_log_y(double y, double mu)
  *
  * @param x pointer to an mer object
  *
- * @return weighted, penalized residual sum of squares
+ * @return R_NilValue
  */
-static double update_mu(SEXP x)
+SEXP mer_update_mu(SEXP x)
 {
     SEXP muEta = GET_SLOT(x, lme4_muEtaSym),
-	sqrtWtp = GET_SLOT(x, lme4_sqrtWtSym),
 	v = GET_SLOT(x, lme4_vSym),
 	varp = GET_SLOT(x, lme4_varSym);
     int *dims = INTEGER(GET_SLOT(x, lme4_dimsSym));
-    int i, n = dims[n_POS], sw = LENGTH(sqrtWtp);
-    double *d = REAL(GET_SLOT(x, lme4_devianceSym)),
-	*eta = REAL(GET_SLOT(x, lme4_etaSym)),
+    int i, n = dims[n_POS];
+    double *eta = REAL(GET_SLOT(x, lme4_etaSym)),
 	*mu = REAL(GET_SLOT(x, lme4_muSym)),
 	*mueta = REAL(muEta),
-	*res = REAL(GET_SLOT(x, lme4_residSym)),
-	*sqrtWt = REAL(sqrtWtp),
-	*var = REAL(varp),
-	*y = REAL(GET_SLOT(x, lme4_ySym));
+	*var = REAL(varp);
 
     mer_update_eta(x);
 				
@@ -713,33 +708,14 @@ static double update_mu(SEXP x)
 	default:
 	    error(_("General form of glmer_linkinv not yet written"));
 	} 
-    } else { mu = eta; }
-				/* update elements of deviance slot,
-				 * resid slot and accumulate weighted
-				 * RSS. Update sqrtWt in mer_update_L,
-				 * not here. */
-    d[bqd_POS] = lme4_sumsq(REAL(GET_SLOT(x, lme4_uvecSym)), dims[q_POS]);
-    for (i = 0, d[disc_POS] = 0; i < n; i++) {
-	double tmp = (sw ? sqrtWt[i] : 1) * (res[i] = y[i] - mu[i]);
-	d[disc_POS] += tmp * tmp;
+    } else {
+	Memcpy(mu, eta, n);
     }
-    return (d[disc_POS] + d[bqd_POS]);
+    return R_NilValue;
 }
 
 /**
- * Externally callable version of update_mu.
- *
- * @param x pointer to an mer object
- *
- */
-SEXP mer_update_mu(SEXP x)
-{
-    return ScalarReal(update_mu(x));
-
-}
-
-/**
- * Update L.  update_mu should be called first.
+ * Update L.  mer_update_mu should be called first.
  *
  * @param x pointer to an mer object
  *
@@ -835,16 +811,16 @@ SEXP mer_update_swts(SEXP x)
     return R_NilValue;
 }
 
-/* FIXME: Change this to store the weighted residuals and update the weighted resids */
-static double eval_pwrss(SEXP swtP, double res[], double u[], int n, int q)
+static double eval_pwrss(SEXP swtP, double res[], double y[],
+			 double mu[], double u[], int n, int q)
 {
-    int i, sw = LENGTH(swtP);
-    double *swt = sw ? REAL(swtP) : (double*) NULL,
+    int i;
+    double *swt = LENGTH(swtP) ? REAL(swtP) : (double*) NULL,
 	ans = lme4_sumsq(u, q);
 
     for (i = 0; i < n; i++) {
-	double tmp = res[i] * (sw ? swt[i] : 1);
-	ans += tmp * tmp;
+	res[i] = (y[i] - mu[i]) * (swt ? swt[i] : 1);
+	ans += res[i] * res[i];
     }
     return ans;
 }
@@ -854,6 +830,8 @@ SEXP mer_pwrss(SEXP x)
     int *dims = INTEGER(GET_SLOT(x, lme4_dimsSym));
     return ScalarReal(eval_pwrss(GET_SLOT(x, lme4_sqrtWtSym),
 				 REAL(GET_SLOT(x, lme4_residSym)),
+				 REAL(GET_SLOT(x, lme4_ySym)),
+				 REAL(GET_SLOT(x, lme4_muSym)),
 				 REAL(GET_SLOT(x, lme4_uvecSym)),
 				 dims[n_POS], dims[q_POS]));
 }
@@ -873,10 +851,12 @@ static int cond_mode(SEXP x, int verb)
 	varP = GET_SLOT(x, lme4_varSym),
 	pwtP = GET_SLOT(x, lme4_priorWtSym);
     int *dims = INTEGER(GET_SLOT(x, lme4_dimsSym));
-    int i, j, n = dims[n_POS], q = dims[q_POS], sw = LENGTH(swtP);
-    double *swt = sw ? REAL(swtP) : (double*) NULL,
-	*u = REAL(GET_SLOT(x, lme4_uvecSym)),
+    int i, j, n = dims[n_POS], q = dims[q_POS];
+    double
+	*mu = REAL(GET_SLOT(x, lme4_muSym)),
 	*res = REAL(GET_SLOT(x, lme4_residSym)), 
+	*u = REAL(GET_SLOT(x, lme4_uvecSym)),
+	*y = REAL(GET_SLOT(x, lme4_ySym)),
 	cfac = ((double)n) / ((double)q), 
 	crit, pwrss_old, one[] = {1,0},
 	step, zero[] = {0,0};
@@ -897,15 +877,14 @@ static int cond_mode(SEXP x, int verb)
      * algorithm can take wild steps. */
 
     AZERO(u, q);
-    update_mu(x);
+    mer_update_mu(x);
     for (i = 0; ; i++) {
 
 	Memcpy(uold, u, q);
 	update_swts(swtP, varP, pwtP);
 	mer_update_L(x);
-	pwrss_old = eval_pwrss(swtP, res, u, n, q);
+	pwrss_old = eval_pwrss(swtP, res, y, mu, u, n, q);
 				/* tmp := A %*% W^{1/2} %*% (y-mu) */
-	if (sw) for (j = 0; j < n; j++) res[j] *= swt[i];
 	if (!(M_cholmod_sdmult(A, 0 /* no trans */, one, zero,
 			       cres, ctmp, &c))) 
 	    error(_("cholmod_sdmult returned error code"));
@@ -931,8 +910,8 @@ static int cond_mode(SEXP x, int verb)
 	     step /= 2) {	/* step halving */
 	    double pwrss;
 	    for (j = 0; j < q; j++) u[j] = uold[j] + step * tmp[j];
-	    update_mu(x);
-	    pwrss = eval_pwrss(swtP, res, u, n, q);
+	    mer_update_mu(x);
+	    pwrss = eval_pwrss(swtP, res, y, mu,u, n, q);
 	    if (verb < 0)
 		Rprintf("%2d,%8.6f,%12.4g: %15.6g %15.6g %15.6g %15.6g\n",
 			i, step, crit, pwrss, pwrss_old, u[1], u[2]);
@@ -961,11 +940,12 @@ SEXP mer_condMode(SEXP x, SEXP verbP)
 SEXP mer_update_dev(SEXP x)
 {
     double *d = REAL(GET_SLOT(x, lme4_devianceSym));
+    int *dims = INTEGER(GET_SLOT(x, lme4_dimsSym));
+    int i, n = dims[n_POS];
 
     if (LENGTH(GET_SLOT(x, lme4_sqrtWtSym))) { /* generalized */
 	SEXP pwtp = GET_SLOT(x, lme4_priorWtSym);
-	int *dims = INTEGER(GET_SLOT(x, lme4_dimsSym));
-	int i, n = dims[n_POS], pw = LENGTH(pwtp);
+	int pw = LENGTH(pwtp);
 	double *d = REAL(GET_SLOT(x, lme4_devianceSym)),
 	    *mu = REAL(GET_SLOT(x, lme4_muSym)),
 	    *wts = REAL(pwtp),
@@ -993,7 +973,8 @@ SEXP mer_update_dev(SEXP x)
 	    error(_("General form of glmer_dev_resids not yet written"));
 	}
     }
-    d[ML_POS] = d[disc_POS] + d[bqd_POS] + d[ldL2_POS];
+
+    d[ML_POS] = d[disc_POS] + d[ldL2_POS] + d[bqd_POS];
     return R_NilValue;
 }
 
@@ -1051,7 +1032,8 @@ SEXP mer_update_eta(SEXP x)
 	moff = GET_SLOT(x, lme4_offsetSym);
     int *dims = INTEGER(GET_SLOT(x, lme4_dimsSym));
     int i, ione = 1, nans = dims[n_POS] * dims[s_POS], p = dims[p_POS];
-    double *eta = REAL(GET_SLOT(x, lme4_etaSym)), one[] = {1,0};
+    double *d = REAL(GET_SLOT(x, lme4_devianceSym)),
+	*eta = REAL(GET_SLOT(x, lme4_etaSym)), one[] = {1,0};
     CHM_FR L = L_SLOT(x);
     CHM_SP cVt = AS_CHM_SP(GET_SLOT(x, lme4_VtSym));
     CHM_DN Ptu, ceta = N_AS_CHM_DN(eta, nans, 1),
@@ -1074,7 +1056,9 @@ SEXP mer_update_eta(SEXP x)
     if (!M_cholmod_sdmult(cVt, 1 /* trans */, one, one, Ptu, ceta, &c))
 	error(_("cholmod_sdmult error returned"));
     M_cholmod_free_dense(&Ptu, &c);
-
+				/* store u'u */
+    d[bqd_POS] = lme4_sumsq((double*)(cu->x), dims[q_POS]);
+    
     return R_NilValue;
 }
 
