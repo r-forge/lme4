@@ -25,7 +25,6 @@ SEXP attr_hidden
     lme4_muSym,
     lme4_offsetSym,
     lme4_pSym,
-    lme4_permSym,
     lme4_pnamesSym,
     lme4_priorWtSym,
     lme4_ranefSym,
