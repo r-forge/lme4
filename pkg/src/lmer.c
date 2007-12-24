@@ -158,6 +158,8 @@ ST_nc_nlev(const SEXP ST, const int *Gp, double **st, int *nc, int *nlev)
  * @param j column index
  * @param nf number of groups of rows
  * @param Gp group pointers
+ * @param nc array (length nf) of the number of columns
+ * @param nlev array (length nf) of the number of levels
  * @param zi row indices in Zt
  * @param zp column pointers for Zt
  *
@@ -520,6 +522,7 @@ SEXP mer_sigma(SEXP x, SEXP which)
  * Extract the posterior variances of the random effects in an lmer object
  *
  * @param x pointer to an lmer object
+ * @param uS logical scalar indicating whether to use the common scale
  *
  * @return pointer to a list of arrays
  */
@@ -614,11 +617,6 @@ static double MPTHRESH = 0;
 static double PTHRESH = 0;
 static const double INVEPS = 1/DOUBLE_EPS;
 
-static R_INLINE double y_log_y(double y, double mu)
-{
-    return (y) ? (y * log(y/mu)) : 0;
-}
-
 
 /**
  * Evaluate eta, mu, resid, var and sqrtWt.
@@ -629,17 +627,43 @@ static R_INLINE double y_log_y(double y, double mu)
  */
 SEXP mer_update_mu(SEXP x)
 {
-    SEXP muEta = GET_SLOT(x, lme4_muEtaSym),
+    SEXP X = GET_SLOT(x, lme4_XSym),
+	moff = GET_SLOT(x, lme4_offsetSym),
+	muEta = GET_SLOT(x, lme4_muEtaSym),
 	v = GET_SLOT(x, lme4_vSym),
 	varp = GET_SLOT(x, lme4_varSym);
     int *dims = INTEGER(GET_SLOT(x, lme4_dimsSym));
-    int i, n = dims[n_POS];
-    double *eta = REAL(GET_SLOT(x, lme4_etaSym)),
+    int i, ione = 1, n = dims[n_POS], p = dims[p_POS];
+    int nans = dims[n_POS] * dims[s_POS];
+    double *d = REAL(GET_SLOT(x, lme4_devianceSym)),
+	*eta = REAL(GET_SLOT(x, lme4_etaSym)),
 	*mu = REAL(GET_SLOT(x, lme4_muSym)),
 	*mueta = REAL(muEta),
-	*var = REAL(varp);
+	*var = REAL(varp), one[] = {1,0};
+    CHM_FR L = L_SLOT(x);
+    CHM_SP cVt = AS_CHM_SP(GET_SLOT(x, lme4_VtSym));
+    CHM_DN Ptu, ceta = N_AS_CHM_DN(eta, nans, 1),
+	cu = AS_CHM_DN(GET_SLOT(x, lme4_uvecSym));
+    R_CheckStack();
 
-    mer_update_eta(x);
+    if (!INTEGER(getAttrib(X, R_DimSymbol))[0]) { /* X not stored */
+	for (i = 0; i < nans; i++) eta[i] = NA_REAL;
+	return R_NilValue;
+    }
+				/* eta := offset or eta := 0 */
+    if (LENGTH(moff)) Memcpy(eta, REAL(moff), nans);
+    else AZERO(eta, nans);
+				/* eta := eta + X \beta */
+    F77_CALL(dgemv)("N", &nans, &p, one, REAL(X), &nans,
+		    REAL(GET_SLOT(x, lme4_fixefSym)), &ione,
+		    one, eta, &ione);
+				/* eta := eta + V P' u */
+    Ptu = M_cholmod_solve(CHOLMOD_Pt, L, cu, &c);
+    if (!M_cholmod_sdmult(cVt, 1 /* trans */, one, one, Ptu, ceta, &c))
+	error(_("cholmod_sdmult error returned"));
+    M_cholmod_free_dense(&Ptu, &c);
+				/* store u'u */
+    d[bqd_POS] = lme4_sumsq((double*)(cu->x), dims[q_POS]);
 				
     if (LENGTH(v)) {		/* evaluate the nonlinear model */
 	SEXP rho = GET_SLOT(x, lme4_envSym);
@@ -711,6 +735,7 @@ SEXP mer_update_mu(SEXP x)
     } else {
 	Memcpy(mu, eta, n);
     }
+
     return R_NilValue;
 }
 
@@ -803,6 +828,7 @@ static void update_swts(SEXP swtP, SEXP varP, SEXP pwtP)
     }
 }
 
+#if 0 
 SEXP mer_update_swts(SEXP x)
 {
     update_swts(GET_SLOT(x, lme4_sqrtWtSym),
@@ -810,6 +836,7 @@ SEXP mer_update_swts(SEXP x)
 		GET_SLOT(x, lme4_priorWtSym));
     return R_NilValue;
 }
+#endif
 
 static double eval_pwrss(SEXP swtP, double res[], double y[],
 			 double mu[], double u[], int n, int q)
@@ -825,6 +852,7 @@ static double eval_pwrss(SEXP swtP, double res[], double y[],
     return ans;
 }
 
+#if 0
 SEXP mer_pwrss(SEXP x)
 {
     int *dims = INTEGER(GET_SLOT(x, lme4_dimsSym));
@@ -835,6 +863,7 @@ SEXP mer_pwrss(SEXP x)
 				 REAL(GET_SLOT(x, lme4_uvecSym)),
 				 dims[n_POS], dims[q_POS]));
 }
+#endif
 
 /**
  * Iterate to determine the conditional modes of the random effects.
@@ -930,6 +959,11 @@ SEXP mer_condMode(SEXP x, SEXP verbP)
     return ScalarInteger(cond_mode(x, asInteger(verbP)));
 }
 
+static R_INLINE double y_log_y(double y, double mu)
+{
+    return (y) ? (y * log(y/mu)) : 0;
+}
+
 /**
  * Evaluate the discrepancy and log of the penalized discrepancy.
  * update_mu must be called first.
@@ -957,6 +991,7 @@ SEXP mer_update_dev(SEXP x)
 	case 2:
 	    for (i = 0; i < n; i++) {
 		double mui = mu[i], yi = y[i];
+		double omyi = 1 - yi;
 	    
 		d[disc_POS] += 2 * (pw ? wts[i] : 1) *
 		    (y_log_y(yi, mui) + y_log_y(1 - yi, 1 - mui));
@@ -991,6 +1026,8 @@ SEXP mer_update_effects(SEXP x)
     SEXP muEta = GET_SLOT(x, lme4_muEtaSym),
 	v = GET_SLOT(x, lme4_vSym);
     int *dims = INTEGER(GET_SLOT(x, lme4_dimsSym));
+    CHM_FR L = L_SLOT(x);
+    R_CheckStack();
 
     if (!(LENGTH(muEta) || LENGTH(v))) { /* linear mixed model */
 	SEXP uvec = GET_SLOT(x, lme4_uvecSym);
@@ -1001,7 +1038,6 @@ SEXP mer_update_effects(SEXP x)
 	    *dev = REAL(GET_SLOT(x, lme4_devianceSym)),
 	    *fixef = REAL(GET_SLOT(x, lme4_fixefSym)),
 	    *u = REAL(uvec), mone = -1, one = 1;
-	CHM_FR L = L_SLOT(x);
 	CHM_DN cu = AS_CHM_DN(uvec), sol;
 	R_CheckStack();
 
@@ -1021,47 +1057,9 @@ SEXP mer_update_effects(SEXP x)
 		   GET_SLOT(x, lme4_STSym),
 		   INTEGER(GET_SLOT(x, lme4_GpSym)),
 		   GET_SLOT(x, lme4_uvecSym),
-		   INTEGER(GET_SLOT(GET_SLOT(x, lme4_LSym),
-				    lme4_permSym)));
+		   (int *)L->Perm);
     return R_NilValue;
 }
-
-SEXP mer_update_eta(SEXP x)
-{
-    SEXP X = GET_SLOT(x, lme4_XSym),
-	moff = GET_SLOT(x, lme4_offsetSym);
-    int *dims = INTEGER(GET_SLOT(x, lme4_dimsSym));
-    int i, ione = 1, nans = dims[n_POS] * dims[s_POS], p = dims[p_POS];
-    double *d = REAL(GET_SLOT(x, lme4_devianceSym)),
-	*eta = REAL(GET_SLOT(x, lme4_etaSym)), one[] = {1,0};
-    CHM_FR L = L_SLOT(x);
-    CHM_SP cVt = AS_CHM_SP(GET_SLOT(x, lme4_VtSym));
-    CHM_DN Ptu, ceta = N_AS_CHM_DN(eta, nans, 1),
-	cu = AS_CHM_DN(GET_SLOT(x, lme4_uvecSym));
-    R_CheckStack();
-
-    if (!INTEGER(getAttrib(X, R_DimSymbol))[0]) { /* X not stored */
-	for (i = 0; i < nans; i++) eta[i] = NA_REAL;
-	return R_NilValue;
-    }
-				/* eta := offset or eta := 0 */
-    if (LENGTH(moff)) Memcpy(eta, REAL(moff), nans);
-    else AZERO(eta, nans);
-				/* eta := eta + X \beta */
-    F77_CALL(dgemv)("N", &nans, &p, one, REAL(X), &nans,
-		    REAL(GET_SLOT(x, lme4_fixefSym)), &ione,
-		    one, eta, &ione);
-				/* eta := eta + V P' u */
-    Ptu = M_cholmod_solve(CHOLMOD_Pt, L, cu, &c);
-    if (!M_cholmod_sdmult(cVt, 1 /* trans */, one, one, Ptu, ceta, &c))
-	error(_("cholmod_sdmult error returned"));
-    M_cholmod_free_dense(&Ptu, &c);
-				/* store u'u */
-    d[bqd_POS] = lme4_sumsq((double*)(cu->x), dims[q_POS]);
-    
-    return R_NilValue;
-}
-
 
 /**
  * Create the Vt matrix pattern from Zt, ST and Gp.  Partition the
@@ -1461,12 +1459,11 @@ static void mer_MCMC_ST(SEXP x, double sigma, double *vals, int trans)
  * linear mixed model.
  *
  * @param x pointer to an lmer object
- * @param savebp pointer to a logical scalar indicating if the
- * random-effects should be saved
- * @param nsampp pointer to an integer scalar of the number of samples
- * to generate
- * @param transp pointer to an logical scalar indicating if the
- * variance components should be transformed.
+ * @param savebp logical scalar - save random effects?
+ * @param nsampp integer scalar - number of samples to generate
+ * @param transp logical scalar - transform variance components?
+ * @param verbosep logical scalar - verbose output?
+ * @param deviancep logical scalar - store the deviance?
  *
  * @return a matrix
  */
