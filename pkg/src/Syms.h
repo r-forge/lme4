@@ -1,4 +1,4 @@
-SEXP attr_hidden
+SEXP attribute_hidden
     lme4_ASym,
     lme4_DimNamesSym,
     lme4_DimSym,

@@ -313,7 +313,7 @@ mkdims <- function(fr, FL, start)
     list(Gp = Gp, ST = ST, Vt = Vt, Zt = Zt,
          cnames = cnames, dd = dd,
          dev = VecFromNames(
-         c("ML", "REML", "ldL2", "ldRX2", "lpdisc", "disc", "bqd"),
+         c("ML", "REML", "ldL2", "ldRX2", "lpdisc", "disc", "usqr", "wrss"),
          "numeric"), flist = flist)
 }
 
