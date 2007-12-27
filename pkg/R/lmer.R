@@ -104,6 +104,24 @@ expandSlash <- function(bb)
 
 ### Utilities used in lmer, glmer and nlmer
 
+createA <- function(C, s)
+### Create the nonzero pattern for the sparse matrix A from C.
+### ncol(C) is s * ncol(A).  The s groups of ncol(A) consecutive
+### columns in C are overlaid to produce C.
+{
+    stopifnot(is(C, "dgCMatrix"))
+    s <- as.integer(s)[1]
+    if (s == 1L) return(C)
+    if ((nc <- ncol(C)) %% s)
+        stop(gettextf("ncol(C) = %d is not a multiple of s = %d",
+                      nc, s))
+    ncA <- as.integer(nc / s)
+    TC <- as(C, "TsparseMatrix")
+    as(new("dgTMatrix", Dim = c(nrow(C), ncA),
+           i = TC@i, j = as.integer(TC@j %% ncA), x = TC@x),
+       "CsparseMatrix")
+}
+    
 lmerFrames <- function(mc, formula, contrasts, vnms = character(0))
 ### Create the model frame, X, Y, wts, offset and terms
 
@@ -169,10 +187,10 @@ lmerFrames <- function(mc, formula, contrasts, vnms = character(0))
 
     ## check weights and offset
     if (any(wts < 0))
-        stop(gettextf("negative weights not allowed"), domain = NA)
+        stop(gettextf("negative weights not allowed"))
     if(length(off) && length(off) != NROW(Y))
         stop(gettextf("number of offsets is %d should equal %d (number of observations)",
-                      length(off), NROW(Y), domain = NA))
+                      length(off), NROW(Y)))
 
     ## remove the terms attribute from mf
     attr(mf, "terms") <- NULL
@@ -570,7 +588,7 @@ nlmer <- function(formula, data, control = list(), start = NULL,
     dm$dd["ftyp"] <- -1L              # gaussian family, identity link
     dm$dd["p"] <- length(start$fixed)
     n <- dm$dd["n"]
-    A <- .Call(nlmer_create_A, dm$Vt, s)
+    A <- createA(dm$Vt, s)
 
     ans <- new("nlmer",
                env = env, model = nlmod, pnames = pnames,
@@ -1287,7 +1305,7 @@ devvals <- function(fm, pmat, sigma1 = FALSE)
               ## effects.  It would be best to make the appropriate
               ## changes in the C code for ST_setPars.
               if (sigma1) pmat[i,-1]/pmat[i,1] else pmat[i,])
-        ans[i, ] <- c(pmat[i, ], .Call(lmer_profiled_deviance, fm))
+        ans[i, ] <- c(pmat[i, ], .Call(mer_profiled_deviance, fm))
     }
     .Call(mer_ST_setPars, fm, p0)
     .Call(lmer_profiled_deviance, fm)

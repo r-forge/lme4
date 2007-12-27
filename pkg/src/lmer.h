@@ -26,7 +26,9 @@ SEXP mer_update_effects(SEXP x);
 SEXP mer_update_mu(SEXP x);
 SEXP mer_validate(SEXP x);
 
+#if 0
 SEXP nlmer_create_A(SEXP Vt, SEXP sP);
+#endif
 
 SEXP pedigree_chol(SEXP x, SEXP ans);
 
