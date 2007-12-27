@@ -1,0 +1,13 @@
+<area shape="rect" href="$lmer_8c.html#cd80168a07eca975c8af1329b94de0c5" title="Iterate to determine the conditional modes of the random effects." alt="" coords="181,93,277,120">
+<area shape="rect" href="$lmer_8c.html#c33b16395fa975458685d0eb76996f92" title="Evaluate the discrepancy and log of the penalized discrepancy." alt="" coords="164,283,295,309">
+<area shape="rect" href="$lmer_8c.html#1cc173452bb3cf2499a76da5c53895c6" title="Evaluate the profiled deviance for a linear mixed model." alt="" coords="163,169,296,196">
+<area shape="rect" href="$lmer_8c.html#1d1cc0c037f6827ce66c5aa1db650224" title="Extract the parameters from ST list." alt="" coords="183,333,276,360">
+<area shape="rect" href="$lmer_8c.html#c91a1d6467c5dd44cbc4c785f643e315" title="Update the ST and Vt slots of an mer object." alt="" coords="183,232,276,259">
+<area shape="rect" href="$lmer_8c.html#cb5f65f582a10a1d89c539b2df485346" title="Return the sum of squares of the first n elements of x." alt="" coords="556,5,644,32">
+<area shape="rect" href="$lmer_8c.html#2f257f628f06920b351486d48ab50026" title="Update the A, L, sqrtWt and resid slots." alt="" coords="372,93,452,120">
+<area shape="rect" href="$lmer_8c.html#da558f58458c36a96585a9c6e695a0b6" title="Update the eta, v, mu, resid and var slots according to the current values of the..." alt="" coords="365,43,459,69">
+<area shape="rect" href="$lmer_8c.html#76fcf475a3079f5068e463e2d9d32a51" title="Evaluate the logarithm of the square of the determinant of L (i.e." alt="" coords="545,81,655,108">
+<area shape="rect" href="$lmer_8c.html#ff904c8d92fd93c839da5615d9d18240" title="Extract the slot named nm from the object obj and return a null pointer if the slot..." alt="" coords="529,132,671,159">
+<area shape="rect" href="$lmer_8c.html#45a4b3a297e1fea3755628b53d3be26b" title="dest = P *% S *% t(T) *% src for a single column" alt="" coords="344,195,480,221">
+<area shape="rect" href="$lmer_8c.html#3a7fab2a88117d83971db12f53eaa91e" title="Populate the st, nc and nlev arrays." alt="" coords="555,220,645,247">
+<area shape="rect" href="$lmer_8c.html#b8860702c5746bbc78758b160094e9e6" title="Return the group in the (nf, Gp) combination to which ind belongs." alt="" coords="379,296,445,323">

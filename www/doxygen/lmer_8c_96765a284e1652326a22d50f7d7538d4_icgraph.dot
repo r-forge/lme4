@@ -1,0 +1,9 @@
+digraph G
+{
+  edge [fontname="FreeSans.ttf",fontsize=10,labelfontname="FreeSans.ttf",labelfontsize=10];
+  node [fontname="FreeSans.ttf",fontsize=10,shape=record];
+  rankdir=LR;
+  Node1 [label="mer_ST_setPars",height=0.2,width=0.4,color="black", fillcolor="grey75", style="filled" fontcolor="black"];
+  Node1 -> Node2 [dir=back,color="midnightblue",fontsize=10,style="solid",fontname="FreeSans.ttf"];
+  Node2 [label="mer_MCMCsamp",height=0.2,width=0.4,color="black", fillcolor="white", style="filled",URL="$lmer_8h.html#edec83b72f0c3437d9b10daf5120aa2b",tooltip="Generate a Markov-Chain Monte Carlo sample from a fitted linear mixed model."];
+}

@@ -1,0 +1,12 @@
+digraph G
+{
+  edge [fontname="FreeSans.ttf",fontsize=10,labelfontname="FreeSans.ttf",labelfontsize=10];
+  node [fontname="FreeSans.ttf",fontsize=10,shape=record];
+  rankdir=LR;
+  Node1 [label="mer_update_effects",height=0.2,width=0.4,color="black", fillcolor="grey75", style="filled" fontcolor="black"];
+  Node1 -> Node2 [dir=back,color="midnightblue",fontsize=10,style="solid",fontname="FreeSans.ttf"];
+  Node2 [label="mer_MCMC_betab",height=0.2,width=0.4,color="black", fillcolor="white", style="filled",URL="$lmer_8c.html#87c48695afc52ef160a5d6e8b032cb84",tooltip="Update the fixed effects and the random effects in an MCMC sample from an lmer model..."];
+  Node2 -> Node3 [dir=back,color="midnightblue",fontsize=10,style="solid",fontname="FreeSans.ttf"];
+  Node3 [label="mer_MCMCsamp",height=0.2,width=0.4,color="black", fillcolor="white", style="filled",URL="$lmer_8h.html#edec83b72f0c3437d9b10daf5120aa2b",tooltip="Generate a Markov-Chain Monte Carlo sample from a fitted linear mixed model."];
+  Node1 -> Node3 [dir=back,color="midnightblue",fontsize=10,style="solid",fontname="FreeSans.ttf"];
+}

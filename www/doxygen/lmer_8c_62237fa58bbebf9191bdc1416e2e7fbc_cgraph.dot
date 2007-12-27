@@ -1,0 +1,9 @@
+digraph G
+{
+  edge [fontname="FreeSans.ttf",fontsize=10,labelfontname="FreeSans.ttf",labelfontsize=10];
+  node [fontname="FreeSans.ttf",fontsize=10,shape=record];
+  rankdir=LR;
+  Node1 [label="Vt_nz_col",height=0.2,width=0.4,color="black", fillcolor="grey75", style="filled" fontcolor="black"];
+  Node1 -> Node2 [color="midnightblue",fontsize=10,style="solid",fontname="FreeSans.ttf"];
+  Node2 [label="Gp_grp",height=0.2,width=0.4,color="black", fillcolor="white", style="filled",URL="$lmer_8c.html#b8860702c5746bbc78758b160094e9e6",tooltip="Return the group in the (nf, Gp) combination to which ind belongs."];
+}
