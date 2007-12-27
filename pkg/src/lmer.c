@@ -16,8 +16,8 @@ cholmod_common c;
 #define _(String) (String)
 #endif
 
-/* alloca is cleaner than malloc/free when appropriate.  The storage
- *  is freed automatically on return from a function. When using gcc the
+/* When appropriate, alloca is cleaner than malloc/free.  The storage
+ * is freed automatically on return from a function. When using gcc the
  * builtin version is much faster. */
 #ifdef __GNUC__
 # undef alloca
@@ -515,6 +515,8 @@ SEXP mer_ST_setPars(SEXP x, SEXP pars)
     return R_NilValue;
 }
 
+#if 0
+
 /* Nonlinear mixed models */
 
 /**
@@ -541,7 +543,7 @@ SEXP nlmer_create_A(SEXP Vt, SEXP sP)
     M_cholmod_free_triplet(&tA, &c);
     return M_chm_sparse_to_SEXP(ans, 1, 0, 0, "", R_NilValue);
 }
-
+#endif
 
 /* Functions common to all forms of mixed models */
 
