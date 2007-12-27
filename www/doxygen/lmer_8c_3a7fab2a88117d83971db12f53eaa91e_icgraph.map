@@ -1,0 +1,14 @@
+<area shape="rect" href="$lmer_8h.html#491f830a803476a68fe161c0a5d012d8" title="Create the Vt matrix pattern from Zt, ST and Gp." alt="" coords="156,5,273,32">
+<area shape="rect" href="$lmer_8c.html#8a65927acdf81d2dd56f2806e5e80cf7" title="mer_MCMC_ST" alt="" coords="345,356,468,383">
+<area shape="rect" href="$lmer_8h.html#b0d93370f37dc2631574b577e698fc6f" title="Extract the posterior variances of the random effects in an lmer object." alt="" coords="163,107,267,133">
+<area shape="rect" href="$lmer_8h.html#8559f52eaa24d57b05ded03099dbe157" title="Evaluate starting estimates for the elements of ST." alt="" coords="152,157,277,184">
+<area shape="rect" href="$lmer_8c.html#45a4b3a297e1fea3755628b53d3be26b" title="dest = P *% S *% t(T) *% src for a single column" alt="" coords="147,56,283,83">
+<area shape="rect" href="$lmer_8c.html#c91a1d6467c5dd44cbc4c785f643e315" title="Update the ST and Vt slots of an mer object." alt="" coords="168,208,261,235">
+<area shape="rect" href="$lmer_8c.html#c3e6fe9ad75e0e963c024ab8d81f6a4d" title="dest = T *% S *% t(P) *% src" alt="" coords="148,259,281,285">
+<area shape="rect" href="$lmer_8h.html#edec83b72f0c3437d9b10daf5120aa2b" title="Generate a Markov&#45;Chain Monte Carlo sample from a fitted linear mixed model." alt="" coords="547,305,683,332">
+<area shape="rect" href="$lmer_8c.html#1cc173452bb3cf2499a76da5c53895c6" title="Evaluate the profiled deviance for a linear mixed model." alt="" coords="340,81,473,108">
+<area shape="rect" href="$lmer_8h.html#a4e16de36d36af6c715d52a045f88e78" title="Optimize the profiled deviance of an lmer object or the Laplace approximation to..." alt="" coords="560,139,669,165">
+<area shape="rect" href="$lmer_8h.html#0bf081ef41ca11a0ecd7bd5599160f10" title="Externally callable version of profiled_deviance." alt="" coords="532,81,697,108">
+<area shape="rect" href="$lmer_8h.html#96765a284e1652326a22d50f7d7538d4" title="Update the ST slot of an mer object from a REAL vector of parameters and update the..." alt="" coords="344,204,469,231">
+<area shape="rect" href="$lmer_8c.html#87c48695afc52ef160a5d6e8b032cb84" title="Update the fixed effects and the random effects in an MCMC sample from an lmer model..." alt="" coords="335,255,479,281">
+<area shape="rect" href="$lmer_8h.html#21adcf526681f1efd1ad0c4727ff4069" title="Update the contents of the fixef, ranef and uvec slots in an lmer object." alt="" coords="331,305,483,332">
