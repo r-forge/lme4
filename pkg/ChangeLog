@@ -1,3 +1,84 @@
+2007-12-27  Douglas Bates <bates@stat.wisc.edu>
+
+	* [r20] inst/doc/Doxyfile, www/doxygen, many others: Update doxygen
+	  configuration, add doxygen html directory
+	* [r21] R/lmer.R, src/Syms.h, src/init.c, src/lmer.c, src/lmer.h:
+	  Consolidation of functions, doxygen-style documentation
+	* [r22] R/lmer.R, src/init.c, src/lmer.c, src/lmer.h: Move
+	  nlmer_create_A to R code
+
+2007-12-24  Douglas Bates <bates@stat.wisc.edu>
+
+	* [r18] inst/doc/Doxyfile: Add the tree view on the left of the html
+	  pages
+	* [r19] src/Syms.h, src/init.c, src/lmer.c, src/lmer.h: Removing entry
+	  points that are not called
+	
+2007-12-21  Douglas Bates <bates@stat.wisc.edu>
+
+	* [r17] inst/doc/Doxyfile, src/Syms.h, src/init.c: Doxygen
+	  reconfiguration, code cleanup based on calling tree
+
+2007-12-19  Douglas Bates <bates@stat.wisc.edu>
+
+	* [r16] src/lmer.c: More changes in the logic of cond_mode. Looks like
+	  this version works properly!
+
+2007-12-17  Douglas Bates <bates@stat.wisc.edu>
+
+	* [r15] src/init.c, src/lmer.c, src/lmer.h: Factor C code; add more
+	  externally callable entry points; still not converging.
+
+2007-12-16  Douglas Bates <bates@stat.wisc.edu>
+
+	* [r11] R/lmer.R, src/lmer.c, src/lmer.h: Code cleanup and name change,
+	  continued. Last checkin was premature.
+	* [r12] inst/doc/Implementation.Rnw: Change .Call names for consistency
+	  with the current names
+	* [r13] NAMESPACE: Avoid importing the entire namespace from the stats
+	  package
+	* [r14] R/lmer.R, src/init.c, src/lmer.c, src/lmer.h: Externally
+	  callable lmer_profiled_deviance and allowing negative verbose values
+
+2007-12-15  Douglas Bates <bates@stat.wisc.edu>
+
+	* [r10] R/lmer.R, src/init.c, src/lmer.c: Code cleanup; change name of
+	  derivative matrix Mt for NLMMs to A
+
+2007-12-06  Douglas Bates <bates@stat.wisc.edu>
+
+	* [r8] R/AllGeneric.R: Remove isNested as a generic
+	* [r9] R/lmer.R, src/lmer.c: Remove the mtyp element in the dims slot of
+	  mer objects
+
+2007-12-03  Douglas Bates <bates@stat.wisc.edu>
+
+	* [r7] README, R/AllClass.R, R/lmer.R, src/Syms.h, src/init.c,
+	  src/lmer.c, src/lmer.h: Modifications to classes and methods for lmer
+	  and glmer. Lmer now working but glmer still gives incorrect
+	  conditional modes and hence incorrect optima.
+
+2007-11-09  Douglas Bates <bates@stat.wisc.edu>
+
+	* [r2] ChangeLog, DESCRIPTION, Done, NAMESPACE, R/AllClass.R,
+	  R/AllGeneric.R, R/carryOver.R, R/gsummary.R, R/lmList.R, R/lmer.R,
+	  R/mlirt.R, R/pedigree.R, ToDo, inst, inst/doc, inst/doc/Doxyfile,
+	  inst/doc/Implementation.Rnw, inst/doc/Theory.Rnw, inst/doc/lme4.bib,
+	  man/BIC.Rd, man/VarCorr-class.Rd, man/VarCorr.Rd, man/cake.Rd,
+	  man/cbpp.Rd, man/fixef.Rd, man/gsummary.Rd, man/hatTrace.Rd,
+	  man/lmList-class.Rd, man/lmList.Rd, man/lmer-class.Rd, man/lmer.Rd,
+	  man/mcmcsamp.Rd, man/pedigree-class.Rd, man/pedigree.Rd,
+	  man/pooledSD.Rd, man/ranef.Rd, man/sleepstudy.Rd, src, src/Makevars,
+	  src/Syms.h, src/init.c, src/lmer.c, src/lmer.h, src/local_stubs.c,
+	  tests, tests/extras.R, tests/lmer.R: Initialize R-forge package to
+	  what was the gappy-lmer branch
+	* [r3] DESCRIPTION: Update Data:, add MEMSS to Suggests:
+	* [r4] data, data/cake.rda, data/cbpp.rda, data/sleepstudy.rda: Add the
+	  overlooked data directory
+	* [r5] man/lmer.Rd: Add an alias for lmer2 in the documentation
+	* [r6] R/lmList.R: Applied patch from Nathaniel Smithh <njs@pobox.com>
+	  for generalized linear models
+
 2007-11-09 18:33  Douglas Bates <bates@stat.wisc.edu>
 
 	* [r4845] R/AllGeneric.R,lmer.R, NAMESPACE: new functions lmer2, for
