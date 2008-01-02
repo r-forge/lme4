@@ -3,14 +3,8 @@
 \docType{class}
 % Classes
 \alias{mer-class}
-\alias{lmer-class}
-\alias{glmer-class}
-\alias{nlmer-class}
-\alias{coef.lmer-class}
+\alias{coef.mer-class}
 \alias{summary.mer-class}
-\alias{summary.lmer-class}
-\alias{summary.glmer-class}
-\alias{summary.nlmer-class}
 \alias{ranef.mer-class}
 % Methods
 \alias{anova,mer-method}
@@ -24,25 +18,17 @@
 \alias{update,mer-method}
 \alias{vcov,mer-method}
 %
-\alias{confint,lmer-method}
-\alias{fitted,lmer-method}
-\alias{print,lmer-method}
-\alias{resid,lmer-method}
-\alias{residuals,lmer-method}
-\alias{show,lmer-method}
-\alias{simulate,lmer-method}
-\alias{vcov,lmer-method}
-\alias{with,lmer-method}
+\alias{confint,mer-method}
+\alias{fitted,mer-method}
+\alias{print,mer-method}
+\alias{resid,mer-method}
+\alias{residuals,mer-method}
+\alias{show,mer-method}
+\alias{simulate,mer-method}
+\alias{vcov,mer-method}
+\alias{with,mer-method}
 %
-\alias{print,nlmer-method}
-\alias{show,nlmer-method}
-%
-\alias{print,glmer-method}
-\alias{resid,glmer-method}
-\alias{residuals,glmer-method}
-\alias{show,glmer-method}
-%
-\alias{plot,coef.lmer-method}
+\alias{plot,coef.mer-method}
 %
 \alias{plot,ranef.mer-method}
 \alias{qqmath,ranef.mer-method}
@@ -54,21 +40,20 @@
 \description{
   The \code{mer} class is mixed-effects representation using a sparse
   model matrix and the sparse Cholesky factor of the (updated)
-  cross-product of its columns.  The \code{lmer} class extends
-  \code{mer} to represent a fitted linear mixed-effects model.  The
-  \code{summary.mer} and \code{summary.lmer} classes represent summaries
-  of these objects.  The \code{coef.lmer} and \code{ranef.mer} classes
+  cross-product of its columns.  The
+  \code{summary.mer} class represents the summary
+  of these objects.  The \code{coef.mer} and \code{ranef.mer} classes
   represent fixed and random effect \dQuote{coefficients}.
 }
 \section{Objects from the Class}{
-  Objects can be created by calls of the form \code{new("lmer", ...)}
+  Objects can be created by calls of the form \code{new("mer", ...)}
   or, more commonly via the \code{\link{lmer}} function.%
   %% Doug, will we want to keep this?
   %% or by applying the \code{summary} generic to an \code{lmer} object.
 }
 
 \section{Slots}{
-  The virtual class \code{"mer"} contains the slots that are common to
+  The class \code{"mer"} contains the slots that are common to
   all forms of mixed models.  These are:
   \describe{
     \item{\code{frame}:}{The model frame for the model, as an object of
@@ -79,9 +64,7 @@
       effects.}
     \item{\code{terms}:}{A \code{"terms"} object applying to the columns
       of the \code{X} slot.}
-    \item{\code{X}:}{Model matrix for the fixed effects. In a model fit by
-      \code{\link{lmer}} with the optional argument \code{x = FALSE}
-      this matrix is collapsed to 0 rows to save space.  In an
+    \item{\code{X}:}{Model matrix for the fixed effects. In an
       \code{\link{nlmer}} fitted model this matrix has \code{n * s} rows
       where \code{n} is the number of observations and \code{s} is the
       number of parameters in the nonlinear model.}
