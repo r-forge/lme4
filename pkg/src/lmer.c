@@ -61,8 +61,6 @@ enum dimP {
     cvg_POS			/**<convergence indictor from port optimization  */
 };
 
-/** Check for REML estimation flag. */
-#define isREML(x) INTEGER(GET_SLOT(x, lme4_dimsSym))[isREML_POS]
 /** Extract the L slot, convert to a cholmod_factor and return the pointer. */
 #define L_SLOT(x) AS_CHM_FR(GET_SLOT(x, lme4_LSym))
 
@@ -492,32 +490,28 @@ SEXP mer_ST_setPars(SEXP x, SEXP pars)
  */
 SEXP mer_sigma(SEXP x, SEXP which)
 {
-    int w = asInteger(which);
+    int w = asInteger(which),
+	*dims = INTEGER(GET_SLOT(x, lme4_dimsSym));
 		
-    return ScalarReal(get_sigma(w < 0 || (!w && isREML(x)),
-				INTEGER(GET_SLOT(x, lme4_dimsSym)),
+    return ScalarReal(get_sigma(w < 0 || (!w && dims[isREML_POS]), dims,
 				REAL(GET_SLOT(x, lme4_devianceSym))));
 }
 
 /**
- * Extract the posterior variances of the random effects in an lmer object
+ * Extract the posterior variances of the random effects in an mer object
  *
- * @param x pointer to an lmer object
- * @param uS logical scalar indicating whether to use the common scale
+ * @param x pointer to an mer object
  *
  * @return pointer to a list of arrays
  */
-SEXP mer_postVar(SEXP x, SEXP uS)
+SEXP mer_postVar(SEXP x)
 {
     int *Gp = INTEGER(GET_SLOT(x, lme4_GpSym)),
 	*dims = INTEGER(GET_SLOT(x, lme4_dimsSym));
     int nf = dims[nf_POS], q = dims[q_POS];
     SEXP ans = PROTECT(allocVector(VECSXP, nf));
     int i, j, k;
-    double *vv, one[] = {1,0},
-	sc = asLogical(uS) ?
-	     get_sigma(isREML(x), dims, REAL(GET_SLOT(x, lme4_devianceSym)))
-	    : 1;
+    double *vv, one[] = {1,0}, sc;
     CHM_SP sm1, sm2;
     CHM_DN dm1;
     CHM_FR L = L_SLOT(x);
@@ -528,6 +522,7 @@ SEXP mer_postVar(SEXP x, SEXP uS)
 
     ST_nc_nlev(GET_SLOT(x, lme4_STSym), Gp, st, nc, nlev);
     for (j = 0; j < q; j++) iperm[Perm[j]] = j; /* inverse permutation */
+    sc = get_sigma(dims[isREML_POS], dims, REAL(GET_SLOT(x, lme4_devianceSym)));
     for (i = 0; i < nf; i++) {
 	int ncisqr = nc[i] * nc[i];
 	CHM_SP rhs = M_cholmod_allocate_sparse(q, nc[i], nc[i],
