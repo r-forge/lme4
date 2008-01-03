@@ -54,9 +54,6 @@ Include dependency graph for lmer.c:</div>
 <tr><td class="memItemLeft" nowrap align="right" valign="top">#define&nbsp;</td><td class="memItemRight" valign="bottom"><a class="el" href="lmer_8c.html#bc58fbb47cbe0c7c8c42710fd92d7600">CM_TOL</a>&nbsp;&nbsp;&nbsp;1e-10</td></tr>
 
 <tr><td class="mdescLeft">&nbsp;</td><td class="mdescRight">Tolerance level for convergence criterion in cond_mode.  <a href="#bc58fbb47cbe0c7c8c42710fd92d7600"></a><br></td></tr>
-<tr><td class="memItemLeft" nowrap align="right" valign="top">#define&nbsp;</td><td class="memItemRight" valign="bottom"><a class="el" href="lmer_8c.html#6f67a67ad66f67bec8891d7ec834cc05">isREML</a>(x)&nbsp;&nbsp;&nbsp;INTEGER(GET_SLOT(x, <a class="el" href="Syms_8h.html#49094314461f4e9b10bbda1771719e29">lme4_dimsSym</a>))[isREML_POS]</td></tr>
-
-<tr><td class="mdescLeft">&nbsp;</td><td class="mdescRight">Check for REML estimation flag.  <a href="#6f67a67ad66f67bec8891d7ec834cc05"></a><br></td></tr>
 <tr><td class="memItemLeft" nowrap align="right" valign="top">#define&nbsp;</td><td class="memItemRight" valign="bottom"><a class="el" href="lmer_8c.html#94e6667644d2b670654fc46d3cf0ee1b">L_SLOT</a>(x)&nbsp;&nbsp;&nbsp;AS_CHM_FR(GET_SLOT(x, <a class="el" href="Syms_8h.html#1c5173cb2d24e6601e9cd7f68f2df7d2">lme4_LSym</a>))</td></tr>
 
 <tr><td class="mdescLeft">&nbsp;</td><td class="mdescRight">Extract the L slot, convert to a cholmod_factor and return the pointer.  <a href="#94e6667644d2b670654fc46d3cf0ee1b"></a><br></td></tr>
@@ -125,9 +122,9 @@ Include dependency graph for lmer.c:</div>
 <tr><td class="memItemLeft" nowrap align="right" valign="top">SEXP&nbsp;</td><td class="memItemRight" valign="bottom"><a class="el" href="lmer_8c.html#7aa21aea1da63a3096fcc054cc6c9dd5">mer_optimize</a> (SEXP x, SEXP verbp)</td></tr>
 
 <tr><td class="mdescLeft">&nbsp;</td><td class="mdescRight">Optimize the profiled deviance of an lmer object or the Laplace approximation to the deviance of a nlmer or glmer object.  <a href="#7aa21aea1da63a3096fcc054cc6c9dd5"></a><br></td></tr>
-<tr><td class="memItemLeft" nowrap align="right" valign="top">SEXP&nbsp;</td><td class="memItemRight" valign="bottom"><a class="el" href="lmer_8c.html#5fffe3011f0c2037159f4dad0d6f40e2">mer_postVar</a> (SEXP x, SEXP uS)</td></tr>
+<tr><td class="memItemLeft" nowrap align="right" valign="top">SEXP&nbsp;</td><td class="memItemRight" valign="bottom"><a class="el" href="lmer_8c.html#79178d4c0ab3956a7f5d5ac93416759a">mer_postVar</a> (SEXP x)</td></tr>
 
-<tr><td class="mdescLeft">&nbsp;</td><td class="mdescRight">Extract the posterior variances of the random effects in an lmer object.  <a href="#5fffe3011f0c2037159f4dad0d6f40e2"></a><br></td></tr>
+<tr><td class="mdescLeft">&nbsp;</td><td class="mdescRight">Extract the posterior variances of the random effects in an mer object.  <a href="#79178d4c0ab3956a7f5d5ac93416759a"></a><br></td></tr>
 <tr><td class="memItemLeft" nowrap align="right" valign="top">SEXP&nbsp;</td><td class="memItemRight" valign="bottom"><a class="el" href="lmer_8c.html#1c7078c50d8111387e40b202e2e94506">mer_sigma</a> (SEXP x, SEXP which)</td></tr>
 
 <tr><td class="mdescLeft">&nbsp;</td><td class="mdescRight">Extract the estimate of the common scale parameter from an mer object.  <a href="#1c7078c50d8111387e40b202e2e94506"></a><br></td></tr>
@@ -190,18 +187,15 @@ Include dependency graph for lmer.c:</div>
 <tr><td class="memItemLeft" nowrap align="right" valign="top">static double *&nbsp;</td><td class="memItemRight" valign="bottom"><a class="el" href="lmer_8c.html#9812644aac7804e273e0a48e138eb9f9">std_rWishart_factor</a> (double df, int p, int upper, double ans[])</td></tr>
 
 <tr><td class="mdescLeft">&nbsp;</td><td class="mdescRight">Simulate the Cholesky factor of a standardized Wishart variate with dimension p and df degrees of freedom.  <a href="#9812644aac7804e273e0a48e138eb9f9"></a><br></td></tr>
-<tr><td class="memItemLeft" nowrap align="right" valign="top">static void&nbsp;</td><td class="memItemRight" valign="bottom"><a class="el" href="lmer_8c.html#04a657beb8b55592a9bc91a765a04c13">TSPp_dense_mult</a> (double *dx, int nf, int m, int n, double **st, const int *nc, const int *nlev, const int *Gp, const double *sx, const int *Perm)</td></tr>
-
-<tr><td class="mdescLeft">&nbsp;</td><td class="mdescRight">Internal version of TSPp_SEXP_mult.  <a href="#04a657beb8b55592a9bc91a765a04c13"></a><br></td></tr>
-<tr><td class="memItemLeft" nowrap align="right" valign="top">static void&nbsp;</td><td class="memItemRight" valign="bottom"><a class="el" href="lmer_8c.html#c3e6fe9ad75e0e963c024ab8d81f6a4d">TSPp_SEXP_mult</a> (SEXP dest, SEXP ST, const int *Gp, SEXP src, const int *Perm)</td></tr>
-
-<tr><td class="mdescLeft">&nbsp;</td><td class="mdescRight">dest = T *% S *% t(P) *% src  <a href="#c3e6fe9ad75e0e963c024ab8d81f6a4d"></a><br></td></tr>
 <tr><td class="memItemLeft" nowrap align="right" valign="top">static double&nbsp;</td><td class="memItemRight" valign="bottom"><a class="el" href="lmer_8c.html#2f257f628f06920b351486d48ab50026">update_L</a> (SEXP x)</td></tr>
 
 <tr><td class="mdescLeft">&nbsp;</td><td class="mdescRight">Update the A, L, sqrtWt and resid slots.  <a href="#2f257f628f06920b351486d48ab50026"></a><br></td></tr>
 <tr><td class="memItemLeft" nowrap align="right" valign="top">static double&nbsp;</td><td class="memItemRight" valign="bottom"><a class="el" href="lmer_8c.html#da558f58458c36a96585a9c6e695a0b6">update_mu</a> (SEXP x)</td></tr>
 
 <tr><td class="mdescLeft">&nbsp;</td><td class="mdescRight">Update the eta, v, mu, resid and var slots according to the current values of the parameters and u.  <a href="#da558f58458c36a96585a9c6e695a0b6"></a><br></td></tr>
+<tr><td class="memItemLeft" nowrap align="right" valign="top">static void&nbsp;</td><td class="memItemRight" valign="bottom"><a class="el" href="lmer_8c.html#5542c4de7dbcdbb6630cad8fabe96542">update_ranef</a> (SEXP x)</td></tr>
+
+<tr><td class="mdescLeft">&nbsp;</td><td class="mdescRight">b = T *% S *% t(P) *% u  <a href="#5542c4de7dbcdbb6630cad8fabe96542"></a><br></td></tr>
 <tr><td class="memItemLeft" nowrap align="right" valign="top">static double&nbsp;</td><td class="memItemRight" valign="bottom"><a class="el" href="lmer_8c.html#2c7f7874e2eb3f6c51c53c5873cffec4">update_RX</a> (SEXP x)</td></tr>
 
 <tr><td class="mdescLeft">&nbsp;</td><td class="mdescRight">Update the RCX and RX slots in an mer object.  <a href="#2c7f7874e2eb3f6c51c53c5873cffec4"></a><br></td></tr>
@@ -252,7 +246,7 @@ i18n of error messages
 
 <p>Definition at line <a class="el" href="lmer_8c-source.html#l00016">16</a> of file <a class="el" href="lmer_8c-source.html">lmer.c</a>.</p>
 
-<p>Referenced by <a class="el" href="lmer_8c-source.html#l01604">chkDims()</a>, <a class="el" href="lmer_8c-source.html#l00094">Gp_grp()</a>, <a class="el" href="lmer_8c-source.html#l01460">MCMC_ST()</a>, <a class="el" href="lmer_8c-source.html#l00574">mer_create_L()</a>, <a class="el" href="lmer_8c-source.html#l00475">mer_ST_setPars()</a>, <a class="el" href="lmer_8c-source.html#l00959">mer_update_dev()</a>, <a class="el" href="lmer_8c-source.html#l01008">mer_update_effects()</a>, <a class="el" href="lmer_8c-source.html#l01630">mer_validate()</a>, <a class="el" href="lmer_8c-source.html#l01443">safe_pd_matrix()</a>, <a class="el" href="lmer_8c-source.html#l00400">ST_setPars()</a>, <a class="el" href="lmer_8c-source.html#l00754">update_L()</a>, <a class="el" href="lmer_8c-source.html#l00611">update_mu()</a>, <a class="el" href="lmer_8c-source.html#l01184">update_RX()</a>, and <a class="el" href="lmer_8c-source.html#l00853">update_u()</a>.</p>
+<p>Referenced by <a class="el" href="lmer_8c-source.html#l01562">chkDims()</a>, <a class="el" href="lmer_8c-source.html#l00092">Gp_grp()</a>, <a class="el" href="lmer_8c-source.html#l01418">MCMC_ST()</a>, <a class="el" href="lmer_8c-source.html#l00537">mer_create_L()</a>, <a class="el" href="lmer_8c-source.html#l00441">mer_ST_setPars()</a>, <a class="el" href="lmer_8c-source.html#l00922">mer_update_dev()</a>, <a class="el" href="lmer_8c-source.html#l00971">mer_update_effects()</a>, <a class="el" href="lmer_8c-source.html#l01588">mer_validate()</a>, <a class="el" href="lmer_8c-source.html#l01401">safe_pd_matrix()</a>, <a class="el" href="lmer_8c-source.html#l00366">ST_setPars()</a>, <a class="el" href="lmer_8c-source.html#l00717">update_L()</a>, <a class="el" href="lmer_8c-source.html#l00574">update_mu()</a>, <a class="el" href="lmer_8c-source.html#l01143">update_RX()</a>, and <a class="el" href="lmer_8c-source.html#l00816">update_u()</a>.</p>
 
 </div>
 </div><p>
@@ -281,7 +275,7 @@ alloca n elements of type t
 
 <p>Definition at line <a class="el" href="lmer_8c-source.html#l00033">33</a> of file <a class="el" href="lmer_8c-source.html">lmer.c</a>.</p>
 
-<p>Referenced by <a class="el" href="lmer_8c-source.html#l01359">lme4_rWishart()</a>, <a class="el" href="lmer_8c-source.html#l01412">MCMC_betab()</a>, <a class="el" href="lmer_8c-source.html#l01460">MCMC_ST()</a>, <a class="el" href="lmer_8c-source.html#l01059">mer_create_C()</a>, <a class="el" href="lmer_8c-source.html#l01258">mer_optimize()</a>, <a class="el" href="lmer_8c-source.html#l00510">mer_postVar()</a>, <a class="el" href="lmer_8c-source.html#l00320">mer_ST_initialize()</a>, <a class="el" href="lmer_8c-source.html#l01630">mer_validate()</a>, <a class="el" href="lmer_8c-source.html#l01122">PAWv()</a>, <a class="el" href="lmer_8c-source.html#l01791">pedigree_inbreeding()</a>, <a class="el" href="lmer_8c-source.html#l01443">safe_pd_matrix()</a>, <a class="el" href="lmer_8c-source.html#l00400">ST_setPars()</a>, <a class="el" href="lmer_8c-source.html#l00260">TSPp_dense_mult()</a>, <a class="el" href="lmer_8c-source.html#l00298">TSPp_SEXP_mult()</a>, <a class="el" href="lmer_8c-source.html#l00853">update_u()</a>, and <a class="el" href="lmer_8c-source.html#l01154">weighted_XytXy()</a>.</p>
+<p>Referenced by <a class="el" href="lmer_8c-source.html#l01318">lme4_rWishart()</a>, <a class="el" href="lmer_8c-source.html#l01371">MCMC_betab()</a>, <a class="el" href="lmer_8c-source.html#l01418">MCMC_ST()</a>, <a class="el" href="lmer_8c-source.html#l01018">mer_create_C()</a>, <a class="el" href="lmer_8c-source.html#l01217">mer_optimize()</a>, <a class="el" href="lmer_8c-source.html#l00475">mer_postVar()</a>, <a class="el" href="lmer_8c-source.html#l00286">mer_ST_initialize()</a>, <a class="el" href="lmer_8c-source.html#l01588">mer_validate()</a>, <a class="el" href="lmer_8c-source.html#l01081">PAWv()</a>, <a class="el" href="lmer_8c-source.html#l01749">pedigree_inbreeding()</a>, <a class="el" href="lmer_8c-source.html#l01401">safe_pd_matrix()</a>, <a class="el" href="lmer_8c-source.html#l00366">ST_setPars()</a>, <a class="el" href="lmer_8c-source.html#l00248">update_ranef()</a>, <a class="el" href="lmer_8c-source.html#l00816">update_u()</a>, and <a class="el" href="lmer_8c-source.html#l01113">weighted_XytXy()</a>.</p>
 
 </div>
 </div><p>
@@ -310,7 +304,7 @@ zero an array
 
 <p>Definition at line <a class="el" href="lmer_8c-source.html#l00036">36</a> of file <a class="el" href="lmer_8c-source.html">lmer.c</a>.</p>
 
-<p>Referenced by <a class="el" href="lmer_8c-source.html#l00223">C_nz_col()</a>, <a class="el" href="lmer_8c-source.html#l01359">lme4_rWishart()</a>, <a class="el" href="lmer_8c-source.html#l01460">MCMC_ST()</a>, <a class="el" href="lmer_8c-source.html#l01059">mer_create_C()</a>, <a class="el" href="lmer_8c-source.html#l00320">mer_ST_initialize()</a>, <a class="el" href="lmer_8c-source.html#l01122">PAWv()</a>, <a class="el" href="lmer_8c-source.html#l00400">ST_setPars()</a>, <a class="el" href="lmer_8c-source.html#l00754">update_L()</a>, <a class="el" href="lmer_8c-source.html#l00611">update_mu()</a>, and <a class="el" href="lmer_8c-source.html#l00853">update_u()</a>.</p>
+<p>Referenced by <a class="el" href="lmer_8c-source.html#l00221">C_nz_col()</a>, <a class="el" href="lmer_8c-source.html#l01318">lme4_rWishart()</a>, <a class="el" href="lmer_8c-source.html#l01418">MCMC_ST()</a>, <a class="el" href="lmer_8c-source.html#l01018">mer_create_C()</a>, <a class="el" href="lmer_8c-source.html#l00286">mer_ST_initialize()</a>, <a class="el" href="lmer_8c-source.html#l01081">PAWv()</a>, <a class="el" href="lmer_8c-source.html#l00366">ST_setPars()</a>, <a class="el" href="lmer_8c-source.html#l00717">update_L()</a>, <a class="el" href="lmer_8c-source.html#l00574">update_mu()</a>, and <a class="el" href="lmer_8c-source.html#l00816">update_u()</a>.</p>
 
 </div>
 </div><p>
@@ -329,9 +323,9 @@ zero an array
 size of buffer for an error message 
 <p>
 
-<p>Definition at line <a class="el" href="lmer_8c-source.html#l01619">1619</a> of file <a class="el" href="lmer_8c-source.html">lmer.c</a>.</p>
+<p>Definition at line <a class="el" href="lmer_8c-source.html#l01577">1577</a> of file <a class="el" href="lmer_8c-source.html">lmer.c</a>.</p>
 
-<p>Referenced by <a class="el" href="lmer_8c-source.html#l01630">mer_validate()</a>.</p>
+<p>Referenced by <a class="el" href="lmer_8c-source.html#l01588">mer_validate()</a>.</p>
 
 </div>
 </div><p>
@@ -350,9 +344,9 @@ size of buffer for an error message
 Maximum number of iterations in cond_mode. 
 <p>
 
-<p>Definition at line <a class="el" href="lmer_8c-source.html#l00838">838</a> of file <a class="el" href="lmer_8c-source.html">lmer.c</a>.</p>
+<p>Definition at line <a class="el" href="lmer_8c-source.html#l00801">801</a> of file <a class="el" href="lmer_8c-source.html">lmer.c</a>.</p>
 
-<p>Referenced by <a class="el" href="lmer_8c-source.html#l00853">update_u()</a>.</p>
+<p>Referenced by <a class="el" href="lmer_8c-source.html#l00816">update_u()</a>.</p>
 
 </div>
 </div><p>
@@ -371,9 +365,9 @@ Maximum number of iterations in cond_mode.
 Minimum step factor in cond_mode. 
 <p>
 
-<p>Definition at line <a class="el" href="lmer_8c-source.html#l00842">842</a> of file <a class="el" href="lmer_8c-source.html">lmer.c</a>.</p>
+<p>Definition at line <a class="el" href="lmer_8c-source.html#l00805">805</a> of file <a class="el" href="lmer_8c-source.html">lmer.c</a>.</p>
 
-<p>Referenced by <a class="el" href="lmer_8c-source.html#l00853">update_u()</a>.</p>
+<p>Referenced by <a class="el" href="lmer_8c-source.html#l00816">update_u()</a>.</p>
 
 </div>
 </div><p>
@@ -392,35 +386,9 @@ Minimum step factor in cond_mode.
 Tolerance level for convergence criterion in cond_mode. 
 <p>
 
-<p>Definition at line <a class="el" href="lmer_8c-source.html#l00840">840</a> of file <a class="el" href="lmer_8c-source.html">lmer.c</a>.</p>
+<p>Definition at line <a class="el" href="lmer_8c-source.html#l00803">803</a> of file <a class="el" href="lmer_8c-source.html">lmer.c</a>.</p>
 
-<p>Referenced by <a class="el" href="lmer_8c-source.html#l00853">update_u()</a>.</p>
-
-</div>
-</div><p>
-<a class="anchor" name="6f67a67ad66f67bec8891d7ec834cc05"></a><!-- doxytag: member="lmer.c::isREML" ref="6f67a67ad66f67bec8891d7ec834cc05" args="(x)" -->
-<div class="memitem">
-<div class="memproto">
-      <table class="memname">
-        <tr>
-          <td class="memname">#define isREML          </td>
-          <td>(</td>
-          <td class="paramtype">x&nbsp;</td>
-          <td class="paramname">          </td>
-          <td>&nbsp;)&nbsp;</td>
-          <td width="100%">&nbsp;&nbsp;&nbsp;INTEGER(GET_SLOT(x, <a class="el" href="Syms_8h.html#49094314461f4e9b10bbda1771719e29">lme4_dimsSym</a>))[isREML_POS]</td>
-        </tr>
-      </table>
-</div>
-<div class="memdoc">
-
-<p>
-Check for REML estimation flag. 
-<p>
-
-<p>Definition at line <a class="el" href="lmer_8c-source.html#l00065">65</a> of file <a class="el" href="lmer_8c-source.html">lmer.c</a>.</p>
-
-<p>Referenced by <a class="el" href="lmer_8c-source.html#l00510">mer_postVar()</a>, and <a class="el" href="lmer_8c-source.html#l00493">mer_sigma()</a>.</p>
+<p>Referenced by <a class="el" href="lmer_8c-source.html#l00816">update_u()</a>.</p>
 
 </div>
 </div><p>
@@ -444,9 +412,9 @@ Check for REML estimation flag.
 Extract the L slot, convert to a cholmod_factor and return the pointer. 
 <p>
 
-<p>Definition at line <a class="el" href="lmer_8c-source.html#l00067">67</a> of file <a class="el" href="lmer_8c-source.html">lmer.c</a>.</p>
+<p>Definition at line <a class="el" href="lmer_8c-source.html#l00065">65</a> of file <a class="el" href="lmer_8c-source.html">lmer.c</a>.</p>
 
-<p>Referenced by <a class="el" href="lmer_8c-source.html#l01412">MCMC_betab()</a>, <a class="el" href="lmer_8c-source.html#l00510">mer_postVar()</a>, <a class="el" href="lmer_8c-source.html#l01008">mer_update_effects()</a>, <a class="el" href="lmer_8c-source.html#l01630">mer_validate()</a>, <a class="el" href="lmer_8c-source.html#l00754">update_L()</a>, <a class="el" href="lmer_8c-source.html#l00611">update_mu()</a>, <a class="el" href="lmer_8c-source.html#l01184">update_RX()</a>, and <a class="el" href="lmer_8c-source.html#l00853">update_u()</a>.</p>
+<p>Referenced by <a class="el" href="lmer_8c-source.html#l01371">MCMC_betab()</a>, <a class="el" href="lmer_8c-source.html#l00475">mer_postVar()</a>, <a class="el" href="lmer_8c-source.html#l00971">mer_update_effects()</a>, <a class="el" href="lmer_8c-source.html#l01588">mer_validate()</a>, <a class="el" href="lmer_8c-source.html#l00717">update_L()</a>, <a class="el" href="lmer_8c-source.html#l00574">update_mu()</a>, <a class="el" href="lmer_8c-source.html#l01143">update_RX()</a>, and <a class="el" href="lmer_8c-source.html#l00816">update_u()</a>.</p>
 
 </div>
 </div><p>
@@ -614,11 +582,11 @@ Determine the nonzero positions in the jth column of C.
 </dl>
 <dl class="return" compact><dt><b>Returns:</b></dt><dd>count of nonzeros in the jth column of C </dd></dl>
 
-<p>Definition at line <a class="el" href="lmer_8c-source.html#l00223">223</a> of file <a class="el" href="lmer_8c-source.html">lmer.c</a>.</p>
+<p>Definition at line <a class="el" href="lmer_8c-source.html#l00221">221</a> of file <a class="el" href="lmer_8c-source.html">lmer.c</a>.</p>
 
-<p>References <a class="el" href="lmer_8c-source.html#l00036">AZERO</a>, and <a class="el" href="lmer_8c-source.html#l00094">Gp_grp()</a>.</p>
+<p>References <a class="el" href="lmer_8c-source.html#l00036">AZERO</a>, and <a class="el" href="lmer_8c-source.html#l00092">Gp_grp()</a>.</p>
 
-<p>Referenced by <a class="el" href="lmer_8c-source.html#l01059">mer_create_C()</a>.</p>
+<p>Referenced by <a class="el" href="lmer_8c-source.html#l01018">mer_create_C()</a>.</p>
 
 <p>
 <div class="dynheader">
@@ -704,11 +672,11 @@ Check the dimensions of the matrix pointer MP.
 </dl>
 <dl class="return" compact><dt><b>Returns:</b></dt><dd>error message or 0-length string in buffer </dd></dl>
 
-<p>Definition at line <a class="el" href="lmer_8c-source.html#l01604">1604</a> of file <a class="el" href="lmer_8c-source.html">lmer.c</a>.</p>
+<p>Definition at line <a class="el" href="lmer_8c-source.html#l01562">1562</a> of file <a class="el" href="lmer_8c-source.html">lmer.c</a>.</p>
 
 <p>References <a class="el" href="lmer_8c-source.html#l00016">_</a>.</p>
 
-<p>Referenced by <a class="el" href="lmer_8c-source.html#l01630">mer_validate()</a>.</p>
+<p>Referenced by <a class="el" href="lmer_8c-source.html#l01588">mer_validate()</a>.</p>
 
 <p>
 <div class="dynheader">
@@ -748,9 +716,9 @@ the logarithm of the determinant of LL')<p>
 </dl>
 <dl class="return" compact><dt><b>Returns:</b></dt><dd>logarithm of the square of the determinant of L </dd></dl>
 
-<p>Definition at line <a class="el" href="lmer_8c-source.html#l00150">150</a> of file <a class="el" href="lmer_8c-source.html">lmer.c</a>.</p>
+<p>Definition at line <a class="el" href="lmer_8c-source.html#l00148">148</a> of file <a class="el" href="lmer_8c-source.html">lmer.c</a>.</p>
 
-<p>Referenced by <a class="el" href="lmer_8c-source.html#l00754">update_L()</a>.</p>
+<p>Referenced by <a class="el" href="lmer_8c-source.html#l00717">update_L()</a>.</p>
 
 <p>
 <div class="dynheader">
@@ -805,11 +773,11 @@ Return the REML or ML conditional estimate of sigma, the standard deviation of t
   </table>
 </dl>
 
-<p>Definition at line <a class="el" href="lmer_8c-source.html#l00129">129</a> of file <a class="el" href="lmer_8c-source.html">lmer.c</a>.</p>
+<p>Definition at line <a class="el" href="lmer_8c-source.html#l00127">127</a> of file <a class="el" href="lmer_8c-source.html">lmer.c</a>.</p>
 
 <p>References <a class="el" href="lmer_8c-source.html#l00052">n_POS</a>, <a class="el" href="lmer_8c-source.html#l00053">p_POS</a>, <a class="el" href="lmer_8c-source.html#l00060">useSc_POS</a>, <a class="el" href="lmer_8c-source.html#l00046">usqr_POS</a>, and <a class="el" href="lmer_8c-source.html#l00047">wrss_POS</a>.</p>
 
-<p>Referenced by <a class="el" href="lmer_8c-source.html#l00510">mer_postVar()</a>, and <a class="el" href="lmer_8c-source.html#l00493">mer_sigma()</a>.</p>
+<p>Referenced by <a class="el" href="lmer_8c-source.html#l00475">mer_postVar()</a>, and <a class="el" href="lmer_8c-source.html#l00459">mer_sigma()</a>.</p>
 
 <p>
 <div class="dynheader">
@@ -817,7 +785,7 @@ Here is the caller graph for this function:</div>
 <div class="dynsection">
 <p><center><img src="lmer_8c_e828a10e7eeff2a9138d878c958c3ba5_icgraph.png" border="0" usemap="#lmer_8c_e828a10e7eeff2a9138d878c958c3ba5_icgraph_map" alt=""></center>
 <map name="lmer_8c_e828a10e7eeff2a9138d878c958c3ba5_icgraph_map">
-<area shape="rect" href="lmer_8h.html#b0d93370f37dc2631574b577e698fc6f" title="Extract the posterior variances of the random effects in an lmer object." alt="" coords="141,5,245,32"><area shape="rect" href="lmer_8h.html#1c7078c50d8111387e40b202e2e94506" title="Extract the estimate of the common scale parameter from an mer object." alt="" coords="147,56,240,83"></map>
+<area shape="rect" href="lmer_8h.html#79178d4c0ab3956a7f5d5ac93416759a" title="Extract the posterior variances of the random effects in an mer object." alt="" coords="141,5,245,32"><area shape="rect" href="lmer_8h.html#1c7078c50d8111387e40b202e2e94506" title="Extract the estimate of the common scale parameter from an mer object." alt="" coords="147,56,240,83"></map>
 </div>
 
 </div>
@@ -864,11 +832,11 @@ Return the group in the (nf, Gp) combination to which ind belongs.
   </table>
 </dl>
 
-<p>Definition at line <a class="el" href="lmer_8c-source.html#l00094">94</a> of file <a class="el" href="lmer_8c-source.html">lmer.c</a>.</p>
+<p>Definition at line <a class="el" href="lmer_8c-source.html#l00092">92</a> of file <a class="el" href="lmer_8c-source.html">lmer.c</a>.</p>
 
 <p>References <a class="el" href="lmer_8c-source.html#l00016">_</a>.</p>
 
-<p>Referenced by <a class="el" href="lmer_8c-source.html#l00223">C_nz_col()</a>, and <a class="el" href="lmer_8c-source.html#l00400">ST_setPars()</a>.</p>
+<p>Referenced by <a class="el" href="lmer_8c-source.html#l00221">C_nz_col()</a>, and <a class="el" href="lmer_8c-source.html#l00366">ST_setPars()</a>.</p>
 
 <p>
 <div class="dynheader">
@@ -924,7 +892,7 @@ Simulate a sample of random matrices from a Wishart distribution.
 </dl>
 <dl class="return" compact><dt><b>Returns:</b></dt><dd></dd></dl>
 
-<p>Definition at line <a class="el" href="lmer_8c-source.html#l01359">1359</a> of file <a class="el" href="lmer_8c-source.html">lmer.c</a>.</p>
+<p>Definition at line <a class="el" href="lmer_8c-source.html#l01318">1318</a> of file <a class="el" href="lmer_8c-source.html">lmer.c</a>.</p>
 
 </div>
 </div><p>
@@ -963,11 +931,11 @@ Update the fixed effects and the random effects in an MCMC sample from an lmer m
   </table>
 </dl>
 
-<p>Definition at line <a class="el" href="lmer_8c-source.html#l01412">1412</a> of file <a class="el" href="lmer_8c-source.html">lmer.c</a>.</p>
+<p>Definition at line <a class="el" href="lmer_8c-source.html#l01371">1371</a> of file <a class="el" href="lmer_8c-source.html">lmer.c</a>.</p>
 
-<p>References <a class="el" href="lmer_8c-source.html#l00033">Alloca</a>, <a class="el" href="init_8c-source.html#l00034">c</a>, <a class="el" href="lmer_8c-source.html#l00067">L_SLOT</a>, <a class="el" href="Syms_8h-source.html#l00003">lme4_fixefSym</a>, <a class="el" href="Syms_8h-source.html#l00003">lme4_GpSym</a>, <a class="el" href="Syms_8h-source.html#l00003">lme4_ranefSym</a>, <a class="el" href="Syms_8h-source.html#l00003">lme4_RVXySym</a>, <a class="el" href="Syms_8h-source.html#l00003">lme4_RXySym</a>, <a class="el" href="Syms_8h-source.html#l00003">lme4_STSym</a>, <a class="el" href="Syms_8h-source.html#l00003">lme4_uvecSym</a>, <a class="el" href="lmer_8c-source.html#l01008">mer_update_effects()</a>, and <a class="el" href="lmer_8c-source.html#l00298">TSPp_SEXP_mult()</a>.</p>
+<p>References <a class="el" href="lmer_8c-source.html#l00033">Alloca</a>, <a class="el" href="init_8c-source.html#l00034">c</a>, <a class="el" href="lmer_8c-source.html#l00065">L_SLOT</a>, <a class="el" href="Syms_8h-source.html#l00003">lme4_fixefSym</a>, <a class="el" href="Syms_8h-source.html#l00003">lme4_RVXySym</a>, <a class="el" href="Syms_8h-source.html#l00003">lme4_RXySym</a>, <a class="el" href="Syms_8h-source.html#l00003">lme4_uvecSym</a>, <a class="el" href="lmer_8c-source.html#l00971">mer_update_effects()</a>, and <a class="el" href="lmer_8c-source.html#l00248">update_ranef()</a>.</p>
 
-<p>Referenced by <a class="el" href="lmer_8c-source.html#l01542">mer_MCMCsamp()</a>.</p>
+<p>Referenced by <a class="el" href="lmer_8c-source.html#l01500">mer_MCMCsamp()</a>.</p>
 
 <p>
 <div class="dynheader">
@@ -975,7 +943,7 @@ Here is the call graph for this function:</div>
 <div class="dynsection">
 <p><center><img src="lmer_8c_74143c5e3fa683497e6d6b58503c8bc1_cgraph.png" border="0" usemap="#lmer_8c_74143c5e3fa683497e6d6b58503c8bc1_cgraph_map" alt=""></center>
 <map name="lmer_8c_74143c5e3fa683497e6d6b58503c8bc1_cgraph_map">
-<area shape="rect" href="lmer_8c.html#21adcf526681f1efd1ad0c4727ff4069" title="Update the contents of the fixef, ranef and uvec slots in an lmer object." alt="" coords="165,5,317,32"><area shape="rect" href="lmer_8c.html#c3e6fe9ad75e0e963c024ab8d81f6a4d" title="dest = T *% S *% t(P) *% src" alt="" coords="175,56,308,83"><area shape="rect" href="lmer_8c.html#3a7fab2a88117d83971db12f53eaa91e" title="Populate the st, nc and nlev arrays." alt="" coords="388,31,479,57"><area shape="rect" href="lmer_8c.html#04a657beb8b55592a9bc91a765a04c13" title="Internal version of TSPp_SEXP_mult." alt="" coords="365,81,501,108"></map>
+<area shape="rect" href="lmer_8c.html#21adcf526681f1efd1ad0c4727ff4069" title="Update the contents of the fixef, ranef and uvec slots in an lmer object." alt="" coords="165,5,317,32"><area shape="rect" href="lmer_8c.html#5542c4de7dbcdbb6630cad8fabe96542" title="b = T *% S *% t(P) *% u" alt="" coords="188,56,295,83"><area shape="rect" href="lmer_8c.html#3a7fab2a88117d83971db12f53eaa91e" title="Populate the st, nc and nlev arrays." alt="" coords="367,56,457,83"></map>
 </div>
 
 <p>
@@ -1028,11 +996,11 @@ Here is the caller graph for this function:</div>
 
 <p>
 
-<p>Definition at line <a class="el" href="lmer_8c-source.html#l01460">1460</a> of file <a class="el" href="lmer_8c-source.html">lmer.c</a>.</p>
+<p>Definition at line <a class="el" href="lmer_8c-source.html#l01418">1418</a> of file <a class="el" href="lmer_8c-source.html">lmer.c</a>.</p>
 
-<p>References <a class="el" href="lmer_8c-source.html#l00016">_</a>, <a class="el" href="lmer_8c-source.html#l00033">Alloca</a>, <a class="el" href="lmer_8c-source.html#l00036">AZERO</a>, <a class="el" href="Syms_8h-source.html#l00003">lme4_GpSym</a>, <a class="el" href="Syms_8h-source.html#l00003">lme4_ranefSym</a>, <a class="el" href="Syms_8h-source.html#l00003">lme4_STSym</a>, <a class="el" href="lmer_8c-source.html#l01443">safe_pd_matrix()</a>, <a class="el" href="lmer_8c-source.html#l00192">ST_nc_nlev()</a>, and <a class="el" href="lmer_8c-source.html#l01331">std_rWishart_factor()</a>.</p>
+<p>References <a class="el" href="lmer_8c-source.html#l00016">_</a>, <a class="el" href="lmer_8c-source.html#l00033">Alloca</a>, <a class="el" href="lmer_8c-source.html#l00036">AZERO</a>, <a class="el" href="Syms_8h-source.html#l00003">lme4_GpSym</a>, <a class="el" href="Syms_8h-source.html#l00003">lme4_ranefSym</a>, <a class="el" href="Syms_8h-source.html#l00003">lme4_STSym</a>, <a class="el" href="lmer_8c-source.html#l01401">safe_pd_matrix()</a>, <a class="el" href="lmer_8c-source.html#l00190">ST_nc_nlev()</a>, and <a class="el" href="lmer_8c-source.html#l01290">std_rWishart_factor()</a>.</p>
 
-<p>Referenced by <a class="el" href="lmer_8c-source.html#l01542">mer_MCMCsamp()</a>.</p>
+<p>Referenced by <a class="el" href="lmer_8c-source.html#l01500">mer_MCMCsamp()</a>.</p>
 
 <p>
 <div class="dynheader">
@@ -1098,7 +1066,7 @@ Partition the columns into s groups and overlay them.<p>
 </dl>
 <dl class="return" compact><dt><b>Returns:</b></dt><dd>C </dd></dl>
 
-<p>Definition at line <a class="el" href="lmer_8c-source.html#l01059">1059</a> of file <a class="el" href="lmer_8c-source.html">lmer.c</a>.</p>
+<p>Definition at line <a class="el" href="lmer_8c-source.html#l01018">1018</a> of file <a class="el" href="lmer_8c-source.html">lmer.c</a>.</p>
 
 </div>
 </div><p>
@@ -1128,7 +1096,7 @@ Create and initialize L.
 </dl>
 <dl class="return" compact><dt><b>Returns:</b></dt><dd>L </dd></dl>
 
-<p>Definition at line <a class="el" href="lmer_8c-source.html#l00574">574</a> of file <a class="el" href="lmer_8c-source.html">lmer.c</a>.</p>
+<p>Definition at line <a class="el" href="lmer_8c-source.html#l00537">537</a> of file <a class="el" href="lmer_8c-source.html">lmer.c</a>.</p>
 
 </div>
 </div><p>
@@ -1196,7 +1164,7 @@ Generate a Markov-Chain Monte Carlo sample from a fitted linear mixed model.
 </dl>
 <dl class="return" compact><dt><b>Returns:</b></dt><dd>a matrix </dd></dl>
 
-<p>Definition at line <a class="el" href="lmer_8c-source.html#l01542">1542</a> of file <a class="el" href="lmer_8c-source.html">lmer.c</a>.</p>
+<p>Definition at line <a class="el" href="lmer_8c-source.html#l01500">1500</a> of file <a class="el" href="lmer_8c-source.html">lmer.c</a>.</p>
 
 </div>
 </div><p>
@@ -1236,11 +1204,11 @@ Optimize the profiled deviance of an lmer object or the Laplace approximation to
 </dl>
 <dl class="return" compact><dt><b>Returns:</b></dt><dd>R_NilValue </dd></dl>
 
-<p>Definition at line <a class="el" href="lmer_8c-source.html#l01258">1258</a> of file <a class="el" href="lmer_8c-source.html">lmer.c</a>.</p>
+<p>Definition at line <a class="el" href="lmer_8c-source.html#l01217">1217</a> of file <a class="el" href="lmer_8c-source.html">lmer.c</a>.</p>
 
 </div>
 </div><p>
-<a class="anchor" name="5fffe3011f0c2037159f4dad0d6f40e2"></a><!-- doxytag: member="lmer.c::mer_postVar" ref="5fffe3011f0c2037159f4dad0d6f40e2" args="(SEXP x, SEXP uS)" -->
+<a class="anchor" name="79178d4c0ab3956a7f5d5ac93416759a"></a><!-- doxytag: member="lmer.c::mer_postVar" ref="79178d4c0ab3956a7f5d5ac93416759a" args="(SEXP x)" -->
 <div class="memitem">
 <div class="memproto">
       <table class="memname">
@@ -1248,35 +1216,25 @@ Optimize the profiled deviance of an lmer object or the Laplace approximation to
           <td class="memname">SEXP mer_postVar           </td>
           <td>(</td>
           <td class="paramtype">SEXP&nbsp;</td>
-          <td class="paramname"> <em>x</em>, </td>
-        </tr>
-        <tr>
-          <td class="paramkey"></td>
-          <td></td>
-          <td class="paramtype">SEXP&nbsp;</td>
-          <td class="paramname"> <em>uS</em></td><td>&nbsp;</td>
-        </tr>
-        <tr>
-          <td></td>
-          <td>)</td>
-          <td></td><td></td><td width="100%"></td>
+          <td class="paramname"> <em>x</em>          </td>
+          <td>&nbsp;)&nbsp;</td>
+          <td width="100%"></td>
         </tr>
       </table>
 </div>
 <div class="memdoc">
 
 <p>
-Extract the posterior variances of the random effects in an lmer object. 
+Extract the posterior variances of the random effects in an mer object. 
 <p>
 <dl compact><dt><b>Parameters:</b></dt><dd>
   <table border="0" cellspacing="2" cellpadding="0">
-    <tr><td valign="top"></td><td valign="top"><em>x</em>&nbsp;</td><td>pointer to an lmer object </td></tr>
-    <tr><td valign="top"></td><td valign="top"><em>uS</em>&nbsp;</td><td>logical scalar indicating whether to use the common scale</td></tr>
+    <tr><td valign="top"></td><td valign="top"><em>x</em>&nbsp;</td><td>pointer to an mer object</td></tr>
   </table>
 </dl>
 <dl class="return" compact><dt><b>Returns:</b></dt><dd>pointer to a list of arrays </dd></dl>
 
-<p>Definition at line <a class="el" href="lmer_8c-source.html#l00510">510</a> of file <a class="el" href="lmer_8c-source.html">lmer.c</a>.</p>
+<p>Definition at line <a class="el" href="lmer_8c-source.html#l00475">475</a> of file <a class="el" href="lmer_8c-source.html">lmer.c</a>.</p>
 
 </div>
 </div><p>
@@ -1316,7 +1274,7 @@ Extract the estimate of the common scale parameter from an mer object.
 </dl>
 <dl class="return" compact><dt><b>Returns:</b></dt><dd>scalar REAL value </dd></dl>
 
-<p>Definition at line <a class="el" href="lmer_8c-source.html#l00493">493</a> of file <a class="el" href="lmer_8c-source.html">lmer.c</a>.</p>
+<p>Definition at line <a class="el" href="lmer_8c-source.html#l00459">459</a> of file <a class="el" href="lmer_8c-source.html">lmer.c</a>.</p>
 
 </div>
 </div><p>
@@ -1346,9 +1304,9 @@ Extract the parameters from the ST slot of an mer object.
 </dl>
 <dl class="return" compact><dt><b>Returns:</b></dt><dd>pointer to a REAL vector </dd></dl>
 
-<p>Definition at line <a class="el" href="lmer_8c-source.html#l00382">382</a> of file <a class="el" href="lmer_8c-source.html">lmer.c</a>.</p>
+<p>Definition at line <a class="el" href="lmer_8c-source.html#l00348">348</a> of file <a class="el" href="lmer_8c-source.html">lmer.c</a>.</p>
 
-<p>Referenced by <a class="el" href="lmer_8c-source.html#l01542">mer_MCMCsamp()</a>.</p>
+<p>Referenced by <a class="el" href="lmer_8c-source.html#l01500">mer_MCMCsamp()</a>.</p>
 
 <p>
 <div class="dynheader">
@@ -1403,7 +1361,7 @@ Evaluate starting estimates for the elements of ST.
   </table>
 </dl>
 
-<p>Definition at line <a class="el" href="lmer_8c-source.html#l00320">320</a> of file <a class="el" href="lmer_8c-source.html">lmer.c</a>.</p>
+<p>Definition at line <a class="el" href="lmer_8c-source.html#l00286">286</a> of file <a class="el" href="lmer_8c-source.html">lmer.c</a>.</p>
 
 </div>
 </div><p>
@@ -1443,9 +1401,9 @@ Update the ST slot of an mer object from a REAL vector of parameters and update 
 </dl>
 <dl class="return" compact><dt><b>Returns:</b></dt><dd>R_NilValue </dd></dl>
 
-<p>Definition at line <a class="el" href="lmer_8c-source.html#l00475">475</a> of file <a class="el" href="lmer_8c-source.html">lmer.c</a>.</p>
+<p>Definition at line <a class="el" href="lmer_8c-source.html#l00441">441</a> of file <a class="el" href="lmer_8c-source.html">lmer.c</a>.</p>
 
-<p>Referenced by <a class="el" href="lmer_8c-source.html#l01542">mer_MCMCsamp()</a>.</p>
+<p>Referenced by <a class="el" href="lmer_8c-source.html#l01500">mer_MCMCsamp()</a>.</p>
 
 <p>
 <div class="dynheader">
@@ -1484,9 +1442,9 @@ update_mu must be called first.<p>
   </table>
 </dl>
 
-<p>Definition at line <a class="el" href="lmer_8c-source.html#l00959">959</a> of file <a class="el" href="lmer_8c-source.html">lmer.c</a>.</p>
+<p>Definition at line <a class="el" href="lmer_8c-source.html#l00922">922</a> of file <a class="el" href="lmer_8c-source.html">lmer.c</a>.</p>
 
-<p>Referenced by <a class="el" href="lmer_8c-source.html#l01258">mer_optimize()</a>.</p>
+<p>Referenced by <a class="el" href="lmer_8c-source.html#l01217">mer_optimize()</a>.</p>
 
 <p>
 <div class="dynheader">
@@ -1525,9 +1483,9 @@ Update the contents of the fixef, ranef and uvec slots in an lmer object.
 </dl>
 <dl class="return" compact><dt><b>Returns:</b></dt><dd>R_NilValue </dd></dl>
 
-<p>Definition at line <a class="el" href="lmer_8c-source.html#l01008">1008</a> of file <a class="el" href="lmer_8c-source.html">lmer.c</a>.</p>
+<p>Definition at line <a class="el" href="lmer_8c-source.html#l00971">971</a> of file <a class="el" href="lmer_8c-source.html">lmer.c</a>.</p>
 
-<p>Referenced by <a class="el" href="lmer_8c-source.html#l01412">MCMC_betab()</a>, and <a class="el" href="lmer_8c-source.html#l01542">mer_MCMCsamp()</a>.</p>
+<p>Referenced by <a class="el" href="lmer_8c-source.html#l01371">MCMC_betab()</a>, and <a class="el" href="lmer_8c-source.html#l01500">mer_MCMCsamp()</a>.</p>
 
 <p>
 <div class="dynheader">
@@ -1567,7 +1525,7 @@ Update the A, L, sqrtWt and resid slots. It is assumed that update_mu has alread
 </dl>
 <dl class="return" compact><dt><b>Returns:</b></dt><dd>penalized weighted residual sum of squares </dd></dl>
 
-<p>Definition at line <a class="el" href="lmer_8c-source.html#l00832">832</a> of file <a class="el" href="lmer_8c-source.html">lmer.c</a>.</p>
+<p>Definition at line <a class="el" href="lmer_8c-source.html#l00795">795</a> of file <a class="el" href="lmer_8c-source.html">lmer.c</a>.</p>
 
 </div>
 </div><p>
@@ -1598,7 +1556,7 @@ Update the eta, v, mu, resid and var slots according to the current values of th
 </dl>
 <dl class="return" compact><dt><b>Returns:</b></dt><dd>penalized, weighted residual sum of squares </dd></dl>
 
-<p>Definition at line <a class="el" href="lmer_8c-source.html#l00739">739</a> of file <a class="el" href="lmer_8c-source.html">lmer.c</a>.</p>
+<p>Definition at line <a class="el" href="lmer_8c-source.html#l00702">702</a> of file <a class="el" href="lmer_8c-source.html">lmer.c</a>.</p>
 
 </div>
 </div><p>
@@ -1628,7 +1586,7 @@ Externally callable version of update_RX.
 </dl>
 <dl class="return" compact><dt><b>Returns:</b></dt><dd>profiled deviance or REML deviance </dd></dl>
 
-<p>Definition at line <a class="el" href="lmer_8c-source.html#l01243">1243</a> of file <a class="el" href="lmer_8c-source.html">lmer.c</a>.</p>
+<p>Definition at line <a class="el" href="lmer_8c-source.html#l01202">1202</a> of file <a class="el" href="lmer_8c-source.html">lmer.c</a>.</p>
 
 </div>
 </div><p>
@@ -1669,7 +1627,7 @@ Iterate to determine the conditional modes of the random effects.<p>
 </dl>
 <dl class="return" compact><dt><b>Returns:</b></dt><dd>number of iterations to convergence (0 for non-convergence) </dd></dl>
 
-<p>Definition at line <a class="el" href="lmer_8c-source.html#l00934">934</a> of file <a class="el" href="lmer_8c-source.html">lmer.c</a>.</p>
+<p>Definition at line <a class="el" href="lmer_8c-source.html#l00897">897</a> of file <a class="el" href="lmer_8c-source.html">lmer.c</a>.</p>
 
 </div>
 </div><p>
@@ -1699,7 +1657,7 @@ Check validity of an object that inherits from the mer class.
 </dl>
 <dl class="return" compact><dt><b>Returns:</b></dt><dd>TRUE if the object is a valid mer object, otherwise a string that describes the violation. </dd></dl>
 
-<p>Definition at line <a class="el" href="lmer_8c-source.html#l01630">1630</a> of file <a class="el" href="lmer_8c-source.html">lmer.c</a>.</p>
+<p>Definition at line <a class="el" href="lmer_8c-source.html#l01588">1588</a> of file <a class="el" href="lmer_8c-source.html">lmer.c</a>.</p>
 
 </div>
 </div><p>
@@ -1773,11 +1731,11 @@ Create PAW^{1/2}v in dest.
   </table>
 </dl>
 
-<p>Definition at line <a class="el" href="lmer_8c-source.html#l01122">1122</a> of file <a class="el" href="lmer_8c-source.html">lmer.c</a>.</p>
+<p>Definition at line <a class="el" href="lmer_8c-source.html#l01081">1081</a> of file <a class="el" href="lmer_8c-source.html">lmer.c</a>.</p>
 
 <p>References <a class="el" href="lmer_8c-source.html#l00033">Alloca</a>, and <a class="el" href="lmer_8c-source.html#l00036">AZERO</a>.</p>
 
-<p>Referenced by <a class="el" href="lmer_8c-source.html#l01184">update_RX()</a>.</p>
+<p>Referenced by <a class="el" href="lmer_8c-source.html#l01143">update_RX()</a>.</p>
 
 <p>
 <div class="dynheader">
@@ -1826,7 +1784,7 @@ Create the left Cholesky factor of the numerator relationship matrix from a pedi
 </dl>
 <dl class="return" compact><dt><b>Returns:</b></dt><dd>ans with elements modified to incorporate D </dd></dl>
 
-<p>Definition at line <a class="el" href="lmer_8c-source.html#l01736">1736</a> of file <a class="el" href="lmer_8c-source.html">lmer.c</a>.</p>
+<p>Definition at line <a class="el" href="lmer_8c-source.html#l01694">1694</a> of file <a class="el" href="lmer_8c-source.html">lmer.c</a>.</p>
 
 </div>
 </div><p>
@@ -1857,7 +1815,7 @@ This function is a modified version of the code published in an appendix to that
 </dl>
 <dl class="return" compact><dt><b>Returns:</b></dt><dd>a list of the inbreeding coefficients </dd></dl>
 
-<p>Definition at line <a class="el" href="lmer_8c-source.html#l01791">1791</a> of file <a class="el" href="lmer_8c-source.html">lmer.c</a>.</p>
+<p>Definition at line <a class="el" href="lmer_8c-source.html#l01749">1749</a> of file <a class="el" href="lmer_8c-source.html">lmer.c</a>.</p>
 
 <p>References <a class="el" href="lmer_8c-source.html#l00033">Alloca</a>.</p>
 
@@ -1902,11 +1860,11 @@ This function is a modified version of the code published in an appendix to that
 
 <p>
 
-<p>Definition at line <a class="el" href="lmer_8c-source.html#l01443">1443</a> of file <a class="el" href="lmer_8c-source.html">lmer.c</a>.</p>
+<p>Definition at line <a class="el" href="lmer_8c-source.html#l01401">1401</a> of file <a class="el" href="lmer_8c-source.html">lmer.c</a>.</p>
 
 <p>References <a class="el" href="lmer_8c-source.html#l00016">_</a>, and <a class="el" href="lmer_8c-source.html#l00033">Alloca</a>.</p>
 
-<p>Referenced by <a class="el" href="lmer_8c-source.html#l01460">MCMC_ST()</a>.</p>
+<p>Referenced by <a class="el" href="lmer_8c-source.html#l01418">MCMC_ST()</a>.</p>
 
 <p>
 <div class="dynheader">
@@ -1955,9 +1913,9 @@ Extract the slot named nm from the object obj and return a null pointer if the s
 </dl>
 <dl class="return" compact><dt><b>Returns:</b></dt><dd>pointer to the REAL contents, if nonzero length, otherwise a NULL pointer </dd></dl>
 
-<p>Definition at line <a class="el" href="lmer_8c-source.html#l00114">114</a> of file <a class="el" href="lmer_8c-source.html">lmer.c</a>.</p>
+<p>Definition at line <a class="el" href="lmer_8c-source.html#l00112">112</a> of file <a class="el" href="lmer_8c-source.html">lmer.c</a>.</p>
 
-<p>Referenced by <a class="el" href="lmer_8c-source.html#l00754">update_L()</a>, <a class="el" href="lmer_8c-source.html#l00611">update_mu()</a>, and <a class="el" href="lmer_8c-source.html#l01184">update_RX()</a>.</p>
+<p>Referenced by <a class="el" href="lmer_8c-source.html#l00717">update_L()</a>, <a class="el" href="lmer_8c-source.html#l00574">update_mu()</a>, and <a class="el" href="lmer_8c-source.html#l01143">update_RX()</a>.</p>
 
 <p>
 <div class="dynheader">
@@ -2006,9 +1964,9 @@ Return the sum of squares of the first n elements of x.
 </dl>
 <dl class="return" compact><dt><b>Returns:</b></dt><dd>sum of squares </dd></dl>
 
-<p>Definition at line <a class="el" href="lmer_8c-source.html#l00077">77</a> of file <a class="el" href="lmer_8c-source.html">lmer.c</a>.</p>
+<p>Definition at line <a class="el" href="lmer_8c-source.html#l00075">75</a> of file <a class="el" href="lmer_8c-source.html">lmer.c</a>.</p>
 
-<p>Referenced by <a class="el" href="lmer_8c-source.html#l01008">mer_update_effects()</a>, <a class="el" href="lmer_8c-source.html#l00611">update_mu()</a>, and <a class="el" href="lmer_8c-source.html#l00853">update_u()</a>.</p>
+<p>Referenced by <a class="el" href="lmer_8c-source.html#l00971">mer_update_effects()</a>, <a class="el" href="lmer_8c-source.html#l00574">update_mu()</a>, and <a class="el" href="lmer_8c-source.html#l00816">update_u()</a>.</p>
 
 <p>
 <div class="dynheader">
@@ -2057,11 +2015,11 @@ Extract the parameters from ST list.
 </dl>
 <dl class="return" compact><dt><b>Returns:</b></dt><dd>pointer to the parameter vector </dd></dl>
 
-<p>Definition at line <a class="el" href="lmer_8c-source.html#l00356">356</a> of file <a class="el" href="lmer_8c-source.html">lmer.c</a>.</p>
+<p>Definition at line <a class="el" href="lmer_8c-source.html#l00322">322</a> of file <a class="el" href="lmer_8c-source.html">lmer.c</a>.</p>
 
 <p>References <a class="el" href="Syms_8h-source.html#l00003">lme4_STSym</a>.</p>
 
-<p>Referenced by <a class="el" href="lmer_8c-source.html#l01258">mer_optimize()</a>, and <a class="el" href="lmer_8c-source.html#l00382">mer_ST_getPars()</a>.</p>
+<p>Referenced by <a class="el" href="lmer_8c-source.html#l01217">mer_optimize()</a>, and <a class="el" href="lmer_8c-source.html#l00348">mer_ST_getPars()</a>.</p>
 
 <p>
 <div class="dynheader">
@@ -2132,9 +2090,9 @@ Return the maximum element of nc.<p>
 </dl>
 <dl class="return" compact><dt><b>Returns:</b></dt><dd>maximum element of nc </dd></dl>
 
-<p>Definition at line <a class="el" href="lmer_8c-source.html#l00192">192</a> of file <a class="el" href="lmer_8c-source.html">lmer.c</a>.</p>
+<p>Definition at line <a class="el" href="lmer_8c-source.html#l00190">190</a> of file <a class="el" href="lmer_8c-source.html">lmer.c</a>.</p>
 
-<p>Referenced by <a class="el" href="lmer_8c-source.html#l01460">MCMC_ST()</a>, <a class="el" href="lmer_8c-source.html#l01059">mer_create_C()</a>, <a class="el" href="lmer_8c-source.html#l00510">mer_postVar()</a>, <a class="el" href="lmer_8c-source.html#l00320">mer_ST_initialize()</a>, <a class="el" href="lmer_8c-source.html#l00400">ST_setPars()</a>, and <a class="el" href="lmer_8c-source.html#l00298">TSPp_SEXP_mult()</a>.</p>
+<p>Referenced by <a class="el" href="lmer_8c-source.html#l01418">MCMC_ST()</a>, <a class="el" href="lmer_8c-source.html#l01018">mer_create_C()</a>, <a class="el" href="lmer_8c-source.html#l00475">mer_postVar()</a>, <a class="el" href="lmer_8c-source.html#l00286">mer_ST_initialize()</a>, <a class="el" href="lmer_8c-source.html#l00366">ST_setPars()</a>, and <a class="el" href="lmer_8c-source.html#l00248">update_ranef()</a>.</p>
 
 <p>
 <div class="dynheader">
@@ -2142,7 +2100,7 @@ Here is the caller graph for this function:</div>
 <div class="dynsection">
 <p><center><img src="lmer_8c_3a7fab2a88117d83971db12f53eaa91e_icgraph.png" border="0" usemap="#lmer_8c_3a7fab2a88117d83971db12f53eaa91e_icgraph_map" alt=""></center>
 <map name="lmer_8c_3a7fab2a88117d83971db12f53eaa91e_icgraph_map">
-<area shape="rect" href="lmer_8c.html#ef128b4cee2e476298b3b4388d8a2097" title="MCMC_ST" alt="" coords="360,49,448,76"><area shape="rect" href="lmer_8h.html#32dce637de07755d4da75a25ea773d76" title="Create the C matrix pattern from Zt, ST and Gp." alt="" coords="157,49,269,76"><area shape="rect" href="lmer_8h.html#b0d93370f37dc2631574b577e698fc6f" title="Extract the posterior variances of the random effects in an lmer object." alt="" coords="161,100,265,127"><area shape="rect" href="lmer_8h.html#8559f52eaa24d57b05ded03099dbe157" title="Evaluate starting estimates for the elements of ST." alt="" coords="151,151,276,177"><area shape="rect" href="lmer_8c.html#c91a1d6467c5dd44cbc4c785f643e315" title="Update the ST and C slots of an mer object." alt="" coords="167,201,260,228"><area shape="rect" href="lmer_8c.html#c3e6fe9ad75e0e963c024ab8d81f6a4d" title="dest = T *% S *% t(P) *% src" alt="" coords="147,252,280,279"><area shape="rect" href="lmer_8h.html#edec83b72f0c3437d9b10daf5120aa2b" title="Generate a Markov&#45;Chain Monte Carlo sample from a fitted linear mixed model." alt="" coords="528,151,664,177"><area shape="rect" href="lmer_8h.html#a4e16de36d36af6c715d52a045f88e78" title="Optimize the profiled deviance of an lmer object or the Laplace approximation to..." alt="" coords="349,151,459,177"><area shape="rect" href="lmer_8h.html#96765a284e1652326a22d50f7d7538d4" title="Update the ST slot of an mer object from a REAL vector of parameters and update the..." alt="" coords="341,201,467,228"><area shape="rect" href="lmer_8c.html#74143c5e3fa683497e6d6b58503c8bc1" title="Update the fixed effects and the random effects in an MCMC sample from an lmer model..." alt="" coords="349,252,459,279"><area shape="rect" href="lmer_8h.html#21adcf526681f1efd1ad0c4727ff4069" title="Update the contents of the fixef, ranef and uvec slots in an lmer object." alt="" coords="328,303,480,329"></map>
+<area shape="rect" href="lmer_8c.html#ef128b4cee2e476298b3b4388d8a2097" title="MCMC_ST" alt="" coords="355,48,443,75"><area shape="rect" href="lmer_8h.html#32dce637de07755d4da75a25ea773d76" title="Create the C matrix pattern from Zt, ST and Gp." alt="" coords="155,48,267,75"><area shape="rect" href="lmer_8h.html#79178d4c0ab3956a7f5d5ac93416759a" title="Extract the posterior variances of the random effects in an mer object." alt="" coords="159,99,263,125"><area shape="rect" href="lmer_8h.html#8559f52eaa24d57b05ded03099dbe157" title="Evaluate starting estimates for the elements of ST." alt="" coords="148,149,273,176"><area shape="rect" href="lmer_8c.html#c91a1d6467c5dd44cbc4c785f643e315" title="Update the ST and C slots of an mer object." alt="" coords="164,200,257,227"><area shape="rect" href="lmer_8c.html#5542c4de7dbcdbb6630cad8fabe96542" title="b = T *% S *% t(P) *% u" alt="" coords="157,251,264,277"><area shape="rect" href="lmer_8h.html#edec83b72f0c3437d9b10daf5120aa2b" title="Generate a Markov&#45;Chain Monte Carlo sample from a fitted linear mixed model." alt="" coords="523,149,659,176"><area shape="rect" href="lmer_8h.html#a4e16de36d36af6c715d52a045f88e78" title="Optimize the profiled deviance of an lmer object or the Laplace approximation to..." alt="" coords="344,149,453,176"><area shape="rect" href="lmer_8h.html#96765a284e1652326a22d50f7d7538d4" title="Update the ST slot of an mer object from a REAL vector of parameters and update the..." alt="" coords="336,200,461,227"><area shape="rect" href="lmer_8c.html#74143c5e3fa683497e6d6b58503c8bc1" title="Update the fixed effects and the random effects in an MCMC sample from an lmer model..." alt="" coords="344,251,453,277"><area shape="rect" href="lmer_8h.html#21adcf526681f1efd1ad0c4727ff4069" title="Update the contents of the fixef, ranef and uvec slots in an lmer object." alt="" coords="323,301,475,328"></map>
 </div>
 
 </div>
@@ -2182,11 +2140,11 @@ Update the ST and C slots of an mer object.
   </table>
 </dl>
 
-<p>Definition at line <a class="el" href="lmer_8c-source.html#l00400">400</a> of file <a class="el" href="lmer_8c-source.html">lmer.c</a>.</p>
+<p>Definition at line <a class="el" href="lmer_8c-source.html#l00366">366</a> of file <a class="el" href="lmer_8c-source.html">lmer.c</a>.</p>
 
-<p>References <a class="el" href="lmer_8c-source.html#l00016">_</a>, <a class="el" href="lmer_8c-source.html#l00033">Alloca</a>, <a class="el" href="lmer_8c-source.html#l00036">AZERO</a>, <a class="el" href="lmer_8c-source.html#l00094">Gp_grp()</a>, <a class="el" href="Syms_8h-source.html#l00003">lme4_CmSym</a>, <a class="el" href="Syms_8h-source.html#l00003">lme4_GpSym</a>, <a class="el" href="Syms_8h-source.html#l00003">lme4_STSym</a>, <a class="el" href="Syms_8h-source.html#l00003">lme4_ZtSym</a>, and <a class="el" href="lmer_8c-source.html#l00192">ST_nc_nlev()</a>.</p>
+<p>References <a class="el" href="lmer_8c-source.html#l00016">_</a>, <a class="el" href="lmer_8c-source.html#l00033">Alloca</a>, <a class="el" href="lmer_8c-source.html#l00036">AZERO</a>, <a class="el" href="lmer_8c-source.html#l00092">Gp_grp()</a>, <a class="el" href="Syms_8h-source.html#l00003">lme4_CmSym</a>, <a class="el" href="Syms_8h-source.html#l00003">lme4_GpSym</a>, <a class="el" href="Syms_8h-source.html#l00003">lme4_STSym</a>, <a class="el" href="Syms_8h-source.html#l00003">lme4_ZtSym</a>, and <a class="el" href="lmer_8c-source.html#l00190">ST_nc_nlev()</a>.</p>
 
-<p>Referenced by <a class="el" href="lmer_8c-source.html#l01258">mer_optimize()</a>, and <a class="el" href="lmer_8c-source.html#l00475">mer_ST_setPars()</a>.</p>
+<p>Referenced by <a class="el" href="lmer_8c-source.html#l01217">mer_optimize()</a>, and <a class="el" href="lmer_8c-source.html#l00441">mer_ST_setPars()</a>.</p>
 
 <p>
 <div class="dynheader">
@@ -2258,9 +2216,9 @@ Simulate the Cholesky factor of a standardized Wishart variate with dimension p 
 </dl>
 <dl class="return" compact><dt><b>Returns:</b></dt><dd>ans </dd></dl>
 
-<p>Definition at line <a class="el" href="lmer_8c-source.html#l01331">1331</a> of file <a class="el" href="lmer_8c-source.html">lmer.c</a>.</p>
+<p>Definition at line <a class="el" href="lmer_8c-source.html#l01290">1290</a> of file <a class="el" href="lmer_8c-source.html">lmer.c</a>.</p>
 
-<p>Referenced by <a class="el" href="lmer_8c-source.html#l01359">lme4_rWishart()</a>, and <a class="el" href="lmer_8c-source.html#l01460">MCMC_ST()</a>.</p>
+<p>Referenced by <a class="el" href="lmer_8c-source.html#l01318">lme4_rWishart()</a>, and <a class="el" href="lmer_8c-source.html#l01418">MCMC_ST()</a>.</p>
 
 <p>
 <div class="dynheader">
@@ -2269,196 +2227,6 @@ Here is the caller graph for this function:</div>
 <p><center><img src="lmer_8c_9812644aac7804e273e0a48e138eb9f9_icgraph.png" border="0" usemap="#lmer_8c_9812644aac7804e273e0a48e138eb9f9_icgraph_map" alt=""></center>
 <map name="lmer_8c_9812644aac7804e273e0a48e138eb9f9_icgraph_map">
 <area shape="rect" href="lmer_8h.html#3e5fbf4c0511166682d134b8b4c68502" title="Simulate a sample of random matrices from a Wishart distribution." alt="" coords="201,5,313,32"><area shape="rect" href="lmer_8c.html#ef128b4cee2e476298b3b4388d8a2097" title="MCMC_ST" alt="" coords="213,56,301,83"><area shape="rect" href="lmer_8h.html#edec83b72f0c3437d9b10daf5120aa2b" title="Generate a Markov&#45;Chain Monte Carlo sample from a fitted linear mixed model." alt="" coords="363,56,499,83"></map>
-</div>
-
-</div>
-</div><p>
-<a class="anchor" name="04a657beb8b55592a9bc91a765a04c13"></a><!-- doxytag: member="lmer.c::TSPp_dense_mult" ref="04a657beb8b55592a9bc91a765a04c13" args="(double *dx, int nf, int m, int n, double **st, const int *nc, const int *nlev, const int *Gp, const double *sx, const int *Perm)" -->
-<div class="memitem">
-<div class="memproto">
-      <table class="memname">
-        <tr>
-          <td class="memname">static void TSPp_dense_mult           </td>
-          <td>(</td>
-          <td class="paramtype">double *&nbsp;</td>
-          <td class="paramname"> <em>dx</em>, </td>
-        </tr>
-        <tr>
-          <td class="paramkey"></td>
-          <td></td>
-          <td class="paramtype">int&nbsp;</td>
-          <td class="paramname"> <em>nf</em>, </td>
-        </tr>
-        <tr>
-          <td class="paramkey"></td>
-          <td></td>
-          <td class="paramtype">int&nbsp;</td>
-          <td class="paramname"> <em>m</em>, </td>
-        </tr>
-        <tr>
-          <td class="paramkey"></td>
-          <td></td>
-          <td class="paramtype">int&nbsp;</td>
-          <td class="paramname"> <em>n</em>, </td>
-        </tr>
-        <tr>
-          <td class="paramkey"></td>
-          <td></td>
-          <td class="paramtype">double **&nbsp;</td>
-          <td class="paramname"> <em>st</em>, </td>
-        </tr>
-        <tr>
-          <td class="paramkey"></td>
-          <td></td>
-          <td class="paramtype">const int *&nbsp;</td>
-          <td class="paramname"> <em>nc</em>, </td>
-        </tr>
-        <tr>
-          <td class="paramkey"></td>
-          <td></td>
-          <td class="paramtype">const int *&nbsp;</td>
-          <td class="paramname"> <em>nlev</em>, </td>
-        </tr>
-        <tr>
-          <td class="paramkey"></td>
-          <td></td>
-          <td class="paramtype">const int *&nbsp;</td>
-          <td class="paramname"> <em>Gp</em>, </td>
-        </tr>
-        <tr>
-          <td class="paramkey"></td>
-          <td></td>
-          <td class="paramtype">const double *&nbsp;</td>
-          <td class="paramname"> <em>sx</em>, </td>
-        </tr>
-        <tr>
-          <td class="paramkey"></td>
-          <td></td>
-          <td class="paramtype">const int *&nbsp;</td>
-          <td class="paramname"> <em>Perm</em></td><td>&nbsp;</td>
-        </tr>
-        <tr>
-          <td></td>
-          <td>)</td>
-          <td></td><td></td><td width="100%"><code> [static]</code></td>
-        </tr>
-      </table>
-</div>
-<div class="memdoc">
-
-<p>
-Internal version of TSPp_SEXP_mult. 
-<p>
-<dl compact><dt><b>Parameters:</b></dt><dd>
-  <table border="0" cellspacing="2" cellpadding="0">
-    <tr><td valign="top"></td><td valign="top"><em>dx</em>&nbsp;</td><td>destination </td></tr>
-    <tr><td valign="top"></td><td valign="top"><em>nf</em>&nbsp;</td><td>number of grouping factors </td></tr>
-    <tr><td valign="top"></td><td valign="top"><em>m</em>&nbsp;</td><td>number of rows in src and dest </td></tr>
-    <tr><td valign="top"></td><td valign="top"><em>n</em>&nbsp;</td><td>number of columns in src and dest </td></tr>
-    <tr><td valign="top"></td><td valign="top"><em>st</em>&nbsp;</td><td>pointers to contents of ST matrices </td></tr>
-    <tr><td valign="top"></td><td valign="top"><em>nc</em>&nbsp;</td><td>length nf array of number of columns </td></tr>
-    <tr><td valign="top"></td><td valign="top"><em>nlev</em>&nbsp;</td><td>length nf array of number of levels </td></tr>
-    <tr><td valign="top"></td><td valign="top"><em>Gp</em>&nbsp;</td><td>group pointers </td></tr>
-    <tr><td valign="top"></td><td valign="top"><em>sx</em>&nbsp;</td><td>source </td></tr>
-    <tr><td valign="top"></td><td valign="top"><em>Perm</em>&nbsp;</td><td>permutation to be applied </td></tr>
-  </table>
-</dl>
-
-<p>Definition at line <a class="el" href="lmer_8c-source.html#l00260">260</a> of file <a class="el" href="lmer_8c-source.html">lmer.c</a>.</p>
-
-<p>References <a class="el" href="lmer_8c-source.html#l00033">Alloca</a>.</p>
-
-<p>Referenced by <a class="el" href="lmer_8c-source.html#l00298">TSPp_SEXP_mult()</a>.</p>
-
-<p>
-<div class="dynheader">
-Here is the caller graph for this function:</div>
-<div class="dynsection">
-<p><center><img src="lmer_8c_04a657beb8b55592a9bc91a765a04c13_icgraph.png" border="0" usemap="#lmer_8c_04a657beb8b55592a9bc91a765a04c13_icgraph_map" alt=""></center>
-<map name="lmer_8c_04a657beb8b55592a9bc91a765a04c13_icgraph_map">
-<area shape="rect" href="lmer_8c.html#c3e6fe9ad75e0e963c024ab8d81f6a4d" title="dest = T *% S *% t(P) *% src" alt="" coords="189,31,323,57"><area shape="rect" href="lmer_8c.html#74143c5e3fa683497e6d6b58503c8bc1" title="Update the fixed effects and the random effects in an MCMC sample from an lmer model..." alt="" coords="392,5,501,32"><area shape="rect" href="lmer_8h.html#21adcf526681f1efd1ad0c4727ff4069" title="Update the contents of the fixef, ranef and uvec slots in an lmer object." alt="" coords="371,56,523,83"><area shape="rect" href="lmer_8h.html#edec83b72f0c3437d9b10daf5120aa2b" title="Generate a Markov&#45;Chain Monte Carlo sample from a fitted linear mixed model." alt="" coords="571,5,707,32"></map>
-</div>
-
-</div>
-</div><p>
-<a class="anchor" name="c3e6fe9ad75e0e963c024ab8d81f6a4d"></a><!-- doxytag: member="lmer.c::TSPp_SEXP_mult" ref="c3e6fe9ad75e0e963c024ab8d81f6a4d" args="(SEXP dest, SEXP ST, const int *Gp, SEXP src, const int *Perm)" -->
-<div class="memitem">
-<div class="memproto">
-      <table class="memname">
-        <tr>
-          <td class="memname">static void TSPp_SEXP_mult           </td>
-          <td>(</td>
-          <td class="paramtype">SEXP&nbsp;</td>
-          <td class="paramname"> <em>dest</em>, </td>
-        </tr>
-        <tr>
-          <td class="paramkey"></td>
-          <td></td>
-          <td class="paramtype">SEXP&nbsp;</td>
-          <td class="paramname"> <em>ST</em>, </td>
-        </tr>
-        <tr>
-          <td class="paramkey"></td>
-          <td></td>
-          <td class="paramtype">const int *&nbsp;</td>
-          <td class="paramname"> <em>Gp</em>, </td>
-        </tr>
-        <tr>
-          <td class="paramkey"></td>
-          <td></td>
-          <td class="paramtype">SEXP&nbsp;</td>
-          <td class="paramname"> <em>src</em>, </td>
-        </tr>
-        <tr>
-          <td class="paramkey"></td>
-          <td></td>
-          <td class="paramtype">const int *&nbsp;</td>
-          <td class="paramname"> <em>Perm</em></td><td>&nbsp;</td>
-        </tr>
-        <tr>
-          <td></td>
-          <td>)</td>
-          <td></td><td></td><td width="100%"><code> [static]</code></td>
-        </tr>
-      </table>
-</div>
-<div class="memdoc">
-
-<p>
-dest = T *% S *% t(P) *% src 
-<p>
-<dl compact><dt><b>Parameters:</b></dt><dd>
-  <table border="0" cellspacing="2" cellpadding="0">
-    <tr><td valign="top"></td><td valign="top"><em>dest</em>&nbsp;</td><td>matrix whose contents are overwritten </td></tr>
-    <tr><td valign="top"></td><td valign="top"><em>ST</em>&nbsp;</td><td>ST slot </td></tr>
-    <tr><td valign="top"></td><td valign="top"><em>Gp</em>&nbsp;</td><td>group pointers </td></tr>
-    <tr><td valign="top"></td><td valign="top"><em>src</em>&nbsp;</td><td>originating numeric matrix </td></tr>
-    <tr><td valign="top"></td><td valign="top"><em>Perm</em>&nbsp;</td><td>permutation to be applied </td></tr>
-  </table>
-</dl>
-
-<p>Definition at line <a class="el" href="lmer_8c-source.html#l00298">298</a> of file <a class="el" href="lmer_8c-source.html">lmer.c</a>.</p>
-
-<p>References <a class="el" href="lmer_8c-source.html#l00033">Alloca</a>, <a class="el" href="lmer_8c-source.html#l00192">ST_nc_nlev()</a>, and <a class="el" href="lmer_8c-source.html#l00260">TSPp_dense_mult()</a>.</p>
-
-<p>Referenced by <a class="el" href="lmer_8c-source.html#l01412">MCMC_betab()</a>, and <a class="el" href="lmer_8c-source.html#l01008">mer_update_effects()</a>.</p>
-
-<p>
-<div class="dynheader">
-Here is the call graph for this function:</div>
-<div class="dynsection">
-<p><center><img src="lmer_8c_c3e6fe9ad75e0e963c024ab8d81f6a4d_cgraph.png" border="0" usemap="#lmer_8c_c3e6fe9ad75e0e963c024ab8d81f6a4d_cgraph_map" alt=""></center>
-<map name="lmer_8c_c3e6fe9ad75e0e963c024ab8d81f6a4d_cgraph_map">
-<area shape="rect" href="lmer_8c.html#3a7fab2a88117d83971db12f53eaa91e" title="Populate the st, nc and nlev arrays." alt="" coords="209,5,300,32"><area shape="rect" href="lmer_8c.html#04a657beb8b55592a9bc91a765a04c13" title="Internal version of TSPp_SEXP_mult." alt="" coords="187,56,323,83"></map>
-</div>
-
-<p>
-<div class="dynheader">
-Here is the caller graph for this function:</div>
-<div class="dynsection">
-<p><center><img src="lmer_8c_c3e6fe9ad75e0e963c024ab8d81f6a4d_icgraph.png" border="0" usemap="#lmer_8c_c3e6fe9ad75e0e963c024ab8d81f6a4d_icgraph_map" alt=""></center>
-<map name="lmer_8c_c3e6fe9ad75e0e963c024ab8d81f6a4d_icgraph_map">
-<area shape="rect" href="lmer_8c.html#74143c5e3fa683497e6d6b58503c8bc1" title="Update the fixed effects and the random effects in an MCMC sample from an lmer model..." alt="" coords="208,5,317,32"><area shape="rect" href="lmer_8h.html#21adcf526681f1efd1ad0c4727ff4069" title="Update the contents of the fixef, ranef and uvec slots in an lmer object." alt="" coords="187,56,339,83"><area shape="rect" href="lmer_8h.html#edec83b72f0c3437d9b10daf5120aa2b" title="Generate a Markov&#45;Chain Monte Carlo sample from a fitted linear mixed model." alt="" coords="387,5,523,32"></map>
 </div>
 
 </div>
@@ -2490,11 +2258,11 @@ It is assumed that update_mu has already been called at the current values of u 
 </dl>
 <dl class="return" compact><dt><b>Returns:</b></dt><dd>penalized weighted residual sum of squares </dd></dl>
 
-<p>Definition at line <a class="el" href="lmer_8c-source.html#l00754">754</a> of file <a class="el" href="lmer_8c-source.html">lmer.c</a>.</p>
+<p>Definition at line <a class="el" href="lmer_8c-source.html#l00717">717</a> of file <a class="el" href="lmer_8c-source.html">lmer.c</a>.</p>
 
-<p>References <a class="el" href="lmer_8c-source.html#l00016">_</a>, <a class="el" href="lmer_8c-source.html#l00036">AZERO</a>, <a class="el" href="init_8c-source.html#l00034">c</a>, <a class="el" href="lmer_8c-source.html#l00150">chm_log_det2()</a>, <a class="el" href="lmer_8c-source.html#l00067">L_SLOT</a>, <a class="el" href="lmer_8c-source.html#l00042">ldL2_POS</a>, <a class="el" href="Syms_8h-source.html#l00003">lme4_ASym</a>, <a class="el" href="Syms_8h-source.html#l00003">lme4_CmSym</a>, <a class="el" href="Syms_8h-source.html#l00003">lme4_devianceSym</a>, <a class="el" href="Syms_8h-source.html#l00003">lme4_dimsSym</a>, <a class="el" href="Syms_8h-source.html#l00003">lme4_gradientSym</a>, <a class="el" href="Syms_8h-source.html#l00003">lme4_muEtaSym</a>, <a class="el" href="Syms_8h-source.html#l00003">lme4_muSym</a>, <a class="el" href="Syms_8h-source.html#l00003">lme4_priorWtSym</a>, <a class="el" href="Syms_8h-source.html#l00003">lme4_residSym</a>, <a class="el" href="Syms_8h-source.html#l00003">lme4_sqrtWtSym</a>, <a class="el" href="Syms_8h-source.html#l00003">lme4_varSym</a>, <a class="el" href="Syms_8h-source.html#l00003">lme4_vSym</a>, <a class="el" href="Syms_8h-source.html#l00003">lme4_ySym</a>, <a class="el" href="lmer_8c-source.html#l00052">n_POS</a>, <a class="el" href="lmer_8c-source.html#l00055">s_POS</a>, <a class="el" href="lmer_8c-source.html#l00114">SLOT_REAL_NULL()</a>, <a class="el" href="lmer_8c-source.html#l00046">usqr_POS</a>, and <a class="el" href="lmer_8c-source.html#l00047">wrss_POS</a>.</p>
+<p>References <a class="el" href="lmer_8c-source.html#l00016">_</a>, <a class="el" href="lmer_8c-source.html#l00036">AZERO</a>, <a class="el" href="init_8c-source.html#l00034">c</a>, <a class="el" href="lmer_8c-source.html#l00148">chm_log_det2()</a>, <a class="el" href="lmer_8c-source.html#l00065">L_SLOT</a>, <a class="el" href="lmer_8c-source.html#l00042">ldL2_POS</a>, <a class="el" href="Syms_8h-source.html#l00003">lme4_ASym</a>, <a class="el" href="Syms_8h-source.html#l00003">lme4_CmSym</a>, <a class="el" href="Syms_8h-source.html#l00003">lme4_devianceSym</a>, <a class="el" href="Syms_8h-source.html#l00003">lme4_dimsSym</a>, <a class="el" href="Syms_8h-source.html#l00003">lme4_gradientSym</a>, <a class="el" href="Syms_8h-source.html#l00003">lme4_muEtaSym</a>, <a class="el" href="Syms_8h-source.html#l00003">lme4_muSym</a>, <a class="el" href="Syms_8h-source.html#l00003">lme4_priorWtSym</a>, <a class="el" href="Syms_8h-source.html#l00003">lme4_residSym</a>, <a class="el" href="Syms_8h-source.html#l00003">lme4_sqrtWtSym</a>, <a class="el" href="Syms_8h-source.html#l00003">lme4_varSym</a>, <a class="el" href="Syms_8h-source.html#l00003">lme4_vSym</a>, <a class="el" href="Syms_8h-source.html#l00003">lme4_ySym</a>, <a class="el" href="lmer_8c-source.html#l00052">n_POS</a>, <a class="el" href="lmer_8c-source.html#l00055">s_POS</a>, <a class="el" href="lmer_8c-source.html#l00112">SLOT_REAL_NULL()</a>, <a class="el" href="lmer_8c-source.html#l00046">usqr_POS</a>, and <a class="el" href="lmer_8c-source.html#l00047">wrss_POS</a>.</p>
 
-<p>Referenced by <a class="el" href="lmer_8c-source.html#l00832">mer_update_L()</a>, <a class="el" href="lmer_8c-source.html#l01184">update_RX()</a>, and <a class="el" href="lmer_8c-source.html#l00853">update_u()</a>.</p>
+<p>Referenced by <a class="el" href="lmer_8c-source.html#l00795">mer_update_L()</a>, <a class="el" href="lmer_8c-source.html#l01143">update_RX()</a>, and <a class="el" href="lmer_8c-source.html#l00816">update_u()</a>.</p>
 
 <p>
 <div class="dynheader">
@@ -2543,11 +2311,11 @@ Also evaluate d[wrss_POS] using the current sqrtWt slot. The sqrtWt slot is chan
 </dl>
 <dl class="return" compact><dt><b>Returns:</b></dt><dd>penalized, weighted residual sum of squares </dd></dl>
 
-<p>Definition at line <a class="el" href="lmer_8c-source.html#l00611">611</a> of file <a class="el" href="lmer_8c-source.html">lmer.c</a>.</p>
+<p>Definition at line <a class="el" href="lmer_8c-source.html#l00574">574</a> of file <a class="el" href="lmer_8c-source.html">lmer.c</a>.</p>
 
-<p>References <a class="el" href="lmer_8c-source.html#l00016">_</a>, <a class="el" href="lmer_8c-source.html#l00036">AZERO</a>, <a class="el" href="init_8c-source.html#l00034">c</a>, <a class="el" href="lmer_8c-source.html#l00058">fTyp_POS</a>, <a class="el" href="lmer_8c-source.html#l00599">INVEPS</a>, <a class="el" href="lmer_8c-source.html#l00067">L_SLOT</a>, <a class="el" href="Syms_8h-source.html#l00003">lme4_CmSym</a>, <a class="el" href="Syms_8h-source.html#l00003">lme4_devianceSym</a>, <a class="el" href="Syms_8h-source.html#l00003">lme4_dimsSym</a>, <a class="el" href="Syms_8h-source.html#l00003">lme4_envSym</a>, <a class="el" href="Syms_8h-source.html#l00003">lme4_etaSym</a>, <a class="el" href="Syms_8h-source.html#l00003">lme4_fixefSym</a>, <a class="el" href="Syms_8h-source.html#l00003">lme4_gradientSym</a>, <a class="el" href="Syms_8h-source.html#l00003">lme4_muEtaSym</a>, <a class="el" href="Syms_8h-source.html#l00003">lme4_muSym</a>, <a class="el" href="Syms_8h-source.html#l00003">lme4_nlmodelSym</a>, <a class="el" href="Syms_8h-source.html#l00003">lme4_offsetSym</a>, <a class="el" href="Syms_8h-source.html#l00003">lme4_pnamesSym</a>, <a class="el" href="Syms_8h-source.html#l00003">lme4_residSym</a>, <a class="el" href="Syms_8h-source.html#l00003">lme4_sqrtWtSym</a>, <a class="el" href="Syms_8h-source.html#l00003">lme4_uvecSym</a>, <a class="el" href="Syms_8h-source.html#l00003">lme4_varSym</a>, <a class="el" href="Syms_8h-source.html#l00003">lme4_vSym</a>, <a class="el" href="Syms_8h-source.html#l00003">lme4_XSym</a>, <a class="el" href="Syms_8h-source.html#l00003">lme4_ySym</a>, <a class="el" href="lmer_8c-source.html#l00595">LTHRESH</a>, <a class="el" href="lmer_8c-source.html#l00596">MLTHRESH</a>, <a class="el" href="lmer_8c-source.html#l00597">MPTHRESH</a>, <a class="el" href="lmer_8c-source.html#l00052">n_POS</a>, <a class="el" href="lmer_8c-source.html#l00053">p_POS</a>, <a class="el" href="lmer_8c-source.html#l00598">PTHRESH</a>, <a class="el" href="lmer_8c-source.html#l00054">q_POS</a>, <a class="el" href="lmer_8c-source.html#l00055">s_POS</a>, <a class="el" href="lmer_8c-source.html#l00114">SLOT_REAL_NULL()</a>, <a class="el" href="lmer_8c-source.html#l00077">sqr_length()</a>, <a class="el" href="lmer_8c-source.html#l00046">usqr_POS</a>, and <a class="el" href="lmer_8c-source.html#l00047">wrss_POS</a>.</p>
+<p>References <a class="el" href="lmer_8c-source.html#l00016">_</a>, <a class="el" href="lmer_8c-source.html#l00036">AZERO</a>, <a class="el" href="init_8c-source.html#l00034">c</a>, <a class="el" href="lmer_8c-source.html#l00058">fTyp_POS</a>, <a class="el" href="lmer_8c-source.html#l00562">INVEPS</a>, <a class="el" href="lmer_8c-source.html#l00065">L_SLOT</a>, <a class="el" href="Syms_8h-source.html#l00003">lme4_CmSym</a>, <a class="el" href="Syms_8h-source.html#l00003">lme4_devianceSym</a>, <a class="el" href="Syms_8h-source.html#l00003">lme4_dimsSym</a>, <a class="el" href="Syms_8h-source.html#l00003">lme4_envSym</a>, <a class="el" href="Syms_8h-source.html#l00003">lme4_etaSym</a>, <a class="el" href="Syms_8h-source.html#l00003">lme4_fixefSym</a>, <a class="el" href="Syms_8h-source.html#l00003">lme4_gradientSym</a>, <a class="el" href="Syms_8h-source.html#l00003">lme4_muEtaSym</a>, <a class="el" href="Syms_8h-source.html#l00003">lme4_muSym</a>, <a class="el" href="Syms_8h-source.html#l00003">lme4_nlmodelSym</a>, <a class="el" href="Syms_8h-source.html#l00003">lme4_offsetSym</a>, <a class="el" href="Syms_8h-source.html#l00003">lme4_pnamesSym</a>, <a class="el" href="Syms_8h-source.html#l00003">lme4_residSym</a>, <a class="el" href="Syms_8h-source.html#l00003">lme4_sqrtWtSym</a>, <a class="el" href="Syms_8h-source.html#l00003">lme4_uvecSym</a>, <a class="el" href="Syms_8h-source.html#l00003">lme4_varSym</a>, <a class="el" href="Syms_8h-source.html#l00003">lme4_vSym</a>, <a class="el" href="Syms_8h-source.html#l00003">lme4_XSym</a>, <a class="el" href="Syms_8h-source.html#l00003">lme4_ySym</a>, <a class="el" href="lmer_8c-source.html#l00558">LTHRESH</a>, <a class="el" href="lmer_8c-source.html#l00559">MLTHRESH</a>, <a class="el" href="lmer_8c-source.html#l00560">MPTHRESH</a>, <a class="el" href="lmer_8c-source.html#l00052">n_POS</a>, <a class="el" href="lmer_8c-source.html#l00053">p_POS</a>, <a class="el" href="lmer_8c-source.html#l00561">PTHRESH</a>, <a class="el" href="lmer_8c-source.html#l00054">q_POS</a>, <a class="el" href="lmer_8c-source.html#l00055">s_POS</a>, <a class="el" href="lmer_8c-source.html#l00112">SLOT_REAL_NULL()</a>, <a class="el" href="lmer_8c-source.html#l00075">sqr_length()</a>, <a class="el" href="lmer_8c-source.html#l00046">usqr_POS</a>, and <a class="el" href="lmer_8c-source.html#l00047">wrss_POS</a>.</p>
 
-<p>Referenced by <a class="el" href="lmer_8c-source.html#l00739">mer_update_mu()</a>, and <a class="el" href="lmer_8c-source.html#l00853">update_u()</a>.</p>
+<p>Referenced by <a class="el" href="lmer_8c-source.html#l00702">mer_update_mu()</a>, and <a class="el" href="lmer_8c-source.html#l00816">update_u()</a>.</p>
 
 <p>
 <div class="dynheader">
@@ -2565,6 +2333,57 @@ Here is the caller graph for this function:</div>
 <p><center><img src="lmer_8c_da558f58458c36a96585a9c6e695a0b6_icgraph.png" border="0" usemap="#lmer_8c_da558f58458c36a96585a9c6e695a0b6_icgraph_map" alt=""></center>
 <map name="lmer_8c_da558f58458c36a96585a9c6e695a0b6_icgraph_map">
 <area shape="rect" href="lmer_8h.html#64740a858f90763461cbccea9c787b6b" title="Externally callable update_mu." alt="" coords="149,5,277,32"><area shape="rect" href="lmer_8c.html#88236137756e85a656de3402adcf4747" title="Iterate to determine the conditional modes of the random effects." alt="" coords="173,56,253,83"><area shape="rect" href="lmer_8h.html#a4e16de36d36af6c715d52a045f88e78" title="Optimize the profiled deviance of an lmer object or the Laplace approximation to..." alt="" coords="328,31,437,57"><area shape="rect" href="lmer_8h.html#b72ec91b1f901b466f29a80bcc22e6c4" title="Externally callable version of update_u." alt="" coords="325,81,440,108"></map>
+</div>
+
+</div>
+</div><p>
+<a class="anchor" name="5542c4de7dbcdbb6630cad8fabe96542"></a><!-- doxytag: member="lmer.c::update_ranef" ref="5542c4de7dbcdbb6630cad8fabe96542" args="(SEXP x)" -->
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">static void update_ranef           </td>
+          <td>(</td>
+          <td class="paramtype">SEXP&nbsp;</td>
+          <td class="paramname"> <em>x</em>          </td>
+          <td>&nbsp;)&nbsp;</td>
+          <td width="100%"><code> [static]</code></td>
+        </tr>
+      </table>
+</div>
+<div class="memdoc">
+
+<p>
+b = T *% S *% t(P) *% u 
+<p>
+<dl compact><dt><b>Parameters:</b></dt><dd>
+  <table border="0" cellspacing="2" cellpadding="0">
+    <tr><td valign="top"></td><td valign="top"><em>x</em>&nbsp;</td><td>an mer object </td></tr>
+  </table>
+</dl>
+
+<p>Definition at line <a class="el" href="lmer_8c-source.html#l00248">248</a> of file <a class="el" href="lmer_8c-source.html">lmer.c</a>.</p>
+
+<p>References <a class="el" href="lmer_8c-source.html#l00033">Alloca</a>, <a class="el" href="Syms_8h-source.html#l00003">lme4_GpSym</a>, <a class="el" href="Syms_8h-source.html#l00003">lme4_LSym</a>, <a class="el" href="Syms_8h-source.html#l00003">lme4_permSym</a>, <a class="el" href="Syms_8h-source.html#l00003">lme4_ranefSym</a>, <a class="el" href="Syms_8h-source.html#l00003">lme4_STSym</a>, <a class="el" href="Syms_8h-source.html#l00003">lme4_uvecSym</a>, and <a class="el" href="lmer_8c-source.html#l00190">ST_nc_nlev()</a>.</p>
+
+<p>Referenced by <a class="el" href="lmer_8c-source.html#l01371">MCMC_betab()</a>, and <a class="el" href="lmer_8c-source.html#l00971">mer_update_effects()</a>.</p>
+
+<p>
+<div class="dynheader">
+Here is the call graph for this function:</div>
+<div class="dynsection">
+<p><center><img src="lmer_8c_5542c4de7dbcdbb6630cad8fabe96542_cgraph.png" border="0" usemap="#lmer_8c_5542c4de7dbcdbb6630cad8fabe96542_cgraph_map" alt=""></center>
+<map name="lmer_8c_5542c4de7dbcdbb6630cad8fabe96542_cgraph_map">
+<area shape="rect" href="lmer_8c.html#3a7fab2a88117d83971db12f53eaa91e" title="Populate the st, nc and nlev arrays." alt="" coords="164,5,255,32"></map>
+</div>
+
+<p>
+<div class="dynheader">
+Here is the caller graph for this function:</div>
+<div class="dynsection">
+<p><center><img src="lmer_8c_5542c4de7dbcdbb6630cad8fabe96542_icgraph.png" border="0" usemap="#lmer_8c_5542c4de7dbcdbb6630cad8fabe96542_icgraph_map" alt=""></center>
+<map name="lmer_8c_5542c4de7dbcdbb6630cad8fabe96542_icgraph_map">
+<area shape="rect" href="lmer_8c.html#74143c5e3fa683497e6d6b58503c8bc1" title="Update the fixed effects and the random effects in an MCMC sample from an lmer model..." alt="" coords="184,5,293,32"><area shape="rect" href="lmer_8h.html#21adcf526681f1efd1ad0c4727ff4069" title="Update the contents of the fixef, ranef and uvec slots in an lmer object." alt="" coords="163,56,315,83"><area shape="rect" href="lmer_8h.html#edec83b72f0c3437d9b10daf5120aa2b" title="Generate a Markov&#45;Chain Monte Carlo sample from a fitted linear mixed model." alt="" coords="363,5,499,32"></map>
 </div>
 
 </div>
@@ -2595,11 +2414,11 @@ Update the RCX and RX slots in an mer object.
 </dl>
 <dl class="return" compact><dt><b>Returns:</b></dt><dd>profiled deviance or REML deviance </dd></dl>
 
-<p>Definition at line <a class="el" href="lmer_8c-source.html#l01184">1184</a> of file <a class="el" href="lmer_8c-source.html">lmer.c</a>.</p>
+<p>Definition at line <a class="el" href="lmer_8c-source.html#l01143">1143</a> of file <a class="el" href="lmer_8c-source.html">lmer.c</a>.</p>
 
-<p>References <a class="el" href="lmer_8c-source.html#l00016">_</a>, <a class="el" href="init_8c-source.html#l00034">c</a>, <a class="el" href="lmer_8c-source.html#l00057">isREML_POS</a>, <a class="el" href="lmer_8c-source.html#l00067">L_SLOT</a>, <a class="el" href="lmer_8c-source.html#l00042">ldL2_POS</a>, <a class="el" href="lmer_8c-source.html#l00043">ldRX2_POS</a>, <a class="el" href="Syms_8h-source.html#l00003">lme4_ASym</a>, <a class="el" href="Syms_8h-source.html#l00003">lme4_CmSym</a>, <a class="el" href="Syms_8h-source.html#l00003">lme4_devianceSym</a>, <a class="el" href="Syms_8h-source.html#l00003">lme4_dimsSym</a>, <a class="el" href="Syms_8h-source.html#l00003">lme4_muEtaSym</a>, <a class="el" href="Syms_8h-source.html#l00003">lme4_RVXySym</a>, <a class="el" href="Syms_8h-source.html#l00003">lme4_RXySym</a>, <a class="el" href="Syms_8h-source.html#l00003">lme4_sqrtWtSym</a>, <a class="el" href="Syms_8h-source.html#l00003">lme4_vSym</a>, <a class="el" href="Syms_8h-source.html#l00003">lme4_XSym</a>, <a class="el" href="Syms_8h-source.html#l00003">lme4_ySym</a>, <a class="el" href="lmer_8c-source.html#l00044">lpdisc_POS</a>, <a class="el" href="lmer_8c-source.html#l00040">ML_POS</a>, <a class="el" href="lmer_8c-source.html#l00052">n_POS</a>, <a class="el" href="lmer_8c-source.html#l00053">p_POS</a>, <a class="el" href="lmer_8c-source.html#l01122">PAWv()</a>, <a class="el" href="lmer_8c-source.html#l00054">q_POS</a>, <a class="el" href="lmer_8c-source.html#l00041">REML_POS</a>, <a class="el" href="lmer_8c-source.html#l00114">SLOT_REAL_NULL()</a>, <a class="el" href="lmer_8c-source.html#l00754">update_L()</a>, and <a class="el" href="lmer_8c-source.html#l01154">weighted_XytXy()</a>.</p>
+<p>References <a class="el" href="lmer_8c-source.html#l00016">_</a>, <a class="el" href="init_8c-source.html#l00034">c</a>, <a class="el" href="lmer_8c-source.html#l00057">isREML_POS</a>, <a class="el" href="lmer_8c-source.html#l00065">L_SLOT</a>, <a class="el" href="lmer_8c-source.html#l00042">ldL2_POS</a>, <a class="el" href="lmer_8c-source.html#l00043">ldRX2_POS</a>, <a class="el" href="Syms_8h-source.html#l00003">lme4_ASym</a>, <a class="el" href="Syms_8h-source.html#l00003">lme4_CmSym</a>, <a class="el" href="Syms_8h-source.html#l00003">lme4_devianceSym</a>, <a class="el" href="Syms_8h-source.html#l00003">lme4_dimsSym</a>, <a class="el" href="Syms_8h-source.html#l00003">lme4_muEtaSym</a>, <a class="el" href="Syms_8h-source.html#l00003">lme4_RVXySym</a>, <a class="el" href="Syms_8h-source.html#l00003">lme4_RXySym</a>, <a class="el" href="Syms_8h-source.html#l00003">lme4_sqrtWtSym</a>, <a class="el" href="Syms_8h-source.html#l00003">lme4_vSym</a>, <a class="el" href="Syms_8h-source.html#l00003">lme4_XSym</a>, <a class="el" href="Syms_8h-source.html#l00003">lme4_ySym</a>, <a class="el" href="lmer_8c-source.html#l00044">lpdisc_POS</a>, <a class="el" href="lmer_8c-source.html#l00040">ML_POS</a>, <a class="el" href="lmer_8c-source.html#l00052">n_POS</a>, <a class="el" href="lmer_8c-source.html#l00053">p_POS</a>, <a class="el" href="lmer_8c-source.html#l01081">PAWv()</a>, <a class="el" href="lmer_8c-source.html#l00054">q_POS</a>, <a class="el" href="lmer_8c-source.html#l00041">REML_POS</a>, <a class="el" href="lmer_8c-source.html#l00112">SLOT_REAL_NULL()</a>, <a class="el" href="lmer_8c-source.html#l00717">update_L()</a>, and <a class="el" href="lmer_8c-source.html#l01113">weighted_XytXy()</a>.</p>
 
-<p>Referenced by <a class="el" href="lmer_8c-source.html#l01258">mer_optimize()</a>, and <a class="el" href="lmer_8c-source.html#l01243">mer_update_RX()</a>.</p>
+<p>Referenced by <a class="el" href="lmer_8c-source.html#l01217">mer_optimize()</a>, and <a class="el" href="lmer_8c-source.html#l01202">mer_update_RX()</a>.</p>
 
 <p>
 <div class="dynheader">
@@ -2657,11 +2476,11 @@ Iterate to determine the conditional modes of the random effects.
 </dl>
 <dl class="return" compact><dt><b>Returns:</b></dt><dd>number of iterations to convergence (0 for non-convergence) </dd></dl>
 
-<p>Definition at line <a class="el" href="lmer_8c-source.html#l00853">853</a> of file <a class="el" href="lmer_8c-source.html">lmer.c</a>.</p>
+<p>Definition at line <a class="el" href="lmer_8c-source.html#l00816">816</a> of file <a class="el" href="lmer_8c-source.html">lmer.c</a>.</p>
 
-<p>References <a class="el" href="lmer_8c-source.html#l00016">_</a>, <a class="el" href="lmer_8c-source.html#l00033">Alloca</a>, <a class="el" href="lmer_8c-source.html#l00036">AZERO</a>, <a class="el" href="init_8c-source.html#l00034">c</a>, <a class="el" href="lmer_8c-source.html#l00838">CM_MAXITER</a>, <a class="el" href="lmer_8c-source.html#l00842">CM_SMIN</a>, <a class="el" href="lmer_8c-source.html#l00840">CM_TOL</a>, <a class="el" href="lmer_8c-source.html#l00067">L_SLOT</a>, <a class="el" href="Syms_8h-source.html#l00003">lme4_ASym</a>, <a class="el" href="Syms_8h-source.html#l00003">lme4_dimsSym</a>, <a class="el" href="Syms_8h-source.html#l00003">lme4_residSym</a>, <a class="el" href="Syms_8h-source.html#l00003">lme4_uvecSym</a>, <a class="el" href="lmer_8c-source.html#l00052">n_POS</a>, <a class="el" href="lmer_8c-source.html#l00054">q_POS</a>, <a class="el" href="lmer_8c-source.html#l00077">sqr_length()</a>, <a class="el" href="lmer_8c-source.html#l00754">update_L()</a>, and <a class="el" href="lmer_8c-source.html#l00611">update_mu()</a>.</p>
+<p>References <a class="el" href="lmer_8c-source.html#l00016">_</a>, <a class="el" href="lmer_8c-source.html#l00033">Alloca</a>, <a class="el" href="lmer_8c-source.html#l00036">AZERO</a>, <a class="el" href="init_8c-source.html#l00034">c</a>, <a class="el" href="lmer_8c-source.html#l00801">CM_MAXITER</a>, <a class="el" href="lmer_8c-source.html#l00805">CM_SMIN</a>, <a class="el" href="lmer_8c-source.html#l00803">CM_TOL</a>, <a class="el" href="lmer_8c-source.html#l00065">L_SLOT</a>, <a class="el" href="Syms_8h-source.html#l00003">lme4_ASym</a>, <a class="el" href="Syms_8h-source.html#l00003">lme4_dimsSym</a>, <a class="el" href="Syms_8h-source.html#l00003">lme4_residSym</a>, <a class="el" href="Syms_8h-source.html#l00003">lme4_uvecSym</a>, <a class="el" href="lmer_8c-source.html#l00052">n_POS</a>, <a class="el" href="lmer_8c-source.html#l00054">q_POS</a>, <a class="el" href="lmer_8c-source.html#l00075">sqr_length()</a>, <a class="el" href="lmer_8c-source.html#l00717">update_L()</a>, and <a class="el" href="lmer_8c-source.html#l00574">update_mu()</a>.</p>
 
-<p>Referenced by <a class="el" href="lmer_8c-source.html#l01258">mer_optimize()</a>, and <a class="el" href="lmer_8c-source.html#l00934">mer_update_u()</a>.</p>
+<p>Referenced by <a class="el" href="lmer_8c-source.html#l01217">mer_optimize()</a>, and <a class="el" href="lmer_8c-source.html#l00897">mer_update_u()</a>.</p>
 
 <p>
 <div class="dynheader">
@@ -2747,11 +2566,11 @@ Accumulate the weighted cross-product of [X:y] in rxy.
 </dl>
 <dl class="note" compact><dt><b>Note:</b></dt><dd>Although the contents of X and y are not changed, we cannot use the const modifier for the argument because the pointers are copied. </dd></dl>
 
-<p>Definition at line <a class="el" href="lmer_8c-source.html#l01154">1154</a> of file <a class="el" href="lmer_8c-source.html">lmer.c</a>.</p>
+<p>Definition at line <a class="el" href="lmer_8c-source.html#l01113">1113</a> of file <a class="el" href="lmer_8c-source.html">lmer.c</a>.</p>
 
 <p>References <a class="el" href="lmer_8c-source.html#l00033">Alloca</a>.</p>
 
-<p>Referenced by <a class="el" href="lmer_8c-source.html#l01184">update_RX()</a>.</p>
+<p>Referenced by <a class="el" href="lmer_8c-source.html#l01143">update_RX()</a>.</p>
 
 <p>
 <div class="dynheader">
@@ -2800,9 +2619,9 @@ Evaluate y * log(y/mu) with the correct limiting value at y = 0.
 </dl>
 <dl class="return" compact><dt><b>Returns:</b></dt><dd>y * log(y/mu) for y &gt; 0, 0 for y == 0. </dd></dl>
 
-<p>Definition at line <a class="el" href="lmer_8c-source.html#l00947">947</a> of file <a class="el" href="lmer_8c-source.html">lmer.c</a>.</p>
+<p>Definition at line <a class="el" href="lmer_8c-source.html#l00910">910</a> of file <a class="el" href="lmer_8c-source.html">lmer.c</a>.</p>
 
-<p>Referenced by <a class="el" href="lmer_8c-source.html#l00959">mer_update_dev()</a>.</p>
+<p>Referenced by <a class="el" href="lmer_8c-source.html#l00922">mer_update_dev()</a>.</p>
 
 <p>
 <div class="dynheader">
@@ -2848,9 +2667,9 @@ cholmod_common struct initialized in R_init_lme4
 
 <p>
 
-<p>Definition at line <a class="el" href="lmer_8c-source.html#l00599">599</a> of file <a class="el" href="lmer_8c-source.html">lmer.c</a>.</p>
+<p>Definition at line <a class="el" href="lmer_8c-source.html#l00562">562</a> of file <a class="el" href="lmer_8c-source.html">lmer.c</a>.</p>
 
-<p>Referenced by <a class="el" href="lmer_8c-source.html#l00611">update_mu()</a>.</p>
+<p>Referenced by <a class="el" href="lmer_8c-source.html#l00574">update_mu()</a>.</p>
 
 </div>
 </div><p>
@@ -2867,9 +2686,9 @@ cholmod_common struct initialized in R_init_lme4
 
 <p>
 
-<p>Definition at line <a class="el" href="lmer_8c-source.html#l00595">595</a> of file <a class="el" href="lmer_8c-source.html">lmer.c</a>.</p>
+<p>Definition at line <a class="el" href="lmer_8c-source.html#l00558">558</a> of file <a class="el" href="lmer_8c-source.html">lmer.c</a>.</p>
 
-<p>Referenced by <a class="el" href="lmer_8c-source.html#l00611">update_mu()</a>.</p>
+<p>Referenced by <a class="el" href="lmer_8c-source.html#l00574">update_mu()</a>.</p>
 
 </div>
 </div><p>
@@ -2886,9 +2705,9 @@ cholmod_common struct initialized in R_init_lme4
 
 <p>
 
-<p>Definition at line <a class="el" href="lmer_8c-source.html#l00596">596</a> of file <a class="el" href="lmer_8c-source.html">lmer.c</a>.</p>
+<p>Definition at line <a class="el" href="lmer_8c-source.html#l00559">559</a> of file <a class="el" href="lmer_8c-source.html">lmer.c</a>.</p>
 
-<p>Referenced by <a class="el" href="lmer_8c-source.html#l00611">update_mu()</a>.</p>
+<p>Referenced by <a class="el" href="lmer_8c-source.html#l00574">update_mu()</a>.</p>
 
 </div>
 </div><p>
@@ -2905,9 +2724,9 @@ cholmod_common struct initialized in R_init_lme4
 
 <p>
 
-<p>Definition at line <a class="el" href="lmer_8c-source.html#l00597">597</a> of file <a class="el" href="lmer_8c-source.html">lmer.c</a>.</p>
+<p>Definition at line <a class="el" href="lmer_8c-source.html#l00560">560</a> of file <a class="el" href="lmer_8c-source.html">lmer.c</a>.</p>
 
-<p>Referenced by <a class="el" href="lmer_8c-source.html#l00611">update_mu()</a>.</p>
+<p>Referenced by <a class="el" href="lmer_8c-source.html#l00574">update_mu()</a>.</p>
 
 </div>
 </div><p>
@@ -2924,13 +2743,13 @@ cholmod_common struct initialized in R_init_lme4
 
 <p>
 
-<p>Definition at line <a class="el" href="lmer_8c-source.html#l00598">598</a> of file <a class="el" href="lmer_8c-source.html">lmer.c</a>.</p>
+<p>Definition at line <a class="el" href="lmer_8c-source.html#l00561">561</a> of file <a class="el" href="lmer_8c-source.html">lmer.c</a>.</p>
 
-<p>Referenced by <a class="el" href="lmer_8c-source.html#l00611">update_mu()</a>.</p>
+<p>Referenced by <a class="el" href="lmer_8c-source.html#l00574">update_mu()</a>.</p>
 
 </div>
 </div><p>
-<hr size="1"><address style="text-align: right;"><small>Generated on Thu Jan 3 15:46:52 2008 for lme4 by&nbsp;
+<hr size="1"><address style="text-align: right;"><small>Generated on Thu Jan 3 17:29:28 2008 for lme4 by&nbsp;
 <a href="http://www.doxygen.org/index.html">
 <img src="doxygen.png" alt="doxygen" align="middle" border="0"></a> 1.5.3 </small></address>
 </body>
