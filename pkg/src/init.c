@@ -75,6 +75,7 @@ void R_init_lme4(DllInfo *dll)
     lme4_muSym = install("mu");
     lme4_offsetSym = install("offset");
     lme4_pSym = install("p");
+    lme4_permSym = install("perm");
     lme4_pnamesSym = install("pnames");
     lme4_priorWtSym = install("priorWt");
     lme4_ranefSym = install("ranef");
