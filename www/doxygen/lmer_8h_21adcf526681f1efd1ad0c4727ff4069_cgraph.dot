@@ -7,9 +7,7 @@ digraph G
   Node1 -> Node2 [color="midnightblue",fontsize=10,style="solid",fontname="FreeSans.ttf"];
   Node2 [label="sqr_length",height=0.2,width=0.4,color="black", fillcolor="white", style="filled",URL="$lmer_8c.html#cb5f65f582a10a1d89c539b2df485346",tooltip="Return the sum of squares of the first n elements of x."];
   Node1 -> Node3 [color="midnightblue",fontsize=10,style="solid",fontname="FreeSans.ttf"];
-  Node3 [label="TSPp_SEXP_mult",height=0.2,width=0.4,color="black", fillcolor="white", style="filled",URL="$lmer_8c.html#c3e6fe9ad75e0e963c024ab8d81f6a4d",tooltip="dest = T *% S *% t(P) *% src"];
+  Node3 [label="update_ranef",height=0.2,width=0.4,color="black", fillcolor="white", style="filled",URL="$lmer_8c.html#5542c4de7dbcdbb6630cad8fabe96542",tooltip="b = T *% S *% t(P) *% u"];
   Node3 -> Node4 [color="midnightblue",fontsize=10,style="solid",fontname="FreeSans.ttf"];
   Node4 [label="ST_nc_nlev",height=0.2,width=0.4,color="black", fillcolor="white", style="filled",URL="$lmer_8c.html#3a7fab2a88117d83971db12f53eaa91e",tooltip="Populate the st, nc and nlev arrays."];
-  Node3 -> Node5 [color="midnightblue",fontsize=10,style="solid",fontname="FreeSans.ttf"];
-  Node5 [label="TSPp_dense_mult",height=0.2,width=0.4,color="black", fillcolor="white", style="filled",URL="$lmer_8c.html#04a657beb8b55592a9bc91a765a04c13",tooltip="Internal version of TSPp_SEXP_mult."];
 }

@@ -5,7 +5,7 @@ digraph G
   rankdir=LR;
   Node1 [label="get_sigma",height=0.2,width=0.4,color="black", fillcolor="grey75", style="filled" fontcolor="black"];
   Node1 -> Node2 [dir=back,color="midnightblue",fontsize=10,style="solid",fontname="FreeSans.ttf"];
-  Node2 [label="mer_postVar",height=0.2,width=0.4,color="black", fillcolor="white", style="filled",URL="$lmer_8h.html#b0d93370f37dc2631574b577e698fc6f",tooltip="Extract the posterior variances of the random effects in an lmer object."];
+  Node2 [label="mer_postVar",height=0.2,width=0.4,color="black", fillcolor="white", style="filled",URL="$lmer_8h.html#79178d4c0ab3956a7f5d5ac93416759a",tooltip="Extract the posterior variances of the random effects in an mer object."];
   Node1 -> Node3 [dir=back,color="midnightblue",fontsize=10,style="solid",fontname="FreeSans.ttf"];
   Node3 [label="mer_sigma",height=0.2,width=0.4,color="black", fillcolor="white", style="filled",URL="$lmer_8h.html#1c7078c50d8111387e40b202e2e94506",tooltip="Extract the estimate of the common scale parameter from an mer object."];
 }
