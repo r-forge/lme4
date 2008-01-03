@@ -26,7 +26,7 @@ digraph G
   Node11 [label="chm_log_det2",height=0.2,width=0.4,color="black", fillcolor="white", style="filled",URL="$lmer_8c.html#76fcf475a3079f5068e463e2d9d32a51",tooltip="Evaluate the logarithm of the square of the determinant of L (i.e."];
   Node10 -> Node9 [color="midnightblue",fontsize=10,style="solid",fontname="FreeSans.ttf"];
   Node7 -> Node12 [color="midnightblue",fontsize=10,style="solid",fontname="FreeSans.ttf"];
-  Node12 [label="weighted_XytXy",height=0.2,width=0.4,color="black", fillcolor="white", style="filled",URL="$lmer_8c.html#c5e67856ab36eb41d71dab9fd71bc059"];
+  Node12 [label="weighted_XytXy",height=0.2,width=0.4,color="black", fillcolor="white", style="filled",URL="$lmer_8c.html#c5e67856ab36eb41d71dab9fd71bc059",tooltip="Accumulate the weighted cross-product of [X:y] in rxy."];
   Node1 -> Node13 [color="midnightblue",fontsize=10,style="solid",fontname="FreeSans.ttf"];
   Node13 [label="update_u",height=0.2,width=0.4,color="black", fillcolor="white", style="filled",URL="$lmer_8c.html#88236137756e85a656de3402adcf4747",tooltip="Iterate to determine the conditional modes of the random effects."];
   Node13 -> Node14 [color="midnightblue",fontsize=10,style="solid",fontname="FreeSans.ttf"];

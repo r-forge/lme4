@@ -2,5 +2,5 @@
 <area shape="rect" href="$lmer_8c.html#7b201dfc788b795258f08807256846ad" title="Create PAW^{1/2}v in dest." alt="" coords="352,5,408,32">
 <area shape="rect" href="$lmer_8c.html#ff904c8d92fd93c839da5615d9d18240" title="Extract the slot named nm from the object obj and return a null pointer if the slot..." alt="" coords="492,56,633,83">
 <area shape="rect" href="$lmer_8c.html#2f257f628f06920b351486d48ab50026" title="Update the A, L, sqrtWt and resid slots." alt="" coords="340,107,420,133">
-<area shape="rect" href="$lmer_8c.html#c5e67856ab36eb41d71dab9fd71bc059" title="weighted_XytXy" alt="" coords="319,157,441,184">
+<area shape="rect" href="$lmer_8c.html#c5e67856ab36eb41d71dab9fd71bc059" title="Accumulate the weighted cross&#45;product of [X:y] in rxy." alt="" coords="319,157,441,184">
 <area shape="rect" href="$lmer_8c.html#76fcf475a3079f5068e463e2d9d32a51" title="Evaluate the logarithm of the square of the determinant of L (i.e." alt="" coords="508,107,617,133">
