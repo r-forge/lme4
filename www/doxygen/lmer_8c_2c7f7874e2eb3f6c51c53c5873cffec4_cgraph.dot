@@ -1,0 +1,18 @@
+digraph G
+{
+  edge [fontname="FreeSans.ttf",fontsize=10,labelfontname="FreeSans.ttf",labelfontsize=10];
+  node [fontname="FreeSans.ttf",fontsize=10,shape=record];
+  rankdir=LR;
+  Node1 [label="update_RX",height=0.2,width=0.4,color="black", fillcolor="grey75", style="filled" fontcolor="black"];
+  Node1 -> Node2 [color="midnightblue",fontsize=10,style="solid",fontname="FreeSans.ttf"];
+  Node2 [label="PAWv",height=0.2,width=0.4,color="black", fillcolor="white", style="filled",URL="$lmer_8c.html#7b201dfc788b795258f08807256846ad",tooltip="Create PAW^{1/2}v in dest."];
+  Node1 -> Node3 [color="midnightblue",fontsize=10,style="solid",fontname="FreeSans.ttf"];
+  Node3 [label="SLOT_REAL_NULL",height=0.2,width=0.4,color="black", fillcolor="white", style="filled",URL="$lmer_8c.html#ff904c8d92fd93c839da5615d9d18240",tooltip="Extract the slot named nm from the object obj and return a null pointer if the slot..."];
+  Node1 -> Node4 [color="midnightblue",fontsize=10,style="solid",fontname="FreeSans.ttf"];
+  Node4 [label="update_L",height=0.2,width=0.4,color="black", fillcolor="white", style="filled",URL="$lmer_8c.html#2f257f628f06920b351486d48ab50026",tooltip="Update the A, L, sqrtWt and resid slots."];
+  Node4 -> Node5 [color="midnightblue",fontsize=10,style="solid",fontname="FreeSans.ttf"];
+  Node5 [label="chm_log_det2",height=0.2,width=0.4,color="black", fillcolor="white", style="filled",URL="$lmer_8c.html#76fcf475a3079f5068e463e2d9d32a51",tooltip="Evaluate the logarithm of the square of the determinant of L (i.e."];
+  Node4 -> Node3 [color="midnightblue",fontsize=10,style="solid",fontname="FreeSans.ttf"];
+  Node1 -> Node6 [color="midnightblue",fontsize=10,style="solid",fontname="FreeSans.ttf"];
+  Node6 [label="weighted_XytXy",height=0.2,width=0.4,color="black", fillcolor="white", style="filled",URL="$lmer_8c.html#c5e67856ab36eb41d71dab9fd71bc059"];
+}

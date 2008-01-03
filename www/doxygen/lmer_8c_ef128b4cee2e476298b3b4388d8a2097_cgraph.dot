@@ -1,0 +1,13 @@
+digraph G
+{
+  edge [fontname="FreeSans.ttf",fontsize=10,labelfontname="FreeSans.ttf",labelfontsize=10];
+  node [fontname="FreeSans.ttf",fontsize=10,shape=record];
+  rankdir=LR;
+  Node1 [label="MCMC_ST",height=0.2,width=0.4,color="black", fillcolor="grey75", style="filled" fontcolor="black"];
+  Node1 -> Node2 [color="midnightblue",fontsize=10,style="solid",fontname="FreeSans.ttf"];
+  Node2 [label="safe_pd_matrix",height=0.2,width=0.4,color="black", fillcolor="white", style="filled",URL="$lmer_8c.html#24e3fc6b91cae668ea046c4b5e5ff9ed"];
+  Node1 -> Node3 [color="midnightblue",fontsize=10,style="solid",fontname="FreeSans.ttf"];
+  Node3 [label="ST_nc_nlev",height=0.2,width=0.4,color="black", fillcolor="white", style="filled",URL="$lmer_8c.html#3a7fab2a88117d83971db12f53eaa91e",tooltip="Populate the st, nc and nlev arrays."];
+  Node1 -> Node4 [color="midnightblue",fontsize=10,style="solid",fontname="FreeSans.ttf"];
+  Node4 [label="std_rWishart_factor",height=0.2,width=0.4,color="black", fillcolor="white", style="filled",URL="$lmer_8c.html#9812644aac7804e273e0a48e138eb9f9",tooltip="Simulate the Cholesky factor of a standardized Wishart variate with dimension p and..."];
+}
