@@ -1,0 +1,15 @@
+digraph G
+{
+  edge [fontname="FreeSans.ttf",fontsize=10,labelfontname="FreeSans.ttf",labelfontsize=10];
+  node [fontname="FreeSans.ttf",fontsize=10,shape=record];
+  rankdir=LR;
+  Node1 [label="MCMC_betab",height=0.2,width=0.4,color="black", fillcolor="grey75", style="filled" fontcolor="black"];
+  Node1 -> Node2 [color="midnightblue",fontsize=10,style="solid",fontname="FreeSans.ttf"];
+  Node2 [label="mer_update_effects",height=0.2,width=0.4,color="black", fillcolor="white", style="filled",URL="$lmer_8c.html#21adcf526681f1efd1ad0c4727ff4069",tooltip="Update the contents of the fixef, ranef and uvec slots in an lmer object."];
+  Node1 -> Node3 [color="midnightblue",fontsize=10,style="solid",fontname="FreeSans.ttf"];
+  Node3 [label="TSPp_SEXP_mult",height=0.2,width=0.4,color="black", fillcolor="white", style="filled",URL="$lmer_8c.html#c3e6fe9ad75e0e963c024ab8d81f6a4d",tooltip="dest = T *% S *% t(P) *% src"];
+  Node3 -> Node4 [color="midnightblue",fontsize=10,style="solid",fontname="FreeSans.ttf"];
+  Node4 [label="ST_nc_nlev",height=0.2,width=0.4,color="black", fillcolor="white", style="filled",URL="$lmer_8c.html#3a7fab2a88117d83971db12f53eaa91e",tooltip="Populate the st, nc and nlev arrays."];
+  Node3 -> Node5 [color="midnightblue",fontsize=10,style="solid",fontname="FreeSans.ttf"];
+  Node5 [label="TSPp_dense_mult",height=0.2,width=0.4,color="black", fillcolor="white", style="filled",URL="$lmer_8c.html#04a657beb8b55592a9bc91a765a04c13",tooltip="Internal version of TSPp_SEXP_mult."];
+}

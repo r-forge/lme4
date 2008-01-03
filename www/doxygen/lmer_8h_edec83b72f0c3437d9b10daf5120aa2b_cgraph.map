@@ -1,10 +1,10 @@
-<area shape="rect" href="$lmer_8c.html#87c48695afc52ef160a5d6e8b032cb84" title="Update the fixed effects and the random effects in an MCMC sample from an lmer model..." alt="" coords="189,56,333,83">
-<area shape="rect" href="$lmer_8c.html#21adcf526681f1efd1ad0c4727ff4069" title="Update the contents of the fixef, ranef and uvec slots in an lmer object." alt="" coords="381,5,533,32">
-<area shape="rect" href="$lmer_8c.html#8a65927acdf81d2dd56f2806e5e80cf7" title="mer_MCMC_ST" alt="" coords="200,107,323,133">
-<area shape="rect" href="$lmer_8c.html#1f6b9123d7b4dcbe24cc9085e5f4069a" title="Extract the parameters from the ST slot of an mer object." alt="" coords="197,157,325,184">
-<area shape="rect" href="$lmer_8c.html#96765a284e1652326a22d50f7d7538d4" title="Update the ST slot of an mer object from a REAL vector of parameters and update the..." alt="" coords="199,208,324,235">
-<area shape="rect" href="$lmer_8c.html#c3e6fe9ad75e0e963c024ab8d81f6a4d" title="dest = T *% S *% t(P) *% src" alt="" coords="391,56,524,83">
-<area shape="rect" href="$lmer_8c.html#3a7fab2a88117d83971db12f53eaa91e" title="Populate the st, nc and nlev arrays." alt="" coords="604,107,695,133">
-<area shape="rect" href="$lmer_8c.html#04a657beb8b55592a9bc91a765a04c13" title="Internal version of TSPp_SEXP_mult." alt="" coords="581,56,717,83">
-<area shape="rect" href="$lmer_8c.html#24e3fc6b91cae668ea046c4b5e5ff9ed" title="safe_pd_matrix" alt="" coords="397,157,517,184">
-<area shape="rect" href="$lmer_8c.html#9812644aac7804e273e0a48e138eb9f9" title="Simulate the Cholesky factor of a standardized Wishart variate with dimension p and..." alt="" coords="384,208,531,235">
+<area shape="rect" href="$lmer_8c.html#74143c5e3fa683497e6d6b58503c8bc1" title="Update the fixed effects and the random effects in an MCMC sample from an lmer model..." alt="" coords="199,56,308,83">
+<area shape="rect" href="$lmer_8c.html#21adcf526681f1efd1ad0c4727ff4069" title="Update the contents of the fixef, ranef and uvec slots in an lmer object." alt="" coords="365,5,517,32">
+<area shape="rect" href="$lmer_8c.html#ef128b4cee2e476298b3b4388d8a2097" title="MCMC_ST" alt="" coords="209,107,297,133">
+<area shape="rect" href="$lmer_8c.html#1f6b9123d7b4dcbe24cc9085e5f4069a" title="Extract the parameters from the ST slot of an mer object." alt="" coords="189,157,317,184">
+<area shape="rect" href="$lmer_8c.html#96765a284e1652326a22d50f7d7538d4" title="Update the ST slot of an mer object from a REAL vector of parameters and update the..." alt="" coords="191,208,316,235">
+<area shape="rect" href="$lmer_8c.html#c3e6fe9ad75e0e963c024ab8d81f6a4d" title="dest = T *% S *% t(P) *% src" alt="" coords="375,56,508,83">
+<area shape="rect" href="$lmer_8c.html#3a7fab2a88117d83971db12f53eaa91e" title="Populate the st, nc and nlev arrays." alt="" coords="588,107,679,133">
+<area shape="rect" href="$lmer_8c.html#04a657beb8b55592a9bc91a765a04c13" title="Internal version of TSPp_SEXP_mult." alt="" coords="565,56,701,83">
+<area shape="rect" href="$lmer_8c.html#24e3fc6b91cae668ea046c4b5e5ff9ed" title="safe_pd_matrix" alt="" coords="381,157,501,184">
+<area shape="rect" href="$lmer_8c.html#9812644aac7804e273e0a48e138eb9f9" title="Simulate the Cholesky factor of a standardized Wishart variate with dimension p and..." alt="" coords="368,208,515,235">

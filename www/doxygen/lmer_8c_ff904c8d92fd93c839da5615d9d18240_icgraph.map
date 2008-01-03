@@ -1,9 +1,9 @@
-<area shape="rect" href="$lmer_8c.html#1cc173452bb3cf2499a76da5c53895c6" title="Evaluate the profiled deviance for a linear mixed model." alt="" coords="341,5,475,32">
 <area shape="rect" href="$lmer_8c.html#2f257f628f06920b351486d48ab50026" title="Update the A, L, sqrtWt and resid slots." alt="" coords="205,56,285,83">
+<area shape="rect" href="$lmer_8c.html#2c7f7874e2eb3f6c51c53c5873cffec4" title="Update the RCX and RX slots in an mer object." alt="" coords="360,5,451,32">
 <area shape="rect" href="$lmer_8c.html#da558f58458c36a96585a9c6e695a0b6" title="Update the eta, v, mu, resid and var slots according to the current values of the..." alt="" coords="199,107,292,133">
-<area shape="rect" href="$lmer_8h.html#a4e16de36d36af6c715d52a045f88e78" title="Optimize the profiled deviance of an lmer object or the Laplace approximation to..." alt="" coords="552,56,661,83">
-<area shape="rect" href="$lmer_8h.html#0bf081ef41ca11a0ecd7bd5599160f10" title="Externally callable version of profiled_deviance." alt="" coords="524,5,689,32">
-<area shape="rect" href="$lmer_8c.html#cd80168a07eca975c8af1329b94de0c5" title="Iterate to determine the conditional modes of the random effects." alt="" coords="360,107,456,133">
-<area shape="rect" href="$lmer_8h.html#f61a89a1f6aa003a5ae87d08cb8c9af7" title="Externally callable version of update_L." alt="" coords="351,56,465,83">
-<area shape="rect" href="$lmer_8h.html#7b4a9cb54a6c94da474c094ed2bb777b" title="Externally callable version of cond_mode." alt="" coords="547,107,667,133">
-<area shape="rect" href="$lmer_8h.html#64740a858f90763461cbccea9c787b6b" title="Externally callable update_mu." alt="" coords="344,157,472,184">
+<area shape="rect" href="$lmer_8h.html#f61a89a1f6aa003a5ae87d08cb8c9af7" title="Externally callable version of update_L." alt="" coords="348,56,463,83">
+<area shape="rect" href="$lmer_8c.html#88236137756e85a656de3402adcf4747" title="Iterate to determine the conditional modes of the random effects." alt="" coords="365,107,445,133">
+<area shape="rect" href="$lmer_8h.html#a4e16de36d36af6c715d52a045f88e78" title="Optimize the profiled deviance of an lmer object or the Laplace approximation to..." alt="" coords="525,56,635,83">
+<area shape="rect" href="$lmer_8h.html#6c02b5f73d659d2d748852fac7e9c462" title="Externally callable version of update_RX." alt="" coords="519,5,641,32">
+<area shape="rect" href="$lmer_8h.html#b72ec91b1f901b466f29a80bcc22e6c4" title="Externally callable version of update_u." alt="" coords="523,107,637,133">
+<area shape="rect" href="$lmer_8h.html#64740a858f90763461cbccea9c787b6b" title="Externally callable update_mu." alt="" coords="341,157,469,184">
