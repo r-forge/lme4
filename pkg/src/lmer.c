@@ -240,70 +240,38 @@ C_nz_col(int *nz, int j, int nf, const int *Gp, const int *nc,
 }
 
 /**
- * Internal version of TSPp_SEXP_mult
+ * b = T  %*% S %*% t(P) %*% u
  *
- * @param dx destination
- * @param nf number of grouping factors
- * @param m  number of rows in src and dest
- * @param n  number of columns in src and dest
- * @param st pointers to contents of ST matrices
- * @param nc length nf array of number of columns
- * @param nlev length nf array of number of levels
- * @param Gp group pointers
- * @param sx source
- * @param Perm permutation to be applied
+ * @param x an mer object
  *
  */
-static void
-TSPp_dense_mult(double *dx, int nf, int m, int n, double **st,
-		const int *nc, const int *nlev, const int *Gp,
-		const double *sx, const int *Perm)
+static void update_ranef(SEXP x)
 {
-    int i, j, k;
-    double *tmp = Alloca(m, double), one = 1;
-    R_CheckStack(); 
-
-    for (j = 0; j < n; j++) {
-				/* apply permutation if given */
-	if (Perm) for (i = 0; i < m; i++) tmp[Perm[i]] = sx[j * m + i];
-	else Memcpy(tmp, sx + j * m, m);
-	for (i = 0; i < nf; i++) {
-	    for (k = 0; k < nc[i]; k++) { /* multiply by \tilde{S}_i */
-		double dd = st[i][k * (nc[i] + 1)];
-		int base = Gp[i] + k * nlev[i], kk;
-		for (kk = 0; kk < nlev[i]; kk++) tmp[base + kk] *= dd;
-	    }
-	    if (nc[i] > 1) {	/* multiply by \tilde{T}_i */
-		F77_CALL(dtrmm)("R", "L", "T", "U", nlev + i, nc + i, &one,
-				st[i], nc + i, tmp + Gp[i], nlev + i);
-	    }
-	}
-	Memcpy(dx + j * m, tmp, m);
-    }
-}
-
-/**
- * dest = T  %*% S %*% t(P) %*% src
- *
- * @param dest matrix whose contents are overwritten
- * @param ST ST slot
- * @param Gp group pointers
- * @param src originating numeric matrix
- * @param Perm permutation to be applied
- *
- */
-static void
-TSPp_SEXP_mult(SEXP dest, SEXP ST, const int *Gp, SEXP src, const int *Perm)
-{
-    int isM = isMatrix(src), nf = LENGTH(ST);
-    int m = isM ? INTEGER(getAttrib(src, R_DimSymbol))[0] : LENGTH(src),
-	n = isM ? INTEGER(getAttrib(src, R_DimSymbol))[1] : 1;
+    SEXP ST = GET_SLOT(x, lme4_STSym),
+	permP = GET_SLOT(GET_SLOT(x, lme4_LSym), lme4_permSym);
+    int *Gp = INTEGER(GET_SLOT(x, lme4_GpSym)),
+	*perm = INTEGER(permP), i, k,
+	m = LENGTH(permP), nf = LENGTH(ST);
+    double *b = REAL(GET_SLOT(x, lme4_ranefSym)),
+	*u = REAL(GET_SLOT(x, lme4_uvecSym)), one = 1;
     int *nc = Alloca(nf, int), *nlev = Alloca(nf, int);
     double **st = Alloca(nf, double*);
     R_CheckStack(); 
 
     ST_nc_nlev(ST, Gp, st, nc, nlev);
-    TSPp_dense_mult(REAL(dest), nf, m, n, st, nc, nlev, Gp, REAL(src), Perm);
+				/* inverse permutation */
+    for (i = 0; i < m; i++) b[perm[i]] = u[i];
+    for (i = 0; i < nf; i++) {
+	for (k = 0; k < nc[i]; k++) { /* multiply by \tilde{S}_i */
+	    double dd = st[i][k * (nc[i] + 1)];
+	    int base = Gp[i] + k * nlev[i], kk;
+	    for (kk = 0; kk < nlev[i]; kk++) b[base + kk] *= dd;
+	}
+	if (nc[i] > 1) {	/* multiply by \tilde{T}_i */
+	    F77_CALL(dtrmm)("R", "L", "T", "U", nlev + i, nc + i, &one,
+			    st[i], nc + i, b + Gp[i], nlev + i);
+	}
+    }
 }
 
 /**
@@ -1032,11 +1000,7 @@ SEXP mer_update_effects(SEXP x)
 	dev[usqr_POS] = sqr_length(u, q);
 	dev[disc_POS] = exp(dev[lpdisc_POS]) - dev[usqr_POS];
     }
-    TSPp_SEXP_mult(GET_SLOT(x, lme4_ranefSym),
-		   GET_SLOT(x, lme4_STSym),
-		   INTEGER(GET_SLOT(x, lme4_GpSym)),
-		   GET_SLOT(x, lme4_uvecSym),
-		   (int *)L->Perm);
+    update_ranef(x);
     return R_NilValue;
 }
 
@@ -1430,8 +1394,7 @@ static void MCMC_betab(SEXP x, double sigma)
     for (j = 0; j < q; j++) uv[j] += ((double*)(sol->x))[j];
     M_cholmod_free_dense(&sol, &c);
 				/* Update the random effects */
-    TSPp_SEXP_mult(GET_SLOT(x, lme4_ranefSym), GET_SLOT(x, lme4_STSym),
-		   INTEGER(GET_SLOT(x, lme4_GpSym)), uvecP, (int*)(L->Perm));
+    update_ranef(x);
 }
 
 static void
