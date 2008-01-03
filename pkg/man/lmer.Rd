@@ -110,7 +110,7 @@ nlmer(formula, data, control, start, verbose,
   Calling this function simply produces an equivalent call to \code{lmer}.
 }
 \value{
-  An object of class \code{"\linkS4class{lmer}"}.
+  An object of class \code{"\linkS4class{mer}"}.
   There are many methods applicable to \code{"lmer"} objects, see the
   above help page. %% Hmm.. or \code{\link{showMethods}(class = "lmer")}
 }
@@ -118,7 +118,7 @@ nlmer(formula, data, control, start, verbose,
 %\author{}
 %\note{}
 \seealso{
-  The \code{\linkS4class{lmer}} class, \code{\link[stats]{lm}}
+  The \code{\linkS4class{mer}} class, \code{\link[stats]{lm}}
 }
 \examples{
 (fm1 <- lmer(Reaction ~ Days + (Days|Subject), sleepstudy))

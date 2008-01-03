@@ -1,8 +1,7 @@
 \name{mcmcsamp}
 \docType{genericFunction}
 \alias{mcmcsamp}
-\alias{mcmcsamp,lmer-method}
-\alias{mcmcsamp,glmer-method}
+\alias{mcmcsamp,mer-method}
 \title{Generate an MCMC sample}
 \description{
   This generic function generates a sample from the posterior
@@ -14,14 +13,14 @@ mcmcsamp(object, n, verbose, \dots)
 }
 \arguments{
   \item{object}{An object of a suitable class - usually an
-    \code{\linkS4class{lmer}} or \code{\linkS4class{glmer}} object.
+    \code{\linkS4class{mer}} object.
   }
   \item{n}{integer - number of samples to generate. Defaults to 1.}
   \item{verbose}{logical - if \code{TRUE} verbose output is printed.
     Defaults to \code{FALSE}.}
   \item{\dots}{Some methods for this generic function may take
     additional, optional arguments.  The method for
-    \code{\linkS4class{lmer}} objects takes the optional argument
+    \code{\linkS4class{mer}} objects takes the optional argument
     \code{saveb} which, if \code{TRUE}, causes the values of the random
     effects in each sample to be saved.  Note that this can result in
     very large objects being saved.  Use with caution. A second optional
@@ -39,21 +38,13 @@ mcmcsamp(object, n, verbose, \dots)
 }
 \section{Methods}{
   \describe{
-    \item{object = "lmer"}{generate MCMC samples from the posterior
-      distribution of the parameters of a linear mixed model.  The prior
+    \item{object = "mer"}{generate MCMC samples from the posterior
+      distribution of the parameters of a mixed-effects model.  The prior
       on the fixed effects parameters is taken to be locally uniform.
       The prior on the variance-covariance matrices of the random
       effects is taken to be the locally non-informative prior described
       in Box and Tiao (1973). Conditional on the current values of the
       random effects these are sampled from a Wishart distribution.}
-    \item{object = "glmer"}{generate MCMC samples from the posterior
-      distribution of the parameters of a generalized linear mixed
-      model.  The prior on the fixed effects parameters is taken to be
-      locally uniform. The prior on the variance-covariance matrices of
-      the random effects is taken to be the locally non-informative
-      prior described in Box and Tiao (1973). Conditional on the current
-      values of the random effects these are sampled from a Wishart
-      distribution.}
   }
 }
 \examples{
