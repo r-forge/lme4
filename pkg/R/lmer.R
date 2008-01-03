@@ -122,6 +122,10 @@ createA <- function(C, s)
        "CsparseMatrix")
 }
     
+### FIXME: somehow the environment of the mf formula does not have
+### .globalEnv in its parent list.  example(Mmmec, package = "mlmRev")
+### used to have a formula of ~ offset(log(expected)) + ... and the
+### offset function was not found in eval(mf, parent.frame(2))
 lmerFrames <- function(mc, formula, contrasts, vnms = character(0))
 ### Create the model frame, X, Y, wts, offset and terms
 
@@ -310,39 +314,47 @@ mkdims <- function(fr, FL, start)
     ST <- lapply(nc, function(n) matrix(0, n, n))
     .Call(mer_ST_initialize, ST, Gp, Zt)
     if (!is.null(start) && checkSTform(ST, start)) ST <- start
-    Vt <- .Call(mer_create_Vt, Zt, ST, Gp)
+    C <- .Call(mer_create_C, Zt, ST, Gp)
 
     ## record dimensions and algorithm settings
     dd <-
         VecFromNames(c("nf", "n", "p", "q", "s", "np", "REML", "ftyp",
-                       "nest", "cvg"), "integer")
+                       "nest", "useSc", "cvg"), "integer")
     dd["nf"] <- length(cnames)          # number of random-effects terms
     dd["n"] <- nrow(fr$mf)              # number of observations
     dd["p"] <- ncol(fr$X)               # number of fixed-effects coefficients
-    dd["q"] <- nrow(Zt)                 # number of random effects
+    dd["q"] <- nrow(C)                  # number of random effects
     dd["s"] <- 1L                       # always 1 except in nlmer
     nvc <- sapply(nc, function (qi) (qi * (qi + 1))/2) # no. of var. comp.
 ### FIXME: Check number of variance components versus number of
 ### levels in the factor for each term. Warn or stop as appropriate
     dd["np"] <- as.integer(sum(nvc))    # number of parameters in optimization
     dd["REML"] <- 0L                    # glmer and nlmer don't use REML
+    dd["ftyp"] <- -1L                   # default is gaussian/identity
+    ## check for nesting of factors
+    dd["nest"] <- all(sapply(seq_along(flist)[-1],
+                             function(i) isNested(flist[[i-1]], flist[[i]])))
+    dd["useSc"] <- 1L                   # default is to use the scale parameter
     dd["cvg"]  <- 0L                    # no optimization attempted
+    dev <- VecFromNames(c("ML", "REML", "ldL2", "ldRX2", "lpdisc",
+                          "disc", "usqr", "wrss"), "numeric")
+    dev[] <- NA
 
-    list(Gp = Gp, ST = ST, Vt = Vt, Zt = Zt,
-         cnames = cnames, dd = dd,
-         dev = VecFromNames(
-         c("ML", "REML", "ldL2", "ldRX2", "lpdisc", "disc", "usqr", "wrss"),
-         "numeric"), flist = flist)
+    list(Gp = Gp, ST = ST, C = C, Zt = Zt, cnames = cnames, dd = dd,
+         dev = dev, flist = flist)
 }
 
 mkFltype <- function(family)
 ### check for predefined families
 {
-    fltype <- 0                         # not a predefined type
-    if (family$family == "gaussian" && family$link == "identity") fltype <- -1
-    if (family$family == "binomial" && family$link == "logit") fltype <- 1
-    if (family$family == "binomial" && family$link == "probit") fltype <- 2
-    if (family$family == "poisson" && family$link == "log") fltype <- 3
+    fltype <- 0L                         # not a predefined type
+    if (family$family == "gaussian" && family$link == "identity") fltype <- -1L
+    if (family$family == "binomial" && family$link == "logit") fltype <- 1L
+    if (family$family == "binomial" && family$link == "probit") fltype <- 2L
+    if (family$family == "poisson" && family$link == "log") fltype <- 3L
+    if (family$family == "quasibinomial" && family$link == "logit") fltype <- 1L
+    if (family$family == "quasibinomial" && family$link == "probit") fltype <- 2L
+    if (family$family == "quasipoisson" && family$link == "log") fltype <- 3L
     as.integer(fltype)
 }
 
@@ -416,34 +428,50 @@ lmer <-
 
     ## Create the dense matrices to be used in the deviance evaluation
 ### FIXME: incorporate weights and offset in the creation of ZtXy et al.
-    Xy <- cbind(fr$X, Y)
-    ZtXy <- as(dm$Zt %*% Xy, "matrix")
-    rownames(fr$X) <- dimnames(ZtXy) <- dimnames(Xy) <- NULL
-    RXy <- XytXy <- crossprod(Xy)
-    RXy[] <- 0
+    pp1 <- dm$dd["p"] + 1L
     fixef <- numeric(dm$dd["p"])
     names(fixef) <- colnames(fr$X)
     dimnames(fr$X) <- NULL
     n <- length(Y)
     
-    ans <- new("lmer",
+    ans <- new(Class = "mer",
+               famName = c("gaussian", "identity"),
+               env = new.env(),
+               nlmodel = substitute(I(x)),
+               pnames = character(0),
                frame = if (model) fr$mf else fr$mf[0,],
-               call = mc, terms = fr$mt, flist = dm$flist,
-               Zt = dm$Zt, X = if (x) fr$X else fr$X[0,],
+               call = mc,
+               terms = fr$mt,
+               flist = dm$flist,
+               X = fr$X,
+               Zt = dm$Zt, 
 ### FIXME: Should y retain its names? As it stands any row names in the
 ### frame are dropped.  Really?  Are they part of the frame slot (if not
 ### reduced to 0 rows)?
-               y = unname(Y), ZtXy = ZtXy, XytXy = XytXy,
-               sqrtWt = unname(fr$wts), offset = unname(fr$off),
-               cnames = unname(dm$cnames), Gp = unname(dm$Gp),
-               dims = dm$dd, ST = dm$ST, Vt = dm$Vt,
-               L = .Call(mer_create_L, dm$Vt),
-               RXy = RXy, RVXy = ZtXy,
+               priorWt = unname(sqrt(fr$wts)),
+               offset = unname(fr$off),
+               y = unname(Y),
+               cnames = unname(dm$cnames),
+               Gp = unname(dm$Gp),
+               dims = dm$dd,
+               ST = dm$ST,
+               Cm = dm$C,
+               v = numeric(0),
+               A = new("dgCMatrix"),
+               L = .Call(mer_create_L, dm$C),
                deviance = dm$dev,
-               eta = numeric(n), mu = numeric(n), 
-               resid = numeric(n), fixef = fixef,
+               fixef = fixef,
                ranef = numeric(dm$dd["q"]),
-               uvec = numeric(dm$dd["q"]))
+               uvec = numeric(dm$dd["q"]),
+               eta = numeric(n),
+               mu = numeric(n), 
+               muEta = numeric(0),
+               var = numeric(0),
+               resid = numeric(n),
+               sqrtWt = sqrt(unname(sqrt(fr$wts))),
+               RVXy = matrix(0, dm$dd["q"], pp1),
+               RXy = matrix(0, pp1, pp1))
+
     cv <- do.call("lmerControl", control)
     if (missing(verbose)) verbose <- cv$msVerbose
     mer_finalize(ans, verbose)
@@ -468,7 +496,6 @@ function(formula, data, family = gaussian, method = c("Laplace", "AGQ"),
          na.action, offset, contrasts = NULL, model = TRUE, ...)
 ### Fit a generalized linear mixed model
 {
-    #warning("glmer is in development.  Results reported here are wrong.")
     mc <- match.call()
                                         # Evaluate and check the family
     if(is.character(family))
@@ -489,22 +516,22 @@ function(formula, data, family = gaussian, method = c("Laplace", "AGQ"),
     FL <- lmerFactorList(formula, fr$mf, 0L, 0L) # flist, Zt, cnames
     dm <- mkdims(fr, FL, start)
     dm$dd["ftyp"] <- mkFltype(glmFit$family)
+    if (glmFit$family$family %in% c("binomial", "poisson")) dm$dd["useSc"] <- 0L
+    y <- unname(as.double(glmFit$y))
     dimnames(fr$X) <- NULL
-    RXy <- crossprod(fr$X)
-    RXy[] <- 0
-
-    ans <- new("glmer",
-               env = mkFamilyEnv(glmFit),
+    pp1 <- dm$dd["p"] + 1L
+    
+    ans <- new(Class = "mer",
+               env = mkFamilyEnv(glmFit), nlmodel = substitute(I(x)),
                famName = unlist(glmFit$family[c("family", "link")]),
                frame = if (model) fr$mf else fr$mf[0,],
                call = mc, terms = fr$mt, flist = dm$flist,
-               Zt = dm$Zt, X = fr$X,
-               y = unname(as.double(glmFit$y)),
+               Zt = dm$Zt, X = fr$X, y = y,
                priorWt = unname(glmFit$prior.weights),
                offset = unname(fr$off),
                cnames = unname(dm$cnames), Gp = unname(dm$Gp),
-               dims = dm$dd, ST = dm$ST, Vt = dm$Vt, A = dm$Vt,
-               L = .Call(mer_create_L, dm$Vt),
+               dims = dm$dd, ST = dm$ST, Cm = dm$C, A = dm$C,
+               L = .Call(mer_create_L, dm$C),
                deviance = dm$dev,
                fixef = coef(glmFit),
                ranef = numeric(dm$dd["q"]),
@@ -514,9 +541,9 @@ function(formula, data, family = gaussian, method = c("Laplace", "AGQ"),
                muEta = numeric(dm$dd["n"]),
                var = numeric(dm$dd["n"]),
                resid = unname(glmFit$residuals),
-               sqrtWt = numeric(dm$dd["n"]),
-               RVXy = as(dm$Zt %*% fr$X, "matrix"),
-               RXy = RXy)
+               sqrtWt = numeric(dm$dd["n"]), 
+               RVXy = matrix(0, dm$dd["q"], pp1),
+               RXy = matrix(0, pp1, pp1))
     cv <- do.call("lmerControl", control)
     if (missing(verbose)) verbose <- cv$msVerbose
     mer_finalize(ans, verbose)
@@ -588,15 +615,19 @@ nlmer <- function(formula, data, control = list(), start = NULL,
     dm$dd["ftyp"] <- -1L              # gaussian family, identity link
     dm$dd["p"] <- length(start$fixed)
     n <- dm$dd["n"]
-    A <- createA(dm$Vt, s)
+    pp1 <- dm$dd["p"] + 1L
+    A <- createA(dm$C, s)
+    y <- unname(as.double(fr$Y))
 
-    ans <- new("nlmer",
-               env = env, model = nlmod, pnames = pnames,
+    ans <- new("mer",
+               env = env, nlmodel = nlmod, pnames = pnames,
                eta = numeric(n * s), v = numeric(n),
                mu = numeric(n), resid = numeric(n), A = A,
                frame = if (model) fr$mf else fr$mf[0,],
                call = mc, terms = fr$mt, flist = dm$flist, X = X,
-               Zt = dm$Zt, Vt = dm$Vt, y = unname(as.double(fr$Y)),
+               Zt = dm$Zt, Cm = dm$C, y = y,
+               RXy = matrix(0, pp1, pp1),
+               RVXy = matrix(0, dm$dd["q"], pp1),
                sqrtWt = unname(sqrt(fr$wts)), 
                cnames = unname(dm$cnames), Gp = unname(dm$Gp),
                dims = dm$dd, ST = dm$ST,
@@ -632,7 +663,7 @@ setMethod("coef", signature(object = "mer"),
                   stop("unable to align random and fixed effects")
               for (nm in nmsi) val[[i]][[nm]] <- val[[i]][[nm]] + refi[,nm]
           }
-          new("coef.lmer", val)
+          new("coef.mer", val)
        })
 
 setAs("mer", "dtCMatrix", function(from)
@@ -664,7 +695,7 @@ setMethod("ranef", signature(object = "mer"),
           names(ans) <- names(object@ST)
           if (postVar) {
               pV <- .Call(mer_postVar, object,
-                          !inherits(object, "glmer")
+                          !inherits(object, "mer")
                           || !(object@famName['family'] %in%
                                c("binomial", "poisson")))
               for (i in seq_along(ans))
@@ -676,11 +707,15 @@ setMethod("ranef", signature(object = "mer"),
 setMethod("VarCorr", signature(x = "mer"),
 	  function(x, REML = NULL, ...)
 ### Create the VarCorr object of variances and covariances
-### FIXME: Modify this to handle glmer models without a scale parameter
       {
-	  sc <- .Call(mer_sigma, x, REML)
 	  cnames <- x@cnames
 	  ans <- x@ST
+          if (x@dims["useSc"]) {
+              attr(ans, "sc") <- sc <- .Call(mer_sigma, x, REML)
+          } else {
+              attr(ans, "sc") <- NA
+              sc <- 1
+          }
           for (i in seq_along(ans)) {
               ai <- ans[[i]]
               dm <- dim(ai)
@@ -696,7 +731,7 @@ setMethod("VarCorr", signature(x = "mer"),
 	      el@factors$correlation <- as(el, "corMatrix")
 	      ans[[i]] <- el
 	  }
-	  attr(ans, "sc") <- sc
+	   sc
 	  ans
       })
 
@@ -708,7 +743,7 @@ setMethod("anova", signature(object = "mer"),
 	  mCall <- match.call(expand.dots = TRUE)
 	  dots <- list(...)
 	  modp <- if (length(dots))
-	      sapply(dots, is, "lmer") | sapply(dots, is, "lm") else logical(0)
+	      sapply(dots, is, "mer") | sapply(dots, is, "lm") else logical(0)
 	  if (any(modp)) {		# multiple models - form table
 	      opts <- dots[!modp]
 	      mods <- c(list(object), dots[modp])
@@ -749,8 +784,6 @@ setMethod("anova", signature(object = "mer"),
 	      return(val)
 	  }
 	  else { ## ------ single model ---------------------
-              if (!is(object, "lmer"))
-                  stop("single argument anova not implemented for nlmer or glmer")
               p <- object@dims["p"]
 	      ss <- (object@RXy[seq_len(p), p + 1L, drop = TRUE])^2
 	      names(ss) <- names(object@fixef)
@@ -779,7 +812,7 @@ setMethod("anova", signature(object = "mer"),
 	  }
       })
 
-setMethod("confint", signature(object = "lmer"),
+setMethod("confint", signature(object = "mer"),
 	  function(object, parm, level = 0.95, ...)
 	  .NotYetImplemented()
 	  )
@@ -792,7 +825,7 @@ setMethod("deviance", signature(object="mer"),
           object@deviance[ifelse(REML, "REML", "ML")]
       })
 
-setMethod("fitted", signature(object = "lmer"),
+setMethod("fitted", signature(object = "mer"),
 	  function(object, ...) object@eta)
 
 setMethod("formula", signature(x = "mer"),
@@ -816,22 +849,13 @@ setMethod("logLik", signature(object="mer"),
           val
       })
 
-setMethod("residuals", signature(object = "glmer"),
+setMethod("residuals", signature(object = "mer"),
 	  function(object, ...) object@resid)
 
-setMethod("residuals", signature(object = "lmer"),
+setMethod("resid", signature(object = "mer"),
 	  function(object, ...) object@resid)
 
-### FIXME: There should not be two identical methods like this but I'm not
-##        sure how to pass the ... argument to a method for another generic
-##        cleanly.
-setMethod("resid", signature(object = "glmer"),
-	  function(object, ...) object@resid)
-
-setMethod("resid", signature(object = "lmer"),
-	  function(object, ...) object@resid)
-
-setMethod("simulate", "lmer",
+setMethod("simulate", "mer",
           function(object, nsim = 1, seed = NULL, ...)
       {
           .NotYetImplemented()
@@ -863,39 +887,30 @@ setMethod("simulate", "lmer",
 setMethod("summary", signature(object = "mer"),
 	  function(object, ...)
       {
+          REML <- object@dims["REML"]
           fcoef <- fixef(object)
           vcov <- vcov(object)
           corF <- vcov@factors$correlation
           dims <- object@dims
-          ## DF <- getFixDF(object)
           coefs <- cbind("Estimate" = fcoef, "Std. Error" = corF@sd) #, DF = DF)
-          REML <- object@dims["REML"]
           llik <- logLik(object, REML)
           dev <- object@deviance
+          mType <- ifelse(non <- as.logical(length(object@v)), "NMM", "LMM")
+          if (gen <- as.logical(length(object@muEta)))
+              mType <- paste("G", mType, sep = '')
+          mName <- switch(mType, LMM = "Linear", NMM = "Nonlinear",
+                          GLMM = "Generalized linear",
+                          GNMM = "Generalized nonlinear")
+          method <- "the Laplace approximation"
+          if (mType == "LMM")
+              method <- ifelse(REML, "REML", "maximum likelihood")
 
-          glz <- is(object, "glmer")
-          methTitle <-
-              if (glz)
-                  "Generalized linear mixed model fit using Laplace"
-##                   paste("Generalized linear mixed model fit using ",
-##                         switch(object@status["glmm"],
-##                                "PQL", "Laplace", "AGQ"))
-              else paste("Linear mixed-effects model fit by",
-                         if(REML) "REML" else "maximum likelihood")
-
-          AICframe <- {
-              if (glz)
-                  data.frame(AIC = AIC(llik), BIC = BIC(llik),
-                             logLik = c(llik),
-                             deviance = -2*llik,
-                             row.names = "")
-              else
-                  data.frame(AIC = AIC(llik), BIC = BIC(llik),
-                             logLik = c(llik),
-                             MLdeviance = dev["ML"],
-                             REMLdeviance = dev["REML"],
-                             row.names = "")
-          }
+          AICframe <- data.frame(AIC = AIC(llik), BIC = BIC(llik),
+                                 logLik = c(llik),
+                                 deviance = dev["ML"],
+                                 REMLdev = dev["REML"],
+                                 row.names = "")
+          if (is.na(AICframe$REMLdev)) AICframe$REMLdev <- NULL
           varcor <- VarCorr(object)
           REmat <- formatVC(varcor)
           if (is.na(attr(varcor, "sc")))
@@ -913,15 +928,9 @@ setMethod("summary", signature(object = "mer"),
                   coefs <- cbind(coefs, "t value" = stat) #, "Pr(>|t|)" = pval)
               }
           } ## else : append columns to 0-row matrix ...
-          oclass <- ""
-          if (is(object, "glmer")) oclass <- "summary.glmer"
-          if (is(object, "lmer")) oclass <- "summary.lmer"
-          if (is(object, "nlmer")) oclass <- "summary.nlmer"
-          if (!nchar(oclass))
-              stop(gettextf("unrecognized class %s", class(object)))
-          new(oclass,
+          new("summary.mer",
               object,
-              methTitle = methTitle,
+              methTitle = paste(mName, "mixed model fit by", method),
               logLik = llik,
               ngrps = sapply(object@flist, function(x) length(levels(x))),
               sigma = .Call(mer_sigma, object, REML),
@@ -957,7 +966,7 @@ setMethod("update", signature(object = "mer"),
 	  else call
       })
 
-setMethod("vcov", signature(object = "lmer"),
+setMethod("vcov", signature(object = "mer"),
 	  function(object, REML = 0, ...)
 ### Extract the conditional variance-covariance matrix of the fixed effects
       {
@@ -969,16 +978,7 @@ setMethod("vcov", signature(object = "lmer"),
           rr
       })
 
-setMethod("vcov", "mer",                # placeholder
-          function (object, ...)
-      {
-          rr <- as(diag(length(object@fixef)), "dpoMatrix")
-          rr@factors$correlation <- as(rr, "corMatrix")
-          rr
-      })
-
-
-setMethod("with", signature(data = "lmer"),
+setMethod("with", signature(data = "mer"),
 	  function(data, expr, ...) {
 	      dat <- eval(data@call$data)
 	      if (!is.null(na.act <- attr(data@frame, "na.action")))
@@ -1041,9 +1041,6 @@ printMer <- function(x, digits = max(3, getOption("digits") - 3),
     if (!is.null(x@call$subset))
         cat(" Subset:",
             deparse(asOneSidedFormula(x@call$subset)[[2]]),"\n")
-    if (inherits(x, "glmer"))
-        cat(" Family: ", so@famName["family"], "(",
-            so@famName["link"], " link)\n", sep = "")
     print(so@AICtab, digits = digits)
 
     cat("Random effects:\n")
@@ -1085,10 +1082,8 @@ printMer <- function(x, digits = max(3, getOption("digits") - 3),
     invisible(x)
 }
 
-setMethod("print", "lmer", printMer)
-setMethod("print", "glmer", printMer)
-setMethod("show", "lmer", function(object) printMer(object))
-setMethod("show", "glmer", function(object) printMer(object))
+setMethod("print", "mer", printMer)
+setMethod("show", "mer", function(object) printMer(object))
 
 printNlmer <- function(x, digits = max(3, getOption("digits") - 3),
                        correlation = TRUE, symbolic.cor = FALSE,
@@ -1118,8 +1113,8 @@ printNlmer <- function(x, digits = max(3, getOption("digits") - 3),
     invisible(x)
 }
 
-setMethod("print", "nlmer", printNlmer)
-setMethod("show", "nlmer", function(object) printNlmer(object))
+#setMethod("print", "nlmer", printNlmer)
+#setMethod("show", "nlmer", function(object) printNlmer(object))
 
 #### Methods for secondary, derived classes
 
@@ -1130,7 +1125,7 @@ setMethod("summary", signature(object = "summary.mer"), function(object) object)
 
 #### Methods to produce specific plots
 
-setMethod("plot", signature(x = "coef.lmer"),
+setMethod("plot", signature(x = "coef.mer"),
           function(x, y, ...)
       {
           varying <- unique(do.call("c",
@@ -1213,7 +1208,7 @@ setMethod("qqmath", signature(x = "ranef.mer"),
 #### Creating and displaying a Markov Chain Monte Carlo sample from
 #### the posterior distribution of the parameters
 
-setMethod("mcmcsamp", signature(object = "lmer"),
+setMethod("mcmcsamp", signature(object = "mer"),
 	  function(object, n = 1, verbose = FALSE, saveb = FALSE,
 		   trans = TRUE, deviance = FALSE, ...)
 ### Generate a Markov chain Monte Carlo sample from the posterior distribution
@@ -1286,8 +1281,9 @@ mcmccompnames <- function(ans, object, saveb, trans, glmer, deviance)
 
 devvals <- function(fm, pmat, sigma1 = FALSE)
 {
-    if (!is(fm, "lmer"))
-        stop('fm must be an "lmer" fitted model')
+    if (!is(fm, "mer"))
+        stop('fm must be an "mer" fitted model')
+### FIXME: add a check in here for glmer and nlmer
     np <- length(p0 <- .Call(mer_ST_getPars, fm))
     pmat <- as.matrix(pmat)
     if (ncol(pmat) != np + sigma1)
@@ -1305,10 +1301,10 @@ devvals <- function(fm, pmat, sigma1 = FALSE)
               ## effects.  It would be best to make the appropriate
               ## changes in the C code for ST_setPars.
               if (sigma1) pmat[i,-1]/pmat[i,1] else pmat[i,])
-        ans[i, ] <- c(pmat[i, ], .Call(mer_profiled_deviance, fm))
+        ans[i, ] <- c(pmat[i, ], .Call(mer_update_RX, fm))
     }
     .Call(mer_ST_setPars, fm, p0)
-    .Call(lmer_profiled_deviance, fm)
+    .Call(mer_update_RX, fm)
     as.data.frame(ans)
 }
                    

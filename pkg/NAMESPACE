@@ -1,8 +1,8 @@
 useDynLib(lme4, .registration=TRUE)
 
 import("Matrix")
-importFrom("graphics", plot)
 import("lattice")
+importFrom("graphics", plot)
 importFrom("stats",
            anova,
            coef,
@@ -34,17 +34,15 @@ export(
        )
 
 exportClasses(
-              "coef.lmer",
-              "glmer",
+              "coef.mer",
+              #"glmer",
               "lmList",
-              "lmer",
+              #"lmer",
               "mer",
-              "nlmer",
+              #"nlmer",
               "pedigree",
               "ranef.mer",
-              "summary.glmer",
-              "summary.lmer"
-##               ,"summary.mer"
+              "summary.mer"
               )
 
 exportMethods(

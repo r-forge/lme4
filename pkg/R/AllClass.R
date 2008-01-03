@@ -18,28 +18,29 @@ setClass("mer", ## Slots common to all three types of mixed models
 	 representation(## original data
                         famName = "character", # name of GLM family and link
                         env = "environment",  # evaluation env for family
+                        nlmodel = "call",     # nonlinear model call
+                        pnames = "character", # parameter names for nonlinear model
                         frame = "data.frame", # model frame (or empty frame)
-                        call = "call",      # matched call
+                        call = "call",        # matched call
                         terms = "terms",    # terms for fixed-effects
-			flist = "list",     # list of grouping factors
+                        flist = "list",     # list of grouping factors
                         X = "matrix",       # fixed effects model matrix
-                                            # (may have 0 rows in lmer)
-			Zt = "dgCMatrix",   # sparse form of Z'
-			priorWt = "numeric",# prior weights,
+                        Zt = "dgCMatrix",   # sparse form of Z'
+                        priorWt = "numeric",# prior weights,
                         offset = "numeric", # length 0 -> no offset
                         y = "numeric",      # response vector
-			cnames = "list",    # row/column names of els of ST
-			Gp = "integer",     # pointers to row groups of Zt
+                        cnames = "list",    # row/column names of els of ST
+                        Gp = "integer",     # pointers to row groups of Zt
                         dims = "integer",   # dimensions and indicators
                         ## slots that vary during optimization
-			ST = "list", # list of TSST' rep of rel. var. mats
-			Vt = "dgCMatrix",   # V'=(ZTS)'
+                        ST = "list", # list of TSST' rep of rel. var. mats
+                        Cm = "dgCMatrix",   # V'=(ZTS)'
                         v = "numeric",      # linear predictor for nonlinear models
-                                            # (length 0 when no nonlinear component)
-                                            # must have an n by s "gradient" attribute 
+                                        # (length 0 when no nonlinear component)
+                                        # must have an n by s "gradient" attribute 
                         A = "dgCMatrix",    # sparse form of (W^{.5}G^{-1}HV)'
-			L = "CHMfactor",    # Cholesky factor of P(AA' + I)P'
-			deviance = "numeric", # ML and REML deviance and components
+                        L = "CHMfactor",    # Cholesky factor of P(AA' + I)P'
+                        deviance = "numeric", # ML and REML deviance and components
 			fixef = "numeric",  # fixed effects (length p)
 			ranef = "numeric",  # random effects (length q)
                         uvec = "numeric",   # orthogonal random effects (q)
@@ -50,27 +51,11 @@ setClass("mer", ## Slots common to all three types of mixed models
                         resid = "numeric",  # raw residuals at current beta and b
                         sqrtWt = "numeric", # square root of current weights
                         RVXy = "matrix",    # dense sol. to L RVXy = S T'ZtXy
-                        RXy = "matrix",     # Cholesky factor of downdated XytXy
-                        "VIRTUAL"),
+                        RXy = "matrix"),    # Cholesky factor of downdated XytXy
          validity = function(object) .Call(mer_validate, object))
 
-setClass("lmer", ## linear mixed models
-	 representation(## original data
-                        ZtXy = "matrix",    # dense form of Z'[X:y]
-                        XytXy = "matrix"),  # dense form of [X:y]'[X:y]
-         contains = "mer")
-
-setClass("glmer", ## generalized linear mixed models
-         contains = "mer")
-
-setClass("nlmer", ## nonlinear mixed models
-	 representation(## original data
-                        model = "call",    # nonlinear model
-                        pnames = "character"), # parameter names for nonlinear model
-         contains = "mer")
-
 setClass("summary.mer",                 # Additional slots in a summary object
-	 representation(           
+         representation(           
 			methTitle = "character",
 			logLik= "logLik",
 			ngrps = "integer",
@@ -78,21 +63,12 @@ setClass("summary.mer",                 # Additional slots in a summary object
 			coefs = "matrix",
 			vcov = "dpoMatrix",
 			REmat = "matrix",
-			AICtab= "data.frame",
-                        "VIRTUAL"))
-
-setClass("summary.lmer", # the "lmer" result ``enhanced'' :
-	 contains = c("lmer", "summary.mer"))
-
-setClass("summary.glmer",          # the "glmer" result ``enhanced'' :
-	 contains = c("glmer", "summary.mer"))
-
-setClass("summary.nlmer",          # the "glmer" result ``enhanced'' :
-	 contains = c("nlmer", "summary.mer"))
+			AICtab= "data.frame"),
+         contains = "mer")
 
 setClass("ranef.mer", contains = "list")
 
-setClass("coef.lmer", contains = "list")
+setClass("coef.mer", contains = "list")
 
 setClass("pedigree", representation =
 	 list(sire = "integer", dam = "integer", label = "character"),

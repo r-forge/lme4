@@ -2,15 +2,13 @@
 \docType{genericFunction}
 \alias{VarCorr}
 \alias{VarCorr,mer-method}
-\alias{VarCorr,nlmer-method}
 \title{Extract variance and correlation components}
 \usage{
 \S4method{VarCorr}{mer}(x, REML = x@status["REML"], \dots)
-\S4method{VarCorr}{nlmer}(x, \dots)
 }
 \arguments{
   \item{x}{a fitted model object, usually an object inheriting from
-    class \code{\linkS4class{lmer}}.
+    class \code{\linkS4class{mer}}.
   }
   \item{REML}{logical indicating if REML should be used.}
   \item{\dots}{Additional, optional arguments for some methods.  At
@@ -28,7 +26,7 @@
   an object of class \code{VarCorr}.
 }
 \seealso{
-  the \code{\link{lmer}} function and \code{\linkS4class{lmer}} class;
+  the \code{\link{lmer}} function and \code{\linkS4class{mer}} class;
   the result class \code{\linkS4class{VarCorr}}.
 }
 \examples{
