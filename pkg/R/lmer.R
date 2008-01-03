@@ -694,10 +694,7 @@ setMethod("ranef", signature(object = "mer"),
                                 check.names = FALSE))
           names(ans) <- names(object@ST)
           if (postVar) {
-              pV <- .Call(mer_postVar, object,
-                          !inherits(object, "mer")
-                          || !(object@famName['family'] %in%
-                               c("binomial", "poisson")))
+              pV <- .Call(mer_postVar, object)
               for (i in seq_along(ans))
                   attr(ans[[i]], "postVar") <- pV[[i]]
           }
