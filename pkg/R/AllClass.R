@@ -50,7 +50,7 @@ setClass("mer", ## Slots common to all three types of mixed models
                         var = "numeric",    # conditional variances of Y
                         resid = "numeric",  # raw residuals at current beta and b
                         sqrtWt = "numeric", # square root of current weights
-                        RVXy = "matrix",    # dense sol. to L RVXy = S T'ZtXy
+                        RCXy = "matrix",    # dense sol. to L RCXy = S T'ZtXy
                         RXy = "matrix"),    # Cholesky factor of downdated XytXy
          validity = function(object) .Call(mer_validate, object))
 

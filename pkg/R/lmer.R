@@ -469,7 +469,7 @@ lmer <-
                var = numeric(0),
                resid = numeric(n),
                sqrtWt = sqrt(unname(sqrt(fr$wts))),
-               RVXy = matrix(0, dm$dd["q"], pp1),
+               RCXy = matrix(0, dm$dd["q"], pp1),
                RXy = matrix(0, pp1, pp1))
 
     cv <- do.call("lmerControl", control)
@@ -542,7 +542,7 @@ function(formula, data, family = gaussian, method = c("Laplace", "AGQ"),
                var = numeric(dm$dd["n"]),
                resid = unname(glmFit$residuals),
                sqrtWt = numeric(dm$dd["n"]), 
-               RVXy = matrix(0, dm$dd["q"], pp1),
+               RCXy = matrix(0, dm$dd["q"], pp1),
                RXy = matrix(0, pp1, pp1))
     cv <- do.call("lmerControl", control)
     if (missing(verbose)) verbose <- cv$msVerbose
@@ -627,7 +627,7 @@ nlmer <- function(formula, data, control = list(), start = NULL,
                call = mc, terms = fr$mt, flist = dm$flist, X = X,
                Zt = dm$Zt, Cm = dm$C, y = y,
                RXy = matrix(0, pp1, pp1),
-               RVXy = matrix(0, dm$dd["q"], pp1),
+               RCXy = matrix(0, dm$dd["q"], pp1),
                sqrtWt = unname(sqrt(fr$wts)), 
                cnames = unname(dm$cnames), Gp = unname(dm$Gp),
                dims = dm$dd, ST = dm$ST,
@@ -1463,10 +1463,11 @@ yfrm <- function(fm)
 {
     stopifnot(is(fm, "mer"))
     snms <-
-        c("y", "eta", "mu", "resid", "muEta", "var", "priorWt", "sqrtWt")
+        c("y", "v", "eta", "mu", "resid", "muEta", "var", "priorWt", "sqrtWt")
     slots <- lapply(snms, slot, object = fm)
     names(slots) <- snms
-    slots <- slots[sapply(slots, function(x) length(x) > 0)]
+    n <- length(fm@y)
+    slots <- slots[sapply(slots, function(x) length(x) == n)]
     do.call(data.frame, slots)
 }
 
