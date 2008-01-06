@@ -1,1 +1,2 @@
-<area shape="rect" href="$lmer_8c.html#929f9223baeaf35aebea500649db740d" title="Check the dimensions of the matrix pointer MP." alt="" coords="161,5,236,32">
+<area shape="rect" href="$lmer_8c.html#119582eec2ad35c9d9516dcb3a927750" title="Check that slot sym of object x is a numeric matrix of dimension nr by nc." alt="" coords="161,5,236,32">
+<area shape="rect" href="$lmer_8c.html#617426914114d8f8cd8249de16ddc8e1" title="Check that the length of the sym slot in x is len or, possibly, zero." alt="" coords="165,56,232,83">

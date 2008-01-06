@@ -5,5 +5,5 @@ digraph G
   rankdir=LR;
   Node1 [label="mer_sigma",height=0.2,width=0.4,color="black", fillcolor="grey75", style="filled" fontcolor="black"];
   Node1 -> Node2 [color="midnightblue",fontsize=10,style="solid",fontname="FreeSans.ttf"];
-  Node2 [label="get_sigma",height=0.2,width=0.4,color="black", fillcolor="white", style="filled",URL="$lmer_8c.html#e828a10e7eeff2a9138d878c958c3ba5",tooltip="Return the REML or ML conditional estimate of sigma, the standard deviation of the..."];
+  Node2 [label="get_sigma",height=0.2,width=0.4,color="black", fillcolor="white", style="filled",URL="$lmer_8c.html#0b9684f5bbd166540f692843a07c0604",tooltip="Return the REML or ML conditional estimate of sigma, the standard deviation of the..."];
 }

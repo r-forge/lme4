@@ -3,12 +3,11 @@
 <area shape="rect" href="$lmer_8c.html#c91a1d6467c5dd44cbc4c785f643e315" title="Update the ST and C slots of an mer object." alt="" coords="181,107,275,133">
 <area shape="rect" href="$lmer_8c.html#2c7f7874e2eb3f6c51c53c5873cffec4" title="Update the RCX and RX slots in an mer object." alt="" coords="183,183,273,209">
 <area shape="rect" href="$lmer_8c.html#88236137756e85a656de3402adcf4747" title="Iterate to determine the conditional modes of the random effects." alt="" coords="188,309,268,336">
-<area shape="rect" href="$lmer_8c.html#b8860702c5746bbc78758b160094e9e6" title="Return the group in the (nf, Gp) combination to which ind belongs." alt="" coords="371,31,437,57">
+<area shape="rect" href="$lmer_8c.html#3f49a530ee30ef0d40ef8bc6d60c5963" title="Return the group in the (nf, Gp) combination to which ind belongs." alt="" coords="371,31,437,57">
 <area shape="rect" href="$lmer_8c.html#3a7fab2a88117d83971db12f53eaa91e" title="Populate the st, nc and nlev arrays." alt="" coords="359,81,449,108">
-<area shape="rect" href="$lmer_8c.html#7b201dfc788b795258f08807256846ad" title="Create PAW^{1/2}v in dest." alt="" coords="376,183,432,209">
-<area shape="rect" href="$lmer_8c.html#ff904c8d92fd93c839da5615d9d18240" title="Extract the slot named nm from the object obj and return a null pointer if the slot..." alt="" coords="516,259,657,285">
+<area shape="rect" href="$lmer_8c.html#7b201dfc788b795258f08807256846ad" title="Create PAW^{1/2}v in dest." alt="" coords="376,132,432,159">
+<area shape="rect" href="$lmer_8c.html#0a84fce1f01d522d8c5379001e23bc8c" title="Extract the slot named nm from the object obj and return a null pointer if the slot..." alt="" coords="516,284,657,311">
 <area shape="rect" href="$lmer_8c.html#2f257f628f06920b351486d48ab50026" title="Update the A, L, sqrtWt and resid slots." alt="" coords="364,284,444,311">
-<area shape="rect" href="$lmer_8c.html#c5e67856ab36eb41d71dab9fd71bc059" title="Accumulate the weighted cross&#45;product of [X:y] in rxy." alt="" coords="343,132,465,159">
-<area shape="rect" href="$lmer_8c.html#76fcf475a3079f5068e463e2d9d32a51" title="Evaluate the logarithm of the square of the determinant of L (i.e." alt="" coords="532,309,641,336">
-<area shape="rect" href="$lmer_8c.html#cb5f65f582a10a1d89c539b2df485346" title="Return the sum of squares of the first n elements of x." alt="" coords="543,360,631,387">
+<area shape="rect" href="$lmer_8c.html#c5e67856ab36eb41d71dab9fd71bc059" title="Accumulate the weighted cross&#45;product of [X:y] in rxy." alt="" coords="343,233,465,260">
+<area shape="rect" href="$lmer_8c.html#c96e3dd08e67f41338d9e84118925308" title="Return the sum of squares of the first n elements of x." alt="" coords="543,360,631,387">
 <area shape="rect" href="$lmer_8c.html#da558f58458c36a96585a9c6e695a0b6" title="Update the eta, v, mu, resid and var slots according to the current values of the..." alt="" coords="357,335,451,361">
