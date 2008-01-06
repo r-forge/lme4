@@ -5,9 +5,10 @@ digraph G
   rankdir=LR;
   Node1 [label="update_ranef",height=0.2,width=0.4,color="black", fillcolor="grey75", style="filled" fontcolor="black"];
   Node1 -> Node2 [dir=back,color="midnightblue",fontsize=10,style="solid",fontname="FreeSans.ttf"];
-  Node2 [label="MCMC_betab",height=0.2,width=0.4,color="black", fillcolor="white", style="filled",URL="$lmer_8c.html#74143c5e3fa683497e6d6b58503c8bc1",tooltip="Update the fixed effects and the random effects in an MCMC sample from an lmer model..."];
+  Node2 [label="MCMC_beta",height=0.2,width=0.4,color="black", fillcolor="white", style="filled",URL="$lmer_8c.html#f1bc9174690e2956720aa31781b073f0",tooltip="Update the fixed effects in an MCMC sample from an mer object."];
   Node2 -> Node3 [dir=back,color="midnightblue",fontsize=10,style="solid",fontname="FreeSans.ttf"];
-  Node3 [label="mer_MCMCsamp",height=0.2,width=0.4,color="black", fillcolor="white", style="filled",URL="$lmer_8h.html#edec83b72f0c3437d9b10daf5120aa2b",tooltip="Generate a Markov-Chain Monte Carlo sample from a fitted linear mixed model."];
+  Node3 [label="mer_MCMCsamp",height=0.2,width=0.4,color="black", fillcolor="white", style="filled",URL="$lmer_8h.html#edec83b72f0c3437d9b10daf5120aa2b",tooltip="Generate a Markov-chain Monte Carlo sample from an mer object."];
+  Node1 -> Node3 [dir=back,color="midnightblue",fontsize=10,style="solid",fontname="FreeSans.ttf"];
   Node1 -> Node4 [dir=back,color="midnightblue",fontsize=10,style="solid",fontname="FreeSans.ttf"];
   Node4 [label="mer_update_effects",height=0.2,width=0.4,color="black", fillcolor="white", style="filled",URL="$lmer_8h.html#21adcf526681f1efd1ad0c4727ff4069",tooltip="Update the contents of the fixef, ranef and uvec slots in an lmer object."];
 }

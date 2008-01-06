@@ -1,5 +1,4 @@
-<area shape="rect" href="$lmer_8c.html#cb5f65f582a10a1d89c539b2df485346" title="Return the sum of squares of the first n elements of x." alt="" coords="308,5,396,32">
-<area shape="rect" href="$lmer_8c.html#2f257f628f06920b351486d48ab50026" title="Update the A, L, sqrtWt and resid slots." alt="" coords="144,107,224,133">
-<area shape="rect" href="$lmer_8c.html#da558f58458c36a96585a9c6e695a0b6" title="Update the eta, v, mu, resid and var slots according to the current values of the..." alt="" coords="137,56,231,83">
-<area shape="rect" href="$lmer_8c.html#76fcf475a3079f5068e463e2d9d32a51" title="Evaluate the logarithm of the square of the determinant of L (i.e." alt="" coords="297,107,407,133">
-<area shape="rect" href="$lmer_8c.html#ff904c8d92fd93c839da5615d9d18240" title="Extract the slot named nm from the object obj and return a null pointer if the slot..." alt="" coords="281,56,423,83">
+<area shape="rect" href="$lmer_8c.html#c96e3dd08e67f41338d9e84118925308" title="Return the sum of squares of the first n elements of x." alt="" coords="308,5,396,32">
+<area shape="rect" href="$lmer_8c.html#2f257f628f06920b351486d48ab50026" title="Update the A, L, sqrtWt and resid slots." alt="" coords="144,81,224,108">
+<area shape="rect" href="$lmer_8c.html#da558f58458c36a96585a9c6e695a0b6" title="Update the eta, v, mu, resid and var slots according to the current values of the..." alt="" coords="137,31,231,57">
+<area shape="rect" href="$lmer_8c.html#0a84fce1f01d522d8c5379001e23bc8c" title="Extract the slot named nm from the object obj and return a null pointer if the slot..." alt="" coords="281,68,423,95">

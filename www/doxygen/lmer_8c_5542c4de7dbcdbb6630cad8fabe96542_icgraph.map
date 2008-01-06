@@ -1,3 +1,3 @@
-<area shape="rect" href="$lmer_8c.html#74143c5e3fa683497e6d6b58503c8bc1" title="Update the fixed effects and the random effects in an MCMC sample from an lmer model..." alt="" coords="184,5,293,32">
-<area shape="rect" href="$lmer_8h.html#21adcf526681f1efd1ad0c4727ff4069" title="Update the contents of the fixef, ranef and uvec slots in an lmer object." alt="" coords="163,56,315,83">
-<area shape="rect" href="$lmer_8h.html#edec83b72f0c3437d9b10daf5120aa2b" title="Generate a Markov&#45;Chain Monte Carlo sample from a fitted linear mixed model." alt="" coords="363,5,499,32">
+<area shape="rect" href="$lmer_8c.html#f1bc9174690e2956720aa31781b073f0" title="Update the fixed effects in an MCMC sample from an mer object." alt="" coords="188,5,289,32">
+<area shape="rect" href="$lmer_8h.html#edec83b72f0c3437d9b10daf5120aa2b" title="Generate a Markov&#45;chain Monte Carlo sample from an mer object." alt="" coords="363,31,499,57">
+<area shape="rect" href="$lmer_8h.html#21adcf526681f1efd1ad0c4727ff4069" title="Update the contents of the fixef, ranef and uvec slots in an lmer object." alt="" coords="163,107,315,133">
