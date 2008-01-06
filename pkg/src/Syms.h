@@ -6,7 +6,7 @@ SEXP attribute_hidden
     lme4_DimSym,
     lme4_GpSym,
     lme4_LSym,
-    lme4_RVXySym,
+    lme4_RCXySym,
     lme4_RXySym,
     lme4_STSym,
     lme4_XSym,
