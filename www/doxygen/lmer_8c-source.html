@@ -431,7 +431,7 @@
 <a name="l00564"></a>00564     F77_CALL(dgemv)(<span class="stringliteral">"N"</span>, &amp;nans, &amp;p, one, REAL(X), &amp;nans,
 <a name="l00565"></a>00565                     REAL(GET_SLOT(x, <a class="code" href="Syms_8h.html#cfa94b175e0d8bbb6ea7e3f1424bdda1">lme4_fixefSym</a>)), &amp;ione,
 <a name="l00566"></a>00566                     one, eta, &amp;ione);
-<a name="l00567"></a>00567                                 <span class="comment">/* eta := eta + V P' u */</span>
+<a name="l00567"></a>00567                                 <span class="comment">/* eta := eta + C' P' u */</span>
 <a name="l00568"></a>00568     Ptu = M_cholmod_solve(CHOLMOD_Pt, L, cu, &amp;<a class="code" href="init_8c.html#c2b5dcf1f18e620b15b2e284dd9f6bd4" title="cholmod_common struct local to the package">c</a>);
 <a name="l00569"></a>00569     <span class="keywordflow">if</span> (!M_cholmod_sdmult(cC, 1 <span class="comment">/* trans */</span>, one, one, Ptu, ceta, &amp;<a class="code" href="init_8c.html#c2b5dcf1f18e620b15b2e284dd9f6bd4" title="cholmod_common struct local to the package">c</a>))
 <a name="l00570"></a>00570         error(<a class="code" href="lmer_8c.html#32a3cf3d9dd914f5aeeca5423c157934" title="i18n of error messages">_</a>(<span class="stringliteral">"cholmod_sdmult error returned"</span>));
@@ -516,7 +516,7 @@
 <a name="l00649"></a>00649                                 <span class="comment">/* store u'u */</span>
 <a name="l00650"></a>00650     d[<a class="code" href="lmer_8c.html#2ef82a9439b964c1e545fb6487a5e3ac80414cb7465f31adb27424aa695b382e" title="squared length of u">usqr_POS</a>] = <a class="code" href="lmer_8c.html#c96e3dd08e67f41338d9e84118925308" title="Return the sum of squares of the first n elements of x.">sqr_length</a>((<span class="keywordtype">double</span>*)(cu-&gt;x), dims[<a class="code" href="lmer_8c.html#d4ed7f6a53d33bda670d5b7dbea3bcba37d963697202d840d6555705f0d84ce5" title="number of random effects">q_POS</a>]);
 <a name="l00651"></a>00651     
-<a name="l00652"></a>00652     <span class="keywordflow">return</span> d[<a class="code" href="lmer_8c.html#2ef82a9439b964c1e545fb6487a5e3ace7249a5feae526dd06a2b35bcb0f834a" title="weighted residual sum of squares">wrss_POS</a>] + d[<a class="code" href="lmer_8c.html#2ef82a9439b964c1e545fb6487a5e3ac80414cb7465f31adb27424aa695b382e" title="squared length of u">usqr_POS</a>];
+<a name="l00652"></a>00652     <span class="keywordflow">return</span> <a class="code" href="lmer_8c.html#00130066b7ad0289b87b765c0cd24867" title="Penalized, weighted residual sum of squares.">PWRSS</a>(d);
 <a name="l00653"></a>00653 }
 <a name="l00654"></a>00654 
 <a name="l00665"></a><a class="code" href="lmer_8h.html#64740a858f90763461cbccea9c787b6b">00665</a> SEXP <a class="code" href="lmer_8c.html#64740a858f90763461cbccea9c787b6b" title="Externally callable update_mu.">mer_update_mu</a>(SEXP x)
@@ -587,8 +587,8 @@
 <a name="l00740"></a>00740     <span class="keywordflow">if</span> (!M_cholmod_factorize_p(A, one, (<span class="keywordtype">int</span>*)NULL, 0 <span class="comment">/*fsize*/</span>, L, &amp;<a class="code" href="init_8c.html#c2b5dcf1f18e620b15b2e284dd9f6bd4" title="cholmod_common struct local to the package">c</a>))
 <a name="l00741"></a>00741         error(<a class="code" href="lmer_8c.html#32a3cf3d9dd914f5aeeca5423c157934" title="i18n of error messages">_</a>(<span class="stringliteral">"cholmod_factorize_p failed: status %d, minor %d from ncol %d"</span>),
 <a name="l00742"></a>00742               <a class="code" href="init_8c.html#c2b5dcf1f18e620b15b2e284dd9f6bd4" title="cholmod_common struct local to the package">c</a>.status, L-&gt;minor, L-&gt;n);
-<a name="l00743"></a>00743     d[<a class="code" href="lmer_8c.html#2ef82a9439b964c1e545fb6487a5e3ac1f383bef04b44158a36fcbc7448ff209" title="2*log-determinant of L">ldL2_POS</a>] = 0;            <span class="comment">/* calculate the logarithm of the</span>
-<a name="l00744"></a>00744 <span class="comment">                                 * square of the determinant of L */</span>
+<a name="l00743"></a>00743     <span class="comment">/* evaluate the logarithm of the square of the determinant of L */</span>
+<a name="l00744"></a>00744     d[<a class="code" href="lmer_8c.html#2ef82a9439b964c1e545fb6487a5e3ac1f383bef04b44158a36fcbc7448ff209" title="2*log-determinant of L">ldL2_POS</a>] = 0;
 <a name="l00745"></a>00745     <span class="keywordflow">if</span> (L-&gt;is_super) {
 <a name="l00746"></a>00746         <span class="keywordtype">int</span> i;
 <a name="l00747"></a>00747         <span class="keywordflow">for</span> (i = 0; i &lt; L-&gt;nsuper; i++) {
@@ -831,693 +831,694 @@
 <a name="l01050"></a>01050     <span class="keywordflow">return</span> ans;
 <a name="l01051"></a>01051 }
 <a name="l01052"></a>01052 
-<a name="l01065"></a>01065 <span class="keyword">static</span> <span class="keywordtype">void</span>
-<a name="l01066"></a><a class="code" href="lmer_8c.html#7b201dfc788b795258f08807256846ad">01066</a> <a class="code" href="lmer_8c.html#7b201dfc788b795258f08807256846ad" title="Create PAW^{1/2}v in dest.">PAWv</a>(<span class="keywordtype">double</span> *dest, <span class="keyword">const</span> <span class="keywordtype">int</span> *perm, <span class="keyword">const</span> CHM_SP A,
-<a name="l01067"></a>01067       <span class="keyword">const</span> <span class="keywordtype">double</span> *swt, <span class="keyword">const</span> <span class="keywordtype">double</span> *v, <span class="keywordtype">int</span> n, <span class="keywordtype">int</span> q)
-<a name="l01068"></a>01068 {
-<a name="l01069"></a>01069     <span class="keywordtype">int</span> *ai = (<span class="keywordtype">int</span>*)(A-&gt;i), *ap = (<span class="keywordtype">int</span>*)(A-&gt;p), j, k, p;
-<a name="l01070"></a>01070     <span class="keywordtype">double</span> *ax = (<span class="keywordtype">double</span>*)(A-&gt;x), *tmp = <a class="code" href="lmer_8c.html#679ceea530c97713d6abdb619e70a6b9" title="alloca n elements of type t">Alloca</a>(q, <span class="keywordtype">double</span>);
-<a name="l01071"></a>01071     R_CheckStack();
-<a name="l01072"></a>01072 
-<a name="l01073"></a>01073     <a class="code" href="lmer_8c.html#8388ab26cceddaa6efaccc3c51add430" title="zero an array">AZERO</a>(tmp, q);
-<a name="l01074"></a>01074     <span class="keywordflow">for</span> (j = 0; j &lt; n; j++) {
-<a name="l01075"></a>01075         <span class="keywordtype">double</span> mm = v[j] * (swt ? swt[j] : 1);
-<a name="l01076"></a>01076         <span class="keywordflow">for</span> (p = ap[j]; p &lt; ap[j + 1]; p++)
-<a name="l01077"></a>01077             tmp[ai[p]] += mm * ax[p];
-<a name="l01078"></a>01078     }
-<a name="l01079"></a>01079     <span class="keywordflow">for</span> (k = 0; k &lt; q; k++)     <span class="comment">/* apply P */</span>
-<a name="l01080"></a>01080         dest[k] = tmp[perm ? perm[k] : k];
-<a name="l01081"></a>01081 }
-<a name="l01082"></a>01082 
-<a name="l01097"></a>01097 <span class="keyword">static</span> <span class="keywordtype">void</span>
-<a name="l01098"></a><a class="code" href="lmer_8c.html#c5e67856ab36eb41d71dab9fd71bc059">01098</a> <a class="code" href="lmer_8c.html#c5e67856ab36eb41d71dab9fd71bc059" title="Accumulate the weighted cross-product of [X:y] in rxy.">weighted_XytXy</a>(<span class="keywordtype">double</span> *rxy, <span class="keyword">const</span> <span class="keywordtype">double</span> *swt, <span class="keywordtype">double</span> *X,
-<a name="l01099"></a>01099                <span class="keywordtype">double</span> *y, <span class="keywordtype">int</span> n, <span class="keywordtype">int</span> p)
-<a name="l01100"></a>01100 {
-<a name="l01101"></a>01101     <span class="keywordtype">int</span> i, ione = 1, j, pp1 = p + 1;
-<a name="l01102"></a>01102     <span class="keywordtype">double</span> one = 1, zero = 0;
-<a name="l01103"></a>01103     <span class="keywordtype">double</span> *Xcp = X, *ycp = y;
-<a name="l01104"></a>01104     
-<a name="l01105"></a>01105     <span class="keywordflow">if</span> (swt) {                  <span class="comment">/* created weighted copies of X and y */</span>
-<a name="l01106"></a>01106         Xcp = <a class="code" href="lmer_8c.html#679ceea530c97713d6abdb619e70a6b9" title="alloca n elements of type t">Alloca</a>(n * p, <span class="keywordtype">double</span>),
-<a name="l01107"></a>01107         ycp = <a class="code" href="lmer_8c.html#679ceea530c97713d6abdb619e70a6b9" title="alloca n elements of type t">Alloca</a>(n, <span class="keywordtype">double</span>);
-<a name="l01108"></a>01108         R_CheckStack();
-<a name="l01109"></a>01109         
-<a name="l01110"></a>01110         <span class="keywordflow">for</span> (i = 0; i &lt; n; i++) ycp[i] = swt[i] * y[i];
-<a name="l01111"></a>01111         <span class="keywordflow">for</span> (j = 0; j &lt; p; j++)
-<a name="l01112"></a>01112             <span class="keywordflow">for</span> (i = 0; i &lt; n; i++)
-<a name="l01113"></a>01113                 Xcp[i + j * n] = swt[i] * X[i + j * n];
-<a name="l01114"></a>01114     }
-<a name="l01115"></a>01115     F77_CALL(dsyrk)(<span class="stringliteral">"U"</span>, <span class="stringliteral">"T"</span>, &amp;p, &amp;n, &amp;one, Xcp, &amp;n, &amp;zero, rxy, &amp;pp1);
-<a name="l01116"></a>01116     F77_CALL(dgemv)(<span class="stringliteral">"T"</span>, &amp;n, &amp;p, &amp;one, Xcp, &amp;n, ycp, &amp;ione, &amp;zero,
-<a name="l01117"></a>01117                     rxy + p * pp1, &amp;ione);
-<a name="l01118"></a>01118     rxy[pp1 * pp1 - 1] = F77_CALL(ddot)(&amp;n, ycp, &amp;ione, ycp, &amp;ione);
-<a name="l01119"></a>01119 }
-<a name="l01120"></a>01120         
-<a name="l01128"></a><a class="code" href="lmer_8c.html#2c7f7874e2eb3f6c51c53c5873cffec4">01128</a> <span class="keyword">static</span> <span class="keywordtype">double</span> <a class="code" href="lmer_8c.html#2c7f7874e2eb3f6c51c53c5873cffec4" title="Update the RCX and RX slots in an mer object.">update_RX</a>(SEXP x)
-<a name="l01129"></a>01129 {
-<a name="l01130"></a>01130     SEXP RCXyP = GET_SLOT(x, <a class="code" href="Syms_8h.html#d59cc3a6c8eba122cad97268682ad0f9">lme4_RCXySym</a>),
-<a name="l01131"></a>01131         vP = GET_SLOT(x, <a class="code" href="Syms_8h.html#ef220131bb03d4666ff1b7ec39bd3e2b">lme4_vSym</a>);
-<a name="l01132"></a>01132     <span class="keywordtype">int</span> *dims = INTEGER(GET_SLOT(x, <a class="code" href="Syms_8h.html#49094314461f4e9b10bbda1771719e29">lme4_dimsSym</a>));
-<a name="l01133"></a>01133     <span class="keywordtype">int</span> i, j, k, lv = LENGTH(vP), n = dims[<a class="code" href="lmer_8c.html#d4ed7f6a53d33bda670d5b7dbea3bcbaccc72a17eae16e4f222f4a5a088afcd9" title="number of observations">n_POS</a>], p = dims[<a class="code" href="lmer_8c.html#d4ed7f6a53d33bda670d5b7dbea3bcba193cdfb875a2d07bbbd3a5587879281b" title="number of fixed-effects parameters">p_POS</a>];
-<a name="l01134"></a>01134     <span class="keywordtype">int</span> np = n * p, q = dims[<a class="code" href="lmer_8c.html#d4ed7f6a53d33bda670d5b7dbea3bcba37d963697202d840d6555705f0d84ce5" title="number of random effects">q_POS</a>], s = dims[<a class="code" href="lmer_8c.html#d4ed7f6a53d33bda670d5b7dbea3bcba91cd64ccd89cc2464e243909b1fe80d0" title="number of variables in h (1 unless nonlinear)">s_POS</a>], pp1 = p + 1;
-<a name="l01135"></a>01135     <span class="keywordtype">double</span> *X = REAL(GET_SLOT(x, <a class="code" href="Syms_8h.html#c942d1af2e7836825b2c4d05469bbc9e">lme4_XSym</a>));
-<a name="l01136"></a>01136     <span class="keywordtype">double</span> *Xcp = X, *d = REAL(GET_SLOT(x, <a class="code" href="Syms_8h.html#b9aed2e8e5de0f7481e729116ab89c65">lme4_devianceSym</a>)),
-<a name="l01137"></a>01137         *muEta = <a class="code" href="lmer_8c.html#0a84fce1f01d522d8c5379001e23bc8c" title="Extract the slot named nm from the object obj and return a null pointer if the slot...">SLOT_REAL_NULL</a>(x, <a class="code" href="Syms_8h.html#9165fffba3009fd7d6a5116e3d8435a3">lme4_muEtaSym</a>),
-<a name="l01138"></a>01138         *rvxy = REAL(RCXyP),
-<a name="l01139"></a>01139         *rxy = REAL(GET_SLOT(x, <a class="code" href="Syms_8h.html#5ebefc34ba71773e46ade9ee1e26146a">lme4_RXySym</a>)),
-<a name="l01140"></a>01140         *swt = <a class="code" href="lmer_8c.html#0a84fce1f01d522d8c5379001e23bc8c" title="Extract the slot named nm from the object obj and return a null pointer if the slot...">SLOT_REAL_NULL</a>(x, <a class="code" href="Syms_8h.html#19459c8e3ff2009eb171e4f90dee3bc6">lme4_sqrtWtSym</a>),
-<a name="l01141"></a>01141         *y = REAL(GET_SLOT(x, <a class="code" href="Syms_8h.html#fd01bb0c98ee90bc0e8f8cdf538e6a33">lme4_ySym</a>)),
-<a name="l01142"></a>01142         dn = (double) n, dnmp = (<span class="keywordtype">double</span>) (n - p),
-<a name="l01143"></a>01143         mone[] = {-1,0}, one[] = {1,0};
-<a name="l01144"></a>01144     CHM_SP A =
-<a name="l01145"></a>01145         AS_CHM_SP(GET_SLOT(x, swt ? <a class="code" href="Syms_8h.html#f43f600b385c160bfa212f997076fe62" title="Pointers to symbols initialized in R_init_lme4.">lme4_ASym</a> : <a class="code" href="Syms_8h.html#5ef50bc4e9cb19417879a686d2bc978d">lme4_CmSym</a>));
-<a name="l01146"></a>01146     CHM_DN cRCXy = AS_CHM_DN(RCXyP), ans;
-<a name="l01147"></a>01147     CHM_FR L = <a class="code" href="lmer_8c.html#94e6667644d2b670654fc46d3cf0ee1b" title="Extract the L slot, convert to a cholmod_factor and return the pointer.">L_SLOT</a>(x);
-<a name="l01148"></a>01148     R_CheckStack();
-<a name="l01149"></a>01149 
-<a name="l01150"></a>01150     <a class="code" href="lmer_8c.html#2f257f628f06920b351486d48ab50026" title="Update the A, L, sqrtWt and resid slots.">update_L</a>(x);
-<a name="l01151"></a>01151     <span class="keywordflow">if</span> (lv || muEta) {          <span class="comment">/* Create Xcp = G^{-1} %*% H %*% X */</span>
-<a name="l01152"></a>01152         Xcp = <a class="code" href="lmer_8c.html#679ceea530c97713d6abdb619e70a6b9" title="alloca n elements of type t">Alloca</a>(np, <span class="keywordtype">double</span>);
-<a name="l01153"></a>01153         R_CheckStack();
-<a name="l01154"></a>01154 
-<a name="l01155"></a>01155         <span class="keywordflow">if</span> (lv) {               <span class="comment">/* Xcp = H %*% X */</span>
-<a name="l01156"></a>01156             <span class="keywordtype">double</span> *H = REAL(getAttrib(vP, <a class="code" href="Syms_8h.html#2709db534fe1076d573a8e61ab435cf3">lme4_gradientSym</a>));
-<a name="l01157"></a>01157 
-<a name="l01158"></a>01158             <a class="code" href="lmer_8c.html#8388ab26cceddaa6efaccc3c51add430" title="zero an array">AZERO</a>(Xcp, np);
-<a name="l01159"></a>01159             <span class="keywordflow">for</span> (j = 0; j &lt; p; j++)
-<a name="l01160"></a>01160                 <span class="keywordflow">for</span> (k = 0; k &lt; s; k++)
-<a name="l01161"></a>01161                     <span class="keywordflow">for</span> (i = 0; i &lt; n; i++)
-<a name="l01162"></a>01162                         Xcp[j * n + i] += X[n * (j * s + k) + i] * H[k * n + i];
-<a name="l01163"></a>01163         } <span class="keywordflow">else</span> {
-<a name="l01164"></a>01164             Memcpy(Xcp, X, np); <span class="comment">/* Xcp = X */</span>
-<a name="l01165"></a>01165         }
-<a name="l01166"></a>01166         <span class="keywordflow">if</span> (muEta) {            <span class="comment">/* Xcp := G^{-1} %*% Xcp */</span>
-<a name="l01167"></a>01167             <span class="keywordflow">for</span> (j = 0; j &lt; p; j++)
-<a name="l01168"></a>01168                 <span class="keywordflow">for</span> (i = 0; i &lt; n; i++)
-<a name="l01169"></a>01169                     Xcp[j * n + i] *= muEta[i];
-<a name="l01170"></a>01170         }
-<a name="l01171"></a>01171     }
-<a name="l01172"></a>01172                                 <span class="comment">/* Evaluate PAW^{1/2}[X:y] in RCXy */</span>
-<a name="l01173"></a>01173     <span class="keywordflow">for</span> (j = 0; j &lt; p; j++)
-<a name="l01174"></a>01174         <a class="code" href="lmer_8c.html#7b201dfc788b795258f08807256846ad" title="Create PAW^{1/2}v in dest.">PAWv</a>(rvxy + j * q, (<span class="keywordtype">int</span>*)(L-&gt;Perm), A, swt, Xcp + j * n, n, q);
-<a name="l01175"></a>01175     <a class="code" href="lmer_8c.html#7b201dfc788b795258f08807256846ad" title="Create PAW^{1/2}v in dest.">PAWv</a>(rvxy + p * q, (<span class="keywordtype">int</span>*)(L-&gt;Perm), A, swt, y, n, q);
-<a name="l01176"></a>01176                                 <span class="comment">/* solve L %*% ans = PAW^{1/2}[X:y] */</span>
-<a name="l01177"></a>01177     ans = M_cholmod_solve(CHOLMOD_L, L, cRCXy, &amp;<a class="code" href="init_8c.html#c2b5dcf1f18e620b15b2e284dd9f6bd4" title="cholmod_common struct local to the package">c</a>);
-<a name="l01178"></a>01178     Memcpy(rvxy, (<span class="keywordtype">double</span>*)(ans-&gt;x), q * pp1);
-<a name="l01179"></a>01179     M_cholmod_free_dense(&amp;ans, &amp;<a class="code" href="init_8c.html#c2b5dcf1f18e620b15b2e284dd9f6bd4" title="cholmod_common struct local to the package">c</a>);
-<a name="l01180"></a>01180                                 <span class="comment">/* downdate XytXy  */</span>
-<a name="l01181"></a>01181                                 <span class="comment">/* Evaluate [X:y]'W[X:y] in RXy */</span>
-<a name="l01182"></a>01182     <a class="code" href="lmer_8c.html#c5e67856ab36eb41d71dab9fd71bc059" title="Accumulate the weighted cross-product of [X:y] in rxy.">weighted_XytXy</a>(rxy, swt, Xcp, y, n, p);
-<a name="l01183"></a>01183     F77_CALL(dsyrk)(<span class="stringliteral">"U"</span>, <span class="stringliteral">"T"</span>, &amp;pp1, &amp;q, mone, rvxy, &amp;q, one, rxy, &amp;pp1);
-<a name="l01184"></a>01184     F77_CALL(dpotrf)(<span class="stringliteral">"U"</span>, &amp;pp1, rxy, &amp;pp1, &amp;j);
-<a name="l01185"></a>01185     <span class="keywordflow">if</span> (j)
-<a name="l01186"></a>01186         error(<a class="code" href="lmer_8c.html#32a3cf3d9dd914f5aeeca5423c157934" title="i18n of error messages">_</a>(<span class="stringliteral">"Downdated [X:y]'[X:y] is not positive definite, %d."</span>),
-<a name="l01187"></a>01187               j);
-<a name="l01188"></a>01188     <span class="keywordflow">for</span> (j = 0, d[<a class="code" href="lmer_8c.html#2ef82a9439b964c1e545fb6487a5e3ac88f23d25bffc837e71115357097fde7c" title="2*log-determinant of RX">ldRX2_POS</a>] = 0; j &lt; (pp1 - 1); j++)
-<a name="l01189"></a>01189         d[<a class="code" href="lmer_8c.html#2ef82a9439b964c1e545fb6487a5e3ac88f23d25bffc837e71115357097fde7c" title="2*log-determinant of RX">ldRX2_POS</a>] += 2 * log(rxy[j * (pp1 + 1)]);
-<a name="l01190"></a>01190     <span class="comment">/* update other elements of the deviance slot for LMMs */</span>
-<a name="l01191"></a>01191     <span class="keywordflow">if</span> ((!LENGTH(GET_SLOT(x, <a class="code" href="Syms_8h.html#9165fffba3009fd7d6a5116e3d8435a3">lme4_muEtaSym</a>))) &amp;&amp;
-<a name="l01192"></a>01192         (!LENGTH(GET_SLOT(x, <a class="code" href="Syms_8h.html#ef220131bb03d4666ff1b7ec39bd3e2b">lme4_vSym</a>)))) {
-<a name="l01193"></a>01193         d[<a class="code" href="lmer_8c.html#2ef82a9439b964c1e545fb6487a5e3acf8dc52b56fc072dc095782caff1c5df2" title="log penalized discrepancy">lpdisc_POS</a>] = 2 * log(rxy[pp1 * pp1 - 1]);
-<a name="l01194"></a>01194         d[<a class="code" href="lmer_8c.html#2ef82a9439b964c1e545fb6487a5e3ac0966f1b2ecf23e6ad09c98b24e671969" title="Maximum likelihood deviance.">ML_POS</a>] = d[<a class="code" href="lmer_8c.html#2ef82a9439b964c1e545fb6487a5e3ac1f383bef04b44158a36fcbc7448ff209" title="2*log-determinant of L">ldL2_POS</a>] +
-<a name="l01195"></a>01195             dn * (1 + d[<a class="code" href="lmer_8c.html#2ef82a9439b964c1e545fb6487a5e3acf8dc52b56fc072dc095782caff1c5df2" title="log penalized discrepancy">lpdisc_POS</a>] + log(2 * PI / dn));
-<a name="l01196"></a>01196         d[<a class="code" href="lmer_8c.html#2ef82a9439b964c1e545fb6487a5e3ac7a80b999acd82e5cbb3cf97973aa78ea" title="REML deviance.">REML_POS</a>] = d[<a class="code" href="lmer_8c.html#2ef82a9439b964c1e545fb6487a5e3ac1f383bef04b44158a36fcbc7448ff209" title="2*log-determinant of L">ldL2_POS</a>] + d[<a class="code" href="lmer_8c.html#2ef82a9439b964c1e545fb6487a5e3ac88f23d25bffc837e71115357097fde7c" title="2*log-determinant of RX">ldRX2_POS</a>] +
-<a name="l01197"></a>01197             dnmp * (1. + d[<a class="code" href="lmer_8c.html#2ef82a9439b964c1e545fb6487a5e3acf8dc52b56fc072dc095782caff1c5df2" title="log penalized discrepancy">lpdisc_POS</a>] + log(2. * PI / dnmp));
-<a name="l01198"></a>01198     }
-<a name="l01199"></a>01199     <span class="keywordflow">return</span> d[dims[<a class="code" href="lmer_8c.html#d4ed7f6a53d33bda670d5b7dbea3bcba43f2bd1e217872fe65753fc44dc9c8b0" title="indicator of REML estimation">isREML_POS</a>] ? <a class="code" href="lmer_8c.html#2ef82a9439b964c1e545fb6487a5e3ac7a80b999acd82e5cbb3cf97973aa78ea" title="REML deviance.">REML_POS</a> : <a class="code" href="lmer_8c.html#2ef82a9439b964c1e545fb6487a5e3ac0966f1b2ecf23e6ad09c98b24e671969" title="Maximum likelihood deviance.">ML_POS</a>];
-<a name="l01200"></a>01200 }
-<a name="l01201"></a>01201 
-<a name="l01209"></a>01209 SEXP
-<a name="l01210"></a><a class="code" href="lmer_8h.html#6c02b5f73d659d2d748852fac7e9c462">01210</a> <a class="code" href="lmer_8c.html#6c02b5f73d659d2d748852fac7e9c462" title="Externally callable version of update_RX.">mer_update_RX</a>(SEXP x)
-<a name="l01211"></a>01211 {
-<a name="l01212"></a>01212     <span class="keywordflow">return</span> ScalarReal(<a class="code" href="lmer_8c.html#2c7f7874e2eb3f6c51c53c5873cffec4" title="Update the RCX and RX slots in an mer object.">update_RX</a>(x));
-<a name="l01213"></a>01213 }
-<a name="l01214"></a>01214 
-<a name="l01224"></a>01224 SEXP 
-<a name="l01225"></a><a class="code" href="lmer_8h.html#a4e16de36d36af6c715d52a045f88e78">01225</a> <a class="code" href="lmer_8c.html#7aa21aea1da63a3096fcc054cc6c9dd5" title="Optimize the profiled deviance of an lmer object or the Laplace approximation to...">mer_optimize</a>(SEXP x, SEXP verbp)
-<a name="l01226"></a>01226 {
-<a name="l01227"></a>01227     SEXP ST = GET_SLOT(x, <a class="code" href="Syms_8h.html#14f91c10cf53ae13351717e358fdf447">lme4_STSym</a>);
-<a name="l01228"></a>01228     <span class="keywordtype">int</span> *dims = INTEGER(GET_SLOT(x, <a class="code" href="Syms_8h.html#49094314461f4e9b10bbda1771719e29">lme4_dimsSym</a>)),
-<a name="l01229"></a>01229         i, j, pos, verb = asInteger(verbp);
-<a name="l01230"></a>01230     <span class="keywordtype">int</span> lmm = !(LENGTH(GET_SLOT(x, <a class="code" href="Syms_8h.html#9165fffba3009fd7d6a5116e3d8435a3">lme4_muEtaSym</a>)) ||
-<a name="l01231"></a>01231                 LENGTH(GET_SLOT(x, <a class="code" href="Syms_8h.html#ef220131bb03d4666ff1b7ec39bd3e2b">lme4_vSym</a>))),
-<a name="l01232"></a>01232         nf = dims[<a class="code" href="lmer_8c.html#d4ed7f6a53d33bda670d5b7dbea3bcbaafdfe3e96c82c637dec9623a20c28e2d" title="number of terms in random effects">nf_POS</a>];
-<a name="l01233"></a>01233 <span class="comment">/* FIXME: need to add 1 to nv for GLMM with a scale par (maybe). */</span>
-<a name="l01234"></a>01234     <span class="keywordtype">int</span> nv = dims[<a class="code" href="lmer_8c.html#d4ed7f6a53d33bda670d5b7dbea3bcba2b797f093d02ad8ae18e2df853ddbeb2" title="total number of parameters for T and S">np_POS</a>] + (lmm ? 0 : dims[<a class="code" href="lmer_8c.html#d4ed7f6a53d33bda670d5b7dbea3bcba193cdfb875a2d07bbbd3a5587879281b" title="number of fixed-effects parameters">p_POS</a>]);
-<a name="l01235"></a>01235     <span class="keywordtype">int</span> liv = S_iv_length(OPT, nv), lv = S_v_length(OPT, nv);
-<a name="l01236"></a>01236     <span class="keywordtype">double</span> *g = (<span class="keywordtype">double</span>*)NULL, *h = (<span class="keywordtype">double</span>*)NULL, fx = R_PosInf;
-<a name="l01237"></a>01237     <span class="keywordtype">double</span> *fixef = REAL(GET_SLOT(x, <a class="code" href="Syms_8h.html#cfa94b175e0d8bbb6ea7e3f1424bdda1">lme4_fixefSym</a>));
-<a name="l01238"></a>01238     <span class="keywordtype">int</span> *iv = <a class="code" href="lmer_8c.html#679ceea530c97713d6abdb619e70a6b9" title="alloca n elements of type t">Alloca</a>(liv, <span class="keywordtype">int</span>);
-<a name="l01239"></a>01239     <span class="keywordtype">double</span> *b = <a class="code" href="lmer_8c.html#679ceea530c97713d6abdb619e70a6b9" title="alloca n elements of type t">Alloca</a>(2 * nv, <span class="keywordtype">double</span>), *d = <a class="code" href="lmer_8c.html#679ceea530c97713d6abdb619e70a6b9" title="alloca n elements of type t">Alloca</a>(nv, <span class="keywordtype">double</span>),
-<a name="l01240"></a>01240         *v = <a class="code" href="lmer_8c.html#679ceea530c97713d6abdb619e70a6b9" title="alloca n elements of type t">Alloca</a>(lv, <span class="keywordtype">double</span>), *xv = <a class="code" href="lmer_8c.html#679ceea530c97713d6abdb619e70a6b9" title="alloca n elements of type t">Alloca</a>(nv, <span class="keywordtype">double</span>);
-<a name="l01241"></a>01241     R_CheckStack();
-<a name="l01242"></a>01242 
-<a name="l01243"></a>01243     <a class="code" href="lmer_8c.html#1d1cc0c037f6827ce66c5aa1db650224" title="Extract the parameters from ST list.">ST_getPars</a>(x, xv);
-<a name="l01244"></a>01244     <span class="keywordflow">if</span> (!lmm) {
-<a name="l01245"></a>01245         <span class="keywordtype">double</span> eta = 1.e-5; <span class="comment">/* estimated rel. error on computed lpdisc */</span>
-<a name="l01246"></a>01246 
-<a name="l01247"></a>01247         Memcpy(xv + dims[<a class="code" href="lmer_8c.html#d4ed7f6a53d33bda670d5b7dbea3bcba2b797f093d02ad8ae18e2df853ddbeb2" title="total number of parameters for T and S">np_POS</a>], fixef, dims[<a class="code" href="lmer_8c.html#d4ed7f6a53d33bda670d5b7dbea3bcba193cdfb875a2d07bbbd3a5587879281b" title="number of fixed-effects parameters">p_POS</a>]);
-<a name="l01248"></a>01248         v[31] = eta;            <span class="comment">/* RFCTOL */</span>
-<a name="l01249"></a>01249         v[36] = eta;            <span class="comment">/* SCTOL */</span>
-<a name="l01250"></a>01250         v[41] = eta;            <span class="comment">/* ETA0 */</span>
-<a name="l01251"></a>01251     }
-<a name="l01252"></a>01252                                 <span class="comment">/* initialize the state vectors v and iv */</span>
-<a name="l01253"></a>01253     S_Rf_divset(OPT, iv, liv, lv, v);
-<a name="l01254"></a>01254     <span class="keywordflow">if</span> (verb) iv[OUTLEV] = 1;
-<a name="l01255"></a>01255                                 <span class="comment">/* set the bounds to plus/minus Infty  */</span>
-<a name="l01256"></a>01256     <span class="keywordflow">for</span> (i = 0; i &lt; nv; i++) {
-<a name="l01257"></a>01257         b[2*i] = R_NegInf; b[2*i+1] = R_PosInf; d[i] = 1;
-<a name="l01258"></a>01258     }
-<a name="l01259"></a>01259                                 <span class="comment">/* reset lower bounds on elements of theta_S */</span>
-<a name="l01260"></a>01260     <span class="keywordflow">for</span> (i = 0, pos = 0; i &lt; nf; i++) {
-<a name="l01261"></a>01261         <span class="keywordtype">int</span> nc = *INTEGER(getAttrib(VECTOR_ELT(ST, i), R_DimSymbol));
-<a name="l01262"></a>01262         <span class="keywordflow">for</span> (j = 0; j &lt; nc; j++) b[pos + 2*j] = 0;
-<a name="l01263"></a>01263         pos += nc * (nc + 1);
-<a name="l01264"></a>01264     }
-<a name="l01265"></a>01265     <span class="keywordflow">do</span> {
-<a name="l01266"></a>01266         <a class="code" href="lmer_8c.html#c91a1d6467c5dd44cbc4c785f643e315" title="Update the ST and C slots of an mer object.">ST_setPars</a>(x, xv);              <span class="comment">/* update ST and C */</span>
-<a name="l01267"></a>01267         <span class="keywordflow">if</span> (lmm)
-<a name="l01268"></a>01268             fx = <a class="code" href="lmer_8c.html#2c7f7874e2eb3f6c51c53c5873cffec4" title="Update the RCX and RX slots in an mer object.">update_RX</a>(x);
-<a name="l01269"></a>01269         <span class="keywordflow">else</span> {
-<a name="l01270"></a>01270             Memcpy(fixef, xv + dims[<a class="code" href="lmer_8c.html#d4ed7f6a53d33bda670d5b7dbea3bcba2b797f093d02ad8ae18e2df853ddbeb2" title="total number of parameters for T and S">np_POS</a>], dims[<a class="code" href="lmer_8c.html#d4ed7f6a53d33bda670d5b7dbea3bcba193cdfb875a2d07bbbd3a5587879281b" title="number of fixed-effects parameters">p_POS</a>]);
-<a name="l01271"></a>01271             <a class="code" href="lmer_8c.html#88236137756e85a656de3402adcf4747" title="Iterate to determine the conditional modes of the random effects.">update_u</a>(x, verb);
-<a name="l01272"></a>01272             <a class="code" href="lmer_8c.html#c33b16395fa975458685d0eb76996f92" title="Evaluate the discrepancy and log of the penalized discrepancy.">mer_update_dev</a>(x);
-<a name="l01273"></a>01273             fx = REAL(GET_SLOT(x, <a class="code" href="Syms_8h.html#b9aed2e8e5de0f7481e729116ab89c65">lme4_devianceSym</a>))[<a class="code" href="lmer_8c.html#2ef82a9439b964c1e545fb6487a5e3ac0966f1b2ecf23e6ad09c98b24e671969" title="Maximum likelihood deviance.">ML_POS</a>];
-<a name="l01274"></a>01274         }
-<a name="l01275"></a>01275         S_nlminb_iterate(b, d, fx, g, h, iv, liv, lv, nv, v, xv);
-<a name="l01276"></a>01276     } <span class="keywordflow">while</span> (iv[0] == 1 || iv[0] == 2);
-<a name="l01277"></a>01277     <a class="code" href="lmer_8c.html#2c7f7874e2eb3f6c51c53c5873cffec4" title="Update the RCX and RX slots in an mer object.">update_RX</a>(x);
-<a name="l01278"></a>01278     dims[<a class="code" href="lmer_8c.html#d4ed7f6a53d33bda670d5b7dbea3bcba3c653205ba325a47efabda0ef044462e" title="convergence indictor from port optimization">cvg_POS</a>] = iv[0];
-<a name="l01279"></a>01279     <span class="keywordflow">return</span> R_NilValue;
-<a name="l01280"></a>01280 }
-<a name="l01281"></a>01281 
-<a name="l01282"></a>01282 <span class="comment">/* Functions for sampling from a Wishart distribution */</span>
-<a name="l01283"></a>01283 <span class="comment">/* FIXME: Move these to the R sources */</span>
-<a name="l01284"></a>01284 
-<a name="l01297"></a>01297 <span class="keyword">static</span> <span class="keywordtype">double</span>
-<a name="l01298"></a><a class="code" href="lmer_8c.html#9812644aac7804e273e0a48e138eb9f9">01298</a> *<a class="code" href="lmer_8c.html#9812644aac7804e273e0a48e138eb9f9" title="Simulate the Cholesky factor of a standardized Wishart variate with dimension p and...">std_rWishart_factor</a>(<span class="keywordtype">double</span> df, <span class="keywordtype">int</span> p, <span class="keywordtype">int</span> upper, <span class="keywordtype">double</span> ans[])
-<a name="l01299"></a>01299 {
-<a name="l01300"></a>01300     <span class="keywordtype">int</span> i, j, pp1 = p + 1;
-<a name="l01301"></a>01301 
-<a name="l01302"></a>01302     <span class="keywordflow">if</span> (df &lt; (<span class="keywordtype">double</span>) p || p &lt;= 0)
-<a name="l01303"></a>01303         error(<span class="stringliteral">"inconsistent degrees of freedom and dimension"</span>);
-<a name="l01304"></a>01304     <span class="keywordflow">for</span> (j = 0; j &lt; p; j++) {   <span class="comment">/* jth column */</span>
-<a name="l01305"></a>01305         ans[j * pp1] = sqrt(rchisq(df - (<span class="keywordtype">double</span>) j));
-<a name="l01306"></a>01306         <span class="keywordflow">for</span> (i = 0; i &lt; j; i++) {
-<a name="l01307"></a>01307             <span class="keywordtype">int</span> uind = i + j * p, <span class="comment">/* upper triangle index */</span>
-<a name="l01308"></a>01308                 lind = j + i * p; <span class="comment">/* lower triangle index */</span>
-<a name="l01309"></a>01309             ans[(upper ? uind : lind)] = norm_rand();
-<a name="l01310"></a>01310             ans[(upper ? lind : uind)] = 0;
-<a name="l01311"></a>01311         }
-<a name="l01312"></a>01312     }
-<a name="l01313"></a>01313     <span class="keywordflow">return</span> ans;
-<a name="l01314"></a>01314 }
-<a name="l01315"></a>01315 
-<a name="l01325"></a>01325 SEXP
-<a name="l01326"></a><a class="code" href="lmer_8h.html#3e5fbf4c0511166682d134b8b4c68502">01326</a> <a class="code" href="lmer_8c.html#3e5fbf4c0511166682d134b8b4c68502" title="Simulate a sample of random matrices from a Wishart distribution.">lme4_rWishart</a>(SEXP ns, SEXP dfp, SEXP scal)
-<a name="l01327"></a>01327 {
-<a name="l01328"></a>01328     SEXP ans;
-<a name="l01329"></a>01329     <span class="keywordtype">int</span> *dims = INTEGER(getAttrib(scal, R_DimSymbol)), i, j, k,
-<a name="l01330"></a>01330         n = asInteger(ns), psqr;
-<a name="l01331"></a>01331     <span class="keywordtype">double</span> *scCp, *ansp, *tmp, df = asReal(dfp), one = 1, zero = 0;
-<a name="l01332"></a>01332 
-<a name="l01333"></a>01333     <span class="keywordflow">if</span> (!isMatrix(scal) || !isReal(scal) || dims[0] != dims[1])
-<a name="l01334"></a>01334         error(<span class="stringliteral">"scal must be a square, real matrix"</span>);
-<a name="l01335"></a>01335     <span class="keywordflow">if</span> (n &lt;= 0) n = 1;
-<a name="l01336"></a>01336     psqr = dims[0] * dims[0];
-<a name="l01337"></a>01337     tmp = <a class="code" href="lmer_8c.html#679ceea530c97713d6abdb619e70a6b9" title="alloca n elements of type t">Alloca</a>(psqr, <span class="keywordtype">double</span>);
-<a name="l01338"></a>01338     scCp = <a class="code" href="lmer_8c.html#679ceea530c97713d6abdb619e70a6b9" title="alloca n elements of type t">Alloca</a>(psqr, <span class="keywordtype">double</span>);
-<a name="l01339"></a>01339     R_CheckStack();
-<a name="l01340"></a>01340 
-<a name="l01341"></a>01341     Memcpy(scCp, REAL(scal), psqr);
-<a name="l01342"></a>01342     <a class="code" href="lmer_8c.html#8388ab26cceddaa6efaccc3c51add430" title="zero an array">AZERO</a>(tmp, psqr);
-<a name="l01343"></a>01343     F77_CALL(dpotrf)(<span class="stringliteral">"U"</span>, &amp;(dims[0]), scCp, &amp;(dims[0]), &amp;j);
-<a name="l01344"></a>01344     <span class="keywordflow">if</span> (j)
-<a name="l01345"></a>01345         error(<span class="stringliteral">"scal matrix is not positive-definite"</span>);
-<a name="l01346"></a>01346     PROTECT(ans = alloc3DArray(REALSXP, dims[0], dims[0], n));
-<a name="l01347"></a>01347     ansp = REAL(ans);
-<a name="l01348"></a>01348     GetRNGstate();
-<a name="l01349"></a>01349     <span class="keywordflow">for</span> (j = 0; j &lt; n; j++) {
-<a name="l01350"></a>01350         <span class="keywordtype">double</span> *ansj = ansp + j * psqr;
-<a name="l01351"></a>01351         <a class="code" href="lmer_8c.html#9812644aac7804e273e0a48e138eb9f9" title="Simulate the Cholesky factor of a standardized Wishart variate with dimension p and...">std_rWishart_factor</a>(df, dims[0], 1, tmp);
-<a name="l01352"></a>01352         F77_CALL(dtrmm)(<span class="stringliteral">"R"</span>, <span class="stringliteral">"U"</span>, <span class="stringliteral">"N"</span>, <span class="stringliteral">"N"</span>, dims, dims,
-<a name="l01353"></a>01353                         &amp;one, scCp, dims, tmp, dims);
-<a name="l01354"></a>01354         F77_CALL(dsyrk)(<span class="stringliteral">"U"</span>, <span class="stringliteral">"T"</span>, &amp;(dims[1]), &amp;(dims[1]),
-<a name="l01355"></a>01355                         &amp;one, tmp, &amp;(dims[1]),
-<a name="l01356"></a>01356                         &amp;zero, ansj, &amp;(dims[1]));
-<a name="l01357"></a>01357 
-<a name="l01358"></a>01358         <span class="keywordflow">for</span> (i = 1; i &lt; dims[0]; i++)
-<a name="l01359"></a>01359             <span class="keywordflow">for</span> (k = 0; k &lt; i; k++)
-<a name="l01360"></a>01360                 ansj[i + k * dims[0]] = ansj[k + i * dims[0]];
-<a name="l01361"></a>01361     }
-<a name="l01362"></a>01362 
-<a name="l01363"></a>01363     PutRNGstate();
-<a name="l01364"></a>01364     UNPROTECT(1);
-<a name="l01365"></a>01365     <span class="keywordflow">return</span> ans;
-<a name="l01366"></a>01366 }
-<a name="l01367"></a>01367 
-<a name="l01368"></a>01368 <span class="comment">/* MCMC sampling functions */</span>
-<a name="l01369"></a>01369 
-<a name="l01377"></a><a class="code" href="lmer_8c.html#f1bc9174690e2956720aa31781b073f0">01377</a> <span class="keyword">static</span> <span class="keywordtype">void</span> <a class="code" href="lmer_8c.html#f1bc9174690e2956720aa31781b073f0" title="Update the fixed effects in an MCMC sample from an mer object.">MCMC_beta</a>(SEXP x, <span class="keywordtype">double</span> sigma)
-<a name="l01378"></a>01378 {
-<a name="l01379"></a>01379     SEXP fixefP = GET_SLOT(x, <a class="code" href="Syms_8h.html#cfa94b175e0d8bbb6ea7e3f1424bdda1">lme4_fixefSym</a>),
-<a name="l01380"></a>01380         uvecP = GET_SLOT(x, <a class="code" href="Syms_8h.html#e9dfc68bbaf777d0409b883be2272482">lme4_uvecSym</a>);
-<a name="l01381"></a>01381     <span class="keywordtype">int</span> ione = 1, j, p = LENGTH(fixefP), q = LENGTH(uvecP);
-<a name="l01382"></a>01382     <span class="keywordtype">int</span> pp1 = p + 1;
-<a name="l01383"></a>01383     <span class="keywordtype">double</span> *fix = REAL(fixefP), *uv = REAL(uvecP), mone = -1, one = 1;
-<a name="l01384"></a>01384     CHM_FR L = <a class="code" href="lmer_8c.html#94e6667644d2b670654fc46d3cf0ee1b" title="Extract the L slot, convert to a cholmod_factor and return the pointer.">L_SLOT</a>(x);
-<a name="l01385"></a>01385     <span class="keywordtype">double</span> *del1 = <a class="code" href="lmer_8c.html#679ceea530c97713d6abdb619e70a6b9" title="alloca n elements of type t">Alloca</a>(q, <span class="keywordtype">double</span>), *del2 = <a class="code" href="lmer_8c.html#679ceea530c97713d6abdb619e70a6b9" title="alloca n elements of type t">Alloca</a>(p, <span class="keywordtype">double</span>);
-<a name="l01386"></a>01386     CHM_DN sol, rhs = N_AS_CHM_DN(del1, q, 1);
-<a name="l01387"></a>01387     R_CheckStack();
-<a name="l01388"></a>01388 
-<a name="l01389"></a>01389     <a class="code" href="lmer_8c.html#21adcf526681f1efd1ad0c4727ff4069" title="Update the contents of the fixef, ranef and uvec slots in an lmer object.">mer_update_effects</a>(x);
-<a name="l01390"></a>01390                                 <span class="comment">/* Update the fixed effects */</span>
-<a name="l01391"></a>01391     <span class="keywordflow">for</span> (j = 0; j &lt; p; j++) del2[j] = sigma * norm_rand();
-<a name="l01392"></a>01392     F77_CALL(dtrsv)(<span class="stringliteral">"U"</span>, <span class="stringliteral">"N"</span>, <span class="stringliteral">"N"</span>, &amp;p, REAL(GET_SLOT(x, <a class="code" href="Syms_8h.html#5ebefc34ba71773e46ade9ee1e26146a">lme4_RXySym</a>)),
-<a name="l01393"></a>01393                     &amp;pp1, del2, &amp;ione);
-<a name="l01394"></a>01394     <span class="keywordflow">for</span> (j = 0; j &lt; p; j++) fix[j] += del2[j];
-<a name="l01395"></a>01395                                 <span class="comment">/* Update the orthogonal random effects */</span>
-<a name="l01396"></a>01396     <span class="keywordflow">for</span> (j = 0; j &lt; q; j++) del1[j] = sigma * norm_rand();
-<a name="l01397"></a>01397     F77_CALL(dgemv)(<span class="stringliteral">"N"</span>, &amp;q, &amp;p, &amp;mone, REAL(GET_SLOT(x, <a class="code" href="Syms_8h.html#d59cc3a6c8eba122cad97268682ad0f9">lme4_RCXySym</a>)),
-<a name="l01398"></a>01398                     &amp;q, del2, &amp;ione, &amp;one, del1, &amp;ione);
-<a name="l01399"></a>01399     sol = M_cholmod_solve(CHOLMOD_Lt, L, rhs, &amp;<a class="code" href="init_8c.html#c2b5dcf1f18e620b15b2e284dd9f6bd4" title="cholmod_common struct local to the package">c</a>);
-<a name="l01400"></a>01400     <span class="keywordflow">for</span> (j = 0; j &lt; q; j++) uv[j] += ((<span class="keywordtype">double</span>*)(sol-&gt;x))[j];
-<a name="l01401"></a>01401     M_cholmod_free_dense(&amp;sol, &amp;<a class="code" href="init_8c.html#c2b5dcf1f18e620b15b2e284dd9f6bd4" title="cholmod_common struct local to the package">c</a>);
-<a name="l01402"></a>01402                                 <span class="comment">/* Update the random effects */</span>
-<a name="l01403"></a>01403     <a class="code" href="lmer_8c.html#5542c4de7dbcdbb6630cad8fabe96542" title="b = T *% S *% t(P) *% u">update_ranef</a>(x);
-<a name="l01404"></a>01404 }
-<a name="l01405"></a>01405 
-<a name="l01414"></a><a class="code" href="lmer_8c.html#0903b0858c61e7e394c4dfb5f2661748">01414</a> <span class="keyword">static</span> <span class="keywordtype">void</span> <a class="code" href="lmer_8c.html#0903b0858c61e7e394c4dfb5f2661748" title="Update the orthogonal random effects in an MCMC sample from an mer object.">MCMC_u</a>(SEXP x, <span class="keywordtype">double</span> sigma)
-<a name="l01415"></a>01415 {
-<a name="l01416"></a>01416 }
-<a name="l01417"></a>01417 
-<a name="l01418"></a>01418 <span class="keyword">static</span> <span class="keywordtype">void</span>
-<a name="l01419"></a><a class="code" href="lmer_8c.html#24e3fc6b91cae668ea046c4b5e5ff9ed">01419</a> <a class="code" href="lmer_8c.html#24e3fc6b91cae668ea046c4b5e5ff9ed">safe_pd_matrix</a>(<span class="keywordtype">double</span> x[], <span class="keyword">const</span> <span class="keywordtype">char</span> uplo[], <span class="keywordtype">int</span> n, <span class="keywordtype">double</span> thresh)
-<a name="l01420"></a>01420 {
-<a name="l01421"></a>01421     <span class="keywordtype">int</span> info, lwork = 3 * n, nm1 = n - 1;
-<a name="l01422"></a>01422     <span class="keywordtype">double</span> *work = <a class="code" href="lmer_8c.html#679ceea530c97713d6abdb619e70a6b9" title="alloca n elements of type t">Alloca</a>(3 * n, <span class="keywordtype">double</span>),
-<a name="l01423"></a>01423         *w = <a class="code" href="lmer_8c.html#679ceea530c97713d6abdb619e70a6b9" title="alloca n elements of type t">Alloca</a>(n, <span class="keywordtype">double</span>),
-<a name="l01424"></a>01424         *xcp = Memcpy(<a class="code" href="lmer_8c.html#679ceea530c97713d6abdb619e70a6b9" title="alloca n elements of type t">Alloca</a>(n * n, <span class="keywordtype">double</span>), x, n * n);
-<a name="l01425"></a>01425 
-<a name="l01426"></a>01426     F77_CALL(dsyev)(<span class="stringliteral">"N"</span>, uplo, &amp;n, xcp, &amp;n, w, work, &amp;lwork, &amp;info);
-<a name="l01427"></a>01427     <span class="keywordflow">if</span> (info) error(<a class="code" href="lmer_8c.html#32a3cf3d9dd914f5aeeca5423c157934" title="i18n of error messages">_</a>(<span class="stringliteral">"dsyev returned %d"</span>), info);
-<a name="l01428"></a>01428     <span class="keywordflow">if</span> (w[nm1] &lt;= 0) error(<a class="code" href="lmer_8c.html#32a3cf3d9dd914f5aeeca5423c157934" title="i18n of error messages">_</a>(<span class="stringliteral">"no positive eigenvalues!"</span>));
-<a name="l01429"></a>01429     <span class="keywordflow">if</span> ((w[0]/w[nm1]) &lt; thresh) {
-<a name="l01430"></a>01430         <span class="keywordtype">int</span> i, np1 = n + 1;
-<a name="l01431"></a>01431         <span class="keywordtype">double</span> incr = w[nm1] * thresh;
-<a name="l01432"></a>01432         <span class="keywordflow">for</span> (i = 0; i &lt; n; i++) x[i * np1] += incr;
-<a name="l01433"></a>01433     }
-<a name="l01434"></a>01434 }
-<a name="l01435"></a>01435 
-<a name="l01436"></a><a class="code" href="lmer_8c.html#ef128b4cee2e476298b3b4388d8a2097">01436</a> <span class="keyword">static</span> <span class="keywordtype">void</span> <a class="code" href="lmer_8c.html#ef128b4cee2e476298b3b4388d8a2097">MCMC_ST</a>(SEXP x, <span class="keywordtype">double</span> sigma, <span class="keywordtype">double</span> *vals, <span class="keywordtype">int</span> trans)
-<a name="l01437"></a>01437 {
-<a name="l01438"></a>01438     SEXP ST = GET_SLOT(x, <a class="code" href="Syms_8h.html#14f91c10cf53ae13351717e358fdf447">lme4_STSym</a>);
-<a name="l01439"></a>01439     <span class="keywordtype">int</span> i, info, j, k, ncmax, nf = LENGTH(ST),
-<a name="l01440"></a>01440         *Gp = INTEGER(GET_SLOT(x, <a class="code" href="Syms_8h.html#630eefecb5ab4f37bdd06e36a62113f9">lme4_GpSym</a>));
-<a name="l01441"></a>01441     <span class="keywordtype">double</span> *rr = REAL(GET_SLOT(x, <a class="code" href="Syms_8h.html#f475583b0aa24636c246c6ba140f5880">lme4_ranefSym</a>)),
-<a name="l01442"></a>01442         *scal, *var, *wfac, one = 1, zero = 0;
-<a name="l01443"></a>01443     <span class="keywordtype">double</span> **st = <a class="code" href="lmer_8c.html#679ceea530c97713d6abdb619e70a6b9" title="alloca n elements of type t">Alloca</a>(nf, <span class="keywordtype">double</span>*);
-<a name="l01444"></a>01444     <span class="keywordtype">int</span> *nc = <a class="code" href="lmer_8c.html#679ceea530c97713d6abdb619e70a6b9" title="alloca n elements of type t">Alloca</a>(nf, <span class="keywordtype">int</span>), *nlev = <a class="code" href="lmer_8c.html#679ceea530c97713d6abdb619e70a6b9" title="alloca n elements of type t">Alloca</a>(nf, <span class="keywordtype">int</span>);
-<a name="l01445"></a>01445     R_CheckStack();
-<a name="l01446"></a>01446 
-<a name="l01447"></a>01447     ncmax = <a class="code" href="lmer_8c.html#3a7fab2a88117d83971db12f53eaa91e" title="Populate the st, nc and nlev arrays.">ST_nc_nlev</a>(ST, Gp, st, nc, nlev);
-<a name="l01448"></a>01448     scal = <a class="code" href="lmer_8c.html#679ceea530c97713d6abdb619e70a6b9" title="alloca n elements of type t">Alloca</a>(ncmax * ncmax, <span class="keywordtype">double</span>);
-<a name="l01449"></a>01449     wfac = <a class="code" href="lmer_8c.html#679ceea530c97713d6abdb619e70a6b9" title="alloca n elements of type t">Alloca</a>(ncmax * ncmax, <span class="keywordtype">double</span>);
-<a name="l01450"></a>01450     var = <a class="code" href="lmer_8c.html#679ceea530c97713d6abdb619e70a6b9" title="alloca n elements of type t">Alloca</a>(ncmax * ncmax, <span class="keywordtype">double</span>);
-<a name="l01451"></a>01451     R_CheckStack();
-<a name="l01452"></a>01452     <span class="keywordflow">for</span> (i = 0; i &lt; nf; i++) {
-<a name="l01453"></a>01453         <span class="keywordtype">int</span> nci = nc[i], nl = nlev[i];
-<a name="l01454"></a>01454         <span class="keywordtype">int</span> ncisq = nci * nci, ncip1 = nci + 1;
-<a name="l01455"></a>01455         
-<a name="l01456"></a>01456         <a class="code" href="lmer_8c.html#8388ab26cceddaa6efaccc3c51add430" title="zero an array">AZERO</a>(scal, ncisq);
-<a name="l01457"></a>01457         F77_CALL(dsyrk)(<span class="stringliteral">"U"</span>, <span class="stringliteral">"T"</span>, &amp;nci, &amp;nl, &amp;one, rr + Gp[i], &amp;nl,
-<a name="l01458"></a>01458                         &amp;zero, scal, &amp;nci); 
-<a name="l01459"></a>01459         <span class="keywordflow">if</span> (nci == 1) *scal = sqrt(*scal);
-<a name="l01460"></a>01460         <span class="keywordflow">else</span> {
-<a name="l01461"></a>01461             <a class="code" href="lmer_8c.html#24e3fc6b91cae668ea046c4b5e5ff9ed">safe_pd_matrix</a>(scal, <span class="stringliteral">"L"</span>, nci, 1e-7);
-<a name="l01462"></a>01462             F77_CALL(dpotrf)(<span class="stringliteral">"U"</span>, &amp;nci, scal, &amp;nci, &amp;info);
-<a name="l01463"></a>01463             <span class="keywordflow">if</span> (info)
-<a name="l01464"></a>01464                 error(<a class="code" href="lmer_8c.html#32a3cf3d9dd914f5aeeca5423c157934" title="i18n of error messages">_</a>(<span class="stringliteral">"scal matrix is not pd after safe_pd_matrix!"</span>));
-<a name="l01465"></a>01465         }
-<a name="l01466"></a>01466                                 <span class="comment">/* generate random factor from std Wishart */</span>
-<a name="l01467"></a>01467         <a class="code" href="lmer_8c.html#8388ab26cceddaa6efaccc3c51add430" title="zero an array">AZERO</a>(wfac, ncisq);
-<a name="l01468"></a>01468         <a class="code" href="lmer_8c.html#9812644aac7804e273e0a48e138eb9f9" title="Simulate the Cholesky factor of a standardized Wishart variate with dimension p and...">std_rWishart_factor</a>((<span class="keywordtype">double</span>) (nl - nci + 1), nci, 1, wfac);
-<a name="l01469"></a>01469                                 <span class="comment">/* form and store variance-covariance matrix */</span>
-<a name="l01470"></a>01470         F77_CALL(dtrsm)(<span class="stringliteral">"L"</span>, <span class="stringliteral">"U"</span>, <span class="stringliteral">"T"</span>, <span class="stringliteral">"N"</span>, &amp;nci, &amp;nci,
-<a name="l01471"></a>01471                         &amp;one, wfac, &amp;nci, scal, &amp;nci);
-<a name="l01472"></a>01472         F77_CALL(dsyrk)(<span class="stringliteral">"U"</span>, <span class="stringliteral">"T"</span>, &amp;nci, &amp;nci, &amp;one, scal, &amp;nci,
-<a name="l01473"></a>01473                         &amp;zero, var, &amp;nci);
-<a name="l01474"></a>01474         <span class="keywordflow">for</span> (j = 0; j &lt; nci; j++) {
-<a name="l01475"></a>01475             *vals++ = (trans ? log(var[j * ncip1]) : var[j * ncip1]);
-<a name="l01476"></a>01476         }
-<a name="l01477"></a>01477         <span class="keywordflow">for</span> (j = 1; j &lt; nci; j++) {
-<a name="l01478"></a>01478             <span class="keywordflow">for</span> (k = 0; k &lt; j; k++) {
-<a name="l01479"></a>01479                 *vals++ = (trans ? atanh(var[k + j * nci]/
-<a name="l01480"></a>01480                                      sqrt(var[j * ncip1] * var[k * ncip1]))
-<a name="l01481"></a>01481                        : var[k + j * nci]);
-<a name="l01482"></a>01482             }
-<a name="l01483"></a>01483         }
-<a name="l01484"></a>01484         <span class="keywordflow">if</span> (nci == 1) {
-<a name="l01485"></a>01485             *st[i] = sqrt(*var)/sigma;
-<a name="l01486"></a>01486         } <span class="keywordflow">else</span> {
-<a name="l01487"></a>01487             <span class="keywordtype">double</span> *sti = st[i];
-<a name="l01488"></a>01488 
-<a name="l01489"></a>01489             <span class="keywordflow">for</span> (j = 0; j &lt; nci; j++) <span class="comment">/* copy var to st[i] transposing */</span>
-<a name="l01490"></a>01490                 <span class="keywordflow">for</span> (k = j; k &lt; nci; k++)
-<a name="l01491"></a>01491                     sti[k + j * nci] = var[j + k * nci];
-<a name="l01492"></a>01492                                 <span class="comment">/* factor the variance-covariance matrix */</span>
-<a name="l01493"></a>01493             F77_CALL(dpotrf)(<span class="stringliteral">"L"</span>, &amp;nci, sti, &amp;nci, &amp;info);
-<a name="l01494"></a>01494             <span class="keywordflow">if</span> (info)
-<a name="l01495"></a>01495                 error(<a class="code" href="lmer_8c.html#32a3cf3d9dd914f5aeeca5423c157934" title="i18n of error messages">_</a>(<span class="stringliteral">"new var-cov matrix is not positive definite!"</span>));
-<a name="l01496"></a>01496             <span class="keywordflow">for</span> (j = 0; j &lt; nci; j++) { <span class="comment">/* convert to LDL' then TSST' */</span>
-<a name="l01497"></a>01497                 <span class="keywordflow">for</span> (k = j + 1; k &lt; nci; k++)
-<a name="l01498"></a>01498                     sti[k + j * nci] /= sti[j * ncip1];
-<a name="l01499"></a>01499                 sti[j * ncip1] /= sigma;
-<a name="l01500"></a>01500             }
-<a name="l01501"></a>01501         }
-<a name="l01502"></a>01502     }
-<a name="l01503"></a>01503 }
-<a name="l01504"></a>01504 
-<a name="l01514"></a><a class="code" href="lmer_8c.html#c8a525d9fe2317c0b658051821bdc754">01514</a> <span class="keyword">static</span> R_INLINE <span class="keywordtype">double</span> <a class="code" href="lmer_8c.html#c8a525d9fe2317c0b658051821bdc754" title="Generate a new value of sigma, the common scale parameter, for an mer object.">MCMC_sigma</a>(<span class="keyword">const</span> <span class="keywordtype">int</span>* dims, <span class="keyword">const</span> <span class="keywordtype">double</span>* d)
-<a name="l01515"></a>01515 {
-<a name="l01516"></a>01516     <span class="keywordflow">return</span> (dims[<a class="code" href="lmer_8c.html#d4ed7f6a53d33bda670d5b7dbea3bcbadafe9a1ae435a2f525c63feb97556dd2" title="does the family use a separate scale parameter">useSc_POS</a>] ? sqrt(<a class="code" href="lmer_8c.html#00130066b7ad0289b87b765c0cd24867" title="Penalized, weighted residual sum of squares.">PWRSS</a>(d)/rchisq(<a class="code" href="lmer_8c.html#fdd34e4567fa4416a01a2167812f00a4" title="Residual degrees of freedom.">RDF</a>(dims))) : 1);
-<a name="l01517"></a>01517 }
-<a name="l01518"></a>01518 
-<a name="l01531"></a><a class="code" href="lmer_8h.html#edec83b72f0c3437d9b10daf5120aa2b">01531</a> SEXP <a class="code" href="lmer_8c.html#8f6debb5f78c3602ed0d576add360e68" title="Generate a Markov-chain Monte Carlo sample from an mer object.">mer_MCMCsamp</a>(SEXP x, SEXP savebp, SEXP nsampp, SEXP transp,
-<a name="l01532"></a>01532                   SEXP verbosep, SEXP deviancep)
-<a name="l01533"></a>01533 {
-<a name="l01534"></a>01534     SEXP Pars = PROTECT(<a class="code" href="lmer_8c.html#1f6b9123d7b4dcbe24cc9085e5f4069a" title="Extract the parameters from the ST slot of an mer object.">mer_ST_getPars</a>(x)), ans;
-<a name="l01535"></a>01535     <span class="keywordtype">int</span> *dims = INTEGER(GET_SLOT(x, <a class="code" href="Syms_8h.html#49094314461f4e9b10bbda1771719e29">lme4_dimsSym</a>));
-<a name="l01536"></a>01536     <span class="keywordtype">int</span> dPOS = dims[<a class="code" href="lmer_8c.html#2ef82a9439b964c1e545fb6487a5e3ac7a80b999acd82e5cbb3cf97973aa78ea" title="REML deviance.">REML_POS</a>] ? <a class="code" href="lmer_8c.html#2ef82a9439b964c1e545fb6487a5e3ac7a80b999acd82e5cbb3cf97973aa78ea" title="REML deviance.">REML_POS</a> : <a class="code" href="lmer_8c.html#2ef82a9439b964c1e545fb6487a5e3ac0966f1b2ecf23e6ad09c98b24e671969" title="Maximum likelihood deviance.">ML_POS</a>, i, j,
-<a name="l01537"></a>01537         nsamp = asInteger(nsampp),
-<a name="l01538"></a>01538         p = dims[<a class="code" href="lmer_8c.html#d4ed7f6a53d33bda670d5b7dbea3bcba193cdfb875a2d07bbbd3a5587879281b" title="number of fixed-effects parameters">p_POS</a>], q = dims[<a class="code" href="lmer_8c.html#d4ed7f6a53d33bda670d5b7dbea3bcba37d963697202d840d6555705f0d84ce5" title="number of random effects">q_POS</a>],
-<a name="l01539"></a>01539         saveb = asLogical(savebp), trans = asLogical(transp),
-<a name="l01540"></a>01540         verbose = asLogical(verbosep), dev = asLogical(deviancep);
-<a name="l01541"></a>01541     <span class="keywordtype">double</span> *ansp, *deviance = REAL(GET_SLOT(x, <a class="code" href="Syms_8h.html#b9aed2e8e5de0f7481e729116ab89c65">lme4_devianceSym</a>)),
-<a name="l01542"></a>01542         *d = REAL(GET_SLOT(x, <a class="code" href="Syms_8h.html#b9aed2e8e5de0f7481e729116ab89c65">lme4_devianceSym</a>)),
-<a name="l01543"></a>01543         *fixef = REAL(GET_SLOT(x, <a class="code" href="Syms_8h.html#cfa94b175e0d8bbb6ea7e3f1424bdda1">lme4_fixefSym</a>)),
-<a name="l01544"></a>01544         *ranef = (<span class="keywordtype">double</span>*)NULL;
-<a name="l01545"></a>01545     <span class="keywordtype">int</span> nrbase = p + 1 + dims[<a class="code" href="lmer_8c.html#d4ed7f6a53d33bda670d5b7dbea3bcba2b797f093d02ad8ae18e2df853ddbeb2" title="total number of parameters for T and S">np_POS</a>]; <span class="comment">/* rows always included */</span>
-<a name="l01546"></a>01546     <span class="keywordtype">int</span> nrtot = nrbase + dev + (saveb ? q : 0);
-<a name="l01547"></a>01547 
-<a name="l01548"></a>01548     <span class="keywordflow">if</span> (nsamp &lt;= 0) nsamp = 1;
-<a name="l01549"></a>01549     ans = PROTECT(allocMatrix(REALSXP, nrtot, nsamp));
-<a name="l01550"></a>01550     ansp = REAL(ans);
-<a name="l01551"></a>01551     <span class="keywordflow">for</span> (i = 0; i &lt; nrtot * nsamp; i++) ansp[i] = NA_REAL;
-<a name="l01552"></a>01552     GetRNGstate();
-<a name="l01553"></a>01553     <span class="keywordflow">if</span> (verbose) Rprintf(<span class="stringliteral">"%12s %14s\n"</span>, <span class="stringliteral">"sigma"</span>, <span class="stringliteral">"deviance"</span>);
-<a name="l01554"></a>01554     <span class="keywordflow">if</span> (saveb) ranef = REAL(GET_SLOT(x, <a class="code" href="Syms_8h.html#f475583b0aa24636c246c6ba140f5880">lme4_ranefSym</a>));
-<a name="l01555"></a>01555 
-<a name="l01556"></a>01556     <span class="keywordflow">for</span> (i = 0; i &lt; nsamp; i++) {
-<a name="l01557"></a>01557         <span class="keywordtype">double</span> *col = ansp + i * nrtot, sigma;
-<a name="l01558"></a>01558                                 <span class="comment">/* simulate and store new value of sigma */</span>
-<a name="l01559"></a>01559         sigma = <a class="code" href="lmer_8c.html#c8a525d9fe2317c0b658051821bdc754" title="Generate a new value of sigma, the common scale parameter, for an mer object.">MCMC_sigma</a>(dims, d);
-<a name="l01560"></a>01560         col[p] = (trans ? 2 * log(sigma) : sigma * sigma);
-<a name="l01561"></a>01561         <a class="code" href="lmer_8c.html#21adcf526681f1efd1ad0c4727ff4069" title="Update the contents of the fixef, ranef and uvec slots in an lmer object.">mer_update_effects</a>(x);  <span class="comment">/* Conditional estimates of beta, u and b */</span>
-<a name="l01562"></a>01562         <a class="code" href="lmer_8c.html#f1bc9174690e2956720aa31781b073f0" title="Update the fixed effects in an MCMC sample from an mer object.">MCMC_beta</a>(x, sigma);    <span class="comment">/* Update beta */</span>
-<a name="l01563"></a>01563         <span class="keywordflow">for</span> (j = 0; j &lt; p; j++) col[j] = fixef[j]; <span class="comment">/* Store beta */</span>
-<a name="l01564"></a>01564         <a class="code" href="lmer_8c.html#0903b0858c61e7e394c4dfb5f2661748" title="Update the orthogonal random effects in an MCMC sample from an mer object.">MCMC_u</a>(x, sigma);
-<a name="l01565"></a>01565         <span class="keywordflow">if</span> (saveb) {                               <span class="comment">/* store b */</span>
-<a name="l01566"></a>01566             <a class="code" href="lmer_8c.html#5542c4de7dbcdbb6630cad8fabe96542" title="b = T *% S *% t(P) *% u">update_ranef</a>(x);
-<a name="l01567"></a>01567             <span class="keywordflow">for</span> (j = 0; j &lt; q; j++) col[nrbase + dev + j] = ranef[j];
-<a name="l01568"></a>01568         }
-<a name="l01569"></a>01569         <a class="code" href="lmer_8c.html#ef128b4cee2e476298b3b4388d8a2097">MCMC_ST</a>(x, sigma, col + p + 1, trans);
-<a name="l01570"></a>01570 <span class="comment">/*      lmer_update_dev(x);     */</span> <span class="comment">/* Refactor and evaluate deviance */</span>
-<a name="l01571"></a>01571         <span class="comment">/* FIXME: This deviance should be for sigma, beta, b, ST */</span>
-<a name="l01572"></a>01572         <span class="keywordflow">if</span> (dev) col[nrbase] = deviance[dPOS]; 
-<a name="l01573"></a>01573         <span class="keywordflow">if</span> (verbose) Rprintf(<span class="stringliteral">"%12.6g %14.8g\n"</span>, sigma, deviance[dPOS]);
-<a name="l01574"></a>01574     }
-<a name="l01575"></a>01575     PutRNGstate();
-<a name="l01576"></a>01576                                 <span class="comment">/* Restore pars, refactor, etc. */</span>
-<a name="l01577"></a>01577     <a class="code" href="lmer_8c.html#96765a284e1652326a22d50f7d7538d4" title="Update the ST slot of an mer object from a REAL vector of parameters and update the...">mer_ST_setPars</a>(x, Pars);
-<a name="l01578"></a>01578 <span class="comment">/*     lmer_update_dev(x); */</span>
-<a name="l01579"></a>01579 <span class="comment">/*     lmer_update_effects(x); */</span>
-<a name="l01580"></a>01580     UNPROTECT(2);
-<a name="l01581"></a>01581     <span class="keywordflow">return</span> ans;
-<a name="l01582"></a>01582 }
-<a name="l01583"></a>01583 
-<a name="l01584"></a>01584 <span class="preprocessor">#ifndef BUF_SIZE</span>
-<a name="l01585"></a>01585 <span class="preprocessor"></span>
-<a name="l01586"></a><a class="code" href="lmer_8c.html#6821bafc3c88dfb2e433a095df9940c6">01586</a> <span class="preprocessor">#define BUF_SIZE 127</span>
-<a name="l01587"></a>01587 <span class="preprocessor"></span><span class="preprocessor">#endif  </span>
-<a name="l01588"></a>01588 <span class="preprocessor"></span>
-<a name="l01602"></a><a class="code" href="lmer_8c.html#119582eec2ad35c9d9516dcb3a927750">01602</a> <span class="keyword">static</span> <span class="keywordtype">int</span> <a class="code" href="lmer_8c.html#119582eec2ad35c9d9516dcb3a927750" title="Check that slot sym of object x is a numeric matrix of dimension nr by nc.">chkDims</a>(<span class="keywordtype">char</span> *buf, <span class="keywordtype">int</span> nb, SEXP x, SEXP sym, <span class="keywordtype">int</span> nr, <span class="keywordtype">int</span> nc)
-<a name="l01603"></a>01603 {
-<a name="l01604"></a>01604     SEXP MP = GET_SLOT(x, sym);
-<a name="l01605"></a>01605     <span class="keywordtype">int</span> *dm = isMatrix(MP) ? INTEGER(getAttrib(MP, R_DimSymbol)) : (<span class="keywordtype">int</span>*) NULL;
-<a name="l01606"></a>01606     <span class="keywordflow">if</span> (!dm || !isReal(MP) || dm[0] != nr || dm[1] != nc)
-<a name="l01607"></a>01607         <span class="keywordflow">return</span> snprintf(buf, <a class="code" href="lmer_8c.html#6821bafc3c88dfb2e433a095df9940c6" title="size of buffer for an error message">BUF_SIZE</a>,
-<a name="l01608"></a>01608                         <a class="code" href="lmer_8c.html#32a3cf3d9dd914f5aeeca5423c157934" title="i18n of error messages">_</a>(<span class="stringliteral">"Slot %s must be a numeric matrix of size %d by %d"</span>),
-<a name="l01609"></a>01609                         CHAR(PRINTNAME(sym)), nr, nc);
-<a name="l01610"></a>01610     <span class="keywordflow">return</span> 0;
-<a name="l01611"></a>01611 }
-<a name="l01612"></a>01612 
-<a name="l01625"></a><a class="code" href="lmer_8c.html#617426914114d8f8cd8249de16ddc8e1">01625</a> <span class="keyword">static</span> <span class="keywordtype">int</span> <a class="code" href="lmer_8c.html#617426914114d8f8cd8249de16ddc8e1" title="Check that the length of the sym slot in x is len or, possibly, zero.">chkLen</a>(<span class="keywordtype">char</span> *buf, <span class="keywordtype">int</span> nb, SEXP x, SEXP sym, <span class="keywordtype">int</span> len, <span class="keywordtype">int</span> zerok)
-<a name="l01626"></a>01626 {
-<a name="l01627"></a>01627     <span class="keywordtype">int</span> ll;
-<a name="l01628"></a>01628 
-<a name="l01629"></a>01629     <span class="keywordflow">if</span> (!(ll = LENGTH(GET_SLOT(x, sym))) == len &amp;&amp; zerok &amp;&amp; !ll)
-<a name="l01630"></a>01630         <span class="keywordflow">return</span> snprintf(buf, <a class="code" href="lmer_8c.html#6821bafc3c88dfb2e433a095df9940c6" title="size of buffer for an error message">BUF_SIZE</a>, <a class="code" href="lmer_8c.html#32a3cf3d9dd914f5aeeca5423c157934" title="i18n of error messages">_</a>(<span class="stringliteral">"Slot %s must have length %d."</span>),
-<a name="l01631"></a>01631                         CHAR(PRINTNAME(sym)), len);
-<a name="l01632"></a>01632     <span class="keywordflow">return</span> 0;
-<a name="l01633"></a>01633 }
-<a name="l01634"></a>01634 
-<a name="l01643"></a><a class="code" href="lmer_8h.html#489500e3d5104fc320a54d85c43bcfed">01643</a> SEXP <a class="code" href="lmer_8c.html#489500e3d5104fc320a54d85c43bcfed" title="Check validity of an object that inherits from the mer class.">mer_validate</a>(SEXP x)
-<a name="l01644"></a>01644 {
-<a name="l01645"></a>01645     SEXP GpP = GET_SLOT(x, <a class="code" href="Syms_8h.html#630eefecb5ab4f37bdd06e36a62113f9">lme4_GpSym</a>),
-<a name="l01646"></a>01646         ST = GET_SLOT(x, <a class="code" href="Syms_8h.html#14f91c10cf53ae13351717e358fdf447">lme4_STSym</a>),
-<a name="l01647"></a>01647         devianceP = GET_SLOT(x, <a class="code" href="Syms_8h.html#b9aed2e8e5de0f7481e729116ab89c65">lme4_devianceSym</a>),
-<a name="l01648"></a>01648         dimsP = GET_SLOT(x, <a class="code" href="Syms_8h.html#49094314461f4e9b10bbda1771719e29">lme4_dimsSym</a>),
-<a name="l01649"></a>01649         flistP = GET_SLOT(x, <a class="code" href="Syms_8h.html#445786e92c27738aaddf7d38cd5cc4de">lme4_flistSym</a>);
-<a name="l01650"></a>01650     <span class="keywordtype">int</span> *Gp = INTEGER(GpP), *dd = INTEGER(dimsP);
-<a name="l01651"></a>01651     <span class="keywordtype">int</span> i, n = dd[<a class="code" href="lmer_8c.html#d4ed7f6a53d33bda670d5b7dbea3bcbaccc72a17eae16e4f222f4a5a088afcd9" title="number of observations">n_POS</a>], nf = dd[<a class="code" href="lmer_8c.html#d4ed7f6a53d33bda670d5b7dbea3bcbaafdfe3e96c82c637dec9623a20c28e2d" title="number of terms in random effects">nf_POS</a>], nq, p = dd[<a class="code" href="lmer_8c.html#d4ed7f6a53d33bda670d5b7dbea3bcba193cdfb875a2d07bbbd3a5587879281b" title="number of fixed-effects parameters">p_POS</a>],
-<a name="l01652"></a>01652         q = dd[<a class="code" href="lmer_8c.html#d4ed7f6a53d33bda670d5b7dbea3bcba37d963697202d840d6555705f0d84ce5" title="number of random effects">q_POS</a>], s = dd[<a class="code" href="lmer_8c.html#d4ed7f6a53d33bda670d5b7dbea3bcba91cd64ccd89cc2464e243909b1fe80d0" title="number of variables in h (1 unless nonlinear)">s_POS</a>];
-<a name="l01653"></a>01653     <span class="keywordtype">int</span> nv = n * s, pp1 = p + 1;
-<a name="l01654"></a>01654     CHM_SP Zt = AS_CHM_SP(GET_SLOT(x, <a class="code" href="Syms_8h.html#14dc5416512dd72df18da9fda9b89089">lme4_ZtSym</a>)),
-<a name="l01655"></a>01655         C =  AS_CHM_SP(GET_SLOT(x, <a class="code" href="Syms_8h.html#5ef50bc4e9cb19417879a686d2bc978d">lme4_CmSym</a>));
-<a name="l01656"></a>01656     CHM_FR L = <a class="code" href="lmer_8c.html#94e6667644d2b670654fc46d3cf0ee1b" title="Extract the L slot, convert to a cholmod_factor and return the pointer.">L_SLOT</a>(x);
-<a name="l01657"></a>01657     <span class="keywordtype">char</span> *buf = <a class="code" href="lmer_8c.html#679ceea530c97713d6abdb619e70a6b9" title="alloca n elements of type t">Alloca</a>(<a class="code" href="lmer_8c.html#6821bafc3c88dfb2e433a095df9940c6" title="size of buffer for an error message">BUF_SIZE</a> + 1, <span class="keywordtype">char</span>);
-<a name="l01658"></a>01658     R_CheckStack();
-<a name="l01659"></a>01659                                 <span class="comment">/* check lengths */</span>
-<a name="l01660"></a>01660     <span class="keywordflow">if</span> (nf &lt; 1 || LENGTH(flistP) != nf || LENGTH(ST) != nf)
-<a name="l01661"></a>01661         <span class="keywordflow">return</span> mkString(<a class="code" href="lmer_8c.html#32a3cf3d9dd914f5aeeca5423c157934" title="i18n of error messages">_</a>(<span class="stringliteral">"Slots ST, and flist must have length dims['nf']"</span>));
-<a name="l01662"></a>01662     <span class="keywordflow">if</span> (LENGTH(GpP) != nf + 1)
-<a name="l01663"></a>01663         <span class="keywordflow">return</span> mkString(<a class="code" href="lmer_8c.html#32a3cf3d9dd914f5aeeca5423c157934" title="i18n of error messages">_</a>(<span class="stringliteral">"Slot Gp must have length dims['nf'] + 1"</span>));
-<a name="l01664"></a>01664     <span class="keywordflow">if</span> (Gp[0] != 0 || Gp[nf] != q)
-<a name="l01665"></a>01665         <span class="keywordflow">return</span> mkString(<a class="code" href="lmer_8c.html#32a3cf3d9dd914f5aeeca5423c157934" title="i18n of error messages">_</a>(<span class="stringliteral">"Gp[1] != 0 or Gp[dims['nf'] + 1] != dims['q']"</span>));
-<a name="l01666"></a>01666     <span class="keywordflow">if</span> (LENGTH(devianceP) != (<a class="code" href="lmer_8c.html#2ef82a9439b964c1e545fb6487a5e3ace7249a5feae526dd06a2b35bcb0f834a" title="weighted residual sum of squares">wrss_POS</a> + 1) ||
-<a name="l01667"></a>01667         LENGTH(getAttrib(devianceP, R_NamesSymbol)) != (<a class="code" href="lmer_8c.html#2ef82a9439b964c1e545fb6487a5e3ace7249a5feae526dd06a2b35bcb0f834a" title="weighted residual sum of squares">wrss_POS</a> + 1))
-<a name="l01668"></a>01668         <span class="keywordflow">return</span> mkString(<a class="code" href="lmer_8c.html#32a3cf3d9dd914f5aeeca5423c157934" title="i18n of error messages">_</a>(<span class="stringliteral">"deviance slot not named or incorrect length"</span>));
-<a name="l01669"></a>01669     <span class="keywordflow">if</span> (LENGTH(dimsP) != (<a class="code" href="lmer_8c.html#d4ed7f6a53d33bda670d5b7dbea3bcba3c653205ba325a47efabda0ef044462e" title="convergence indictor from port optimization">cvg_POS</a> + 1) ||
-<a name="l01670"></a>01670         LENGTH(getAttrib(dimsP, R_NamesSymbol)) != (<a class="code" href="lmer_8c.html#d4ed7f6a53d33bda670d5b7dbea3bcba3c653205ba325a47efabda0ef044462e" title="convergence indictor from port optimization">cvg_POS</a> + 1))
-<a name="l01671"></a>01671         <span class="keywordflow">return</span> mkString(<a class="code" href="lmer_8c.html#32a3cf3d9dd914f5aeeca5423c157934" title="i18n of error messages">_</a>(<span class="stringliteral">"dims slot not named or incorrect length"</span>));
-<a name="l01672"></a>01672     <span class="keywordflow">if</span> (L-&gt;n != q || !L-&gt;is_ll || !L-&gt;is_monotonic)
-<a name="l01673"></a>01673         <span class="keywordflow">return</span> mkString(<a class="code" href="lmer_8c.html#32a3cf3d9dd914f5aeeca5423c157934" title="i18n of error messages">_</a>(<span class="stringliteral">"Slot L must be a monotonic LL' factorization of size dims['q']"</span>));
-<a name="l01674"></a>01674     <span class="keywordflow">if</span> (Zt-&gt;nrow != q || Zt-&gt;ncol != nv)
-<a name="l01675"></a>01675         <span class="keywordflow">return</span> mkString(<a class="code" href="lmer_8c.html#32a3cf3d9dd914f5aeeca5423c157934" title="i18n of error messages">_</a>(<span class="stringliteral">"Slot Zt must by dims['q']  by dims['n']*dims['s']"</span>));
-<a name="l01676"></a>01676     <span class="keywordflow">if</span> (C-&gt;nrow != q || C-&gt;ncol != nv)
-<a name="l01677"></a>01677         <span class="keywordflow">return</span> mkString(<a class="code" href="lmer_8c.html#32a3cf3d9dd914f5aeeca5423c157934" title="i18n of error messages">_</a>(<span class="stringliteral">"Slot Zt must be dims['q']  by dims['n']*dims['s']"</span>));
-<a name="l01678"></a>01678     <span class="keywordflow">if</span> (<a class="code" href="lmer_8c.html#617426914114d8f8cd8249de16ddc8e1" title="Check that the length of the sym slot in x is len or, possibly, zero.">chkLen</a>(buf, <a class="code" href="lmer_8c.html#6821bafc3c88dfb2e433a095df9940c6" title="size of buffer for an error message">BUF_SIZE</a>, x, <a class="code" href="Syms_8h.html#fdba9e80e5d00e861760bad5d2b80721">lme4_etaSym</a>, n, 0)) <span class="keywordflow">return</span>(mkString(buf));
-<a name="l01679"></a>01679     <span class="keywordflow">if</span> (<a class="code" href="lmer_8c.html#617426914114d8f8cd8249de16ddc8e1" title="Check that the length of the sym slot in x is len or, possibly, zero.">chkLen</a>(buf, <a class="code" href="lmer_8c.html#6821bafc3c88dfb2e433a095df9940c6" title="size of buffer for an error message">BUF_SIZE</a>, x, <a class="code" href="Syms_8h.html#cfa94b175e0d8bbb6ea7e3f1424bdda1">lme4_fixefSym</a>, p, 0)) <span class="keywordflow">return</span>(mkString(buf));
-<a name="l01680"></a>01680     <span class="keywordflow">if</span> (<a class="code" href="lmer_8c.html#617426914114d8f8cd8249de16ddc8e1" title="Check that the length of the sym slot in x is len or, possibly, zero.">chkLen</a>(buf, <a class="code" href="lmer_8c.html#6821bafc3c88dfb2e433a095df9940c6" title="size of buffer for an error message">BUF_SIZE</a>, x, <a class="code" href="Syms_8h.html#9165fffba3009fd7d6a5116e3d8435a3">lme4_muEtaSym</a>, n, 1)) <span class="keywordflow">return</span>(mkString(buf));
-<a name="l01681"></a>01681     <span class="keywordflow">if</span> (<a class="code" href="lmer_8c.html#617426914114d8f8cd8249de16ddc8e1" title="Check that the length of the sym slot in x is len or, possibly, zero.">chkLen</a>(buf, <a class="code" href="lmer_8c.html#6821bafc3c88dfb2e433a095df9940c6" title="size of buffer for an error message">BUF_SIZE</a>, x, <a class="code" href="Syms_8h.html#49610fd9fb343595eab1f2bbd3d3d049">lme4_muSym</a>, n, 0)) <span class="keywordflow">return</span>(mkString(buf));
-<a name="l01682"></a>01682     <span class="keywordflow">if</span> (<a class="code" href="lmer_8c.html#617426914114d8f8cd8249de16ddc8e1" title="Check that the length of the sym slot in x is len or, possibly, zero.">chkLen</a>(buf, <a class="code" href="lmer_8c.html#6821bafc3c88dfb2e433a095df9940c6" title="size of buffer for an error message">BUF_SIZE</a>, x, <a class="code" href="Syms_8h.html#5f9b4851d1022ce2979bf1c881e9f8d6">lme4_offsetSym</a>, n, 1)) <span class="keywordflow">return</span>(mkString(buf));
-<a name="l01683"></a>01683     <span class="keywordflow">if</span> (<a class="code" href="lmer_8c.html#617426914114d8f8cd8249de16ddc8e1" title="Check that the length of the sym slot in x is len or, possibly, zero.">chkLen</a>(buf, <a class="code" href="lmer_8c.html#6821bafc3c88dfb2e433a095df9940c6" title="size of buffer for an error message">BUF_SIZE</a>, x, <a class="code" href="Syms_8h.html#c877207c31d8162a4779cb7a18bbba1a">lme4_priorWtSym</a>, n, 1)) <span class="keywordflow">return</span>(mkString(buf));
-<a name="l01684"></a>01684     <span class="keywordflow">if</span> (<a class="code" href="lmer_8c.html#617426914114d8f8cd8249de16ddc8e1" title="Check that the length of the sym slot in x is len or, possibly, zero.">chkLen</a>(buf, <a class="code" href="lmer_8c.html#6821bafc3c88dfb2e433a095df9940c6" title="size of buffer for an error message">BUF_SIZE</a>, x, <a class="code" href="Syms_8h.html#f475583b0aa24636c246c6ba140f5880">lme4_ranefSym</a>, q, 0)) <span class="keywordflow">return</span>(mkString(buf));
-<a name="l01685"></a>01685     <span class="keywordflow">if</span> (<a class="code" href="lmer_8c.html#617426914114d8f8cd8249de16ddc8e1" title="Check that the length of the sym slot in x is len or, possibly, zero.">chkLen</a>(buf, <a class="code" href="lmer_8c.html#6821bafc3c88dfb2e433a095df9940c6" title="size of buffer for an error message">BUF_SIZE</a>, x, <a class="code" href="Syms_8h.html#be98511435f8333d8ff4d19cf7a772b8">lme4_residSym</a>, n, 0)) <span class="keywordflow">return</span>(mkString(buf));
-<a name="l01686"></a>01686     <span class="keywordflow">if</span> (<a class="code" href="lmer_8c.html#617426914114d8f8cd8249de16ddc8e1" title="Check that the length of the sym slot in x is len or, possibly, zero.">chkLen</a>(buf, <a class="code" href="lmer_8c.html#6821bafc3c88dfb2e433a095df9940c6" title="size of buffer for an error message">BUF_SIZE</a>, x, <a class="code" href="Syms_8h.html#19459c8e3ff2009eb171e4f90dee3bc6">lme4_sqrtWtSym</a>, n, 1)) <span class="keywordflow">return</span>(mkString(buf));
-<a name="l01687"></a>01687     <span class="keywordflow">if</span> (<a class="code" href="lmer_8c.html#617426914114d8f8cd8249de16ddc8e1" title="Check that the length of the sym slot in x is len or, possibly, zero.">chkLen</a>(buf, <a class="code" href="lmer_8c.html#6821bafc3c88dfb2e433a095df9940c6" title="size of buffer for an error message">BUF_SIZE</a>, x, <a class="code" href="Syms_8h.html#e9dfc68bbaf777d0409b883be2272482">lme4_uvecSym</a>, q, 0)) <span class="keywordflow">return</span>(mkString(buf));
-<a name="l01688"></a>01688     <span class="keywordflow">if</span> (<a class="code" href="lmer_8c.html#617426914114d8f8cd8249de16ddc8e1" title="Check that the length of the sym slot in x is len or, possibly, zero.">chkLen</a>(buf, <a class="code" href="lmer_8c.html#6821bafc3c88dfb2e433a095df9940c6" title="size of buffer for an error message">BUF_SIZE</a>, x, <a class="code" href="Syms_8h.html#ef220131bb03d4666ff1b7ec39bd3e2b">lme4_vSym</a>, nv, 1)) <span class="keywordflow">return</span>(mkString(buf));
-<a name="l01689"></a>01689     <span class="keywordflow">if</span> (<a class="code" href="lmer_8c.html#617426914114d8f8cd8249de16ddc8e1" title="Check that the length of the sym slot in x is len or, possibly, zero.">chkLen</a>(buf, <a class="code" href="lmer_8c.html#6821bafc3c88dfb2e433a095df9940c6" title="size of buffer for an error message">BUF_SIZE</a>, x, <a class="code" href="Syms_8h.html#d8e21a6adccfdf7184021af64c72ae0e">lme4_varSym</a>, n, 1)) <span class="keywordflow">return</span>(mkString(buf));
-<a name="l01690"></a>01690     <span class="keywordflow">if</span> (<a class="code" href="lmer_8c.html#617426914114d8f8cd8249de16ddc8e1" title="Check that the length of the sym slot in x is len or, possibly, zero.">chkLen</a>(buf, <a class="code" href="lmer_8c.html#6821bafc3c88dfb2e433a095df9940c6" title="size of buffer for an error message">BUF_SIZE</a>, x, <a class="code" href="Syms_8h.html#fd01bb0c98ee90bc0e8f8cdf538e6a33">lme4_ySym</a>, n, 0)) <span class="keywordflow">return</span>(mkString(buf));
-<a name="l01691"></a>01691     <span class="keywordflow">if</span> (<a class="code" href="lmer_8c.html#119582eec2ad35c9d9516dcb3a927750" title="Check that slot sym of object x is a numeric matrix of dimension nr by nc.">chkDims</a>(buf, <a class="code" href="lmer_8c.html#6821bafc3c88dfb2e433a095df9940c6" title="size of buffer for an error message">BUF_SIZE</a>, x, <a class="code" href="Syms_8h.html#c942d1af2e7836825b2c4d05469bbc9e">lme4_XSym</a>, nv, p)) <span class="keywordflow">return</span>(mkString(buf));
-<a name="l01692"></a>01692     <span class="keywordflow">if</span> (<a class="code" href="lmer_8c.html#119582eec2ad35c9d9516dcb3a927750" title="Check that slot sym of object x is a numeric matrix of dimension nr by nc.">chkDims</a>(buf, <a class="code" href="lmer_8c.html#6821bafc3c88dfb2e433a095df9940c6" title="size of buffer for an error message">BUF_SIZE</a>, x, <a class="code" href="Syms_8h.html#d59cc3a6c8eba122cad97268682ad0f9">lme4_RCXySym</a>, q, pp1)) <span class="keywordflow">return</span>(mkString(buf));
-<a name="l01693"></a>01693     <span class="keywordflow">if</span> (<a class="code" href="lmer_8c.html#119582eec2ad35c9d9516dcb3a927750" title="Check that slot sym of object x is a numeric matrix of dimension nr by nc.">chkDims</a>(buf, <a class="code" href="lmer_8c.html#6821bafc3c88dfb2e433a095df9940c6" title="size of buffer for an error message">BUF_SIZE</a>, x, <a class="code" href="Syms_8h.html#5ebefc34ba71773e46ade9ee1e26146a">lme4_RXySym</a>, pp1, pp1)) <span class="keywordflow">return</span>(mkString(buf));
-<a name="l01694"></a>01694 
-<a name="l01695"></a>01695     nq = 0;
-<a name="l01696"></a>01696     <span class="keywordflow">for</span> (i = 0; i &lt; nf; i++) {
-<a name="l01697"></a>01697         SEXP STi = VECTOR_ELT(ST, i), fli = VECTOR_ELT(flistP, i);
-<a name="l01698"></a>01698         <span class="keywordtype">int</span> *dm = INTEGER(getAttrib(STi, R_DimSymbol));
-<a name="l01699"></a>01699         <span class="keywordflow">if</span> (!isMatrix(STi) || !isReal(STi) || dm[0] != dm[1])
-<a name="l01700"></a>01700             <span class="keywordflow">return</span>
-<a name="l01701"></a>01701                 mkString(<a class="code" href="lmer_8c.html#32a3cf3d9dd914f5aeeca5423c157934" title="i18n of error messages">_</a>(<span class="stringliteral">"Slot ST must be a list of square numeric matrices"</span>));
-<a name="l01702"></a>01702         <span class="keywordflow">if</span> (Gp[i] &gt; Gp[i + 1])
-<a name="l01703"></a>01703             <span class="keywordflow">return</span> mkString(<a class="code" href="lmer_8c.html#32a3cf3d9dd914f5aeeca5423c157934" title="i18n of error messages">_</a>(<span class="stringliteral">"Gp must be non-decreasing"</span>));
-<a name="l01704"></a>01704         <span class="keywordflow">if</span> (!isFactor(fli))
-<a name="l01705"></a>01705             <span class="keywordflow">return</span> mkString(<a class="code" href="lmer_8c.html#32a3cf3d9dd914f5aeeca5423c157934" title="i18n of error messages">_</a>(<span class="stringliteral">"flist must be a list of factors"</span>));
-<a name="l01706"></a>01706         nq += dm[0] * LENGTH(getAttrib(fli, R_LevelsSymbol));
-<a name="l01707"></a>01707     }
-<a name="l01708"></a>01708     <span class="keywordflow">if</span> (q != nq)
-<a name="l01709"></a>01709         <span class="keywordflow">return</span> mkString(<a class="code" href="lmer_8c.html#32a3cf3d9dd914f5aeeca5423c157934" title="i18n of error messages">_</a>(<span class="stringliteral">"q is not sum of columns by levels"</span>));
-<a name="l01710"></a>01710     <span class="keywordflow">return</span> ScalarLogical(1);
-<a name="l01711"></a>01711 }
-<a name="l01712"></a>01712 
-<a name="l01713"></a>01713 <span class="comment">/* Functions for the pedigree class */</span>
-<a name="l01714"></a>01714 
-<a name="l01724"></a><a class="code" href="lmer_8h.html#06b081a8a5b894d99de0539549058b15">01724</a> SEXP <a class="code" href="lmer_8c.html#06b081a8a5b894d99de0539549058b15" title="Create the left Cholesky factor of the numerator relationship matrix from a pedigree...">pedigree_chol</a>(SEXP x, SEXP ans)
-<a name="l01725"></a>01725 {
-<a name="l01726"></a>01726     SEXP Sire = GET_SLOT(x, install(<span class="stringliteral">"sire"</span>));
-<a name="l01727"></a>01727     <span class="keywordtype">int</span> *ai = INTEGER(GET_SLOT(ans, <a class="code" href="Syms_8h.html#675208f7171fa263875961315cdebbe7">lme4_iSym</a>)),
-<a name="l01728"></a>01728         *ap = INTEGER(GET_SLOT(ans, <a class="code" href="Syms_8h.html#08eac023c17fc43ab2ab1d0ee8f96dbd">lme4_pSym</a>)),
-<a name="l01729"></a>01729         *dam = INTEGER(GET_SLOT(x, install(<span class="stringliteral">"dam"</span>))),
-<a name="l01730"></a>01730         *sire = INTEGER(Sire), 
-<a name="l01731"></a>01731         i, j, n = LENGTH(Sire);
-<a name="l01732"></a>01732     <span class="keywordtype">double</span> *ax = REAL(GET_SLOT(ans, <a class="code" href="Syms_8h.html#98fea3f5a0abe919544cd46185b1f416">lme4_xSym</a>)), *F, Di, tmp;
-<a name="l01733"></a>01733 
-<a name="l01734"></a>01734     setAttrib(ans, install(<span class="stringliteral">"F"</span>), allocVector(REALSXP, n));
-<a name="l01735"></a>01735     F = REAL(getAttrib(ans, install(<span class="stringliteral">"F"</span>)));
-<a name="l01736"></a>01736     <span class="keywordflow">for</span> (i = 0; i &lt; n; i++) {
-<a name="l01737"></a>01737         <span class="keywordtype">int</span> k, p = sire[i] - 1, q = dam[i] - 1;
-<a name="l01738"></a>01738         <span class="keywordflow">if</span> (sire[i] == NA_INTEGER) {
-<a name="l01739"></a>01739             F[i] = 0;
-<a name="l01740"></a>01740             Di = (dam[i] == NA_INTEGER) ? 1 : sqrt(0.75 - 0.25 * F[q]);
-<a name="l01741"></a>01741         } <span class="keywordflow">else</span> {
-<a name="l01742"></a>01742             <span class="keywordflow">if</span> (dam[i] == NA_INTEGER) { <span class="comment">/* sire only */</span>
-<a name="l01743"></a>01743                 F[i] = 0;
-<a name="l01744"></a>01744                 Di = sqrt(0.75 - 0.25 * F[p]);
-<a name="l01745"></a>01745             } <span class="keywordflow">else</span> {            <span class="comment">/* both parents in pedigree */</span>
-<a name="l01746"></a>01746                 Di = sqrt(0.5 - 0.25 * (F[p] + F[q]));
-<a name="l01747"></a>01747                 F[i] = NA_REAL;
-<a name="l01748"></a>01748                 <span class="keywordflow">if</span> ((ap[i + 1] - ap[i]) &gt; 1) {    <span class="comment">/* skip if no progeny */</span>
-<a name="l01749"></a>01749                     <span class="keywordflow">if</span> (p &gt; q) {j = p; p = q; q = j;} <span class="comment">/* ensure p &lt;= q */</span>
-<a name="l01750"></a>01750                     <span class="keywordflow">for</span> (j = 0, F[i] = 0; j &lt;= p; j++) {
-<a name="l01751"></a>01751                         <span class="keywordflow">for</span> (k = ap[j], tmp = 0;
-<a name="l01752"></a>01752                              k &lt; ap[j + 1] &amp;&amp; ai[k] &lt;= q; k++) {
-<a name="l01753"></a>01753                             <span class="keywordtype">int</span> ii = ai[k];
-<a name="l01754"></a>01754                             <span class="keywordflow">if</span> (ii == p) tmp = ax[k];
-<a name="l01755"></a>01755                             <span class="keywordflow">if</span> (ii == q) F[i] += tmp * ax[k]/2;
-<a name="l01756"></a>01756                         }
-<a name="l01757"></a>01757                     }
-<a name="l01758"></a>01758                 }
-<a name="l01759"></a>01759             }
-<a name="l01760"></a>01760         }
-<a name="l01761"></a>01761         <span class="keywordflow">for</span> (j = ap[i]; j &lt; ap[i + 1]; j++) ax[j] *= Di;
-<a name="l01762"></a>01762     }
-<a name="l01763"></a>01763     <span class="keywordflow">return</span> ans;
-<a name="l01764"></a>01764 }
-<a name="l01765"></a>01765 
-<a name="l01766"></a>01766 <span class="comment">/* NOTE: This function requires that missing parents be coded as zero */</span>
-<a name="l01779"></a><a class="code" href="lmer_8c.html#717631a5aed4d47229922c84b9b1a952">01779</a> SEXP <a class="code" href="lmer_8c.html#717631a5aed4d47229922c84b9b1a952" title="Create the inbreeding coefficients according to the algorithm given in &amp;quot;Comparison...">pedigree_inbreeding</a>(SEXP x)
-<a name="l01780"></a>01780 {
-<a name="l01781"></a>01781     SEXP ans, sp = GET_SLOT(x, install(<span class="stringliteral">"sire"</span>));
-<a name="l01782"></a>01782     <span class="keywordtype">int</span> i, j, t, n = LENGTH(sp), S, D;
-<a name="l01783"></a>01783     <span class="keywordtype">int</span> *SI, *MI,               <span class="comment">/* start and minor */</span>
-<a name="l01784"></a>01784         *sire = INTEGER(sp),
-<a name="l01785"></a>01785         *dam = INTEGER(GET_SLOT(x, install(<span class="stringliteral">"dam"</span>)));
-<a name="l01786"></a>01786     <span class="keywordtype">double</span> *F = <a class="code" href="lmer_8c.html#679ceea530c97713d6abdb619e70a6b9" title="alloca n elements of type t">Alloca</a>(n + 1, <span class="keywordtype">double</span>), <span class="comment">/* inbreeding coefficients */</span>
-<a name="l01787"></a>01787       *L = <a class="code" href="lmer_8c.html#679ceea530c97713d6abdb619e70a6b9" title="alloca n elements of type t">Alloca</a>(n + 1, <span class="keywordtype">double</span>), *B = <a class="code" href="lmer_8c.html#679ceea530c97713d6abdb619e70a6b9" title="alloca n elements of type t">Alloca</a>(n + 1, <span class="keywordtype">double</span>);
-<a name="l01788"></a>01788     <span class="keywordtype">int</span> *Anc = <a class="code" href="lmer_8c.html#679ceea530c97713d6abdb619e70a6b9" title="alloca n elements of type t">Alloca</a>(n + 1, <span class="keywordtype">int</span>),      <span class="comment">/* ancestor */</span>
-<a name="l01789"></a>01789         *LAP = <a class="code" href="lmer_8c.html#679ceea530c97713d6abdb619e70a6b9" title="alloca n elements of type t">Alloca</a>(n + 1, <span class="keywordtype">int</span>);      <span class="comment">/* longest ancestoral path */</span>
-<a name="l01790"></a>01790     R_CheckStack();
-<a name="l01791"></a>01791     
-<a name="l01792"></a>01792     F[0] =-1; LAP[0] =-1; <span class="comment">/* set F and lap for unknown parents */</span>
-<a name="l01793"></a>01793     <span class="keywordflow">for</span>(i = 1, t = -1; i &lt;= n; i++) {   <span class="comment">/* evaluate LAP and its maximum */</span>
-<a name="l01794"></a>01794         S = sire[i]; D = dam[i]; <span class="comment">/* parents of animal i */</span>
-<a name="l01795"></a>01795         LAP[i] = ((LAP[S] &lt; LAP[D]) ? LAP[D] : LAP[S]) + 1;
-<a name="l01796"></a>01796         <span class="keywordflow">if</span> (LAP[i] &gt; t) t = LAP[i];
-<a name="l01797"></a>01797     }
-<a name="l01798"></a>01798     SI = <a class="code" href="lmer_8c.html#679ceea530c97713d6abdb619e70a6b9" title="alloca n elements of type t">Alloca</a>(t + 1, <span class="keywordtype">int</span>);
-<a name="l01799"></a>01799     MI = <a class="code" href="lmer_8c.html#679ceea530c97713d6abdb619e70a6b9" title="alloca n elements of type t">Alloca</a>(t + 1, <span class="keywordtype">int</span>);
-<a name="l01800"></a>01800     <span class="keywordflow">for</span>(i = 0; i &lt;= t ; ++i) SI[i] = MI[i] = 0; <span class="comment">/* initialize start and minor */</span>
-<a name="l01801"></a>01801     <span class="keywordflow">for</span>(i = 1; i &lt;= n; i++) {   <span class="comment">/* evaluate F */</span>
-<a name="l01802"></a>01802         S = sire[i]; D = dam[i]; <span class="comment">/* parents of animal i */</span>
-<a name="l01803"></a>01803         B[i] = 0.5 - 0.25 * (F[S] + F[D]); 
-<a name="l01804"></a>01804                                 <span class="comment">/* adjust start and minor */</span>
-<a name="l01805"></a>01805         <span class="keywordflow">for</span> (j = 0; j &lt; LAP[i]; j++) {++SI[j]; ++MI[j];} 
-<a name="l01806"></a>01806         <span class="keywordflow">if</span> (S == 0 || D == 0) { <span class="comment">/* both parents unknown */</span>
-<a name="l01807"></a>01807             F[i] = L[i] = 0; <span class="keywordflow">continue</span>;
-<a name="l01808"></a>01808         }
-<a name="l01809"></a>01809         <span class="keywordflow">if</span>(S == sire[i-1] &amp;&amp; D == dam[i-1]) { <span class="comment">/* full-sib with last animal */</span>
-<a name="l01810"></a>01810             F[i] = F[i-1]; L[i] = L[i-1]; <span class="keywordflow">continue</span>;
-<a name="l01811"></a>01811         }
-<a name="l01812"></a>01812     
-<a name="l01813"></a>01813         F[i] = -1; L[i] = 1; 
-<a name="l01814"></a>01814         t = LAP[i]; <span class="comment">/* largest lap group number in the animal's pedigree */</span>
-<a name="l01815"></a>01815         Anc[MI[t]++] = i; <span class="comment">/* initialize Anc and increment MI[t] */</span>
-<a name="l01816"></a>01816         <span class="keywordflow">while</span>(t &gt; -1) { <span class="comment">/* from the largest lap group to zero */</span>
-<a name="l01817"></a>01817             j = Anc[--MI[t]]; <span class="comment">/* next ancestor */</span>
-<a name="l01818"></a>01818             S = sire[j]; D = dam[j]; <span class="comment">/* parents of the ancestor */</span>
-<a name="l01819"></a>01819             <span class="keywordflow">if</span> (S) {
-<a name="l01820"></a>01820                 <span class="keywordflow">if</span> (!L[S]) Anc[MI[LAP[S]]++] = S; 
-<a name="l01821"></a>01821                                 <span class="comment">/* add sire in its lap group in Anc</span>
-<a name="l01822"></a>01822 <span class="comment">                                 * array if it is not added yet and</span>
-<a name="l01823"></a>01823 <span class="comment">                                 * increment the minor index for the group */</span> 
-<a name="l01824"></a>01824                 L[S] += 0.5 * L[j]; <span class="comment">/* contribution to sire */</span>
-<a name="l01825"></a>01825             }
-<a name="l01826"></a>01826             <span class="keywordflow">if</span> (D) {
-<a name="l01827"></a>01827                 <span class="keywordflow">if</span> (!L[D]) Anc[MI[LAP[D]]++] = D;
-<a name="l01828"></a>01828                 L[D] += 0.5 * L[j]; <span class="comment">/* contribution to dam */</span>
-<a name="l01829"></a>01829             }
-<a name="l01830"></a>01830             F[i] += L[j] * L[j] * B[j];
-<a name="l01831"></a>01831             L[j] = 0; <span class="comment">/*clear L[j] for the evaluation of the next animal */</span>
-<a name="l01832"></a>01832             <span class="keywordflow">if</span> (MI[t] == SI[t]) --t; <span class="comment">/* move to the next lap group when</span>
-<a name="l01833"></a>01833 <span class="comment">                                      * all ancestors in group t have been</span>
-<a name="l01834"></a>01834 <span class="comment">                                      * evaluated */</span>
-<a name="l01835"></a>01835         } 
-<a name="l01836"></a>01836     }
-<a name="l01837"></a>01837     ans = PROTECT(allocVector(REALSXP, n));
-<a name="l01838"></a>01838     Memcpy(REAL(ans), F + 1, n);
-<a name="l01839"></a>01839     UNPROTECT(1);
-<a name="l01840"></a>01840     <span class="keywordflow">return</span> ans;
-<a name="l01841"></a>01841 }
+<a name="l01063"></a>01063 <span class="keyword">static</span> <span class="keywordtype">void</span>
+<a name="l01064"></a><a class="code" href="lmer_8c.html#212653bbf1859f99223c639ece204442">01064</a> <a class="code" href="lmer_8c.html#212653bbf1859f99223c639ece204442" title="Create PAW^{1/2}v in dest.">PAWv</a>(<span class="keywordtype">double</span> *dest, <span class="keyword">const</span> <span class="keywordtype">int</span> *perm, <span class="keyword">const</span> CHM_SP A,
+<a name="l01065"></a>01065      <span class="keyword">const</span> <span class="keywordtype">double</span> *swt, <span class="keyword">const</span> <span class="keywordtype">double</span> *v)
+<a name="l01066"></a>01066 {
+<a name="l01067"></a>01067     <span class="keywordtype">int</span> *ai = (<span class="keywordtype">int</span>*)(A-&gt;i), *ap = (<span class="keywordtype">int</span>*)(A-&gt;p), j, k,
+<a name="l01068"></a>01068         n = A-&gt;ncol, p, q = A-&gt;nrow;
+<a name="l01069"></a>01069     <span class="keywordtype">double</span> *ax = (<span class="keywordtype">double</span>*)(A-&gt;x), *tmp = <a class="code" href="lmer_8c.html#679ceea530c97713d6abdb619e70a6b9" title="alloca n elements of type t">Alloca</a>(q, <span class="keywordtype">double</span>);
+<a name="l01070"></a>01070     R_CheckStack();
+<a name="l01071"></a>01071 
+<a name="l01072"></a>01072     <a class="code" href="lmer_8c.html#8388ab26cceddaa6efaccc3c51add430" title="zero an array">AZERO</a>(tmp, q);
+<a name="l01073"></a>01073     <span class="keywordflow">for</span> (j = 0; j &lt; n; j++) {
+<a name="l01074"></a>01074         <span class="keywordtype">double</span> mm = v[j] * (swt ? swt[j] : 1);
+<a name="l01075"></a>01075         <span class="keywordflow">for</span> (p = ap[j]; p &lt; ap[j + 1]; p++)
+<a name="l01076"></a>01076             tmp[ai[p]] += mm * ax[p];
+<a name="l01077"></a>01077     }
+<a name="l01078"></a>01078     <span class="keywordflow">for</span> (k = 0; k &lt; q; k++)     <span class="comment">/* apply the permutation */</span>
+<a name="l01079"></a>01079         dest[k] = tmp[perm ? perm[k] : k];
+<a name="l01080"></a>01080 }
+<a name="l01081"></a>01081 
+<a name="l01096"></a>01096 <span class="keyword">static</span> <span class="keywordtype">void</span>
+<a name="l01097"></a><a class="code" href="lmer_8c.html#c5e67856ab36eb41d71dab9fd71bc059">01097</a> <a class="code" href="lmer_8c.html#c5e67856ab36eb41d71dab9fd71bc059" title="Accumulate the weighted cross-product of [X:y] in rxy.">weighted_XytXy</a>(<span class="keywordtype">double</span> *rxy, <span class="keyword">const</span> <span class="keywordtype">double</span> *swt, <span class="keywordtype">double</span> *X,
+<a name="l01098"></a>01098                <span class="keywordtype">double</span> *y, <span class="keywordtype">int</span> n, <span class="keywordtype">int</span> p)
+<a name="l01099"></a>01099 {
+<a name="l01100"></a>01100     <span class="keywordtype">int</span> i, ione = 1, j, pp1 = p + 1;
+<a name="l01101"></a>01101     <span class="keywordtype">double</span> one = 1, zero = 0;
+<a name="l01102"></a>01102     <span class="keywordtype">double</span> *Xcp = X, *ycp = y;
+<a name="l01103"></a>01103     
+<a name="l01104"></a>01104     <span class="keywordflow">if</span> (swt) {                  <span class="comment">/* created weighted copies of X and y */</span>
+<a name="l01105"></a>01105         Xcp = <a class="code" href="lmer_8c.html#679ceea530c97713d6abdb619e70a6b9" title="alloca n elements of type t">Alloca</a>(n * p, <span class="keywordtype">double</span>),
+<a name="l01106"></a>01106         ycp = <a class="code" href="lmer_8c.html#679ceea530c97713d6abdb619e70a6b9" title="alloca n elements of type t">Alloca</a>(n, <span class="keywordtype">double</span>);
+<a name="l01107"></a>01107         R_CheckStack();
+<a name="l01108"></a>01108         
+<a name="l01109"></a>01109         <span class="keywordflow">for</span> (i = 0; i &lt; n; i++) ycp[i] = swt[i] * y[i];
+<a name="l01110"></a>01110         <span class="keywordflow">for</span> (j = 0; j &lt; p; j++)
+<a name="l01111"></a>01111             <span class="keywordflow">for</span> (i = 0; i &lt; n; i++)
+<a name="l01112"></a>01112                 Xcp[i + j * n] = swt[i] * X[i + j * n];
+<a name="l01113"></a>01113     }
+<a name="l01114"></a>01114     F77_CALL(dsyrk)(<span class="stringliteral">"U"</span>, <span class="stringliteral">"T"</span>, &amp;p, &amp;n, &amp;one, Xcp, &amp;n, &amp;zero, rxy, &amp;pp1);
+<a name="l01115"></a>01115     F77_CALL(dgemv)(<span class="stringliteral">"T"</span>, &amp;n, &amp;p, &amp;one, Xcp, &amp;n, ycp, &amp;ione, &amp;zero,
+<a name="l01116"></a>01116                     rxy + p * pp1, &amp;ione);
+<a name="l01117"></a>01117     rxy[pp1 * pp1 - 1] = F77_CALL(ddot)(&amp;n, ycp, &amp;ione, ycp, &amp;ione);
+<a name="l01118"></a>01118 }
+<a name="l01119"></a>01119         
+<a name="l01127"></a><a class="code" href="lmer_8c.html#2c7f7874e2eb3f6c51c53c5873cffec4">01127</a> <span class="keyword">static</span> <span class="keywordtype">double</span> <a class="code" href="lmer_8c.html#2c7f7874e2eb3f6c51c53c5873cffec4" title="Update the RCX and RX slots in an mer object.">update_RX</a>(SEXP x)
+<a name="l01128"></a>01128 {
+<a name="l01129"></a>01129     SEXP RCXyP = GET_SLOT(x, <a class="code" href="Syms_8h.html#d59cc3a6c8eba122cad97268682ad0f9">lme4_RCXySym</a>),
+<a name="l01130"></a>01130         vP = GET_SLOT(x, <a class="code" href="Syms_8h.html#ef220131bb03d4666ff1b7ec39bd3e2b">lme4_vSym</a>);
+<a name="l01131"></a>01131     <span class="keywordtype">int</span> *dims = INTEGER(GET_SLOT(x, <a class="code" href="Syms_8h.html#49094314461f4e9b10bbda1771719e29">lme4_dimsSym</a>));
+<a name="l01132"></a>01132     <span class="keywordtype">int</span> i, j, k, lv = LENGTH(vP), n = dims[<a class="code" href="lmer_8c.html#d4ed7f6a53d33bda670d5b7dbea3bcbaccc72a17eae16e4f222f4a5a088afcd9" title="number of observations">n_POS</a>], p = dims[<a class="code" href="lmer_8c.html#d4ed7f6a53d33bda670d5b7dbea3bcba193cdfb875a2d07bbbd3a5587879281b" title="number of fixed-effects parameters">p_POS</a>];
+<a name="l01133"></a>01133     <span class="keywordtype">int</span> np = n * p, q = dims[<a class="code" href="lmer_8c.html#d4ed7f6a53d33bda670d5b7dbea3bcba37d963697202d840d6555705f0d84ce5" title="number of random effects">q_POS</a>], s = dims[<a class="code" href="lmer_8c.html#d4ed7f6a53d33bda670d5b7dbea3bcba91cd64ccd89cc2464e243909b1fe80d0" title="number of variables in h (1 unless nonlinear)">s_POS</a>], pp1 = p + 1;
+<a name="l01134"></a>01134     <span class="keywordtype">double</span> *X = REAL(GET_SLOT(x, <a class="code" href="Syms_8h.html#c942d1af2e7836825b2c4d05469bbc9e">lme4_XSym</a>));
+<a name="l01135"></a>01135     <span class="keywordtype">double</span> *Xcp = X, *d = REAL(GET_SLOT(x, <a class="code" href="Syms_8h.html#b9aed2e8e5de0f7481e729116ab89c65">lme4_devianceSym</a>)),
+<a name="l01136"></a>01136         *muEta = <a class="code" href="lmer_8c.html#0a84fce1f01d522d8c5379001e23bc8c" title="Extract the slot named nm from the object obj and return a null pointer if the slot...">SLOT_REAL_NULL</a>(x, <a class="code" href="Syms_8h.html#9165fffba3009fd7d6a5116e3d8435a3">lme4_muEtaSym</a>),
+<a name="l01137"></a>01137         *rcxy = REAL(RCXyP),
+<a name="l01138"></a>01138         *rxy = REAL(GET_SLOT(x, <a class="code" href="Syms_8h.html#5ebefc34ba71773e46ade9ee1e26146a">lme4_RXySym</a>)),
+<a name="l01139"></a>01139         *swt = <a class="code" href="lmer_8c.html#0a84fce1f01d522d8c5379001e23bc8c" title="Extract the slot named nm from the object obj and return a null pointer if the slot...">SLOT_REAL_NULL</a>(x, <a class="code" href="Syms_8h.html#19459c8e3ff2009eb171e4f90dee3bc6">lme4_sqrtWtSym</a>),
+<a name="l01140"></a>01140         *y = REAL(GET_SLOT(x, <a class="code" href="Syms_8h.html#fd01bb0c98ee90bc0e8f8cdf538e6a33">lme4_ySym</a>)),
+<a name="l01141"></a>01141         dn = (double) n, dnmp = (<span class="keywordtype">double</span>) (n - p),
+<a name="l01142"></a>01142         mone[] = {-1,0}, one[] = {1,0};
+<a name="l01143"></a>01143     CHM_SP A =
+<a name="l01144"></a>01144         AS_CHM_SP(GET_SLOT(x, (swt || lv) ? <a class="code" href="Syms_8h.html#f43f600b385c160bfa212f997076fe62" title="Pointers to symbols initialized in R_init_lme4.">lme4_ASym</a> : <a class="code" href="Syms_8h.html#5ef50bc4e9cb19417879a686d2bc978d">lme4_CmSym</a>));
+<a name="l01145"></a>01145     CHM_DN cRCXy = AS_CHM_DN(RCXyP), ans;
+<a name="l01146"></a>01146     CHM_FR L = <a class="code" href="lmer_8c.html#94e6667644d2b670654fc46d3cf0ee1b" title="Extract the L slot, convert to a cholmod_factor and return the pointer.">L_SLOT</a>(x);
+<a name="l01147"></a>01147     R_CheckStack();
+<a name="l01148"></a>01148 
+<a name="l01149"></a>01149     <a class="code" href="lmer_8c.html#2f257f628f06920b351486d48ab50026" title="Update the A, L, sqrtWt and resid slots.">update_L</a>(x);
+<a name="l01150"></a>01150     <span class="keywordflow">if</span> (lv || muEta) {          <span class="comment">/* Create Xcp = G^{-1} %*% H %*% X */</span>
+<a name="l01151"></a>01151         Xcp = <a class="code" href="lmer_8c.html#679ceea530c97713d6abdb619e70a6b9" title="alloca n elements of type t">Alloca</a>(np, <span class="keywordtype">double</span>);
+<a name="l01152"></a>01152         R_CheckStack();
+<a name="l01153"></a>01153 
+<a name="l01154"></a>01154         <span class="keywordflow">if</span> (lv) {               <span class="comment">/* Xcp = H %*% X */</span>
+<a name="l01155"></a>01155             <span class="keywordtype">double</span> *H = REAL(getAttrib(vP, <a class="code" href="Syms_8h.html#2709db534fe1076d573a8e61ab435cf3">lme4_gradientSym</a>));
+<a name="l01156"></a>01156 
+<a name="l01157"></a>01157             <a class="code" href="lmer_8c.html#8388ab26cceddaa6efaccc3c51add430" title="zero an array">AZERO</a>(Xcp, np);
+<a name="l01158"></a>01158             <span class="keywordflow">for</span> (j = 0; j &lt; p; j++)
+<a name="l01159"></a>01159                 <span class="keywordflow">for</span> (k = 0; k &lt; s; k++)
+<a name="l01160"></a>01160                     <span class="keywordflow">for</span> (i = 0; i &lt; n; i++)
+<a name="l01161"></a>01161                         Xcp[j * n + i] += X[n * (j * s + k) + i] * H[k * n + i];
+<a name="l01162"></a>01162         } <span class="keywordflow">else</span> {
+<a name="l01163"></a>01163             Memcpy(Xcp, X, np); <span class="comment">/* Xcp = X */</span>
+<a name="l01164"></a>01164         }
+<a name="l01165"></a>01165         <span class="keywordflow">if</span> (muEta) {            <span class="comment">/* Xcp := G^{-1} %*% Xcp */</span>
+<a name="l01166"></a>01166             <span class="keywordflow">for</span> (j = 0; j &lt; p; j++)
+<a name="l01167"></a>01167                 <span class="keywordflow">for</span> (i = 0; i &lt; n; i++)
+<a name="l01168"></a>01168                     Xcp[j * n + i] *= muEta[i];
+<a name="l01169"></a>01169         }
+<a name="l01170"></a>01170     }
+<a name="l01171"></a>01171                                 <span class="comment">/* Evaluate PAW^{1/2}[X:y] in RCXy */</span>
+<a name="l01172"></a>01172     <span class="keywordflow">for</span> (j = 0; j &lt; p; j++)
+<a name="l01173"></a>01173         <a class="code" href="lmer_8c.html#212653bbf1859f99223c639ece204442" title="Create PAW^{1/2}v in dest.">PAWv</a>(rcxy + j * q, (<span class="keywordtype">int</span>*)(L-&gt;Perm), A, swt, Xcp + j * n);
+<a name="l01174"></a>01174     <a class="code" href="lmer_8c.html#212653bbf1859f99223c639ece204442" title="Create PAW^{1/2}v in dest.">PAWv</a>(rcxy + p * q, (<span class="keywordtype">int</span>*)(L-&gt;Perm), A, swt, y);
+<a name="l01175"></a>01175                                 <span class="comment">/* solve L %*% ans = PAW^{1/2}[X:y] */</span>
+<a name="l01176"></a>01176     ans = M_cholmod_solve(CHOLMOD_L, L, cRCXy, &amp;<a class="code" href="init_8c.html#c2b5dcf1f18e620b15b2e284dd9f6bd4" title="cholmod_common struct local to the package">c</a>);
+<a name="l01177"></a>01177     Memcpy(rcxy, (<span class="keywordtype">double</span>*)(ans-&gt;x), q * pp1);
+<a name="l01178"></a>01178     M_cholmod_free_dense(&amp;ans, &amp;<a class="code" href="init_8c.html#c2b5dcf1f18e620b15b2e284dd9f6bd4" title="cholmod_common struct local to the package">c</a>);
+<a name="l01179"></a>01179                                 <span class="comment">/* downdate XytXy  */</span>
+<a name="l01180"></a>01180                                 <span class="comment">/* Evaluate [X:y]'W[X:y] in RXy */</span>
+<a name="l01181"></a>01181     <a class="code" href="lmer_8c.html#c5e67856ab36eb41d71dab9fd71bc059" title="Accumulate the weighted cross-product of [X:y] in rxy.">weighted_XytXy</a>(rxy, swt, Xcp, y, n, p);
+<a name="l01182"></a>01182     F77_CALL(dsyrk)(<span class="stringliteral">"U"</span>, <span class="stringliteral">"T"</span>, &amp;pp1, &amp;q, mone, rcxy, &amp;q, one, rxy, &amp;pp1);
+<a name="l01183"></a>01183     F77_CALL(dpotrf)(<span class="stringliteral">"U"</span>, &amp;pp1, rxy, &amp;pp1, &amp;j);
+<a name="l01184"></a>01184     <span class="keywordflow">if</span> (j)
+<a name="l01185"></a>01185         error(<a class="code" href="lmer_8c.html#32a3cf3d9dd914f5aeeca5423c157934" title="i18n of error messages">_</a>(<span class="stringliteral">"Downdated [X:y]'[X:y] is not positive definite, %d."</span>),
+<a name="l01186"></a>01186               j);
+<a name="l01187"></a>01187     <span class="keywordflow">for</span> (j = 0, d[<a class="code" href="lmer_8c.html#2ef82a9439b964c1e545fb6487a5e3ac88f23d25bffc837e71115357097fde7c" title="2*log-determinant of RX">ldRX2_POS</a>] = 0; j &lt; (pp1 - 1); j++)
+<a name="l01188"></a>01188         d[<a class="code" href="lmer_8c.html#2ef82a9439b964c1e545fb6487a5e3ac88f23d25bffc837e71115357097fde7c" title="2*log-determinant of RX">ldRX2_POS</a>] += 2 * log(rxy[j * (pp1 + 1)]);
+<a name="l01189"></a>01189     <span class="comment">/* update other elements of the deviance slot for LMMs */</span>
+<a name="l01190"></a>01190     <span class="keywordflow">if</span> ((!LENGTH(GET_SLOT(x, <a class="code" href="Syms_8h.html#9165fffba3009fd7d6a5116e3d8435a3">lme4_muEtaSym</a>))) &amp;&amp;
+<a name="l01191"></a>01191         (!LENGTH(GET_SLOT(x, <a class="code" href="Syms_8h.html#ef220131bb03d4666ff1b7ec39bd3e2b">lme4_vSym</a>)))) {
+<a name="l01192"></a>01192         d[<a class="code" href="lmer_8c.html#2ef82a9439b964c1e545fb6487a5e3acf8dc52b56fc072dc095782caff1c5df2" title="log penalized discrepancy">lpdisc_POS</a>] = 2 * log(rxy[pp1 * pp1 - 1]);
+<a name="l01193"></a>01193         d[<a class="code" href="lmer_8c.html#2ef82a9439b964c1e545fb6487a5e3ac0966f1b2ecf23e6ad09c98b24e671969" title="Maximum likelihood deviance.">ML_POS</a>] = d[<a class="code" href="lmer_8c.html#2ef82a9439b964c1e545fb6487a5e3ac1f383bef04b44158a36fcbc7448ff209" title="2*log-determinant of L">ldL2_POS</a>] +
+<a name="l01194"></a>01194             dn * (1 + d[<a class="code" href="lmer_8c.html#2ef82a9439b964c1e545fb6487a5e3acf8dc52b56fc072dc095782caff1c5df2" title="log penalized discrepancy">lpdisc_POS</a>] + log(2 * PI / dn));
+<a name="l01195"></a>01195         d[<a class="code" href="lmer_8c.html#2ef82a9439b964c1e545fb6487a5e3ac7a80b999acd82e5cbb3cf97973aa78ea" title="REML deviance.">REML_POS</a>] = d[<a class="code" href="lmer_8c.html#2ef82a9439b964c1e545fb6487a5e3ac1f383bef04b44158a36fcbc7448ff209" title="2*log-determinant of L">ldL2_POS</a>] + d[<a class="code" href="lmer_8c.html#2ef82a9439b964c1e545fb6487a5e3ac88f23d25bffc837e71115357097fde7c" title="2*log-determinant of RX">ldRX2_POS</a>] +
+<a name="l01196"></a>01196             dnmp * (1. + d[<a class="code" href="lmer_8c.html#2ef82a9439b964c1e545fb6487a5e3acf8dc52b56fc072dc095782caff1c5df2" title="log penalized discrepancy">lpdisc_POS</a>] + log(2. * PI / dnmp));
+<a name="l01197"></a>01197     }
+<a name="l01198"></a>01198     <span class="keywordflow">return</span> d[dims[<a class="code" href="lmer_8c.html#d4ed7f6a53d33bda670d5b7dbea3bcba43f2bd1e217872fe65753fc44dc9c8b0" title="indicator of REML estimation">isREML_POS</a>] ? <a class="code" href="lmer_8c.html#2ef82a9439b964c1e545fb6487a5e3ac7a80b999acd82e5cbb3cf97973aa78ea" title="REML deviance.">REML_POS</a> : <a class="code" href="lmer_8c.html#2ef82a9439b964c1e545fb6487a5e3ac0966f1b2ecf23e6ad09c98b24e671969" title="Maximum likelihood deviance.">ML_POS</a>];
+<a name="l01199"></a>01199 }
+<a name="l01200"></a>01200 
+<a name="l01208"></a>01208 SEXP
+<a name="l01209"></a><a class="code" href="lmer_8h.html#6c02b5f73d659d2d748852fac7e9c462">01209</a> <a class="code" href="lmer_8c.html#6c02b5f73d659d2d748852fac7e9c462" title="Externally callable version of update_RX.">mer_update_RX</a>(SEXP x)
+<a name="l01210"></a>01210 {
+<a name="l01211"></a>01211     <span class="keywordflow">return</span> ScalarReal(<a class="code" href="lmer_8c.html#2c7f7874e2eb3f6c51c53c5873cffec4" title="Update the RCX and RX slots in an mer object.">update_RX</a>(x));
+<a name="l01212"></a>01212 }
+<a name="l01213"></a>01213 
+<a name="l01223"></a>01223 SEXP 
+<a name="l01224"></a><a class="code" href="lmer_8h.html#a4e16de36d36af6c715d52a045f88e78">01224</a> <a class="code" href="lmer_8c.html#7aa21aea1da63a3096fcc054cc6c9dd5" title="Optimize the profiled deviance of an lmer object or the Laplace approximation to...">mer_optimize</a>(SEXP x, SEXP verbp)
+<a name="l01225"></a>01225 {
+<a name="l01226"></a>01226     SEXP ST = GET_SLOT(x, <a class="code" href="Syms_8h.html#14f91c10cf53ae13351717e358fdf447">lme4_STSym</a>);
+<a name="l01227"></a>01227     <span class="keywordtype">int</span> *dims = INTEGER(GET_SLOT(x, <a class="code" href="Syms_8h.html#49094314461f4e9b10bbda1771719e29">lme4_dimsSym</a>)),
+<a name="l01228"></a>01228         i, j, pos, verb = asInteger(verbp);
+<a name="l01229"></a>01229     <span class="keywordtype">int</span> lmm = !(LENGTH(GET_SLOT(x, <a class="code" href="Syms_8h.html#9165fffba3009fd7d6a5116e3d8435a3">lme4_muEtaSym</a>)) ||
+<a name="l01230"></a>01230                 LENGTH(GET_SLOT(x, <a class="code" href="Syms_8h.html#ef220131bb03d4666ff1b7ec39bd3e2b">lme4_vSym</a>))),
+<a name="l01231"></a>01231         nf = dims[<a class="code" href="lmer_8c.html#d4ed7f6a53d33bda670d5b7dbea3bcbaafdfe3e96c82c637dec9623a20c28e2d" title="number of terms in random effects">nf_POS</a>];
+<a name="l01232"></a>01232 <span class="comment">/* FIXME: need to add 1 to nv for GLMM with a scale par (maybe). */</span>
+<a name="l01233"></a>01233     <span class="keywordtype">int</span> nv = dims[<a class="code" href="lmer_8c.html#d4ed7f6a53d33bda670d5b7dbea3bcba2b797f093d02ad8ae18e2df853ddbeb2" title="total number of parameters for T and S">np_POS</a>] + (lmm ? 0 : dims[<a class="code" href="lmer_8c.html#d4ed7f6a53d33bda670d5b7dbea3bcba193cdfb875a2d07bbbd3a5587879281b" title="number of fixed-effects parameters">p_POS</a>]);
+<a name="l01234"></a>01234     <span class="keywordtype">int</span> liv = S_iv_length(OPT, nv), lv = S_v_length(OPT, nv);
+<a name="l01235"></a>01235     <span class="keywordtype">double</span> *g = (<span class="keywordtype">double</span>*)NULL, *h = (<span class="keywordtype">double</span>*)NULL, fx = R_PosInf;
+<a name="l01236"></a>01236     <span class="keywordtype">double</span> *fixef = REAL(GET_SLOT(x, <a class="code" href="Syms_8h.html#cfa94b175e0d8bbb6ea7e3f1424bdda1">lme4_fixefSym</a>));
+<a name="l01237"></a>01237     <span class="keywordtype">int</span> *iv = <a class="code" href="lmer_8c.html#679ceea530c97713d6abdb619e70a6b9" title="alloca n elements of type t">Alloca</a>(liv, <span class="keywordtype">int</span>);
+<a name="l01238"></a>01238     <span class="keywordtype">double</span> *b = <a class="code" href="lmer_8c.html#679ceea530c97713d6abdb619e70a6b9" title="alloca n elements of type t">Alloca</a>(2 * nv, <span class="keywordtype">double</span>), *d = <a class="code" href="lmer_8c.html#679ceea530c97713d6abdb619e70a6b9" title="alloca n elements of type t">Alloca</a>(nv, <span class="keywordtype">double</span>),
+<a name="l01239"></a>01239         *v = <a class="code" href="lmer_8c.html#679ceea530c97713d6abdb619e70a6b9" title="alloca n elements of type t">Alloca</a>(lv, <span class="keywordtype">double</span>), *xv = <a class="code" href="lmer_8c.html#679ceea530c97713d6abdb619e70a6b9" title="alloca n elements of type t">Alloca</a>(nv, <span class="keywordtype">double</span>);
+<a name="l01240"></a>01240     R_CheckStack();
+<a name="l01241"></a>01241 
+<a name="l01242"></a>01242     <a class="code" href="lmer_8c.html#1d1cc0c037f6827ce66c5aa1db650224" title="Extract the parameters from ST list.">ST_getPars</a>(x, xv);
+<a name="l01243"></a>01243     <span class="keywordflow">if</span> (!lmm) {
+<a name="l01244"></a>01244         <span class="keywordtype">double</span> eta = 1.e-5; <span class="comment">/* estimated rel. error on computed lpdisc */</span>
+<a name="l01245"></a>01245 
+<a name="l01246"></a>01246         Memcpy(xv + dims[<a class="code" href="lmer_8c.html#d4ed7f6a53d33bda670d5b7dbea3bcba2b797f093d02ad8ae18e2df853ddbeb2" title="total number of parameters for T and S">np_POS</a>], fixef, dims[<a class="code" href="lmer_8c.html#d4ed7f6a53d33bda670d5b7dbea3bcba193cdfb875a2d07bbbd3a5587879281b" title="number of fixed-effects parameters">p_POS</a>]);
+<a name="l01247"></a>01247         v[31] = eta;            <span class="comment">/* RFCTOL */</span>
+<a name="l01248"></a>01248         v[36] = eta;            <span class="comment">/* SCTOL */</span>
+<a name="l01249"></a>01249         v[41] = eta;            <span class="comment">/* ETA0 */</span>
+<a name="l01250"></a>01250     }
+<a name="l01251"></a>01251                                 <span class="comment">/* initialize the state vectors v and iv */</span>
+<a name="l01252"></a>01252     S_Rf_divset(OPT, iv, liv, lv, v);
+<a name="l01253"></a>01253     <span class="keywordflow">if</span> (verb) iv[OUTLEV] = 1;
+<a name="l01254"></a>01254                                 <span class="comment">/* set the bounds to plus/minus Infty  */</span>
+<a name="l01255"></a>01255     <span class="keywordflow">for</span> (i = 0; i &lt; nv; i++) {
+<a name="l01256"></a>01256         b[2*i] = R_NegInf; b[2*i+1] = R_PosInf; d[i] = 1;
+<a name="l01257"></a>01257     }
+<a name="l01258"></a>01258                                 <span class="comment">/* reset lower bounds on elements of theta_S */</span>
+<a name="l01259"></a>01259     <span class="keywordflow">for</span> (i = 0, pos = 0; i &lt; nf; i++) {
+<a name="l01260"></a>01260         <span class="keywordtype">int</span> nc = *INTEGER(getAttrib(VECTOR_ELT(ST, i), R_DimSymbol));
+<a name="l01261"></a>01261         <span class="keywordflow">for</span> (j = 0; j &lt; nc; j++) b[pos + 2*j] = 0;
+<a name="l01262"></a>01262         pos += nc * (nc + 1);
+<a name="l01263"></a>01263     }
+<a name="l01264"></a>01264     <span class="keywordflow">do</span> {
+<a name="l01265"></a>01265         <a class="code" href="lmer_8c.html#c91a1d6467c5dd44cbc4c785f643e315" title="Update the ST and C slots of an mer object.">ST_setPars</a>(x, xv);              <span class="comment">/* update ST and C */</span>
+<a name="l01266"></a>01266         <span class="keywordflow">if</span> (lmm)
+<a name="l01267"></a>01267             fx = <a class="code" href="lmer_8c.html#2c7f7874e2eb3f6c51c53c5873cffec4" title="Update the RCX and RX slots in an mer object.">update_RX</a>(x);
+<a name="l01268"></a>01268         <span class="keywordflow">else</span> {
+<a name="l01269"></a>01269             Memcpy(fixef, xv + dims[<a class="code" href="lmer_8c.html#d4ed7f6a53d33bda670d5b7dbea3bcba2b797f093d02ad8ae18e2df853ddbeb2" title="total number of parameters for T and S">np_POS</a>], dims[<a class="code" href="lmer_8c.html#d4ed7f6a53d33bda670d5b7dbea3bcba193cdfb875a2d07bbbd3a5587879281b" title="number of fixed-effects parameters">p_POS</a>]);
+<a name="l01270"></a>01270             <a class="code" href="lmer_8c.html#88236137756e85a656de3402adcf4747" title="Iterate to determine the conditional modes of the random effects.">update_u</a>(x, verb);
+<a name="l01271"></a>01271             <a class="code" href="lmer_8c.html#c33b16395fa975458685d0eb76996f92" title="Evaluate the discrepancy and log of the penalized discrepancy.">mer_update_dev</a>(x);
+<a name="l01272"></a>01272             fx = REAL(GET_SLOT(x, <a class="code" href="Syms_8h.html#b9aed2e8e5de0f7481e729116ab89c65">lme4_devianceSym</a>))[<a class="code" href="lmer_8c.html#2ef82a9439b964c1e545fb6487a5e3ac0966f1b2ecf23e6ad09c98b24e671969" title="Maximum likelihood deviance.">ML_POS</a>];
+<a name="l01273"></a>01273         }
+<a name="l01274"></a>01274         S_nlminb_iterate(b, d, fx, g, h, iv, liv, lv, nv, v, xv);
+<a name="l01275"></a>01275     } <span class="keywordflow">while</span> (iv[0] == 1 || iv[0] == 2);
+<a name="l01276"></a>01276     <a class="code" href="lmer_8c.html#2c7f7874e2eb3f6c51c53c5873cffec4" title="Update the RCX and RX slots in an mer object.">update_RX</a>(x);
+<a name="l01277"></a>01277     dims[<a class="code" href="lmer_8c.html#d4ed7f6a53d33bda670d5b7dbea3bcba3c653205ba325a47efabda0ef044462e" title="convergence indictor from port optimization">cvg_POS</a>] = iv[0];
+<a name="l01278"></a>01278     <span class="keywordflow">return</span> R_NilValue;
+<a name="l01279"></a>01279 }
+<a name="l01280"></a>01280 
+<a name="l01281"></a>01281 <span class="comment">/* Functions for sampling from a Wishart distribution */</span>
+<a name="l01282"></a>01282 <span class="comment">/* FIXME: Move these to the R sources */</span>
+<a name="l01283"></a>01283 
+<a name="l01296"></a>01296 <span class="keyword">static</span> <span class="keywordtype">double</span>
+<a name="l01297"></a><a class="code" href="lmer_8c.html#9812644aac7804e273e0a48e138eb9f9">01297</a> *<a class="code" href="lmer_8c.html#9812644aac7804e273e0a48e138eb9f9" title="Simulate the Cholesky factor of a standardized Wishart variate with dimension p and...">std_rWishart_factor</a>(<span class="keywordtype">double</span> df, <span class="keywordtype">int</span> p, <span class="keywordtype">int</span> upper, <span class="keywordtype">double</span> ans[])
+<a name="l01298"></a>01298 {
+<a name="l01299"></a>01299     <span class="keywordtype">int</span> i, j, pp1 = p + 1;
+<a name="l01300"></a>01300 
+<a name="l01301"></a>01301     <span class="keywordflow">if</span> (df &lt; (<span class="keywordtype">double</span>) p || p &lt;= 0)
+<a name="l01302"></a>01302         error(<span class="stringliteral">"inconsistent degrees of freedom and dimension"</span>);
+<a name="l01303"></a>01303     <span class="keywordflow">for</span> (j = 0; j &lt; p; j++) {   <span class="comment">/* jth column */</span>
+<a name="l01304"></a>01304         ans[j * pp1] = sqrt(rchisq(df - (<span class="keywordtype">double</span>) j));
+<a name="l01305"></a>01305         <span class="keywordflow">for</span> (i = 0; i &lt; j; i++) {
+<a name="l01306"></a>01306             <span class="keywordtype">int</span> uind = i + j * p, <span class="comment">/* upper triangle index */</span>
+<a name="l01307"></a>01307                 lind = j + i * p; <span class="comment">/* lower triangle index */</span>
+<a name="l01308"></a>01308             ans[(upper ? uind : lind)] = norm_rand();
+<a name="l01309"></a>01309             ans[(upper ? lind : uind)] = 0;
+<a name="l01310"></a>01310         }
+<a name="l01311"></a>01311     }
+<a name="l01312"></a>01312     <span class="keywordflow">return</span> ans;
+<a name="l01313"></a>01313 }
+<a name="l01314"></a>01314 
+<a name="l01324"></a>01324 SEXP
+<a name="l01325"></a><a class="code" href="lmer_8h.html#3e5fbf4c0511166682d134b8b4c68502">01325</a> <a class="code" href="lmer_8c.html#3e5fbf4c0511166682d134b8b4c68502" title="Simulate a sample of random matrices from a Wishart distribution.">lme4_rWishart</a>(SEXP ns, SEXP dfp, SEXP scal)
+<a name="l01326"></a>01326 {
+<a name="l01327"></a>01327     SEXP ans;
+<a name="l01328"></a>01328     <span class="keywordtype">int</span> *dims = INTEGER(getAttrib(scal, R_DimSymbol)), i, j, k,
+<a name="l01329"></a>01329         n = asInteger(ns), psqr;
+<a name="l01330"></a>01330     <span class="keywordtype">double</span> *scCp, *ansp, *tmp, df = asReal(dfp), one = 1, zero = 0;
+<a name="l01331"></a>01331 
+<a name="l01332"></a>01332     <span class="keywordflow">if</span> (!isMatrix(scal) || !isReal(scal) || dims[0] != dims[1])
+<a name="l01333"></a>01333         error(<span class="stringliteral">"scal must be a square, real matrix"</span>);
+<a name="l01334"></a>01334     <span class="keywordflow">if</span> (n &lt;= 0) n = 1;
+<a name="l01335"></a>01335     psqr = dims[0] * dims[0];
+<a name="l01336"></a>01336     tmp = <a class="code" href="lmer_8c.html#679ceea530c97713d6abdb619e70a6b9" title="alloca n elements of type t">Alloca</a>(psqr, <span class="keywordtype">double</span>);
+<a name="l01337"></a>01337     scCp = <a class="code" href="lmer_8c.html#679ceea530c97713d6abdb619e70a6b9" title="alloca n elements of type t">Alloca</a>(psqr, <span class="keywordtype">double</span>);
+<a name="l01338"></a>01338     R_CheckStack();
+<a name="l01339"></a>01339 
+<a name="l01340"></a>01340     Memcpy(scCp, REAL(scal), psqr);
+<a name="l01341"></a>01341     <a class="code" href="lmer_8c.html#8388ab26cceddaa6efaccc3c51add430" title="zero an array">AZERO</a>(tmp, psqr);
+<a name="l01342"></a>01342     F77_CALL(dpotrf)(<span class="stringliteral">"U"</span>, &amp;(dims[0]), scCp, &amp;(dims[0]), &amp;j);
+<a name="l01343"></a>01343     <span class="keywordflow">if</span> (j)
+<a name="l01344"></a>01344         error(<span class="stringliteral">"scal matrix is not positive-definite"</span>);
+<a name="l01345"></a>01345     PROTECT(ans = alloc3DArray(REALSXP, dims[0], dims[0], n));
+<a name="l01346"></a>01346     ansp = REAL(ans);
+<a name="l01347"></a>01347     GetRNGstate();
+<a name="l01348"></a>01348     <span class="keywordflow">for</span> (j = 0; j &lt; n; j++) {
+<a name="l01349"></a>01349         <span class="keywordtype">double</span> *ansj = ansp + j * psqr;
+<a name="l01350"></a>01350         <a class="code" href="lmer_8c.html#9812644aac7804e273e0a48e138eb9f9" title="Simulate the Cholesky factor of a standardized Wishart variate with dimension p and...">std_rWishart_factor</a>(df, dims[0], 1, tmp);
+<a name="l01351"></a>01351         F77_CALL(dtrmm)(<span class="stringliteral">"R"</span>, <span class="stringliteral">"U"</span>, <span class="stringliteral">"N"</span>, <span class="stringliteral">"N"</span>, dims, dims,
+<a name="l01352"></a>01352                         &amp;one, scCp, dims, tmp, dims);
+<a name="l01353"></a>01353         F77_CALL(dsyrk)(<span class="stringliteral">"U"</span>, <span class="stringliteral">"T"</span>, &amp;(dims[1]), &amp;(dims[1]),
+<a name="l01354"></a>01354                         &amp;one, tmp, &amp;(dims[1]),
+<a name="l01355"></a>01355                         &amp;zero, ansj, &amp;(dims[1]));
+<a name="l01356"></a>01356 
+<a name="l01357"></a>01357         <span class="keywordflow">for</span> (i = 1; i &lt; dims[0]; i++)
+<a name="l01358"></a>01358             <span class="keywordflow">for</span> (k = 0; k &lt; i; k++)
+<a name="l01359"></a>01359                 ansj[i + k * dims[0]] = ansj[k + i * dims[0]];
+<a name="l01360"></a>01360     }
+<a name="l01361"></a>01361 
+<a name="l01362"></a>01362     PutRNGstate();
+<a name="l01363"></a>01363     UNPROTECT(1);
+<a name="l01364"></a>01364     <span class="keywordflow">return</span> ans;
+<a name="l01365"></a>01365 }
+<a name="l01366"></a>01366 
+<a name="l01367"></a>01367 <span class="comment">/* MCMC sampling functions */</span>
+<a name="l01368"></a>01368 
+<a name="l01376"></a><a class="code" href="lmer_8c.html#f1bc9174690e2956720aa31781b073f0">01376</a> <span class="keyword">static</span> <span class="keywordtype">void</span> <a class="code" href="lmer_8c.html#f1bc9174690e2956720aa31781b073f0" title="Update the fixed effects in an MCMC sample from an mer object.">MCMC_beta</a>(SEXP x, <span class="keywordtype">double</span> sigma)
+<a name="l01377"></a>01377 {
+<a name="l01378"></a>01378     SEXP fixefP = GET_SLOT(x, <a class="code" href="Syms_8h.html#cfa94b175e0d8bbb6ea7e3f1424bdda1">lme4_fixefSym</a>),
+<a name="l01379"></a>01379         uvecP = GET_SLOT(x, <a class="code" href="Syms_8h.html#e9dfc68bbaf777d0409b883be2272482">lme4_uvecSym</a>);
+<a name="l01380"></a>01380     <span class="keywordtype">int</span> ione = 1, j, p = LENGTH(fixefP), q = LENGTH(uvecP);
+<a name="l01381"></a>01381     <span class="keywordtype">int</span> pp1 = p + 1;
+<a name="l01382"></a>01382     <span class="keywordtype">double</span> *fix = REAL(fixefP), *uv = REAL(uvecP), mone = -1, one = 1;
+<a name="l01383"></a>01383     CHM_FR L = <a class="code" href="lmer_8c.html#94e6667644d2b670654fc46d3cf0ee1b" title="Extract the L slot, convert to a cholmod_factor and return the pointer.">L_SLOT</a>(x);
+<a name="l01384"></a>01384     <span class="keywordtype">double</span> *del1 = <a class="code" href="lmer_8c.html#679ceea530c97713d6abdb619e70a6b9" title="alloca n elements of type t">Alloca</a>(q, <span class="keywordtype">double</span>), *del2 = <a class="code" href="lmer_8c.html#679ceea530c97713d6abdb619e70a6b9" title="alloca n elements of type t">Alloca</a>(p, <span class="keywordtype">double</span>);
+<a name="l01385"></a>01385     CHM_DN sol, rhs = N_AS_CHM_DN(del1, q, 1);
+<a name="l01386"></a>01386     R_CheckStack();
+<a name="l01387"></a>01387 
+<a name="l01388"></a>01388     <a class="code" href="lmer_8c.html#21adcf526681f1efd1ad0c4727ff4069" title="Update the contents of the fixef, ranef and uvec slots in an lmer object.">mer_update_effects</a>(x);
+<a name="l01389"></a>01389                                 <span class="comment">/* Update the fixed effects */</span>
+<a name="l01390"></a>01390     <span class="keywordflow">for</span> (j = 0; j &lt; p; j++) del2[j] = sigma * norm_rand();
+<a name="l01391"></a>01391     F77_CALL(dtrsv)(<span class="stringliteral">"U"</span>, <span class="stringliteral">"N"</span>, <span class="stringliteral">"N"</span>, &amp;p, REAL(GET_SLOT(x, <a class="code" href="Syms_8h.html#5ebefc34ba71773e46ade9ee1e26146a">lme4_RXySym</a>)),
+<a name="l01392"></a>01392                     &amp;pp1, del2, &amp;ione);
+<a name="l01393"></a>01393     <span class="keywordflow">for</span> (j = 0; j &lt; p; j++) fix[j] += del2[j];
+<a name="l01394"></a>01394                                 <span class="comment">/* Update the orthogonal random effects */</span>
+<a name="l01395"></a>01395     <span class="keywordflow">for</span> (j = 0; j &lt; q; j++) del1[j] = sigma * norm_rand();
+<a name="l01396"></a>01396     F77_CALL(dgemv)(<span class="stringliteral">"N"</span>, &amp;q, &amp;p, &amp;mone, REAL(GET_SLOT(x, <a class="code" href="Syms_8h.html#d59cc3a6c8eba122cad97268682ad0f9">lme4_RCXySym</a>)),
+<a name="l01397"></a>01397                     &amp;q, del2, &amp;ione, &amp;one, del1, &amp;ione);
+<a name="l01398"></a>01398     sol = M_cholmod_solve(CHOLMOD_Lt, L, rhs, &amp;<a class="code" href="init_8c.html#c2b5dcf1f18e620b15b2e284dd9f6bd4" title="cholmod_common struct local to the package">c</a>);
+<a name="l01399"></a>01399     <span class="keywordflow">for</span> (j = 0; j &lt; q; j++) uv[j] += ((<span class="keywordtype">double</span>*)(sol-&gt;x))[j];
+<a name="l01400"></a>01400     M_cholmod_free_dense(&amp;sol, &amp;<a class="code" href="init_8c.html#c2b5dcf1f18e620b15b2e284dd9f6bd4" title="cholmod_common struct local to the package">c</a>);
+<a name="l01401"></a>01401                                 <span class="comment">/* Update the random effects */</span>
+<a name="l01402"></a>01402     <a class="code" href="lmer_8c.html#5542c4de7dbcdbb6630cad8fabe96542" title="b = T *% S *% t(P) *% u">update_ranef</a>(x);
+<a name="l01403"></a>01403 }
+<a name="l01404"></a>01404 
+<a name="l01413"></a><a class="code" href="lmer_8c.html#0903b0858c61e7e394c4dfb5f2661748">01413</a> <span class="keyword">static</span> <span class="keywordtype">void</span> <a class="code" href="lmer_8c.html#0903b0858c61e7e394c4dfb5f2661748" title="Update the orthogonal random effects in an MCMC sample from an mer object.">MCMC_u</a>(SEXP x, <span class="keywordtype">double</span> sigma)
+<a name="l01414"></a>01414 {
+<a name="l01415"></a>01415 }
+<a name="l01416"></a>01416 
+<a name="l01417"></a>01417 <span class="keyword">static</span> <span class="keywordtype">void</span>
+<a name="l01418"></a><a class="code" href="lmer_8c.html#24e3fc6b91cae668ea046c4b5e5ff9ed">01418</a> <a class="code" href="lmer_8c.html#24e3fc6b91cae668ea046c4b5e5ff9ed">safe_pd_matrix</a>(<span class="keywordtype">double</span> x[], <span class="keyword">const</span> <span class="keywordtype">char</span> uplo[], <span class="keywordtype">int</span> n, <span class="keywordtype">double</span> thresh)
+<a name="l01419"></a>01419 {
+<a name="l01420"></a>01420     <span class="keywordtype">int</span> info, lwork = 3 * n, nm1 = n - 1;
+<a name="l01421"></a>01421     <span class="keywordtype">double</span> *work = <a class="code" href="lmer_8c.html#679ceea530c97713d6abdb619e70a6b9" title="alloca n elements of type t">Alloca</a>(3 * n, <span class="keywordtype">double</span>),
+<a name="l01422"></a>01422         *w = <a class="code" href="lmer_8c.html#679ceea530c97713d6abdb619e70a6b9" title="alloca n elements of type t">Alloca</a>(n, <span class="keywordtype">double</span>),
+<a name="l01423"></a>01423         *xcp = Memcpy(<a class="code" href="lmer_8c.html#679ceea530c97713d6abdb619e70a6b9" title="alloca n elements of type t">Alloca</a>(n * n, <span class="keywordtype">double</span>), x, n * n);
+<a name="l01424"></a>01424 
+<a name="l01425"></a>01425     F77_CALL(dsyev)(<span class="stringliteral">"N"</span>, uplo, &amp;n, xcp, &amp;n, w, work, &amp;lwork, &amp;info);
+<a name="l01426"></a>01426     <span class="keywordflow">if</span> (info) error(<a class="code" href="lmer_8c.html#32a3cf3d9dd914f5aeeca5423c157934" title="i18n of error messages">_</a>(<span class="stringliteral">"dsyev returned %d"</span>), info);
+<a name="l01427"></a>01427     <span class="keywordflow">if</span> (w[nm1] &lt;= 0) error(<a class="code" href="lmer_8c.html#32a3cf3d9dd914f5aeeca5423c157934" title="i18n of error messages">_</a>(<span class="stringliteral">"no positive eigenvalues!"</span>));
+<a name="l01428"></a>01428     <span class="keywordflow">if</span> ((w[0]/w[nm1]) &lt; thresh) {
+<a name="l01429"></a>01429         <span class="keywordtype">int</span> i, np1 = n + 1;
+<a name="l01430"></a>01430         <span class="keywordtype">double</span> incr = w[nm1] * thresh;
+<a name="l01431"></a>01431         <span class="keywordflow">for</span> (i = 0; i &lt; n; i++) x[i * np1] += incr;
+<a name="l01432"></a>01432     }
+<a name="l01433"></a>01433 }
+<a name="l01434"></a>01434 
+<a name="l01435"></a><a class="code" href="lmer_8c.html#ef128b4cee2e476298b3b4388d8a2097">01435</a> <span class="keyword">static</span> <span class="keywordtype">void</span> <a class="code" href="lmer_8c.html#ef128b4cee2e476298b3b4388d8a2097">MCMC_ST</a>(SEXP x, <span class="keywordtype">double</span> sigma, <span class="keywordtype">double</span> *vals, <span class="keywordtype">int</span> trans)
+<a name="l01436"></a>01436 {
+<a name="l01437"></a>01437     SEXP ST = GET_SLOT(x, <a class="code" href="Syms_8h.html#14f91c10cf53ae13351717e358fdf447">lme4_STSym</a>);
+<a name="l01438"></a>01438     <span class="keywordtype">int</span> i, info, j, k, ncmax, nf = LENGTH(ST),
+<a name="l01439"></a>01439         *Gp = INTEGER(GET_SLOT(x, <a class="code" href="Syms_8h.html#630eefecb5ab4f37bdd06e36a62113f9">lme4_GpSym</a>));
+<a name="l01440"></a>01440     <span class="keywordtype">double</span> *rr = REAL(GET_SLOT(x, <a class="code" href="Syms_8h.html#f475583b0aa24636c246c6ba140f5880">lme4_ranefSym</a>)),
+<a name="l01441"></a>01441         *scal, *var, *wfac, one = 1, zero = 0;
+<a name="l01442"></a>01442     <span class="keywordtype">double</span> **st = <a class="code" href="lmer_8c.html#679ceea530c97713d6abdb619e70a6b9" title="alloca n elements of type t">Alloca</a>(nf, <span class="keywordtype">double</span>*);
+<a name="l01443"></a>01443     <span class="keywordtype">int</span> *nc = <a class="code" href="lmer_8c.html#679ceea530c97713d6abdb619e70a6b9" title="alloca n elements of type t">Alloca</a>(nf, <span class="keywordtype">int</span>), *nlev = <a class="code" href="lmer_8c.html#679ceea530c97713d6abdb619e70a6b9" title="alloca n elements of type t">Alloca</a>(nf, <span class="keywordtype">int</span>);
+<a name="l01444"></a>01444     R_CheckStack();
+<a name="l01445"></a>01445 
+<a name="l01446"></a>01446     ncmax = <a class="code" href="lmer_8c.html#3a7fab2a88117d83971db12f53eaa91e" title="Populate the st, nc and nlev arrays.">ST_nc_nlev</a>(ST, Gp, st, nc, nlev);
+<a name="l01447"></a>01447     scal = <a class="code" href="lmer_8c.html#679ceea530c97713d6abdb619e70a6b9" title="alloca n elements of type t">Alloca</a>(ncmax * ncmax, <span class="keywordtype">double</span>);
+<a name="l01448"></a>01448     wfac = <a class="code" href="lmer_8c.html#679ceea530c97713d6abdb619e70a6b9" title="alloca n elements of type t">Alloca</a>(ncmax * ncmax, <span class="keywordtype">double</span>);
+<a name="l01449"></a>01449     var = <a class="code" href="lmer_8c.html#679ceea530c97713d6abdb619e70a6b9" title="alloca n elements of type t">Alloca</a>(ncmax * ncmax, <span class="keywordtype">double</span>);
+<a name="l01450"></a>01450     R_CheckStack();
+<a name="l01451"></a>01451     <span class="keywordflow">for</span> (i = 0; i &lt; nf; i++) {
+<a name="l01452"></a>01452         <span class="keywordtype">int</span> nci = nc[i], nl = nlev[i];
+<a name="l01453"></a>01453         <span class="keywordtype">int</span> ncisq = nci * nci, ncip1 = nci + 1;
+<a name="l01454"></a>01454         
+<a name="l01455"></a>01455         <a class="code" href="lmer_8c.html#8388ab26cceddaa6efaccc3c51add430" title="zero an array">AZERO</a>(scal, ncisq);
+<a name="l01456"></a>01456         F77_CALL(dsyrk)(<span class="stringliteral">"U"</span>, <span class="stringliteral">"T"</span>, &amp;nci, &amp;nl, &amp;one, rr + Gp[i], &amp;nl,
+<a name="l01457"></a>01457                         &amp;zero, scal, &amp;nci); 
+<a name="l01458"></a>01458         <span class="keywordflow">if</span> (nci == 1) *scal = sqrt(*scal);
+<a name="l01459"></a>01459         <span class="keywordflow">else</span> {
+<a name="l01460"></a>01460             <a class="code" href="lmer_8c.html#24e3fc6b91cae668ea046c4b5e5ff9ed">safe_pd_matrix</a>(scal, <span class="stringliteral">"L"</span>, nci, 1e-7);
+<a name="l01461"></a>01461             F77_CALL(dpotrf)(<span class="stringliteral">"U"</span>, &amp;nci, scal, &amp;nci, &amp;info);
+<a name="l01462"></a>01462             <span class="keywordflow">if</span> (info)
+<a name="l01463"></a>01463                 error(<a class="code" href="lmer_8c.html#32a3cf3d9dd914f5aeeca5423c157934" title="i18n of error messages">_</a>(<span class="stringliteral">"scal matrix is not pd after safe_pd_matrix!"</span>));
+<a name="l01464"></a>01464         }
+<a name="l01465"></a>01465                                 <span class="comment">/* generate random factor from std Wishart */</span>
+<a name="l01466"></a>01466         <a class="code" href="lmer_8c.html#8388ab26cceddaa6efaccc3c51add430" title="zero an array">AZERO</a>(wfac, ncisq);
+<a name="l01467"></a>01467         <a class="code" href="lmer_8c.html#9812644aac7804e273e0a48e138eb9f9" title="Simulate the Cholesky factor of a standardized Wishart variate with dimension p and...">std_rWishart_factor</a>((<span class="keywordtype">double</span>) (nl - nci + 1), nci, 1, wfac);
+<a name="l01468"></a>01468                                 <span class="comment">/* form and store variance-covariance matrix */</span>
+<a name="l01469"></a>01469         F77_CALL(dtrsm)(<span class="stringliteral">"L"</span>, <span class="stringliteral">"U"</span>, <span class="stringliteral">"T"</span>, <span class="stringliteral">"N"</span>, &amp;nci, &amp;nci,
+<a name="l01470"></a>01470                         &amp;one, wfac, &amp;nci, scal, &amp;nci);
+<a name="l01471"></a>01471         F77_CALL(dsyrk)(<span class="stringliteral">"U"</span>, <span class="stringliteral">"T"</span>, &amp;nci, &amp;nci, &amp;one, scal, &amp;nci,
+<a name="l01472"></a>01472                         &amp;zero, var, &amp;nci);
+<a name="l01473"></a>01473         <span class="keywordflow">for</span> (j = 0; j &lt; nci; j++) {
+<a name="l01474"></a>01474             *vals++ = (trans ? log(var[j * ncip1]) : var[j * ncip1]);
+<a name="l01475"></a>01475         }
+<a name="l01476"></a>01476         <span class="keywordflow">for</span> (j = 1; j &lt; nci; j++) {
+<a name="l01477"></a>01477             <span class="keywordflow">for</span> (k = 0; k &lt; j; k++) {
+<a name="l01478"></a>01478                 *vals++ = (trans ? atanh(var[k + j * nci]/
+<a name="l01479"></a>01479                                      sqrt(var[j * ncip1] * var[k * ncip1]))
+<a name="l01480"></a>01480                        : var[k + j * nci]);
+<a name="l01481"></a>01481             }
+<a name="l01482"></a>01482         }
+<a name="l01483"></a>01483         <span class="keywordflow">if</span> (nci == 1) {
+<a name="l01484"></a>01484             *st[i] = sqrt(*var)/sigma;
+<a name="l01485"></a>01485         } <span class="keywordflow">else</span> {
+<a name="l01486"></a>01486             <span class="keywordtype">double</span> *sti = st[i];
+<a name="l01487"></a>01487 
+<a name="l01488"></a>01488             <span class="keywordflow">for</span> (j = 0; j &lt; nci; j++) <span class="comment">/* copy var to st[i] transposing */</span>
+<a name="l01489"></a>01489                 <span class="keywordflow">for</span> (k = j; k &lt; nci; k++)
+<a name="l01490"></a>01490                     sti[k + j * nci] = var[j + k * nci];
+<a name="l01491"></a>01491                                 <span class="comment">/* factor the variance-covariance matrix */</span>
+<a name="l01492"></a>01492             F77_CALL(dpotrf)(<span class="stringliteral">"L"</span>, &amp;nci, sti, &amp;nci, &amp;info);
+<a name="l01493"></a>01493             <span class="keywordflow">if</span> (info)
+<a name="l01494"></a>01494                 error(<a class="code" href="lmer_8c.html#32a3cf3d9dd914f5aeeca5423c157934" title="i18n of error messages">_</a>(<span class="stringliteral">"new var-cov matrix is not positive definite!"</span>));
+<a name="l01495"></a>01495             <span class="keywordflow">for</span> (j = 0; j &lt; nci; j++) { <span class="comment">/* convert to LDL' then TSST' */</span>
+<a name="l01496"></a>01496                 <span class="keywordflow">for</span> (k = j + 1; k &lt; nci; k++)
+<a name="l01497"></a>01497                     sti[k + j * nci] /= sti[j * ncip1];
+<a name="l01498"></a>01498                 sti[j * ncip1] /= sigma;
+<a name="l01499"></a>01499             }
+<a name="l01500"></a>01500         }
+<a name="l01501"></a>01501     }
+<a name="l01502"></a>01502 }
+<a name="l01503"></a>01503 
+<a name="l01513"></a><a class="code" href="lmer_8c.html#c8a525d9fe2317c0b658051821bdc754">01513</a> <span class="keyword">static</span> R_INLINE <span class="keywordtype">double</span> <a class="code" href="lmer_8c.html#c8a525d9fe2317c0b658051821bdc754" title="Generate a new value of sigma, the common scale parameter, for an mer object.">MCMC_sigma</a>(<span class="keyword">const</span> <span class="keywordtype">int</span>* dims, <span class="keyword">const</span> <span class="keywordtype">double</span>* d)
+<a name="l01514"></a>01514 {
+<a name="l01515"></a>01515     <span class="keywordflow">return</span> (dims[<a class="code" href="lmer_8c.html#d4ed7f6a53d33bda670d5b7dbea3bcbadafe9a1ae435a2f525c63feb97556dd2" title="does the family use a separate scale parameter">useSc_POS</a>] ? sqrt(<a class="code" href="lmer_8c.html#00130066b7ad0289b87b765c0cd24867" title="Penalized, weighted residual sum of squares.">PWRSS</a>(d)/rchisq(<a class="code" href="lmer_8c.html#fdd34e4567fa4416a01a2167812f00a4" title="Residual degrees of freedom.">RDF</a>(dims))) : 1);
+<a name="l01516"></a>01516 }
+<a name="l01517"></a>01517 
+<a name="l01530"></a><a class="code" href="lmer_8h.html#edec83b72f0c3437d9b10daf5120aa2b">01530</a> SEXP <a class="code" href="lmer_8c.html#8f6debb5f78c3602ed0d576add360e68" title="Generate a Markov-chain Monte Carlo sample from an mer object.">mer_MCMCsamp</a>(SEXP x, SEXP savebp, SEXP nsampp, SEXP transp,
+<a name="l01531"></a>01531                   SEXP verbosep, SEXP deviancep)
+<a name="l01532"></a>01532 {
+<a name="l01533"></a>01533     SEXP Pars = PROTECT(<a class="code" href="lmer_8c.html#1f6b9123d7b4dcbe24cc9085e5f4069a" title="Extract the parameters from the ST slot of an mer object.">mer_ST_getPars</a>(x)), ans;
+<a name="l01534"></a>01534     <span class="keywordtype">int</span> *dims = INTEGER(GET_SLOT(x, <a class="code" href="Syms_8h.html#49094314461f4e9b10bbda1771719e29">lme4_dimsSym</a>));
+<a name="l01535"></a>01535     <span class="keywordtype">int</span> dPOS = dims[<a class="code" href="lmer_8c.html#2ef82a9439b964c1e545fb6487a5e3ac7a80b999acd82e5cbb3cf97973aa78ea" title="REML deviance.">REML_POS</a>] ? <a class="code" href="lmer_8c.html#2ef82a9439b964c1e545fb6487a5e3ac7a80b999acd82e5cbb3cf97973aa78ea" title="REML deviance.">REML_POS</a> : <a class="code" href="lmer_8c.html#2ef82a9439b964c1e545fb6487a5e3ac0966f1b2ecf23e6ad09c98b24e671969" title="Maximum likelihood deviance.">ML_POS</a>, i, j,
+<a name="l01536"></a>01536         nsamp = asInteger(nsampp),
+<a name="l01537"></a>01537         p = dims[<a class="code" href="lmer_8c.html#d4ed7f6a53d33bda670d5b7dbea3bcba193cdfb875a2d07bbbd3a5587879281b" title="number of fixed-effects parameters">p_POS</a>], q = dims[<a class="code" href="lmer_8c.html#d4ed7f6a53d33bda670d5b7dbea3bcba37d963697202d840d6555705f0d84ce5" title="number of random effects">q_POS</a>],
+<a name="l01538"></a>01538         saveb = asLogical(savebp), trans = asLogical(transp),
+<a name="l01539"></a>01539         verbose = asLogical(verbosep), dev = asLogical(deviancep);
+<a name="l01540"></a>01540     <span class="keywordtype">double</span> *ansp, *deviance = REAL(GET_SLOT(x, <a class="code" href="Syms_8h.html#b9aed2e8e5de0f7481e729116ab89c65">lme4_devianceSym</a>)),
+<a name="l01541"></a>01541         *d = REAL(GET_SLOT(x, <a class="code" href="Syms_8h.html#b9aed2e8e5de0f7481e729116ab89c65">lme4_devianceSym</a>)),
+<a name="l01542"></a>01542         *fixef = REAL(GET_SLOT(x, <a class="code" href="Syms_8h.html#cfa94b175e0d8bbb6ea7e3f1424bdda1">lme4_fixefSym</a>)),
+<a name="l01543"></a>01543         *ranef = (<span class="keywordtype">double</span>*)NULL;
+<a name="l01544"></a>01544     <span class="keywordtype">int</span> nrbase = p + 1 + dims[<a class="code" href="lmer_8c.html#d4ed7f6a53d33bda670d5b7dbea3bcba2b797f093d02ad8ae18e2df853ddbeb2" title="total number of parameters for T and S">np_POS</a>]; <span class="comment">/* rows always included */</span>
+<a name="l01545"></a>01545     <span class="keywordtype">int</span> nrtot = nrbase + dev + (saveb ? q : 0);
+<a name="l01546"></a>01546 
+<a name="l01547"></a>01547     <span class="keywordflow">if</span> (nsamp &lt;= 0) nsamp = 1;
+<a name="l01548"></a>01548     ans = PROTECT(allocMatrix(REALSXP, nrtot, nsamp));
+<a name="l01549"></a>01549     ansp = REAL(ans);
+<a name="l01550"></a>01550     <span class="keywordflow">for</span> (i = 0; i &lt; nrtot * nsamp; i++) ansp[i] = NA_REAL;
+<a name="l01551"></a>01551     GetRNGstate();
+<a name="l01552"></a>01552     <span class="keywordflow">if</span> (verbose) Rprintf(<span class="stringliteral">"%12s %14s\n"</span>, <span class="stringliteral">"sigma"</span>, <span class="stringliteral">"deviance"</span>);
+<a name="l01553"></a>01553     <span class="keywordflow">if</span> (saveb) ranef = REAL(GET_SLOT(x, <a class="code" href="Syms_8h.html#f475583b0aa24636c246c6ba140f5880">lme4_ranefSym</a>));
+<a name="l01554"></a>01554 
+<a name="l01555"></a>01555     <span class="keywordflow">for</span> (i = 0; i &lt; nsamp; i++) {
+<a name="l01556"></a>01556         <span class="keywordtype">double</span> *col = ansp + i * nrtot, sigma;
+<a name="l01557"></a>01557                                 <span class="comment">/* simulate and store new value of sigma */</span>
+<a name="l01558"></a>01558         sigma = <a class="code" href="lmer_8c.html#c8a525d9fe2317c0b658051821bdc754" title="Generate a new value of sigma, the common scale parameter, for an mer object.">MCMC_sigma</a>(dims, d);
+<a name="l01559"></a>01559         col[p] = (trans ? 2 * log(sigma) : sigma * sigma);
+<a name="l01560"></a>01560         <a class="code" href="lmer_8c.html#21adcf526681f1efd1ad0c4727ff4069" title="Update the contents of the fixef, ranef and uvec slots in an lmer object.">mer_update_effects</a>(x);  <span class="comment">/* Conditional estimates of beta, u and b */</span>
+<a name="l01561"></a>01561         <a class="code" href="lmer_8c.html#f1bc9174690e2956720aa31781b073f0" title="Update the fixed effects in an MCMC sample from an mer object.">MCMC_beta</a>(x, sigma);    <span class="comment">/* Update beta */</span>
+<a name="l01562"></a>01562         <span class="keywordflow">for</span> (j = 0; j &lt; p; j++) col[j] = fixef[j]; <span class="comment">/* Store beta */</span>
+<a name="l01563"></a>01563         <a class="code" href="lmer_8c.html#0903b0858c61e7e394c4dfb5f2661748" title="Update the orthogonal random effects in an MCMC sample from an mer object.">MCMC_u</a>(x, sigma);
+<a name="l01564"></a>01564         <span class="keywordflow">if</span> (saveb) {                               <span class="comment">/* store b */</span>
+<a name="l01565"></a>01565             <a class="code" href="lmer_8c.html#5542c4de7dbcdbb6630cad8fabe96542" title="b = T *% S *% t(P) *% u">update_ranef</a>(x);
+<a name="l01566"></a>01566             <span class="keywordflow">for</span> (j = 0; j &lt; q; j++) col[nrbase + dev + j] = ranef[j];
+<a name="l01567"></a>01567         }
+<a name="l01568"></a>01568         <a class="code" href="lmer_8c.html#ef128b4cee2e476298b3b4388d8a2097">MCMC_ST</a>(x, sigma, col + p + 1, trans);
+<a name="l01569"></a>01569 <span class="comment">/*      lmer_update_dev(x);     */</span> <span class="comment">/* Refactor and evaluate deviance */</span>
+<a name="l01570"></a>01570         <span class="comment">/* FIXME: This deviance should be for sigma, beta, b, ST */</span>
+<a name="l01571"></a>01571         <span class="keywordflow">if</span> (dev) col[nrbase] = deviance[dPOS]; 
+<a name="l01572"></a>01572         <span class="keywordflow">if</span> (verbose) Rprintf(<span class="stringliteral">"%12.6g %14.8g\n"</span>, sigma, deviance[dPOS]);
+<a name="l01573"></a>01573     }
+<a name="l01574"></a>01574     PutRNGstate();
+<a name="l01575"></a>01575                                 <span class="comment">/* Restore pars, refactor, etc. */</span>
+<a name="l01576"></a>01576     <a class="code" href="lmer_8c.html#96765a284e1652326a22d50f7d7538d4" title="Update the ST slot of an mer object from a REAL vector of parameters and update the...">mer_ST_setPars</a>(x, Pars);
+<a name="l01577"></a>01577 <span class="comment">/*     lmer_update_dev(x); */</span>
+<a name="l01578"></a>01578 <span class="comment">/*     lmer_update_effects(x); */</span>
+<a name="l01579"></a>01579     UNPROTECT(2);
+<a name="l01580"></a>01580     <span class="keywordflow">return</span> ans;
+<a name="l01581"></a>01581 }
+<a name="l01582"></a>01582 
+<a name="l01583"></a>01583 <span class="preprocessor">#ifndef BUF_SIZE</span>
+<a name="l01584"></a>01584 <span class="preprocessor"></span>
+<a name="l01585"></a><a class="code" href="lmer_8c.html#6821bafc3c88dfb2e433a095df9940c6">01585</a> <span class="preprocessor">#define BUF_SIZE 127</span>
+<a name="l01586"></a>01586 <span class="preprocessor"></span><span class="preprocessor">#endif  </span>
+<a name="l01587"></a>01587 <span class="preprocessor"></span>
+<a name="l01601"></a><a class="code" href="lmer_8c.html#119582eec2ad35c9d9516dcb3a927750">01601</a> <span class="keyword">static</span> <span class="keywordtype">int</span> <a class="code" href="lmer_8c.html#119582eec2ad35c9d9516dcb3a927750" title="Check that slot sym of object x is a numeric matrix of dimension nr by nc.">chkDims</a>(<span class="keywordtype">char</span> *buf, <span class="keywordtype">int</span> nb, SEXP x, SEXP sym, <span class="keywordtype">int</span> nr, <span class="keywordtype">int</span> nc)
+<a name="l01602"></a>01602 {
+<a name="l01603"></a>01603     SEXP MP = GET_SLOT(x, sym);
+<a name="l01604"></a>01604     <span class="keywordtype">int</span> *dm = isMatrix(MP) ? INTEGER(getAttrib(MP, R_DimSymbol)) : (<span class="keywordtype">int</span>*) NULL;
+<a name="l01605"></a>01605     <span class="keywordflow">if</span> (!dm || !isReal(MP) || dm[0] != nr || dm[1] != nc)
+<a name="l01606"></a>01606         <span class="keywordflow">return</span> snprintf(buf, <a class="code" href="lmer_8c.html#6821bafc3c88dfb2e433a095df9940c6" title="size of buffer for an error message">BUF_SIZE</a>,
+<a name="l01607"></a>01607                         <a class="code" href="lmer_8c.html#32a3cf3d9dd914f5aeeca5423c157934" title="i18n of error messages">_</a>(<span class="stringliteral">"Slot %s must be a numeric matrix of size %d by %d"</span>),
+<a name="l01608"></a>01608                         CHAR(PRINTNAME(sym)), nr, nc);
+<a name="l01609"></a>01609     <span class="keywordflow">return</span> 0;
+<a name="l01610"></a>01610 }
+<a name="l01611"></a>01611 
+<a name="l01624"></a><a class="code" href="lmer_8c.html#617426914114d8f8cd8249de16ddc8e1">01624</a> <span class="keyword">static</span> <span class="keywordtype">int</span> <a class="code" href="lmer_8c.html#617426914114d8f8cd8249de16ddc8e1" title="Check that the length of the sym slot in x is len or, possibly, zero.">chkLen</a>(<span class="keywordtype">char</span> *buf, <span class="keywordtype">int</span> nb, SEXP x, SEXP sym, <span class="keywordtype">int</span> len, <span class="keywordtype">int</span> zerok)
+<a name="l01625"></a>01625 {
+<a name="l01626"></a>01626     <span class="keywordtype">int</span> ll;
+<a name="l01627"></a>01627 
+<a name="l01628"></a>01628     <span class="keywordflow">if</span> (!(ll = LENGTH(GET_SLOT(x, sym))) == len &amp;&amp; zerok &amp;&amp; !ll)
+<a name="l01629"></a>01629         <span class="keywordflow">return</span> snprintf(buf, <a class="code" href="lmer_8c.html#6821bafc3c88dfb2e433a095df9940c6" title="size of buffer for an error message">BUF_SIZE</a>, <a class="code" href="lmer_8c.html#32a3cf3d9dd914f5aeeca5423c157934" title="i18n of error messages">_</a>(<span class="stringliteral">"Slot %s must have length %d."</span>),
+<a name="l01630"></a>01630                         CHAR(PRINTNAME(sym)), len);
+<a name="l01631"></a>01631     <span class="keywordflow">return</span> 0;
+<a name="l01632"></a>01632 }
+<a name="l01633"></a>01633 
+<a name="l01642"></a><a class="code" href="lmer_8h.html#489500e3d5104fc320a54d85c43bcfed">01642</a> SEXP <a class="code" href="lmer_8c.html#489500e3d5104fc320a54d85c43bcfed" title="Check validity of an object that inherits from the mer class.">mer_validate</a>(SEXP x)
+<a name="l01643"></a>01643 {
+<a name="l01644"></a>01644     SEXP GpP = GET_SLOT(x, <a class="code" href="Syms_8h.html#630eefecb5ab4f37bdd06e36a62113f9">lme4_GpSym</a>),
+<a name="l01645"></a>01645         ST = GET_SLOT(x, <a class="code" href="Syms_8h.html#14f91c10cf53ae13351717e358fdf447">lme4_STSym</a>),
+<a name="l01646"></a>01646         devianceP = GET_SLOT(x, <a class="code" href="Syms_8h.html#b9aed2e8e5de0f7481e729116ab89c65">lme4_devianceSym</a>),
+<a name="l01647"></a>01647         dimsP = GET_SLOT(x, <a class="code" href="Syms_8h.html#49094314461f4e9b10bbda1771719e29">lme4_dimsSym</a>),
+<a name="l01648"></a>01648         flistP = GET_SLOT(x, <a class="code" href="Syms_8h.html#445786e92c27738aaddf7d38cd5cc4de">lme4_flistSym</a>);
+<a name="l01649"></a>01649     <span class="keywordtype">int</span> *Gp = INTEGER(GpP), *dd = INTEGER(dimsP);
+<a name="l01650"></a>01650     <span class="keywordtype">int</span> i, n = dd[<a class="code" href="lmer_8c.html#d4ed7f6a53d33bda670d5b7dbea3bcbaccc72a17eae16e4f222f4a5a088afcd9" title="number of observations">n_POS</a>], nf = dd[<a class="code" href="lmer_8c.html#d4ed7f6a53d33bda670d5b7dbea3bcbaafdfe3e96c82c637dec9623a20c28e2d" title="number of terms in random effects">nf_POS</a>], nq, p = dd[<a class="code" href="lmer_8c.html#d4ed7f6a53d33bda670d5b7dbea3bcba193cdfb875a2d07bbbd3a5587879281b" title="number of fixed-effects parameters">p_POS</a>],
+<a name="l01651"></a>01651         q = dd[<a class="code" href="lmer_8c.html#d4ed7f6a53d33bda670d5b7dbea3bcba37d963697202d840d6555705f0d84ce5" title="number of random effects">q_POS</a>], s = dd[<a class="code" href="lmer_8c.html#d4ed7f6a53d33bda670d5b7dbea3bcba91cd64ccd89cc2464e243909b1fe80d0" title="number of variables in h (1 unless nonlinear)">s_POS</a>];
+<a name="l01652"></a>01652     <span class="keywordtype">int</span> nv = n * s, pp1 = p + 1;
+<a name="l01653"></a>01653     CHM_SP Zt = AS_CHM_SP(GET_SLOT(x, <a class="code" href="Syms_8h.html#14dc5416512dd72df18da9fda9b89089">lme4_ZtSym</a>)),
+<a name="l01654"></a>01654         C =  AS_CHM_SP(GET_SLOT(x, <a class="code" href="Syms_8h.html#5ef50bc4e9cb19417879a686d2bc978d">lme4_CmSym</a>));
+<a name="l01655"></a>01655     CHM_FR L = <a class="code" href="lmer_8c.html#94e6667644d2b670654fc46d3cf0ee1b" title="Extract the L slot, convert to a cholmod_factor and return the pointer.">L_SLOT</a>(x);
+<a name="l01656"></a>01656     <span class="keywordtype">char</span> *buf = <a class="code" href="lmer_8c.html#679ceea530c97713d6abdb619e70a6b9" title="alloca n elements of type t">Alloca</a>(<a class="code" href="lmer_8c.html#6821bafc3c88dfb2e433a095df9940c6" title="size of buffer for an error message">BUF_SIZE</a> + 1, <span class="keywordtype">char</span>);
+<a name="l01657"></a>01657     R_CheckStack();
+<a name="l01658"></a>01658                                 <span class="comment">/* check lengths */</span>
+<a name="l01659"></a>01659     <span class="keywordflow">if</span> (nf &lt; 1 || LENGTH(flistP) != nf || LENGTH(ST) != nf)
+<a name="l01660"></a>01660         <span class="keywordflow">return</span> mkString(<a class="code" href="lmer_8c.html#32a3cf3d9dd914f5aeeca5423c157934" title="i18n of error messages">_</a>(<span class="stringliteral">"Slots ST, and flist must have length dims['nf']"</span>));
+<a name="l01661"></a>01661     <span class="keywordflow">if</span> (LENGTH(GpP) != nf + 1)
+<a name="l01662"></a>01662         <span class="keywordflow">return</span> mkString(<a class="code" href="lmer_8c.html#32a3cf3d9dd914f5aeeca5423c157934" title="i18n of error messages">_</a>(<span class="stringliteral">"Slot Gp must have length dims['nf'] + 1"</span>));
+<a name="l01663"></a>01663     <span class="keywordflow">if</span> (Gp[0] != 0 || Gp[nf] != q)
+<a name="l01664"></a>01664         <span class="keywordflow">return</span> mkString(<a class="code" href="lmer_8c.html#32a3cf3d9dd914f5aeeca5423c157934" title="i18n of error messages">_</a>(<span class="stringliteral">"Gp[1] != 0 or Gp[dims['nf'] + 1] != dims['q']"</span>));
+<a name="l01665"></a>01665     <span class="keywordflow">if</span> (LENGTH(devianceP) != (<a class="code" href="lmer_8c.html#2ef82a9439b964c1e545fb6487a5e3ace7249a5feae526dd06a2b35bcb0f834a" title="weighted residual sum of squares">wrss_POS</a> + 1) ||
+<a name="l01666"></a>01666         LENGTH(getAttrib(devianceP, R_NamesSymbol)) != (<a class="code" href="lmer_8c.html#2ef82a9439b964c1e545fb6487a5e3ace7249a5feae526dd06a2b35bcb0f834a" title="weighted residual sum of squares">wrss_POS</a> + 1))
+<a name="l01667"></a>01667         <span class="keywordflow">return</span> mkString(<a class="code" href="lmer_8c.html#32a3cf3d9dd914f5aeeca5423c157934" title="i18n of error messages">_</a>(<span class="stringliteral">"deviance slot not named or incorrect length"</span>));
+<a name="l01668"></a>01668     <span class="keywordflow">if</span> (LENGTH(dimsP) != (<a class="code" href="lmer_8c.html#d4ed7f6a53d33bda670d5b7dbea3bcba3c653205ba325a47efabda0ef044462e" title="convergence indictor from port optimization">cvg_POS</a> + 1) ||
+<a name="l01669"></a>01669         LENGTH(getAttrib(dimsP, R_NamesSymbol)) != (<a class="code" href="lmer_8c.html#d4ed7f6a53d33bda670d5b7dbea3bcba3c653205ba325a47efabda0ef044462e" title="convergence indictor from port optimization">cvg_POS</a> + 1))
+<a name="l01670"></a>01670         <span class="keywordflow">return</span> mkString(<a class="code" href="lmer_8c.html#32a3cf3d9dd914f5aeeca5423c157934" title="i18n of error messages">_</a>(<span class="stringliteral">"dims slot not named or incorrect length"</span>));
+<a name="l01671"></a>01671     <span class="keywordflow">if</span> (L-&gt;n != q || !L-&gt;is_ll || !L-&gt;is_monotonic)
+<a name="l01672"></a>01672         <span class="keywordflow">return</span> mkString(<a class="code" href="lmer_8c.html#32a3cf3d9dd914f5aeeca5423c157934" title="i18n of error messages">_</a>(<span class="stringliteral">"Slot L must be a monotonic LL' factorization of size dims['q']"</span>));
+<a name="l01673"></a>01673     <span class="keywordflow">if</span> (Zt-&gt;nrow != q || Zt-&gt;ncol != nv)
+<a name="l01674"></a>01674         <span class="keywordflow">return</span> mkString(<a class="code" href="lmer_8c.html#32a3cf3d9dd914f5aeeca5423c157934" title="i18n of error messages">_</a>(<span class="stringliteral">"Slot Zt must by dims['q']  by dims['n']*dims['s']"</span>));
+<a name="l01675"></a>01675     <span class="keywordflow">if</span> (C-&gt;nrow != q || C-&gt;ncol != nv)
+<a name="l01676"></a>01676         <span class="keywordflow">return</span> mkString(<a class="code" href="lmer_8c.html#32a3cf3d9dd914f5aeeca5423c157934" title="i18n of error messages">_</a>(<span class="stringliteral">"Slot Zt must be dims['q']  by dims['n']*dims['s']"</span>));
+<a name="l01677"></a>01677     <span class="keywordflow">if</span> (<a class="code" href="lmer_8c.html#617426914114d8f8cd8249de16ddc8e1" title="Check that the length of the sym slot in x is len or, possibly, zero.">chkLen</a>(buf, <a class="code" href="lmer_8c.html#6821bafc3c88dfb2e433a095df9940c6" title="size of buffer for an error message">BUF_SIZE</a>, x, <a class="code" href="Syms_8h.html#fdba9e80e5d00e861760bad5d2b80721">lme4_etaSym</a>, n, 0)) <span class="keywordflow">return</span>(mkString(buf));
+<a name="l01678"></a>01678     <span class="keywordflow">if</span> (<a class="code" href="lmer_8c.html#617426914114d8f8cd8249de16ddc8e1" title="Check that the length of the sym slot in x is len or, possibly, zero.">chkLen</a>(buf, <a class="code" href="lmer_8c.html#6821bafc3c88dfb2e433a095df9940c6" title="size of buffer for an error message">BUF_SIZE</a>, x, <a class="code" href="Syms_8h.html#cfa94b175e0d8bbb6ea7e3f1424bdda1">lme4_fixefSym</a>, p, 0)) <span class="keywordflow">return</span>(mkString(buf));
+<a name="l01679"></a>01679     <span class="keywordflow">if</span> (<a class="code" href="lmer_8c.html#617426914114d8f8cd8249de16ddc8e1" title="Check that the length of the sym slot in x is len or, possibly, zero.">chkLen</a>(buf, <a class="code" href="lmer_8c.html#6821bafc3c88dfb2e433a095df9940c6" title="size of buffer for an error message">BUF_SIZE</a>, x, <a class="code" href="Syms_8h.html#9165fffba3009fd7d6a5116e3d8435a3">lme4_muEtaSym</a>, n, 1)) <span class="keywordflow">return</span>(mkString(buf));
+<a name="l01680"></a>01680     <span class="keywordflow">if</span> (<a class="code" href="lmer_8c.html#617426914114d8f8cd8249de16ddc8e1" title="Check that the length of the sym slot in x is len or, possibly, zero.">chkLen</a>(buf, <a class="code" href="lmer_8c.html#6821bafc3c88dfb2e433a095df9940c6" title="size of buffer for an error message">BUF_SIZE</a>, x, <a class="code" href="Syms_8h.html#49610fd9fb343595eab1f2bbd3d3d049">lme4_muSym</a>, n, 0)) <span class="keywordflow">return</span>(mkString(buf));
+<a name="l01681"></a>01681     <span class="keywordflow">if</span> (<a class="code" href="lmer_8c.html#617426914114d8f8cd8249de16ddc8e1" title="Check that the length of the sym slot in x is len or, possibly, zero.">chkLen</a>(buf, <a class="code" href="lmer_8c.html#6821bafc3c88dfb2e433a095df9940c6" title="size of buffer for an error message">BUF_SIZE</a>, x, <a class="code" href="Syms_8h.html#5f9b4851d1022ce2979bf1c881e9f8d6">lme4_offsetSym</a>, n, 1)) <span class="keywordflow">return</span>(mkString(buf));
+<a name="l01682"></a>01682     <span class="keywordflow">if</span> (<a class="code" href="lmer_8c.html#617426914114d8f8cd8249de16ddc8e1" title="Check that the length of the sym slot in x is len or, possibly, zero.">chkLen</a>(buf, <a class="code" href="lmer_8c.html#6821bafc3c88dfb2e433a095df9940c6" title="size of buffer for an error message">BUF_SIZE</a>, x, <a class="code" href="Syms_8h.html#c877207c31d8162a4779cb7a18bbba1a">lme4_priorWtSym</a>, n, 1)) <span class="keywordflow">return</span>(mkString(buf));
+<a name="l01683"></a>01683     <span class="keywordflow">if</span> (<a class="code" href="lmer_8c.html#617426914114d8f8cd8249de16ddc8e1" title="Check that the length of the sym slot in x is len or, possibly, zero.">chkLen</a>(buf, <a class="code" href="lmer_8c.html#6821bafc3c88dfb2e433a095df9940c6" title="size of buffer for an error message">BUF_SIZE</a>, x, <a class="code" href="Syms_8h.html#f475583b0aa24636c246c6ba140f5880">lme4_ranefSym</a>, q, 0)) <span class="keywordflow">return</span>(mkString(buf));
+<a name="l01684"></a>01684     <span class="keywordflow">if</span> (<a class="code" href="lmer_8c.html#617426914114d8f8cd8249de16ddc8e1" title="Check that the length of the sym slot in x is len or, possibly, zero.">chkLen</a>(buf, <a class="code" href="lmer_8c.html#6821bafc3c88dfb2e433a095df9940c6" title="size of buffer for an error message">BUF_SIZE</a>, x, <a class="code" href="Syms_8h.html#be98511435f8333d8ff4d19cf7a772b8">lme4_residSym</a>, n, 0)) <span class="keywordflow">return</span>(mkString(buf));
+<a name="l01685"></a>01685     <span class="keywordflow">if</span> (<a class="code" href="lmer_8c.html#617426914114d8f8cd8249de16ddc8e1" title="Check that the length of the sym slot in x is len or, possibly, zero.">chkLen</a>(buf, <a class="code" href="lmer_8c.html#6821bafc3c88dfb2e433a095df9940c6" title="size of buffer for an error message">BUF_SIZE</a>, x, <a class="code" href="Syms_8h.html#19459c8e3ff2009eb171e4f90dee3bc6">lme4_sqrtWtSym</a>, n, 1)) <span class="keywordflow">return</span>(mkString(buf));
+<a name="l01686"></a>01686     <span class="keywordflow">if</span> (<a class="code" href="lmer_8c.html#617426914114d8f8cd8249de16ddc8e1" title="Check that the length of the sym slot in x is len or, possibly, zero.">chkLen</a>(buf, <a class="code" href="lmer_8c.html#6821bafc3c88dfb2e433a095df9940c6" title="size of buffer for an error message">BUF_SIZE</a>, x, <a class="code" href="Syms_8h.html#e9dfc68bbaf777d0409b883be2272482">lme4_uvecSym</a>, q, 0)) <span class="keywordflow">return</span>(mkString(buf));
+<a name="l01687"></a>01687     <span class="keywordflow">if</span> (<a class="code" href="lmer_8c.html#617426914114d8f8cd8249de16ddc8e1" title="Check that the length of the sym slot in x is len or, possibly, zero.">chkLen</a>(buf, <a class="code" href="lmer_8c.html#6821bafc3c88dfb2e433a095df9940c6" title="size of buffer for an error message">BUF_SIZE</a>, x, <a class="code" href="Syms_8h.html#ef220131bb03d4666ff1b7ec39bd3e2b">lme4_vSym</a>, nv, 1)) <span class="keywordflow">return</span>(mkString(buf));
+<a name="l01688"></a>01688     <span class="keywordflow">if</span> (<a class="code" href="lmer_8c.html#617426914114d8f8cd8249de16ddc8e1" title="Check that the length of the sym slot in x is len or, possibly, zero.">chkLen</a>(buf, <a class="code" href="lmer_8c.html#6821bafc3c88dfb2e433a095df9940c6" title="size of buffer for an error message">BUF_SIZE</a>, x, <a class="code" href="Syms_8h.html#d8e21a6adccfdf7184021af64c72ae0e">lme4_varSym</a>, n, 1)) <span class="keywordflow">return</span>(mkString(buf));
+<a name="l01689"></a>01689     <span class="keywordflow">if</span> (<a class="code" href="lmer_8c.html#617426914114d8f8cd8249de16ddc8e1" title="Check that the length of the sym slot in x is len or, possibly, zero.">chkLen</a>(buf, <a class="code" href="lmer_8c.html#6821bafc3c88dfb2e433a095df9940c6" title="size of buffer for an error message">BUF_SIZE</a>, x, <a class="code" href="Syms_8h.html#fd01bb0c98ee90bc0e8f8cdf538e6a33">lme4_ySym</a>, n, 0)) <span class="keywordflow">return</span>(mkString(buf));
+<a name="l01690"></a>01690     <span class="keywordflow">if</span> (<a class="code" href="lmer_8c.html#119582eec2ad35c9d9516dcb3a927750" title="Check that slot sym of object x is a numeric matrix of dimension nr by nc.">chkDims</a>(buf, <a class="code" href="lmer_8c.html#6821bafc3c88dfb2e433a095df9940c6" title="size of buffer for an error message">BUF_SIZE</a>, x, <a class="code" href="Syms_8h.html#c942d1af2e7836825b2c4d05469bbc9e">lme4_XSym</a>, nv, p)) <span class="keywordflow">return</span>(mkString(buf));
+<a name="l01691"></a>01691     <span class="keywordflow">if</span> (<a class="code" href="lmer_8c.html#119582eec2ad35c9d9516dcb3a927750" title="Check that slot sym of object x is a numeric matrix of dimension nr by nc.">chkDims</a>(buf, <a class="code" href="lmer_8c.html#6821bafc3c88dfb2e433a095df9940c6" title="size of buffer for an error message">BUF_SIZE</a>, x, <a class="code" href="Syms_8h.html#d59cc3a6c8eba122cad97268682ad0f9">lme4_RCXySym</a>, q, pp1)) <span class="keywordflow">return</span>(mkString(buf));
+<a name="l01692"></a>01692     <span class="keywordflow">if</span> (<a class="code" href="lmer_8c.html#119582eec2ad35c9d9516dcb3a927750" title="Check that slot sym of object x is a numeric matrix of dimension nr by nc.">chkDims</a>(buf, <a class="code" href="lmer_8c.html#6821bafc3c88dfb2e433a095df9940c6" title="size of buffer for an error message">BUF_SIZE</a>, x, <a class="code" href="Syms_8h.html#5ebefc34ba71773e46ade9ee1e26146a">lme4_RXySym</a>, pp1, pp1)) <span class="keywordflow">return</span>(mkString(buf));
+<a name="l01693"></a>01693 
+<a name="l01694"></a>01694     nq = 0;
+<a name="l01695"></a>01695     <span class="keywordflow">for</span> (i = 0; i &lt; nf; i++) {
+<a name="l01696"></a>01696         SEXP STi = VECTOR_ELT(ST, i), fli = VECTOR_ELT(flistP, i);
+<a name="l01697"></a>01697         <span class="keywordtype">int</span> *dm = INTEGER(getAttrib(STi, R_DimSymbol));
+<a name="l01698"></a>01698         <span class="keywordflow">if</span> (!isMatrix(STi) || !isReal(STi) || dm[0] != dm[1])
+<a name="l01699"></a>01699             <span class="keywordflow">return</span>
+<a name="l01700"></a>01700                 mkString(<a class="code" href="lmer_8c.html#32a3cf3d9dd914f5aeeca5423c157934" title="i18n of error messages">_</a>(<span class="stringliteral">"Slot ST must be a list of square numeric matrices"</span>));
+<a name="l01701"></a>01701         <span class="keywordflow">if</span> (Gp[i] &gt; Gp[i + 1])
+<a name="l01702"></a>01702             <span class="keywordflow">return</span> mkString(<a class="code" href="lmer_8c.html#32a3cf3d9dd914f5aeeca5423c157934" title="i18n of error messages">_</a>(<span class="stringliteral">"Gp must be non-decreasing"</span>));
+<a name="l01703"></a>01703         <span class="keywordflow">if</span> (!isFactor(fli))
+<a name="l01704"></a>01704             <span class="keywordflow">return</span> mkString(<a class="code" href="lmer_8c.html#32a3cf3d9dd914f5aeeca5423c157934" title="i18n of error messages">_</a>(<span class="stringliteral">"flist must be a list of factors"</span>));
+<a name="l01705"></a>01705         nq += dm[0] * LENGTH(getAttrib(fli, R_LevelsSymbol));
+<a name="l01706"></a>01706     }
+<a name="l01707"></a>01707     <span class="keywordflow">if</span> (q != nq)
+<a name="l01708"></a>01708         <span class="keywordflow">return</span> mkString(<a class="code" href="lmer_8c.html#32a3cf3d9dd914f5aeeca5423c157934" title="i18n of error messages">_</a>(<span class="stringliteral">"q is not sum of columns by levels"</span>));
+<a name="l01709"></a>01709     <span class="keywordflow">return</span> ScalarLogical(1);
+<a name="l01710"></a>01710 }
+<a name="l01711"></a>01711 
+<a name="l01712"></a>01712 <span class="comment">/* Functions for the pedigree class */</span>
+<a name="l01713"></a>01713 
+<a name="l01723"></a><a class="code" href="lmer_8h.html#06b081a8a5b894d99de0539549058b15">01723</a> SEXP <a class="code" href="lmer_8c.html#06b081a8a5b894d99de0539549058b15" title="Create the left Cholesky factor of the numerator relationship matrix from a pedigree...">pedigree_chol</a>(SEXP x, SEXP ans)
+<a name="l01724"></a>01724 {
+<a name="l01725"></a>01725     SEXP Sire = GET_SLOT(x, install(<span class="stringliteral">"sire"</span>));
+<a name="l01726"></a>01726     <span class="keywordtype">int</span> *ai = INTEGER(GET_SLOT(ans, <a class="code" href="Syms_8h.html#675208f7171fa263875961315cdebbe7">lme4_iSym</a>)),
+<a name="l01727"></a>01727         *ap = INTEGER(GET_SLOT(ans, <a class="code" href="Syms_8h.html#08eac023c17fc43ab2ab1d0ee8f96dbd">lme4_pSym</a>)),
+<a name="l01728"></a>01728         *dam = INTEGER(GET_SLOT(x, install(<span class="stringliteral">"dam"</span>))),
+<a name="l01729"></a>01729         *sire = INTEGER(Sire), 
+<a name="l01730"></a>01730         i, j, n = LENGTH(Sire);
+<a name="l01731"></a>01731     <span class="keywordtype">double</span> *ax = REAL(GET_SLOT(ans, <a class="code" href="Syms_8h.html#98fea3f5a0abe919544cd46185b1f416">lme4_xSym</a>)), *F, Di, tmp;
+<a name="l01732"></a>01732 
+<a name="l01733"></a>01733     setAttrib(ans, install(<span class="stringliteral">"F"</span>), allocVector(REALSXP, n));
+<a name="l01734"></a>01734     F = REAL(getAttrib(ans, install(<span class="stringliteral">"F"</span>)));
+<a name="l01735"></a>01735     <span class="keywordflow">for</span> (i = 0; i &lt; n; i++) {
+<a name="l01736"></a>01736         <span class="keywordtype">int</span> k, p = sire[i] - 1, q = dam[i] - 1;
+<a name="l01737"></a>01737         <span class="keywordflow">if</span> (sire[i] == NA_INTEGER) {
+<a name="l01738"></a>01738             F[i] = 0;
+<a name="l01739"></a>01739             Di = (dam[i] == NA_INTEGER) ? 1 : sqrt(0.75 - 0.25 * F[q]);
+<a name="l01740"></a>01740         } <span class="keywordflow">else</span> {
+<a name="l01741"></a>01741             <span class="keywordflow">if</span> (dam[i] == NA_INTEGER) { <span class="comment">/* sire only */</span>
+<a name="l01742"></a>01742                 F[i] = 0;
+<a name="l01743"></a>01743                 Di = sqrt(0.75 - 0.25 * F[p]);
+<a name="l01744"></a>01744             } <span class="keywordflow">else</span> {            <span class="comment">/* both parents in pedigree */</span>
+<a name="l01745"></a>01745                 Di = sqrt(0.5 - 0.25 * (F[p] + F[q]));
+<a name="l01746"></a>01746                 F[i] = NA_REAL;
+<a name="l01747"></a>01747                 <span class="keywordflow">if</span> ((ap[i + 1] - ap[i]) &gt; 1) {    <span class="comment">/* skip if no progeny */</span>
+<a name="l01748"></a>01748                     <span class="keywordflow">if</span> (p &gt; q) {j = p; p = q; q = j;} <span class="comment">/* ensure p &lt;= q */</span>
+<a name="l01749"></a>01749                     <span class="keywordflow">for</span> (j = 0, F[i] = 0; j &lt;= p; j++) {
+<a name="l01750"></a>01750                         <span class="keywordflow">for</span> (k = ap[j], tmp = 0;
+<a name="l01751"></a>01751                              k &lt; ap[j + 1] &amp;&amp; ai[k] &lt;= q; k++) {
+<a name="l01752"></a>01752                             <span class="keywordtype">int</span> ii = ai[k];
+<a name="l01753"></a>01753                             <span class="keywordflow">if</span> (ii == p) tmp = ax[k];
+<a name="l01754"></a>01754                             <span class="keywordflow">if</span> (ii == q) F[i] += tmp * ax[k]/2;
+<a name="l01755"></a>01755                         }
+<a name="l01756"></a>01756                     }
+<a name="l01757"></a>01757                 }
+<a name="l01758"></a>01758             }
+<a name="l01759"></a>01759         }
+<a name="l01760"></a>01760         <span class="keywordflow">for</span> (j = ap[i]; j &lt; ap[i + 1]; j++) ax[j] *= Di;
+<a name="l01761"></a>01761     }
+<a name="l01762"></a>01762     <span class="keywordflow">return</span> ans;
+<a name="l01763"></a>01763 }
+<a name="l01764"></a>01764 
+<a name="l01765"></a>01765 <span class="comment">/* NOTE: This function requires that missing parents be coded as zero */</span>
+<a name="l01778"></a><a class="code" href="lmer_8c.html#717631a5aed4d47229922c84b9b1a952">01778</a> SEXP <a class="code" href="lmer_8c.html#717631a5aed4d47229922c84b9b1a952" title="Create the inbreeding coefficients according to the algorithm given in &amp;quot;Comparison...">pedigree_inbreeding</a>(SEXP x)
+<a name="l01779"></a>01779 {
+<a name="l01780"></a>01780     SEXP ans, sp = GET_SLOT(x, install(<span class="stringliteral">"sire"</span>));
+<a name="l01781"></a>01781     <span class="keywordtype">int</span> i, j, t, n = LENGTH(sp), S, D;
+<a name="l01782"></a>01782     <span class="keywordtype">int</span> *SI, *MI,               <span class="comment">/* start and minor */</span>
+<a name="l01783"></a>01783         *sire = INTEGER(sp),
+<a name="l01784"></a>01784         *dam = INTEGER(GET_SLOT(x, install(<span class="stringliteral">"dam"</span>)));
+<a name="l01785"></a>01785     <span class="keywordtype">double</span> *F = <a class="code" href="lmer_8c.html#679ceea530c97713d6abdb619e70a6b9" title="alloca n elements of type t">Alloca</a>(n + 1, <span class="keywordtype">double</span>), <span class="comment">/* inbreeding coefficients */</span>
+<a name="l01786"></a>01786       *L = <a class="code" href="lmer_8c.html#679ceea530c97713d6abdb619e70a6b9" title="alloca n elements of type t">Alloca</a>(n + 1, <span class="keywordtype">double</span>), *B = <a class="code" href="lmer_8c.html#679ceea530c97713d6abdb619e70a6b9" title="alloca n elements of type t">Alloca</a>(n + 1, <span class="keywordtype">double</span>);
+<a name="l01787"></a>01787     <span class="keywordtype">int</span> *Anc = <a class="code" href="lmer_8c.html#679ceea530c97713d6abdb619e70a6b9" title="alloca n elements of type t">Alloca</a>(n + 1, <span class="keywordtype">int</span>),      <span class="comment">/* ancestor */</span>
+<a name="l01788"></a>01788         *LAP = <a class="code" href="lmer_8c.html#679ceea530c97713d6abdb619e70a6b9" title="alloca n elements of type t">Alloca</a>(n + 1, <span class="keywordtype">int</span>);      <span class="comment">/* longest ancestoral path */</span>
+<a name="l01789"></a>01789     R_CheckStack();
+<a name="l01790"></a>01790     
+<a name="l01791"></a>01791     F[0] =-1; LAP[0] =-1; <span class="comment">/* set F and lap for unknown parents */</span>
+<a name="l01792"></a>01792     <span class="keywordflow">for</span>(i = 1, t = -1; i &lt;= n; i++) {   <span class="comment">/* evaluate LAP and its maximum */</span>
+<a name="l01793"></a>01793         S = sire[i]; D = dam[i]; <span class="comment">/* parents of animal i */</span>
+<a name="l01794"></a>01794         LAP[i] = ((LAP[S] &lt; LAP[D]) ? LAP[D] : LAP[S]) + 1;
+<a name="l01795"></a>01795         <span class="keywordflow">if</span> (LAP[i] &gt; t) t = LAP[i];
+<a name="l01796"></a>01796     }
+<a name="l01797"></a>01797     SI = <a class="code" href="lmer_8c.html#679ceea530c97713d6abdb619e70a6b9" title="alloca n elements of type t">Alloca</a>(t + 1, <span class="keywordtype">int</span>);
+<a name="l01798"></a>01798     MI = <a class="code" href="lmer_8c.html#679ceea530c97713d6abdb619e70a6b9" title="alloca n elements of type t">Alloca</a>(t + 1, <span class="keywordtype">int</span>);
+<a name="l01799"></a>01799     <span class="keywordflow">for</span>(i = 0; i &lt;= t ; ++i) SI[i] = MI[i] = 0; <span class="comment">/* initialize start and minor */</span>
+<a name="l01800"></a>01800     <span class="keywordflow">for</span>(i = 1; i &lt;= n; i++) {   <span class="comment">/* evaluate F */</span>
+<a name="l01801"></a>01801         S = sire[i]; D = dam[i]; <span class="comment">/* parents of animal i */</span>
+<a name="l01802"></a>01802         B[i] = 0.5 - 0.25 * (F[S] + F[D]); 
+<a name="l01803"></a>01803                                 <span class="comment">/* adjust start and minor */</span>
+<a name="l01804"></a>01804         <span class="keywordflow">for</span> (j = 0; j &lt; LAP[i]; j++) {++SI[j]; ++MI[j];} 
+<a name="l01805"></a>01805         <span class="keywordflow">if</span> (S == 0 || D == 0) { <span class="comment">/* both parents unknown */</span>
+<a name="l01806"></a>01806             F[i] = L[i] = 0; <span class="keywordflow">continue</span>;
+<a name="l01807"></a>01807         }
+<a name="l01808"></a>01808         <span class="keywordflow">if</span>(S == sire[i-1] &amp;&amp; D == dam[i-1]) { <span class="comment">/* full-sib with last animal */</span>
+<a name="l01809"></a>01809             F[i] = F[i-1]; L[i] = L[i-1]; <span class="keywordflow">continue</span>;
+<a name="l01810"></a>01810         }
+<a name="l01811"></a>01811     
+<a name="l01812"></a>01812         F[i] = -1; L[i] = 1; 
+<a name="l01813"></a>01813         t = LAP[i]; <span class="comment">/* largest lap group number in the animal's pedigree */</span>
+<a name="l01814"></a>01814         Anc[MI[t]++] = i; <span class="comment">/* initialize Anc and increment MI[t] */</span>
+<a name="l01815"></a>01815         <span class="keywordflow">while</span>(t &gt; -1) { <span class="comment">/* from the largest lap group to zero */</span>
+<a name="l01816"></a>01816             j = Anc[--MI[t]]; <span class="comment">/* next ancestor */</span>
+<a name="l01817"></a>01817             S = sire[j]; D = dam[j]; <span class="comment">/* parents of the ancestor */</span>
+<a name="l01818"></a>01818             <span class="keywordflow">if</span> (S) {
+<a name="l01819"></a>01819                 <span class="keywordflow">if</span> (!L[S]) Anc[MI[LAP[S]]++] = S; 
+<a name="l01820"></a>01820                                 <span class="comment">/* add sire in its lap group in Anc</span>
+<a name="l01821"></a>01821 <span class="comment">                                 * array if it is not added yet and</span>
+<a name="l01822"></a>01822 <span class="comment">                                 * increment the minor index for the group */</span> 
+<a name="l01823"></a>01823                 L[S] += 0.5 * L[j]; <span class="comment">/* contribution to sire */</span>
+<a name="l01824"></a>01824             }
+<a name="l01825"></a>01825             <span class="keywordflow">if</span> (D) {
+<a name="l01826"></a>01826                 <span class="keywordflow">if</span> (!L[D]) Anc[MI[LAP[D]]++] = D;
+<a name="l01827"></a>01827                 L[D] += 0.5 * L[j]; <span class="comment">/* contribution to dam */</span>
+<a name="l01828"></a>01828             }
+<a name="l01829"></a>01829             F[i] += L[j] * L[j] * B[j];
+<a name="l01830"></a>01830             L[j] = 0; <span class="comment">/*clear L[j] for the evaluation of the next animal */</span>
+<a name="l01831"></a>01831             <span class="keywordflow">if</span> (MI[t] == SI[t]) --t; <span class="comment">/* move to the next lap group when</span>
+<a name="l01832"></a>01832 <span class="comment">                                      * all ancestors in group t have been</span>
+<a name="l01833"></a>01833 <span class="comment">                                      * evaluated */</span>
+<a name="l01834"></a>01834         } 
+<a name="l01835"></a>01835     }
+<a name="l01836"></a>01836     ans = PROTECT(allocVector(REALSXP, n));
+<a name="l01837"></a>01837     Memcpy(REAL(ans), F + 1, n);
+<a name="l01838"></a>01838     UNPROTECT(1);
+<a name="l01839"></a>01839     <span class="keywordflow">return</span> ans;
+<a name="l01840"></a>01840 }
+<a name="l01841"></a>01841 
 <a name="l01842"></a>01842 
-<a name="l01843"></a>01843 
-<a name="l01844"></a>01844 <span class="preprocessor">#if 0</span>
-<a name="l01845"></a>01845 <span class="preprocessor"></span>
-<a name="l01846"></a>01846 <span class="comment">/* Gauss-Hermite Quadrature x positions and weights */</span>
-<a name="l01847"></a>01847 <span class="keyword">static</span> <span class="keyword">const</span> <span class="keywordtype">double</span>
-<a name="l01848"></a>01848     GHQ_x1[1] = {0},
-<a name="l01849"></a>01849     GHQ_w1[1] = {1},
-<a name="l01850"></a>01850     GHQ_x2[1] = {1},
-<a name="l01851"></a>01851     GHQ_w2[1] = {0.5},
-<a name="l01852"></a>01852     GHQ_x3[2] = {1.7320507779261, 0},
-<a name="l01853"></a>01853     GHQ_w3[2] = {0.166666666666667, 0.666666666666667},
-<a name="l01854"></a>01854     GHQ_x4[2] = {2.3344141783872, 0.74196377160456},
-<a name="l01855"></a>01855     GHQ_w4[2] = {0.0458758533899086, 0.454124131589555},
-<a name="l01856"></a>01856     GHQ_x5[3] = {2.85696996497785, 1.35562615677371, 0},
-<a name="l01857"></a>01857     GHQ_w5[3] = {0.0112574109895360, 0.222075915334214,
-<a name="l01858"></a>01858                  0.533333317311434},
-<a name="l01859"></a>01859     GHQ_x6[3] = {3.32425737665988, 1.88917584542184,
-<a name="l01860"></a>01860                  0.61670657963811},
-<a name="l01861"></a>01861     GHQ_w6[3] = {0.00255578432527774, 0.0886157433798025,
-<a name="l01862"></a>01862                  0.408828457274383},
-<a name="l01863"></a>01863     GHQ_x7[4] = {3.7504396535397, 2.36675937022918,
-<a name="l01864"></a>01864                  1.15440537498316, 0},
-<a name="l01865"></a>01865     GHQ_w7[4] = {0.000548268839501628, 0.0307571230436095,
-<a name="l01866"></a>01866                  0.240123171391455, 0.457142843409801},
-<a name="l01867"></a>01867     GHQ_x8[4] = {4.14454711519499, 2.80248581332504,
-<a name="l01868"></a>01868                  1.63651901442728, 0.539079802125417},
-<a name="l01869"></a>01869     GHQ_w8[4] = {0.000112614534992306, 0.0096352198313359,
-<a name="l01870"></a>01870                  0.117239904139746, 0.373012246473389},
-<a name="l01871"></a>01871     GHQ_x9[5] = {4.51274578616743, 3.20542894799789,
-<a name="l01872"></a>01872                  2.07684794313409, 1.02325564627686, 0},
-<a name="l01873"></a>01873     GHQ_w9[5] = {2.23458433364535e-05, 0.00278914123744297,
-<a name="l01874"></a>01874                  0.0499164052656755, 0.244097495561989,
-<a name="l01875"></a>01875                  0.406349194142045},
-<a name="l01876"></a>01876     GHQ_x10[5] = {4.85946274516615, 3.58182342225163,
-<a name="l01877"></a>01877                   2.48432579912153, 1.46598906930182,
-<a name="l01878"></a>01878                   0.484935699216176},
-<a name="l01879"></a>01879     GHQ_w10[5] = {4.31065250122166e-06, 0.000758070911538954,
-<a name="l01880"></a>01880                   0.0191115799266379, 0.135483698910192,
-<a name="l01881"></a>01881                   0.344642324578594},
-<a name="l01882"></a>01882     GHQ_x11[6] = {5.18800113558601, 3.93616653976536,
-<a name="l01883"></a>01883                   2.86512311160915, 1.87603498804787,
-<a name="l01884"></a>01884                   0.928868981484148, 0},
-<a name="l01885"></a>01885     GHQ_w11[6] = {8.12184954622583e-07, 0.000195671924393029,
-<a name="l01886"></a>01886                   0.0067202850336527, 0.066138744084179,
-<a name="l01887"></a>01887                   0.242240292596812, 0.36940835831095};
-<a name="l01888"></a>01888 
-<a name="l01889"></a>01889 <span class="keyword">static</span> <span class="keyword">const</span> <span class="keywordtype">double</span>
-<a name="l01890"></a>01890     *GHQ_x[12] = {(<span class="keywordtype">double</span> *) NULL, GHQ_x1, GHQ_x2, GHQ_x3, GHQ_x4,
-<a name="l01891"></a>01891                   GHQ_x5, GHQ_x6, GHQ_x7, GHQ_x8, GHQ_x9, GHQ_x10,
-<a name="l01892"></a>01892                   GHQ_x11},
-<a name="l01893"></a>01893     *GHQ_w[12] = {(<span class="keywordtype">double</span> *) NULL, GHQ_w1, GHQ_w2, GHQ_w3, GHQ_w4,
-<a name="l01894"></a>01894                   GHQ_w5, GHQ_w6, GHQ_w7, GHQ_w8, GHQ_w9, GHQ_w10,
-<a name="l01895"></a>01895                   GHQ_w11};
+<a name="l01843"></a>01843 <span class="preprocessor">#if 0</span>
+<a name="l01844"></a>01844 <span class="preprocessor"></span>
+<a name="l01845"></a>01845 <span class="comment">/* Gauss-Hermite Quadrature x positions and weights */</span>
+<a name="l01846"></a>01846 <span class="keyword">static</span> <span class="keyword">const</span> <span class="keywordtype">double</span>
+<a name="l01847"></a>01847     GHQ_x1[1] = {0},
+<a name="l01848"></a>01848     GHQ_w1[1] = {1},
+<a name="l01849"></a>01849     GHQ_x2[1] = {1},
+<a name="l01850"></a>01850     GHQ_w2[1] = {0.5},
+<a name="l01851"></a>01851     GHQ_x3[2] = {1.7320507779261, 0},
+<a name="l01852"></a>01852     GHQ_w3[2] = {0.166666666666667, 0.666666666666667},
+<a name="l01853"></a>01853     GHQ_x4[2] = {2.3344141783872, 0.74196377160456},
+<a name="l01854"></a>01854     GHQ_w4[2] = {0.0458758533899086, 0.454124131589555},
+<a name="l01855"></a>01855     GHQ_x5[3] = {2.85696996497785, 1.35562615677371, 0},
+<a name="l01856"></a>01856     GHQ_w5[3] = {0.0112574109895360, 0.222075915334214,
+<a name="l01857"></a>01857                  0.533333317311434},
+<a name="l01858"></a>01858     GHQ_x6[3] = {3.32425737665988, 1.88917584542184,
+<a name="l01859"></a>01859                  0.61670657963811},
+<a name="l01860"></a>01860     GHQ_w6[3] = {0.00255578432527774, 0.0886157433798025,
+<a name="l01861"></a>01861                  0.408828457274383},
+<a name="l01862"></a>01862     GHQ_x7[4] = {3.7504396535397, 2.36675937022918,
+<a name="l01863"></a>01863                  1.15440537498316, 0},
+<a name="l01864"></a>01864     GHQ_w7[4] = {0.000548268839501628, 0.0307571230436095,
+<a name="l01865"></a>01865                  0.240123171391455, 0.457142843409801},
+<a name="l01866"></a>01866     GHQ_x8[4] = {4.14454711519499, 2.80248581332504,
+<a name="l01867"></a>01867                  1.63651901442728, 0.539079802125417},
+<a name="l01868"></a>01868     GHQ_w8[4] = {0.000112614534992306, 0.0096352198313359,
+<a name="l01869"></a>01869                  0.117239904139746, 0.373012246473389},
+<a name="l01870"></a>01870     GHQ_x9[5] = {4.51274578616743, 3.20542894799789,
+<a name="l01871"></a>01871                  2.07684794313409, 1.02325564627686, 0},
+<a name="l01872"></a>01872     GHQ_w9[5] = {2.23458433364535e-05, 0.00278914123744297,
+<a name="l01873"></a>01873                  0.0499164052656755, 0.244097495561989,
+<a name="l01874"></a>01874                  0.406349194142045},
+<a name="l01875"></a>01875     GHQ_x10[5] = {4.85946274516615, 3.58182342225163,
+<a name="l01876"></a>01876                   2.48432579912153, 1.46598906930182,
+<a name="l01877"></a>01877                   0.484935699216176},
+<a name="l01878"></a>01878     GHQ_w10[5] = {4.31065250122166e-06, 0.000758070911538954,
+<a name="l01879"></a>01879                   0.0191115799266379, 0.135483698910192,
+<a name="l01880"></a>01880                   0.344642324578594},
+<a name="l01881"></a>01881     GHQ_x11[6] = {5.18800113558601, 3.93616653976536,
+<a name="l01882"></a>01882                   2.86512311160915, 1.87603498804787,
+<a name="l01883"></a>01883                   0.928868981484148, 0},
+<a name="l01884"></a>01884     GHQ_w11[6] = {8.12184954622583e-07, 0.000195671924393029,
+<a name="l01885"></a>01885                   0.0067202850336527, 0.066138744084179,
+<a name="l01886"></a>01886                   0.242240292596812, 0.36940835831095};
+<a name="l01887"></a>01887 
+<a name="l01888"></a>01888 <span class="keyword">static</span> <span class="keyword">const</span> <span class="keywordtype">double</span>
+<a name="l01889"></a>01889     *GHQ_x[12] = {(<span class="keywordtype">double</span> *) NULL, GHQ_x1, GHQ_x2, GHQ_x3, GHQ_x4,
+<a name="l01890"></a>01890                   GHQ_x5, GHQ_x6, GHQ_x7, GHQ_x8, GHQ_x9, GHQ_x10,
+<a name="l01891"></a>01891                   GHQ_x11},
+<a name="l01892"></a>01892     *GHQ_w[12] = {(<span class="keywordtype">double</span> *) NULL, GHQ_w1, GHQ_w2, GHQ_w3, GHQ_w4,
+<a name="l01893"></a>01893                   GHQ_w5, GHQ_w6, GHQ_w7, GHQ_w8, GHQ_w9, GHQ_w10,
+<a name="l01894"></a>01894                   GHQ_w11};
+<a name="l01895"></a>01895 
 <a name="l01896"></a>01896 
-<a name="l01897"></a>01897 
-<a name="l01898"></a>01898 <span class="preprocessor">#endif</span>
-</pre></div><hr size="1"><address style="text-align: right;"><small>Generated on Sun Jan 6 09:08:03 2008 for lme4 by&nbsp;
+<a name="l01897"></a>01897 <span class="preprocessor">#endif</span>
+</pre></div><hr size="1"><address style="text-align: right;"><small>Generated on Sun Jan 6 13:26:56 2008 for lme4 by&nbsp;
 <a href="http://www.doxygen.org/index.html">
 <img src="doxygen.png" alt="doxygen" align="middle" border="0"></a> 1.5.3 </small></address>
 </body>
