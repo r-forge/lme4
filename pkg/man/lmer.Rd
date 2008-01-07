@@ -33,9 +33,10 @@ nlmer(formula, data, control, start, verbose,
     \code{formula}.  By default the variables are taken from the
     environment from which \code{lmer} is called.}
   \item{family}{
-    a GLM family, see \code{\link[stats]{glm}}.  If \code{family} is
-    missing then a linear mixed model is fit; otherwise a generalized
-    linear mixed model is fit.}
+    a GLM family, see \code{\link[stats]{glm}} and
+    \code{\link[stats]{family}}. If \code{family} is missing then a
+    linear mixed model is fit; otherwise a generalized linear mixed
+    model is fit.}
   \item{method}{a character string.  For a linear mixed model the
     default is \code{"REML"} indicating that the model should be fit by
     maximizing the restricted log-likelihood.  The alternative is
