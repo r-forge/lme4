@@ -180,7 +180,7 @@ increasing mean response for Figure~\ref{fig:Raildotplot}.
 %The crossproduct of the columns of this matrix are stored as a
 %symmetric, sparse matrix in the \code{A} slot.
 <<ARm1ML>>=
-tcrossprod(Rm1ML@Vt)
+tcrossprod(Rm1ML@Cm)
 @
 
 The \code{L} component of this fitted model is a Cholesky
@@ -316,14 +316,14 @@ nms <- names(dev)
 vals <- matrix(0, nrow = length(sg), ncol = nc, dimnames = list(NULL, nms))
 for (i in seq(along = sg)) {
     .Call("mer_ST_setPars", mm, sg[i], PACKAGE = "lme4")
-    res <- try(.Call("lmer_profiled_deviance", mm, PACKAGE = "lme4"), silent = TRUE)
+    res <- try(.Call("mer_update_RX", mm, PACKAGE = "lme4"), silent = TRUE)
     vals[i,] <- if (inherits(res, "try-error")) NA else mm@deviance
 }
 vals[,"lpdisc"] <- mm@dims["n"] * vals[,"lpdisc"]
 df <- data.frame(x = rep(sg, nc), y = as.vector(vals),
                  type = gl(nc, length(sg), labels = nms))
 print(xyplot(y ~ x | type, df, type = c("g", "l"),
-             subset = !(type %in% c("REML", "ldRX2", "bqd", "disc")),
+             subset = !(type %in% c("REML", "ldRX2", "usqr", "disc", "wrss")),
              scales = list(x = list(axs = 'i'),
              y = list(relation = "free", rot = 0)),
              aspect = 0.75, xlab = expression(sigma[1]), ylab = '',
@@ -375,7 +375,7 @@ nms <- names(dev)
 vals <- matrix(0, nrow = length(sg), ncol = nc, dimnames = list(NULL, nms))
 for (i in seq(along = sg)) {
     .Call("mer_ST_setPars", mm, sg[i], PACKAGE = "lme4")
-    res <- try(.Call("lmer_profiled_deviance", mm, PACKAGE = "lme4"), silent = TRUE)
+    res <- try(.Call("mer_update_RX", mm, PACKAGE = "lme4"), silent = TRUE)
     vals[i,] <- if (inherits(res, "try-error")) NA else mm@deviance
 }
 base <- 18 * log(deviance(lm(travel ~ Rail, Rail)))
@@ -443,7 +443,7 @@ per day of sleep deprivation).  In addition there are random effects
 per subject for both the intercept and the slope parameters.
 
 <<sm1struct,fig=TRUE,echo=FALSE,height=3,width=6>>=
-print(image(tcrossprod(sm1@Vt), colorkey = FALSE, aspect = 1),
+print(image(tcrossprod(sm1@Cm), colorkey = FALSE, aspect = 1),
       split = c(1,1,2,1), more = TRUE)
 print(image(sm1@L, colorkey = FALSE, aspect = 1),
       split = c(2,1,2,1))
@@ -570,7 +570,7 @@ grouping factor is \emph{nested within} the block grouping factor.
 The structure of the matrices $\bm{A}$ and $\bm{L}$ for this model
 (Figure~\ref{fig:Om1struct})
 <<Om1struct,fig=TRUE,echo=FALSE,height=3,width=6>>=
-print(image(tcrossprod(Om1@Vt), colorkey = FALSE, aspect = 1),
+print(image(tcrossprod(Om1@Cm), colorkey = FALSE, aspect = 1),
        split = c(1,1,2,1), more = TRUE)
 print(image(Om1@L, colorkey = FALSE, aspect = 1), split = c(2,1,2,1))
 @
@@ -602,7 +602,7 @@ print(Om1a <- lmer(yield ~ nitro + (1|Block/Variety), Oats), corr = FALSE)
 with matrices $\bm{A}$ and $\bm{L}$ whose patterns are shown in
 Figure~\ref{fig:Om1astruct}.
 <<Om1astruct,fig=TRUE,echo=FALSE,height=3,width=6>>=
-print(image(tcrossprod(Om1a@Vt), colorkey = FALSE, aspect = 1),
+print(image(tcrossprod(Om1a@Cm), colorkey = FALSE, aspect = 1),
       split = c(1,1,2,1), more = TRUE)
 print(image(Om1a@L, colorkey = FALSE, aspect = 1), split = c(2,1,2,1))
 @
@@ -635,7 +635,7 @@ print(sm2 <- lmer(Reaction ~ Days + (1|Subject) + (0+Days|Subject), sleepstudy),
 The structures of the matrices $\bm{A}$ and $\bm{L}$ for this model are
 shown in Figure~\ref{fig:sm2struct}.
 <<sm2struct,fig=TRUE,echo=FALSE,height=3,width=6>>=
-print(image(tcrossprod(sm2@Vt), colorkey = FALSE, aspect = 1),
+print(image(tcrossprod(sm2@Cm), colorkey = FALSE, aspect = 1),
       split = c(1,1,2,1), more = TRUE)
 print(image(sm2@L, colorkey = FALSE, aspect = 1), split = c(2,1,2,1))
 @
@@ -668,7 +668,7 @@ print(Om2 <- lmer(yield ~ nitro + (1|Variety:Block) + (nitro|Block), Oats), corr
 The structures of the matrices $\bm{A}$ and $\bm{L}$ for this
 model are shown in Figure~\ref{fig:Om2struct}.
 <<Om2struct,fig=TRUE,echo=FALSE,height=3,width=6>>=
-print(image(tcrossprod(Om2@Vt), colorkey = FALSE, aspect = 1),
+print(image(tcrossprod(Om2@Cm), colorkey = FALSE, aspect = 1),
       split = c(1,1,2,1), more = TRUE)
 print(image(Om2@L, colorkey = FALSE, aspect = 1),
       split = c(2,1,2,1))
@@ -708,7 +708,7 @@ is stored as a symmetric matrix with only the non-redundant elements
 being stored explicitly, the number of stored nonzeros in these two
 matrices are identical.
 <<Om2ALsize>>=
-length(tcrossprod(Om2@Vt)@x)
+length(tcrossprod(Om2@Cm)@x)
 length(Om2@L@x)
 @
 
@@ -758,7 +758,7 @@ We see that primary schools 1, 4 and 6 each occurred with multiple secondary sch
 For non-nested grouping factors like these, the structure of $\bm{A}$
 and $\bm{L}$, shown in Figure~\ref{fig:Sm1struct}
 <<Sm1struct,fig=TRUE,echo=FALSE,height=3,width=6>>=
-print(image(tcrossprod(Sm1@Vt), colorkey = FALSE, aspect = 1),
+print(image(tcrossprod(Sm1@Cm), colorkey = FALSE, aspect = 1),
       split = c(1,1,2,1), more = TRUE)
 print(image(Sm1@L, colorkey = FALSE, aspect = 1), split = c(2,1,2,1))
 @
@@ -781,7 +781,7 @@ With non-nested grouping factors such as these there can be fill-in.
 That is, the number of nonzeros in $\bm{L}$ is greater than the number
 of non-redundant nonzeros in $\bm{A}$.
 <<Sm1fill>>=
-c(A = length(tcrossprod(Sm1@Vt)@x), L = length(Sm1@L@x))
+c(A = length(tcrossprod(Sm1@Cm)@x), L = length(Sm1@L@x))
 @
 The permutation applied to the rows and columns of $\bm{A}$ is a
 ``fill-reducing'' permutation chosen to reduce the amount of fill-in
