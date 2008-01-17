@@ -1,3 +1,32 @@
+2008-01-07  Douglas Bates <bates@stat.wisc.edu>
+
+	* [r40] inst/doc/Implementation.Rnw: Update to current slot names
+	* [r41] man/lmer.Rd: Add links thanks to <gregor.gorjanc@bfro.uni-lj.si>
+
+2008-01-06  Douglas Bates <bates@stat.wisc.edu>
+
+	* [r36] src/Syms.h, src/init.c, src/lmer.c: Add macros, fix bug in
+	  update_RX, correct declarations with R_INLINE
+	* [r37] R/AllClass.R, R/lmer.R: Change name RVXy to RCXy
+
+2008-01-03  Douglas Bates <bates@stat.wisc.edu>
+
+	* [r29] NAMESPACE, R/AllClass.R, R/lmer.R, man/VarCorr.Rd, man/lmer.Rd,
+	  man/mcmcsamp.Rd, src/Syms.h, src/init.c, src/lmer.c, src/lmer.h:
+	  Remove lmer, nlmer and glmer classes. All necessary slots are now in
+	  mer.
+	* [r31] R/lmer.R, src/init.c, src/lmer.c, src/lmer.h: Remove isREML
+	  macro, clean up code in mer_postVar now that useSc is saved.
+	* [r32] src/Syms.h, src/init.c, src/lmer.c: change TSPp_*_mult to
+	  update_ranef with a single argument
+
+2008-01-02  Douglas Bates <bates@stat.wisc.edu>
+
+	* [r25] man/lmer-class.Rd: Update documentation for new class
+	  definitions
+	* [r26] man/mer-class.Rd: Move to name given in the file
+	* [r27] man/lmer-class.Rd:
+
 2007-12-27  Douglas Bates <bates@stat.wisc.edu>
 
 	* [r20] inst/doc/Doxyfile, www/doxygen, many others: Update doxygen
