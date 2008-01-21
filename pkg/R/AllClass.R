@@ -12,46 +12,44 @@ setClass("lmList.confint", contains = "array")
 setOldClass("data.frame")
 setOldClass("family")
 setOldClass("logLik")
-setOldClass("terms")
 
-setClass("mer", ## Slots common to all three types of mixed models
+setClass("mer",
 	 representation(## original data
-                        famName = "character", # name of GLM family and link
-                        env = "environment",  # evaluation env for family
-                        nlmodel = "call",     # nonlinear model call
-                        pnames = "character", # parameter names for nonlinear model
-                        frame = "data.frame", # model frame (or empty frame)
-                        call = "call",        # matched call
-                        terms = "terms",    # terms for fixed-effects
-                        flist = "list",     # list of grouping factors
-                        X = "matrix",       # fixed effects model matrix
-                        Zt = "dgCMatrix",   # sparse form of Z'
+                        famName = "character",# name of GLM family and link
+                        env = "environment",# evaluation env for family
+                        nlmodel = "call",# nonlinear model call
+                        pnames = "character",# parameter names for nonlinear model
+                        frame = "data.frame",# model frame (or empty frame)
+                        call = "call",   # matched call
+                        flist = "list",  # list of grouping factors
+                        X = "matrix",    # fixed effects model matrix
+                        Zt = "dgCMatrix",# sparse form of Z'
                         priorWt = "numeric",# prior weights,
                         offset = "numeric", # length 0 -> no offset
-                        y = "numeric",      # response vector
-                        cnames = "list",    # row/column names of els of ST
-                        Gp = "integer",     # pointers to row groups of Zt
-                        dims = "integer",   # dimensions and indicators
+                        y = "numeric",   # response vector
+                        cnames = "list", # row/column names of els of ST
+                        Gp = "integer",  # pointers to row groups of Zt
+                        dims = "integer",# dimensions and indicators
                         ## slots that vary during optimization
                         ST = "list", # list of TSST' rep of rel. var. mats
-                        Cm = "dgCMatrix",   # V'=(ZTS)'
-                        v = "numeric",      # linear predictor for nonlinear models
-                                        # (length 0 when no nonlinear component)
-                                        # must have an n by s "gradient" attribute 
-                        A = "dgCMatrix",    # sparse form of (W^{.5}G^{-1}HV)'
-                        L = "CHMfactor",    # Cholesky factor of P(AA' + I)P'
+                        v = "numeric",   # linear predictor (nonlinear models only)
+                        A = "dgCMatrix", # (ZTS)'
+                        Cm = "dgCMatrix", # AH'G^{-1}W^{1/2} when s > 0
+                        Cx = "numeric",  # x slot of Cm when s == 1 (full Cm not stored)
+                        L = "CHMfactor", # Cholesky factor of weighted P(AA' + I)P'
                         deviance = "numeric", # ML and REML deviance and components
-			fixef = "numeric",  # fixed effects (length p)
-			ranef = "numeric",  # random effects (length q)
-                        uvec = "numeric",   # orthogonal random effects (q)
-                        eta = "numeric",    # unbounded predictor
-                        mu = "numeric",     # fitted values at current beta and b
-                        muEta = "numeric",  # d mu/d eta evaluated at current eta
-                        var = "numeric",    # conditional variances of Y
-                        resid = "numeric",  # raw residuals at current beta and b
-                        sqrtWt = "numeric", # square root of current weights
-                        RCXy = "matrix",    # dense sol. to L RCXy = S T'ZtXy
-                        RXy = "matrix"),    # Cholesky factor of downdated XytXy
+			fixef = "numeric",# fixed effects (length p)
+			ranef = "numeric",# random effects (length q)
+                        u = "numeric",   # orthogonal random effects (q)
+                        eta = "numeric", # unbounded predictor
+                        mu = "numeric",  # fitted values at current beta and b
+                        muEta = "numeric",# d mu/d eta evaluated at current eta
+                        var = "numeric", # conditional variances of Y
+                        resid = "numeric",# raw residuals at current beta and b
+                        sqrtXWt = "matrix",# sqrt of model matrix row weights
+                        sqrtrWt = "numeric",# sqrt of weights used with residuals
+                        RCXy = "matrix", # dense sol. to L RCXy = S T'ZtXy
+                        RXy = "matrix"), # Cholesky factor of downdated XytXy
          validity = function(object) .Call(mer_validate, object))
 
 setClass("summary.mer",                 # Additional slots in a summary object

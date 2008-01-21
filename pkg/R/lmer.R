@@ -104,21 +104,21 @@ expandSlash <- function(bb)
 
 ### Utilities used in lmer, glmer and nlmer
 
-createA <- function(C, s)
-### Create the nonzero pattern for the sparse matrix A from C.
-### ncol(C) is s * ncol(A).  The s groups of ncol(A) consecutive
-### columns in C are overlaid to produce C.
+createCm <- function(A, s)
+### Create the nonzero pattern for the sparse matrix Cm from A.
+### ncol(A) is s * ncol(Cm).  The s groups of ncol(Cm) consecutive
+### columns in A are overlaid to produce Cm.
 {
-    stopifnot(is(C, "dgCMatrix"))
+    stopifnot(is(A, "dgCMatrix"))
     s <- as.integer(s)[1]
-    if (s == 1L) return(C)
-    if ((nc <- ncol(C)) %% s)
-        stop(gettextf("ncol(C) = %d is not a multiple of s = %d",
+    if (s == 1L) return(A)
+    if ((nc <- ncol(A)) %% s)
+        stop(gettextf("ncol(A) = %d is not a multiple of s = %d",
                       nc, s))
-    ncA <- as.integer(nc / s)
-    TC <- as(C, "TsparseMatrix")
-    as(new("dgTMatrix", Dim = c(nrow(C), ncA),
-           i = TC@i, j = as.integer(TC@j %% ncA), x = TC@x),
+    ncC <- as.integer(nc / s)
+    TA <- as(A, "TsparseMatrix")
+    as(new("dgTMatrix", Dim = c(nrow(A), ncC),
+           i = TA@i, j = as.integer(TA@j %% ncC), x = TA@x),
        "CsparseMatrix")
 }
     
@@ -167,7 +167,6 @@ lmerFrames <- function(mc, formula, contrasts, vnms = character(0))
     ## evaluate the terms for the fixed-effects only (used in anova)
     fe$formula <- fixed.form
     fe <- eval(fe, parent.frame(2)) # allow model.frame to update them
-    mt <- attr(fe, "terms")
 
     ## response vector
     Y <- model.response(mf, "any")
@@ -177,12 +176,16 @@ lmerFrames <- function(mc, formula, contrasts, vnms = character(0))
         dim(Y) <- NULL
         if(!is.null(nm)) names(Y) <- nm
     }
-
+    mt <- attr(fe, "terms")
+    
     ## Extract X checking for a null model. This check shouldn't be
     ## needed because an empty formula is changed to ~ 1 but it can't hurt.
     X <- if (!is.empty.model(mt))
         model.matrix(mt, mf, contrasts) else matrix(,NROW(Y),0)
     storage.mode(X) <- "double"      # when ncol(X) == 0, X is logical
+    fixef <- numeric(ncol(X))
+    names(fixef) <- colnames(X)
+    dimnames(X) <- NULL
 
     ## Extract the weights and offset.  For S4 classes we want the
     ## `not used' condition to be numeric(0) instead of NULL
@@ -197,13 +200,8 @@ lmerFrames <- function(mc, formula, contrasts, vnms = character(0))
                       length(off), NROW(Y)))
 
     ## remove the terms attribute from mf
-    attr(mf, "terms") <- NULL
-### FIXME: Should I instead attach mt as the terms attribute for mf?
-### Will it break anything to have more variables in the frame than
-### are used in the terms?  I think any function using the terms
-### should be defined here (e.g. the anova method) or use the terms()
-### extractor.
-    list(Y = Y, X = X, wts = wts, off = off, mt = mt, mf = mf)
+    attr(mf, "terms") <- mt
+    list(Y = Y, X = X, wts = wts, off = off, mf = mf, fixef = fixef)
 }
 
 isNested <- function(f1, f2)
@@ -300,8 +298,24 @@ VecFromNames <- function(nms, mode = "numeric")
     ans
 }
 
-mkdims <- function(fr, FL, start)
-### Create the standard versions of flist, Zt, Gp, ST, cnames and dd
+linkPos <-
+    VecFromNames(c("logit", "probit", "cauchit", "cloglog", "identity",
+                   "log", "sqrt", "1/mu^2", "inverse"), "integer")
+linkPos[] <- seq_along(linkPos)
+famPos <-
+    VecFromNames(c("binomial", "gaussian", "Gamma", "inverse.gaussian",
+                   "poisson", "quasibinomial", "quasipoisson", "quasi"),
+                 "integer")
+famPos[] <- seq_along(famPos)
+varPos <- 
+    VecFromNames(c("constant", "mu(1-mu)", "mu", "mu^2", "mu^3"),
+                 "integer")
+varPos[] <- seq_along(varPos)
+
+
+mkdims <- function(fr, FL, start, s = 1L)
+### Create the standard versions of flist, Zt, Gp, ST, cnames, A, Cm,
+### Cx, L and dd
 {
     flist <- lapply(FL, get("[["), "f")
     Ztl <- lapply(FL, get("[["), "Zt")
@@ -313,18 +327,21 @@ mkdims <- function(fr, FL, start)
     nc <- sapply(cnames, length)        # # of columns in els of ST
     ST <- lapply(nc, function(n) matrix(0, n, n))
     .Call(mer_ST_initialize, ST, Gp, Zt)
+    A <- .Call(mer_create_A, Zt, ST, Gp)
+    Cm <- createCm(A, s)
+    L <- .Call(mer_create_L, Cm)
+    if (s < 2) Cm <- new("dgCMatrix")
     if (!is.null(start) && checkSTform(ST, start)) ST <- start
-    C <- .Call(mer_create_C, Zt, ST, Gp)
 
     ## record dimensions and algorithm settings
     dd <-
-        VecFromNames(c("nf", "n", "p", "q", "s", "np", "REML", "ftyp",
+        VecFromNames(c("nf", "n", "p", "q", "s", "np", "REML", "ftyp", "ltyp",
                        "nest", "useSc", "cvg"), "integer")
     dd["nf"] <- length(cnames)          # number of random-effects terms
     dd["n"] <- nrow(fr$mf)              # number of observations
     dd["p"] <- ncol(fr$X)               # number of fixed-effects coefficients
-    dd["q"] <- nrow(C)                  # number of random effects
-    dd["s"] <- 1L                       # always 1 except in nlmer
+    dd["q"] <- nrow(Zt)                 # number of random effects
+    dd["s"] <- s
     nvc <- sapply(nc, function (qi) (qi * (qi + 1))/2) # no. of var. comp.
 ### FIXME: Check number of variance components versus number of
 ### levels in the factor for each term. Warn or stop as appropriate
@@ -335,13 +352,13 @@ mkdims <- function(fr, FL, start)
     dd["nest"] <- all(sapply(seq_along(flist)[-1],
                              function(i) isNested(flist[[i-1]], flist[[i]])))
     dd["useSc"] <- 1L                   # default is to use the scale parameter
-    dd["cvg"]  <- 0L                    # no optimization attempted
-    dev <- VecFromNames(c("ML", "REML", "ldL2", "ldRX2", "lpdisc",
+    dd["cvg"]  <- 0L                    # no optimization yet attempted
+    dev <- VecFromNames(c("ML", "REML", "ldL2", "ldRX2", "pwrss",
                           "disc", "usqr", "wrss"), "numeric")
     dev[] <- NA
 
-    list(Gp = Gp, ST = ST, C = C, Zt = Zt, cnames = cnames, dd = dd,
-         dev = dev, flist = flist)
+    list(Gp = Gp, ST = ST, A = A, Cm = Cm, L = L, Zt = Zt,
+         cnames = cnames, dd = dd, dev = dev, flist = flist)
 }
 
 mkFltype <- function(family)
@@ -393,7 +410,7 @@ mer_finalize <- function(ans, verbose)
 {
     .Call(mer_optimize, ans, verbose)
     if (ans@dims["cvg"] > 6) warning(convergenceMessage(ans@dims["cvg"]))
-    .Call(mer_update_effects, ans)
+    .Call(mer_update_ranef, ans)
     .Call(mer_update_mu, ans)
     ans
 }
@@ -417,61 +434,63 @@ lmer <-
     fr <- lmerFrames(mc, formula, contrasts) # model frame, X, etc.
     FL <- lmerFactorList(formula, fr$mf, 0L, 0L) # flist, Zt, cnames
     Y <- as.double(fr$Y)
-    dm <- mkdims(fr, FL, start)
+    if (is.list(start) && all(sort(names(start)) == sort(names(FL))))
+        start <- list(ST = start)
+    if (is.numeric(start)) start <- list(STpars = start)
+    dm <- mkdims(fr, FL, start[["ST"]])
     stopifnot(length(levels(dm$flist[[1]])) < length(Y))
 ### FIXME: A kinder, gentler error message may be in order.
 ### This checks that the number of levels in a grouping factor < n
 ### Only need to check the first factor because it is the one with
 ### the most levels.
     dm$dd["REML"] <- match.arg(method) == "REML"
-    dm$dd["ftyp"] <- -1L              # gaussian family, identity link
-
-    ## Create the dense matrices to be used in the deviance evaluation
-### FIXME: incorporate weights and offset in the creation of ZtXy et al.
-    pp1 <- dm$dd["p"] + 1L
-    fixef <- numeric(dm$dd["p"])
-    names(fixef) <- colnames(fr$X)
-    dimnames(fr$X) <- NULL
+    swts <- sqrt(unname(fr$wts))
+    Cx <- numeric(0)
+    if (length(swts))
+        Cx <- (dm$A)@x
+    p <- dm$dd["p"]
     n <- length(Y)
     
     ans <- new(Class = "mer",
                famName = c("gaussian", "identity"),
                env = new.env(),
-               nlmodel = substitute(I(x)),
+               nlmodel = (~I(x))[[2]],
                pnames = character(0),
                frame = if (model) fr$mf else fr$mf[0,],
                call = mc,
-               terms = fr$mt,
                flist = dm$flist,
                X = fr$X,
                Zt = dm$Zt, 
+               priorWt = swts,
+               offset = unname(fr$off),
 ### FIXME: Should y retain its names? As it stands any row names in the
 ### frame are dropped.  Really?  Are they part of the frame slot (if not
 ### reduced to 0 rows)?
-               priorWt = unname(sqrt(fr$wts)),
-               offset = unname(fr$off),
                y = unname(Y),
                cnames = unname(dm$cnames),
                Gp = unname(dm$Gp),
                dims = dm$dd,
                ST = dm$ST,
-               Cm = dm$C,
-               v = numeric(0),
-               A = new("dgCMatrix"),
-               L = .Call(mer_create_L, dm$C),
+               A = dm$A, 
+               Cm = dm$Cm,
+               Cx = Cx,
+               L = dm$L,
                deviance = dm$dev,
-               fixef = fixef,
+               fixef = fr$fixef,
                ranef = numeric(dm$dd["q"]),
-               uvec = numeric(dm$dd["q"]),
+               u = numeric(dm$dd["q"]),
                eta = numeric(n),
                mu = numeric(n), 
-               muEta = numeric(0),
-               var = numeric(0),
                resid = numeric(n),
-               sqrtWt = sqrt(unname(sqrt(fr$wts))),
-               RCXy = matrix(0, dm$dd["q"], pp1),
-               RXy = matrix(0, pp1, pp1))
-
+               sqrtrWt = swts,
+               sqrtXWt = as.matrix(swts),
+               RCXy = matrix(0, dm$dd["q"], p),
+               RXy = matrix(0, p, p))
+    if (!is.null(stp <- start$STpars) && is.numeric(stp)) {
+        STp <- .Call(mer_ST_getPars, ans)
+        if (length(STp) == length(stp))
+            .Call(mer_ST_setPars, ans, stp)
+    }
     cv <- do.call("lmerControl", control)
     if (missing(verbose)) verbose <- cv$msVerbose
     mer_finalize(ans, verbose)
@@ -512,38 +531,51 @@ function(formula, data, family = gaussian, method = c("Laplace", "AGQ"),
     fr <- lmerFrames(mc, formula, contrasts) # model frame, X, etc.
     glmFit <- glm.fit(fr$X, fr$Y, weights = fr$weights, # glm on f.e.
                       offset = fr$offset, family = family,
-                      intercept = attr(fr$mt, "intercept") > 0)
+                      intercept = attr(attr(fr$mf, "terms"), "intercept") > 0)
     FL <- lmerFactorList(formula, fr$mf, 0L, 0L) # flist, Zt, cnames
-    dm <- mkdims(fr, FL, start)
+    if (is.list(start) && all(sort(names(start)) == sort(names(FL))))
+        start <- list(ST = start) 
+    if (is.numeric(start)) start <- list(STpars = start)
+    dm <- mkdims(fr, FL, start[["ST"]])
     dm$dd["ftyp"] <- mkFltype(glmFit$family)
     if (glmFit$family$family %in% c("binomial", "poisson")) dm$dd["useSc"] <- 0L
     y <- unname(as.double(glmFit$y))
     dimnames(fr$X) <- NULL
-    pp1 <- dm$dd["p"] + 1L
+    p <- dm$dd["p"]
+    fixef <- coef(glmFit)
+    if (!is.null(ff <- start$fixef) && is.numeric(ff) && length(ff) == length(fixef))
+        fixef <- ff
     
     ans <- new(Class = "mer",
-               env = mkFamilyEnv(glmFit), nlmodel = substitute(I(x)),
+               env = mkFamilyEnv(glmFit),
+               nlmodel = (~I(x))[[2]],
                famName = unlist(glmFit$family[c("family", "link")]),
                frame = if (model) fr$mf else fr$mf[0,],
-               call = mc, terms = fr$mt, flist = dm$flist,
+               call = mc, flist = dm$flist,
                Zt = dm$Zt, X = fr$X, y = y,
                priorWt = unname(glmFit$prior.weights),
                offset = unname(fr$off),
                cnames = unname(dm$cnames), Gp = unname(dm$Gp),
-               dims = dm$dd, ST = dm$ST, Cm = dm$C, A = dm$C,
-               L = .Call(mer_create_L, dm$C),
+               dims = dm$dd, ST = dm$ST, A = dm$A,
+               Cm = dm$Cm, Cx = (dm$A)@x, L = dm$L,
                deviance = dm$dev,
-               fixef = coef(glmFit),
+               fixef = fr$fixef,
                ranef = numeric(dm$dd["q"]),
-               uvec = numeric(dm$dd["q"]),
+               u = numeric(dm$dd["q"]),
                eta = unname(glmFit$linear.predictors),
                mu = unname(glmFit$fitted.values),
                muEta = numeric(dm$dd["n"]),
                var = numeric(dm$dd["n"]),
                resid = unname(glmFit$residuals),
-               sqrtWt = numeric(dm$dd["n"]), 
-               RCXy = matrix(0, dm$dd["q"], pp1),
-               RXy = matrix(0, pp1, pp1))
+               sqrtXWt = as.matrix(numeric(dm$dd["n"])),
+               sqrtrWt = numeric(dm$dd["n"]), 
+               RCXy = matrix(0, dm$dd["q"], p),
+               RXy = matrix(0, p, p))
+    if (!is.null(stp <- start$STpars) && is.numeric(stp)) {
+        STp <- .Call(mer_ST_getPars, ans)
+        if (length(STp) == length(stp))
+            .Call(mer_ST_setPars, ans, stp)
+    }
     cv <- do.call("lmerControl", control)
     if (missing(verbose)) verbose <- cv$msVerbose
     mer_finalize(ans, verbose)
@@ -562,9 +594,9 @@ nlmer <- function(formula, data, control = list(), start = NULL,
     if (length(nlform) < 3)
         stop("formula must be a 3-part formula")
     nlmod <- as.call(nlform[[3]])
-    if (is.numeric(start)) start <- list(fixed = start)
-    s <- length(pnames <- names(start$fixed))
-    stopifnot(length(start$fixed) > 0, s > 0,
+    if (is.numeric(start)) start <- list(fixef = start)
+    s <- length(pnames <- names(start$fixef))
+    stopifnot(length(start$fixef) > 0, s > 0,
               inherits(data, "data.frame"), nrow(data) > 1)
 ### FIXME: Allow for the data argument to be missing.  What should the
 ### default be?
@@ -588,7 +620,7 @@ nlmer <- function(formula, data, control = list(), start = NULL,
     lapply(names(mf), function(nm) assign(nm, env = env, mf[[nm]]))
     n <- nrow(mf)
     lapply(pnames,
-           function(nm) assign(nm, env = env, rep(start$fixed[[nm]],
+           function(nm) assign(nm, env = env, rep(start$fixef[[nm]],
                                    length.out = n)))
 
     n <- nrow(mf)
@@ -608,33 +640,45 @@ nlmer <- function(formula, data, control = list(), start = NULL,
 ### FIXME: The only times there would be additional columns in the
 ### fixed effects would be as interactions with parameter names and
 ### they must be constructed differently
-    if (length(xnms) > 0)
-        Xt <- cbind(Xt, fr$X[rep.int(seq_len(n), s), xnms, drop = FALSE])
-    dm <- mkdims(fr, FL, start$STpars)
-    dm$dd["s"] <- s
-    dm$dd["ftyp"] <- -1L              # gaussian family, identity link
-    dm$dd["p"] <- length(start$fixed)
+#    if (length(xnms) > 0)
+#        Xt <- cbind(Xt, fr$X[rep.int(seq_len(n), s), xnms, drop = FALSE])
+    dm <- mkdims(fr, FL, start$STpars, s)
+    p <- dm$dd["p"] <- length(start$fixef)
     n <- dm$dd["n"]
-    pp1 <- dm$dd["p"] + 1L
-    A <- createA(dm$C, s)
-    y <- unname(as.double(fr$Y))
 
-    ans <- new("mer",
-               env = env, nlmodel = nlmod, pnames = pnames,
-               eta = numeric(n * s), v = numeric(n),
-               mu = numeric(n), resid = numeric(n), A = A,
+    ans <- new(Class = "mer",
+               env = env,
+               nlmodel = nlmod,
+               pnames = pnames,
                frame = if (model) fr$mf else fr$mf[0,],
-               call = mc, terms = fr$mt, flist = dm$flist, X = X,
-               Zt = dm$Zt, Cm = dm$C, y = y,
-               RXy = matrix(0, pp1, pp1),
-               RCXy = matrix(0, dm$dd["q"], pp1),
-               sqrtWt = unname(sqrt(fr$wts)), 
-               cnames = unname(dm$cnames), Gp = unname(dm$Gp),
-               dims = dm$dd, ST = dm$ST,
-               L = .Call(mer_create_L, A),
-               deviance = dm$dev, fixef = start$fixed,
+               call = mc,
+               flist = dm$flist,
+               X = X,
+               Zt = dm$Zt,
+               priorWt = unname(sqrt(fr$wts)),
+               offset = unname(fr$off),
+               y = unname(as.double(fr$Y)),
+               cnames = unname(dm$cnames),
+               Gp = unname(dm$Gp),
+               dims = dm$dd,
+               ## slots that change during the iterations
+               ST = dm$ST,
+               v = numeric(n),
+               A = dm$A,
+               Cm = dm$Cm,
+               L = dm$L,
+               deviance = dm$dev,
+               fixef = start$fixef,
                ranef = numeric(dm$dd["q"]),
-               uvec = numeric(dm$dd["q"]))
+               u = numeric(dm$dd["q"]),
+               eta = numeric(n * s),
+               mu = numeric(n),
+               resid = numeric(n),
+               sqrtXWt = matrix(0, n, s, dimnames = list(NULL, pnames)),
+               sqrtrWt = unname(sqrt(fr$wts)),
+               RCXy = matrix(0, dm$dd["q"], p),
+               RXy = matrix(0, p, p)
+               )
     .Call(mer_update_mu, ans)
     if (!all.equal(colnames(attr(ans@v, "gradient")), ans@pnames))
         stop("parameter names do not match column names of gradient")
@@ -836,11 +880,11 @@ setMethod("logLik", signature(object="mer"),
       {
           dims <- object@dims
           if (is.null(REML) || is.na(REML[1]))
-              REML <- object@dims["REML"]
+              REML <- dims["REML"]
           val <- -deviance(object, REML = REML)/2
           attr(val, "nall") <- attr(val, "nobs") <- dims["n"]
           attr(val, "df") <-
-              dims["p"] + length(.Call(mer_ST_getPars, object))
+              dims["p"] + dims["np"] + as.logical(dims["useSc"])
           attr(val, "REML") <-  as.logical(REML)
           class(val) <- "logLik"
           val
@@ -939,7 +983,7 @@ setMethod("summary", signature(object = "mer"),
       })## summary()
 
 setMethod("terms", signature(x = "mer"),
-	  function(x, ...) x@terms)
+	  function(x, ...) terms(x@frame))
 
 setMethod("update", signature(object = "mer"),
 	  function(object, formula., ..., evaluate = TRUE)
@@ -1462,17 +1506,12 @@ slotsz <- function(obj)
 yfrm <- function(fm)
 {
     stopifnot(is(fm, "mer"))
-    snms <-
-        c("y", "v", "eta", "mu", "resid", "muEta", "var", "priorWt", "sqrtWt")
-    slots <- lapply(snms, slot, object = fm)
-    names(slots) <- snms
-    n <- length(fm@y)
-    slots <- slots[sapply(slots, function(x) length(x) == n)]
-    do.call(data.frame, slots)
-}
-
-bfrm <- function(fm)
-{
-    stopifnot(is(fm, "mer"))
-    data.frame(u = fm@uvec, b = fm@ranef)
+    slist <- sapply(slotNames(fm), slot, object = fm, simplify = FALSE)
+    slist <- slist[sapply(slist, NROW) > 0 &
+                   sapply(slist, class) %in%
+                   c("data.frame", "matrix", "numeric", "integer") &
+                   !(names(slist) %in% c("Gp", "deviance", "dims"))]
+    slen <- sapply(slist, NROW)
+    lapply(sort(unique(slen)), function(n)
+           as.data.frame(slist[which(slen == n)]))
 }
