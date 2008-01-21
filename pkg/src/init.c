@@ -11,14 +11,14 @@ static R_CallMethodDef CallEntries[] = {
     {"mer_ST_initialize", (DL_FUNC) &mer_ST_initialize, 3},
     {"mer_ST_setPars", (DL_FUNC) &mer_ST_setPars, 2},
     {"mer_create_L", (DL_FUNC) &mer_create_L, 1},
-    {"mer_create_C", (DL_FUNC) &mer_create_C, 3},
+    {"mer_create_A", (DL_FUNC) &mer_create_A, 3},
     {"mer_optimize", (DL_FUNC) &mer_optimize, 2},
     {"mer_postVar", (DL_FUNC) &mer_postVar, 1},
     {"mer_sigma", (DL_FUNC) &mer_sigma, 2},
     {"mer_update_L", (DL_FUNC) &mer_update_L, 1},
     {"mer_update_RX", (DL_FUNC) &mer_update_RX, 1},
     {"mer_update_dev", (DL_FUNC) &mer_update_dev, 1},
-    {"mer_update_effects", (DL_FUNC) &mer_update_effects, 1},
+    {"mer_update_ranef", (DL_FUNC) &mer_update_ranef, 1},
     {"mer_update_mu", (DL_FUNC) &mer_update_mu, 1},
     {"mer_update_u", (DL_FUNC) &mer_update_u, 2},
     {"mer_validate", (DL_FUNC) &mer_validate, 1},
@@ -53,6 +53,7 @@ void R_init_lme4(DllInfo *dll)
 
     lme4_ASym = install("A");
     lme4_CmSym = install("Cm");
+    lme4_CxSym = install("Cx");
     lme4_DimNamesSym = install("Dimnames");
     lme4_DimSym = install("Dim");
     lme4_GpSym = install("Gp");
@@ -75,13 +76,13 @@ void R_init_lme4(DllInfo *dll)
     lme4_muSym = install("mu");
     lme4_offsetSym = install("offset");
     lme4_pSym = install("p");
-    lme4_permSym = install("perm");
     lme4_pnamesSym = install("pnames");
     lme4_priorWtSym = install("priorWt");
     lme4_ranefSym = install("ranef");
     lme4_residSym = install("resid");
-    lme4_sqrtWtSym = install("sqrtWt");
-    lme4_uvecSym = install("uvec");
+    lme4_sqrtrWtSym = install("sqrtrWt");
+    lme4_sqrtXWtSym = install("sqrtXWt");
+    lme4_uSym = install("u");
     lme4_vSym = install("v");
     lme4_varSym = install("var");
     lme4_xSym = install("x");
