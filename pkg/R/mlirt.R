@@ -1,4 +1,4 @@
-## Multilevel Iter Response Theory model
+## Multilevel Item Response Theory model
 
 mlirt <-
     function(formula, data, family = binomial("probit"),
