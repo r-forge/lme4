@@ -626,12 +626,13 @@ static const double INVEPS = 1/DOUBLE_EPS;
  */
 static double update_mu(SEXP x)
 {
-    SEXP v = GET_SLOT(x, lme4_vSym);
     int *dims = INTEGER(GET_SLOT(x, lme4_dimsSym));
     int i, i1 = 1, n = dims[n_POS], p = dims[p_POS], s = dims[s_POS];
     int ns = n * s;
-    double *d = REAL(GET_SLOT(x, lme4_devianceSym)),
+    double *V = SLOT_REAL_NULL(x, lme4_VSym),
+	*d = REAL(GET_SLOT(x, lme4_devianceSym)),
 	*eta = REAL(GET_SLOT(x, lme4_etaSym)),
+	*etaold = (double*) NULL,
 	*mu = REAL(GET_SLOT(x, lme4_muSym)),
 	*muEta = SLOT_REAL_NULL(x, lme4_muEtaSym),
 	*offset = SLOT_REAL_NULL(x, lme4_offsetSym),
@@ -642,10 +643,13 @@ static double update_mu(SEXP x)
 	one[] = {1,0};
     CHM_FR L = L_SLOT(x);
     CHM_SP cC = AS_CHM_SP(GET_SLOT(x, lme4_ASym));
-    CHM_DN Ptu, ceta = N_AS_CHM_DN(eta, ns, 1),
-	cu = AS_CHM_DN(GET_SLOT(x, lme4_uSym));
+    CHM_DN Ptu, ceta, cu = AS_CHM_DN(GET_SLOT(x, lme4_uSym));
     R_CheckStack();
 
+    if (V) {
+	etaold = eta;
+	eta = Calloc(ns, double);
+    }
 				/* eta := offset or eta := 0 */
     for (i = 0; i < ns; i++) eta[i] = offset ? offset[i] : 0;
 				/* eta := eta + X \beta */
@@ -655,15 +659,19 @@ static double update_mu(SEXP x)
 		    one, eta, &i1);
 				/* eta := eta + C' P' u */
     Ptu = M_cholmod_solve(CHOLMOD_Pt, L, cu, &c);
+    ceta = N_AS_CHM_DN(eta, ns, 1);
+    R_CheckStack();
     if (!M_cholmod_sdmult(cC, 1 /* trans */, one, one, Ptu, ceta, &c))
 	error(_("cholmod_sdmult error returned"));
     M_cholmod_free_dense(&Ptu, &c);
 
-    if (LENGTH(v)) {		/* evaluate the nonlinear model */
-	SEXP rho = GET_SLOT(x, lme4_envSym);
-	SEXP gg, pnames = GET_SLOT(x, lme4_pnamesSym), vv;
-	int *gdims, s = dims[s_POS];
+    if (V) {		/* evaluate the nonlinear model */
+	SEXP pnames = VECTOR_ELT(GET_DIMNAMES(GET_SLOT(x, lme4_VSym)), 1),
+	    gg, rho = GET_SLOT(x, lme4_envSym), vv;
+	int *gdims;
 	
+	if (!isString(pnames) || LENGTH(pnames) != s)
+	    error(_("Slot V must be a matrix with %d named columns"), s);
 	for (i = 0; i < s; i++) { /* par. vals. into env. */
 	    vv = findVarInFrame(rho,
 				install(CHAR(STRING_ELT(pnames, i))));
@@ -684,9 +692,11 @@ static double update_mu(SEXP x)
 				/* colnames of the gradient
 				 * corresponding to the order of the
 				 * pnames has been checked */
-	SET_SLOT(x, lme4_vSym, vv);
+	Free(eta);
+	eta = etaold;
+	Memcpy(eta, REAL(vv), n);
+	Memcpy(V, REAL(gg), ns);
 	UNPROTECT(1);
-	eta = REAL(vv);
     }
 				/* eta now points to an n vector  */
     if (muEta) {	/* apply the generalized linear part */
@@ -767,15 +777,16 @@ SEXP mer_update_mu(SEXP x)
  */
 static double update_L(SEXP x)
 {
-    SEXP vP = GET_SLOT(x, lme4_vSym);
     int *dims = INTEGER(GET_SLOT(x, lme4_dimsSym));
-    int lv = LENGTH(vP), n = dims[n_POS], s = dims[s_POS];
+    int n = dims[n_POS], s = dims[s_POS];
     double
+	*V = SLOT_REAL_NULL(x, lme4_VSym),
 	*cx = SLOT_REAL_NULL(x, lme4_CxSym),
 	*d = REAL(GET_SLOT(x, lme4_devianceSym)),
 	*res = REAL(GET_SLOT(x, lme4_residSym)),
 	*mu = REAL(GET_SLOT(x, lme4_muSym)),
 	*muEta = SLOT_REAL_NULL(x, lme4_muEtaSym),
+	*pwt = SLOT_REAL_NULL(x, lme4_priorWtSym),
 	*sXwt = SLOT_REAL_NULL(x, lme4_sqrtXWtSym),
 	*srwt = SLOT_REAL_NULL(x, lme4_sqrtrWtSym),
 	*var =  SLOT_REAL_NULL(x, lme4_varSym),
@@ -785,9 +796,7 @@ static double update_L(SEXP x)
     CHM_FR L = L_SLOT(x);
     R_CheckStack();
     
-    if (var) {		    /* Update srwt and res. Reevaluate wrss. */
-	double *pwt = SLOT_REAL_NULL(x, lme4_priorWtSym);
-	
+    if (var || pwt) {	   /* Update srwt and res. Reevaluate wrss. */
 	d[wrss_POS] = 0;
 	for (int j = 0; j < n; j++) {
 	    srwt[j] = sqrt((pwt ? pwt[j] : 1) / var[j]);
@@ -797,16 +806,15 @@ static double update_L(SEXP x)
     }
     if (sXwt) {			/* Update sXwt and C */
 	int *ai = (int*)A->i, *ap = (int*)A->p, i, j;
-	double *ax = (double*)(A->x), *grad = (double*) NULL;
+	double *ax = (double*)(A->x);
 	CHM_SP C = A;
 
-	if (lv) grad = REAL(getAttrib(vP, lme4_gradientSym));
 	for (j = 0; j < s; j++) {
 	    for (i = 0; i < n; i++) {
 		int ja = i + j * n;
 		sXwt[ja] = (srwt ? srwt[i] : 1) *
 		    (muEta ? muEta[i] : 1) *
-		    (grad ? grad[ja] : 1);
+		    (V ? V[ja] : 1);
 	    }
 	}
 	if (s == 1) {		/* C is a scaled version of A */
@@ -820,6 +828,7 @@ static double update_L(SEXP x)
 	    R_CheckStack();
 
 	    ci = (int*)C->i; cp = (int*)C->p; cx = (double*)C->x;
+	    AZERO(cx, cp[n]);
 	    for (j = 0; j < s; j++)
 		for (i = 0; i < n; i++) {
 		    int ja = i + j * n;
@@ -1277,7 +1286,7 @@ static double update_RX(SEXP x)
     for (j = 0, d[ldRX2_POS] = 0; j < p; j++)
 	d[ldRX2_POS] += 2 * log(rxy[j * (p + 1)]);
 
-    if (SLOT_REAL_NULL(x, lme4_vSym) || SLOT_REAL_NULL(x, lme4_muEtaSym)) {
+    if (SLOT_REAL_NULL(x, lme4_VSym) || SLOT_REAL_NULL(x, lme4_muEtaSym)) {
 	Free(X);
 	return d[ML_POS];
     }
@@ -1343,7 +1352,7 @@ mer_optimize(SEXP x, SEXP verbp)
     int *dims = INTEGER(GET_SLOT(x, lme4_dimsSym)),
 	i, j, pos, verb = asInteger(verbp);
     int lmm = !(LENGTH(GET_SLOT(x, lme4_muEtaSym)) ||
-		LENGTH(GET_SLOT(x, lme4_vSym))),
+		LENGTH(GET_SLOT(x, lme4_VSym))),
 	nf = dims[nf_POS];
 /* FIXME: need to add 1 to nv for GLMM with a scale par (maybe).
  * Not really but we do need to profile out the scale parameter when
@@ -1808,7 +1817,7 @@ SEXP mer_validate(SEXP x)
     if (chkLen(buf, BUF_SIZE, x, lme4_residSym, n, 0)) return(mkString(buf));
     if (chkLen(buf, BUF_SIZE, x, lme4_sqrtrWtSym, n, 1)) return(mkString(buf));
     if (chkLen(buf, BUF_SIZE, x, lme4_uSym, q, 0)) return(mkString(buf));
-    if (chkLen(buf, BUF_SIZE, x, lme4_vSym, nv, 1)) return(mkString(buf));
+    if (chkLen(buf, BUF_SIZE, x, lme4_VSym, nv, 1)) return(mkString(buf));
     if (chkLen(buf, BUF_SIZE, x, lme4_varSym, n, 1)) return(mkString(buf));
     if (chkLen(buf, BUF_SIZE, x, lme4_ySym, n, 0)) return(mkString(buf));
     if (chkDims(buf, BUF_SIZE, x, lme4_XSym, nv, p)) return(mkString(buf));

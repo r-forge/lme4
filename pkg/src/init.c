@@ -61,6 +61,7 @@ void R_init_lme4(DllInfo *dll)
     lme4_RCXySym = install("RCXy");
     lme4_RXySym = install("RXy");
     lme4_STSym = install("ST");
+    lme4_VSym = install("V");
     lme4_XSym = install("X");
     lme4_ZtSym = install("Zt");
     lme4_devianceSym = install("deviance");
@@ -83,7 +84,6 @@ void R_init_lme4(DllInfo *dll)
     lme4_sqrtrWtSym = install("sqrtrWt");
     lme4_sqrtXWtSym = install("sqrtXWt");
     lme4_uSym = install("u");
-    lme4_vSym = install("v");
     lme4_varSym = install("var");
     lme4_xSym = install("x");
     lme4_ySym = install("y");
