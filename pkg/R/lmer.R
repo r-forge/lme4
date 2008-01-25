@@ -358,7 +358,7 @@ mkdims <- function(fr, FL, start, s = 1L)
     dev[] <- NA
 
     list(Gp = Gp, ST = ST, A = A, Cm = Cm, L = L, Zt = Zt,
-         cnames = cnames, dd = dd, dev = dev, flist = flist)
+         cnames = cnames, dd = dd, dev = dev, flist = do.call(data.frame, flist))
 }
 
 mkFltype <- function(family)
@@ -455,13 +455,12 @@ lmer <-
                famName = c("gaussian", "identity"),
                env = new.env(),
                nlmodel = (~I(x))[[2]],
-               pnames = character(0),
                frame = if (model) fr$mf else fr$mf[0,],
                call = mc,
                flist = dm$flist,
                X = fr$X,
                Zt = dm$Zt, 
-               priorWt = swts,
+               priorWt = unname(fr$wts),
                offset = unname(fr$off),
 ### FIXME: Should y retain its names? As it stands any row names in the
 ### frame are dropped.  Really?  Are they part of the frame slot (if not
@@ -529,7 +528,9 @@ function(formula, data, family = gaussian, method = c("Laplace", "AGQ"),
     stopifnot(length(formula <- as.formula(formula)) == 3)
 
     fr <- lmerFrames(mc, formula, contrasts) # model frame, X, etc.
-    glmFit <- glm.fit(fr$X, fr$Y, weights = fr$weights, # glm on f.e.
+    wts <- NULL
+    if (length(fr$wts)) wts <- fr$wts
+    glmFit <- glm.fit(fr$X, fr$Y, weights = wts, # glm on fixed effects
                       offset = fr$offset, family = family,
                       intercept = attr(attr(fr$mf, "terms"), "intercept") > 0)
     FL <- lmerFactorList(formula, fr$mf, 0L, 0L) # flist, Zt, cnames
@@ -542,7 +543,8 @@ function(formula, data, family = gaussian, method = c("Laplace", "AGQ"),
     y <- unname(as.double(glmFit$y))
     dimnames(fr$X) <- NULL
     p <- dm$dd["p"]
-    fixef <- coef(glmFit)
+    fixef <- fr$fixef
+    fixef[] <- coef(glmFit)
     if (!is.null(ff <- start$fixef) && is.numeric(ff) && length(ff) == length(fixef))
         fixef <- ff
     
@@ -559,7 +561,7 @@ function(formula, data, family = gaussian, method = c("Laplace", "AGQ"),
                dims = dm$dd, ST = dm$ST, A = dm$A,
                Cm = dm$Cm, Cx = (dm$A)@x, L = dm$L,
                deviance = dm$dev,
-               fixef = fr$fixef,
+               fixef = fixef,
                ranef = numeric(dm$dd["q"]),
                u = numeric(dm$dd["q"]),
                eta = unname(glmFit$linear.predictors),
@@ -649,7 +651,6 @@ nlmer <- function(formula, data, control = list(), start = NULL,
     ans <- new(Class = "mer",
                env = env,
                nlmodel = nlmod,
-               pnames = pnames,
                frame = if (model) fr$mf else fr$mf[0,],
                call = mc,
                flist = dm$flist,
@@ -663,7 +664,7 @@ nlmer <- function(formula, data, control = list(), start = NULL,
                dims = dm$dd,
                ## slots that change during the iterations
                ST = dm$ST,
-               v = numeric(n),
+               V = matrix(0, n, s, dimnames = list(NULL, pnames)),
                A = dm$A,
                Cm = dm$Cm,
                L = dm$L,
@@ -671,7 +672,7 @@ nlmer <- function(formula, data, control = list(), start = NULL,
                fixef = start$fixef,
                ranef = numeric(dm$dd["q"]),
                u = numeric(dm$dd["q"]),
-               eta = numeric(n * s),
+               eta = numeric(n),
                mu = numeric(n),
                resid = numeric(n),
                sqrtXWt = matrix(0, n, s, dimnames = list(NULL, pnames)),
@@ -680,8 +681,7 @@ nlmer <- function(formula, data, control = list(), start = NULL,
                RXy = matrix(0, p, p)
                )
     .Call(mer_update_mu, ans)
-    if (!all.equal(colnames(attr(ans@v, "gradient")), ans@pnames))
-        stop("parameter names do not match column names of gradient")
+### Add a check that the parameter names match the column names of gradient
     cv <- do.call("lmerControl", control)
     if (missing(verbose)) verbose <- cv$msVerbose
     mer_finalize(ans, verbose)
@@ -817,11 +817,12 @@ setMethod("anova", signature(object = "mer"),
 				"Pr(>Chisq)" = pchisq(chisq, dfChisq, lower = FALSE),
 				check.names = FALSE)
 	      class(val) <- c("anova", class(val))
-	      attr(val, "heading") <-
-		  c(header, "Models:",
-		    paste(names(mods),
-			  unlist(lapply(lapply(calls, "[[", "formula"), deparse)),
-			  sep = ": "))
+              attr(val, "heading") <-
+                  c(header, "Models:",
+                    paste(rep(names(mods), times = unlist(lapply(lapply(lapply(calls,
+                                           "[[", "formula"), deparse), length))),
+                         unlist(lapply(lapply(calls, "[[", "formula"), deparse)),
+                         sep = ": "))
 	      return(val)
 	  }
 	  else { ## ------ single model ---------------------
@@ -936,7 +937,7 @@ setMethod("summary", signature(object = "mer"),
           coefs <- cbind("Estimate" = fcoef, "Std. Error" = corF@sd) #, DF = DF)
           llik <- logLik(object, REML)
           dev <- object@deviance
-          mType <- ifelse(non <- as.logical(length(object@v)), "NMM", "LMM")
+          mType <- ifelse(non <- as.logical(length(object@V)), "NMM", "LMM")
           if (gen <- as.logical(length(object@muEta)))
               mType <- paste("G", mType, sep = '')
           mName <- switch(mType, LMM = "Linear", NMM = "Nonlinear",
@@ -1503,15 +1504,32 @@ ST2Omega <- function(ST)
 slotsz <- function(obj)
     rev(sort(sapply(slotNames(obj), function(s) object.size(slot(obj, s)))))
 
+slotApply <- function(object, f, ..., simplify = FALSE) {
+   .localFun <- function(what, ...) f(slot(object, what), ...)
+   sapply(slotNames(object), .localFun, ..., simplify = simplify)
+}
+
+
 yfrm <- function(fm)
 {
     stopifnot(is(fm, "mer"))
-    slist <- sapply(slotNames(fm), slot, object = fm, simplify = FALSE)
-    slist <- slist[sapply(slist, NROW) > 0 &
-                   sapply(slist, class) %in%
-                   c("data.frame", "matrix", "numeric", "integer") &
-                   !(names(slist) %in% c("Gp", "deviance", "dims"))]
-    slen <- sapply(slist, NROW)
-    lapply(sort(unique(slen)), function(n)
-           as.data.frame(slist[which(slen == n)]))
+    snr <- slotApply(fm, function(x)
+                 {
+                     if (is(x, "matrix") ||
+                         is(x, "data.frame") ||
+                         is(x, "numeric")) return (NROW(x))
+                     0
+                 }, simplify = TRUE)
+    snr <- snr[snr > 0 & !(names(snr) %in%
+                           c("Gp", "dims", "deviance", "frame", "flist", "X"))]
+    fr <- cbind(fm@frame, fm@flist[1:NROW(fm@frame), !(names(fm@flist) %in%
+                                     names(fm@frame))])
+    n <- NROW(fr)
+    if (NROW(fm@X) == n)
+        fr <- cbind(fr, X = fm@X, Xbeta = fm@X %*% fm@fixef,
+                    Zb = crossprod(fm@Zt, fm@ranef)@x)
+    do.call(cbind, c(list(fr), sapply(names(which(snr == NROW(fr))),
+                                      slot, object = fm, simplify = FALSE)))
 }
+
+    
