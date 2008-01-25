@@ -16,12 +16,11 @@ setOldClass("logLik")
 setClass("mer",
 	 representation(## original data
                         famName = "character",# name of GLM family and link
-                        env = "environment",# evaluation env for family
+                        env = "environment",# evaluation env for nonlinear model
                         nlmodel = "call",# nonlinear model call
-                        pnames = "character",# parameter names for nonlinear model
                         frame = "data.frame",# model frame (or empty frame)
                         call = "call",   # matched call
-                        flist = "list",  # list of grouping factors
+                        flist = "data.frame",  # list of grouping factors
                         X = "matrix",    # fixed effects model matrix
                         Zt = "dgCMatrix",# sparse form of Z'
                         priorWt = "numeric",# prior weights,
@@ -32,7 +31,7 @@ setClass("mer",
                         dims = "integer",# dimensions and indicators
                         ## slots that vary during optimization
                         ST = "list", # list of TSST' rep of rel. var. mats
-                        v = "numeric",   # linear predictor (nonlinear models only)
+                        V = "matrix",    # gradient matrix
                         A = "dgCMatrix", # (ZTS)'
                         Cm = "dgCMatrix", # AH'G^{-1}W^{1/2} when s > 0
                         Cx = "numeric",  # x slot of Cm when s == 1 (full Cm not stored)
