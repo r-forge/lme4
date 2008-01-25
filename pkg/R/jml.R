@@ -1,7 +1,7 @@
-sparseRasch <- function(dat, maxirls = 200, tol = 1e-5)
+asBinaryMatrix <- function(dat)
 {
     ## Convert individual columns of a data frame
-    as.binaryNumeric <- function(x) {
+    asBinaryNumeric <- function(x) {
         if (is.logical(x)) return(as.numeric(x))
         if (is.factor(x)) {
             if (length(levels(x)) != 2)
@@ -9,12 +9,18 @@ sparseRasch <- function(dat, maxirls = 200, tol = 1e-5)
             return(as.numeric(x) - 1L)
         }
     }
-    
+
     ## Massage the data into a numeric, binary matrix
     if (is.data.frame(dat))
-        dat <- do.call("cbind", lapply(dat, as.binaryNumeric))
+        dat <- do.call("cbind", lapply(dat, asBinaryNumeric))
     dat <- as.matrix(dat)
     storage.mode(dat) <- "double"
+    dat
+}
+
+sparseRasch <- function(dat, maxirls = 200, tol = 1e-5)
+{
+    dat <- asBinaryMatrix(dat)
     nr <- nrow(dat)
     nc <- ncol(dat)
     y <- as.vector(dat)
