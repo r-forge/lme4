@@ -10,6 +10,7 @@ SEXP attribute_hidden
     lme4_RCXySym,
     lme4_RXySym,
     lme4_STSym,
+    lme4_VSym,
     lme4_XSym,
     lme4_ZtSym,
     lme4_devianceSym,
@@ -32,7 +33,6 @@ SEXP attribute_hidden
     lme4_sqrtrWtSym,
     lme4_sqrtXWtSym,
     lme4_uSym,
-    lme4_vSym,
     lme4_varSym,
     lme4_xSym,
     lme4_ySym;
