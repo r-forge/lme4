@@ -1,18 +1,9 @@
 -----
-The discrepancy calculation for glmer must be wrong.  All variance
-component estimates are being driven to zero.
------
-Approximate standard errors and correlations for the fixed effects
-parameters in nlmer and glmer models.  Should there be a general
-calculation of the information matrix?
------
 Find out why there is a .p at the end of the model names in the
 printed value of anova with multiple arguments.
 -----
 Collapse repeated grouping factors and correspondingly modify the
 ranef and coef methods.
------
-Check the calculation of the conditional variances of the random effects.
 -----
 Add an element to the deviance slot to hold sigma or log(sigma).  The
 interpretation will be that an NA value means to use the conditional
