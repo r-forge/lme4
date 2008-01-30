@@ -57,6 +57,7 @@ enum dimP {
     isREML_POS,			/**<indicator of REML estimation */
     fTyp_POS,			/**<family type for generalized model */
     lTyp_POS,			/**<link type for generalized model */
+    vTyp_POS,			/**<variance type for generalized model */
     nest_POS,			/**<indicator of nested grouping factors */
     useSc_POS,			/**<does the family use a separate scale parameter */
     cvg_POS			/**<convergence indictor from port optimization  */
@@ -79,9 +80,7 @@ enum dimP {
 static R_INLINE double sqr_length(const double *x, int n)
 {
     double ans = 0;
-    int i;
-
-    for (i = 0; i < n; i++) ans += x[i] * x[i];
+    for (int i = 0; i < n; i++) ans += x[i] * x[i];
     return ans;
 }
 
@@ -204,6 +203,7 @@ ST_nc_nlev(const SEXP ST, const int *Gp, double **st, int *nc, int *nlev)
     return ans;
 }
 
+#if 0
 /**
  * Determine the nonzero positions in the jth column of C
  *
@@ -239,6 +239,7 @@ C_nz_col(int *nz, int j, int nf, const int *Gp, const int *nc,
     for (i = 0, ans = 0; i < Gp[nf]; i++) if (nz[i]) ans++;
     return ans;
 }
+#endif
 
 /**
  * Update the contents of the ranef slot in an mer object.  For a
@@ -551,37 +552,6 @@ SEXP mer_postVar(SEXP x)
     return ans;
 }
 
-#if 0
-static CHM_SP overlay_cols(CHM_SP A, int s)
-{
-    int *ai, *ap, *ti, *tj, j, n, nnz, p;
-    double *ax, *tx;
-    CHM_TR T;
-    CHM_SP AA;
-    
-    if (s < 2) error(_("overlay_cols must have s > 1, s = %d"), s);
-    if ((A->ncol) % s)
-	error(_("A->ncol = %d must be a multiple of s = %d"), A->ncol, s);
-    n = (A->ncol) / s; 
-    ai = (int*)A->i; ap = (int*)A->p; ax = (double*)A->x;
-    nnz = ap[A->ncol];
-
-    T = M_cholmod_allocate_triplet(A->nrow, n, nnz,
-				   0/*not symmetric*/, CHOLMOD_REAL, &c);
-    ti = (int*)T->i; tj = (int*)T->j; tx = (double*)T->x;
-    for (j = 0; j < n; j++) {
-	for (p = ap[j]; p < ap[j + 1]; p++) {
-	    ti[p] = ai[p];
-	    tj[p] = j % n;
-	    tx[p] = ax[p];
-	}
-    }
-    AA = M_cholmod_triplet_to_sparse(T, nnz, &c);
-    M_cholmod_free_triplet(&T, &c);
-    return AA;
-}
-#endif
-
 /**
  * Create and initialize L
  *
@@ -614,6 +584,134 @@ static double MPTHRESH = 0;
 static double PTHRESH = 0;
 static const double INVEPS = 1/DOUBLE_EPS;
 
+static void
+lme4_muEta(double* mu, double* muEta, const double* eta, int n, int typ)
+{
+    for (int i = 0; i < n; i++) { /* apply the generalized linear part */
+	double etai = eta[i], tmp;
+	switch(typ) {
+	case 1:		/* logit */
+	    tmp = (etai < MLTHRESH) ? DOUBLE_EPS :
+	    ((etai > LTHRESH) ? INVEPS : exp(etai));
+	    mu[i] = tmp/(1 + tmp);
+	    muEta[i] = mu[i] * (1 - mu[i]);
+	    break;
+	case 2:		/* probit */
+	    if (!MPTHRESH) {
+		MPTHRESH = qnorm5(DOUBLE_EPS, 0, 1, 1, 0);
+		PTHRESH = -MPTHRESH;
+	    }
+	    mu[i] = (etai < MPTHRESH) ? DOUBLE_EPS :
+		((etai > PTHRESH) ? 1 - DOUBLE_EPS :
+		 pnorm5(etai, 0, 1, 1, 0));
+	    tmp = dnorm4(eta[i], 0, 1, 0);
+	    muEta[i] = (tmp < DOUBLE_EPS) ? DOUBLE_EPS : tmp;
+	    break;
+	case 3:		/* cauchit */
+	    error(_("cauchit link not yet coded"));
+	    break;
+	case 4:		/* cloglog */
+	    error(_("cloglog link not yet coded"));
+	    break;
+	case 5:		/* identity */
+	    mu[i] = eta[i];
+	    muEta[i] = 1.;
+	    break;
+	case 6:		/* log */
+	    tmp = exp(eta[i]);
+	    muEta[i] = mu[i] =
+		(tmp < DOUBLE_EPS) ? DOUBLE_EPS : tmp;
+	    break;
+	case 7:		/* sqrt */
+	    mu[i] = etai * etai;
+	    muEta[i] = 2 * etai;
+	    break;
+	default:
+	    error(_("General form of glmer_linkinv not yet written"));
+	}
+    }
+}
+
+static void
+lme4_varFunc(double* var, const double* mu, int n, int vTyp)
+{
+    for (int i = 0; i < n; i++) {
+	double mui = mu[i];
+	switch(vTyp) {
+	case 1:			/* constant variance */
+	    var[i] = 1.;
+	    break;
+	case 2:			/* mu(1-mu) variance */
+	    if (mui <= 0 || mui >= 1)
+		error(_("mu[i] must be in the range (0,1): mu = %g, i = %d"),
+		      mu, i);
+	    var[i] = mui * (1 - mui);
+	    break;
+	case 3:			/* mu variance */
+	    if (mui <= 0)
+		error(_("mu[i] must be positive: mu = %g, i = %d"), mu, i);
+	    var[i] = mui;
+	    break;
+	case 4:			/* mu^2 variance */
+	    if (mui <= 0)
+		error(_("mu[i] must be positive: mu = %g, i = %d"), mu, i);
+	    var[i] = mui * mui;
+	    break;
+	case 5:			/* mu^3 variance */
+	    if (mui <= 0)
+		error(_("mu[i] must be positive: mu = %g, i = %d"), mu, i);
+	    var[i] = mui * mui * mui;
+	    break;
+	default:
+	    error(_("Unknown vTyp value %d"), vTyp);
+	}
+    }
+}
+
+/**
+ * Evaluate y * log(y/mu) with the correct limiting value at y = 0.
+ *
+ * @param y 
+ * @param mu
+ *
+ * @return y * log(y/mu) for y > 0, 0 for y == 0.
+ */
+static R_INLINE double y_log_y(double y, double mu)
+{
+    return (y) ? (y * log(y/mu)) : 0;
+}
+
+static double
+lme4_devResid(const double* mu, const double* pWt, const double* y,
+	      int n, int vTyp)
+{
+    double ans = 0.;
+    for (int i = 0; i < n; i++) {
+	double mui = mu[i], wi = pWt ? pWt[i] : 1, yi = y[i];
+	double ri = yi - mui;
+	switch(vTyp) {
+	case 1:			/* constant variance */
+	    ans += wi * ri * ri;
+	    break;
+	case 2:			/* mu(1-mu) variance */
+	    ans += 2 * wi *
+		(y_log_y(yi, mui) + y_log_y(1 - yi, 1 - mui));
+	    break;
+	case 3:			/* mu variance */
+	    ans += 2 * wi * (y_log_y(yi, mui) - (yi - mui));
+	    break;
+	case 4:			/* mu^2 variance */
+	    ans += 2 * wi * (y_log_y(yi, mui) - (yi - mui)/mui);
+	    break;
+	case 5:			/* mu^3 variance */
+	    ans += wi * (ri * ri)/(yi * mui * mui);
+	    break;
+	default:
+	    error(_("Unknown vTyp value %d"), vTyp);
+	}
+    }
+    return ans;
+}
 
 /**
  * Update the eta, v, mu, resid and var slots according to the current
@@ -698,44 +796,10 @@ static double update_mu(SEXP x)
 	Memcpy(V, REAL(gg), ns);
 	UNPROTECT(1);
     }
-				/* eta now points to an n vector  */
-    if (muEta) {	/* apply the generalized linear part */
-	switch(dims[fTyp_POS]) {
-	case 1:			/* binomial with logit link */
-	    for (i = 0; i < n; i++) {
-		double etai = eta[i];
-		double tmp = (etai < MLTHRESH) ? DOUBLE_EPS :
-		    ((etai > LTHRESH) ? INVEPS : exp(etai));
-		mu[i] = tmp/(1 + tmp);
-		muEta[i] = var[i] = mu[i] * (1 - mu[i]);
-	    }
-	    break;
-	case 2:			/* binomial with probit link */
-	    if (!MPTHRESH) {
-		MPTHRESH = qnorm5(DOUBLE_EPS, 0, 1, 1, 0);
-		PTHRESH = -MPTHRESH;
-	    }
-	    for (i = 0; i < n; i++) {
-		double etai = eta[i], tmp;
-		mu[i] = (etai < MPTHRESH) ? DOUBLE_EPS :
-		    ((etai > PTHRESH) ? 1 - DOUBLE_EPS :
-		     pnorm5(etai, 0, 1, 1, 0));
-		var[i] = mu[i] * (1 - mu[i]);
-		tmp = dnorm4(eta[i], 0, 1, 0);
-		muEta[i] =
-		    (tmp < DOUBLE_EPS) ? DOUBLE_EPS : tmp;
-	    }
-	    break;
-	case 3:			/* Poisson with log link */
-	    for (i = 0; i < n; i++) {
-		double tmp = exp(eta[i]);
-		muEta[i] = var[i] = mu[i] =
-		    (tmp < DOUBLE_EPS) ? DOUBLE_EPS : tmp;
-	    }
-	    break;
-	default:
-	    error(_("General form of glmer_linkinv not yet written"));
-	} 
+
+    if (muEta) {
+	lme4_muEta(mu, muEta, eta, n, dims[lTyp_POS]);
+	lme4_varFunc(var, mu, n, dims[vTyp_POS]);
     } else {
 	Memcpy(mu, eta, n);
     }
@@ -786,7 +850,7 @@ static double update_L(SEXP x)
 	*res = REAL(GET_SLOT(x, lme4_residSym)),
 	*mu = REAL(GET_SLOT(x, lme4_muSym)),
 	*muEta = SLOT_REAL_NULL(x, lme4_muEtaSym),
-	*pwt = SLOT_REAL_NULL(x, lme4_priorWtSym),
+	*pwt = SLOT_REAL_NULL(x, lme4_pWtSym),
 	*sXwt = SLOT_REAL_NULL(x, lme4_sqrtXWtSym),
 	*srwt = SLOT_REAL_NULL(x, lme4_sqrtrWtSym),
 	*var =  SLOT_REAL_NULL(x, lme4_varSym),
@@ -896,31 +960,6 @@ SEXP mer_update_L(SEXP x)
 /** Minimum step factor in update_u */
 #define CM_SMIN     1e-5
 
-#if 0
-static void
-PAHGv(double *dest, const int *perm, const CHM_SP A,
-       const double *sXwt, double *v, int s)
-{
-    int *ai = (int*)(A->i), *ap = (int*)(A->p), j, k,
-	ns = A->ncol, p, q = A->nrow;
-    int n = ns/s;
-    double *ax = (double*)(A->x),
-	*td = Alloca(q, double),
-	*ts = Alloca(ns, double);
-    R_CheckStack();
-
-    for (k = 0; k < s; k++)
-	for (j = 0; j < n; j++)
-	    ts[j + k * n] = sXwt[j + k * n] * v[j];
-    AZERO(td, q);
-    for (j = 0; j < ns; j++) {
-	for (p = ap[j]; p < ap[j + 1]; p++)
-	    td[ai[p]] += ts[j] * ax[p];
-    }
-    if (perm) apply_perm(dest, td, perm, q);
-}
-#endif
-    
 /**
  * Iterate to determine the conditional modes of the random effects.
  *
@@ -1019,19 +1058,6 @@ SEXP mer_update_u(SEXP x, SEXP verbP)
     return ScalarInteger(update_u(x, asInteger(verbP)));
 }
 
-/**
- * Evaluate y * log(y/mu) with the correct limiting value at y = 0.
- *
- * @param y 
- * @param mu
- *
- * @return y * log(y/mu) for y > 0, 0 for y == 0.
- */
-static R_INLINE double y_log_y(double y, double mu)
-{
-    return (y) ? (y * log(y/mu)) : 0;
-}
-
 /* FIXME: change this to use the variance type slot.  If
  * dims[useSc_POS] is nonzero then use the formula for the profiled
  * deviance.  (Does everything work out nicely if sigma is identically
@@ -1049,39 +1075,13 @@ SEXP mer_update_dev(SEXP x)
 {
     double *d = REAL(GET_SLOT(x, lme4_devianceSym));
     int *dims = INTEGER(GET_SLOT(x, lme4_dimsSym));
-    int i, n = dims[n_POS];
 
-    d[disc_POS] = d[wrss_POS];
-    if (LENGTH(GET_SLOT(x, lme4_muEtaSym))) { /* generalized */
-	SEXP pwtp = GET_SLOT(x, lme4_priorWtSym);
-	int pw = LENGTH(pwtp);
-	double *d = REAL(GET_SLOT(x, lme4_devianceSym)),
-	    *mu = REAL(GET_SLOT(x, lme4_muSym)),
-	    *wts = REAL(pwtp),
-	    *y = REAL(GET_SLOT(x, lme4_ySym));
-
-	d[disc_POS] = 0;
-	switch(dims[fTyp_POS]) {
-	case 1:		      /* binomial with logit or probit link */
-	case 2:
-	    for (i = 0; i < n; i++) {
-		double mui = mu[i], yi = y[i];
-		d[disc_POS] += 2 * (pw ? wts[i] : 1) *
-		    (y_log_y(yi, mui) + y_log_y(1 - yi, 1 - mui));
-	    }
-	    break;
-	case 3:			/* Poisson with log link */
-	    for (i = 0; i < n; i++) {
-		double mui = mu[i], yi = y[i];
-		d[disc_POS] += 2 * (pw ? wts[i] : 1) *
-		    (y_log_y(yi, mui) - (yi - mui));
-	    }
-	    break;
-	default:
-	    error(_("General form of glmer_dev_resids not yet written"));
-	}
-    }
-
+    d[disc_POS] = SLOT_REAL_NULL(x, lme4_muEtaSym) ?
+	lme4_devResid(REAL(GET_SLOT(x, lme4_muSym)),
+		      REAL(GET_SLOT(x, lme4_pWtSym)),
+		      REAL(GET_SLOT(x, lme4_ySym)),
+		      dims[n_POS], dims[vTyp_POS]) :
+	d[wrss_POS];
     d[ML_POS] = d[disc_POS] + d[ldL2_POS] + d[usqr_POS];
     return R_NilValue;
 }
@@ -1102,6 +1102,7 @@ SEXP mer_update_ranef(SEXP x)
     return R_NilValue;
 }
 
+#if 0
 /* FIXME: mer_create_A is probably better done in R code using Ztl,
  * not Zt */
 
@@ -1162,37 +1163,6 @@ SEXP mer_create_A(SEXP Zt, SEXP ST, SEXP GpP)
     AZERO(REAL(GET_SLOT(ans, lme4_xSym)), Vnnz);
 
     UNPROTECT(1); 
-    return ans;
-}
-
-#if 0
-/**
- * Created a weighted, possibly folded, copy of src in dest.
- *
- * @param dest destination pointer
- * @param src source pointer
- * @param wt weights
- * @param n length of dest vector
- * @param s fold factor
- *
- * @return squared length of weighted copy
- */
-static R_INLINE double
-weight_x(double* dest, const double* src, const double *wt,
-	 int n, int s)
-{
-    int i, k;
-    double ans = 0;
-    
-    for (i = 0; i < n; i++) {
-	double accum = 0;
-	for (k = 0; k < s; k++) {
-	    int ii = i + k * n;
-	    accum += wt[ii] * src[ii];
-	}
-	ans += accum * accum;
-	dest[i] = accum;
-    }
     return ans;
 }
 #endif
@@ -1812,7 +1782,7 @@ SEXP mer_validate(SEXP x)
     if (chkLen(buf, BUF_SIZE, x, lme4_muEtaSym, n, 1)) return(mkString(buf));
     if (chkLen(buf, BUF_SIZE, x, lme4_muSym, n, 0)) return(mkString(buf));
     if (chkLen(buf, BUF_SIZE, x, lme4_offsetSym, n, 1)) return(mkString(buf));
-    if (chkLen(buf, BUF_SIZE, x, lme4_priorWtSym, n, 1)) return(mkString(buf));
+    if (chkLen(buf, BUF_SIZE, x, lme4_pWtSym, n, 1)) return(mkString(buf));
     if (chkLen(buf, BUF_SIZE, x, lme4_ranefSym, q, 0)) return(mkString(buf));
     if (chkLen(buf, BUF_SIZE, x, lme4_residSym, n, 0)) return(mkString(buf));
     if (chkLen(buf, BUF_SIZE, x, lme4_sqrtrWtSym, n, 1)) return(mkString(buf));

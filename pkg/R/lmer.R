@@ -248,11 +248,22 @@ lmerFactorList <- function(formula, mf, rmInt, drop)
                      mm <- mm[ , -icol , drop = FALSE]
                  }
                  ans <- list(f = ff,
+                             A = do.call(rBind,
+                             lapply(seq_len(ncol(mm)), function(j) im)),
                              Zt = do.call(rBind,
                              lapply(seq_len(ncol(mm)),
                                     function(j) {im@x <- mm[,j]; im})),
                              cnames = colnames(mm))
-                 if (drop) ans$Zt <- drop0(ans$Zt)
+                 if (drop) {
+                     ## This is only used for nlmer models.  
+                     ## Need to do something more complicated for A
+                     ## here.  Essentially you need to create a copy
+                     ## of im for each column of mm, im@x <- mm[,j],
+                     ## create the appropriate number of copies,
+                     ## prepend matrices of zeros, then rBind and drop0.
+                     ans$A@x <- rep(0, length(ans$A@x))
+                     ans$Zt <- drop0(ans$Zt)
+                 }
                  ans
              })
 
@@ -266,6 +277,7 @@ lmerFactorList <- function(formula, mf, rmInt, drop)
 ### index vector to map random-effects terms to factors.
 ### 2. Check to see if the factors form a nested sequence after
 ### removing repeated factors (for information only).
+### 3. Create the A matrix at this point while Ztl is still a list.
 }
 
 checkSTform <- function(ST, STnew)
@@ -298,36 +310,21 @@ VecFromNames <- function(nms, mode = "numeric")
     ans
 }
 
-linkPos <-
-    VecFromNames(c("logit", "probit", "cauchit", "cloglog", "identity",
-                   "log", "sqrt", "1/mu^2", "inverse"), "integer")
-linkPos[] <- seq_along(linkPos)
-famPos <-
-    VecFromNames(c("binomial", "gaussian", "Gamma", "inverse.gaussian",
-                   "poisson", "quasibinomial", "quasipoisson", "quasi"),
-                 "integer")
-famPos[] <- seq_along(famPos)
-varPos <- 
-    VecFromNames(c("constant", "mu(1-mu)", "mu", "mu^2", "mu^3"),
-                 "integer")
-varPos[] <- seq_along(varPos)
-
-
 mkdims <- function(fr, FL, start, s = 1L)
 ### Create the standard versions of flist, Zt, Gp, ST, cnames, A, Cm,
 ### Cx, L and dd
 {
-    flist <- lapply(FL, get("[["), "f")
-    Ztl <- lapply(FL, get("[["), "Zt")
-    cnames <- lapply(FL, get("[["), "cnames")
+    flist <- lapply(FL, `[[`, "f")
+    Ztl <- lapply(FL, `[[`, "Zt")
+    cnames <- lapply(FL, `[[`, "cnames")
     Zt <- do.call(rBind, Ztl)
     Zt@Dimnames <- vector("list", 2)
     Gp <- unname(c(0L, cumsum(sapply(Ztl, nrow))))
+    A <- do.call(rBind, lapply(FL, `[[`, "A"))
     rm(Ztl, FL)                         # because they could be large
     nc <- sapply(cnames, length)        # # of columns in els of ST
     ST <- lapply(nc, function(n) matrix(0, n, n))
     .Call(mer_ST_initialize, ST, Gp, Zt)
-    A <- .Call(mer_create_A, Zt, ST, Gp)
     Cm <- createCm(A, s)
     L <- .Call(mer_create_L, Cm)
     if (s < 2) Cm <- new("dgCMatrix")
@@ -335,8 +332,8 @@ mkdims <- function(fr, FL, start, s = 1L)
 
     ## record dimensions and algorithm settings
     dd <-
-        VecFromNames(c("nf", "n", "p", "q", "s", "np", "REML", "ftyp", "ltyp",
-                       "nest", "useSc", "cvg"), "integer")
+        VecFromNames(c("nf", "n", "p", "q", "s", "np", "REML", "fTyp", "lTyp",
+                       "vTyp", "nest", "useSc", "cvg"), "integer")
     dd["nf"] <- length(cnames)          # number of random-effects terms
     dd["n"] <- nrow(fr$mf)              # number of observations
     dd["p"] <- ncol(fr$X)               # number of fixed-effects coefficients
@@ -347,7 +344,9 @@ mkdims <- function(fr, FL, start, s = 1L)
 ### levels in the factor for each term. Warn or stop as appropriate
     dd["np"] <- as.integer(sum(nvc))    # number of parameters in optimization
     dd["REML"] <- 0L                    # glmer and nlmer don't use REML
-    dd["ftyp"] <- -1L                   # default is gaussian/identity
+    dd["fTyp"] <- 2L                    # default family is "gaussian"
+    dd["lTyp"] <- 5L                    # default link is "identity"
+    dd["vTyp"] <- 1L                    # default variance function is "constant"    
     ## check for nesting of factors
     dd["nest"] <- all(sapply(seq_along(flist)[-1],
                              function(i) isNested(flist[[i-1]], flist[[i]])))
@@ -361,25 +360,33 @@ mkdims <- function(fr, FL, start, s = 1L)
          cnames = cnames, dd = dd, dev = dev, flist = do.call(data.frame, flist))
 }
 
-mkFltype <- function(family)
-### check for predefined families
-{
-    fltype <- 0L                         # not a predefined type
-    if (family$family == "gaussian" && family$link == "identity") fltype <- -1L
-    if (family$family == "binomial" && family$link == "logit") fltype <- 1L
-    if (family$family == "binomial" && family$link == "probit") fltype <- 2L
-    if (family$family == "poisson" && family$link == "log") fltype <- 3L
-    if (family$family == "quasibinomial" && family$link == "logit") fltype <- 1L
-    if (family$family == "quasibinomial" && family$link == "probit") fltype <- 2L
-    if (family$family == "quasipoisson" && family$link == "log") fltype <- 3L
-    as.integer(fltype)
-}
+famNms <- c("binomial", "gaussian", "Gamma", "inverse.gaussian",
+            "poisson", "quasibinomial", "quasipoisson", "quasi")
+linkNms <- c("logit", "probit", "cauchit", "cloglog", "identity",
+             "log", "sqrt", "1/mu^2", "inverse")
+varNms <- c("constant", "mu(1-mu)", "mu", "mu^2", "mu^3")
 
-### This is probably no longer needed but we'll keep it for the time being
-mkFamilyEnv <- function(glmFit)
-### Create and populate the family function evaluation environment.
+famType <- function(family)
 {
-    new.env()
+    if (!(fTyp <- match(family$family, famNms, nomatch = 0)))
+        stop(gettextf("unknown GLM family: %s",
+                      sQuote(family$family), domain = "R-lme4"))
+    if (!(lTyp <- match(family$link, linkNms, nomatch = 0)))
+        stop(gettextf("unknown link: %s",
+                      sQuote(family$link), domain = "R-lme4"))
+    vNam <- switch(fTyp,
+                   "mu(1-mu)",          # binomial
+                   "constant",          # gaussian
+                   "mu^2",              # Gamma
+                   "mu^3",              # inverse.gaussian
+                   "mu",                # poisson
+                   "mu(1-mu)",          # quasibinomial
+                   "mu",                # quasipoisson
+                   family$varfun)       # quasi
+    if (!(vTyp <- match(vNam, varNms, nomatch = 0)))
+        stop(gettextf("unknown GLM family: %s",
+                      sQuote(family$family), domain = "R-lme4"))
+    c(fTyp = fTyp, lTyp = lTyp, vTyp = vTyp)
 }
 
 convergenceMessage <- function(cvg)
@@ -460,7 +467,7 @@ lmer <-
                flist = dm$flist,
                X = fr$X,
                Zt = dm$Zt, 
-               priorWt = unname(fr$wts),
+               pWt = unname(fr$wts),
                offset = unname(fr$off),
 ### FIXME: Should y retain its names? As it stands any row names in the
 ### frame are dropped.  Really?  Are they part of the frame slot (if not
@@ -538,24 +545,25 @@ function(formula, data, family = gaussian, method = c("Laplace", "AGQ"),
         start <- list(ST = start) 
     if (is.numeric(start)) start <- list(STpars = start)
     dm <- mkdims(fr, FL, start[["ST"]])
-    dm$dd["ftyp"] <- mkFltype(glmFit$family)
-    if (glmFit$family$family %in% c("binomial", "poisson")) dm$dd["useSc"] <- 0L
+    ft <- famType(glmFit$family)
+    dm$dd[names(ft)] <- ft
+    dm$dd["useSc"] <- as.integer(!(famNms[dm$dd["fTyp"] ] %in% c("binomial", "poisson")))
     y <- unname(as.double(glmFit$y))
-    dimnames(fr$X) <- NULL
+#    dimnames(fr$X) <- NULL
     p <- dm$dd["p"]
     fixef <- fr$fixef
     fixef[] <- coef(glmFit)
-    if (!is.null(ff <- start$fixef) && is.numeric(ff) && length(ff) == length(fixef))
-        fixef <- ff
+    if (!is.null(ff <- start$fixef) && is.numeric(ff) &&
+        length(ff) == length(fixef)) fixef <- ff
     
     ans <- new(Class = "mer",
-               env = mkFamilyEnv(glmFit),
+               env = new.env(),
                nlmodel = (~I(x))[[2]],
                famName = unlist(glmFit$family[c("family", "link")]),
                frame = if (model) fr$mf else fr$mf[0,],
                call = mc, flist = dm$flist,
                Zt = dm$Zt, X = fr$X, y = y,
-               priorWt = unname(glmFit$prior.weights),
+               pWt = unname(glmFit$prior.weights),
                offset = unname(fr$off),
                cnames = unname(dm$cnames), Gp = unname(dm$Gp),
                dims = dm$dd, ST = dm$ST, A = dm$A,
@@ -656,7 +664,7 @@ nlmer <- function(formula, data, control = list(), start = NULL,
                flist = dm$flist,
                X = X,
                Zt = dm$Zt,
-               priorWt = unname(sqrt(fr$wts)),
+               pWt = unname(sqrt(fr$wts)),
                offset = unname(fr$off),
                y = unname(as.double(fr$Y)),
                cnames = unname(dm$cnames),
@@ -959,7 +967,7 @@ setMethod("summary", signature(object = "mer"),
               REmat <- REmat[-nrow(REmat), , drop = FALSE]
 
           if (nrow(coefs) > 0) {
-              if (dims["ftyp"] >= 0) {
+              if (!dims["useSc"]) {
                   coefs <- coefs[, 1:2, drop = FALSE]
                   stat <- coefs[,1]/coefs[,2]
                   pval <- 2*pnorm(abs(stat), lower = FALSE)

@@ -11,7 +11,7 @@ static R_CallMethodDef CallEntries[] = {
     {"mer_ST_initialize", (DL_FUNC) &mer_ST_initialize, 3},
     {"mer_ST_setPars", (DL_FUNC) &mer_ST_setPars, 2},
     {"mer_create_L", (DL_FUNC) &mer_create_L, 1},
-    {"mer_create_A", (DL_FUNC) &mer_create_A, 3},
+/*     {"mer_create_A", (DL_FUNC) &mer_create_A, 3}, */
     {"mer_optimize", (DL_FUNC) &mer_optimize, 2},
     {"mer_postVar", (DL_FUNC) &mer_postVar, 1},
     {"mer_sigma", (DL_FUNC) &mer_sigma, 2},
@@ -54,7 +54,7 @@ void R_init_lme4(DllInfo *dll)
     lme4_ASym = install("A");
     lme4_CmSym = install("Cm");
     lme4_CxSym = install("Cx");
-    lme4_DimNamesSym = install("Dimnames");
+/*     lme4_DimNamesSym = install("Dimnames"); */
     lme4_DimSym = install("Dim");
     lme4_GpSym = install("Gp");
     lme4_LSym = install("L");
@@ -78,7 +78,7 @@ void R_init_lme4(DllInfo *dll)
     lme4_offsetSym = install("offset");
     lme4_pSym = install("p");
     lme4_pnamesSym = install("pnames");
-    lme4_priorWtSym = install("priorWt");
+    lme4_pWtSym = install("pWt");
     lme4_ranefSym = install("ranef");
     lme4_residSym = install("resid");
     lme4_sqrtrWtSym = install("sqrtrWt");

@@ -23,7 +23,7 @@ setClass("mer",
                         flist = "data.frame",  # list of grouping factors
                         X = "matrix",    # fixed effects model matrix
                         Zt = "dgCMatrix",# sparse form of Z'
-                        priorWt = "numeric",# prior weights,
+                        pWt = "numeric",# prior weights,
                         offset = "numeric", # length 0 -> no offset
                         y = "numeric",   # response vector
                         cnames = "list", # row/column names of els of ST
