@@ -13,7 +13,7 @@ SEXP mer_MCMCsamp(SEXP x, SEXP savebp, SEXP nsampp,
 SEXP mer_ST_getPars(SEXP x);
 SEXP mer_ST_initialize(SEXP ST, SEXP Gp, SEXP Zt);
 SEXP mer_ST_setPars(SEXP x, SEXP pars);
-SEXP mer_create_A(SEXP Zt, SEXP ST, SEXP Gp);
+/* SEXP mer_create_A(SEXP Zt, SEXP ST, SEXP Gp); */
 SEXP mer_create_L(SEXP CmP);
 SEXP mer_optimize(SEXP x, SEXP verb);
 SEXP mer_postVar(SEXP x);
