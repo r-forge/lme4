@@ -26,7 +26,7 @@ SEXP attribute_hidden
     lme4_muSym,
     lme4_offsetSym,
     lme4_pSym,
-    lme4_pnamesSym,
+/*     lme4_pnamesSym, */
     lme4_pWtSym,
     lme4_ranefSym,
     lme4_residSym,
