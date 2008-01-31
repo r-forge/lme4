@@ -1,3 +1,35 @@
+2008-01-30  Douglas Bates <bates@stat.wisc.edu>
+
+	* [r56] DESCRIPTION, inst/doc/Doxyfile: New release
+	* [r57] R/AllClass.R, R/lmer.R, src/Syms.h, src/init.c, src/lmer.c,
+	  src/lmer.h: Orthogonalize link and var. Create A in R code. Change
+	  slot priorWt to pWt.
+
+2008-01-25  Douglas Bates <bates@stat.wisc.edu>
+
+	* [r50] ToDo: Remove items that are now done
+	* [r51] man/cbpp.Rd: Run both examples again
+	* [r52] R/jml.R: Split off the creation of the binary response matrix
+	* [r53] R/lmer.R: Bug #90 (fix due to Steven McKinney
+	  <smckinney@bccrc.ca>), modify slots; V instead of v and pnames
+	* [r54] R/AllClass.R: Modify slots; V instead of v and pnames
+	* [r55] src/Syms.h, src/init.c, src/lmer.c: Modify slots; V instead of v
+	  and pnames. Zero the accumulator in update_L so that nlmer works
+	  again.
+
+2008-01-21  Douglas Bates <bates@stat.wisc.edu>
+
+	* [r44] R/jml.R: A pure R version of joint maximum likelihood estimation
+	  of the parameters in the Rasch model
+	* [r45] R/mlirt.R: Spelling correction
+	* [r46] inst/doc/Doxyfile: Do not save dot files
+	* [r47] inst/doc/Implementation.Rnw: Update to class definitions in
+	  0.999375-1
+	* [r48] DESCRIPTION: Alpha release of version 1.0
+	* [r49] R/AllClass.R, R/lmer.R, src/Syms.h, src/init.c, src/lmer.c,
+	  src/lmer.h: Clean up mer class. Some of the items on the feature
+	  request and bug lists.
+	
 2008-01-07  Douglas Bates <bates@stat.wisc.edu>
 
 	* [r40] inst/doc/Implementation.Rnw: Update to current slot names
