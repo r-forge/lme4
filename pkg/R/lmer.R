@@ -201,7 +201,7 @@ lmerFrames <- function(mc, formula, contrasts, vnms = character(0))
 
     ## remove the terms attribute from mf
     attr(mf, "terms") <- mt
-    list(Y = Y, X = X, wts = wts, off = off, mf = mf, fixef = fixef)
+    list(Y = Y, X = X, wts = as.double(wts), off = as.double(off), mf = mf, fixef = fixef)
 }
 
 isNested <- function(f1, f2)
@@ -535,10 +535,11 @@ function(formula, data, family = gaussian, method = c("Laplace", "AGQ"),
     stopifnot(length(formula <- as.formula(formula)) == 3)
 
     fr <- lmerFrames(mc, formula, contrasts) # model frame, X, etc.
-    wts <- NULL
+    offset <- wts <- NULL
     if (length(fr$wts)) wts <- fr$wts
+    if (length(fr$off)) offset <- fr$off
     glmFit <- glm.fit(fr$X, fr$Y, weights = wts, # glm on fixed effects
-                      offset = fr$offset, family = family,
+                      offset = offset, family = family,
                       intercept = attr(attr(fr$mf, "terms"), "intercept") > 0)
     FL <- lmerFactorList(formula, fr$mf, 0L, 0L) # flist, Zt, cnames
     if (is.list(start) && all(sort(names(start)) == sort(names(FL))))
