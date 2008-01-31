@@ -1,0 +1,5 @@
+<area shape="rect" href="$lmer_8c.html#da558f58458c36a96585a9c6e695a0b6" title="Update the eta, v, mu, resid and var slots according to the current values of the..." alt="" coords="159,31,252,57">
+<area shape="rect" href="$lmer_8h.html#64740a858f90763461cbccea9c787b6b" title="Externally callable update_mu." alt="" coords="301,5,429,32">
+<area shape="rect" href="$lmer_8c.html#88236137756e85a656de3402adcf4747" title="Iterate to determine the conditional modes of the random effects." alt="" coords="325,56,405,83">
+<area shape="rect" href="$lmer_8h.html#a4e16de36d36af6c715d52a045f88e78" title="Optimize the profiled deviance of an lmer object or the Laplace approximation to..." alt="" coords="480,31,589,57">
+<area shape="rect" href="$lmer_8h.html#b72ec91b1f901b466f29a80bcc22e6c4" title="Externally callable update_u." alt="" coords="477,81,592,108">
