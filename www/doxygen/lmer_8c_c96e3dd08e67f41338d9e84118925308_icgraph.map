@@ -4,8 +4,8 @@
 <area shape="rect" href="$lmer_8c.html#2c7f7874e2eb3f6c51c53c5873cffec4" title="Update the RCX and RX slots in an mer object." alt="" coords="151,236,241,263">
 <area shape="rect" href="$lmer_8h.html#64740a858f90763461cbccea9c787b6b" title="Externally callable update_mu." alt="" coords="305,135,433,161">
 <area shape="rect" href="$lmer_8h.html#a4e16de36d36af6c715d52a045f88e78" title="Optimize the profiled deviance of an lmer object or the Laplace approximation to..." alt="" coords="501,261,611,288">
-<area shape="rect" href="$lmer_8h.html#b72ec91b1f901b466f29a80bcc22e6c4" title="Externally callable version of update_u." alt="" coords="499,185,613,212">
+<area shape="rect" href="$lmer_8h.html#b72ec91b1f901b466f29a80bcc22e6c4" title="Externally callable update_u." alt="" coords="499,185,613,212">
 <area shape="rect" href="$lmer_8c.html#f1bc9174690e2956720aa31781b073f0" title="Update the fixed effects in an MCMC sample from an mer object." alt="" coords="319,84,420,111">
 <area shape="rect" href="$lmer_8h.html#edec83b72f0c3437d9b10daf5120aa2b" title="Generate a Markov&#45;chain Monte Carlo sample from an mer object." alt="" coords="488,33,624,60">
 <area shape="rect" href="$lmer_8h.html#bc080c9abeb9965118c6d114d6df1cb3" title="Externally callable update_ranef." alt="" coords="299,33,440,60">
-<area shape="rect" href="$lmer_8h.html#6c02b5f73d659d2d748852fac7e9c462" title="Externally callable version of update_RX." alt="" coords="308,236,431,263">
+<area shape="rect" href="$lmer_8h.html#6c02b5f73d659d2d748852fac7e9c462" title="Externally callable update_RX." alt="" coords="308,236,431,263">
