@@ -15,7 +15,7 @@ setOldClass("logLik")
 
 setClass("mer",
 	 representation(## original data
-                        famName = "character",# name of GLM family and link
+#                        famName = "character",# name of GLM family and link
                         env = "environment",# evaluation env for nonlinear model
                         nlmodel = "call",# nonlinear model call
                         frame = "data.frame",# model frame (or empty frame)
