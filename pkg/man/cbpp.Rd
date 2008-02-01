@@ -49,5 +49,4 @@ m2 <- glmer(incidence / size ~ period + (1 | herd), weights = size,
 stopifnot(all.equal(coef(m1), coef(m2)),
           all.equal(ranef(m1), ranef(m2)))
 }
-}
 \keyword{datasets}
