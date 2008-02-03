@@ -459,7 +459,6 @@ lmer <-
     n <- length(Y)
     
     ans <- new(Class = "mer",
-               famName = c("gaussian", "identity"),
                env = new.env(),
                nlmodel = (~I(x))[[2]],
                frame = if (model) fr$mf else fr$mf[0,],
@@ -560,7 +559,6 @@ function(formula, data, family = gaussian, method = c("Laplace", "AGQ"),
     ans <- new(Class = "mer",
                env = new.env(),
                nlmodel = (~I(x))[[2]],
-               famName = unlist(glmFit$family[c("family", "link")]),
                frame = if (model) fr$mf else fr$mf[0,],
                call = mc, flist = dm$flist,
                Zt = dm$Zt, X = fr$X, y = y,
