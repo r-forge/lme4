@@ -11,7 +11,6 @@ static R_CallMethodDef CallEntries[] = {
     {"mer_ST_initialize", (DL_FUNC) &mer_ST_initialize, 3},
     {"mer_ST_setPars", (DL_FUNC) &mer_ST_setPars, 2},
     {"mer_create_L", (DL_FUNC) &mer_create_L, 1},
-/*     {"mer_create_A", (DL_FUNC) &mer_create_A, 3}, */
     {"mer_optimize", (DL_FUNC) &mer_optimize, 2},
     {"mer_postVar", (DL_FUNC) &mer_postVar, 1},
     {"mer_sigma", (DL_FUNC) &mer_sigma, 2},
@@ -25,6 +24,8 @@ static R_CallMethodDef CallEntries[] = {
 
     {"pedigree_chol", (DL_FUNC) &pedigree_chol, 2},
 
+    {"spR_optimize", (DL_FUNC) &spR_optimize, 2},
+    {"spR_update_mu", (DL_FUNC) &spR_update_mu, 1},
 /*     {"Zt_carryOver", (DL_FUNC) &Zt_carryOver, 4}, */
 
     {NULL, NULL, 0}

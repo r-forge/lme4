@@ -28,4 +28,7 @@ SEXP mer_validate(SEXP x);
 
 SEXP pedigree_chol(SEXP x, SEXP ans);
 
+SEXP spR_optimize(SEXP x, SEXP verbP);
+SEXP spR_update_mu(SEXP x);
+
 #endif /* LME4_LMER_H */

@@ -18,11 +18,12 @@ asBinaryMatrix <- function(dat)
     dat
 }
 
-sparseRasch <- function(dat, maxirls = 200, tol = 1e-5)
+sparseRasch <- function(dat, verbose = -1L)
 {
     dat <- asBinaryMatrix(dat)
-    nr <- nrow(dat)
-    nc <- ncol(dat)
+    m <- nrow(dat)
+    q <- ncol(dat)
+    n <- m * q
     y <- as.vector(dat)
     stopifnot(length(unique(y)) == 2, min(y) == 0, max(y) == 1)
 
@@ -31,25 +32,59 @@ sparseRasch <- function(dat, maxirls = 200, tol = 1e-5)
     ## difficulties then the intercept, which is the logit of the
     ## probability of a correct response by the first subject on the
     ## first question.
-    MM <- rbind2(rbind2(as(gl(nr, 1, nr * nc), "sparseMatrix")[-1, ],
-                        as(gl(nc, nr), "sparseMatrix")[-1, ]),
-                 t(rep(1, nr * nc)))
-    M1 <- MM
-    
-    beta <- rnorm(nrow(MM), mean = 0, sd = 0.1)
-    for (i in c(0, seq_len(maxirls))) { # IRLS iterations
-        eta <- crossprod(MM, beta)@x
-        beta_old <- beta
-        mu <- .Call("logit_linkinv", eta, PACKAGE = "stats")
-        swts <- sqrt(1/(mu * (1 - mu)))
-        wtres <- swts * (y - mu)
-        M1@x <- swts * .Call("logit_mu_eta", eta, PACKAGE = "stats")
-        L <- Cholesky(tcrossprod(M1), perm = FALSE, LDL = FALSE)
-        inc1 <- solve(L, wtres, "L")
-        crit <- sqrt((inc1 %*% inc1)/(wtres %*% wtres))
-        beta <- beta + solve(L, inc1, "Lt")
-        if (crit < tol) break
-    }
-    MM@x[] <- 1
-    list(beta = beta, Xt = MM, mu = mu, L = L)
+    MM <- rBind(rBind(as(gl(m, 1, n), "sparseMatrix")[-1, ],
+                      as(gl(q, m), "sparseMatrix")[-1, ]),
+                t(rep(1, n)))
+    p <- nrow(MM)
+## FIXME: get rid of the rownames on MM
+    dd <- VecFromNames(dimsNames, "integer")
+    dd["n"] <- n
+    dd["p"] <- p
+    dd["q"] <- q
+    dd["lTyp"] <- 1L
+    dd["vTyp"] <- 2L
+    ans <- new("sparseRasch",
+               dims = dd,
+               Zt = MM,
+               y = as.double(y),
+               deviance = VecFromNames(devNames, "numeric"),
+               offset = numeric(0),
+               L = .Call(mer_create_L, MM),
+               fixef = numeric(p),
+               mu = numeric(n),
+               muEta = numeric(n),
+               pWt = numeric(0),
+               resid = numeric(n),
+               sqrtrWt = numeric(n),
+               var = numeric(n))
+    .Call(spR_optimize, ans, -1L)
+    ans
+##     for (i in c(0, seq_len(maxirls))) { # IRLS iterations
+##         eta <- crossprod(MM, beta)@x
+##         beta_old <- beta
+##         mu <- .Call("logit_linkinv", eta, PACKAGE = "stats")
+##         swts <- sqrt(1/(mu * (1 - mu)))
+##         wtres <- swts * (y - mu)
+##         M1@x <- swts * .Call("logit_mu_eta", eta, PACKAGE = "stats")
+##         L <- Cholesky(tcrossprod(M1), perm = FALSE, LDL = FALSE)
+##         inc1 <- solve(L, wtres, "L")
+##         crit <- sqrt((inc1 %*% inc1)/(wtres %*% wtres))
+##         beta <- beta + solve(L, inc1, "Lt")
+##         if (crit < tol) break
+##     }
+##     MM@x[] <- 1
+##     list(beta = beta, Xt = MM, mu = mu, L = L)
 }
+
+asBinaryFrame <- function(dat)
+{
+#    dat <- asBinaryMatrix(dat)
+    m <- nrow(dat)
+    q <- ncol(dat)
+    y <- as.vector(dat)
+    stopifnot(length(unique(y)) == 2, min(y) == 0, max(y) == 1)
+    data.frame(y = y, .subj = gl(m, 1, length = m * q),
+               .item = gl(q, m))
+#    lmer(y ~ (1|.subj) + (1|.item), df, family = binomial, verbose = verbose)
+}
+

@@ -3,7 +3,6 @@ SEXP attribute_hidden
     lme4_ASym,
     lme4_CmSym,
     lme4_CxSym,
-/*     lme4_DimNamesSym, */
     lme4_DimSym,
     lme4_GpSym,
     lme4_LSym,
@@ -26,7 +25,6 @@ SEXP attribute_hidden
     lme4_muSym,
     lme4_offsetSym,
     lme4_pSym,
-/*     lme4_pnamesSym, */
     lme4_pWtSym,
     lme4_ranefSym,
     lme4_residSym,
