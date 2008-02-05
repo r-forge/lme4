@@ -203,44 +203,6 @@ ST_nc_nlev(const SEXP ST, const int *Gp, double **st, int *nc, int *nlev)
     return ans;
 }
 
-#if 0
-/**
- * Determine the nonzero positions in the jth column of C
- *
- * @param nz array to hold the answer
- * @param j column index
- * @param nf number of groups of rows
- * @param Gp group pointers
- * @param nc array (length nf) of the number of columns
- * @param nlev array (length nf) of the number of levels
- * @param zi row indices in Zt
- * @param zp column pointers for Zt
- *
- * @return count of nonzeros in the jth column of C
- */
-static int
-C_nz_col(int *nz, int j, int nf, const int *Gp, const int *nc,
-       const int *nlev, const int *zi, const int *zp)
-{
-    int ans, i, p;
-
-    AZERO(nz, Gp[nf]);
-    for (p = zp[j]; p < zp[j + 1]; p++) {
-	int zrow = zi[p];
-	int k = Gp_grp(zrow, nf, Gp);
-
-	nz[zrow] = 1;		/* T contains the identity */
-	if (nc[k] > 1) {
-	    int nextra = (zrow - Gp[k]) / nlev[k];
-	    for (i = 1; i <= nextra; i++)
-		nz[zrow - i * nlev[k]] = 1;
-	}
-    }
-    for (i = 0, ans = 0; i < Gp[nf]; i++) if (nz[i]) ans++;
-    return ans;
-}
-#endif
-
 /**
  * Update the contents of the ranef slot in an mer object.  For a
  * linear mixed model the conditional estimates of the fixed effects
@@ -1102,71 +1064,6 @@ SEXP mer_update_ranef(SEXP x)
     return R_NilValue;
 }
 
-#if 0
-/* FIXME: mer_create_A is probably better done in R code using Ztl,
- * not Zt */
-
-/**
- * Create the A matrix pattern from Zt, ST and Gp.
- *
- * @param Zt pointer to the sparse transposed model matrix
- * @param ST pointer to the list of condensed ST factors of the
- * variance-covariance terms
- * @param GpP pointer to the Gp array
- *
- * @return A
- */
-SEXP mer_create_A(SEXP Zt, SEXP ST, SEXP GpP)
-{
-    SEXP ans;
-    int *Gp = INTEGER(GpP), *nnz, *nz, *vi, *vp, *zdims, *zi, *zp,
-	Vnnz, ZtOK, j, nf = LENGTH(ST);
-    int *nc = Alloca(nf, int), *nlev = Alloca(nf, int);
-    R_CheckStack();
-
-				/* Trivial case, all nc == 1 */
-    if (ST_nc_nlev(ST, Gp, (double**)NULL, nc, nlev) <= 1)
-	return duplicate(Zt);
-				/* Check the nonzero pattern in Zt */
-    zdims = INTEGER(GET_SLOT(Zt, lme4_DimSym));
-    nnz = Alloca(zdims[1], int);
-    nz = Alloca(zdims[0], int);
-    R_CheckStack();
-
-    zi = INTEGER(GET_SLOT(Zt, lme4_iSym));
-    zp = INTEGER(GET_SLOT(Zt, lme4_pSym));
-    for (j = 0, ZtOK = 1; j < zdims[1]; j++) {
-	nnz[j] = C_nz_col(nz, j, nf, Gp, nc, nlev, zi, zp);
-	if (nnz[j] != (zp[j + 1] - zp[j])) ZtOK = 0;
-    }
-    if (ZtOK) return duplicate(Zt);
-				/* Must create a new dgCMatrix object */ 
-    ans = PROTECT(NEW_OBJECT(MAKE_CLASS("dgCMatrix")));
-    SET_SLOT(ans, lme4_DimSym, duplicate(GET_SLOT(Zt, lme4_DimSym)));
-    SET_SLOT(ans, lme4_DimNamesSym, allocVector(VECSXP, 2));
-				/* create and populate the p slot */
-    SET_SLOT(ans, lme4_pSym, allocVector(INTSXP, zdims[1] + 1));
-    vp = INTEGER(GET_SLOT(ans, lme4_pSym));
-    vp[0] = 0;
-    for (j = 0; j < zdims[1]; j++) vp[j + 1] = vp[j] + nnz[j];
-    Vnnz = vp[zdims[1]];
-				/* create and populate the i slot */
-    SET_SLOT(ans, lme4_iSym, allocVector(INTSXP, Vnnz));
-    vi = INTEGER(GET_SLOT(ans, lme4_iSym));
-    for (j = 0; j < zdims[1]; j++) {
-	int i, pos = vp[j];
-	C_nz_col(nz, j, nf, Gp, nc, nlev, zi, zp);
-	for (i = 0; i < zdims[0]; i++) if (nz[i]) vi[pos++] = i;
-    }
-				/* create and zero the x slot */
-    SET_SLOT(ans, lme4_xSym, allocVector(REALSXP, Vnnz));
-    AZERO(REAL(GET_SLOT(ans, lme4_xSym)), Vnnz);
-
-    UNPROTECT(1); 
-    return ans;
-}
-#endif
-
 /**
  * Create PAX in dest.
  *
@@ -1942,6 +1839,125 @@ SEXP pedigree_inbreeding(SEXP x)
     return ans;
 }
 
+SEXP spR_update_mu(SEXP x)
+{
+    int *dims = INTEGER(GET_SLOT(x, lme4_dimsSym));
+    int n = dims[n_POS];
+    double
+	*d = REAL(GET_SLOT(x, lme4_devianceSym)),
+	*eta = Calloc(n, double),
+	*mu = REAL(GET_SLOT(x, lme4_muSym)),
+	*offset = SLOT_REAL_NULL(x, lme4_offsetSym),
+	*srwt = REAL(GET_SLOT(x, lme4_sqrtrWtSym)),
+	*res = REAL(GET_SLOT(x, lme4_residSym)),
+	*y = REAL(GET_SLOT(x, lme4_ySym)),
+	one[] = {1, 0};
+    CHM_SP Zt = AS_CHM_SP(GET_SLOT(x, lme4_ZtSym));
+    CHM_DN cbeta = AS_CHM_DN(GET_SLOT(x, lme4_fixefSym)),
+	ceta = N_AS_CHM_DN(eta, n, 1);
+    R_CheckStack();
+    
+    for (int i = 0; i < n; i++) eta[i] = offset ? offset[i] : 0;
+    if (!M_cholmod_sdmult(Zt, 1 /* trans */, one, one, cbeta, ceta, &c))
+	error(_("cholmod_sdmult error returned"));
+    lme4_muEta(mu, REAL(GET_SLOT(x, lme4_muEtaSym)), eta, n, dims[lTyp_POS]);
+    lme4_varFunc(REAL(GET_SLOT(x, lme4_varSym)), mu, n, dims[vTyp_POS]);
+
+    d[wrss_POS] = 0;		/* update resid slot and d[wrss_POS] */
+    for (int i = 0; i < n; i++) {
+	res[i] = (y[i] - mu[i]) * srwt[i];
+	d[wrss_POS] += res[i] * res[i];
+    }
+
+    Free(eta);
+    return R_NilValue;
+}
+
+SEXP spR_optimize(SEXP x, SEXP verbP)
+{
+    int *zp, m, n, nnz, verb = asInteger(verbP);
+    double *Zcp, *Ztx,
+	*d = REAL(GET_SLOT(x, lme4_devianceSym)),
+	*fixef = REAL(GET_SLOT(x, lme4_fixefSym)),
+	*mu = REAL(GET_SLOT(x, lme4_muSym)),
+	*muEta = REAL(GET_SLOT(x, lme4_muEtaSym)),
+	*pWt = SLOT_REAL_NULL(x, lme4_pWtSym),
+	*res = REAL(GET_SLOT(x, lme4_residSym)),
+	*srwt = REAL(GET_SLOT(x, lme4_sqrtrWtSym)),
+	*tmp, *tmp2, *var = REAL(GET_SLOT(x, lme4_varSym)),
+	*y = REAL(GET_SLOT(x, lme4_ySym)),
+	cfac, crit, one[] = {1, 0},
+	step, wrss_old, zero[] = {0, 0};
+    CHM_SP Zt = AS_CHM_SP(GET_SLOT(x, lme4_ZtSym));
+    CHM_FR L = L_SLOT(x);
+    CHM_DN cres = N_AS_CHM_DN(res, Zt->ncol, 1), ctmp, sol;
+    R_CheckStack();
+
+    
+    zp = (int*)Zt->p;
+    m = Zt->nrow;
+    n = Zt->ncol;
+    nnz = zp[n];
+    Zcp = Calloc(nnz, double);
+    Ztx = (double*)Zt->x;
+    tmp = Calloc(m, double);
+    tmp2 = Calloc(m, double);
+    ctmp = N_AS_CHM_DN(tmp, m, 1);
+    cfac = ((double)n) / ((double)m);
+    R_CheckStack();
+
+    spR_update_mu(x);
+    for (int i = 0; ; i++) {
+	d[wrss_POS] = 0;
+	for (int j = 0; j < n; j++) {
+	    srwt[j] = sqrt((pWt ? pWt[j] : 1) / var[j]);
+	    res[j] = srwt[j] * (y[j] - mu[j]);
+	    d[wrss_POS] += res[j] * res[j];
+	    for (int p = zp[j]; p < zp[j + 1]; p++)
+		Zcp[p] = srwt[j] * muEta[j] * Ztx[p];
+	}
+	Zt->x = (void*)Zcp;
+	if (!M_cholmod_factorize_p(Zt, zero, (int*)NULL, 0 /*fsize*/, L, &c))
+	    error(_("cholmod_factorize_p failed: status %d, minor %d from ncol %d"),
+		  c.status, L->minor, L->n);
+	wrss_old = d[wrss_POS];
+				/* tmp := Zt %*% muEta %*% var %*% wtdResid */
+	M_cholmod_sdmult(Zt, 0 /* notrans */, one, zero, cres, ctmp, &c);
+	Memcpy(tmp2, tmp, m);
+	apply_perm(tmp, tmp2, (int*)L->Perm, m);
+				/* solve L %*% sol = tmp */
+	if (!(sol = M_cholmod_solve(CHOLMOD_L, L, ctmp, &c)))
+	    error(_("cholmod_solve (CHOLMOD_L) failed"));
+	Memcpy(tmp, (double*)(sol->x), m);
+	M_cholmod_free_dense(&sol, &c);
+				/* evaluate convergence criterion */
+	crit = cfac * sqr_length(tmp, m) / wrss_old;
+	if (crit < CM_TOL) break; /* don't do needless evaluations */
+				/* solve t(L) %*% sol = tmp */
+	if (!(sol = M_cholmod_solve(CHOLMOD_Lt, L, ctmp, &c)))
+	    error(_("cholmod_solve (CHOLMOD_Lt) failed"));
+	Memcpy(tmp, (double*)(sol->x), m);
+	M_cholmod_free_dense(&sol, &c);
+
+	Memcpy(tmp2, fixef, m);
+	for (step = 1; step > CM_SMIN; step /= 2) { /* step halving */
+	    for (int j = 0; j < m; j++) fixef[j] = tmp2[j] + step * tmp[j];
+	    spR_update_mu(x);
+	    if (verb < 0)
+		Rprintf("%2d,%8.6f,%12.4g: %15.6g %15.6g %15.6g %15.6g\n",
+			i, step, crit, d[wrss_POS], wrss_old, fixef[1], fixef[2]);
+	    if (d[wrss_POS] < wrss_old) {
+		wrss_old = d[wrss_POS];
+		break;
+	    }
+	}
+	if (step <= CM_SMIN || i > CM_MAXITER) return 0;
+    }
+    Free(tmp2);
+    Free(Zcp);
+    Free(tmp);
+    return R_NilValue;
+}
 
 #if 0
 

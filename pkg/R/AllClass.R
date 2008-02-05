@@ -88,3 +88,20 @@ setClass("pedigree", representation =
                               n, "]", sep = ''))
 	     TRUE
 	 })
+
+setClass("sparseRasch", representation =
+         list(dims = "integer",
+              Zt = "dgCMatrix",
+              y = "numeric",
+              deviance = "numeric",
+              offset = "numeric",
+              L = "CHMfactor",
+              fixef = "numeric",
+              mu = "numeric",
+              muEta = "numeric",
+              pWt = "numeric",              
+              resid = "numeric",
+              sqrtrWt = "numeric",
+              var = "numeric"),
+         validity = function(object) TRUE)
+
