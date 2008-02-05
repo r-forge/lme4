@@ -307,8 +307,14 @@ VecFromNames <- function(nms, mode = "numeric")
 {
     ans <- vector(mode = mode, length = length(nms))
     names(ans) <- nms
+    ans[] <- NA
     ans
 }
+
+dimsNames <- c("nf", "n", "p", "q", "s", "np", "REML", "fTyp", "lTyp",
+               "vTyp", "nest", "useSc", "cvg")
+
+devNames <- c("ML", "REML", "ldL2", "ldRX2", "pwrss", "disc", "usqr", "wrss")
 
 mkdims <- function(fr, FL, start, s = 1L)
 ### Create the standard versions of flist, Zt, Gp, ST, cnames, A, Cm,
@@ -331,9 +337,7 @@ mkdims <- function(fr, FL, start, s = 1L)
     if (!is.null(start) && checkSTform(ST, start)) ST <- start
 
     ## record dimensions and algorithm settings
-    dd <-
-        VecFromNames(c("nf", "n", "p", "q", "s", "np", "REML", "fTyp", "lTyp",
-                       "vTyp", "nest", "useSc", "cvg"), "integer")
+    dd <- VecFromNames(dimsNames, "integer")
     dd["nf"] <- length(cnames)          # number of random-effects terms
     dd["n"] <- nrow(fr$mf)              # number of observations
     dd["p"] <- ncol(fr$X)               # number of fixed-effects coefficients
@@ -352,9 +356,7 @@ mkdims <- function(fr, FL, start, s = 1L)
                              function(i) isNested(flist[[i-1]], flist[[i]])))
     dd["useSc"] <- 1L                   # default is to use the scale parameter
     dd["cvg"]  <- 0L                    # no optimization yet attempted
-    dev <- VecFromNames(c("ML", "REML", "ldL2", "ldRX2", "pwrss",
-                          "disc", "usqr", "wrss"), "numeric")
-    dev[] <- NA
+    dev <- VecFromNames(devNames, "numeric")
 
     list(Gp = Gp, ST = ST, A = A, Cm = Cm, L = L, Zt = Zt,
          cnames = cnames, dd = dd, dev = dev, flist = do.call(data.frame, flist))
