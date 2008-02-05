@@ -1,3 +1,30 @@
+2008-02-05  Douglas Bates <bates@stat.wisc.edu> 
+
+        * [r67] R/AllClass.R, R/jml.R, src/Syms.h, src/init.c, src/lmer.c,
+          src/lmer.h: Added sparseRasch function and some auxillaries
+        * [r66] R/lmer.R: Moved names of elements of dims and deviance slots to
+          separate variables. Changed initialization in VecFromNames
+
+2008-02-03  Douglas Bates <bates@stat.wisc.edu> 
+
+        * [r65] R/lmer.R: Omit famName slot value in calls to new("mer",...)
+
+2008-02-01  Douglas Bates <bates@stat.wisc.edu>  
+
+        * [r64] DESCRIPTION: Version 0.999375-3
+        * [r63] man/cbpp.Rd: Remove unmatched brace from previous \dontrun
+          specification
+        * [r62] R/AllClass.R: Remove defunct famName slot
+
+2008-01-31  Douglas Bates <bates@stat.wisc.edu>
+
+        * [r61] src/Syms.h, src/init.c: delete references to defunct pnames
+          symbol
+        * [r60] R/lmer.R: Coerce offset and weights to double, use correct
+          offset in call to glm.fit in glmer - reported by
+          David.Duffy@qimr.edu.au
+        * [r59] ChangeLog:
+	
 2008-01-30  Douglas Bates <bates@stat.wisc.edu>
 
 	* [r56] DESCRIPTION, inst/doc/Doxyfile: New release
