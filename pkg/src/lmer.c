@@ -69,6 +69,30 @@ enum dimP {
 /** Extract the L slot, convert it to a cholmod_factor struct and return a pointer. */
 #define L_SLOT(x) AS_CHM_FR(GET_SLOT(x, lme4_LSym))
 
+/** Extract the double pointer to the deviance slot */
+#define DEV_SLOT(x) REAL(GET_SLOT(x, lme4_devianceSym))
+
+/** Extract the integer pointer to the dims slot */
+#define DIMS_SLOT(x) INTEGER(GET_SLOT(x, lme4_dimsSym))
+
+/** Extract the double pointer to the fixef slot */
+#define FIXEF_SLOT(x) REAL(GET_SLOT(x, lme4_fixefSym))
+
+/** Extract the double pointer to the mu slot */
+#define MU_SLOT(x) REAL(GET_SLOT(x, lme4_muSym))
+
+/** Extract the double pointer to the ranef slot */
+#define RANEF_SLOT(x) REAL(GET_SLOT(x, lme4_ranefSym))
+
+/** Extract the double pointer to the RX slot */
+#define RX_SLOT(x) REAL(GET_SLOT(x, lme4_RXSym))
+
+/** Extract the double pointer to the RZX slot */
+#define RZX_SLOT(x) REAL(GET_SLOT(x, lme4_RZXSym))
+
+/** Extract the double pointer to the u slot */
+#define U_SLOT(x) REAL(GET_SLOT(x, lme4_uSym))
+
 /**
  * Return the sum of squares of the first n elements of x
  *
@@ -216,21 +240,21 @@ static void update_ranef(SEXP x)
 {
     SEXP ST = GET_SLOT(x, lme4_STSym);
     int *Gp = INTEGER(GET_SLOT(x, lme4_GpSym)),
-	*dims = INTEGER(GET_SLOT(x, lme4_dimsSym)),
-	i, i1 = 1, k, nf = LENGTH(ST),
-	p = dims[p_POS], q = dims[q_POS];
-    double *b = REAL(GET_SLOT(x, lme4_ranefSym)),
-	*u = REAL(GET_SLOT(x, lme4_uSym)), one = 1;
+	*dims = DIMS_SLOT(x),
+	i, i1 = 1, k, nf = LENGTH(ST);
+    int p = dims[p_POS], q = dims[q_POS];
+    double *b = RANEF_SLOT(x),
+	*u = U_SLOT(x), one = 1;
     CHM_FR L = L_SLOT(x);
     int *nc = Alloca(nf, int), *nlev = Alloca(nf, int);
     double **st = Alloca(nf, double*);
     R_CheckStack(); 
 
     if (!SLOT_REAL_NULL(x, lme4_sqrtXWtSym)) { /* LMM */
-	double *rx = REAL(GET_SLOT(x, lme4_RXySym)),
-	    *rzx = REAL(GET_SLOT(x, lme4_RCXySym)),
-	    *d = REAL(GET_SLOT(x, lme4_devianceSym)),
-	    *fixef = REAL(GET_SLOT(x, lme4_fixefSym)),
+	double *rx = RX_SLOT(x),
+	    *rzx = RZX_SLOT(x),
+	    *d = DEV_SLOT(x),
+	    *fixef = FIXEF_SLOT(x),
 	    mone = -1, one = 1;
 	CHM_DN cu = N_AS_CHM_DN(u, q, 1), sol;
 	R_CheckStack();
@@ -334,10 +358,9 @@ static double *ST_getPars(SEXP x, double *pars)
  */
 SEXP mer_ST_getPars(SEXP x)
 {
-    SEXP ans =
-	PROTECT(allocVector(REALSXP, 
-			    INTEGER(GET_SLOT(x, lme4_dimsSym))[np_POS]));
+    SEXP ans = PROTECT(allocVector(REALSXP, DIMS_SLOT(x)[np_POS]));
     ST_getPars(x, REAL(ans));
+
     UNPROTECT(1); 
     return ans;
 }
@@ -427,7 +450,7 @@ ST_setPars(SEXP x, const double *pars)
  */
 SEXP mer_ST_setPars(SEXP x, SEXP pars)
 {
-    int npar = INTEGER(GET_SLOT(x, lme4_dimsSym))[np_POS];
+    int npar = DIMS_SLOT(x)[np_POS];
 
     if (!isReal(pars) || LENGTH(pars) != npar)
 	error(_("pars must be a real vector of length %d"), npar);
@@ -445,11 +468,11 @@ SEXP mer_ST_setPars(SEXP x, SEXP pars)
  */
 SEXP mer_sigma(SEXP x, SEXP which)
 {
-    int *dims = INTEGER(GET_SLOT(x, lme4_dimsSym)),
+    int *dims = DIMS_SLOT(x),
 	w = LENGTH(which) ? asInteger(which) : 0;
     
     return ScalarReal(get_sigma(w < 0 || (!w && dims[isREML_POS]), dims,
-				REAL(GET_SLOT(x, lme4_devianceSym))));
+				DEV_SLOT(x)));
 }
 
 /**
@@ -462,7 +485,7 @@ SEXP mer_sigma(SEXP x, SEXP which)
 SEXP mer_postVar(SEXP x)
 {
     int *Gp = INTEGER(GET_SLOT(x, lme4_GpSym)),
-	*dims = INTEGER(GET_SLOT(x, lme4_dimsSym));
+	*dims = DIMS_SLOT(x);
     int nf = dims[nf_POS], q = dims[q_POS];
     SEXP ans = PROTECT(allocVector(VECSXP, nf));
     int i, j, k;
@@ -477,7 +500,7 @@ SEXP mer_postVar(SEXP x)
 
     ST_nc_nlev(GET_SLOT(x, lme4_STSym), Gp, st, nc, nlev);
     for (j = 0; j < q; j++) iperm[Perm[j]] = j; /* inverse permutation */
-    sc = get_sigma(dims[isREML_POS], dims, REAL(GET_SLOT(x, lme4_devianceSym)));
+    sc = get_sigma(dims[isREML_POS], dims, DEV_SLOT(x));
     for (i = 0; i < nf; i++) {
 	int ncisqr = nc[i] * nc[i];
 	CHM_SP rhs = M_cholmod_allocate_sparse(q, nc[i], nc[i],
@@ -686,14 +709,14 @@ lme4_devResid(const double* mu, const double* pWt, const double* y,
  */
 static double update_mu(SEXP x)
 {
-    int *dims = INTEGER(GET_SLOT(x, lme4_dimsSym));
+    int *dims = DIMS_SLOT(x);
     int i, i1 = 1, n = dims[n_POS], p = dims[p_POS], s = dims[s_POS];
     int ns = n * s;
     double *V = SLOT_REAL_NULL(x, lme4_VSym),
-	*d = REAL(GET_SLOT(x, lme4_devianceSym)),
+	*d = DEV_SLOT(x),
 	*eta = REAL(GET_SLOT(x, lme4_etaSym)),
 	*etaold = (double*) NULL,
-	*mu = REAL(GET_SLOT(x, lme4_muSym)),
+	*mu = MU_SLOT(x),
 	*muEta = SLOT_REAL_NULL(x, lme4_muEtaSym),
 	*offset = SLOT_REAL_NULL(x, lme4_offsetSym),
 	*srwt = SLOT_REAL_NULL(x, lme4_sqrtrWtSym),
@@ -715,7 +738,7 @@ static double update_mu(SEXP x)
 				/* eta := eta + X \beta */
     F77_CALL(dgemv)("N", &ns, &p, one,
 		    REAL(GET_SLOT(x, lme4_XSym)), &ns,
-		    REAL(GET_SLOT(x, lme4_fixefSym)), &i1,
+		    FIXEF_SLOT(x), &i1,
 		    one, eta, &i1);
 				/* eta := eta + C' P' u */
     Ptu = M_cholmod_solve(CHOLMOD_Pt, L, cu, &c);
@@ -803,14 +826,14 @@ SEXP mer_update_mu(SEXP x)
  */
 static double update_L(SEXP x)
 {
-    int *dims = INTEGER(GET_SLOT(x, lme4_dimsSym));
+    int *dims = DIMS_SLOT(x);
     int n = dims[n_POS], s = dims[s_POS];
     double
 	*V = SLOT_REAL_NULL(x, lme4_VSym),
 	*cx = SLOT_REAL_NULL(x, lme4_CxSym),
-	*d = REAL(GET_SLOT(x, lme4_devianceSym)),
+	*d = DEV_SLOT(x),
 	*res = REAL(GET_SLOT(x, lme4_residSym)),
-	*mu = REAL(GET_SLOT(x, lme4_muSym)),
+	*mu = MU_SLOT(x),
 	*muEta = SLOT_REAL_NULL(x, lme4_muEtaSym),
 	*pwt = SLOT_REAL_NULL(x, lme4_pWtSym),
 	*sXwt = SLOT_REAL_NULL(x, lme4_sqrtXWtSym),
@@ -933,12 +956,12 @@ SEXP mer_update_L(SEXP x)
  */
 static int update_u(SEXP x, int verb)
 {
-    int *dims = INTEGER(GET_SLOT(x, lme4_dimsSym));
+    int *dims = DIMS_SLOT(x);
     int i, j, n = dims[n_POS], q = dims[q_POS];
     double *Cx = SLOT_REAL_NULL(x, lme4_CxSym),
 	*sXwt = SLOT_REAL_NULL(x, lme4_sqrtXWtSym),
 	*res = REAL(GET_SLOT(x, lme4_residSym)), 
-	*u = REAL(GET_SLOT(x, lme4_uSym)),
+	*u = U_SLOT(x),
 	cfac = ((double)n) / ((double)q), 
 	crit, pwrss, pwrss_old, step;
     double *tmp = Alloca(q, double), *tmp1 = Alloca(q, double),
@@ -1035,11 +1058,11 @@ SEXP mer_update_u(SEXP x, SEXP verbP)
  */
 SEXP mer_update_dev(SEXP x)
 {
-    double *d = REAL(GET_SLOT(x, lme4_devianceSym));
-    int *dims = INTEGER(GET_SLOT(x, lme4_dimsSym));
+    double *d = DEV_SLOT(x);
+    int *dims = DIMS_SLOT(x);
 
     d[disc_POS] = SLOT_REAL_NULL(x, lme4_muEtaSym) ?
-	lme4_devResid(REAL(GET_SLOT(x, lme4_muSym)),
+	lme4_devResid(MU_SLOT(x),
 		      REAL(GET_SLOT(x, lme4_pWtSym)),
 		      REAL(GET_SLOT(x, lme4_ySym)),
 		      dims[n_POS], dims[vTyp_POS]) :
@@ -1102,19 +1125,19 @@ P_sdmult(double *dest, const int *perm, const CHM_SP A,
  */
 static double update_RX(SEXP x)
 {
-    int *dims = INTEGER(GET_SLOT(x, lme4_dimsSym)), *perm;
+    int *dims = DIMS_SLOT(x), *perm;
     int i, i1 = 1, j, k, n = dims[n_POS];
     int p = dims[p_POS], q = dims[q_POS], s = dims[s_POS];
     double *X = REAL(GET_SLOT(x, lme4_XSym)),
 	*cx = SLOT_REAL_NULL(x, lme4_CxSym),
-	*d = REAL(GET_SLOT(x, lme4_devianceSym)), *fixef,
-	*rzxy, *rxy = REAL(GET_SLOT(x, lme4_RXySym)),
+	*d = DEV_SLOT(x), *fixef,
+	*rzxy, *rxy = RX_SLOT(x),
 	*sXwt = SLOT_REAL_NULL(x, lme4_sqrtXWtSym), *u,
 	*y = REAL(GET_SLOT(x, lme4_ySym)),
     	dn = (double) n, dnmp = (double) (n - p),
 	mone[] = {-1,0}, one[] = {1,0}, zero[] = {0,0};
     CHM_SP A = AS_CHM_SP(GET_SLOT(x, lme4_ASym));
-    CHM_DN cRCXy = AS_CHM_DN(GET_SLOT(x, lme4_RCXySym)), ans, cu;
+    CHM_DN cRCXy = AS_CHM_DN(GET_SLOT(x, lme4_RZXSym)), ans, cu;
     CHM_FR L = L_SLOT(x);
     R_CheckStack();
 
@@ -1158,8 +1181,8 @@ static double update_RX(SEXP x)
 	return d[ML_POS];
     }
 				/* linear mixed models only */
-    fixef = REAL(GET_SLOT(x, lme4_fixefSym));
-    u = REAL(GET_SLOT(x, lme4_uSym));
+    fixef = FIXEF_SLOT(x);
+    u = U_SLOT(x);
     cu = N_AS_CHM_DN(u, q, 1);
     R_CheckStack();
 				/* solve L del1 = PAy */
@@ -1216,7 +1239,7 @@ SEXP
 mer_optimize(SEXP x, SEXP verbp)
 {
     SEXP ST = GET_SLOT(x, lme4_STSym);
-    int *dims = INTEGER(GET_SLOT(x, lme4_dimsSym)),
+    int *dims = DIMS_SLOT(x),
 	i, j, pos, verb = asInteger(verbp);
     int lmm = !(LENGTH(GET_SLOT(x, lme4_muEtaSym)) ||
 		LENGTH(GET_SLOT(x, lme4_VSym))),
@@ -1227,7 +1250,7 @@ mer_optimize(SEXP x, SEXP verbp)
     int nv = dims[np_POS] + (lmm ? 0 : dims[p_POS]);
     int liv = S_iv_length(OPT, nv), lv = S_v_length(OPT, nv);
     double *g = (double*)NULL, *h = (double*)NULL, fx = R_PosInf;
-    double *fixef = REAL(GET_SLOT(x, lme4_fixefSym));
+    double *fixef = FIXEF_SLOT(x);
     int *iv = Alloca(liv, int);
     double *b = Alloca(2 * nv, double), *d = Alloca(nv, double),
 	*v = Alloca(lv, double), *xv = Alloca(nv, double);
@@ -1269,7 +1292,7 @@ mer_optimize(SEXP x, SEXP verbp)
 	    Memcpy(fixef, xv + dims[np_POS], dims[p_POS]);
 	    update_u(x, verb);
 	    mer_update_dev(x);
-	    fx = REAL(GET_SLOT(x, lme4_devianceSym))[ML_POS];
+	    fx = DEV_SLOT(x)[ML_POS];
 	}
 	S_nlminb_iterate(b, d, fx, g, h, iv, liv, lv, nv, v, xv);
     } while (iv[0] == 1 || iv[0] == 2);
@@ -1367,51 +1390,44 @@ lme4_rWishart(SEXP ns, SEXP dfp, SEXP scal)
 /* MCMC sampling functions */
 
 /**
- * Update the fixed effects in an MCMC sample from an mer object.
+ * Update the fixed effects and the orthogonal random effects in an MCMC sample
+ * from an mer object.
  *
- * @param x an lmer model with mer_update_b
+ * @param x an mer object
  * @param sigma current standard deviation of the per-observation
  *        noise terms.
  */
-static void MCMC_beta(SEXP x, double sigma)
+static void MCMC_beta_u(SEXP x, double sigma)
 {
-    SEXP fixefP = GET_SLOT(x, lme4_fixefSym),
-	uvecP = GET_SLOT(x, lme4_uSym);
-    int i1 = 1, j, p = LENGTH(fixefP), q = LENGTH(uvecP);
+    int *dims = DIMS_SLOT(x);
+    int i1 = 1, j, p = dims[p_POS], q = dims[q_POS];
     int pp1 = p + 1;
-    double *fix = REAL(fixefP), *uv = REAL(uvecP), mone = -1, one = 1;
+    double *V = SLOT_REAL_NULL(x, lme4_VSym),
+	*fixef = FIXEF_SLOT(x),
+	*muEta = SLOT_REAL_NULL(x, lme4_muEtaSym),
+	*u = U_SLOT(x), mone[] = {-1,0}, one[] = {1,0};
     CHM_FR L = L_SLOT(x);
     double *del1 = Alloca(q, double), *del2 = Alloca(p, double);
     CHM_DN sol, rhs = N_AS_CHM_DN(del1, q, 1);
     R_CheckStack();
 
-    update_ranef(x);
+    update_RX(x);
+    if (V || muEta) {
+	error(_("Update not yet written"));
+    } else {			/* Linear mixed model */
 				/* Update the fixed effects */
-    for (j = 0; j < p; j++) del2[j] = sigma * norm_rand();
-    F77_CALL(dtrsv)("U", "N", "N", &p, REAL(GET_SLOT(x, lme4_RXySym)),
-		    &pp1, del2, &i1);
-    for (j = 0; j < p; j++) fix[j] += del2[j];
+	for (j = 0; j < p; j++) del2[j] = sigma * norm_rand();
+	F77_CALL(dtrsv)("U", "N", "N", &p, RX_SLOT(x),
+			&pp1, del2, &i1);
+	for (j = 0; j < p; j++) fixef[j] += del2[j];
 				/* Update the orthogonal random effects */
-    for (j = 0; j < q; j++) del1[j] = sigma * norm_rand();
-    F77_CALL(dgemv)("N", &q, &p, &mone, REAL(GET_SLOT(x, lme4_RCXySym)),
-		    &q, del2, &i1, &one, del1, &i1);
-    sol = M_cholmod_solve(CHOLMOD_Lt, L, rhs, &c);
-    for (j = 0; j < q; j++) uv[j] += ((double*)(sol->x))[j];
-    M_cholmod_free_dense(&sol, &c);
-				/* Update the random effects */
-    update_ranef(x);
-}
-
-/**
- * Update the orthogonal random effects in an MCMC sample
- * from an mer object.
- *
- * @param x an lmer model with mer_update_b
- * @param sigma current standard deviation of the per-observation
- *        noise terms.
- */
-static void MCMC_u(SEXP x, double sigma)
-{
+	for (j = 0; j < q; j++) del1[j] = sigma * norm_rand();
+	F77_CALL(dgemv)("N", &q, &p, mone, RZX_SLOT(x),
+			&q, del2, &i1, one, del1, &i1);
+	sol = M_cholmod_solve(CHOLMOD_Lt, L, rhs, &c);
+	for (j = 0; j < q; j++) u[j] += ((double*)(sol->x))[j];
+	M_cholmod_free_dense(&sol, &c);
+    }
 }
 
 static void
@@ -1437,7 +1453,7 @@ static void MCMC_ST(SEXP x, double sigma, double *vals, int trans)
     SEXP ST = GET_SLOT(x, lme4_STSym);
     int i, info, j, k, ncmax, nf = LENGTH(ST),
 	*Gp = INTEGER(GET_SLOT(x, lme4_GpSym));
-    double *rr = REAL(GET_SLOT(x, lme4_ranefSym)),
+    double *rr = RANEF_SLOT(x),
 	*scal, *var, *wfac, one = 1, zero = 0;
     double **st = Alloca(nf, double*);
     int *nc = Alloca(nf, int), *nlev = Alloca(nf, int);
@@ -1531,15 +1547,13 @@ SEXP mer_MCMCsamp(SEXP x, SEXP savebp, SEXP nsampp, SEXP transp,
 		  SEXP verbosep, SEXP deviancep)
 {
     SEXP Pars = PROTECT(mer_ST_getPars(x)), ans;
-    int *dims = INTEGER(GET_SLOT(x, lme4_dimsSym));
+    int *dims = DIMS_SLOT(x);
     int dPOS = dims[REML_POS] ? REML_POS : ML_POS, i, j,
 	nsamp = asInteger(nsampp),
 	p = dims[p_POS], q = dims[q_POS],
 	saveb = asLogical(savebp), trans = asLogical(transp),
 	verbose = asLogical(verbosep), dev = asLogical(deviancep);
-    double *ansp, *deviance = REAL(GET_SLOT(x, lme4_devianceSym)),
-	*d = REAL(GET_SLOT(x, lme4_devianceSym)),
-	*fixef = REAL(GET_SLOT(x, lme4_fixefSym)),
+    double *ansp, *d = DEV_SLOT(x), *fixef = FIXEF_SLOT(x),
 	*ranef = (double*)NULL;
     int nrbase = p + 1 + dims[np_POS]; /* rows always included */
     int nrtot = nrbase + dev + (saveb ? q : 0);
@@ -1550,26 +1564,25 @@ SEXP mer_MCMCsamp(SEXP x, SEXP savebp, SEXP nsampp, SEXP transp,
     for (i = 0; i < nrtot * nsamp; i++) ansp[i] = NA_REAL;
     GetRNGstate();
     if (verbose) Rprintf("%12s %14s\n", "sigma", "deviance");
-    if (saveb) ranef = REAL(GET_SLOT(x, lme4_ranefSym));
+    if (saveb) ranef = RANEF_SLOT(x);
 
     for (i = 0; i < nsamp; i++) {
 	double *col = ansp + i * nrtot, sigma;
 				/* simulate and store new value of sigma */
 	sigma = MCMC_sigma(dims, d);
 	col[p] = (trans ? 2 * log(sigma) : sigma * sigma);
-	update_ranef(x);	/* Conditional estimates of beta, u and b */
-	MCMC_beta(x, sigma);	/* Update beta */
+	update_ranef(x);	/* Conditional estimates of beta and u */
+	MCMC_beta_u(x, sigma);	/* Update beta */
 	for (j = 0; j < p; j++) col[j] = fixef[j]; /* Store beta */
-	MCMC_u(x, sigma);
 	if (saveb) {				   /* store b */
 	    update_ranef(x);
 	    for (j = 0; j < q; j++) col[nrbase + dev + j] = ranef[j];
 	}
 	MCMC_ST(x, sigma, col + p + 1, trans);
-/* 	lmer_update_dev(x);	*/ /* Refactor and evaluate deviance */
+				/* Refactor and evaluate deviance */
 	/* FIXME: This deviance should be for sigma, beta, b, ST */
-	if (dev) col[nrbase] = deviance[dPOS]; 
-	if (verbose) Rprintf("%12.6g %14.8g\n", sigma, deviance[dPOS]);
+	if (dev) col[nrbase] = d[dPOS]; 
+	if (verbose) Rprintf("%12.6g %14.8g\n", sigma, d[dPOS]);
     }
     PutRNGstate();
 				/* Restore pars, refactor, etc. */
@@ -1688,8 +1701,8 @@ SEXP mer_validate(SEXP x)
     if (chkLen(buf, BUF_SIZE, x, lme4_varSym, n, 1)) return(mkString(buf));
     if (chkLen(buf, BUF_SIZE, x, lme4_ySym, n, 0)) return(mkString(buf));
     if (chkDims(buf, BUF_SIZE, x, lme4_XSym, nv, p)) return(mkString(buf));
-    if (chkDims(buf, BUF_SIZE, x, lme4_RCXySym, q, p)) return(mkString(buf));
-    if (chkDims(buf, BUF_SIZE, x, lme4_RXySym, p, p)) return(mkString(buf));
+    if (chkDims(buf, BUF_SIZE, x, lme4_RZXSym, q, p)) return(mkString(buf));
+    if (chkDims(buf, BUF_SIZE, x, lme4_RXSym, p, p)) return(mkString(buf));
 
     nq = 0;
     for (i = 0; i < nf; i++) {
@@ -1841,12 +1854,12 @@ SEXP pedigree_inbreeding(SEXP x)
 
 SEXP spR_update_mu(SEXP x)
 {
-    int *dims = INTEGER(GET_SLOT(x, lme4_dimsSym));
+    int *dims = DIMS_SLOT(x);
     int n = dims[n_POS];
     double
-	*d = REAL(GET_SLOT(x, lme4_devianceSym)),
+	*d = DEV_SLOT(x),
 	*eta = Calloc(n, double),
-	*mu = REAL(GET_SLOT(x, lme4_muSym)),
+	*mu = MU_SLOT(x),
 	*offset = SLOT_REAL_NULL(x, lme4_offsetSym),
 	*srwt = REAL(GET_SLOT(x, lme4_sqrtrWtSym)),
 	*res = REAL(GET_SLOT(x, lme4_residSym)),
@@ -1877,9 +1890,9 @@ SEXP spR_optimize(SEXP x, SEXP verbP)
 {
     int *zp, m, n, nnz, verb = asInteger(verbP);
     double *Zcp, *Ztx,
-	*d = REAL(GET_SLOT(x, lme4_devianceSym)),
-	*fixef = REAL(GET_SLOT(x, lme4_fixefSym)),
-	*mu = REAL(GET_SLOT(x, lme4_muSym)),
+	*d = DEV_SLOT(x),
+	*fixef = FIXEF_SLOT(x),
+	*mu = MU_SLOT(x),
 	*muEta = REAL(GET_SLOT(x, lme4_muEtaSym)),
 	*pWt = SLOT_REAL_NULL(x, lme4_pWtSym),
 	*res = REAL(GET_SLOT(x, lme4_residSym)),

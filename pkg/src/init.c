@@ -59,8 +59,8 @@ void R_init_lme4(DllInfo *dll)
     lme4_DimSym = install("Dim");
     lme4_GpSym = install("Gp");
     lme4_LSym = install("L");
-    lme4_RCXySym = install("RCXy");
-    lme4_RXySym = install("RXy");
+    lme4_RXSym = install("RX");
+    lme4_RZXSym = install("RZX");
     lme4_STSym = install("ST");
     lme4_VSym = install("V");
     lme4_XSym = install("X");
