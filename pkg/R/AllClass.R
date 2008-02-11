@@ -47,8 +47,8 @@ setClass("mer",
                         resid = "numeric",# raw residuals at current beta and b
                         sqrtXWt = "matrix",# sqrt of model matrix row weights
                         sqrtrWt = "numeric",# sqrt of weights used with residuals
-                        RCXy = "matrix", # dense sol. to L RCXy = S T'ZtXy
-                        RXy = "matrix"), # Cholesky factor of downdated XytXy
+                        RZX = "matrix", # dense sol. to L RZX = ST'ZtX = AX
+                        RX = "matrix"), # Cholesky factor of downdated X'X
          validity = function(object) .Call(mer_validate, object))
 
 setClass("summary.mer",                 # Additional slots in a summary object

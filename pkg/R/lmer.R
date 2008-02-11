@@ -491,8 +491,8 @@ lmer <-
                resid = numeric(n),
                sqrtrWt = swts,
                sqrtXWt = as.matrix(swts),
-               RCXy = matrix(0, dm$dd["q"], p),
-               RXy = matrix(0, p, p))
+               RZX = matrix(0, dm$dd["q"], p),
+               RX = matrix(0, p, p))
     if (!is.null(stp <- start$STpars) && is.numeric(stp)) {
         STp <- .Call(mer_ST_getPars, ans)
         if (length(STp) == length(stp))
@@ -580,8 +580,8 @@ function(formula, data, family = gaussian, method = c("Laplace", "AGQ"),
                resid = unname(glmFit$residuals),
                sqrtXWt = as.matrix(numeric(dm$dd["n"])),
                sqrtrWt = numeric(dm$dd["n"]), 
-               RCXy = matrix(0, dm$dd["q"], p),
-               RXy = matrix(0, p, p))
+               RZX = matrix(0, dm$dd["q"], p),
+               RX = matrix(0, p, p))
     if (!is.null(stp <- start$STpars) && is.numeric(stp)) {
         STp <- .Call(mer_ST_getPars, ans)
         if (length(STp) == length(stp))
@@ -686,8 +686,8 @@ nlmer <- function(formula, data, control = list(), start = NULL,
                resid = numeric(n),
                sqrtXWt = matrix(0, n, s, dimnames = list(NULL, pnames)),
                sqrtrWt = unname(sqrt(fr$wts)),
-               RCXy = matrix(0, dm$dd["q"], p),
-               RXy = matrix(0, p, p)
+               RZX = matrix(0, dm$dd["q"], p),
+               RX = matrix(0, p, p)
                )
     .Call(mer_update_mu, ans)
 ### Add a check that the parameter names match the column names of gradient
@@ -836,7 +836,7 @@ setMethod("anova", signature(object = "mer"),
 	  }
 	  else { ## ------ single model ---------------------
               p <- object@dims["p"]
-	      ss <- (object@RXy[seq_len(p), p + 1L, drop = TRUE])^2
+	      ss <- (object@RX[seq_len(p), p + 1L, drop = TRUE])^2
 	      names(ss) <- names(object@fixef)
 	      asgn <- attr(object@X, "assign")
 	      terms <- terms(object)
@@ -999,7 +999,7 @@ setMethod("model.matrix", signature(object = "mer"),
 	  function(object, ...) object@X)
 
 setMethod("terms", signature(x = "mer"),
-	  function(x, ...) terms(x@frame))
+	  function(x, ...) attr(x@frame, "terms"))
 
 setMethod("update", signature(object = "mer"),
 	  function(object, formula., ..., evaluate = TRUE)
@@ -1028,7 +1028,7 @@ setMethod("vcov", signature(object = "mer"),
 ### Extract the conditional variance-covariance matrix of the fixed effects
       {
           rr <- as(.Call(mer_sigma, object, REML)^2 *
-                   chol2inv(object@RXy, size = object@dims['p']), "dpoMatrix")
+                   chol2inv(object@RX, size = object@dims['p']), "dpoMatrix")
           nms <- colnames(object@X)
           dimnames(rr) <- list(nms, nms)
           rr@factors$correlation <- as(rr, "corMatrix")
