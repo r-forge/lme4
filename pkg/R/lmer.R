@@ -992,6 +992,12 @@ setMethod("summary", signature(object = "mer"),
               )
       })## summary()
 
+setMethod("model.frame", signature(formula = "mer"),
+	  function(formula, ...) formula@frame)
+
+setMethod("model.matrix", signature(object = "mer"),
+	  function(object, ...) object@X)
+
 setMethod("terms", signature(x = "mer"),
 	  function(x, ...) terms(x@frame))
 
