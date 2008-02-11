@@ -32,11 +32,10 @@ sparseRasch <- function(dat, verbose = -1L)
     ## difficulties then the intercept, which is the logit of the
     ## probability of a correct response by the first subject on the
     ## first question.
-    MM <- rBind(rBind(as(gl(m, 1, n), "sparseMatrix")[-1, ],
-                      as(gl(q, m), "sparseMatrix")[-1, ]),
-                t(rep(1, n)))
+    MM <- rBind(rBind(as(gl(m, 1, n), "sparseMatrix"),
+                      as(gl(q, m), "sparseMatrix")[-1, ]))
+    MM@Dimnames <- vector("list", 2)
     p <- nrow(MM)
-## FIXME: get rid of the rownames on MM
     dd <- VecFromNames(dimsNames, "integer")
     dd["n"] <- n
     dd["p"] <- p
