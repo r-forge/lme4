@@ -1271,6 +1271,7 @@ setMethod("mcmcsamp", signature(object = "mer"),
 ### Generate a Markov chain Monte Carlo sample from the posterior distribution
 ### of the parameters in a linear mixed model
       {
+          stop("mcmcsamp currently disabled")
           ans <- t(.Call(mer_MCMCsamp, object, saveb, n,
                          trans, verbose, deviance))
 	  attr(ans, "mcpar") <- as.integer(c(1, n, 1))
