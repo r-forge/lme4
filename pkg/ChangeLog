@@ -1,3 +1,19 @@
+2008-02-14  Douglas Bates <bates@stat.wisc.edu>
+
+        * [r77] DESCRIPTION: new release
+        * [r76] R/lmer.R: disable mcmcsamp until fixed
+        * [r75] inst/doc/Implementation.Rnw: update for new slot names
+        * [r74] src/lmer.c: more macros
+        * [r73] man/mer-class.Rd: add model.matrix and model.frame to examples
+
+2008-02-11  Douglas Bates <bates@stat.wisc.edu>
+
+        * [r71] R/AllClass.R, R/lmer.R, src/Syms.h, src/init.c, src/lmer.c:
+          Change slot names RCXy and RXy to RZX and RX
+        * [r70] NAMESPACE, R/lmer.R: Add methods for model.matrix and
+          model.frame
+        * [r69] R/jml.R: Change parameterization to remove the intercept term
+
 2008-02-05  Douglas Bates <bates@stat.wisc.edu> 
 
         * [r67] R/AllClass.R, R/jml.R, src/Syms.h, src/init.c, src/lmer.c,
