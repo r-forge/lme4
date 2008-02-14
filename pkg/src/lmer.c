@@ -93,6 +93,9 @@ enum dimP {
 /** Extract the double pointer to the u slot */
 #define U_SLOT(x) REAL(GET_SLOT(x, lme4_uSym))
 
+/** Extract the double pointer to the u slot */
+#define Y_SLOT(x) REAL(GET_SLOT(x, lme4_ySym))
+
 /**
  * Return the sum of squares of the first n elements of x
  *
