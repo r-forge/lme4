@@ -13,6 +13,8 @@
 \alias{deviance,mer-method}
 \alias{formula,mer-method}
 \alias{logLik,mer-method}
+\alias{model.frame,mer-method}
+\alias{model.matrix,mer-method}
 \alias{summary,mer-method}
 \alias{terms,mer-method}
 \alias{update,mer-method}
@@ -235,6 +237,9 @@ print(fm2, digits = 10, corr = FALSE) # more precision; no corr.matrix
 
 logLik(fm2)
 (V2 <- vcov(fm2))
+terms(fm2)
+str(model.matrix(fm2))
+str(model.frame(fm2))
 \dontrun{
 str(resid(fm2))
 
