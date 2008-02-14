@@ -262,14 +262,14 @@ The \code{lr2} element of the \code{deviance} slot is the logarithm of
 the penalized residual sum of squares.  It can be calculated as the
 logarithm of the square of the last diagonal element in $\bm{L}$.
 <<lr2Rm1ML>>=
-(RXy <- Rm1ML@RXy)
+(RX <- Rm1ML@RX)
 @
 
 For completeness we mention that the \code{ldRX2} element of the
 \code{deviance} slot is the logarithm of the product of the squares of
 the diagonal elements of $\bm{L}$ corresponding to columns of $\bm{X}$.
 <<ldXRm1ML>>=
-2 * sum(log(diag(Rm1ML@RXy)))
+2 * sum(log(diag(Rm1ML@RX)))
 @
 This element is used in the calculation of the REML criterion.
 
@@ -483,7 +483,7 @@ diagonal blocks in the first $36$ rows of $\bm{A}$ are identical as
 are those in the first $36$ rows of $\bm{L}$.
 <<A1212>>=
 as(sm1@L, "sparseMatrix")[1:2,1:2]
-sm1@RXy
+sm1@RX
 @
 
 The determinant quantities in
@@ -496,9 +496,9 @@ diagonal, \code{ldX} is the logarithm of the square of the product of
 the $37$th and $38$th elements and \code{lr2} is the logarithm of the
 square of the $39$th element.
 <<sm1reconstruct>>=
-sm1@RXy
+sm1@RX
 str(dL <- diag(as(sm1@L, "sparseMatrix")))
-c(ldL2 = sum(log(dL^2)), ldRX2 = sum(log(diag(sm1@RXy)^2)), lpdisc = log(sm1@deviance["pwrss"]))
+c(ldL2 = sum(log(dL^2)), ldRX2 = sum(log(diag(sm1@RX)^2)), lpdisc = log(sm1@deviance["pwrss"]))
 @
 
 The $36\times 36$ matrices $\bm{S}$, $\bm{T}$ and
