@@ -1451,8 +1451,9 @@ lme4_rWishart(SEXP ns, SEXP nuP, SEXP scal)
  * @param x an mer object
  * @param sigma current standard deviation of the per-observation
  *        noise terms.
- * @param vals memory in which to store the updated beta and, optionally, b
- * @param saveb should b be calculated and saved?
+ * @param fvals pointer to memory in which to store the updated beta
+ * @param rvals pointer to memory in which to store the updated b (may
+ *              be NULL)
  */
 static void MCMC_beta_u(SEXP x, double sigma, double *fvals, double *rvals)
 {
@@ -1499,6 +1500,8 @@ static void MCMC_beta_u(SEXP x, double sigma, double *fvals, double *rvals)
  * @param x an mer object
  * @param sigma current standard deviation of the per-observation
  *        noise terms.
+ * @param vals pointer to memory in which to store the updated values
+ *        of the ST parameters
  */
 static void MCMC_ST(SEXP x, double sigma, double *vals)
 {
