@@ -51,6 +51,20 @@ setClass("mer",
                         RX = "matrix"), # Cholesky factor of downdated X'X
          validity = function(object) .Call(mer_validate, object))
 
+setClass("merMCMC",
+         representation(
+                        Gp = "integer",   # Gp slot from mer object
+                        ST = "matrix",    # matrix of sampled ST pars
+                        call = "call",    # matched call
+                        deviance = "numeric",# vector of sampled deviances
+                        dims = "integer", # dims from original mer object
+                        fixef = "matrix", # matrix of sampled fixed effects pars
+                        nc = "integer",   # number of columns per r.e. term
+                        ranef = "matrix", # optional matrix of sampled r.e.
+                        sigma = "numeric" # vector of sigma samples (may be length 0)
+                        ),
+         validity = function(object) .Call(merMCMC_validate, object))
+                        
 setClass("summary.mer",                 # Additional slots in a summary object
          representation(           
 			methTitle = "character",
