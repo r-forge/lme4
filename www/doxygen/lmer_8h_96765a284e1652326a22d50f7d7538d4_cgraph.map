@@ -1,3 +1,4 @@
-<area shape="rect" href="$lmer_8c.html#c91a1d6467c5dd44cbc4c785f643e315" title="Update the ST and C slots of an mer object." alt="" coords="181,31,275,57">
-<area shape="rect" href="$lmer_8c.html#3f49a530ee30ef0d40ef8bc6d60c5963" title="Return the group in the (nf, Gp) combination to which ind belongs." alt="" coords="336,5,403,32">
-<area shape="rect" href="$lmer_8c.html#3a7fab2a88117d83971db12f53eaa91e" title="Populate the st, nc and nlev arrays." alt="" coords="324,56,415,83">
+<area shape="rect" href="$lmer_8c.html#c91a1d6467c5dd44cbc4c785f643e315" title="Update the ST and A slots of an mer object." alt="" coords="181,31,275,57">
+<area shape="rect" href="$lmer_8c.html#3a7fab2a88117d83971db12f53eaa91e" title="Populate the st, nc and nlev arrays." alt="" coords="455,5,545,32">
+<area shape="rect" href="$lmer_8c.html#9843ab48eb3803207fead83796089087" title="Evaluate the sparse model matrix A from the Zt and ST slots." alt="" coords="323,56,405,83">
+<area shape="rect" href="$lmer_8c.html#3f49a530ee30ef0d40ef8bc6d60c5963" title="Return the group in the (nf, Gp) combination to which ind belongs." alt="" coords="467,56,533,83">

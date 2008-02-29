@@ -1,2 +1,3 @@
-<area shape="rect" href="$lmer_8h.html#edec83b72f0c3437d9b10daf5120aa2b" title="Generate a Markov&#45;chain Monte Carlo sample from an mer object." alt="" coords="165,5,301,32">
-<area shape="rect" href="$lmer_8h.html#bc080c9abeb9965118c6d114d6df1cb3" title="Externally callable update_ranef." alt="" coords="163,56,304,83">
+<area shape="rect" href="$lmer_8c.html#c62278f1b69b4f5e7096df5dd74308f6" title="Update the fixed effects and the orthogonal random effects in an MCMC sample from..." alt="" coords="175,5,292,32">
+<area shape="rect" href="$lmer_8h.html#faf107495473068e7f439b17073d884e" title="Generate a Markov&#45;chain Monte Carlo sample from an mer object." alt="" coords="352,31,488,57">
+<area shape="rect" href="$lmer_8h.html#bc080c9abeb9965118c6d114d6df1cb3" title="Externally callable update_ranef." alt="" coords="163,107,304,133">

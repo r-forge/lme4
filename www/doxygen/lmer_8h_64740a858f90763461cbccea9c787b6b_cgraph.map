@@ -1,5 +1,5 @@
 <area shape="rect" href="$lmer_8c.html#da558f58458c36a96585a9c6e695a0b6" title="Update the eta, v, mu, resid and var slots according to the current values of the..." alt="" coords="183,81,276,108">
-<area shape="rect" href="$lmer_8c.html#4a0a18cf109ccc29a71a27a7f12bf4a7" title="lme4_muEta" alt="" coords="345,5,449,32">
-<area shape="rect" href="$lmer_8c.html#a5f4cdbae42bcf865082dea1ebe09357" title="lme4_varFunc" alt="" coords="343,56,452,83">
+<area shape="rect" href="$lmer_8c.html#a85610eae75107b55d1069907486662f" title="Evaluate the derivative d mu/d eta for the GLM link function of type lTyp." alt="" coords="345,5,449,32">
+<area shape="rect" href="$lmer_8c.html#a5f4cdbae42bcf865082dea1ebe09357" title="Evaluate the GLM variance function of type vTyp given mu." alt="" coords="343,56,452,83">
 <area shape="rect" href="$lmer_8c.html#0a84fce1f01d522d8c5379001e23bc8c" title="Extract the slot named nm from the object obj and return a null pointer if the slot..." alt="" coords="327,107,468,133">
 <area shape="rect" href="$lmer_8c.html#c96e3dd08e67f41338d9e84118925308" title="Return the sum of squares of the first n elements of x." alt="" coords="353,157,441,184">

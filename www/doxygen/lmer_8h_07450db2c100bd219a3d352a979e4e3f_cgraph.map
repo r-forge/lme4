@@ -1,4 +1,4 @@
 <area shape="rect" href="$lmer_8c.html#c6c092e8b91bd83d19519bdc69bf6801" title="Permute the vector src according to perm into dest." alt="" coords="184,5,280,32">
 <area shape="rect" href="$lmer_8c.html#0a84fce1f01d522d8c5379001e23bc8c" title="Extract the slot named nm from the object obj and return a null pointer if the slot..." alt="" coords="161,56,303,83">
-<area shape="rect" href="$lmer_8c.html#7123d06a1ba23fcf7f83e2a54e2c8051" title="spR_update_mu" alt="" coords="169,107,295,133">
+<area shape="rect" href="$lmer_8c.html#7123d06a1ba23fcf7f83e2a54e2c8051" title="Update the eta, mu, resid and var slots in a sparseRasch object from the current..." alt="" coords="169,107,295,133">
 <area shape="rect" href="$lmer_8c.html#c96e3dd08e67f41338d9e84118925308" title="Return the sum of squares of the first n elements of x." alt="" coords="188,157,276,184">
