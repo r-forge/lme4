@@ -8,12 +8,10 @@
 
 SEXP lme4_rWishart(SEXP ns, SEXP dfp, SEXP scal);
 
-SEXP mer_MCMCsamp(SEXP x, SEXP savebp, SEXP nsampp,
-		  SEXP transp, SEXP verbose, SEXP deviance); 
+SEXP mer_MCMCsamp(SEXP x, SEXP fm);
 SEXP mer_ST_getPars(SEXP x);
 SEXP mer_ST_initialize(SEXP ST, SEXP Gp, SEXP Zt);
 SEXP mer_ST_setPars(SEXP x, SEXP pars);
-/* SEXP mer_create_A(SEXP Zt, SEXP ST, SEXP Gp); */
 SEXP mer_create_L(SEXP CmP);
 SEXP mer_optimize(SEXP x, SEXP verb);
 SEXP mer_postVar(SEXP x);
@@ -25,6 +23,7 @@ SEXP mer_update_ranef(SEXP x);
 SEXP mer_update_mu(SEXP x);
 SEXP mer_update_u(SEXP x, SEXP verbP);
 SEXP mer_validate(SEXP x);
+SEXP merMCMC_validate(SEXP x);
 
 SEXP pedigree_chol(SEXP x, SEXP ans);
 

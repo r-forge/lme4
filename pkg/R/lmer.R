@@ -359,7 +359,8 @@ mkdims <- function(fr, FL, start, s = 1L)
     dev <- VecFromNames(devNames, "numeric")
 
     list(Gp = Gp, ST = ST, A = A, Cm = Cm, L = L, Zt = Zt,
-         cnames = cnames, dd = dd, dev = dev, flist = do.call(data.frame, flist))
+         cnames = cnames, dd = dd, dev = dev,
+         flist = do.call(data.frame, c(flist, check.names = FALSE)))
 }
 
 famNms <- c("binomial", "gaussian", "Gamma", "inverse.gaussian",
@@ -1266,18 +1267,30 @@ setMethod("qqmath", signature(x = "ranef.mer"),
 #### the posterior distribution of the parameters
 
 setMethod("mcmcsamp", signature(object = "mer"),
-	  function(object, n = 1, verbose = FALSE, saveb = FALSE,
-		   trans = TRUE, deviance = FALSE, ...)
+	  function(object, n = 1, verbose = FALSE, saveb = FALSE, ...)
 ### Generate a Markov chain Monte Carlo sample from the posterior distribution
 ### of the parameters in a linear mixed model
       {
-          stop("mcmcsamp currently disabled")
-          ans <- t(.Call(mer_MCMCsamp, object, saveb, n,
-                         trans, verbose, deviance))
-	  attr(ans, "mcpar") <- as.integer(c(1, n, 1))
-	  class(ans) <- "mcmc"
-	  mcmccompnames(ans, object, saveb, trans,
-			glmer=FALSE, deviance=deviance)
+          n <- max(1, as.integer(n)[1])
+          dd <- object@dims
+          ranef <- matrix(numeric(0), nrow = dd["q"], ncol = 0)
+          if (saveb) ranef <- matrix(object@ranef, nrow = dd["q"], ncol = n)
+          sigma <- numeric(0)
+          if (dd["useSc"]) sigma <- rep(.Call(mer_sigma, object, 0L), n)
+          ff <- object@fixef
+          fixef <- matrix(ff, dd["p"], n)
+          rownames(fixef) <- names(ff)
+          ans <- new("merMCMC",
+                     Gp = object@Gp,
+                     ST = matrix(.Call(mer_ST_getPars, object), dd["np"], n),
+                     call = object@call,
+                     dims = object@dims,
+                     deviance = rep(unname(object@deviance["ML"]), n),
+                     fixef = fixef,
+                     nc = sapply(object@ST, nrow),
+                     ranef = ranef,
+                     sigma = sigma)
+          .Call(mer_MCMCsamp, ans, object)
       })
 
 abbrvNms <- function(gnm, cnms)

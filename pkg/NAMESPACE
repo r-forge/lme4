@@ -37,11 +37,9 @@ export(
 
 exportClasses(
               "coef.mer",
-              #"glmer",
               "lmList",
-              #"lmer",
               "mer",
-              #"nlmer",
+              "merMCMC",
               "pedigree",
               "ranef.mer",
               "summary.mer"

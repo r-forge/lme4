@@ -6,7 +6,7 @@
 static R_CallMethodDef CallEntries[] = {
     {"lme4_rWishart", (DL_FUNC) &lme4_rWishart, 3},
 
-    {"mer_MCMCsamp", (DL_FUNC) &mer_MCMCsamp, 6},
+    {"mer_MCMCsamp", (DL_FUNC) &mer_MCMCsamp, 2},
     {"mer_ST_getPars", (DL_FUNC) &mer_ST_getPars, 1},
     {"mer_ST_initialize", (DL_FUNC) &mer_ST_initialize, 3},
     {"mer_ST_setPars", (DL_FUNC) &mer_ST_setPars, 2},
@@ -21,6 +21,8 @@ static R_CallMethodDef CallEntries[] = {
     {"mer_update_mu", (DL_FUNC) &mer_update_mu, 1},
     {"mer_update_u", (DL_FUNC) &mer_update_u, 2},
     {"mer_validate", (DL_FUNC) &mer_validate, 1},
+
+    {"merMCMC_validate", (DL_FUNC) &merMCMC_validate, 1},
 
     {"pedigree_chol", (DL_FUNC) &pedigree_chol, 2},
 
@@ -55,7 +57,6 @@ void R_init_lme4(DllInfo *dll)
     lme4_ASym = install("A");
     lme4_CmSym = install("Cm");
     lme4_CxSym = install("Cx");
-/*     lme4_DimNamesSym = install("Dimnames"); */
     lme4_DimSym = install("Dim");
     lme4_GpSym = install("Gp");
     lme4_LSym = install("L");
@@ -73,15 +74,17 @@ void R_init_lme4(DllInfo *dll)
     lme4_flistSym = install("flist");
     lme4_gradientSym = install("gradient");
     lme4_iSym = install("i");
+    lme4_ncSym = install("nc");
     lme4_nlmodelSym = install("nlmodel");
     lme4_muEtaSym = install("muEta");
     lme4_muSym = install("mu");
     lme4_offsetSym = install("offset");
     lme4_pSym = install("p");
-/*     lme4_pnamesSym = install("pnames"); */
+    lme4_permSym = install("perm");
     lme4_pWtSym = install("pWt");
     lme4_ranefSym = install("ranef");
     lme4_residSym = install("resid");
+    lme4_sigmaSym = install("sigma");
     lme4_sqrtrWtSym = install("sqrtrWt");
     lme4_sqrtXWtSym = install("sqrtXWt");
     lme4_uSym = install("u");
