@@ -5,7 +5,7 @@
 % Methods
 %\alias{anova,mer-method}
 \title{Mixed-model Markov chain Monte Carlo results}
-\description{Elements of the \code{merMCMC} class are Markov chain Monte
+\description{Objects of class \code{"merMCMC"} are Markov chain Monte
   Carlo samples from a fitted mixed-effects model.}
 \section{Objects from the Class}{
   Objects can be created by calls of the form \code{new("merMCMC", ...)}
