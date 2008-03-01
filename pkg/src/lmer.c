@@ -9,7 +9,7 @@ extern
 extern	       /** cholmod_common struct initialized in R_init_lme4 */
 cholmod_common c;
 
-#ifdef ENABLE_NLS		/** i18n of error messages */
+#ifdef ENABLE_NLS		/** Allow for translation of error messages */
 #include <libintl.h>
 #define _(String) dgettext ("lme4", String)
 #else
@@ -63,61 +63,73 @@ enum dimP {
     cvg_POS			/**<convergence indictor from port optimization  */
 };
 
+/** Allocate (alloca) a cholmod_sparse struct, populate it with values
+ * from the A slot and return the pointer. */
+#define A_SLOT(x) AS_CHM_SP(GET_SLOT(x, lme4_ASym))
+
+/** Return the double pointer to the deviance slot */
+#define DEV_SLOT(x) REAL(GET_SLOT(x, lme4_devianceSym))
+
+/** Return the integer pointer to the dims slot */
+#define DIMS_SLOT(x) INTEGER(GET_SLOT(x, lme4_dimsSym))
+
+/** Return the double pointer to the eta slot */
+#define ETA_SLOT(x) REAL(GET_SLOT(x, lme4_etaSym))
+
+/** Return the double pointer to the fixef slot */
+#define FIXEF_SLOT(x) REAL(GET_SLOT(x, lme4_fixefSym))
+
+/** Return the integer pointer to the Gp slot */
+#define Gp_SLOT(x) INTEGER(GET_SLOT(x, lme4_GpSym))
+
+/** Allocate (alloca) a cholmod_factor struct, populate it with values
+ * from the L slot and return the pointer. */
+#define L_SLOT(x) AS_CHM_FR(GET_SLOT(x, lme4_LSym))
+
+/** Return the double pointer to the mu slot */
+#define MU_SLOT(x) REAL(GET_SLOT(x, lme4_muSym))
+
+/** Return the double pointer to the muEta slot or (double*) NULL if
+ * muEta has length 0) */
+#define MUETA_SLOT(x) SLOT_REAL_NULL(x, lme4_muEtaSym)
+
+/** Return the double pointer to the offset slot or (double*) NULL if
+ * offset has length 0) */
+#define OFFSET_SLOT(x) SLOT_REAL_NULL(x, lme4_offsetSym)
+
+/** Return the integer pointer to the permutation vector in the L slot */
+#define PERM_VEC(x) INTEGER(GET_SLOT(GET_SLOT(x, lme4_LSym), lme4_permSym))
+
+/** Return the double pointer to the ranef slot */
+#define RANEF_SLOT(x) REAL(GET_SLOT(x, lme4_ranefSym))
+
 /** Residual degrees of freedom */
 #define RDF(dims) (dims[n_POS] - (dims[isREML_POS] ? dims[p_POS] : 0))
 
-/** Extract the A slot, convert it to a cholmod_sparse struct and return a pointer. */
-#define A_SLOT(x) AS_CHM_SP(GET_SLOT(x, lme4_ASym))
-
-/** Extract the L slot, convert it to a cholmod_factor struct and return a pointer. */
-#define L_SLOT(x) AS_CHM_FR(GET_SLOT(x, lme4_LSym))
-
-/** Extract the double pointer to the deviance slot */
-#define DEV_SLOT(x) REAL(GET_SLOT(x, lme4_devianceSym))
-
-/** Extract the integer pointer to the dims slot */
-#define DIMS_SLOT(x) INTEGER(GET_SLOT(x, lme4_dimsSym))
-
-/** Extract the double pointer to the eta slot */
-#define ETA_SLOT(x) REAL(GET_SLOT(x, lme4_etaSym))
-
-/** Extract the double pointer to the fixef slot */
-#define FIXEF_SLOT(x) REAL(GET_SLOT(x, lme4_fixefSym))
-
-/** Extract the integer pointer to the Gp slot */
-#define Gp_SLOT(x) INTEGER(GET_SLOT(x, lme4_GpSym))
-
-/** Extract the double pointer to the mu slot */
-#define MU_SLOT(x) REAL(GET_SLOT(x, lme4_muSym))
-
-/** Extract the double pointer to the mu slot */
-#define MUETA_SLOT(x) REAL(GET_SLOT(x, lme4_muEtaSym))
-
-/** Extract the integer pointer to the mu slot */
-#define PERM_VEC(x) INTEGER(GET_SLOT(GET_SLOT(x, lme4_LSym), lme4_permSym))
-
-/** Extract the double pointer to the ranef slot */
-#define RANEF_SLOT(x) REAL(GET_SLOT(x, lme4_ranefSym))
-
-/** Extract the double pointer to the resid slot */
+/** Return the double pointer to the resid slot */
 #define RESID_SLOT(x) REAL(GET_SLOT(x, lme4_residSym))
 
-/** Extract the double pointer to the RX slot */
+/** Return the double pointer to the RX slot */
 #define RX_SLOT(x) REAL(GET_SLOT(x, lme4_RXSym))
 
-/** Extract the double pointer to the RZX slot */
+/** Return the double pointer to the RZX slot */
 #define RZX_SLOT(x) REAL(GET_SLOT(x, lme4_RZXSym))
 
-/** Extract the double pointer to the u slot */
+/** Return the double pointer to the u slot */
 #define U_SLOT(x) REAL(GET_SLOT(x, lme4_uSym))
 
-/** Extract the double pointer to the X slot */
+/** Return the double pointer to the V slot or (double*) NULL if
+ * V has length 0) */
+#define V_SLOT(x) SLOT_REAL_NULL(x, lme4_VSym)
+
+/** Return the double pointer to the X slot */
 #define X_SLOT(x) REAL(GET_SLOT(x, lme4_XSym))
 
-/** Extract the double pointer to the u slot */
+/** Return the double pointer to the y slot */
 #define Y_SLOT(x) REAL(GET_SLOT(x, lme4_ySym))
 
-/** Extract the Zt slot, convert it to a cholmod_sparse struct and return a pointer. */
+/** Allocate (alloca) a cholmod_sparse struct, populate it with values
+ * from the Zt slot and return the pointer. */
 #define Zt_SLOT(x) AS_CHM_SP(GET_SLOT(x, lme4_ZtSym))
 
 /**
@@ -778,11 +790,11 @@ static double update_mu(SEXP x)
     int *dims = DIMS_SLOT(x);
     int i, i1 = 1, n = dims[n_POS], p = dims[p_POS], s = dims[s_POS];
     int ns = n * s;
-    double *V = SLOT_REAL_NULL(x, lme4_VSym),
+    double *V = V_SLOT(x),
 	*d = DEV_SLOT(x), *eta = ETA_SLOT(x),
 	*etaold = (double*) NULL, *mu = MU_SLOT(x),
-	*muEta = SLOT_REAL_NULL(x, lme4_muEtaSym),
-	*offset = SLOT_REAL_NULL(x, lme4_offsetSym),
+	*muEta = MUETA_SLOT(x),
+	*offset = OFFSET_SLOT(x),
 	*srwt = SLOT_REAL_NULL(x, lme4_sqrtrWtSym),
 	*res = RESID_SLOT(x),
 	*var = SLOT_REAL_NULL(x, lme4_varSym),
@@ -890,12 +902,12 @@ static double update_L(SEXP x)
     int *dims = DIMS_SLOT(x);
     int n = dims[n_POS], s = dims[s_POS];
     double
-	*V = SLOT_REAL_NULL(x, lme4_VSym),
+	*V = V_SLOT(x),
 	*cx = SLOT_REAL_NULL(x, lme4_CxSym),
 	*d = DEV_SLOT(x),
 	*res = REAL(GET_SLOT(x, lme4_residSym)),
 	*mu = MU_SLOT(x),
-	*muEta = SLOT_REAL_NULL(x, lme4_muEtaSym),
+	*muEta = MUETA_SLOT(x),
 	*pwt = SLOT_REAL_NULL(x, lme4_pWtSym),
 	*sXwt = SLOT_REAL_NULL(x, lme4_sqrtXWtSym),
 	*srwt = SLOT_REAL_NULL(x, lme4_sqrtrWtSym),
@@ -1120,7 +1132,7 @@ SEXP mer_update_dev(SEXP x)
     double *d = DEV_SLOT(x);
     int *dims = DIMS_SLOT(x);
 
-    d[disc_POS] = SLOT_REAL_NULL(x, lme4_muEtaSym) ?
+    d[disc_POS] = MUETA_SLOT(x) ?
 	lme4_devResid(MU_SLOT(x),
 		      REAL(GET_SLOT(x, lme4_pWtSym)),
 		      Y_SLOT(x), dims[n_POS], dims[vTyp_POS]) :
@@ -1230,7 +1242,7 @@ static double update_RX(SEXP x)
 	d[ldRX2_POS] += 2 * log(RX[j * (p + 1)]);
 
     if (free_X) Free(X);
-    if (SLOT_REAL_NULL(x, lme4_VSym) || SLOT_REAL_NULL(x, lme4_muEtaSym)) {
+    if (V_SLOT(x) || MUETA_SLOT(x)) {
 	return d[ML_POS];
     }
 				/* linear mixed models only */
@@ -1459,9 +1471,7 @@ static void MCMC_beta_u(SEXP x, double sigma, double *fvals, double *rvals)
 {
     int *dims = DIMS_SLOT(x);
     int i1 = 1, j, p = dims[p_POS], q = dims[q_POS];
-    double *V = SLOT_REAL_NULL(x, lme4_VSym),
-	*fixef = FIXEF_SLOT(x),
-	*muEta = SLOT_REAL_NULL(x, lme4_muEtaSym),
+    double *V = V_SLOT(x), *fixef = FIXEF_SLOT(x), *muEta = MUETA_SLOT(x),
 	*u = U_SLOT(x), mone[] = {-1,0}, one[] = {1,0};
     CHM_FR L = L_SLOT(x);
     double *del1 = Alloca(q, double), *del2 = Alloca(p, double);
@@ -1660,9 +1670,9 @@ static int chkLen(char *buf, int nb, SEXP x, SEXP sym, int len, int zerok)
 }
 
 /**
- * Check validity of an object that inherits from the mer class.
+ * Check validity of an mer object
  *
- * @param x Pointer to an lmer or glmer or nlmer object
+ * @param x Pointer to an mer object
  *
  * @return TRUE if the object is a valid mer object, otherwise a string
  *         that describes the violation.
@@ -1736,6 +1746,14 @@ SEXP mer_validate(SEXP x)
     return ScalarLogical(1);
 }
 
+/**
+ * Check validity of an merMCMC object
+ *
+ * @param x Pointer to an merMCMC object
+ *
+ * @return TRUE if the object is a valid merMCMC object, otherwise a string
+ *         that describes the violation.
+ */
 SEXP merMCMC_validate(SEXP x)
 {
     SEXP GpP = GET_SLOT(x, lme4_GpSym),
@@ -1913,10 +1931,8 @@ SEXP spR_update_mu(SEXP x)
 {
     int *dims = DIMS_SLOT(x);
     int n = dims[n_POS];
-    double *d = DEV_SLOT(x),
-	*eta = Calloc(n, double),
-	*mu = MU_SLOT(x),
-	*offset = SLOT_REAL_NULL(x, lme4_offsetSym),
+    double *d = DEV_SLOT(x), *eta = Calloc(n, double), *mu = MU_SLOT(x),
+	*offset = OFFSET_SLOT(x),
 	*srwt = REAL(GET_SLOT(x, lme4_sqrtrWtSym)),
 	*res = RESID_SLOT(x), *y = Y_SLOT(x), one[] = {1,0};
     CHM_SP Zt = Zt_SLOT(x);
