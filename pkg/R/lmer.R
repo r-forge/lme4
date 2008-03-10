@@ -121,7 +121,7 @@ createCm <- function(A, s)
            i = TA@i, j = as.integer(TA@j %% ncC), x = TA@x),
        "CsparseMatrix")
 }
-    
+
 ### FIXME: somehow the environment of the mf formula does not have
 ### .globalEnv in its parent list.  example(Mmmec, package = "mlmRev")
 ### used to have a formula of ~ offset(log(expected)) + ... and the
@@ -314,7 +314,8 @@ VecFromNames <- function(nms, mode = "numeric")
 dimsNames <- c("nf", "n", "p", "q", "s", "np", "REML", "fTyp", "lTyp",
                "vTyp", "nest", "useSc", "cvg")
 
-devNames <- c("ML", "REML", "ldL2", "ldRX2", "pwrss", "disc", "usqr", "wrss")
+devNames <- c("ML", "REML", "ldL2", "ldRX2", "sigmaML", "sigmaREML",
+               "pwrss", "disc", "usqr", "wrss")
 
 mkdims <- function(fr, FL, start, s = 1L)
 ### Create the standard versions of flist, Zt, Gp, ST, cnames, A, Cm,
@@ -755,18 +756,22 @@ setMethod("ranef", signature(object = "mer"),
           new("ranef.mer", ans)
       })
 
+setMethod("sigma", signature(object = "mer"),
+          function (object, ...) {
+              dd <- object@dims
+              if (!dd["useSc"]) return(1)
+              object@deviance[if (dd["REML"]) "sigmaREML"
+                              else "sigmaML"]
+          })
+
 setMethod("VarCorr", signature(x = "mer"),
 	  function(x, REML = NULL, ...)
 ### Create the VarCorr object of variances and covariances
       {
 	  cnames <- x@cnames
 	  ans <- x@ST
-          if (x@dims["useSc"]) {
-              attr(ans, "sc") <- sc <- .Call(mer_sigma, x, REML)
-          } else {
-              attr(ans, "sc") <- NA
-              sc <- 1
-          }
+          sc <- sigma(x)
+          attr(ans, "sc") <- if (x@dims["useSc"]) sc else as.double(NA)
           for (i in seq_along(ans)) {
               ai <- ans[[i]]
               dm <- dim(ai)
@@ -782,7 +787,6 @@ setMethod("VarCorr", signature(x = "mer"),
 	      el@factors$correlation <- as(el, "corMatrix")
 	      ans[[i]] <- el
 	  }
-	   sc
 	  ans
       })
 
@@ -848,7 +852,7 @@ setMethod("anova", signature(object = "mer"),
 	      df <- unlist(lapply(split(asgn,  asgn), length))
 	      #dfr <- unlist(lapply(split(dfr, asgn), function(x) x[1]))
 	      ms <- ss/df
-	      f <- ms/(.Call(mer_sigma, object, 0L)^2)
+	      f <- ms/(sigma(object)^2)
 	      #P <- pf(f, df, dfr, lower.tail = FALSE)
 	      #table <- data.frame(df, ss, ms, dfr, f, P)
 	      table <- data.frame(df, ss, ms, f)
@@ -985,7 +989,7 @@ setMethod("summary", signature(object = "mer"),
               methTitle = paste(mName, "mixed model fit by", method),
               logLik = llik,
               ngrps = sapply(object@flist, function(x) length(levels(x))),
-              sigma = .Call(mer_sigma, object, REML),
+              sigma = sigma(object),
               coefs = coefs,
               vcov = vcov,
               REmat = REmat,
@@ -1025,10 +1029,10 @@ setMethod("update", signature(object = "mer"),
       })
 
 setMethod("vcov", signature(object = "mer"),
-	  function(object, REML = 0, ...)
+	  function(object, ...)
 ### Extract the conditional variance-covariance matrix of the fixed effects
       {
-          rr <- as(.Call(mer_sigma, object, REML)^2 *
+          rr <- as(sigma(object)^2 *
                    chol2inv(object@RX, size = object@dims['p']), "dpoMatrix")
           nms <- colnames(object@X)
           dimnames(rr) <- list(nms, nms)
@@ -1276,7 +1280,7 @@ setMethod("mcmcsamp", signature(object = "mer"),
           ranef <- matrix(numeric(0), nrow = dd["q"], ncol = 0)
           if (saveb) ranef <- matrix(object@ranef, nrow = dd["q"], ncol = n)
           sigma <- numeric(0)
-          if (dd["useSc"]) sigma <- rep(.Call(mer_sigma, object, 0L), n)
+          if (dd["useSc"]) sigma <- rep(unname(sigma(object)), n)
           ff <- object@fixef
           fixef <- matrix(ff, dd["p"], n)
           rownames(fixef) <- names(ff)
@@ -1291,6 +1295,44 @@ setMethod("mcmcsamp", signature(object = "mer"),
                      ranef = ranef,
                      sigma = sigma)
           .Call(mer_MCMCsamp, ans, object)
+      })
+
+setMethod("HPDinterval", signature(object = "merMCMC"),
+          function(object, prob = 0.95, ...)
+      {
+          nms <- c("fixef", "ST")
+          if (length(object@sigma)) nms <- c(nms, "sigma")
+          if (length(object@ranef)) nms <- c(nms, "ranef")
+          names(nms) <- nms
+          lapply(lapply(nms, slot, object = object),
+                 HPDinterval, prob = prob)
+      })
+
+setMethod("HPDinterval", signature(object = "numeric"),         
+          function(object, prob = 0.95, ...) {
+              object <- as.matrix(object)
+              callGeneric(...)
+          })
+
+setMethod("HPDinterval", signature(object = "matrix"),
+          function(object, prob = 0.95, ...)
+      {
+          if (ncol(object) > nrow(object))
+              object <- t(object)
+          vals <- apply(object, 2, sort)
+          if (!is.matrix(vals)) 
+              stop("object must have nsamp > 1")
+          nsamp <- nrow(vals)
+          npar <- ncol(vals)
+          gap <- max(1, min(nsamp - 1, round(nsamp * prob)))
+          init <- 1:(nsamp - gap)
+          inds <- apply(vals[init + gap, , drop = FALSE] -
+                        vals[init, , drop = FALSE], 2, which.min)
+          ans <- cbind(vals[cbind(inds, 1:npar)],
+                       vals[cbind(inds + gap, 1:npar)])
+          dimnames(ans) <- list(colnames(object), c("lower", "upper"))
+          attr(ans, "Probability") <- gap/nsamp
+          ans
       })
 
 abbrvNms <- function(gnm, cnms)

@@ -129,10 +129,10 @@ setMethod("show", signature(object = "lmList"),
           }
       })
 
-setMethod("pooledSD", signature(object = "lmList"),
-          function(object)
+setMethod("pooledSD", signature(x = "lmList"),
+          function(x, ...)
       {
-          sumsqr <- apply(sapply(object,
+          sumsqr <- apply(sapply(x,
                                  function(el) {
                                      if (is.null(el)) {
                                          c(0,0)

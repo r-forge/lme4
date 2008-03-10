@@ -15,7 +15,7 @@ SEXP mer_ST_setPars(SEXP x, SEXP pars);
 SEXP mer_create_L(SEXP CmP);
 SEXP mer_optimize(SEXP x, SEXP verb);
 SEXP mer_postVar(SEXP x);
-SEXP mer_sigma(SEXP x, SEXP which);
+/* SEXP mer_sigma(SEXP x, SEXP which); */
 SEXP mer_update_L(SEXP x);
 SEXP mer_update_RX(SEXP x);
 SEXP mer_update_dev(SEXP x);

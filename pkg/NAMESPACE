@@ -22,17 +22,17 @@ importFrom("stats",
            )
 
 export(
-#       "devvals",
        "glmer",
        "gsummary",
        "hatTrace",
+       "HPDinterval",       
        "lmList",
        "lmer",
        "lmer2",
-       "mcmcsamp",
+       "mcmcsamp",       
        "nlmer",
        "pedigree",
-       "pooledSD"
+       "VarCorr"
        )
 
 exportClasses(
@@ -47,6 +47,7 @@ exportClasses(
 
 exportMethods(
               "BIC",
+              "HPDinterval",
               "VarCorr",
               "anova",
               "chol",

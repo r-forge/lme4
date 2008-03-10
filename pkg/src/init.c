@@ -13,7 +13,7 @@ static R_CallMethodDef CallEntries[] = {
     {"mer_create_L", (DL_FUNC) &mer_create_L, 1},
     {"mer_optimize", (DL_FUNC) &mer_optimize, 2},
     {"mer_postVar", (DL_FUNC) &mer_postVar, 1},
-    {"mer_sigma", (DL_FUNC) &mer_sigma, 2},
+/*     {"mer_sigma", (DL_FUNC) &mer_sigma, 2}, */
     {"mer_update_L", (DL_FUNC) &mer_update_L, 1},
     {"mer_update_RX", (DL_FUNC) &mer_update_RX, 1},
     {"mer_update_dev", (DL_FUNC) &mer_update_dev, 1},

@@ -3,8 +3,6 @@ setGeneric("lmList",
                     na.action, offset, pool, ...)
            standardGeneric("lmList"))
 
-setGeneric("pooledSD", function(object) standardGeneric("pooledSD"))
-
 setGeneric("gsummary",
            function (object, FUN, form, level, groups,
                      omitGroupingFactor = FALSE, 
@@ -38,10 +36,16 @@ setMethod("BIC", "logLik",
           -2 * (c(object) - attr(object, "df") * log(attr(object, "nobs"))/2)
           )
 
-setGeneric("VarCorr", function(x, ...) standardGeneric("VarCorr"))
+setGeneric("HPDinterval",
+           function(object, prob = 0.95, ...) standardGeneric("HPDinterval"))
 
-setGeneric("postVar", function(object, ...) standardGeneric("postVar"))
-
-setGeneric("mcmcsamp", function(object, n = 1, verbose = FALSE, ...)
+setGeneric("mcmcsamp",
+           function(object, n = 1, verbose = FALSE, ...)
            standardGeneric("mcmcsamp"))
+
+setGeneric("pooledSD", function(x, ...) standardGeneric("pooledSD"))
+
+setGeneric("sigma", function(object, ...) standardGeneric("sigma"))
+
+setGeneric("VarCorr", function(x, ...) standardGeneric("VarCorr"))
 
