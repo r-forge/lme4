@@ -26,16 +26,16 @@
 <a name="l00013"></a>00013     {<span class="stringliteral">"mer_create_L"</span>, (DL_FUNC) &amp;<a class="code" href="lmer_8c.html#f0bf2e6ee95fd84db9323208711ae3bc" title="Create and initialize L.">mer_create_L</a>, 1},
 <a name="l00014"></a>00014     {<span class="stringliteral">"mer_optimize"</span>, (DL_FUNC) &amp;<a class="code" href="lmer_8c.html#7aa21aea1da63a3096fcc054cc6c9dd5" title="Optimize the profiled deviance of an lmer object or the Laplace approximation to...">mer_optimize</a>, 2},
 <a name="l00015"></a>00015     {<span class="stringliteral">"mer_postVar"</span>, (DL_FUNC) &amp;<a class="code" href="lmer_8c.html#79178d4c0ab3956a7f5d5ac93416759a" title="Extract the posterior variances of the random effects in an mer object.">mer_postVar</a>, 1},
-<a name="l00016"></a>00016     {<span class="stringliteral">"mer_sigma"</span>, (DL_FUNC) &amp;<a class="code" href="lmer_8c.html#1c7078c50d8111387e40b202e2e94506" title="Extract the estimate of the common scale parameter from an mer object.">mer_sigma</a>, 2},
+<a name="l00016"></a>00016 <span class="comment">/*     {"mer_sigma", (DL_FUNC) &amp;mer_sigma, 2}, */</span>
 <a name="l00017"></a>00017     {<span class="stringliteral">"mer_update_L"</span>, (DL_FUNC) &amp;<a class="code" href="lmer_8c.html#f61a89a1f6aa003a5ae87d08cb8c9af7" title="Externally callable update_L.">mer_update_L</a>, 1},
 <a name="l00018"></a>00018     {<span class="stringliteral">"mer_update_RX"</span>, (DL_FUNC) &amp;<a class="code" href="lmer_8c.html#6c02b5f73d659d2d748852fac7e9c462" title="Externally callable update_RX.">mer_update_RX</a>, 1},
 <a name="l00019"></a>00019     {<span class="stringliteral">"mer_update_dev"</span>, (DL_FUNC) &amp;<a class="code" href="lmer_8c.html#c33b16395fa975458685d0eb76996f92" title="Evaluate the discrepancy and log of the penalized discrepancy.">mer_update_dev</a>, 1},
 <a name="l00020"></a>00020     {<span class="stringliteral">"mer_update_ranef"</span>, (DL_FUNC) &amp;<a class="code" href="lmer_8c.html#bc080c9abeb9965118c6d114d6df1cb3" title="Externally callable update_ranef.">mer_update_ranef</a>, 1},
 <a name="l00021"></a>00021     {<span class="stringliteral">"mer_update_mu"</span>, (DL_FUNC) &amp;<a class="code" href="lmer_8c.html#64740a858f90763461cbccea9c787b6b" title="Externally callable update_mu.">mer_update_mu</a>, 1},
 <a name="l00022"></a>00022     {<span class="stringliteral">"mer_update_u"</span>, (DL_FUNC) &amp;<a class="code" href="lmer_8c.html#b72ec91b1f901b466f29a80bcc22e6c4" title="Externally callable update_u.">mer_update_u</a>, 2},
-<a name="l00023"></a>00023     {<span class="stringliteral">"mer_validate"</span>, (DL_FUNC) &amp;<a class="code" href="lmer_8c.html#489500e3d5104fc320a54d85c43bcfed" title="Check validity of an object that inherits from the mer class.">mer_validate</a>, 1},
+<a name="l00023"></a>00023     {<span class="stringliteral">"mer_validate"</span>, (DL_FUNC) &amp;<a class="code" href="lmer_8c.html#489500e3d5104fc320a54d85c43bcfed" title="Check validity of an mer object.">mer_validate</a>, 1},
 <a name="l00024"></a>00024 
-<a name="l00025"></a>00025     {<span class="stringliteral">"merMCMC_validate"</span>, (DL_FUNC) &amp;<a class="code" href="lmer_8c.html#a13a0ba07cfed7d6f208db76e2a25c3b">merMCMC_validate</a>, 1},
+<a name="l00025"></a>00025     {<span class="stringliteral">"merMCMC_validate"</span>, (DL_FUNC) &amp;<a class="code" href="lmer_8c.html#a13a0ba07cfed7d6f208db76e2a25c3b" title="Check validity of an merMCMC object.">merMCMC_validate</a>, 1},
 <a name="l00026"></a>00026 
 <a name="l00027"></a>00027     {<span class="stringliteral">"pedigree_chol"</span>, (DL_FUNC) &amp;<a class="code" href="lmer_8c.html#06b081a8a5b894d99de0539549058b15" title="Create the left Cholesky factor of the numerator relationship matrix from a pedigree...">pedigree_chol</a>, 2},
 <a name="l00028"></a>00028 
@@ -102,7 +102,7 @@
 <a name="l00099"></a><a class="code" href="init_8c.html#af2800f65ac2bbcc43845e03d9dec260">00099</a> <span class="keywordtype">void</span> <a class="code" href="init_8c.html#af2800f65ac2bbcc43845e03d9dec260" title="Finalizer for lme4 called upon unloading the package.">R_unload_lme4</a>(DllInfo *dll){
 <a name="l00100"></a>00100     M_cholmod_finish(&amp;c);
 <a name="l00101"></a>00101 }
-</pre></div><hr size="1"><address style="text-align: right;"><small>Generated on Fri Feb 29 16:56:47 2008 for lme4 by&nbsp;
+</pre></div><hr size="1"><address style="text-align: right;"><small>Generated on Mon Mar 10 17:25:58 2008 for lme4 by&nbsp;
 <a href="http://www.doxygen.org/index.html">
 <img src="doxygen.png" alt="doxygen" align="middle" border="0"></a> 1.5.3 </small></address>
 </body>
