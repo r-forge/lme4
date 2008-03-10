@@ -1,3 +1,22 @@
+2008-03-10  Douglas Bates <bates@stat.wisc.edu>
+
+        * [r90] DESCRIPTION: New alpha release
+        * [r89] NAMESPACE, R/AllGeneric.R, R/lmList.R, R/lmer.R, src/init.c,
+          src/lmer.c, src/lmer.h: More macros; use sigmaML and sigmaREML
+          components in deviance slot; fix MCMC_ST for order and mer_MCMCsamp
+          for df in sigma sample
+
+2008-03-03  Douglas Bates <bates@stat.wisc.edu>
+
+        * [r88] src/lmer.c: Weighted LMM without segfault. Use for(int i=...)
+          throughout.
+
+2008-03-01  Douglas Bates <bates@stat.wisc.edu>
+
+        * [r87] src/lmer.c: Added macros
+        * [r86] inst/doc/Doxyfile: Update version
+        * [r85] man/merMCMC-class.Rd: Update.
+
 2008-02-29  Douglas Bates <bates@stat.wisc.edu>
 
         * [r82] man/merMCMC-class.Rd: documentation for merMCMC class
