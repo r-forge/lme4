@@ -1,3 +1,13 @@
+2008-03-11  Douglas Bates <bates@stat.wisc.edu>
+
+        * [r94] DESCRIPTION, NAMESPACE, R/pedigree.R, man/HPDinterval.Rd,
+          man/merMCMC-class.Rd, man/pooledSD.Rd: Update NAMESPACE and
+          documentation; move pedigree functions to pedigreemm package; New
+          release
+        * [r93] R/AllClass.R, R/pedigree.R, man/pedigree-class.Rd,
+          man/pedigree.Rd, src/init.c, src/lmer.c, src/lmer.h: Move pedigree
+          class and methods for the class to the pedigreemm package
+
 2008-03-10  Douglas Bates <bates@stat.wisc.edu>
 
         * [r90] DESCRIPTION: New alpha release
