@@ -2,21 +2,22 @@
 \name{pooledSD}
 \title{Extract pooled standard deviation}
 \usage{
-pooledSD(object)
+pooledSD(x, \dots)
 }
 \alias{pooledSD}
 \arguments{
- \item{object}{an object inheriting from class \code{lmList}.}
+  \item{x}{an object inheriting from class \code{lmList}.}
+  \item{\dots}{optional additional arguments (none used at present)}  
 }
 \description{
   The pooled estimated standard deviation is obtained by adding together
   the residual sum of squares for each non-null element of
-  \code{object}, dividing by the sum of the corresponding residual
+  \code{x}, dividing by the sum of the corresponding residual
   degrees-of-freedom, and taking the square-root.
 }
 \value{
   the pooled standard deviation for the non-null elements of
-  \code{object}, with an attribute \code{df} with the number of
+  \code{x}, with an attribute \code{df} with the number of
   degrees-of-freedom used in the estimation.
 }
 \seealso{\code{\link{lmList}}, \code{\link{lm}}}

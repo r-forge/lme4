@@ -21,29 +21,12 @@ importFrom("stats",
            vcov
            )
 
-export(
-       "glmer",
-       "gsummary",
-       "hatTrace",
-       "HPDinterval",       
-       "lmList",
-       "lmer",
-       "lmer2",
-       "mcmcsamp",       
-       "nlmer",
-       "pedigree",
-       "VarCorr"
-       )
+export("glmer", "gsummary", "hatTrace", "HPDinterval",       
+       "lmList", "lmer", "lmer2", "mcmcsamp", "nlmer",
+       "pooledSD", "VarCorr")
 
-exportClasses(
-              "coef.mer",
-              "lmList",
-              "mer",
-              "merMCMC",
-              "pedigree",
-              "ranef.mer",
-              "summary.mer"
-              )
+exportClasses("coef.mer", "lmList", "mer", "merMCMC",
+              "ranef.mer", "summary.mer")
 
 exportMethods(
               "BIC",
