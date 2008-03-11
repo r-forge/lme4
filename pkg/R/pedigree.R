@@ -54,3 +54,18 @@ setMethod("chol", "pedigree",
                     as(.Call("Csparse_diagU2N", t(ttrans), PACKAGE = "Matrix"),
                        "dtCMatrix"))
           })
+
+pedmat <- function(Name, pedigree, type = c("id", "sire", "dam"))
+### Should return the sparse forms of the Cholesky factor of the
+### relationship matrix, reduced in the case of type = "sire" or "dam"    
+{
+    stopifnot(is(pedigree, "pedigree"))
+    typ <- match.arg(type)
+    nm <- as.name(Name)
+    Tinv <- as(pedigree, "dtCMatrix")
+    if (type == "sire") {
+        ## generate the T matrix for the sires only
+        ind <- as(diag(length(pedigree@label)),
+                  "sparseMatrix")[, sort(unique(na.omit(pedigree@sire)))]
+    }
+}
