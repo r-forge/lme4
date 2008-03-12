@@ -2,7 +2,6 @@
 \alias{HPDinterval}
 \docType{genericFunction}
 \alias{HPDinterval,merMCMC-method}
-\alias{HPDinterval,numeric-method}
 \alias{HPDinterval,matrix-method}
 \title{Highest Posterior Density intervals}
 \description{
@@ -14,8 +13,7 @@ HPDinterval(object, prob = 0.95, \dots)
 }
 \arguments{
   \item{object}{The object containing the MCMC sample - usually of class
-    \code{\linkS4class{merMCMC}} but can also be \code{"numeric"} or a
-    \code{"matrix"}.}
+    \code{\linkS4class{merMCMC}} or a numeric matrix.}
   \item{prob}{A numeric scalar in the interval (0,1) giving the target
     probability content of the intervals.  The nominal probability
     content of the intervals is the multiple of \code{1/nrow(obj)}

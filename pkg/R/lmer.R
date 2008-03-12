@@ -1279,8 +1279,8 @@ setMethod("mcmcsamp", signature(object = "mer"),
           dd <- object@dims
           ranef <- matrix(numeric(0), nrow = dd["q"], ncol = 0)
           if (saveb) ranef <- matrix(object@ranef, nrow = dd["q"], ncol = n)
-          sigma <- numeric(0)
-          if (dd["useSc"]) sigma <- rep(unname(sigma(object)), n)
+          sigma <- matrix(unname(sigma(object)), nrow = 1,
+                          ncol = (if (dd["useSc"]) n else 0))
           ff <- object@fixef
           fixef <- matrix(ff, dd["p"], n)
           rownames(fixef) <- names(ff)
@@ -1307,12 +1307,6 @@ setMethod("HPDinterval", signature(object = "merMCMC"),
           lapply(lapply(nms, slot, object = object),
                  HPDinterval, prob = prob)
       })
-
-setMethod("HPDinterval", signature(object = "numeric"),         
-          function(object, prob = 0.95, ...) {
-              object <- as.matrix(object)
-              callGeneric(...)
-          })
 
 setMethod("HPDinterval", signature(object = "matrix"),
           function(object, prob = 0.95, ...)

@@ -61,7 +61,7 @@ setClass("merMCMC",
                         fixef = "matrix", # matrix of sampled fixed effects pars
                         nc = "integer",   # number of columns per r.e. term
                         ranef = "matrix", # optional matrix of sampled r.e.
-                        sigma = "numeric" # vector of sigma samples (may be length 0)
+                        sigma = "matrix"  # sigma samples (may have 0 columns)
                         ),
          validity = function(object) .Call(merMCMC_validate, object))
                         
