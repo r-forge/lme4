@@ -84,9 +84,6 @@ This graph shows which files directly or indirectly include this file:</div>
 <tr><td class="memItemLeft" nowrap align="right" valign="top">SEXP&nbsp;</td><td class="memItemRight" valign="bottom"><a class="el" href="lmer_8h.html#a13a0ba07cfed7d6f208db76e2a25c3b">merMCMC_validate</a> (SEXP x)</td></tr>
 
 <tr><td class="mdescLeft">&nbsp;</td><td class="mdescRight">Check validity of an merMCMC object.  <a href="#a13a0ba07cfed7d6f208db76e2a25c3b"></a><br></td></tr>
-<tr><td class="memItemLeft" nowrap align="right" valign="top">SEXP&nbsp;</td><td class="memItemRight" valign="bottom"><a class="el" href="lmer_8h.html#06b081a8a5b894d99de0539549058b15">pedigree_chol</a> (SEXP x, SEXP ans)</td></tr>
-
-<tr><td class="mdescLeft">&nbsp;</td><td class="mdescRight">Create the left Cholesky factor of the numerator relationship matrix from a pedigree.  <a href="#06b081a8a5b894d99de0539549058b15"></a><br></td></tr>
 <tr><td class="memItemLeft" nowrap align="right" valign="top">SEXP&nbsp;</td><td class="memItemRight" valign="bottom"><a class="el" href="lmer_8h.html#07450db2c100bd219a3d352a979e4e3f">spR_optimize</a> (SEXP x, SEXP verbP)</td></tr>
 
 <tr><td class="mdescLeft">&nbsp;</td><td class="mdescRight">Optimize the log-likelihood for the sparse representation of a Rasch model.  <a href="#07450db2c100bd219a3d352a979e4e3f"></a><br></td></tr>
@@ -181,7 +178,7 @@ Create and initialize L.
 
 <p>Definition at line <a class="el" href="lmer_8c-source.html#l00622">622</a> of file <a class="el" href="lmer_8c-source.html">lmer.c</a>.</p>
 
-<p>References <a class="el" href="lmer_8c-source.html#l00016">_</a>, and <a class="el" href="init_8c-source.html#l00037">c</a>.</p>
+<p>References <a class="el" href="lmer_8c-source.html#l00016">_</a>, and <a class="el" href="init_8c-source.html#l00034">c</a>.</p>
 
 </div>
 </div><p>
@@ -315,7 +312,7 @@ Extract the posterior variances of the random effects in an mer object.
 
 <p>Definition at line <a class="el" href="lmer_8c-source.html#l00560">560</a> of file <a class="el" href="lmer_8c-source.html">lmer.c</a>.</p>
 
-<p>References <a class="el" href="lmer_8c-source.html#l00033">Alloca</a>, <a class="el" href="init_8c-source.html#l00037">c</a>, <a class="el" href="lmer_8c-source.html#l00098">DEV_SLOT</a>, <a class="el" href="lmer_8c-source.html#l00101">DIMS_SLOT</a>, <a class="el" href="lmer_8c-source.html#l00110">Gp_SLOT</a>, <a class="el" href="lmer_8c-source.html#l00059">isREML_POS</a>, <a class="el" href="lmer_8c-source.html#l00114">L_SLOT</a>, <a class="el" href="Syms_8h-source.html#l00003">lme4_STSym</a>, <a class="el" href="lmer_8c-source.html#l00053">nf_POS</a>, <a class="el" href="lmer_8c-source.html#l00056">q_POS</a>, <a class="el" href="lmer_8c-source.html#l00044">sigmaML_POS</a>, <a class="el" href="lmer_8c-source.html#l00045">sigmaREML_POS</a>, <a class="el" href="lmer_8c-source.html#l00283">ST_nc_nlev()</a>, and <a class="el" href="lmer_8c-source.html#l00064">useSc_POS</a>.</p>
+<p>References <a class="el" href="lmer_8c-source.html#l00033">Alloca</a>, <a class="el" href="init_8c-source.html#l00034">c</a>, <a class="el" href="lmer_8c-source.html#l00098">DEV_SLOT</a>, <a class="el" href="lmer_8c-source.html#l00101">DIMS_SLOT</a>, <a class="el" href="lmer_8c-source.html#l00110">Gp_SLOT</a>, <a class="el" href="lmer_8c-source.html#l00059">isREML_POS</a>, <a class="el" href="lmer_8c-source.html#l00114">L_SLOT</a>, <a class="el" href="Syms_8h-source.html#l00003">lme4_STSym</a>, <a class="el" href="lmer_8c-source.html#l00053">nf_POS</a>, <a class="el" href="lmer_8c-source.html#l00056">q_POS</a>, <a class="el" href="lmer_8c-source.html#l00044">sigmaML_POS</a>, <a class="el" href="lmer_8c-source.html#l00045">sigmaREML_POS</a>, <a class="el" href="lmer_8c-source.html#l00283">ST_nc_nlev()</a>, and <a class="el" href="lmer_8c-source.html#l00064">useSc_POS</a>.</p>
 
 <p>
 <div class="dynheader">
@@ -819,48 +816,6 @@ Here is the call graph for this function:</div>
 
 </div>
 </div><p>
-<a class="anchor" name="06b081a8a5b894d99de0539549058b15"></a><!-- doxytag: member="lmer.h::pedigree_chol" ref="06b081a8a5b894d99de0539549058b15" args="(SEXP x, SEXP ans)" -->
-<div class="memitem">
-<div class="memproto">
-      <table class="memname">
-        <tr>
-          <td class="memname">SEXP pedigree_chol           </td>
-          <td>(</td>
-          <td class="paramtype">SEXP&nbsp;</td>
-          <td class="paramname"> <em>x</em>, </td>
-        </tr>
-        <tr>
-          <td class="paramkey"></td>
-          <td></td>
-          <td class="paramtype">SEXP&nbsp;</td>
-          <td class="paramname"> <em>ans</em></td><td>&nbsp;</td>
-        </tr>
-        <tr>
-          <td></td>
-          <td>)</td>
-          <td></td><td></td><td width="100%"></td>
-        </tr>
-      </table>
-</div>
-<div class="memdoc">
-
-<p>
-Create the left Cholesky factor of the numerator relationship matrix from a pedigree. 
-<p>
-<dl compact><dt><b>Parameters:</b></dt><dd>
-  <table border="0" cellspacing="2" cellpadding="0">
-    <tr><td valign="top"></td><td valign="top"><em>x</em>&nbsp;</td><td>a pedigree object </td></tr>
-    <tr><td valign="top"></td><td valign="top"><em>ans</em>&nbsp;</td><td>T stored as a non-unit, lower dtCMatrix</td></tr>
-  </table>
-</dl>
-<dl class="return" compact><dt><b>Returns:</b></dt><dd>ans with elements modified to incorporate D </dd></dl>
-
-<p>Definition at line <a class="el" href="lmer_8c-source.html#l01823">1823</a> of file <a class="el" href="lmer_8c-source.html">lmer.c</a>.</p>
-
-<p>References <a class="el" href="Syms_8h-source.html#l00003">lme4_iSym</a>, <a class="el" href="Syms_8h-source.html#l00003">lme4_pSym</a>, and <a class="el" href="Syms_8h-source.html#l00003">lme4_xSym</a>.</p>
-
-</div>
-</div><p>
 <a class="anchor" name="07450db2c100bd219a3d352a979e4e3f"></a><!-- doxytag: member="lmer.h::spR_optimize" ref="07450db2c100bd219a3d352a979e4e3f" args="(SEXP x, SEXP verbP)" -->
 <div class="memitem">
 <div class="memproto">
@@ -897,9 +852,9 @@ Optimize the log-likelihood for the sparse representation of a Rasch model.
 </dl>
 <dl class="return" compact><dt><b>Returns:</b></dt><dd>R_NilValue </dd></dl>
 
-<p>Definition at line <a class="el" href="lmer_8c-source.html#l01989">1989</a> of file <a class="el" href="lmer_8c-source.html">lmer.c</a>.</p>
+<p>Definition at line <a class="el" href="lmer_8c-source.html#l01859">1859</a> of file <a class="el" href="lmer_8c-source.html">lmer.c</a>.</p>
 
-<p>References <a class="el" href="lmer_8c-source.html#l00016">_</a>, <a class="el" href="lmer_8c-source.html#l00207">apply_perm()</a>, <a class="el" href="init_8c-source.html#l00037">c</a>, <a class="el" href="lmer_8c-source.html#l01041">CM_MAXITER</a>, <a class="el" href="lmer_8c-source.html#l01045">CM_SMIN</a>, <a class="el" href="lmer_8c-source.html#l01043">CM_TOL</a>, <a class="el" href="lmer_8c-source.html#l00098">DEV_SLOT</a>, <a class="el" href="lmer_8c-source.html#l00107">FIXEF_SLOT</a>, <a class="el" href="lmer_8c-source.html#l00114">L_SLOT</a>, <a class="el" href="lmer_8c-source.html#l00117">MU_SLOT</a>, <a class="el" href="lmer_8c-source.html#l00121">MUETA_SLOT</a>, <a class="el" href="lmer_8c-source.html#l00132">PWT_SLOT</a>, <a class="el" href="lmer_8c-source.html#l00142">RESID_SLOT</a>, <a class="el" href="lmer_8c-source.html#l01950">spR_update_mu()</a>, <a class="el" href="lmer_8c-source.html#l00187">sqr_length()</a>, <a class="el" href="lmer_8c-source.html#l00152">SRWT_SLOT</a>, <a class="el" href="lmer_8c-source.html#l00167">VAR_SLOT</a>, <a class="el" href="lmer_8c-source.html#l00049">wrss_POS</a>, <a class="el" href="lmer_8c-source.html#l00173">Y_SLOT</a>, and <a class="el" href="lmer_8c-source.html#l00177">Zt_SLOT</a>.</p>
+<p>References <a class="el" href="lmer_8c-source.html#l00016">_</a>, <a class="el" href="lmer_8c-source.html#l00207">apply_perm()</a>, <a class="el" href="init_8c-source.html#l00034">c</a>, <a class="el" href="lmer_8c-source.html#l01041">CM_MAXITER</a>, <a class="el" href="lmer_8c-source.html#l01045">CM_SMIN</a>, <a class="el" href="lmer_8c-source.html#l01043">CM_TOL</a>, <a class="el" href="lmer_8c-source.html#l00098">DEV_SLOT</a>, <a class="el" href="lmer_8c-source.html#l00107">FIXEF_SLOT</a>, <a class="el" href="lmer_8c-source.html#l00114">L_SLOT</a>, <a class="el" href="lmer_8c-source.html#l00117">MU_SLOT</a>, <a class="el" href="lmer_8c-source.html#l00121">MUETA_SLOT</a>, <a class="el" href="lmer_8c-source.html#l00132">PWT_SLOT</a>, <a class="el" href="lmer_8c-source.html#l00142">RESID_SLOT</a>, <a class="el" href="lmer_8c-source.html#l01820">spR_update_mu()</a>, <a class="el" href="lmer_8c-source.html#l00187">sqr_length()</a>, <a class="el" href="lmer_8c-source.html#l00152">SRWT_SLOT</a>, <a class="el" href="lmer_8c-source.html#l00167">VAR_SLOT</a>, <a class="el" href="lmer_8c-source.html#l00049">wrss_POS</a>, <a class="el" href="lmer_8c-source.html#l00173">Y_SLOT</a>, and <a class="el" href="lmer_8c-source.html#l00177">Zt_SLOT</a>.</p>
 
 <p>
 <div class="dynheader">
@@ -938,9 +893,9 @@ Update the eta, mu, resid and var slots in a sparseRasch object from the current
 </dl>
 <dl class="return" compact><dt><b>Returns:</b></dt><dd>R_NilValue </dd></dl>
 
-<p>Definition at line <a class="el" href="lmer_8c-source.html#l01950">1950</a> of file <a class="el" href="lmer_8c-source.html">lmer.c</a>.</p>
+<p>Definition at line <a class="el" href="lmer_8c-source.html#l01820">1820</a> of file <a class="el" href="lmer_8c-source.html">lmer.c</a>.</p>
 
-<p>References <a class="el" href="lmer_8c-source.html#l00016">_</a>, <a class="el" href="init_8c-source.html#l00037">c</a>, <a class="el" href="lmer_8c-source.html#l00098">DEV_SLOT</a>, <a class="el" href="lmer_8c-source.html#l00101">DIMS_SLOT</a>, <a class="el" href="Syms_8h-source.html#l00003">lme4_fixefSym</a>, <a class="el" href="lmer_8c-source.html#l00659">lme4_muEta()</a>, <a class="el" href="lmer_8c-source.html#l00717">lme4_varFunc()</a>, <a class="el" href="lmer_8c-source.html#l00061">lTyp_POS</a>, <a class="el" href="lmer_8c-source.html#l00117">MU_SLOT</a>, <a class="el" href="lmer_8c-source.html#l00121">MUETA_SLOT</a>, <a class="el" href="lmer_8c-source.html#l00054">n_POS</a>, <a class="el" href="lmer_8c-source.html#l00125">OFFSET_SLOT</a>, <a class="el" href="lmer_8c-source.html#l00142">RESID_SLOT</a>, <a class="el" href="lmer_8c-source.html#l00152">SRWT_SLOT</a>, <a class="el" href="lmer_8c-source.html#l00167">VAR_SLOT</a>, <a class="el" href="lmer_8c-source.html#l00062">vTyp_POS</a>, <a class="el" href="lmer_8c-source.html#l00049">wrss_POS</a>, <a class="el" href="lmer_8c-source.html#l00173">Y_SLOT</a>, and <a class="el" href="lmer_8c-source.html#l00177">Zt_SLOT</a>.</p>
+<p>References <a class="el" href="lmer_8c-source.html#l00016">_</a>, <a class="el" href="init_8c-source.html#l00034">c</a>, <a class="el" href="lmer_8c-source.html#l00098">DEV_SLOT</a>, <a class="el" href="lmer_8c-source.html#l00101">DIMS_SLOT</a>, <a class="el" href="Syms_8h-source.html#l00003">lme4_fixefSym</a>, <a class="el" href="lmer_8c-source.html#l00659">lme4_muEta()</a>, <a class="el" href="lmer_8c-source.html#l00717">lme4_varFunc()</a>, <a class="el" href="lmer_8c-source.html#l00061">lTyp_POS</a>, <a class="el" href="lmer_8c-source.html#l00117">MU_SLOT</a>, <a class="el" href="lmer_8c-source.html#l00121">MUETA_SLOT</a>, <a class="el" href="lmer_8c-source.html#l00054">n_POS</a>, <a class="el" href="lmer_8c-source.html#l00125">OFFSET_SLOT</a>, <a class="el" href="lmer_8c-source.html#l00142">RESID_SLOT</a>, <a class="el" href="lmer_8c-source.html#l00152">SRWT_SLOT</a>, <a class="el" href="lmer_8c-source.html#l00167">VAR_SLOT</a>, <a class="el" href="lmer_8c-source.html#l00062">vTyp_POS</a>, <a class="el" href="lmer_8c-source.html#l00049">wrss_POS</a>, <a class="el" href="lmer_8c-source.html#l00173">Y_SLOT</a>, and <a class="el" href="lmer_8c-source.html#l00177">Zt_SLOT</a>.</p>
 
 <p>
 <div class="dynheader">
@@ -953,7 +908,7 @@ Here is the call graph for this function:</div>
 
 </div>
 </div><p>
-<hr size="1"><address style="text-align: right;"><small>Generated on Mon Mar 10 17:26:05 2008 for lme4 by&nbsp;
+<hr size="1"><address style="text-align: right;"><small>Generated on Wed Mar 12 09:53:16 2008 for lme4 by&nbsp;
 <a href="http://www.doxygen.org/index.html">
 <img src="doxygen.png" alt="doxygen" align="middle" border="0"></a> 1.5.3 </small></address>
 </body>
