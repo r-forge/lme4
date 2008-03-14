@@ -49,3 +49,4 @@ setGeneric("sigma", function(object, ...) standardGeneric("sigma"))
 
 setGeneric("VarCorr", function(x, ...) standardGeneric("VarCorr"))
 
+setGeneric("traceplot", function(x, ...) standardGeneric("traceplot"))

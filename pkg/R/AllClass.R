@@ -15,7 +15,6 @@ setOldClass("logLik")
 
 setClass("mer",
 	 representation(## original data
-#                        famName = "character",# name of GLM family and link
                         env = "environment",# evaluation env for nonlinear model
                         nlmodel = "call",# nonlinear model call
                         frame = "data.frame",# model frame (or empty frame)
@@ -26,6 +25,7 @@ setClass("mer",
                         pWt = "numeric",# prior weights,
                         offset = "numeric", # length 0 -> no offset
                         y = "numeric",   # response vector
+###FIXME: Eliminate the cnames slot.  Put the names on the elements of the ST slot.
                         cnames = "list", # row/column names of els of ST
                         Gp = "integer",  # pointers to row groups of Zt
                         dims = "integer",# dimensions and indicators
