@@ -1329,6 +1329,16 @@ setMethod("HPDinterval", signature(object = "matrix"),
           ans
       })
 
+setAs("merMCMC", "matrix",
+      function(from)
+  {
+      if (length(from@sigma))
+          cbind(t(from@fixef), sigma = as.vector(from@sigma), ST = t(from@ST))
+      else 
+          cbind(t(from@fixef), ST = t(from@ST))
+  })
+
+
 abbrvNms <- function(gnm, cnms)
 ### Abbreviate names of columns in grouping factors
 ### gnm - group name
