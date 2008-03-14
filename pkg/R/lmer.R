@@ -882,7 +882,8 @@ setMethod("deviance", signature(object="mer"),
       })
 
 setMethod("fitted", signature(object = "mer"),
-	  function(object, ...) object@eta)
+          function(object, ...)
+          napredict(attr(object@frame, "na.action"), object@mu))
 
 setMethod("formula", signature(x = "mer"),
 	  function(x, ...)
@@ -906,10 +907,12 @@ setMethod("logLik", signature(object="mer"),
       })
 
 setMethod("residuals", signature(object = "mer"),
-	  function(object, ...) object@resid)
+	  function(object, ...)
+          napredict(attr(object@frame, "na.action"), object@resid))
 
 setMethod("resid", signature(object = "mer"),
-	  function(object, ...) object@resid)
+	  function(object, ...)
+          napredict(attr(object@frame, "na.action"), object@resid))
 
 setMethod("simulate", "mer",
           function(object, nsim = 1, seed = NULL, ...)
