@@ -3,6 +3,7 @@
 % Classes
 \alias{merMCMC-class}
 % Methods
+\alias{coerce,merMCMC,matrix-method}
 \title{Mixed-model Markov chain Monte Carlo results}
 \description{Objects of class \code{"merMCMC"} are Markov chain Monte
   Carlo samples from a fitted mixed-effects model.}
