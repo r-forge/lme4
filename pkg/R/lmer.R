@@ -426,24 +426,11 @@ mer_finalize <- function(ans, verbose)
     ans
 }
 
-### The main event
-
-lmer <-
-    function(formula, data, family = NULL, method = c("REML", "ML"),
-             control = list(), start = NULL, verbose, subset,
-             weights, na.action, offset, contrasts = NULL,
-             model = TRUE, x = TRUE, ...)
-### Linear Mixed-Effects in R
+## Modifications to lmer often involve modifying model matrices before
+## creating and optimizing the mer object.  Everything past the model
+## matrices is encapsulated in this function
+lmer_finalize <- function(mc, fr, FL, start, method, verbose)
 {
-    mc <- match.call()
-    if (!is.null(family)) {             # call glmer
-        mc[[1]] <- as.name("glmer")
-        return(eval(mc))
-    }
-    stopifnot(length(formula <- as.formula(formula)) == 3)
-
-    fr <- lmerFrames(mc, formula, contrasts) # model frame, X, etc.
-    FL <- lmerFactorList(formula, fr$mf, 0L, 0L) # flist, Zt, cnames
     Y <- as.double(fr$Y)
     if (is.list(start) && all(sort(names(start)) == sort(names(FL))))
         start <- list(ST = start)
@@ -454,7 +441,7 @@ lmer <-
 ### This checks that the number of levels in a grouping factor < n
 ### Only need to check the first factor because it is the one with
 ### the most levels.
-    dm$dd["REML"] <- match.arg(method) == "REML"
+    dm$dd["REML"] <- method == "REML"
     swts <- sqrt(unname(fr$wts))
     Cx <- numeric(0)
     if (length(swts))
@@ -465,7 +452,7 @@ lmer <-
     ans <- new(Class = "mer",
                env = new.env(),
                nlmodel = (~I(x))[[2]],
-               frame = if (model) fr$mf else fr$mf[0,],
+               frame = fr$mf,
                call = mc,
                flist = dm$flist,
                X = fr$X,
@@ -500,9 +487,27 @@ lmer <-
         if (length(STp) == length(stp))
             .Call(mer_ST_setPars, ans, stp)
     }
-    cv <- do.call("lmerControl", control)
-    if (missing(verbose)) verbose <- cv$msVerbose
     mer_finalize(ans, verbose)
+}    
+
+### The main event
+lmer <-
+    function(formula, data, family = NULL, method = c("REML", "ML"),
+             control = list(), start = NULL, verbose = FALSE,
+             subset, weights, na.action, offset, contrasts = NULL,
+             model = TRUE, x = TRUE, ...)
+### Linear Mixed-Effects in R
+{
+    mc <- match.call()
+    if (!is.null(family)) {             # call glmer
+        mc[[1]] <- as.name("glmer")
+        return(eval(mc))
+    }
+    stopifnot(length(formula <- as.formula(formula)) == 3)
+
+    fr <- lmerFrames(mc, formula, contrasts) # model frame, X, etc.
+    FL <- lmerFactorList(formula, fr$mf, 0L, 0L) # flist, Zt, cnames
+    lmer_finalize(mc, fr, FL, start, match.arg(method), verbose)
 }
 
 ## for backward compatibility
