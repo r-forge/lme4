@@ -97,3 +97,14 @@ setClass("sparseRasch", representation =
               var = "numeric"),
          validity = function(object) TRUE)
 
+setClass("merExt",
+         representation(X0 = "matrix",    # original fixed effects model matrix
+                        Zt0 = "dgCMatrix",# original sparse form of Z'
+                        pars = "numeric", # additional parameters
+                        y0 = "numeric"),  # original response vector
+         contains = "mer"
+         )
+
+setClass("lmerStratVar",
+         representation(sfac = "factor"),
+         contains = "merExt")
