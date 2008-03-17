@@ -991,28 +991,7 @@ static double update_L(SEXP x)
 	error(_("cholmod_factorize_p failed: status %d, minor %d from ncol %d"),
 	      c.status, L->minor, L->n);
 
-    d[ldL2_POS] = 0;		/* evaluate log(det(L))^2 */
-    if (L->is_super) {
-	for (int i = 0; i < L->nsuper; i++) {
-	    int nrp1 = 1 + ((int *)(L->pi))[i + 1] - ((int *)(L->pi))[i],
-		nc = ((int *)(L->super))[i + 1] - ((int *)(L->super))[i];
-	    double *x = (double *)(L->x) + ((int *)(L->px))[i];
-
-	    for (int j = 0; j < nc; j++) {
-		d[ldL2_POS] += 2 * log(fabs(x[j * nrp1]));
-	    }
-	}
-    } else {
-	int *li = (int*)(L->i), *lp = (int*)(L->p);
-	double *lx = (double *)(L->x);
-	
-	for (int j = 0; j < L->n; j++) {
-	    int p;
-	    for (p = lp[j]; li[p] != j && p < lp[j + 1]; p++) {};
-	    if (li[p] != j) break; /* what happened to the diagonal element? */
-	    d[ldL2_POS] += log(lx[p] * ((L->is_ll) ? lx[p] : 1.));
-	}
-    }
+    d[ldL2_POS] = M_chm_factor_ldetL2(L);
     d[pwrss_POS] = d[usqr_POS] + d[wrss_POS];
     d[sigmaML_POS] = sqrt(d[pwrss_POS]/
 			  (srwt ? sqr_length(srwt, n) : (double) n));
