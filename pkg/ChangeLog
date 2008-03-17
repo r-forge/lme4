@@ -1,3 +1,21 @@
+2008-03-17  Douglas Bates <bates@stat.wisc.edu>
+
+        * [r101] R/AllClass.R: Add classes merExt and lmerStratVar
+
+2008-03-14  Douglas Bates <bates@stat.wisc.edu>
+
+        * [r100] R/lmer.R: Fix from Henric Nilsson for fitted and resid methods
+          under na.action = na.exclude
+        * [r99] R/AllClass.R, R/AllGeneric.R, man/mer-class.Rd,
+          man/merMCMC-class.Rd: Cleanup in code; documentation update
+        * [r98] R/lmer.R: Coercion of merMCMC to matrix
+
+2008-03-12  Douglas Bates <bates@stat.wisc.edu>
+
+        * [r97] DESCRIPTION, R/AllClass.R, R/lmer.R, man/HPDinterval.Rd: Fix
+          HPDinterval methods (Robert Kushler <kushler@oakland.edu>) and
+          documentation; New release
+
 2008-03-11  Douglas Bates <bates@stat.wisc.edu>
 
         * [r94] DESCRIPTION, NAMESPACE, R/pedigree.R, man/HPDinterval.Rd,
