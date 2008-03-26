@@ -26,7 +26,7 @@ setClass("mer",
                         offset = "numeric", # length 0 -> no offset
                         y = "numeric",   # response vector
 ###FIXME: Eliminate the cnames slot.  Put the names on the elements of the ST slot.
-                        cnames = "list", # row/column names of els of ST
+#                        cnames = "list", # row/column names of els of ST
                         Gp = "integer",  # pointers to row groups of Zt
                         dims = "integer",# dimensions and indicators
                         ## slots that vary during optimization

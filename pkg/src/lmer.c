@@ -1617,6 +1617,45 @@ SEXP mer_MCMCsamp(SEXP x, SEXP fm)
     return x;
 }
 
+SEXP merMCMC_VarCorr(SEXP x, SEXP typP)
+{
+    SEXP ST = GET_SLOT(x, lme4_STSym),
+	ncs = GET_SLOT(x, install("nc"));
+    int *Gp = Gp_SLOT(x), *Sd = INTEGER(GET_DIM(ST)), *nc = INTEGER(ncs);
+    int maxnc = 0, nf = LENGTH(ncs), np = Sd[0], nsamp = Sd[1], pos;
+    double *sig = SLOT_REAL_NULL(x, lme4_sigmaSym);
+    SEXP ans = PROTECT(allocMatrix(REALSXP, nsamp, np + (sig ? 1 : 0)));
+    double *av = REAL(ans), *STx = REAL(ST);
+    double *as = av + nsamp * np, *t1, *t2, var;
+    int *nlev = Alloca(nf, int);
+    R_CheckStack();
+
+    for (int j = 0; j < nf; j++) {
+	nlev[j] = (Gp[j + 1] - Gp[j])/nc[j];
+	if (maxnc < nc[j]) maxnc = nc[j];
+    }
+    if (maxnc > 1) {
+	t1 = Alloca(maxnc * maxnc, double);
+	t2 = Alloca(maxnc * maxnc, double);
+	R_CheckStack();
+    }
+    
+    for (int i = 0; i < nsamp; i++) {
+	var = 1; pos = 0;
+	if (sig) var = as[i] = sig[i] * sig[i];
+	for (int k = 0; k < nf; k++) {
+	    if (nc[k] < 2) {
+		double sd = STx[pos + i * np] * sig[i];
+		av[i + nsamp * pos++] = sd * sd;
+	    }
+	    else error(_("Code not yet written"));
+	}
+    }
+	
+    UNPROTECT(1);
+    return ans;
+}
+			       
 #ifndef BUF_SIZE
 /** size of buffer for an error message */
 #define BUF_SIZE 127

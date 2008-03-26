@@ -318,7 +318,7 @@ devNames <- c("ML", "REML", "ldL2", "ldRX2", "sigmaML", "sigmaREML",
                "pwrss", "disc", "usqr", "wrss")
 
 mkdims <- function(fr, FL, start, s = 1L)
-### Create the standard versions of flist, Zt, Gp, ST, cnames, A, Cm,
+### Create the standard versions of flist, Zt, Gp, ST, A, Cm,
 ### Cx, L and dd
 {
     flist <- lapply(FL, `[[`, "f")
@@ -330,7 +330,9 @@ mkdims <- function(fr, FL, start, s = 1L)
     A <- do.call(rBind, lapply(FL, `[[`, "A"))
     rm(Ztl, FL)                         # because they could be large
     nc <- sapply(cnames, length)        # # of columns in els of ST
-    ST <- lapply(nc, function(n) matrix(0, n, n))
+    ST <- lapply(cnames, function(nm)
+             {n <- length(nm)
+              matrix(0, n, n, dimnames = list(nm, nm))})
     .Call(mer_ST_initialize, ST, Gp, Zt)
     Cm <- createCm(A, s)
     L <- .Call(mer_create_L, Cm)
@@ -339,10 +341,10 @@ mkdims <- function(fr, FL, start, s = 1L)
 
     ## record dimensions and algorithm settings
     dd <- VecFromNames(dimsNames, "integer")
-    dd["nf"] <- length(cnames)          # number of random-effects terms
-    dd["n"] <- nrow(fr$mf)              # number of observations
-    dd["p"] <- ncol(fr$X)               # number of fixed-effects coefficients
-    dd["q"] <- nrow(Zt)                 # number of random effects
+    dd["nf"] <- length(ST)            # number of random-effects terms
+    dd["n"] <- nrow(fr$mf)            # number of observations
+    dd["p"] <- ncol(fr$X)             # number of fixed-effects coefficients
+    dd["q"] <- nrow(Zt)               # number of random effects
     dd["s"] <- s
     nvc <- sapply(nc, function (qi) (qi * (qi + 1))/2) # no. of var. comp.
 ### FIXME: Check number of variance components versus number of
@@ -359,8 +361,7 @@ mkdims <- function(fr, FL, start, s = 1L)
     dd["cvg"]  <- 0L                    # no optimization yet attempted
     dev <- VecFromNames(devNames, "numeric")
 
-    list(Gp = Gp, ST = ST, A = A, Cm = Cm, L = L, Zt = Zt,
-         cnames = cnames, dd = dd, dev = dev,
+    list(Gp = Gp, ST = ST, A = A, Cm = Cm, L = L, Zt = Zt, dd = dd, dev = dev,
          flist = do.call(data.frame, c(flist, check.names = FALSE)))
 }
 
@@ -463,7 +464,6 @@ lmer_finalize <- function(mc, fr, FL, start, method, verbose)
 ### frame are dropped.  Really?  Are they part of the frame slot (if not
 ### reduced to 0 rows)?
                y = unname(Y),
-               cnames = unname(dm$cnames),
                Gp = unname(dm$Gp),
                dims = dm$dd,
                ST = dm$ST,
@@ -506,7 +506,7 @@ lmer <-
     stopifnot(length(formula <- as.formula(formula)) == 3)
 
     fr <- lmerFrames(mc, formula, contrasts) # model frame, X, etc.
-    FL <- lmerFactorList(formula, fr$mf, 0L, 0L) # flist, Zt, cnames
+    FL <- lmerFactorList(formula, fr$mf, 0L, 0L) # flist, Zt
     lmer_finalize(mc, fr, FL, start, match.arg(method), verbose)
 }
 
@@ -549,7 +549,7 @@ function(formula, data, family = gaussian, method = c("Laplace", "AGQ"),
     glmFit <- glm.fit(fr$X, fr$Y, weights = wts, # glm on fixed effects
                       offset = offset, family = family,
                       intercept = attr(attr(fr$mf, "terms"), "intercept") > 0)
-    FL <- lmerFactorList(formula, fr$mf, 0L, 0L) # flist, Zt, cnames
+    FL <- lmerFactorList(formula, fr$mf, 0L, 0L) # flist, Zt
     if (is.list(start) && all(sort(names(start)) == sort(names(FL))))
         start <- list(ST = start) 
     if (is.numeric(start)) start <- list(STpars = start)
@@ -573,7 +573,7 @@ function(formula, data, family = gaussian, method = c("Laplace", "AGQ"),
                Zt = dm$Zt, X = fr$X, y = y,
                pWt = unname(glmFit$prior.weights),
                offset = unname(fr$off),
-               cnames = unname(dm$cnames), Gp = unname(dm$Gp),
+               Gp = unname(dm$Gp),
                dims = dm$dd, ST = dm$ST, A = dm$A,
                Cm = dm$Cm, Cx = (dm$A)@x, L = dm$L,
                deviance = dm$dev,
@@ -675,7 +675,6 @@ nlmer <- function(formula, data, control = list(), start = NULL,
                pWt = unname(sqrt(fr$wts)),
                offset = unname(fr$off),
                y = unname(as.double(fr$Y)),
-               cnames = unname(dm$cnames),
                Gp = unname(dm$Gp),
                dims = dm$dd,
                ## slots that change during the iterations
@@ -743,7 +742,7 @@ setMethod("ranef", signature(object = "mer"),
           Gp <- object@Gp
           ii <- lapply(diff(Gp), seq_len)
           rr <- object@ranef
-          cn <- object@cnames
+          cn <- lapply(object@ST, colnames)
           rn <- lapply(object@flist, levels)
           ans <-
               lapply(seq_len(length(ii)),
@@ -773,8 +772,8 @@ setMethod("VarCorr", signature(x = "mer"),
 	  function(x, REML = NULL, ...)
 ### Create the VarCorr object of variances and covariances
       {
-	  cnames <- x@cnames
 	  ans <- x@ST
+          cnames <- lapply(ans, colnames)
           sc <- sigma(x)
           attr(ans, "sc") <- if (x@dims["useSc"]) sc else as.double(NA)
           for (i in seq_along(ans)) {
@@ -788,7 +787,6 @@ setMethod("VarCorr", signature(x = "mer"),
                   el <- sc^2 * crossprod(dd * t(ai))
               }
               el <- as(el, "dpoMatrix")
-              el@Dimnames <- list(cnames[[i]], cnames[[i]])
 	      el@factors$correlation <- as(el, "corMatrix")
 	      ans[[i]] <- el
 	  }
@@ -1337,14 +1335,54 @@ setMethod("HPDinterval", signature(object = "matrix"),
           ans
       })
 
-setAs("merMCMC", "matrix",
-      function(from)
-  {
-      if (length(from@sigma))
-          cbind(t(from@fixef), sigma = as.vector(from@sigma), ST = t(from@ST))
-      else 
-          cbind(t(from@fixef), ST = t(from@ST))
-  })
+setMethod("VarCorr", signature(x = "merMCMC"),
+          function(x, type = c("raw", "varcov", "sdcorr", "logs"), ...)
+      {
+          if ("raw" == (type <- match.arg(type))) {
+              ST <- t(x@ST)
+              colnames(ST) <- paste("ST", 1:ncol(ST), sep = '')
+              if (length(x@sigma)) return(cbind(ST, sigma = as.vector(x@sigma)))
+              return(ST)
+          }
+          .Call(merMCMC_varcov, x, match(type, c("raw", "varcov", "sdcorr", "logs")))
+      })
+              
+setMethod("as.matrix", signature(x = "merMCMC"),
+          function(x, ...)
+          cbind(t(x@fixef), VarCorr(x, ...)))
+
+aslatticeframe <- function(x, ...)
+{
+    fr <- as.data.frame(as.matrix(x, ...))
+    data.frame(dat = unlist(fr),
+               par = gl(ncol(fr), nrow(fr), labels = colnames(fr)),
+               iter = rep(1:nrow(fr), ncol(fr)))
+}
+
+setMethod("xyplot", signature(x = "merMCMC"),
+          function(x, data, ...)
+      {
+          pfr <- aslatticeframe(x, ...)
+          xyplot(dat ~ iter|par, pfr,
+                 xlab = "Iteration number", ylab = NULL,
+                 scales = list(x = list(axs = 'i'),
+                 y = list(relation = "free", rot = 0)),
+                 type = c("g", "l"),
+                 layout = c(1, length(levels(pfr$par))),
+                 strip = FALSE, strip.left = TRUE, ...)
+      })
+
+setMethod("densityplot", signature(x = "merMCMC"),
+          function(x, data, ...)
+          densityplot(~ dat | par, aslatticeframe(x, ...),
+                      scales = list(relation = 'free'), ...)
+          )
+
+setMethod("qqmath", signature(x = "merMCMC"),
+          function(x, data, ...)
+          qqmath(~ dat | par, aslatticeframe(x, ...),
+                 scales = list(y = list(relation = 'free')), ...)
+          )
 
 
 abbrvNms <- function(gnm, cnms)
@@ -1367,7 +1405,7 @@ mcmccompnames <- function(ans, object, saveb, trans, glmer, deviance)
 ### This operation is common to the methods for "lmer" and "glmer"
 {
     gnms <- names(object@flist)
-    cnms <- object@cnames
+    cnms <- lapply(object@ST, colnames)
     ff <- fixef(object)
     colnms <- c(names(ff), if (glmer) character(0) else "sigma^2",
                 unlist(lapply(seq_along(gnms),

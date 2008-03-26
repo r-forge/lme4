@@ -37,12 +37,6 @@ mlirt <-
     form <- substitute(Y ~ base + (1|.subj), list(base = formula[[3]]))
     ## establish factor list and Ztl
     FL <- lmerFactorList(form, mf)
-##     cnames <- with(FL, c(lapply(Ztl, rownames), list(.fixed = colnames(X))))
-##     nc <- with(FL, sapply(Ztl, nrow))
-##     Ztl <- with(FL, .Call(Ztl_sparse, fl, Ztl))
-##     ## FIXME: change this when rbind has been fixed.
-##     Zt <- if (length(Ztl) == 1) Ztl[[1]] else do.call("rbind", Ztl)
-##     fl <- FL$fl
 
     ## check and evaluate the family argument
     if(is.character(family))
@@ -62,8 +56,6 @@ mlirt <-
                       intercept = attr(fr$mt, "intercept") > 0)
     Y <- as.double(glmFit$y)
     ## must do this after Y has possibly been reformulated
-##     mer <- .Call(mer_create, fl, Zt, X, Y, 0, nc, cnames)
-##     if (!is.null(start)) mer <- setOmega(mer, start)
     mer <- NULL
 
     gVerb <- getOption("verbose")

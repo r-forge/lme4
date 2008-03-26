@@ -17,7 +17,6 @@ importFrom("stats",
            residuals,
            simulate,
            terms,
-           update,
            vcov
            )
 
@@ -33,10 +32,12 @@ exportMethods(
               "HPDinterval",
               "VarCorr",
               "anova",
+              "as.matrix",
               "chol",
               "coef",
               "coerce",
               "confint",
+              "densityplot",
               "deviance",
               "fitted",
               "fixef",
@@ -60,6 +61,7 @@ exportMethods(
               "terms",
               "update",
               "vcov",
-              "with"
+              "with",
+              "xyplot"
               )
 

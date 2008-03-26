@@ -1,16 +1,26 @@
 \name{VarCorr}
 \docType{genericFunction}
+% Generic
 \alias{VarCorr}
+% Methods
 \alias{VarCorr,mer-method}
+\alias{VarCorr,merMCMC-method}
 \title{Extract variance and correlation components}
 \usage{
-\S4method{VarCorr}{mer}(x, REML = x@status["REML"], \dots)
+\S4method{VarCorr}{mer}(x, REML = NULL, \dots)
+\S4method{VarCorr}{merMCMC}(x, type = c("raw", "varcov", "sdcorr", "logs"), \dots)
 }
 \arguments{
   \item{x}{a fitted model object, usually an object inheriting from
     class \code{\linkS4class{mer}}.
   }
   \item{REML}{logical indicating if REML should be used.}
+  \item{type}{character string indicating the type of result to be
+    returned, either \code{"raw"}, the raw representation as in the
+    \code{ST} slot of the \code{\linkS4class{mer}} class, or
+    \code{"varcov"}, variances and covariances, or \code{"sdcorr"},
+    standard deviations and correlations, or \code{"logs"}, logs of the
+    standard deviations and Fisher's z transformation of the correlations.}
   \item{\dots}{Additional, optional arguments for some methods.  At
     present none are used.}
 }
