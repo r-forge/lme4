@@ -4,6 +4,11 @@
 \alias{merMCMC-class}
 % Methods
 \alias{coerce,merMCMC,matrix-method}
+%% FIXME: Document these, including their unexpected arguments
+\alias{qqmath,merMCMC-method}
+\alias{densityplot,merMCMC-method}
+\alias{xyplot,merMCMC-method}
+\alias{as.matrix,merMCMC-method} 
 \title{Mixed-model Markov chain Monte Carlo results}
 \description{Objects of class \code{"merMCMC"} are Markov chain Monte
   Carlo samples from a fitted mixed-effects model.}

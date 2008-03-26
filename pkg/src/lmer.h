@@ -24,6 +24,7 @@ SEXP mer_update_mu(SEXP x);
 SEXP mer_update_u(SEXP x, SEXP verbP);
 SEXP mer_validate(SEXP x);
 SEXP merMCMC_validate(SEXP x);
+SEXP merMCMC_VarCorr(SEXP x, SEXP typ);
 
 SEXP spR_optimize(SEXP x, SEXP verbP);
 SEXP spR_update_mu(SEXP x);

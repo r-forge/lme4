@@ -22,6 +22,7 @@ static R_CallMethodDef CallEntries[] = {
     {"mer_validate", (DL_FUNC) &mer_validate, 1},
 
     {"merMCMC_validate", (DL_FUNC) &merMCMC_validate, 1},
+    {"merMCMC_VarCorr", (DL_FUNC) &merMCMC_VarCorr, 2},
 
     {"spR_optimize", (DL_FUNC) &spR_optimize, 2},
     {"spR_update_mu", (DL_FUNC) &spR_update_mu, 1},
