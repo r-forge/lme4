@@ -35,71 +35,72 @@
 <a name="l00022"></a>00022     {<span class="stringliteral">"mer_validate"</span>, (DL_FUNC) &amp;<a class="code" href="lmer_8c.html#489500e3d5104fc320a54d85c43bcfed" title="Check validity of an mer object.">mer_validate</a>, 1},
 <a name="l00023"></a>00023 
 <a name="l00024"></a>00024     {<span class="stringliteral">"merMCMC_validate"</span>, (DL_FUNC) &amp;<a class="code" href="lmer_8c.html#a13a0ba07cfed7d6f208db76e2a25c3b" title="Check validity of an merMCMC object.">merMCMC_validate</a>, 1},
-<a name="l00025"></a>00025 
-<a name="l00026"></a>00026     {<span class="stringliteral">"spR_optimize"</span>, (DL_FUNC) &amp;<a class="code" href="lmer_8c.html#07450db2c100bd219a3d352a979e4e3f" title="Optimize the log-likelihood for the sparse representation of a Rasch model.">spR_optimize</a>, 2},
-<a name="l00027"></a>00027     {<span class="stringliteral">"spR_update_mu"</span>, (DL_FUNC) &amp;<a class="code" href="lmer_8c.html#7123d06a1ba23fcf7f83e2a54e2c8051" title="Update the eta, mu, resid and var slots in a sparseRasch object from the current...">spR_update_mu</a>, 1},
-<a name="l00028"></a>00028 <span class="comment">/*     {"Zt_carryOver", (DL_FUNC) &amp;Zt_carryOver, 4}, */</span>
-<a name="l00029"></a>00029 
-<a name="l00030"></a>00030     {NULL, NULL, 0}
-<a name="l00031"></a>00031 };
-<a name="l00032"></a>00032 
-<a name="l00034"></a><a class="code" href="lmer_8c.html#c2b5dcf1f18e620b15b2e284dd9f6bd4">00034</a> cholmod_common <a class="code" href="init_8c.html#c2b5dcf1f18e620b15b2e284dd9f6bd4" title="cholmod_common struct local to the package">c</a>;
-<a name="l00035"></a>00035 
-<a name="l00042"></a>00042 <span class="preprocessor">#ifdef HAVE_VISIBILITY_ATTRIBUTE</span>
-<a name="l00043"></a>00043 <span class="preprocessor"></span>__attribute__ ((visibility (<span class="stringliteral">"default"</span>)))
-<a name="l00044"></a>00044 <span class="preprocessor">#endif</span>
-<a name="l00045"></a><a class="code" href="init_8c.html#ece047eee8da997121e1577912ce2d3b">00045</a> <span class="preprocessor"></span><span class="keywordtype">void</span> <a class="code" href="init_8c.html#ece047eee8da997121e1577912ce2d3b" title="Initializer for lme4, called upon loading the package.">R_init_lme4</a>(DllInfo *dll)
-<a name="l00046"></a>00046 {
-<a name="l00047"></a>00047     R_registerRoutines(dll, NULL, <a class="code" href="init_8c.html#72a15cc31707a2b9a0f3dde756b40cb7">CallEntries</a>, NULL, NULL);
-<a name="l00048"></a>00048     R_useDynamicSymbols(dll, FALSE);
-<a name="l00049"></a>00049 
+<a name="l00025"></a>00025     {<span class="stringliteral">"merMCMC_VarCorr"</span>, (DL_FUNC) &amp;<a class="code" href="lmer_8c.html#62f6b3d34fe154b96de1cc2a787c10b7">merMCMC_VarCorr</a>, 2},
+<a name="l00026"></a>00026 
+<a name="l00027"></a>00027     {<span class="stringliteral">"spR_optimize"</span>, (DL_FUNC) &amp;<a class="code" href="lmer_8c.html#07450db2c100bd219a3d352a979e4e3f" title="Optimize the log-likelihood for the sparse representation of a Rasch model.">spR_optimize</a>, 2},
+<a name="l00028"></a>00028     {<span class="stringliteral">"spR_update_mu"</span>, (DL_FUNC) &amp;<a class="code" href="lmer_8c.html#7123d06a1ba23fcf7f83e2a54e2c8051" title="Update the eta, mu, resid and var slots in a sparseRasch object from the current...">spR_update_mu</a>, 1},
+<a name="l00029"></a>00029 <span class="comment">/*     {"Zt_carryOver", (DL_FUNC) &amp;Zt_carryOver, 4}, */</span>
+<a name="l00030"></a>00030 
+<a name="l00031"></a>00031     {NULL, NULL, 0}
+<a name="l00032"></a>00032 };
+<a name="l00033"></a>00033 
+<a name="l00035"></a><a class="code" href="lmer_8c.html#c2b5dcf1f18e620b15b2e284dd9f6bd4">00035</a> cholmod_common <a class="code" href="init_8c.html#c2b5dcf1f18e620b15b2e284dd9f6bd4" title="cholmod_common struct local to the package">c</a>;
+<a name="l00036"></a>00036 
+<a name="l00043"></a>00043 <span class="preprocessor">#ifdef HAVE_VISIBILITY_ATTRIBUTE</span>
+<a name="l00044"></a>00044 <span class="preprocessor"></span>__attribute__ ((visibility (<span class="stringliteral">"default"</span>)))
+<a name="l00045"></a>00045 <span class="preprocessor">#endif</span>
+<a name="l00046"></a><a class="code" href="init_8c.html#ece047eee8da997121e1577912ce2d3b">00046</a> <span class="preprocessor"></span><span class="keywordtype">void</span> <a class="code" href="init_8c.html#ece047eee8da997121e1577912ce2d3b" title="Initializer for lme4, called upon loading the package.">R_init_lme4</a>(DllInfo *dll)
+<a name="l00047"></a>00047 {
+<a name="l00048"></a>00048     R_registerRoutines(dll, NULL, <a class="code" href="init_8c.html#72a15cc31707a2b9a0f3dde756b40cb7">CallEntries</a>, NULL, NULL);
+<a name="l00049"></a>00049     R_useDynamicSymbols(dll, FALSE);
 <a name="l00050"></a>00050 
-<a name="l00051"></a>00051     M_R_cholmod_start(&amp;c);
-<a name="l00052"></a>00052     c.final_ll = 1;         <span class="comment">/* LL' form of simplicial factorization */</span>
-<a name="l00053"></a>00053 
-<a name="l00054"></a>00054     <a class="code" href="Syms_8h.html#f43f600b385c160bfa212f997076fe62" title="Pointers to symbols initialized in R_init_lme4.">lme4_ASym</a> = install(<span class="stringliteral">"A"</span>);
-<a name="l00055"></a>00055     <a class="code" href="Syms_8h.html#5ef50bc4e9cb19417879a686d2bc978d">lme4_CmSym</a> = install(<span class="stringliteral">"Cm"</span>);
-<a name="l00056"></a>00056     <a class="code" href="Syms_8h.html#8ff2a4997386633429ffb25d3a01b474">lme4_CxSym</a> = install(<span class="stringliteral">"Cx"</span>);
-<a name="l00057"></a>00057     <a class="code" href="Syms_8h.html#94df785421dd14ba39231f1e0fb36578">lme4_DimSym</a> = install(<span class="stringliteral">"Dim"</span>);
-<a name="l00058"></a>00058     <a class="code" href="Syms_8h.html#630eefecb5ab4f37bdd06e36a62113f9">lme4_GpSym</a> = install(<span class="stringliteral">"Gp"</span>);
-<a name="l00059"></a>00059     <a class="code" href="Syms_8h.html#1c5173cb2d24e6601e9cd7f68f2df7d2">lme4_LSym</a> = install(<span class="stringliteral">"L"</span>);
-<a name="l00060"></a>00060     <a class="code" href="Syms_8h.html#1d083917bff6a4b176ba750dd67448e0">lme4_RXSym</a> = install(<span class="stringliteral">"RX"</span>);
-<a name="l00061"></a>00061     <a class="code" href="Syms_8h.html#67c9c341d3b8e69b5fd4c273af5266e1">lme4_RZXSym</a> = install(<span class="stringliteral">"RZX"</span>);
-<a name="l00062"></a>00062     <a class="code" href="Syms_8h.html#14f91c10cf53ae13351717e358fdf447">lme4_STSym</a> = install(<span class="stringliteral">"ST"</span>);
-<a name="l00063"></a>00063     <a class="code" href="Syms_8h.html#183591151e2258266715d79b5e3c1e48">lme4_VSym</a> = install(<span class="stringliteral">"V"</span>);
-<a name="l00064"></a>00064     <a class="code" href="Syms_8h.html#c942d1af2e7836825b2c4d05469bbc9e">lme4_XSym</a> = install(<span class="stringliteral">"X"</span>);
-<a name="l00065"></a>00065     <a class="code" href="Syms_8h.html#14dc5416512dd72df18da9fda9b89089">lme4_ZtSym</a> = install(<span class="stringliteral">"Zt"</span>);
-<a name="l00066"></a>00066     <a class="code" href="Syms_8h.html#b9aed2e8e5de0f7481e729116ab89c65">lme4_devianceSym</a> = install(<span class="stringliteral">"deviance"</span>);
-<a name="l00067"></a>00067     <a class="code" href="Syms_8h.html#49094314461f4e9b10bbda1771719e29">lme4_dimsSym</a> = install(<span class="stringliteral">"dims"</span>);
-<a name="l00068"></a>00068     <a class="code" href="Syms_8h.html#5d31bdfcf4fa94ce1ed133fc1e8e4d24">lme4_envSym</a> = install(<span class="stringliteral">"env"</span>);
-<a name="l00069"></a>00069     <a class="code" href="Syms_8h.html#fdba9e80e5d00e861760bad5d2b80721">lme4_etaSym</a> = install(<span class="stringliteral">"eta"</span>);
-<a name="l00070"></a>00070     <a class="code" href="Syms_8h.html#cfa94b175e0d8bbb6ea7e3f1424bdda1">lme4_fixefSym</a> = install(<span class="stringliteral">"fixef"</span>);
-<a name="l00071"></a>00071     <a class="code" href="Syms_8h.html#445786e92c27738aaddf7d38cd5cc4de">lme4_flistSym</a> = install(<span class="stringliteral">"flist"</span>);
-<a name="l00072"></a>00072     <a class="code" href="Syms_8h.html#2709db534fe1076d573a8e61ab435cf3">lme4_gradientSym</a> = install(<span class="stringliteral">"gradient"</span>);
-<a name="l00073"></a>00073     <a class="code" href="Syms_8h.html#675208f7171fa263875961315cdebbe7">lme4_iSym</a> = install(<span class="stringliteral">"i"</span>);
-<a name="l00074"></a>00074     <a class="code" href="Syms_8h.html#d582c4dd4768f4f34c303ab841a6dcc3">lme4_ncSym</a> = install(<span class="stringliteral">"nc"</span>);
-<a name="l00075"></a>00075     <a class="code" href="Syms_8h.html#f7e33e69beb00b53406f3a53829bb7fc">lme4_nlmodelSym</a> = install(<span class="stringliteral">"nlmodel"</span>);
-<a name="l00076"></a>00076     <a class="code" href="Syms_8h.html#9165fffba3009fd7d6a5116e3d8435a3">lme4_muEtaSym</a> = install(<span class="stringliteral">"muEta"</span>);
-<a name="l00077"></a>00077     <a class="code" href="Syms_8h.html#49610fd9fb343595eab1f2bbd3d3d049">lme4_muSym</a> = install(<span class="stringliteral">"mu"</span>);
-<a name="l00078"></a>00078     <a class="code" href="Syms_8h.html#5f9b4851d1022ce2979bf1c881e9f8d6">lme4_offsetSym</a> = install(<span class="stringliteral">"offset"</span>);
-<a name="l00079"></a>00079     <a class="code" href="Syms_8h.html#08eac023c17fc43ab2ab1d0ee8f96dbd">lme4_pSym</a> = install(<span class="stringliteral">"p"</span>);
-<a name="l00080"></a>00080     <a class="code" href="Syms_8h.html#0ddb8cb990e42c1a4ba4ddf5e2413f88">lme4_permSym</a> = install(<span class="stringliteral">"perm"</span>);
-<a name="l00081"></a>00081     <a class="code" href="Syms_8h.html#302287be0ec829841f7f545c45cecaaf">lme4_pWtSym</a> = install(<span class="stringliteral">"pWt"</span>);
-<a name="l00082"></a>00082     <a class="code" href="Syms_8h.html#f475583b0aa24636c246c6ba140f5880">lme4_ranefSym</a> = install(<span class="stringliteral">"ranef"</span>);
-<a name="l00083"></a>00083     <a class="code" href="Syms_8h.html#be98511435f8333d8ff4d19cf7a772b8">lme4_residSym</a> = install(<span class="stringliteral">"resid"</span>);
-<a name="l00084"></a>00084     <a class="code" href="Syms_8h.html#cafaea636385bc2ee46e1ae1aadbd1e4">lme4_sigmaSym</a> = install(<span class="stringliteral">"sigma"</span>);
-<a name="l00085"></a>00085     <a class="code" href="Syms_8h.html#1574df2fdf37159dc20454f11547f2d9">lme4_sqrtrWtSym</a> = install(<span class="stringliteral">"sqrtrWt"</span>);
-<a name="l00086"></a>00086     <a class="code" href="Syms_8h.html#fd7e3b6a125ffad497122cb5c7dd51e8">lme4_sqrtXWtSym</a> = install(<span class="stringliteral">"sqrtXWt"</span>);
-<a name="l00087"></a>00087     <a class="code" href="Syms_8h.html#2816fefefb73a848518fa24fed0335fa">lme4_uSym</a> = install(<span class="stringliteral">"u"</span>);
-<a name="l00088"></a>00088     <a class="code" href="Syms_8h.html#d8e21a6adccfdf7184021af64c72ae0e">lme4_varSym</a> = install(<span class="stringliteral">"var"</span>);
-<a name="l00089"></a>00089     <a class="code" href="Syms_8h.html#98fea3f5a0abe919544cd46185b1f416">lme4_xSym</a> = install(<span class="stringliteral">"x"</span>);
-<a name="l00090"></a>00090     <a class="code" href="Syms_8h.html#fd01bb0c98ee90bc0e8f8cdf538e6a33">lme4_ySym</a> = install(<span class="stringliteral">"y"</span>);
-<a name="l00091"></a>00091 }
-<a name="l00092"></a>00092 
-<a name="l00096"></a><a class="code" href="init_8c.html#af2800f65ac2bbcc43845e03d9dec260">00096</a> <span class="keywordtype">void</span> <a class="code" href="init_8c.html#af2800f65ac2bbcc43845e03d9dec260" title="Finalizer for lme4 called upon unloading the package.">R_unload_lme4</a>(DllInfo *dll){
-<a name="l00097"></a>00097     M_cholmod_finish(&amp;c);
-<a name="l00098"></a>00098 }
-</pre></div><hr size="1"><address style="text-align: right;"><small>Generated on Wed Mar 12 09:53:08 2008 for lme4 by&nbsp;
+<a name="l00051"></a>00051 
+<a name="l00052"></a>00052     M_R_cholmod_start(&amp;c);
+<a name="l00053"></a>00053     c.final_ll = 1;         <span class="comment">/* LL' form of simplicial factorization */</span>
+<a name="l00054"></a>00054 
+<a name="l00055"></a>00055     <a class="code" href="Syms_8h.html#f43f600b385c160bfa212f997076fe62" title="Pointers to symbols initialized in R_init_lme4.">lme4_ASym</a> = install(<span class="stringliteral">"A"</span>);
+<a name="l00056"></a>00056     <a class="code" href="Syms_8h.html#5ef50bc4e9cb19417879a686d2bc978d">lme4_CmSym</a> = install(<span class="stringliteral">"Cm"</span>);
+<a name="l00057"></a>00057     <a class="code" href="Syms_8h.html#8ff2a4997386633429ffb25d3a01b474">lme4_CxSym</a> = install(<span class="stringliteral">"Cx"</span>);
+<a name="l00058"></a>00058     <a class="code" href="Syms_8h.html#94df785421dd14ba39231f1e0fb36578">lme4_DimSym</a> = install(<span class="stringliteral">"Dim"</span>);
+<a name="l00059"></a>00059     <a class="code" href="Syms_8h.html#630eefecb5ab4f37bdd06e36a62113f9">lme4_GpSym</a> = install(<span class="stringliteral">"Gp"</span>);
+<a name="l00060"></a>00060     <a class="code" href="Syms_8h.html#1c5173cb2d24e6601e9cd7f68f2df7d2">lme4_LSym</a> = install(<span class="stringliteral">"L"</span>);
+<a name="l00061"></a>00061     <a class="code" href="Syms_8h.html#1d083917bff6a4b176ba750dd67448e0">lme4_RXSym</a> = install(<span class="stringliteral">"RX"</span>);
+<a name="l00062"></a>00062     <a class="code" href="Syms_8h.html#67c9c341d3b8e69b5fd4c273af5266e1">lme4_RZXSym</a> = install(<span class="stringliteral">"RZX"</span>);
+<a name="l00063"></a>00063     <a class="code" href="Syms_8h.html#14f91c10cf53ae13351717e358fdf447">lme4_STSym</a> = install(<span class="stringliteral">"ST"</span>);
+<a name="l00064"></a>00064     <a class="code" href="Syms_8h.html#183591151e2258266715d79b5e3c1e48">lme4_VSym</a> = install(<span class="stringliteral">"V"</span>);
+<a name="l00065"></a>00065     <a class="code" href="Syms_8h.html#c942d1af2e7836825b2c4d05469bbc9e">lme4_XSym</a> = install(<span class="stringliteral">"X"</span>);
+<a name="l00066"></a>00066     <a class="code" href="Syms_8h.html#14dc5416512dd72df18da9fda9b89089">lme4_ZtSym</a> = install(<span class="stringliteral">"Zt"</span>);
+<a name="l00067"></a>00067     <a class="code" href="Syms_8h.html#b9aed2e8e5de0f7481e729116ab89c65">lme4_devianceSym</a> = install(<span class="stringliteral">"deviance"</span>);
+<a name="l00068"></a>00068     <a class="code" href="Syms_8h.html#49094314461f4e9b10bbda1771719e29">lme4_dimsSym</a> = install(<span class="stringliteral">"dims"</span>);
+<a name="l00069"></a>00069     <a class="code" href="Syms_8h.html#5d31bdfcf4fa94ce1ed133fc1e8e4d24">lme4_envSym</a> = install(<span class="stringliteral">"env"</span>);
+<a name="l00070"></a>00070     <a class="code" href="Syms_8h.html#fdba9e80e5d00e861760bad5d2b80721">lme4_etaSym</a> = install(<span class="stringliteral">"eta"</span>);
+<a name="l00071"></a>00071     <a class="code" href="Syms_8h.html#cfa94b175e0d8bbb6ea7e3f1424bdda1">lme4_fixefSym</a> = install(<span class="stringliteral">"fixef"</span>);
+<a name="l00072"></a>00072     <a class="code" href="Syms_8h.html#445786e92c27738aaddf7d38cd5cc4de">lme4_flistSym</a> = install(<span class="stringliteral">"flist"</span>);
+<a name="l00073"></a>00073     <a class="code" href="Syms_8h.html#2709db534fe1076d573a8e61ab435cf3">lme4_gradientSym</a> = install(<span class="stringliteral">"gradient"</span>);
+<a name="l00074"></a>00074     <a class="code" href="Syms_8h.html#675208f7171fa263875961315cdebbe7">lme4_iSym</a> = install(<span class="stringliteral">"i"</span>);
+<a name="l00075"></a>00075     <a class="code" href="Syms_8h.html#d582c4dd4768f4f34c303ab841a6dcc3">lme4_ncSym</a> = install(<span class="stringliteral">"nc"</span>);
+<a name="l00076"></a>00076     <a class="code" href="Syms_8h.html#f7e33e69beb00b53406f3a53829bb7fc">lme4_nlmodelSym</a> = install(<span class="stringliteral">"nlmodel"</span>);
+<a name="l00077"></a>00077     <a class="code" href="Syms_8h.html#9165fffba3009fd7d6a5116e3d8435a3">lme4_muEtaSym</a> = install(<span class="stringliteral">"muEta"</span>);
+<a name="l00078"></a>00078     <a class="code" href="Syms_8h.html#49610fd9fb343595eab1f2bbd3d3d049">lme4_muSym</a> = install(<span class="stringliteral">"mu"</span>);
+<a name="l00079"></a>00079     <a class="code" href="Syms_8h.html#5f9b4851d1022ce2979bf1c881e9f8d6">lme4_offsetSym</a> = install(<span class="stringliteral">"offset"</span>);
+<a name="l00080"></a>00080     <a class="code" href="Syms_8h.html#08eac023c17fc43ab2ab1d0ee8f96dbd">lme4_pSym</a> = install(<span class="stringliteral">"p"</span>);
+<a name="l00081"></a>00081     <a class="code" href="Syms_8h.html#0ddb8cb990e42c1a4ba4ddf5e2413f88">lme4_permSym</a> = install(<span class="stringliteral">"perm"</span>);
+<a name="l00082"></a>00082     <a class="code" href="Syms_8h.html#302287be0ec829841f7f545c45cecaaf">lme4_pWtSym</a> = install(<span class="stringliteral">"pWt"</span>);
+<a name="l00083"></a>00083     <a class="code" href="Syms_8h.html#f475583b0aa24636c246c6ba140f5880">lme4_ranefSym</a> = install(<span class="stringliteral">"ranef"</span>);
+<a name="l00084"></a>00084     <a class="code" href="Syms_8h.html#be98511435f8333d8ff4d19cf7a772b8">lme4_residSym</a> = install(<span class="stringliteral">"resid"</span>);
+<a name="l00085"></a>00085     <a class="code" href="Syms_8h.html#cafaea636385bc2ee46e1ae1aadbd1e4">lme4_sigmaSym</a> = install(<span class="stringliteral">"sigma"</span>);
+<a name="l00086"></a>00086     <a class="code" href="Syms_8h.html#1574df2fdf37159dc20454f11547f2d9">lme4_sqrtrWtSym</a> = install(<span class="stringliteral">"sqrtrWt"</span>);
+<a name="l00087"></a>00087     <a class="code" href="Syms_8h.html#fd7e3b6a125ffad497122cb5c7dd51e8">lme4_sqrtXWtSym</a> = install(<span class="stringliteral">"sqrtXWt"</span>);
+<a name="l00088"></a>00088     <a class="code" href="Syms_8h.html#2816fefefb73a848518fa24fed0335fa">lme4_uSym</a> = install(<span class="stringliteral">"u"</span>);
+<a name="l00089"></a>00089     <a class="code" href="Syms_8h.html#d8e21a6adccfdf7184021af64c72ae0e">lme4_varSym</a> = install(<span class="stringliteral">"var"</span>);
+<a name="l00090"></a>00090     <a class="code" href="Syms_8h.html#98fea3f5a0abe919544cd46185b1f416">lme4_xSym</a> = install(<span class="stringliteral">"x"</span>);
+<a name="l00091"></a>00091     <a class="code" href="Syms_8h.html#fd01bb0c98ee90bc0e8f8cdf538e6a33">lme4_ySym</a> = install(<span class="stringliteral">"y"</span>);
+<a name="l00092"></a>00092 }
+<a name="l00093"></a>00093 
+<a name="l00097"></a><a class="code" href="init_8c.html#af2800f65ac2bbcc43845e03d9dec260">00097</a> <span class="keywordtype">void</span> <a class="code" href="init_8c.html#af2800f65ac2bbcc43845e03d9dec260" title="Finalizer for lme4 called upon unloading the package.">R_unload_lme4</a>(DllInfo *dll){
+<a name="l00098"></a>00098     M_cholmod_finish(&amp;c);
+<a name="l00099"></a>00099 }
+</pre></div><hr size="1"><address style="text-align: right;"><small>Generated on Wed Mar 26 17:27:19 2008 for lme4 by&nbsp;
 <a href="http://www.doxygen.org/index.html">
 <img src="doxygen.png" alt="doxygen" align="middle" border="0"></a> 1.5.3 </small></address>
 </body>
