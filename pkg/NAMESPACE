@@ -24,8 +24,10 @@ export("glmer", "gsummary", "hatTrace", "HPDinterval",
        "lmList", "lmer", "lmer2", "mcmcsamp", "nlmer",
        "pooledSD", "VarCorr")
 
-exportClasses("coef.mer", "lmList", "mer", "merMCMC",
-              "ranef.mer", "summary.mer")
+exportClasses(#"coef.mer",
+              "lmList", "mer", "merMCMC",
+              #"ranef.mer",
+              "summary.mer")
 
 exportMethods(
               "BIC",
@@ -65,3 +67,8 @@ exportMethods(
               "xyplot"
               )
 
+S3method(plot, coef.mer)
+S3method(print, coef.mer)
+S3method(plot, ranef.mer)
+S3method(print, ranef.mer)
+S3method(qqmath, ranef.mer)

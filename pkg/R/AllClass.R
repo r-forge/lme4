@@ -77,9 +77,9 @@ setClass("summary.mer",                 # Additional slots in a summary object
 			AICtab= "data.frame"),
          contains = "mer")
 
-setClass("ranef.mer", contains = "list")
+#setClass("ranef.mer", contains = "list")
 
-setClass("coef.mer", contains = "list")
+#setClass("coef.mer", contains = "list")
 
 setClass("sparseRasch", representation =
          list(dims = "integer",

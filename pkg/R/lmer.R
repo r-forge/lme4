@@ -253,7 +253,8 @@ lmerFactorList <- function(formula, mf, rmInt, drop)
                              Zt = do.call(rBind,
                              lapply(seq_len(ncol(mm)),
                                     function(j) {im@x <- mm[,j]; im})),
-                             cnames = colnames(mm))
+                             ST = matrix(0, ncol(mm), ncol(mm),
+                             dimnames = list(colnames(mm), colnames(mm))))
                  if (drop) {
                      ## This is only used for nlmer models.  
                      ## Need to do something more complicated for A
@@ -266,18 +267,24 @@ lmerFactorList <- function(formula, mf, rmInt, drop)
                  }
                  ans
              })
-
-    ## order factor list by decreasing number of levels but don't
+    ## order terms by decreasing number of levels in the factor but don't
     ## change the order if this is already true
     nlev <- sapply(fl, function(el) length(levels(el$f)))
-    ord <- seq_along(nlev)
-    if (any(diff(nlev) < 0)) ord <- rev(order(nlev))
-    fl[ord]
-### FIXME: 1. Detect and collapse repeated factors. Use an integer
-### index vector to map random-effects terms to factors.
-### 2. Check to see if the factors form a nested sequence after
-### removing repeated factors (for information only).
-### 3. Create the A matrix at this point while Ztl is still a list.
+    if (any(diff(nlev)) > 0) fl <- fl[rev(order(nlev))]
+    ## separate the terms from the factor list
+    trms <- lapply(fl, "[", -1)
+    names(trms) <- NULL
+    fl <- lapply(fl, "[[", "f")
+    attr(fl, "assign") <- seq_along(fl)
+    ## check for repeated factors
+    fnms <- names(fl)
+    if (length(fnms) > length(ufn <- unique(fnms))) {
+        ## check that the lengths of the number of levels coincide
+        fl <- fl[match(ufn, fnms)]
+        attr(fl, "assign") <- match(fnms, ufn)
+    }
+    names(fl) <- ufn
+    list(trms = trms, fl = fl)
 }
 
 checkSTform <- function(ST, STnew)
@@ -321,19 +328,18 @@ mkdims <- function(fr, FL, start, s = 1L)
 ### Create the standard versions of flist, Zt, Gp, ST, A, Cm,
 ### Cx, L and dd
 {
-    flist <- lapply(FL, `[[`, "f")
-    Ztl <- lapply(FL, `[[`, "Zt")
-    cnames <- lapply(FL, `[[`, "cnames")
+    fl <- FL$fl
+    asgn <- attr(fl, "assign")
+    trms <- FL$trms
+    ST <- lapply(trms, `[[`, "ST")
+    Ztl <- lapply(trms, `[[`, "Zt")
     Zt <- do.call(rBind, Ztl)
     Zt@Dimnames <- vector("list", 2)
     Gp <- unname(c(0L, cumsum(sapply(Ztl, nrow))))
-    A <- do.call(rBind, lapply(FL, `[[`, "A"))
-    rm(Ztl, FL)                         # because they could be large
-    nc <- sapply(cnames, length)        # # of columns in els of ST
-    ST <- lapply(cnames, function(nm)
-             {n <- length(nm)
-              matrix(0, n, n, dimnames = list(nm, nm))})
     .Call(mer_ST_initialize, ST, Gp, Zt)
+    A <- do.call(rBind, lapply(trms, `[[`, "A"))
+    rm(Ztl, FL)                         # because they could be large
+    nc <- sapply(ST, ncol)         # of columns in els of ST
     Cm <- createCm(A, s)
     L <- .Call(mer_create_L, Cm)
     if (s < 2) Cm <- new("dgCMatrix")
@@ -355,14 +361,16 @@ mkdims <- function(fr, FL, start, s = 1L)
     dd["lTyp"] <- 5L                    # default link is "identity"
     dd["vTyp"] <- 1L                    # default variance function is "constant"    
     ## check for nesting of factors
-    dd["nest"] <- all(sapply(seq_along(flist)[-1],
-                             function(i) isNested(flist[[i-1]], flist[[i]])))
+    dd["nest"] <- all(sapply(seq_along(fl)[-1],
+                             function(i) isNested(fl[[i-1]], fl[[i]])))
     dd["useSc"] <- 1L                   # default is to use the scale parameter
     dd["cvg"]  <- 0L                    # no optimization yet attempted
     dev <- VecFromNames(devNames, "numeric")
+    fl <- do.call(data.frame, c(fl, check.names = FALSE))
+    attr(fl, "assign") <- asgn
 
-    list(Gp = Gp, ST = ST, A = A, Cm = Cm, L = L, Zt = Zt, dd = dd, dev = dev,
-         flist = do.call(data.frame, c(flist, check.names = FALSE)))
+    list(Gp = Gp, ST = ST, A = A, Cm = Cm, L = L, Zt = Zt,
+         dd = dd, dev = dev, flist = fl)
 }
 
 famNms <- c("binomial", "gaussian", "Gamma", "inverse.gaussian",
@@ -722,7 +730,9 @@ setMethod("coef", signature(object = "mer"),
                   stop("unable to align random and fixed effects")
               for (nm in nmsi) val[[i]][[nm]] <- val[[i]][[nm]] + refi[,nm]
           }
-          new("coef.mer", val)
+          class(val) <- "coef.mer"
+          val
+#          new("coef.mer", val)
        })
 
 setAs("mer", "dtCMatrix", function(from)
@@ -737,28 +747,37 @@ setMethod("fixef", signature(object = "mer"),
 setMethod("ranef", signature(object = "mer"),
 	  function(object, postVar = FALSE, ...)
 ### Extract the random effects
-### FIXME: This will need to be modified if flist is collapsed
       {
+          fl <- object@flist
+          levs <- lapply(fl, levels)
+          asgn <- attr(fl, "assign")
           Gp <- object@Gp
           ii <- lapply(diff(Gp), seq_len)
           rr <- object@ranef
           cn <- lapply(object@ST, colnames)
-          rn <- lapply(object@flist, levels)
           ans <-
-              lapply(seq_len(length(ii)),
-                     function(i)
-                     data.frame(matrix(rr[ii[[i]] + Gp[i]],
-                                       nc = length(cn[[i]]),
-                                       dimnames = list(rn[[i]], cn[[i]])),
-                                check.names = FALSE))
+              lapply(split(lapply(seq_len(length(ii)),
+                                  function(i)
+                                  data.frame(matrix(rr[ii[[i]] + Gp[i]],
+                                                    nc = length(cn[[i]]),
+                                                    dimnames = list(
+                                                    levs[[asgn[i]]], cn[[i]])),
+                                             check.names = FALSE)),
+                           asgn), function(lst) do.call(cbind, lst))
+          names(ans) <- names(fl)
+          class(ans) <- "ranef.mer"
+          return(ans)
           names(ans) <- names(object@ST)
           if (postVar) {
               pV <- .Call(mer_postVar, object)
               for (i in seq_along(ans))
                   attr(ans[[i]], "postVar") <- pV[[i]]
           }
-          new("ranef.mer", ans)
+#          new("ranef.mer", ans)
       })
+
+print.ranef.mer <- function(x, ...) print(unclass(x), ...)
+print.coef.mer <- function(x, ...) print(unclass(x), ...)
 
 setMethod("sigma", signature(object = "mer"),
           function (object, ...) {
@@ -1193,84 +1212,91 @@ setMethod("summary", signature(object = "summary.mer"), function(object) object)
 
 #### Methods to produce specific plots
 
-setMethod("plot", signature(x = "coef.mer"),
-          function(x, y, ...)
-      {
-          varying <- unique(do.call("c",
-                                    lapply(x, function(el)
-                                           names(el)[sapply(el,
-                                                            function(col)
-                                                            any(col != col[1]))])))
-          gf <- do.call("rBind", lapply(x, "[", j = varying))
-          gf$.grp <- factor(rep(names(x), sapply(x, nrow)))
-          switch(min(length(varying), 3),
-                 qqmath(eval(substitute(~ x | .grp,
-                                        list(x = as.name(varying[1])))), gf, ...),
-                 xyplot(eval(substitute(y ~ x | .grp,
-                                        list(y = as.name(varying[1]),
-                                             x = as.name(varying[2])))), gf, ...),
-                 splom(~ gf | .grp, ...))
-      })
+plot.coef.mer <- function(x, y, ...)
+## setMethod("plot", signature(x = "coef.mer"),
+##           function(x, y, ...)
+{
+    varying <- unique(do.call("c",
+                              lapply(x, function(el)
+                                     names(el)[sapply(el,
+                                                      function(col)
+                                                      any(col != col[1]))])))
+    gf <- do.call("rBind", lapply(x, "[", j = varying))
+    gf$.grp <- factor(rep(names(x), sapply(x, nrow)))
+    switch(min(length(varying), 3),
+           qqmath(eval(substitute(~ x | .grp,
+                                  list(x = as.name(varying[1])))), gf, ...),
+           xyplot(eval(substitute(y ~ x | .grp,
+                                  list(y = as.name(varying[1]),
+                                       x = as.name(varying[2])))), gf, ...),
+           splom(~ gf | .grp, ...))
+}
+## )
 
-setMethod("plot", signature(x = "ranef.mer"),
-	  function(x, y, ...)
-      {
-	  lapply(x, function(x) {
-	      cn <- lapply(colnames(x), as.name)
-	      switch(min(ncol(x), 3),
-		     qqmath(eval(substitute(~ x, list(x = cn[[1]]))), x, ...),
-		     xyplot(eval(substitute(y ~ x,
-					    list(y = cn[[1]],
-						 x = cn[[2]]))), x, ...),
-		     splom(~ x, ...))
-	  })
-      })
+plot.ranef.mer <- function(x, y, ...)
+## setMethod("plot", signature(x = "ranef.mer"),
+## 	  function(x, y, ...)
+{
+    lapply(x, function(x) {
+        cn <- lapply(colnames(x), as.name)
+        switch(min(ncol(x), 3),
+               qqmath(eval(substitute(~ x, list(x = cn[[1]]))), x, ...),
+               xyplot(eval(substitute(y ~ x,
+                                      list(y = cn[[1]],
+                                           x = cn[[2]]))), x, ...),
+               splom(~ x, ...))
+    })
+}
+## )
 
-setMethod("qqmath", signature(x = "ranef.mer"),
-          function(x, data, ...) {
-              prepanel.ci <- function(x, y, se, subscripts, ...) {
-                  y <- as.numeric(y)
-                  se <- as.numeric(se[subscripts])
-                  hw <- 1.96 * se
-                  list(ylim = range(y - hw, y + hw, finite = TRUE))
-              }
-              panel.ci <- function(x, y, se, subscripts, pch = 16, ...)  {
-                  panel.grid(h = -1,v = -1)
-                  panel.abline(h = 0)
-                  x <- as.numeric(x)
-                  y <- as.numeric(y)
-                  se <- as.numeric(se[subscripts])
-                  ly <- y - 1.96 * se
-                  uy <- y + 1.96 * se
-                  panel.segments(x, y - 1.96*se, x, y + 1.96 * se,
-                                 col = 'black')
-                  panel.xyplot(x, y, pch = pch, ...)
-              }
-              f <- function(x) {
-                  if (!is.null(pv <- attr(x, "postVar"))) {
-                      cols <- 1:(dim(pv)[1])
-                      se <- unlist(lapply(cols, function(i) sqrt(pv[i, i, ])))
-                      nr <- nrow(x)
-                      nc <- ncol(x)
-                      ord <- unlist(lapply(x, order)) +
-                          rep((0:(nc - 1)) * nr, each = nr)
-                      rr <- 1:nr
-                      ind <- gl(ncol(x), nrow(x), labels = names(x))
-                      xyplot(unlist(x)[ord] ~
-                             rep(qnorm((rr - 0.5)/nr), ncol(x)) | ind[ord],
-                             se = se[ord], prepanel = prepanel.ci, panel = panel.ci,
-                             scales = list(y = list(relation = "free")),
-                             xlab = "Standard normal quantiles",
-                             ylab = NULL, aspect = 1, ...)
-                  } else {
-                      qqmath(~values|ind, stack(x),
-                             scales = list(y = list(relation = "free")),
-                             xlab = "Standard normal quantiles",
-                             ylab = NULL, ...)
-                  }
-              }
-              lapply(x, f)
-          })
+qqmath.ranef.mer <- function(x, data, ...)
+## setMethod("qqmath", signature(x = "ranef.mer"),
+##           function(x, data, ...)
+{
+    prepanel.ci <- function(x, y, se, subscripts, ...) {
+        y <- as.numeric(y)
+        se <- as.numeric(se[subscripts])
+        hw <- 1.96 * se
+        list(ylim = range(y - hw, y + hw, finite = TRUE))
+    }
+    panel.ci <- function(x, y, se, subscripts, pch = 16, ...)  {
+        panel.grid(h = -1,v = -1)
+        panel.abline(h = 0)
+        x <- as.numeric(x)
+        y <- as.numeric(y)
+        se <- as.numeric(se[subscripts])
+        ly <- y - 1.96 * se
+        uy <- y + 1.96 * se
+        panel.segments(x, y - 1.96*se, x, y + 1.96 * se,
+                       col = 'black')
+        panel.xyplot(x, y, pch = pch, ...)
+    }
+    f <- function(x) {
+        if (!is.null(pv <- attr(x, "postVar"))) {
+            cols <- 1:(dim(pv)[1])
+            se <- unlist(lapply(cols, function(i) sqrt(pv[i, i, ])))
+            nr <- nrow(x)
+            nc <- ncol(x)
+            ord <- unlist(lapply(x, order)) +
+                rep((0:(nc - 1)) * nr, each = nr)
+            rr <- 1:nr
+            ind <- gl(ncol(x), nrow(x), labels = names(x))
+            xyplot(unlist(x)[ord] ~
+                   rep(qnorm((rr - 0.5)/nr), ncol(x)) | ind[ord],
+                   se = se[ord], prepanel = prepanel.ci, panel = panel.ci,
+                   scales = list(y = list(relation = "free")),
+                   xlab = "Standard normal quantiles",
+                   ylab = NULL, aspect = 1, ...)
+        } else {
+            qqmath(~values|ind, stack(x),
+                   scales = list(y = list(relation = "free")),
+                   xlab = "Standard normal quantiles",
+                   ylab = NULL, ...)
+        }
+    }
+    lapply(x, f)
+}
+##          )
 
 
 #### Creating and displaying a Markov Chain Monte Carlo sample from

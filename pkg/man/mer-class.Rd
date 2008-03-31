@@ -3,9 +3,9 @@
 \docType{class}
 % Classes
 \alias{mer-class}
-\alias{coef.mer-class}
+%\alias{coef.mer-class}
 \alias{summary.mer-class}
-\alias{ranef.mer-class}
+%\alias{ranef.mer-class}
 % Methods
 \alias{anova,mer-method}
 \alias{coef,mer-method}
@@ -29,10 +29,10 @@
 \alias{simulate,mer-method}
 \alias{with,mer-method}
 %
-\alias{plot,coef.mer-method}
+%\alias{plot,coef.mer-method}
 %
-\alias{plot,ranef.mer-method}
-\alias{qqmath,ranef.mer-method}
+%\alias{plot,ranef.mer-method}
+%\alias{qqmath,ranef.mer-method}
 %
 \alias{deviance,summary.mer-method}
 \alias{logLik,summary.mer-method}
@@ -170,9 +170,6 @@
       \eqn{Y} given the random effects, up to prior weights.  In
       generalized mixed models this is the value of the variance
       function for the \code{\link{glm}} family.}
-
-    \item{\code{mu}:}{The means of the responses at the current parameter
-      values.}
 
     \item{\code{resid}:}{The residuals, \eqn{y - \mu}{y-mu}, weighted by
       the \code{sqrtrWt} slot (when its length is \eqn{>0}).}
