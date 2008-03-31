@@ -1721,8 +1721,8 @@ SEXP mer_validate(SEXP x)
 	ST = GET_SLOT(x, lme4_STSym),
 	devianceP = GET_SLOT(x, lme4_devianceSym),
 	dimsP = GET_SLOT(x, lme4_dimsSym),
-	flistP = GET_SLOT(x, lme4_flistSym);
-    int *Gp = INTEGER(GpP), *dd = INTEGER(dimsP);
+	flistP = GET_SLOT(x, lme4_flistSym), asgnP;
+    int *Gp = INTEGER(GpP), *dd = INTEGER(dimsP), *asgn;
     int n = dd[n_POS], nf = dd[nf_POS], nq, p = dd[p_POS],
 	q = dd[q_POS], s = dd[s_POS];
     int nv = n * s;
@@ -1731,8 +1731,11 @@ SEXP mer_validate(SEXP x)
     char *buf = Alloca(BUF_SIZE + 1, char);
     R_CheckStack();
 				/* check lengths */
-    if (nf < 1 || LENGTH(flistP) != nf || LENGTH(ST) != nf)
-	return mkString(_("Slots ST, and flist must have length dims['nf']"));
+    if (nf < 1 || LENGTH(ST) != nf)
+	return mkString(_("Slot ST must have length dims['nf']"));
+    asgnP = getAttrib(flistP, install("assign"));
+    if (!isInteger(asgnP) || LENGTH(asgnP) != nf)
+	return mkString(_("Slot flist must have integer attribute 'assign' of length dims['nf']"));
     if (LENGTH(GpP) != nf + 1)
 	return mkString(_("Slot Gp must have length dims['nf'] + 1"));
     if (Gp[0] != 0 || Gp[nf] != q)
@@ -1767,20 +1770,26 @@ SEXP mer_validate(SEXP x)
     if (chkDims(buf, BUF_SIZE, x, lme4_RXSym, p, p)) return(mkString(buf));
 
     nq = 0;
+    for (int i = 0; i < LENGTH(flistP); i++) {
+	SEXP fli = VECTOR_ELT(flistP, i);
+	if (!isFactor(fli))
+	    return mkString(_("flist must be a list of factors"));
+/* 	nq += dm[0] * LENGTH(getAttrib(fli, R_LevelsSymbol)); */
+    }
     for (int i = 0; i < nf; i++) {
-	SEXP STi = VECTOR_ELT(ST, i), fli = VECTOR_ELT(flistP, i);
+	SEXP STi = VECTOR_ELT(ST, i);
 	int *dm = INTEGER(getAttrib(STi, R_DimSymbol));
 	if (!isMatrix(STi) || !isReal(STi) || dm[0] != dm[1])
 	    return
 		mkString(_("Slot ST must be a list of square numeric matrices"));
 	if (Gp[i] > Gp[i + 1])
 	    return mkString(_("Gp must be non-decreasing"));
-	if (!isFactor(fli))
-	    return mkString(_("flist must be a list of factors"));
-	nq += dm[0] * LENGTH(getAttrib(fli, R_LevelsSymbol));
     }
+#if 0
+/* FIXME: Need to incorporate the assign attribute in the calculation of nq */
     if (q != nq)
 	return mkString(_("q is not sum of columns by levels"));
+#endif
     return ScalarLogical(1);
 }
 
