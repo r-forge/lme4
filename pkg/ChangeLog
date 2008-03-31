@@ -1,3 +1,37 @@
+2008-03-31  Douglas Bates <bates@stat.wisc.edu>
+
+        * [r115] DESCRIPTION: New release
+        * [r114] tests/lmer.R: Clean up tests for new form of the flist slot
+        * [r113] R/carryOver.R, R/mlirt.R: Remove defunct constructions to pass
+          codeTools checks
+        * [r112] NAMESPACE, R/AllClass.R, R/lmer.R, man/mer-class.Rd,
+          src/lmer.c: Change form of flist slot to allow for duplicates; Change
+          ranef.mer and coef.mer to S3-classed objects
+        * [r111] inst/doc/Implementation.Rnw: Update for recent changes in
+          package
+        * [r110] inst/doc/Notes.Rnw: New vignette based on notes for Andrew
+          Robinson
+
+2008-03-29  Martin Maechler  <maechler@stat.math.ethz.ch>
+
+        * [r109] man/mer-class.Rd: get rid of codoc() warning
+
+2008-03-26  Douglas Bates <bates@stat.wisc.edu>
+
+        * [r108] DESCRIPTION: New version
+        * [r106] NAMESPACE, R/AllClass.R, R/lmer.R, R/mlirt.R, man/VarCorr.Rd,
+          man/merMCMC-class.Rd, src/init.c, src/lmer.c, src/lmer.h: Add
+          graphical diagnostics for merMCMC class; Remove cnames slot; Initial
+          VarCorr for merMCMC
+
+2008-03-17  Douglas Bates <bates@stat.wisc.edu>
+
+        * [r105] DESCRIPTION: New version; update dependencies
+        * [r104] src/lmer.c: Move ldetL2 calculations to Matrix package and call
+          the exported function from update_L
+        * [r103] R/lmer.R: Encapsulate post-model-matrix operations for lmer in
+          lmer_finalize.
+	
 2008-03-17  Douglas Bates <bates@stat.wisc.edu>
 
         * [r101] R/AllClass.R: Add classes merExt and lmerStratVar
