@@ -36,14 +36,10 @@ cc <- coef(fm1)
 stopifnot(is.list(cc), length(cc) == 1, class(cc[[1]]) == "data.frame")
 print(plot(cc))
 rr <- ranef(fm2)
-stopifnot(is.list(rr), length(rr) == 2,
-          all((sapply(rr, class) == "data.frame")))
-if (FALSE) {  ## FIXME
-    print(plot(rr))
-}
+stopifnot(is.list(rr), length(rr) == 1, class(rr[[1]]) == "data.frame")
+print(plot(rr))
 cc <- coef(fm2)
-stopifnot(is.list(cc), length(cc) == 2,
-          all((sapply(cc, class) == "data.frame")))
+stopifnot(is.list(cc), length(cc) == 1, class(cc[[1]]) == "data.frame")
 print(plot(cc))
 
 if (require('MASS', quietly = TRUE)) {
@@ -52,16 +48,9 @@ if (require('MASS', quietly = TRUE)) {
         structure(contr.sdif(3),
                   dimnames = list(NULL, c("diag", "encourage")))
     print(fm5 <- lmer(y ~ trt + wk2 + (1|ID), bacteria, binomial))
-    print(system.time(fm5 <- lmer(y ~ trt + wk2 + (1|ID), bacteria, binomial),
-                      gc = TRUE))
-    print(fm6 <- lmer(y ~ trt + wk2 + (1|ID), bacteria, binomial,
-                      method = 'Laplace'))
-    print(system.time(lmer(y ~ trt + wk2 + (1|ID), bacteria, binomial,
-                           method = 'Laplace'), gc = TRUE))
-##     print(fm6a <- lmer(y ~ trt + wk2 + (1|ID), bacteria, binomial,
-##                        method = 'AGQ'))
-##     print(system.time(lmer(y ~ trt + wk2 + (1|ID), bacteria, binomial,
-##                            method = 'AGQ'), gc = TRUE))
+    print(system.time(fm5 <- lmer(y ~ trt + wk2 + (1|ID), bacteria, binomial)))
+    print(fm6 <- lmer(y ~ trt + wk2 + (1|ID), bacteria, binomial))
+    print(system.time(lmer(y ~ trt + wk2 + (1|ID), bacteria, binomial)))
 }
 
 ## Invalid factor specification -- used to seg.fault:
