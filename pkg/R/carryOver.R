@@ -2,25 +2,25 @@
 ## the effect of one grouping factor (e.g. teacher) on another
 ## grouping factor (e.g. student)
 
-carryOver <- function(formula, data, carry, REML = TRUE, control = list(),
-                      start = NULL, varycarry = TRUE,
-                      subset, weights, na.action, offset,
-                      contrasts = NULL, model = TRUE, ...)
+reorder_fr <- function(fr, ord) fr
+
+carryOver <-
+    function(formula, data, carry, varycarry = TRUE,
+             method = c("REML", "ML"), control = list(),
+             start = NULL, verbose = FALSE,
+             subset, weights, na.action, offset, contrasts = NULL,
+             model = TRUE, x = TRUE, ...)
 {
-    formula <- as.formula(formula)
-    if (length(formula) != 3) stop("formula must be a two-sided formula")
+    stopifnot(length(formula <- as.formula(formula)) == 3)
     cv <- do.call("lmerControl", control)
 
     ## Establish model frame and fixed-effects model matrix and terms
     mc <- match.call()
     fr <- lmerFrames(mc, formula, data, contrasts)
-    Y <- fr$Y; X <- fr$X; weights <- fr$weights; offset <- fr$offset
-    mf <- fr$mf; mt <- fr$mt
-
-    ## establish factor list and Ztl
-##     FL <- lmerFactorList(formula, mf, -1)
-##     fl <- FL$fl
-
+    mf <- fr$mf
+    FL <- lmerFactorList(formula, mf, 0L, 0L) # flist, Zt
+    fl <- FL$fl
+    
     ## parse the carry-over formula
     carry <- as.formula(carry)
     if (length(carry) != 3) stop("carry must be a two-sided formula")
@@ -38,17 +38,14 @@ carryOver <- function(formula, data, carry, REML = TRUE, control = list(),
     ## check the ordering
     ord <- order(outer, tvar)
     if (any(diff(ord) < 0)) {
-        Y <- Y[ord]; X <- X[ord,]; mf <- mf[ord,]
-        weights <- weights[ord]; offset <- offset[ord]
-##         FL <- lmerFactorList(formula, mf)
-##         fl <- FL$fl
+        reorder_fr(fr, ord)
         outer <- outer[ord]
         tvar <- tvar[ord]
     }
     nyr <- 1 + max(tapply(tvar, outer, function(x) diff(range(x))))
     disc0 <- 0.5^(0:(nyr - 1))
     disc <- disc0[-1]
-    disc
+    return(disc)
 
 ##     Ztsp <- .Call(Ztl_sparse, fl, FL$Ztl)
 ##     innm <- as.character(op[[2]])

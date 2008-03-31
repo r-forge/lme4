@@ -1,27 +1,28 @@
 ## Multilevel Item Response Theory model
 
 mlirt <-
-    function(formula, data, family = binomial("probit"),
-             control = list(), start = NULL,
-             subset, weights, na.action = na.pass, offset,
-             contrasts = NULL, model = FALSE, ...)
+    function(formula, data, family = NULL, method = c("REML", "ML"),
+             control = list(), start = NULL, verbose = FALSE,
+             subset, weights, na.action, offset, contrasts = NULL,
+             model = TRUE, x = TRUE, ...)
 {
-    formula <- as.formula(formula)
-    if (length(formula) < 3) stop("formula must be a two-sided formula")
+    mc <- match.call()
+                                        # Evaluate and check the family
+    if(is.character(family))
+        family <- get(family, mode = "function", envir = parent.frame(2))
+    if(is.function(family)) family <- family()
+    stopifnot(length(formula <- as.formula(formula)) == 3,
+              all.equal(family$family, "binomial"))
+
+    fr <- lmerFrames(mc, formula, contrasts) # model frame, X, etc.
     cv <- do.call("lmerControl", control)
 
     ## Should difficulties be modeled as random effects?
 
     ranDiff <- ".item" %in% all.vars(formula)
-    ## Establish model frame and fixed-effects model matrix and terms
-    mc <- match.call()
-    fr <- lmerFrames(mc, formula, data, contrasts)
-    Y <- fr$Y
-
     ## check for a binary matrix response
-    if (!is.matrix(Y) || !is.numeric(Y) ||
-        any(!(unique(as.vector(Y)) %in% c(0, 1, NA))))
-        stop("Response must be a binary, numeric matrix")
+    stopifnot(is.matrix(Y), is.numeric(Y),
+              all(unique(as.vector(Y)) %in% c(0, 1, NA)))
     nr <- nrow(Y)
     nc <- ncol(Y)
     ## expand model frame etc according to the items
@@ -36,29 +37,14 @@ mlirt <-
     mf$.subj <- gl(nr, 1, nr*nc)
     form <- substitute(Y ~ base + (1|.subj), list(base = formula[[3]]))
     ## establish factor list and Ztl
-    FL <- lmerFactorList(form, mf)
-
-    ## check and evaluate the family argument
-    if(is.character(family))
-        family <- get(family, mode = "function", envir = parent.frame())
-    if(is.function(family)) family <- family()
-    if(is.null(family$family)) {
-        print(family)
-        stop("'family' not recognized")
-    }
-    if (family$family != "binomial")
-        stop("family must be a binomial family")
-    fltype <- mkFltype(family)
-
+    FL <- lmerFactorList(form, mf, 0L, 0L)
+    fl <- FL$fl
     ## initial fit of a glm to the fixed-effects only.
     glmFit <- glm.fit(X, Y, weights = fl$weights[ind],
                       offset = offset, family = family,
                       intercept = attr(fr$mt, "intercept") > 0)
     Y <- as.double(glmFit$y)
-    ## must do this after Y has possibly been reformulated
-    mer <- NULL
-
-    gVerb <- getOption("verbose")
+    glmFit
 
 ##     ## extract some of the components of glmFit
 ##     ## weights could have changed
