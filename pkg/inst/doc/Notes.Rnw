@@ -21,8 +21,6 @@
 \newcommand{\code}[1]{\texttt{\small{#1}}}
 \newcommand{\package}[1]{\textsf{\small{#1}}}
 \newcommand{\trans}{\ensuremath{^\prime}}
-\renewcommand{\vec}{\operatorname{vec}}
-\newcommand{\diag}{\operatorname{diag}}
 <<preliminaries,echo=FALSE,results=hide>>=
 options(width=65,digits=5)
 #library(lme4)
@@ -32,8 +30,8 @@ options(width=65,digits=5)
   The methods in the \code{lme4} package for \code{R} for fitting
   linear mixed models are based on sparse matrix methods, especially
   the Cholesky decomposition of sparse positive-semidefinite matrices,
-  in a penalized least squares representation of conditional model for
-  the response, given the random effects.  The representation is
+  in a penalized least squares representation of the conditional model
+  for the response given the random effects.  The representation is
   similar to that in Henderson's mixed-model equations.  An
   alternative representation of the calculations is as a generalized
   least squares problem.  We describe the two representations, show
@@ -47,7 +45,7 @@ options(width=65,digits=5)
 We consider linear mixed models in which the random effects are
 represented by a $q$-dimensional random vector, $\bm{\mathcal{B}}$, and
 the response is represented by an $n$-dimensional random vector,
-$\bm{\mathcal{Y}}$.  We observe a value $\bm y$ of the response.  The
+$\bm{\mathcal{Y}}$.  We observe a value, $\bm y$, of the response.  The
 random effects are unobserved.
 
 The marginal distribution of the random effects is a multivariate
@@ -74,7 +72,7 @@ $n\times p$ and $n\times q$ model matrices $\bm X$ and $\bm Z$ as
   \bm X\bm\beta+\bm Z\bm b .
 \end{equation}
 The conditional variance-covariance matrix of $\bm{\mathcal{Y}}$ is
-simply $\sigma^2\bm I_n$ where $\bm I_n$ denotes the identity matrix
+simply $\sigma^2\bm I_n$, where $\bm I_n$ denotes the identity matrix
 of order $n$.  Thus
 \begin{equation}
   \label{eq:yconditional}
@@ -87,17 +85,17 @@ of order $n$.  Thus
 
 The variance-covariance matrix, $\bm\Sigma(\bm\theta)$, of the random
 effects, $\bm{\mathcal{B}}$, must be symmetric and positive
-semidefinite, which means that $\bm x\trans\bm\Sigma\bm
-x\ge0,\forall\bm x\in\mathbb{R}^q$.  Because the maximum likelihood
+semidefinite (i.e. $\bm x\trans\bm\Sigma\bm
+x\ge0,\forall\bm x\in\mathbb{R}^q$).  Because the maximum likelihood
 estimate of a variance component can be zero, it is important to allow
 for a semidefinite $\bm\Sigma$.  That is, we do not assume that
-$\bm\Sigma$ is positive definite (meaning $\bm x\trans\bm\Sigma\bm
+$\bm\Sigma$ is positive definite (i.e. $\bm x\trans\bm\Sigma\bm
 x>0,\forall\bm x\in\mathbb{R}^q$) and we do not assume that
 $\bm\Sigma^{-1}$ exists.
 
 A positive semidefinite matrix such as $\bm\Sigma$ has a Cholesky
-decomposition of the so-called ``LDL$\trans$'' form.  We write this in
-a slightly modified form, as
+decomposition of the so-called ``LDL$\trans$'' form.  We use a 
+slightly modified version
 \begin{equation}
   \label{eq:TSdef}
   \bm\Sigma(\bm\theta)=\sigma^2\bm T(\bm\theta)\bm S(\bm\theta)\bm
@@ -162,7 +160,7 @@ Cholesky factor, $\bm L$, a lower triangular matrix that satisfies
 \begin{equation}
   \label{eq:SparseChol}
   \bm L(\bm\theta)\bm L(\bm\theta)\trans=
-  \bm P\left(\bm A(\bm\theta)\bm A(\bm\theta)\trans+\bm I_q\right)\bm P\trans
+  \bm P\left(\bm A(\bm\theta)\bm A(\bm\theta)\trans+\bm I_q\right)\bm P\trans ,
 \end{equation}
 directly from $\bm A$.  
 
@@ -231,7 +229,8 @@ for which the solution satisfies
   \end{bmatrix}=
   \begin{bmatrix}\bm P\bm A\bm y\\\bm X\trans\bm y\end{bmatrix}
 \end{equation}
-The Cholesky factor of the system matrix for the PLS problem is
+The Cholesky factor of the system matrix for the PLS problem can be
+expressed using $\bm L$, $\bm R_{\bm Z\bm X}$ and $\bm R_{\bm X}$ because
 \begin{equation}
   \label{eq:PLSChol}
   \begin{bmatrix}
@@ -246,7 +245,7 @@ The Cholesky factor of the system matrix for the PLS problem is
   \begin{bmatrix}
     \bm L\trans & \bm R_{\bm Z\bm X}\\
     \bm 0 & \bm R_{\bm X}
-  \end{bmatrix}
+  \end{bmatrix} .
 \end{equation}
 
 In the \code{lme4} package the \code{"mer"} class is the
@@ -254,7 +253,7 @@ representation of a mixed-effects model.  The \code{A} slot contains
 the sparse matrix $\bm A(\bm\theta)$ and the \code{L} slot contains
 the Cholesky factor $\bm L(\bm\theta)$ satisfying
 (\ref{eq:SparseChol}).  The \code{RZX} and \code{RX} slots contain
-$\bm R_{\bm Z\bm X}(\bm\theta)$ and $\bm R_{\bm X}(\bm\theta)$ stored
+$\bm R_{\bm Z\bm X}(\bm\theta)$ and $\bm R_{\bm X}(\bm\theta)$
 as dense matrices.
 
 It is not necessary to solve for $\tilde{\bm u}(\bm\theta)$ and
@@ -270,9 +269,9 @@ Because $\bm L$ is triangular, its determinant is simply the product
 of its diagonal elements and, because $\bm A\bm A\trans + \bm I$ is
 positive definite, $|\bm L|^2>0$.
 
-The profiled deviance (i.e. negative twice the profiled
-log-likelihood), as a function of $\bm\theta$ only ($\bm\beta$ and
-$\sigma^2$ at their conditional estimates), is
+The profiled deviance (negative twice the profiled log-likelihood), as
+a function of $\bm\theta$ only ($\bm\beta$ and $\sigma^2$ at their
+conditional estimates), is
 \begin{equation}
   \label{eq:profiledDev}
   d(\bm\theta|\bm y)=\log(|\bm L|^2)+n\left(1+\log(r^2)+\frac{2\pi}{n}\right)
@@ -305,7 +304,7 @@ random effects are nested or crossed or partially crossed.
 Another common approach to linear mixed models is to derive the
 marginal variance-covariance matrix of $\bm{\mathcal{Y}}$ as a
 function of $\bm\theta$ and use that to determine the conditional
-estimates $\widehat{\bm\beta}(\bm\theta)$ as the solution of a
+estimates, $\widehat{\bm\beta}(\bm\theta)$, as the solution of a
 generalized least squares (GLS) problem.  In the notation of
 \S\ref{sec:Definition} the marginal mean of $\bm{\mathcal{Y}}$ is
 $\mathrm{E}[\bm{\mathcal{Y}}]=\bm X\bm\beta$ and the marginal
@@ -314,7 +313,7 @@ variance-covariance matrix is
   \label{eq:marginalvarcovY}
   \mathrm{Var}(\bm{\mathcal{Y}})=\sigma^2\left(\bm I_n+\bm Z\bm T\bm
     S\bm S\bm T\trans\bm Z\trans\right)=\sigma^2\left(\bm I_n+\bm
-    A\trans\bm A\right) =\sigma^2\bm V(\bm\theta)
+    A\trans\bm A\right) =\sigma^2\bm V(\bm\theta) ,
 \end{equation}
 where $\bm V(\bm\theta)=\bm I_n+\bm A\trans\bm A$.
 
