@@ -2,18 +2,6 @@
 Find out why there is a .p at the end of the model names in the
 printed value of anova with multiple arguments.
 -----
-Collapse repeated grouping factors and correspondingly modify the
-ranef and coef methods.
------
-Add an element to the deviance slot to hold sigma or log(sigma).  The
-interpretation will be that an NA value means to use the conditional
-estimate of the scale parameter.  For a generalized linear mixed model
-without a scale parameter set sigma = 1 (or log(sigma) = 0) and put
-constraints on the parameter so that it is not estimated.
-
-Upon convergence replace that element with the conditional estimate in
-models where it has been profiled out.
------
 Consider the steps in reimplementing AGQ.  First you need to find the
 conditional modes, then evaluate the conditional variances, then step
 out according to the conditional variance, evaluate the integrand
@@ -35,14 +23,9 @@ performed without needing to regenerate the model matrices.
 Modify the one-argument form of the anova method for lmer objects (yet
   again) to calculate the F ratios.  It is the df, not the ratio that
   is controversial.
-Should there be an extractor function for the mean square error?  If
-  so, what should it be called?
 -----
 Determine what a "coef" function should do for multiple, possibly
   non-nested, grouping  factors.
------
-Determine why the names of the components of the values of
-the ranef and coef extractor methods are not printed.
 -----
 - add nicer (more realistic?) pedigree examples and tests
 
