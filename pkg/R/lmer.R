@@ -1361,6 +1361,7 @@ setMethod("HPDinterval", signature(object = "matrix"),
           ans
       })
 
+### FIXME: Watch the names of the variance components here
 setMethod("VarCorr", signature(x = "merMCMC"),
           function(x, type = c("raw", "varcov", "sdcorr", "logs"), ...)
       {
@@ -1679,4 +1680,31 @@ yfrm <- function(fm)
                                       slot, object = fm, simplify = FALSE)))
 }
 
-    
+devmat <- function(fm, parmat, ...)
+{
+    stopifnot(is(fm, "mer"))
+    dd <- fm@dims
+    stopifnot(dd["fTyp"] == 2L, # gaussian family
+              dd["lTyp"] == 5L, # identity link
+              dd["vTyp"] == 1L, # variance function is "constant"
+              length(fm@V) == 0L, # nonlinear parameter gradient is identity
+              length(fm@muEta) == 0L) # eta -> mu map is identity
+    oldpars <- .Call(mer_ST_getPars, fm)
+
+    parmat <- as.matrix(parmat)
+    storage.mode(parmat) <- "double"
+    if (ncol(parmat) == dd["np"])
+        parmat <- t(parmat)             # parameter vectors as columns
+    stopifnot(nrow(parmat) == dd["np"])
+
+    devvec <- function(x) {             # function to apply
+        .Call(mer_ST_setPars, fm, x)
+        .Call(mer_update_L, fm)
+        .Call(mer_update_RX, fm)
+        .Call(mer_update_ranef, fm)
+        fm@deviance
+    }
+    ans <- apply(parmat, 2, devvec)
+    devvec(oldpars)                     # restore the fitted model
+    as.data.frame(t(rbind(parmat, ans)))
+}
