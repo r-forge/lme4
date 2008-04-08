@@ -791,7 +791,9 @@ setMethod("VarCorr", signature(x = "mer"),
 	  function(x, REML = NULL, ...)
 ### Create the VarCorr object of variances and covariances
       {
+          fl <- x@flist
 	  ans <- x@ST
+          names(ans) <- names(fl)[attr(fl, "assign")]
           cnames <- lapply(ans, colnames)
           sc <- sigma(x)
           attr(ans, "sc") <- if (x@dims["useSc"]) sc else as.double(NA)
@@ -1680,7 +1682,15 @@ yfrm <- function(fm)
                                       slot, object = fm, simplify = FALSE)))
 }
 
-devmat <- function(fm, parmat, ...)
+### Evaluate conditional components of a linear mixed model for a grid of ST
+### parameter values.
+###
+### @param fm - a fitted linear mixed model
+### @param parmat - a numeric matrix whose rows constitute suitable parameter
+###     values for fm@ST
+### @param type - which slot to extract
+devmat <-
+    function(fm, parmat, slotname = c("deviance", "fixef", "ranef", "u"), ...)
 {
     stopifnot(is(fm, "mer"))
     dd <- fm@dims
@@ -1696,15 +1706,16 @@ devmat <- function(fm, parmat, ...)
     if (ncol(parmat) == dd["np"])
         parmat <- t(parmat)             # parameter vectors as columns
     stopifnot(nrow(parmat) == dd["np"])
+    slotname <- match.arg(slotname)
 
-    devvec <- function(x) {             # function to apply
+    slotval <- function(x) {            # function to apply
         .Call(mer_ST_setPars, fm, x)
         .Call(mer_update_L, fm)
         .Call(mer_update_RX, fm)
         .Call(mer_update_ranef, fm)
-        fm@deviance
+        slot(fm, slotname)
     }
-    ans <- apply(parmat, 2, devvec)
-    devvec(oldpars)                     # restore the fitted model
+    ans <- apply(parmat, 2, slotval)
+    slotval(oldpars)                    # restore the fitted model
     as.data.frame(t(rbind(parmat, ans)))
 }
