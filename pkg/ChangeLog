@@ -1,3 +1,32 @@
+2008-04-25  Douglas Bates <bates@stat.wisc.edu>
+
+	* [r124] DESCRIPTION: New release
+	* [r123] tests/nlmer.R: Moved extended nlmer tests to tests directory
+	* [r122] NAMESPACE, R/AllGeneric.R, R/lmer.R, man/VarCorr.Rd,
+	  man/lmer.Rd, man/mer-class.Rd, man/refit.Rd, src/init.c, src/lmer.c,
+	  src/lmer.h: Added refit generic and methods and implemented the
+	  simulate method. Fixed a problem with family = gaussian reported by
+	  Henrik Parn. Reimplemented VarCorr method to avoid problems with
+	  indefinite solutions.
+
+2008-04-14  Douglas Bates <bates@stat.wisc.edu>
+
+	* [r121] data/Dyestuff.rda, man/Dyestuff.Rd: Added the Dyestuff data
+
+2008-04-08  Douglas Bates <bates@stat.wisc.edu>
+
+	* [r120] DESCRIPTION, R/lmer.R, src/lmer.h: Restore names to the
+	  components of a VarCorr object; allow for more options in the hidden
+	  devmat function; Add the Dyestuff example; New release
+
+2008-04-02  Douglas Bates <bates@stat.wisc.edu>
+
+	* [r119] inst/doc/Notes.Rnw: Minor revision - principally grammar and
+	  sentence structure
+	* [r118] Done, ToDo: Change some of the ToDo tasks to Done
+	* [r117] DESCRIPTION, R/lmer.R: Added the hidden function devmat; New
+	  release.
+
 2008-03-31  Douglas Bates <bates@stat.wisc.edu>
 
         * [r115] DESCRIPTION: New release
