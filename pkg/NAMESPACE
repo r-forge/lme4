@@ -22,12 +22,9 @@ importFrom("stats",
 
 export("glmer", "gsummary", "hatTrace", "HPDinterval",       
        "lmList", "lmer", "lmer2", "mcmcsamp", "nlmer",
-       "pooledSD", "VarCorr")
+       "pooledSD", "refit", "VarCorr")
 
-exportClasses(#"coef.mer",
-              "lmList", "mer", "merMCMC",
-              #"ranef.mer",
-              "summary.mer")
+exportClasses("lmList", "mer", "merMCMC", "summary.mer")
 
 exportMethods(
               "BIC",
@@ -41,6 +38,7 @@ exportMethods(
               "confint",
               "densityplot",
               "deviance",
+              "expand",
               "fitted",
               "fixef",
               "formula",
@@ -54,6 +52,7 @@ exportMethods(
               "print",
               "qqmath",
               "ranef",
+              "refit",
               "resid",
               "residuals",
               "show",

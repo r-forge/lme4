@@ -21,6 +21,7 @@
 \alias{vcov,mer-method}
 %
 \alias{confint,mer-method}
+\alias{expand,mer-method}
 \alias{fitted,mer-method}
 \alias{print,mer-method}
 \alias{resid,mer-method}
@@ -204,6 +205,7 @@
   }% summary slots
 }
 \usage{
+\S4method{expand}{mer}(x, sparse = TRUE, \dots)
 \S4method{logLik}{mer}(object, REML = NULL, \dots)
 \S4method{vcov}{mer}(object, \dots)
 }
@@ -212,6 +214,23 @@
   \item{REML}{logical indicating if REML should be used. A value of
     \code{NULL}, the default, or \code{NA} indicates that the REML values
     should be returned if the model was fit by REML, otherwise the ML values.}
+  \item{x}{object of class \code{mer} to expand.}
+  \item{sparse}{logical scalar indicating if the sparse form of the
+    expanded \code{T} and \code{S} matrices should be returned.
+
+
+
+
+
+
+
+
+
+
+
+
+
+  }
   \item{\dots}{potential further arguments passed to methods.}
 }
 \section{Methods}{
@@ -238,9 +257,15 @@
       \eqn{Z^\prime Z+\Omega}{crossprod(Z)+Omega}.}
     \item{deviance}{\code{signature(object = "mer")}: extracts the
       \code{\link{deviance}} of the fitted model.}
+    \item{expand}{\code{signature(object = "mer")}: expand the contents
+      of the \code{"ST"} slot to a list of sparse matrices or a list of
+      lists of dense matrices, \code{S}, which is diagonal, and
+      \code{T}, which is unit lower-triangular.}
 %%% some of the following are also in \usage{..} because they have extra args:
     \item{logLik}{\code{signature(object = "mer")}: Extract the
       log-likelihood from of the fitted model, see also \code{\link{logLik}}.}
+    \item{refit}{\code{signature(object = "mer", newresp = "numeric")}:
+      Refit the model with a new response vector.}
     \item{update}{\code{signature(object = "mer")}: see
       \code{\link{update}} on how to update fitted models.}
     \item{simulate}{\code{signature(object = "mer")}: see

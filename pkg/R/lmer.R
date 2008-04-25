@@ -544,7 +544,7 @@ function(formula, data, family = gaussian, method = c("Laplace", "AGQ"),
     if(is.function(family)) family <- family()
     if(is.null(family$family)) stop("'family' not recognized")
     if(family$family == "gaussian" && family$link == "identity") {
-        mc[[1]] <- "lmer"               # use lmer not glmer
+        mc[[1]] <- as.name("lmer")      # use lmer not glmer
         mc$family <- NULL
         return(eval.parent(mc))
     }
@@ -788,30 +788,24 @@ setMethod("sigma", signature(object = "mer"),
           })
 
 setMethod("VarCorr", signature(x = "mer"),
-	  function(x, REML = NULL, ...)
+	  function(x, ...)
 ### Create the VarCorr object of variances and covariances
       {
-          fl <- x@flist
-	  ans <- x@ST
-          names(ans) <- names(fl)[attr(fl, "assign")]
-          cnames <- lapply(ans, colnames)
           sc <- sigma(x)
-          attr(ans, "sc") <- if (x@dims["useSc"]) sc else as.double(NA)
-          for (i in seq_along(ans)) {
-              ai <- ans[[i]]
-              dm <- dim(ai)
-              if (dm[1] < 2) {
-                  el <- (sc * ai)^2
-              } else {
-                  dd <- diag(ai)
-                  diag(ai) <- rep(1, dm[1])
-                  el <- sc^2 * crossprod(dd * t(ai))
-              }
-              el <- as(el, "dpoMatrix")
-	      el@factors$correlation <- as(el, "corMatrix")
-	      ans[[i]] <- el
-	  }
-	  ans
+	  ans <- lapply(cc <- .Call(mer_ST_chol, x),
+                        function(ch) {
+                            val <- crossprod(sc * ch) # variance-covariance
+                            stddev <- sqrt(diag(val))
+                            correl <- t(val / stddev)/stddev
+                            diag(correl) <- 1
+                            attr(val, "stddev") <- stddev
+                            attr(val, "correlation") <- correl
+                            val
+                        })
+          fl <- x@flist
+          names(ans) <- names(fl)[attr(fl, "assign")]
+          attr(ans, "sc") <- if (x@dims["useSc"]) sc else NA
+          ans
       })
 
 #### Methods for standard extractors for fitted models
@@ -941,31 +935,21 @@ setMethod("resid", signature(object = "mer"),
 setMethod("simulate", "mer",
           function(object, nsim = 1, seed = NULL, ...)
       {
-          .NotYetImplemented()
 	  if(!is.null(seed)) set.seed(seed)
 	  if(!exists(".Random.seed", envir = .GlobalEnv))
 	      runif(1)		     # initialize the RNG if necessary
           RNGstate <- .Random.seed
           dims <- object@dims
-          ans <- array(0, c(dims["n"], nsim))
-          fe <- fixef(object)
-          re <- ranef(object)
-          nc <- sapply(re, ncol)
-          nr <- sapply(re, nrow)
-          sz <- nc * nr
-          vc <- VarCorr(object)
-
-          cholL <- lapply(vc, chol)
-          n <- object@dims["n"]
-          for (i in seq_len(nsim))
-              ans[, 1] <- crossprod(object@ZXyt,
-                                    c(unlist(lapply(seq_along(re), function(k)
-                                                    (t(cholL[[k]]) %*%
-                                                     matrix(rnorm(sz[k]),
-                                                            nc = nr[k]))@x)),
-                                      fe, 0))@x
-          ans + rnorm(prod(dim(ans)), sd = attr(vc, "sc"))
-      })
+          etasim <- as.vector(object@X %*% fixef(object)) +  # fixed-effect contribution
+              sigma(object) * (as(t(object@A) %*%    # random-effects contribution
+                               matrix(rnorm(nsim * dims["q"]), nc = nsim),
+                                  "matrix") 
+                               ## residual contribution
+                               + matrix(rnorm(nsim * dims["n"]), nc = nsim))
+          if (length(object@V) == 0 && length(object@muEta) == 0)
+              return(etasim)
+          stop("simulate method for GLMMs and NLMMs not yet implemented")
+          })
 
 setMethod("summary", signature(object = "mer"),
 	  function(object, ...)
@@ -1082,8 +1066,8 @@ formatVC <- function(varc, digits = max(3, getOption("digits") - 2))
 ### "format()" the 'VarCorr' matrix of the random effects -- for show()ing
 {  
     sc <- unname(attr(varc, "sc"))
-    recorr <- lapply(varc, function(el) el@factors$correlation)
-    reStdDev <- c(lapply(recorr, slot, "sd"), list(Residual = sc))
+    recorr <- lapply(varc, attr, "correlation")
+    reStdDev <- c(lapply(varc, attr, "stddev"), list(Residual = sc))
     reLens <- unlist(c(lapply(reStdDev, length)))
     nr <- sum(reLens)
     reMat <- array('', c(nr, 4),
@@ -1202,8 +1186,32 @@ printNlmer <- function(x, digits = max(3, getOption("digits") - 3),
     invisible(x)
 }
 
-#setMethod("print", "nlmer", printNlmer)
-#setMethod("show", "nlmer", function(object) printNlmer(object))
+setMethod("refit", signature(object = "mer", newresp = "numeric"),
+          function(object, newresp, ...)
+      {
+          newresp <- as.double(newresp[!is.na(newresp)])
+          stopifnot(length(newresp) == object@dims["n"])
+          object@y <- newresp
+          mer_finalize(object, FALSE) # non-verbose fit
+      })
+
+setMethod("expand", signature(x = "mer"),
+          function(x, sparse = TRUE, ...)
+      {
+          elexpand <- function(mat)
+              list(T = new("dtrMatrix", uplo = "L", diag = "U",
+                   x = as.vector(mat),
+                   Dim = dim(mat), Dimnames = dimnames(mat)),
+                   S = Diagonal(x = diag(mat)))
+          if (!sparse) {
+              ans <- x@ST
+              fl <- x@flist
+              if (all(attr(fl, "assign") == seq_along(ans)))
+                  names(ans) <- names(fl)
+              return(lapply(ans, elexpand))
+          }
+          .NotYetImplemented
+      })
 
 #### Methods for secondary, derived classes
 
@@ -1215,8 +1223,6 @@ setMethod("summary", signature(object = "summary.mer"), function(object) object)
 #### Methods to produce specific plots
 
 plot.coef.mer <- function(x, y, ...)
-## setMethod("plot", signature(x = "coef.mer"),
-##           function(x, y, ...)
 {
     varying <- unique(do.call("c",
                               lapply(x, function(el)
@@ -1233,11 +1239,8 @@ plot.coef.mer <- function(x, y, ...)
                                        x = as.name(varying[2])))), gf, ...),
            splom(~ gf | .grp, ...))
 }
-## )
 
 plot.ranef.mer <- function(x, y, ...)
-## setMethod("plot", signature(x = "ranef.mer"),
-## 	  function(x, y, ...)
 {
     lapply(x, function(x) {
         cn <- lapply(colnames(x), as.name)
@@ -1249,11 +1252,8 @@ plot.ranef.mer <- function(x, y, ...)
                splom(~ x, ...))
     })
 }
-## )
 
 qqmath.ranef.mer <- function(x, data, ...)
-## setMethod("qqmath", signature(x = "ranef.mer"),
-##           function(x, data, ...)
 {
     prepanel.ci <- function(x, y, se, subscripts, ...) {
         y <- as.numeric(y)
@@ -1298,7 +1298,6 @@ qqmath.ranef.mer <- function(x, data, ...)
     }
     lapply(x, f)
 }
-##          )
 
 
 #### Creating and displaying a Markov Chain Monte Carlo sample from

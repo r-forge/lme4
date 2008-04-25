@@ -244,28 +244,6 @@ static R_INLINE int Gp_grp(int ind, int nf, const int *Gp)
     return -1;			/* -Wall */
 }
 
-#if 0
-/* FIXME: Instead of this function add elements sigmaML and sigmaREML
- * to the deviance slot and fill them whenever d[pwrss_POS] changes.
- */
-/**
- * Return the REML or ML conditional estimate of sigma, the standard
- * deviation of the per-observation noise term.
- *
- * @param REML non-zero for REML estimate, 0 for ML estimate
- * @param dims vector of dimensions
- * @param d vector of deviance components
- */
-static R_INLINE double
-get_sigma(int REML, const int* dims, const double* d)
-{
-    return (dims[useSc_POS] ? 
-	    sqrt(d[pwrss_POS] / (dims[n_POS] -
-			    (REML ? dims[p_POS] : 0))) : 1);
-}
-
-#endif
-
 /**
  * Populate the st, nc and nlev arrays.  Return the maximum element of nc.
  *
@@ -530,25 +508,40 @@ SEXP mer_ST_setPars(SEXP x, SEXP pars)
     return R_NilValue;
 }
 
-#if 0
-
 /**
- * Extract the estimate of the common scale parameter from an mer object
+ * Return a list of (upper) Cholesky factors from the ST list
  *
- * @param x an lmer object
- * @param which scalar integer (< 0 => REML, 0 => native, > 0 => ML)
+ * @param x an mer object
  *
- * @return scalar REAL value
+ * @return a list of upper Cholesky factors
  */
-SEXP mer_sigma(SEXP x, SEXP which)
+SEXP mer_ST_chol(SEXP x)
 {
-    int *dims = DIMS_SLOT(x),
-	w = LENGTH(which) ? asInteger(which) : 0;
-    
-    return ScalarReal(get_sigma(w < 0 || (!w && dims[isREML_POS]), dims,
-				DEV_SLOT(x)));
+    SEXP ans = PROTECT(duplicate(GET_SLOT(x, lme4_STSym)));
+    int ncmax, nf = DIMS_SLOT(x)[nf_POS];
+    int *nc = Alloca(nf, int), *nlev = Alloca(nf, int);
+    double **st = Alloca(nf, double*);
+    R_CheckStack();
+
+    ncmax = ST_nc_nlev(ans, Gp_SLOT(x), st, nc, nlev);
+    for (int k = 0; k < nf; k++) {
+	if (nc[k] > 1) {	/* nothing to do for nc[k] == 1 */
+	    int nck = nc[k], nckp1 = nc[k] + 1;
+	    double *stk = st[k];
+
+	    for (int j = 0; j < nck; j++) {
+		double dd = stk[j * nckp1]; /* diagonal el */
+		for (int i = j + 1; i < nck; i++) {
+		    stk[j + i * nck] = dd * stk[i + j * nck];
+		    stk[i + j * nck] = 0;
+		}
+	    }
+	}
+    }
+
+    UNPROTECT(1);
+    return ans;
 }
-#endif
 
 /**
  * Extract the posterior variances of the random effects in an mer object
@@ -1723,8 +1716,8 @@ SEXP mer_validate(SEXP x)
 	dimsP = GET_SLOT(x, lme4_dimsSym),
 	flistP = GET_SLOT(x, lme4_flistSym), asgnP;
     int *Gp = INTEGER(GpP), *dd = INTEGER(dimsP), *asgn;
-    int n = dd[n_POS], nf = dd[nf_POS], nq, p = dd[p_POS],
-	q = dd[q_POS], s = dd[s_POS];
+    int n = dd[n_POS], nf = dd[nf_POS], nq, nfl,
+	p = dd[p_POS], q = dd[q_POS], s = dd[s_POS];
     int nv = n * s;
     CHM_SP Zt = Zt_SLOT(x), A =  A_SLOT(x);
     CHM_FR L = L_SLOT(x);
@@ -1736,6 +1729,11 @@ SEXP mer_validate(SEXP x)
     asgnP = getAttrib(flistP, install("assign"));
     if (!isInteger(asgnP) || LENGTH(asgnP) != nf)
 	return mkString(_("Slot flist must have integer attribute 'assign' of length dims['nf']"));
+    asgn = INTEGER(asgnP);
+    nfl = LENGTH(flistP);
+    for (int i = 0; i < nf; i++)
+	if (asgn[i] <= 0 || asgn[i] > nfl)
+	    return mkString(_("All elements of the assign attribute must be in [1,length(ST)]"));
     if (LENGTH(GpP) != nf + 1)
 	return mkString(_("Slot Gp must have length dims['nf'] + 1"));
     if (Gp[0] != 0 || Gp[nf] != q)
