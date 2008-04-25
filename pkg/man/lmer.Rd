@@ -73,7 +73,8 @@ nlmer(formula, data, control, start, verbose,
   This is a revised version of the \code{\link[nlme]{lme}} function from the
   \pkg{nlme} package.  This version uses a different method of
   specifying random-effects terms and allows for fitting generalized
-  linear mixed models as well as linear mixed models.
+  linear mixed models and nonlinear mixed models in addition to linear
+  mixed models.
 
   Additional standard arguments to model-fitting functions can be passed
   to \code{lmer}.
@@ -92,11 +93,6 @@ nlmer(formula, data, control, start, verbose,
       default values.  Hence defaults to an empty list.\cr
       Possible control options and their default values are:
       \describe{
-% 	\item{\code{maxIter}:}{maximum number of iterations for the \code{lme}
-% 	  optimization algorithm.  Default is 50.}
-% 	\item{\code{tolerance}:}{relative convergence tolerance for the
-% 	  \code{lme} optimization algorithm.  Default is
-% 	  \code{sqrt(.Machine$double.eps)}.}
 	\item{\code{msVerbose}:}{a logical value passed as the
 	  \code{trace} argument to \code{nlminb} (see documentation on
 	  that function).  Default is \code{getOption("verbose")}.}
@@ -122,24 +118,16 @@ nlmer(formula, data, control, start, verbose,
   The \code{\linkS4class{mer}} class, \code{\link[stats]{lm}}
 }
 \examples{
+## linear mixed models
 (fm1 <- lmer(Reaction ~ Days + (Days|Subject), sleepstudy))
 (fm2 <- lmer(Reaction ~ Days + (1|Subject) + (0+Days|Subject), sleepstudy))
 anova(fm1, fm2)
+## generalized linear mixed model
+(gm1 <- glmer(cbind(incidence, size - incidence) ~ period + (1 | herd),
+              family = binomial, data = cbpp))
+## nonlinear mixed models
 (nm1 <- nlmer(circumference ~ SSlogis(age, Asym, xmid, scal) ~ Asym|Tree,
-              Orange, verb = 1, start = c(Asym = 200, xmid = 725, scal = 350)))
-(nm2 <- nlmer(conc ~ SSfol(Dose, Time,lKe, lKa, lCl) ~ (lKe+lKa+lCl|Subject),
-              Theoph, start = c(lKe = -2.5, lKa = 0.5, lCl = -3), verbose = 1))
-(nm3 <- nlmer(conc ~ SSfol(Dose, Time,lKe, lKa, lCl) ~
-              (lKe|Subject) + (lKa|Subject) + (lCl|Subject), Theoph,
-              start = c(lKe = -2.5, lKa = 0.5, lCl = -3), verbose = 1))
-(nm4 <- nlmer(conc ~ SSfol(Dose, Time,lKe, lKa, lCl) ~ (lKa+lCl|Subject),
-              Theoph, start = c(lKe = -2.5, lKa = 0.5, lCl = -3), verbose = 1))
-(nm5 <- nlmer(conc ~ SSfol(Dose, Time,lKe, lKa, lCl) ~ (lKa|Subject) + (lCl|Subject), 
-              Theoph, start = c(lKe = -2.5, lKa = 0.5, lCl = -3), verbose = 1))
-\dontrun{
-(m1 <- glmer(cbind(incidence, size - incidence) ~ period + (1 | herd),
-            family = binomial, data = cbpp))
-}
+              Orange, start = c(Asym = 200, xmid = 725, scal = 350)))
 }
 \keyword{models}
 \keyword{methods}

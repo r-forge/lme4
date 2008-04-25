@@ -7,6 +7,7 @@ static R_CallMethodDef CallEntries[] = {
     {"lme4_rWishart", (DL_FUNC) &lme4_rWishart, 3},
 
     {"mer_MCMCsamp", (DL_FUNC) &mer_MCMCsamp, 2},
+    {"mer_ST_chol", (DL_FUNC) &mer_ST_chol, 1},
     {"mer_ST_getPars", (DL_FUNC) &mer_ST_getPars, 1},
     {"mer_ST_initialize", (DL_FUNC) &mer_ST_initialize, 3},
     {"mer_ST_setPars", (DL_FUNC) &mer_ST_setPars, 2},

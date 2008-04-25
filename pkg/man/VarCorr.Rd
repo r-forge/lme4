@@ -7,14 +7,13 @@
 \alias{VarCorr,merMCMC-method}
 \title{Extract variance and correlation components}
 \usage{
-\S4method{VarCorr}{mer}(x, REML = NULL, \dots)
+\S4method{VarCorr}{mer}(x, \dots)
 \S4method{VarCorr}{merMCMC}(x, type = c("raw", "varcov", "sdcorr", "logs"), \dots)
 }
 \arguments{
   \item{x}{a fitted model object, usually an object inheriting from
     class \code{\linkS4class{mer}}.
   }
-  \item{REML}{logical indicating if REML should be used.}
   \item{type}{character string indicating the type of result to be
     returned, either \code{"raw"}, the raw representation as in the
     \code{ST} slot of the \code{\linkS4class{mer}} class, or
@@ -25,12 +24,12 @@
     present none are used.}
 }
 \description{
-  Extract the estimated variances, standard
-  deviations, and correlations of the random-effects terms in a
-  linear mixed-effects model, of class \code{lme}, or a generalized
-  linear mixed-effects model.  When appropriate,
-  the within-group error variance and standard deviation are also
-  calculated.
+  Extract the estimated variances, standard deviations, and correlations
+  of the random-effects terms in a mixed-effects model, of class
+  \code{mer}.
+
+  When appropriate, the within-group error variance and standard
+  deviation are also calculated.
 }
 \value{
   an object of class \code{VarCorr}.
