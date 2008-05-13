@@ -766,14 +766,13 @@ setMethod("ranef", signature(object = "mer"),
                            asgn), function(lst) do.call(cbind, lst))
           names(ans) <- names(fl)
           class(ans) <- "ranef.mer"
-          return(ans)
-          names(ans) <- names(object@ST)
           if (postVar) {
+              if (length(fl) < length(Gp)) .NotYetImplemented
               pV <- .Call(mer_postVar, object)
               for (i in seq_along(ans))
                   attr(ans[[i]], "postVar") <- pV[[i]]
           }
-#          new("ranef.mer", ans)
+          ans
       })
 
 print.ranef.mer <- function(x, ...) print(unclass(x), ...)
