@@ -846,7 +846,7 @@ setMethod("anova", signature(object = "mer"),
 				"Chisq" = chisq,
 				"Chi Df" = dfChisq,
 				"Pr(>Chisq)" = pchisq(chisq, dfChisq, lower = FALSE),
-				check.names = FALSE)
+				row.names = names(mods), check.names = FALSE)
 	      class(val) <- c("anova", class(val))
               attr(val, "heading") <-
                   c(header, "Models:",
