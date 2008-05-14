@@ -37,7 +37,19 @@ refit(object, newresp, \dots)
 %\seealso{}
 \examples{
 fm1 <- lmer(Reaction ~ Days + (Days|Subject), sleepstudy)
-cmat <- apply(simulate(fm1, nsim = 50), 2, function(y) fixef(refit(fm1, y)))
+set.seed(54321)
+system.time(simfe <- data.frame(t(apply(simulate(fm1, nsim = 100),
+                                        2,
+                                        function(y)
+                                        fixef(refit(fm1, y))
+                                        )
+                                  ), check.names = FALSE)
+            )
+qqmath(~ `(Intercept)` + Days, simfe, outer = TRUE,
+       ylab = NULL, scales = list(y = list(relation = "free")),
+       layout = c(1,2), aspect = 1, type = c("g", "p"))
+sapply(simfe, mean)
+sapply(simfe, sd)
 }
 \keyword{models}
 \keyword{methods}
