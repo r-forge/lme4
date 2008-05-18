@@ -48,5 +48,7 @@ echo $contents; } ?>
 
 <p> The <strong>project summary page</strong> you can find <a href="http://<?php echo $domain; ?>/projects/<?php echo $group_name; ?>/"><strong>here</strong></a>. </p>
 
+<p> A list of <strong>articles using nlme or lme4</strong> can be found <a href="bib/lmer.html"><strong>here</strong></a>. The LaTeX bibliography file can be accessed from <a href="bib/lmer.bib">here</a>. For corrections/updates contact vasishth@acm.org</p>
+
 </body>
 </html>
