@@ -138,7 +138,7 @@ fit to the \code{Rail} data are obtained as
 <<RailfitML>>=
 Rm1ML <- lmer(travel ~ 1 + (1|Rail), Rail, method = "ML", verbose = TRUE)
 @
-In this fit we have set the control parameter \code{msVerbose} to 1
+In this fit we have set \code{verbose = TRUE}
 indicating that information on the progress of the iterations should
 be printed after every iteration.  Each line gives the iteration
 number, the value of the deviance (negative twice the log-likelihood)
@@ -157,30 +157,15 @@ for the REML criterion (122.2), Akaike's Information Criterion
 (AIC$=132.6$) and Schwartz's Bayesian Information Criterion
 (BIC$=134.3$).
 
-The model matrices $\bm{Z}$ and $\bm{X}$ and the negative of the
-response vector $-\bm{y}$ are stored in the \code{ZXyt} slot in the
-transposed form.  Extracting the transpose of this slot
+The transpose of the model matrix $\bm{Z}$ is stored as a sparse matrix in the \code{Zt}
+slot of the fitted model.  For this model $\bm{Z}$ is simply the matrix
+of indicators of the levels of the \code{Rail}.
 <<ZXytRail>>=
 Rm1ML@Zt
 as(Rail[["Rail"]], "sparseMatrix")
 @
-The first 6 columns of this matrix are $\bm{Z}$, the seventh column is
-$\bm{X}$ and the eighth and final column is $-\bm{y}$.  As indicated
-in the display of the matrix, it is stored as a sparse matrix.  The
-elements represented as `.' are known to be zero and are not stored
-explicitly.
-
-The columns of $\bm{Z}$ are indicator columns (that is, the $i$th column has
-a 1 in row $j$ if the $j$th observation is on rail $i$, otherwise it
-is zero) but they are not in the usual ordering.  This is because the
-levels of the \code{Rail} factor have been reordered according to
-increasing mean response for Figure~\ref{fig:Raildotplot}.
-
-%The crossproduct of the columns of this matrix are stored as a
-%symmetric, sparse matrix in the \code{A} slot.
-<<ARm1ML>>=
-tcrossprod(Rm1ML@A)
-@
+The elements represented as `.' in the output are known to be zero and
+are not stored explicitly.
 
 The \code{L} component of this fitted model is a Cholesky
 factorization of a matrix $\bm{A}^*(\bm{\theta})$ where $\bm{\theta}$ is a
