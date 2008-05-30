@@ -1,5 +1,0 @@
-<area shape="rect" href="$lmer_8c.html#c96e3dd08e67f41338d9e84118925308" title="Return the sum of squares of the first n elements of x." alt="" coords="167,5,247,29">
-<area shape="rect" href="$lmer_8c.html#3a7fab2a88117d83971db12f53eaa91e" title="Populate the st, nc and nlev arrays." alt="" coords="323,80,413,104">
-<area shape="rect" href="$lmer_8c.html#1979a46eb429191a16fa6fc467958072" title="Simulate the Cholesky factor of a standardized Wishart variate with dimension p and..." alt="" coords="140,104,273,128">
-<area shape="rect" href="$lmer_8c.html#9843ab48eb3803207fead83796089087" title="Evaluate the sparse model matrix A from the Zt and ST slots." alt="" coords="169,152,244,176">
-<area shape="rect" href="$lmer_8c.html#3f49a530ee30ef0d40ef8bc6d60c5963" title="Return the group in the (nf, Gp) combination to which ind belongs." alt="" coords="336,152,400,176">
