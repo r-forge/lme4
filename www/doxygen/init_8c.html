@@ -116,7 +116,7 @@ cholmod_common struct local to the package
 cholmod_common struct initialized in R_init_lme4 
 <p>Definition at line <a class="el" href="init_8c-source.html#l00036">36</a> of file <a class="el" href="init_8c-source.html">init.c</a>.</p>
 
-<p>Referenced by <a class="el" href="lmer_8c-source.html#l01465">MCMC_beta_u()</a>, <a class="el" href="lmer_8c-source.html#l00615">mer_create_L()</a>, <a class="el" href="lmer_8c-source.html#l00553">mer_postVar()</a>, <a class="el" href="lmer_8c-source.html#l01884">spR_optimize()</a>, <a class="el" href="lmer_8c-source.html#l01845">spR_update_mu()</a>, <a class="el" href="lmer_8c-source.html#l00925">update_L()</a>, <a class="el" href="lmer_8c-source.html#l00812">update_mu()</a>, <a class="el" href="lmer_8c-source.html#l00286">update_ranef()</a>, <a class="el" href="lmer_8c-source.html#l01193">update_RX()</a>, and <a class="el" href="lmer_8c-source.html#l01028">update_u()</a>.</p>
+<p>Referenced by <a class="el" href="lmer_8c-source.html#l00609">lmm_update_fixef_u()</a>, <a class="el" href="lmer_8c-source.html#l01116">MCMC_beta_u()</a>, <a class="el" href="lmer_8c-source.html#l01270">mer_create_L()</a>, <a class="el" href="lmer_8c-source.html#l01411">mer_postVar()</a>, <a class="el" href="lmer_8c-source.html#l01886">spR_optimize()</a>, <a class="el" href="lmer_8c-source.html#l01847">spR_update_mu()</a>, <a class="el" href="lmer_8c-source.html#l00733">update_L()</a>, <a class="el" href="lmer_8c-source.html#l00813">update_mu()</a>, <a class="el" href="lmer_8c-source.html#l00942">update_RX()</a>, and <a class="el" href="lmer_8c-source.html#l01032">update_u()</a>.</p>
 
 </div>
 </div><p>
@@ -133,7 +133,7 @@ cholmod_common struct initialized in R_init_lme4
 
 <p>
 <b>Initial value:</b><div class="fragment"><pre class="fragment"> {
-    {<span class="stringliteral">"lme4_rWishart"</span>, (DL_FUNC) &amp;<a class="code" href="lmer_8c.html#e2455770c47d7da24d206f6c46b60b47" title="Simulate a sample of random matrices from a Wishart distribution.">lme4_rWishart</a>, 3},
+
 
     {<span class="stringliteral">"mer_MCMCsamp"</span>, (DL_FUNC) &amp;<a class="code" href="lmer_8c.html#faf107495473068e7f439b17073d884e" title="Generate a Markov-chain Monte Carlo sample from an mer object.">mer_MCMCsamp</a>, 2},
     {<span class="stringliteral">"mer_ST_chol"</span>, (DL_FUNC) &amp;<a class="code" href="lmer_8c.html#1b6b095e8bf563b290d0156274c0aab0" title="Return a list of (upper) Cholesky factors from the ST list.">mer_ST_chol</a>, 1},
@@ -142,7 +142,7 @@ cholmod_common struct initialized in R_init_lme4
     {<span class="stringliteral">"mer_ST_setPars"</span>, (DL_FUNC) &amp;<a class="code" href="lmer_8c.html#96765a284e1652326a22d50f7d7538d4" title="Update the ST slot of an mer object from a REAL vector of parameters and update the...">mer_ST_setPars</a>, 2},
     {<span class="stringliteral">"mer_create_L"</span>, (DL_FUNC) &amp;<a class="code" href="lmer_8c.html#f0bf2e6ee95fd84db9323208711ae3bc" title="Create and initialize L.">mer_create_L</a>, 1},
     {<span class="stringliteral">"mer_optimize"</span>, (DL_FUNC) &amp;<a class="code" href="lmer_8c.html#7aa21aea1da63a3096fcc054cc6c9dd5" title="Optimize the profiled deviance of an lmer object or the Laplace approximation to...">mer_optimize</a>, 2},
-    {<span class="stringliteral">"mer_postVar"</span>, (DL_FUNC) &amp;<a class="code" href="lmer_8c.html#79178d4c0ab3956a7f5d5ac93416759a" title="Extract the posterior variances of the random effects in an mer object.">mer_postVar</a>, 1},
+    {<span class="stringliteral">"mer_postVar"</span>, (DL_FUNC) &amp;<a class="code" href="lmer_8c.html#79178d4c0ab3956a7f5d5ac93416759a" title="Extract the conditional variances of the random effects in an mer object.">mer_postVar</a>, 1},
     {<span class="stringliteral">"mer_update_L"</span>, (DL_FUNC) &amp;<a class="code" href="lmer_8c.html#f61a89a1f6aa003a5ae87d08cb8c9af7" title="Externally callable update_L.">mer_update_L</a>, 1},
     {<span class="stringliteral">"mer_update_RX"</span>, (DL_FUNC) &amp;<a class="code" href="lmer_8c.html#6c02b5f73d659d2d748852fac7e9c462" title="Externally callable update_RX.">mer_update_RX</a>, 1},
     {<span class="stringliteral">"mer_update_dev"</span>, (DL_FUNC) &amp;<a class="code" href="lmer_8c.html#c33b16395fa975458685d0eb76996f92" title="Evaluate the discrepancy and log of the penalized discrepancy.">mer_update_dev</a>, 1},
@@ -168,7 +168,7 @@ cholmod_common struct initialized in R_init_lme4
 </div>
 </div><p>
 </div>
-<hr size="1"><address style="text-align: right;"><small>Generated on Tue May 13 12:35:53 2008 for lme4 by&nbsp;
+<hr size="1"><address style="text-align: right;"><small>Generated on Fri May 30 13:02:55 2008 for lme4 by&nbsp;
 <a href="http://www.doxygen.org/index.html">
 <img src="doxygen.png" alt="doxygen" align="middle" border="0"></a> 1.5.5 </small></address>
 </body>
