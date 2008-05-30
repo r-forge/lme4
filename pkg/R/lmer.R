@@ -1371,16 +1371,22 @@ setMethod("VarCorr", signature(x = "merMCMC"),
               if (length(x@sigma)) return(cbind(ST, sigma = as.vector(x@sigma)))
               return(ST)
           }
-          .Call(merMCMC_varcov, x, match(type, c("raw", "varcov", "sdcorr", "logs")))
+          .Call(merMCMC_VarCorr, x, match(type, c("raw", "varcov", "sdcorr", "logs")))
       })
               
 setMethod("as.matrix", signature(x = "merMCMC"),
           function(x, ...)
           cbind(t(x@fixef), VarCorr(x, ...)))
 
+setMethod("as.data.frame", signature(x = "merMCMC"),
+          function(x, row.names = NULL, optional = FALSE, ...)
+          as.data.frame(as.matrix(x, ...), row.names = row.names, optional = optional, ...))
+
+setAs("merMCMC", "data.frame", function(from) as.data.frame(from))
+                                        
 aslatticeframe <- function(x, ...)
 {
-    fr <- as.data.frame(as.matrix(x, ...))
+    fr <- as.data.frame(x, ...)
     data.frame(dat = unlist(fr),
                par = gl(ncol(fr), nrow(fr), labels = colnames(fr)),
                iter = rep(1:nrow(fr), ncol(fr)))
