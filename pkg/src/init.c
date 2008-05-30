@@ -4,7 +4,7 @@
 #include "Syms.h" 
 
 static R_CallMethodDef CallEntries[] = {
-    {"lme4_rWishart", (DL_FUNC) &lme4_rWishart, 3},
+/*     {"lme4_rWishart", (DL_FUNC) &lme4_rWishart, 3}, */
 
     {"mer_MCMCsamp", (DL_FUNC) &mer_MCMCsamp, 2},
     {"mer_ST_chol", (DL_FUNC) &mer_ST_chol, 1},
