@@ -38,6 +38,7 @@
       <li><a href="#index_p"><span>p</span></a></li>
       <li><a href="#index_r"><span>r</span></a></li>
       <li><a href="#index_s"><span>s</span></a></li>
+      <li><a href="#index_t"><span>t</span></a></li>
       <li><a href="#index_u"><span>u</span></a></li>
       <li><a href="#index_y"><span>y</span></a></li>
     </ul>
@@ -49,8 +50,6 @@
 &nbsp;
 <p>
 <h3><a class="anchor" name="index_a">- a -</a></h3><ul>
-<li>apply_iperm()
-: <a class="el" href="lmer_8c.html#717cadc4d5964b559d0e6507e6e680ed">lmer.c</a>
 <li>apply_perm()
 : <a class="el" href="lmer_8c.html#c6c092e8b91bd83d19519bdc69bf6801">lmer.c</a>
 </ul>
@@ -69,26 +68,27 @@
 : <a class="el" href="lmer_8c.html#2f1d1f23db416c858fe8eecd2bb35236">lmer.c</a>
 <li>lme4_muEta()
 : <a class="el" href="lmer_8c.html#a85610eae75107b55d1069907486662f">lmer.c</a>
-<li>lme4_rWishart()
-: <a class="el" href="lmer_8h.html#3e5fbf4c0511166682d134b8b4c68502">lmer.h</a>
-, <a class="el" href="lmer_8c.html#e2455770c47d7da24d206f6c46b60b47">lmer.c</a>
 <li>lme4_varFunc()
 : <a class="el" href="lmer_8c.html#a5f4cdbae42bcf865082dea1ebe09357">lmer.c</a>
+<li>lmm_update_fixef_u()
+: <a class="el" href="lmer_8c.html#9caf4e33e6d99b66e0c987b8d17e9ebc">lmer.c</a>
 </ul>
 <h3><a class="anchor" name="index_m">- m -</a></h3><ul>
 <li>MCMC_beta_u()
 : <a class="el" href="lmer_8c.html#c62278f1b69b4f5e7096df5dd74308f6">lmer.c</a>
-<li>MCMC_ST()
-: <a class="el" href="lmer_8c.html#9952b57a4c6c75456d2465deb9e9ff91">lmer.c</a>
+<li>MCMC_S()
+: <a class="el" href="lmer_8c.html#afe58def10558f89ca260e39a136b593">lmer.c</a>
+<li>MCMC_T()
+: <a class="el" href="lmer_8c.html#1609bbc5bc26172bc142e9a5eb29d9a2">lmer.c</a>
 <li>mer_create_L()
-: <a class="el" href="lmer_8h.html#f0bf2e6ee95fd84db9323208711ae3bc">lmer.h</a>
-, <a class="el" href="lmer_8c.html#f0bf2e6ee95fd84db9323208711ae3bc">lmer.c</a>
+: <a class="el" href="lmer_8c.html#f0bf2e6ee95fd84db9323208711ae3bc">lmer.c</a>
+, <a class="el" href="lmer_8h.html#f0bf2e6ee95fd84db9323208711ae3bc">lmer.h</a>
 <li>mer_MCMCsamp()
 : <a class="el" href="lmer_8c.html#faf107495473068e7f439b17073d884e">lmer.c</a>
 , <a class="el" href="lmer_8h.html#faf107495473068e7f439b17073d884e">lmer.h</a>
 <li>mer_optimize()
-: <a class="el" href="lmer_8h.html#a4e16de36d36af6c715d52a045f88e78">lmer.h</a>
-, <a class="el" href="lmer_8c.html#7aa21aea1da63a3096fcc054cc6c9dd5">lmer.c</a>
+: <a class="el" href="lmer_8c.html#7aa21aea1da63a3096fcc054cc6c9dd5">lmer.c</a>
+, <a class="el" href="lmer_8h.html#a4e16de36d36af6c715d52a045f88e78">lmer.h</a>
 <li>mer_postVar()
 : <a class="el" href="lmer_8c.html#79178d4c0ab3956a7f5d5ac93416759a">lmer.c</a>
 , <a class="el" href="lmer_8h.html#79178d4c0ab3956a7f5d5ac93416759a">lmer.h</a>
@@ -99,8 +99,8 @@
 : <a class="el" href="lmer_8c.html#1f6b9123d7b4dcbe24cc9085e5f4069a">lmer.c</a>
 , <a class="el" href="lmer_8h.html#1f6b9123d7b4dcbe24cc9085e5f4069a">lmer.h</a>
 <li>mer_ST_initialize()
-: <a class="el" href="lmer_8h.html#8559f52eaa24d57b05ded03099dbe157">lmer.h</a>
-, <a class="el" href="lmer_8c.html#0a12a0220833deaf108e01ca3ecaac51">lmer.c</a>
+: <a class="el" href="lmer_8c.html#0a12a0220833deaf108e01ca3ecaac51">lmer.c</a>
+, <a class="el" href="lmer_8h.html#8559f52eaa24d57b05ded03099dbe157">lmer.h</a>
 <li>mer_ST_setPars()
 : <a class="el" href="lmer_8c.html#96765a284e1652326a22d50f7d7538d4">lmer.c</a>
 , <a class="el" href="lmer_8h.html#96765a284e1652326a22d50f7d7538d4">lmer.h</a>
@@ -108,8 +108,8 @@
 : <a class="el" href="lmer_8c.html#c33b16395fa975458685d0eb76996f92">lmer.c</a>
 , <a class="el" href="lmer_8h.html#c33b16395fa975458685d0eb76996f92">lmer.h</a>
 <li>mer_update_L()
-: <a class="el" href="lmer_8c.html#f61a89a1f6aa003a5ae87d08cb8c9af7">lmer.c</a>
-, <a class="el" href="lmer_8h.html#f61a89a1f6aa003a5ae87d08cb8c9af7">lmer.h</a>
+: <a class="el" href="lmer_8h.html#f61a89a1f6aa003a5ae87d08cb8c9af7">lmer.h</a>
+, <a class="el" href="lmer_8c.html#f61a89a1f6aa003a5ae87d08cb8c9af7">lmer.c</a>
 <li>mer_update_mu()
 : <a class="el" href="lmer_8c.html#64740a858f90763461cbccea9c787b6b">lmer.c</a>
 , <a class="el" href="lmer_8h.html#64740a858f90763461cbccea9c787b6b">lmer.h</a>
@@ -117,14 +117,14 @@
 : <a class="el" href="lmer_8c.html#bc080c9abeb9965118c6d114d6df1cb3">lmer.c</a>
 , <a class="el" href="lmer_8h.html#bc080c9abeb9965118c6d114d6df1cb3">lmer.h</a>
 <li>mer_update_RX()
-: <a class="el" href="lmer_8c.html#6c02b5f73d659d2d748852fac7e9c462">lmer.c</a>
-, <a class="el" href="lmer_8h.html#6c02b5f73d659d2d748852fac7e9c462">lmer.h</a>
+: <a class="el" href="lmer_8h.html#6c02b5f73d659d2d748852fac7e9c462">lmer.h</a>
+, <a class="el" href="lmer_8c.html#6c02b5f73d659d2d748852fac7e9c462">lmer.c</a>
 <li>mer_update_u()
 : <a class="el" href="lmer_8h.html#b72ec91b1f901b466f29a80bcc22e6c4">lmer.h</a>
 , <a class="el" href="lmer_8c.html#b72ec91b1f901b466f29a80bcc22e6c4">lmer.c</a>
 <li>mer_validate()
-: <a class="el" href="lmer_8h.html#489500e3d5104fc320a54d85c43bcfed">lmer.h</a>
-, <a class="el" href="lmer_8c.html#489500e3d5104fc320a54d85c43bcfed">lmer.c</a>
+: <a class="el" href="lmer_8c.html#489500e3d5104fc320a54d85c43bcfed">lmer.c</a>
+, <a class="el" href="lmer_8h.html#489500e3d5104fc320a54d85c43bcfed">lmer.h</a>
 <li>merMCMC_validate()
 : <a class="el" href="lmer_8c.html#a13a0ba07cfed7d6f208db76e2a25c3b">lmer.c</a>
 , <a class="el" href="lmer_8h.html#a13a0ba07cfed7d6f208db76e2a25c3b">lmer.h</a>
@@ -159,8 +159,12 @@
 : <a class="el" href="lmer_8c.html#3a7fab2a88117d83971db12f53eaa91e">lmer.c</a>
 <li>ST_setPars()
 : <a class="el" href="lmer_8c.html#c91a1d6467c5dd44cbc4c785f643e315">lmer.c</a>
-<li>std_rWishart_factor()
-: <a class="el" href="lmer_8c.html#1979a46eb429191a16fa6fc467958072">lmer.c</a>
+</ul>
+<h3><a class="anchor" name="index_t">- t -</a></h3><ul>
+<li>theta_S_ind()
+: <a class="el" href="lmer_8c.html#a33caba85a1abc2725cf3a0fab3008a2">lmer.c</a>
+<li>Tt_Zt()
+: <a class="el" href="lmer_8c.html#3c8d2696fe29e3199ff03e2194afd004">lmer.c</a>
 </ul>
 <h3><a class="anchor" name="index_u">- u -</a></h3><ul>
 <li>update_A()
@@ -181,7 +185,7 @@
 : <a class="el" href="lmer_8c.html#5023a36a5ff0bec88db074b701eaf563">lmer.c</a>
 </ul>
 </div>
-<hr size="1"><address style="text-align: right;"><small>Generated on Tue May 13 12:35:54 2008 for lme4 by&nbsp;
+<hr size="1"><address style="text-align: right;"><small>Generated on Fri May 30 13:03:00 2008 for lme4 by&nbsp;
 <a href="http://www.doxygen.org/index.html">
 <img src="doxygen.png" alt="doxygen" align="middle" border="0"></a> 1.5.5 </small></address>
 </body>

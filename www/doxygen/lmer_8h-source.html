@@ -20,7 +20,7 @@
 <a name="l00006"></a>00006 <span class="comment"> * GET_SLOT, MAKE_CLASS, NEW_OBJECT, SET_SLOT, etc. */</span>
 <a name="l00007"></a>00007 <span class="preprocessor">#include &lt;Rdefines.h&gt;</span>
 <a name="l00008"></a>00008 
-<a name="l00009"></a>00009 SEXP <a class="code" href="lmer_8c.html#e2455770c47d7da24d206f6c46b60b47" title="Simulate a sample of random matrices from a Wishart distribution.">lme4_rWishart</a>(SEXP ns, SEXP dfp, SEXP scal);
+<a name="l00009"></a>00009 <span class="comment">/* SEXP lme4_rWishart(SEXP ns, SEXP dfp, SEXP scal); */</span>
 <a name="l00010"></a>00010 
 <a name="l00011"></a>00011 SEXP <a class="code" href="lmer_8c.html#faf107495473068e7f439b17073d884e" title="Generate a Markov-chain Monte Carlo sample from an mer object.">mer_MCMCsamp</a>(SEXP x, SEXP fm);
 <a name="l00012"></a>00012 SEXP <a class="code" href="lmer_8c.html#1b6b095e8bf563b290d0156274c0aab0" title="Return a list of (upper) Cholesky factors from the ST list.">mer_ST_chol</a>(SEXP x);
@@ -29,7 +29,7 @@
 <a name="l00015"></a>00015 SEXP <a class="code" href="lmer_8c.html#96765a284e1652326a22d50f7d7538d4" title="Update the ST slot of an mer object from a REAL vector of parameters and update the...">mer_ST_setPars</a>(SEXP x, SEXP pars);
 <a name="l00016"></a>00016 SEXP <a class="code" href="lmer_8c.html#f0bf2e6ee95fd84db9323208711ae3bc" title="Create and initialize L.">mer_create_L</a>(SEXP CmP);
 <a name="l00017"></a>00017 SEXP <a class="code" href="lmer_8c.html#7aa21aea1da63a3096fcc054cc6c9dd5" title="Optimize the profiled deviance of an lmer object or the Laplace approximation to...">mer_optimize</a>(SEXP x, SEXP verb);
-<a name="l00018"></a>00018 SEXP <a class="code" href="lmer_8c.html#79178d4c0ab3956a7f5d5ac93416759a" title="Extract the posterior variances of the random effects in an mer object.">mer_postVar</a>(SEXP x);
+<a name="l00018"></a>00018 SEXP <a class="code" href="lmer_8c.html#79178d4c0ab3956a7f5d5ac93416759a" title="Extract the conditional variances of the random effects in an mer object.">mer_postVar</a>(SEXP x);
 <a name="l00019"></a>00019 SEXP <a class="code" href="lmer_8c.html#f61a89a1f6aa003a5ae87d08cb8c9af7" title="Externally callable update_L.">mer_update_L</a>(SEXP x);
 <a name="l00020"></a>00020 SEXP <a class="code" href="lmer_8c.html#6c02b5f73d659d2d748852fac7e9c462" title="Externally callable update_RX.">mer_update_RX</a>(SEXP x);
 <a name="l00021"></a>00021 SEXP <a class="code" href="lmer_8c.html#c33b16395fa975458685d0eb76996f92" title="Evaluate the discrepancy and log of the penalized discrepancy.">mer_update_dev</a>(SEXP x);
@@ -45,7 +45,7 @@
 <a name="l00031"></a>00031 
 <a name="l00032"></a>00032 <span class="preprocessor">#endif </span><span class="comment">/* LME4_LMER_H */</span>
 </pre></div></div>
-<hr size="1"><address style="text-align: right;"><small>Generated on Tue May 13 12:35:53 2008 for lme4 by&nbsp;
+<hr size="1"><address style="text-align: right;"><small>Generated on Fri May 30 13:02:55 2008 for lme4 by&nbsp;
 <a href="http://www.doxygen.org/index.html">
 <img src="doxygen.png" alt="doxygen" align="middle" border="0"></a> 1.5.5 </small></address>
 </body>

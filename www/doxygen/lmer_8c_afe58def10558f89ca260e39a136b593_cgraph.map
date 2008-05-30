@@ -1,0 +1,5 @@
+<area shape="rect" href="$lmer_8c.html#3a7fab2a88117d83971db12f53eaa91e" title="Populate the st, nc and nlev arrays." alt="" coords="269,6,360,30">
+<area shape="rect" href="$lmer_8c.html#a33caba85a1abc2725cf3a0fab3008a2" title="Determine the index in theta_S corresponding to index i in the u vector." alt="" coords="131,154,221,178">
+<area shape="rect" href="$lmer_8c.html#3c8d2696fe29e3199ff03e2194afd004" title="Multiply A on the left by T&#39;." alt="" coords="289,104,340,128">
+<area shape="rect" href="$lmer_8c.html#9843ab48eb3803207fead83796089087" title="Evaluate the sparse model matrix A from the Zt and ST slots." alt="" coords="139,55,213,79">
+<area shape="rect" href="$lmer_8c.html#3f49a530ee30ef0d40ef8bc6d60c5963" title="Return the index of the term associated with parameter index ind." alt="" coords="408,104,472,128">

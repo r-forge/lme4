@@ -1,4 +1,4 @@
-<area shape="rect" href="$lmer_8c.html#9952b57a4c6c75456d2465deb9e9ff91" title="Update the ST list of arrays and the sparse model matrix A." alt="" coords="133,6,219,30">
+<area shape="rect" href="$lmer_8c.html#afe58def10558f89ca260e39a136b593" title="Update the theta_S parameters from the ST arrays in place." alt="" coords="137,6,215,30">
 <area shape="rect" href="$lmer_8c.html#c91a1d6467c5dd44cbc4c785f643e315" title="Update the ST and A slots of an mer object." alt="" coords="131,54,221,78">
 <area shape="rect" href="$lmer_8h.html#faf107495473068e7f439b17073d884e" title="Generate a Markov&#45;chain Monte Carlo sample from an mer object." alt="" coords="269,6,392,30">
 <area shape="rect" href="$lmer_8h.html#a4e16de36d36af6c715d52a045f88e78" title="Optimize the profiled deviance of an lmer object or the Laplace approximation to..." alt="" coords="281,54,380,78">

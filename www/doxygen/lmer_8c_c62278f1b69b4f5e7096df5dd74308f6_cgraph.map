@@ -1,10 +1,11 @@
-<area shape="rect" href="$lmer_8c.html#2f257f628f06920b351486d48ab50026" title="Update the L, sqrtrWt and resid slots." alt="" coords="173,102,248,126">
-<area shape="rect" href="$lmer_8c.html#da558f58458c36a96585a9c6e695a0b6" title="Update the eta, v, mu, resid and var slots according to the current values of the..." alt="" coords="168,54,253,78">
-<area shape="rect" href="$lmer_8c.html#5542c4de7dbcdbb6630cad8fabe96542" title="Update the contents of the ranef slot in an mer object." alt="" coords="163,150,259,174">
-<area shape="rect" href="$lmer_8c.html#2c7f7874e2eb3f6c51c53c5873cffec4" title="Update the RZX and RX slots in an mer object." alt="" coords="168,198,253,222">
-<area shape="rect" href="$lmer_8c.html#c96e3dd08e67f41338d9e84118925308" title="Return the sum of squares of the first n elements of x." alt="" coords="319,102,399,126">
-<area shape="rect" href="$lmer_8c.html#a85610eae75107b55d1069907486662f" title="Evaluate the derivative d mu/d eta for the GLM link function of type lTyp." alt="" coords="312,54,405,78">
-<area shape="rect" href="$lmer_8c.html#a5f4cdbae42bcf865082dea1ebe09357" title="Evaluate the GLM variance function of type vTyp given mu." alt="" coords="307,6,411,30">
-<area shape="rect" href="$lmer_8c.html#3a7fab2a88117d83971db12f53eaa91e" title="Populate the st, nc and nlev arrays." alt="" coords="313,150,404,174">
-<area shape="rect" href="$lmer_8c.html#d562658adcecf9b4a01944b227be5915" title="Create PAX in dest." alt="" coords="321,198,396,222">
-<area shape="rect" href="$lmer_8c.html#c6c092e8b91bd83d19519bdc69bf6801" title="Permute the vector src according to perm into dest." alt="" coords="459,198,547,222">
+<area shape="rect" href="$lmer_8c.html#9caf4e33e6d99b66e0c987b8d17e9ebc" title="Determine the conditional estimates of the fixed effects and the conditional mode..." alt="" coords="163,54,301,78">
+<area shape="rect" href="$lmer_8c.html#2f257f628f06920b351486d48ab50026" title="Update the L, sqrtrWt and resid slots." alt="" coords="195,102,269,126">
+<area shape="rect" href="$lmer_8c.html#da558f58458c36a96585a9c6e695a0b6" title="Update the eta, v, mu, resid and var slots according to the current values of the..." alt="" coords="189,150,275,174">
+<area shape="rect" href="$lmer_8c.html#5542c4de7dbcdbb6630cad8fabe96542" title="Update the contents of the ranef slot in an mer object using the current contents..." alt="" coords="184,210,280,234">
+<area shape="rect" href="$lmer_8c.html#2c7f7874e2eb3f6c51c53c5873cffec4" title="Update the RZX and RX slots in an mer object." alt="" coords="189,6,275,30">
+<area shape="rect" href="$lmer_8c.html#d562658adcecf9b4a01944b227be5915" title="Create PAX in dest." alt="" coords="364,24,439,48">
+<area shape="rect" href="$lmer_8c.html#c96e3dd08e67f41338d9e84118925308" title="Return the sum of squares of the first n elements of x." alt="" coords="361,90,441,114">
+<area shape="rect" href="$lmer_8c.html#c6c092e8b91bd83d19519bdc69bf6801" title="Permute the vector src according to perm into dest." alt="" coords="501,24,589,48">
+<area shape="rect" href="$lmer_8c.html#a85610eae75107b55d1069907486662f" title="Evaluate the derivative d mu/d eta for the GLM link function of type lTyp." alt="" coords="355,138,448,162">
+<area shape="rect" href="$lmer_8c.html#a5f4cdbae42bcf865082dea1ebe09357" title="Evaluate the GLM variance function of type vTyp given mu." alt="" coords="349,186,453,210">
+<area shape="rect" href="$lmer_8c.html#3a7fab2a88117d83971db12f53eaa91e" title="Populate the st, nc and nlev arrays." alt="" coords="356,234,447,258">

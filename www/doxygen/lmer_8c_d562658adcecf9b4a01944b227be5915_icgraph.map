@@ -1,5 +1,6 @@
-<area shape="rect" href="$lmer_8c.html#2c7f7874e2eb3f6c51c53c5873cffec4" title="Update the RZX and RX slots in an mer object." alt="" coords="131,80,216,104">
-<area shape="rect" href="$lmer_8c.html#c62278f1b69b4f5e7096df5dd74308f6" title="Update the fixed effects and the orthogonal random effects in an MCMC sample from..." alt="" coords="268,5,375,29">
-<area shape="rect" href="$lmer_8h.html#faf107495473068e7f439b17073d884e" title="Generate a Markov&#45;chain Monte Carlo sample from an mer object." alt="" coords="427,30,549,54">
-<area shape="rect" href="$lmer_8h.html#a4e16de36d36af6c715d52a045f88e78" title="Optimize the profiled deviance of an lmer object or the Laplace approximation to..." alt="" coords="272,104,371,128">
-<area shape="rect" href="$lmer_8h.html#6c02b5f73d659d2d748852fac7e9c462" title="Externally callable update_RX." alt="" coords="264,152,379,176">
+<area shape="rect" href="$lmer_8c.html#9caf4e33e6d99b66e0c987b8d17e9ebc" title="Determine the conditional estimates of the fixed effects and the conditional mode..." alt="" coords="131,23,269,47">
+<area shape="rect" href="$lmer_8c.html#2c7f7874e2eb3f6c51c53c5873cffec4" title="Update the RZX and RX slots in an mer object." alt="" coords="157,71,243,95">
+<area shape="rect" href="$lmer_8c.html#c62278f1b69b4f5e7096df5dd74308f6" title="Update the fixed effects and the orthogonal random effects in an MCMC sample from..." alt="" coords="321,23,428,47">
+<area shape="rect" href="$lmer_8h.html#faf107495473068e7f439b17073d884e" title="Generate a Markov&#45;chain Monte Carlo sample from an mer object." alt="" coords="480,23,603,47">
+<area shape="rect" href="$lmer_8h.html#a4e16de36d36af6c715d52a045f88e78" title="Optimize the profiled deviance of an lmer object or the Laplace approximation to..." alt="" coords="325,71,424,95">
+<area shape="rect" href="$lmer_8h.html#6c02b5f73d659d2d748852fac7e9c462" title="Externally callable update_RX." alt="" coords="317,170,432,194">
