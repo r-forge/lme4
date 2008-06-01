@@ -8,7 +8,9 @@
 \alias{qqmath,merMCMC-method}
 \alias{densityplot,merMCMC-method}
 \alias{xyplot,merMCMC-method}
-\alias{as.matrix,merMCMC-method} 
+\alias{as.matrix,merMCMC-method}
+\alias{as.data.frame,merMCMC-method}
+\alias{coerce,merMCMC,data.frame-method} 
 \title{Mixed-model Markov chain Monte Carlo results}
 \description{Objects of class \code{"merMCMC"} are Markov chain Monte
   Carlo samples from a fitted mixed-effects model.}
@@ -40,7 +42,15 @@
   }
 }
 \section{Methods}{
-  No methods defined with class "merMCMC" in the signature.
+  \describe{
+    \item{densityplot}{\code{signature(object = "merMCMC")}: plot
+      empirical densities for the parameters from the chain.}
+    \item{qqmath}{\code{signature(object = "merMCMC")}: plot
+      quantile-quantile plots for the parameters from the sample in the
+      chain.}
+    \item{xyplot}{\code{signature(object = "merMCMC")}: plot
+      traces of the parameter samples in the chain.}
+  }
 }
 \seealso{
   \code{\link{mcmcsamp}} produces these objects,

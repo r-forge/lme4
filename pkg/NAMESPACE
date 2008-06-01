@@ -32,6 +32,7 @@ exportMethods(
               "VarCorr",
               "anova",
               "as.matrix",
+              "as.data.frame",
               "chol",
               "coef",
               "coerce",
