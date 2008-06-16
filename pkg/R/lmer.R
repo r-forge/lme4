@@ -610,7 +610,7 @@ function(formula, data, family = gaussian, method = c("Laplace", "AGQ"),
 
 nlmer <- function(formula, data, control = list(), start = NULL,
                   verbose = FALSE, subset, weights, na.action,
-                  contrasts = NULL, model = TRUE, ...)
+                  contrasts = NULL, model = TRUE, method = 0...)
 ### Fit a nonlinear mixed-effects model
 {
     mc <- match.call()
@@ -702,6 +702,7 @@ nlmer <- function(formula, data, control = list(), start = NULL,
                sqrtrWt = unname(sqrt(fr$wts)),
                RZX = matrix(0, dm$dd["q"], p),
                RX = matrix(0, p, p)
+	       method = method
                )
     .Call(mer_update_mu, ans)
 ### Add a check that the parameter names match the column names of gradient

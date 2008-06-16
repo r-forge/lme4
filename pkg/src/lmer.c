@@ -1590,7 +1590,7 @@ SEXP mer_update_dev(SEXP x)
 	lme4_devResid(MU_SLOT(x), PWT_SLOT(x), Y_SLOT(x),
 		      dims[n_POS], dims[vTyp_POS]) :
 	d[wrss_POS];
-    /* evaluate maximum likelihood deviance using different methods. */
+    /* evaluate maximum likelihood deviance using AGQ or Laplacian method. */
     if(method)
       {
 
