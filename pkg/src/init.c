@@ -75,6 +75,7 @@ void R_init_lme4(DllInfo *dll)
     lme4_iSym = install("i");
     lme4_ncSym = install("nc");
     lme4_nlmodelSym = install("nlmodel");
+    lme4_methodSym = install("method");
     lme4_muEtaSym = install("muEta");
     lme4_muSym = install("mu");
     lme4_offsetSym = install("offset");
