@@ -22,6 +22,7 @@ SEXP attribute_hidden
     lme4_iSym,
     lme4_ncSym,
     lme4_nlmodelSym,
+    lme4_methodSym,
     lme4_muEtaSym,
     lme4_muSym,
     lme4_offsetSym,
