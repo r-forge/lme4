@@ -610,7 +610,7 @@ function(formula, data, family = gaussian, method = c("Laplace", "AGQ"),
 
 nlmer <- function(formula, data, control = list(), start = NULL,
                   verbose = FALSE, subset, weights, na.action,
-                  contrasts = NULL, model = TRUE, method = 0...)
+                  contrasts = NULL, model = TRUE, method = as.integer(1), ...)
 ### Fit a nonlinear mixed-effects model
 {
     mc <- match.call()
@@ -634,6 +634,9 @@ nlmer <- function(formula, data, control = list(), start = NULL,
 
     if (!length(vnms <- setdiff(anms, pnames)))
         stop("there are no variables used in the nonlinear model expression")
+    
+    if(!is.integer(method) || method < 1)
+	stop("number of points for AGQ method should be positive integer valued")
     ## create a frame in which to evaluate the factor list
     fr <- lmerFrames(mc,
                      eval(substitute(foo ~ bar,
@@ -701,8 +704,8 @@ nlmer <- function(formula, data, control = list(), start = NULL,
                sqrtXWt = matrix(0, n, s, dimnames = list(NULL, pnames)),
                sqrtrWt = unname(sqrt(fr$wts)),
                RZX = matrix(0, dm$dd["q"], p),
-               RX = matrix(0, p, p)
-	       method = method
+               RX = matrix(0, p, p),
+	       method = as.integer(method)
                )
     .Call(mer_update_mu, ans)
 ### Add a check that the parameter names match the column names of gradient
@@ -968,7 +971,11 @@ setMethod("summary", signature(object = "mer"),
           mName <- switch(mType, LMM = "Linear", NMM = "Nonlinear",
                           GLMM = "Generalized linear",
                           GNMM = "Generalized nonlinear")
-          method <- "the Laplace approximation"
+	  method <- object@method
+	  if(method == 1)
+              method <- "the Laplace approximation"
+	  else
+	      method <- "the adaptive Gaussian Hermite approximation"
           if (mType == "LMM")
               method <- ifelse(REML, "REML", "maximum likelihood")
 

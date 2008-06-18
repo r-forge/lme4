@@ -49,7 +49,7 @@ setClass("mer",
                         sqrtrWt = "numeric",# sqrt of weights used with residuals
                         RZX = "matrix", # dense sol. to L RZX = ST'ZtX = AX
                         RX = "matrix", # Cholesky factor of downdated X'X
-			method = 0), # quadrature method used in NLME (0 for Laplacian, AGQ otherwise)    
+			method = "integer"), # number of points used in AGQ (1 for special case, Laplace method)    
          validity = function(object) .Call(mer_validate, object))
 
 setClass("merMCMC",
