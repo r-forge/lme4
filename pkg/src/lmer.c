@@ -114,7 +114,7 @@ static R_INLINE double *SLOT_REAL_NULL(SEXP obj, SEXP nm)
 #define L_SLOT(x) AS_CHM_FR(GET_SLOT(x, lme4_LSym))
 
 /** Return the integer pointer to method used in likelihood approximation. */
-#define METHOD_SLOT(x) INTEGER(GET_SLOT(x, lme4_dimsSym))
+#define METHOD_SLOT(x) INTEGER(GET_SLOT(x, lme4_methodSym))
 
 /** Return the double pointer to the mu slot */
 #define MU_SLOT(x) SLOT_REAL_NULL(x, lme4_muSym)
@@ -1591,12 +1591,11 @@ SEXP mer_update_dev(SEXP x)
 		      dims[n_POS], dims[vTyp_POS]) :
 	d[wrss_POS];
     /* evaluate maximum likelihood deviance using AGQ or Laplacian method. */
-    if(method)
+    d[ML_POS] = dn * ( 1 + log(2*PI / dn) ) + dn * log(d[disc_POS] + d[usqr_POS]) + 2 * d[ldL2_POS];
+    if(method > 1)
       {
-
+    d[ML_POS] = dn * ( 1 + log(2*PI / dn) ) + dn * log(d[disc_POS] + d[usqr_POS]) + 2 * d[ldL2_POS];
       }
-    else
-      d[ML_POS] = dn * ( 1 + log(2*PI / dn) ) + dn * log(d[disc_POS] + d[usqr_POS]) + 2 * d[ldL2_POS];
     return R_NilValue;
 }
 
