@@ -179,7 +179,7 @@ lmerFrames <- function(mc, formula, contrasts, vnms = character(0))
         if(!is.null(nm)) names(Y) <- nm
     }
     mt <- attr(fe, "terms")
-    
+
     ## Extract X checking for a null model. This check shouldn't be
     ## needed because an empty formula is changed to ~ 1 but it can't hurt.
     X <- if (!is.empty.model(mt))
@@ -258,7 +258,7 @@ lmerFactorList <- function(formula, mf, rmInt, drop)
                              ST = matrix(0, ncol(mm), ncol(mm),
                              dimnames = list(colnames(mm), colnames(mm))))
                  if (drop) {
-                     ## This is only used for nlmer models.  
+                     ## This is only used for nlmer models.
                      ## Need to do something more complicated for A
                      ## here.  Essentially you need to create a copy
                      ## of im for each column of mm, im@x <- mm[,j],
@@ -361,7 +361,7 @@ mkdims <- function(fr, FL, start, s = 1L)
     dd["REML"] <- 0L                    # glmer and nlmer don't use REML
     dd["fTyp"] <- 2L                    # default family is "gaussian"
     dd["lTyp"] <- 5L                    # default link is "identity"
-    dd["vTyp"] <- 1L                    # default variance function is "constant"    
+    dd["vTyp"] <- 1L                    # default variance function is "constant"
     ## check for nesting of factors
     dd["nest"] <- all(sapply(seq_along(fl)[-1],
                              function(i) isNested(fl[[i-1]], fl[[i]])))
@@ -413,13 +413,13 @@ convergenceMessage <- function(cvg)
                   "4" = "relative convergence (4)",
                   "5" = "both X-convergence and relative convergence (5)",
                   "6" = "absolute function convergence (6)",
-                  
+
                   "7" = "singular convergence (7)",
                   "8" = "false convergence (8)",
                   "9" = "function evaluation limit reached without convergence (9)",
                   "10" = "iteration limit reached without convergence (9)",
                   "14" = "storage has been allocated (?) (14)",
-                  
+
                   "15" = "LIV too small (15)",
                   "16" = "LV too small (16)",
                   "63" = "fn cannot be computed at initial par (63)",
@@ -460,7 +460,7 @@ lmer_finalize <- function(mc, fr, FL, start, REML, verbose)
         Cx <- (dm$A)@x
     p <- dm$dd["p"]
     n <- length(Y)
-    
+
     ans <- new(Class = "mer",
                env = new.env(),
                nlmodel = (~I(x))[[2]],
@@ -468,7 +468,7 @@ lmer_finalize <- function(mc, fr, FL, start, REML, verbose)
                call = mc,
                flist = dm$flist,
                X = fr$X,
-               Zt = dm$Zt, 
+               Zt = dm$Zt,
                pWt = unname(fr$wts),
                offset = unname(fr$off),
 ### FIXME: Should y retain its names? As it stands any row names in the
@@ -478,7 +478,7 @@ lmer_finalize <- function(mc, fr, FL, start, REML, verbose)
                Gp = unname(dm$Gp),
                dims = dm$dd,
                ST = dm$ST,
-               A = dm$A, 
+               A = dm$A,
                Cm = dm$Cm,
                Cx = Cx,
                L = dm$L,
@@ -487,7 +487,7 @@ lmer_finalize <- function(mc, fr, FL, start, REML, verbose)
                ranef = numeric(dm$dd["q"]),
                u = numeric(dm$dd["q"]),
                eta = numeric(n),
-               mu = numeric(n), 
+               mu = numeric(n),
                resid = numeric(n),
                sqrtrWt = swts,
                sqrtXWt = as.matrix(swts),
@@ -499,7 +499,7 @@ lmer_finalize <- function(mc, fr, FL, start, REML, verbose)
             .Call(mer_ST_setPars, ans, stp)
     }
     mer_finalize(ans, verbose)
-}    
+}
 
 ### The main event
 lmer <-
@@ -528,7 +528,7 @@ lmer <-
 }
 
 ## for backward compatibility
-lmer2 <- 
+lmer2 <-
     function(formula, data, family = NULL, REML = TRUE,
              control = list(), start = NULL, verbose = FALSE,
              subset, weights, na.action, offset, contrasts = NULL,
@@ -569,7 +569,7 @@ function(formula, data, family = gaussian, start = NULL,
                       intercept = attr(attr(fr$mf, "terms"), "intercept") > 0)
     FL <- lmerFactorList(formula, fr$mf, 0L, 0L) # flist, Zt
     if (is.list(start) && all(sort(names(start)) == sort(names(FL))))
-        start <- list(ST = start) 
+        start <- list(ST = start)
     if (is.numeric(start)) start <- list(STpars = start)
     dm <- mkdims(fr, FL, start[["ST"]])
     ft <- famType(glmFit$family)
@@ -579,7 +579,7 @@ function(formula, data, family = gaussian, start = NULL,
         msg <- paste("Argument", sQuote("methood"),
                      "is deprecated.\nUse", sQuote("nAGQ"),
                       "to choose AGQ.  PQL is not available.")
-        if (match.arg(method, c("Laplacian", "AGQ")) == "Laplacian") {
+        if (match.arg(method, c("Laplace", "AGQ")) == "Laplace") {
             warning(msg)
         } else stop(msg)
     }
@@ -596,7 +596,7 @@ function(formula, data, family = gaussian, start = NULL,
     fixef[] <- coef(glmFit)
     if (!is.null(ff <- start$fixef) && is.numeric(ff) &&
         length(ff) == length(fixef)) fixef <- ff
-    
+
     ans <- new(Class = "mer",
                env = new.env(),
                nlmodel = (~I(x))[[2]],
@@ -618,7 +618,7 @@ function(formula, data, family = gaussian, start = NULL,
                var = numeric(dm$dd["n"]),
                resid = unname(glmFit$residuals),
                sqrtXWt = as.matrix(numeric(dm$dd["n"])),
-               sqrtrWt = numeric(dm$dd["n"]), 
+               sqrtrWt = numeric(dm$dd["n"]),
                RZX = matrix(0, dm$dd["q"], p),
                RX = matrix(0, p, p))
     if (!is.null(stp <- start$STpars) && is.numeric(stp)) {
@@ -970,7 +970,7 @@ setMethod("simulate", "mer",
           etasim <- as.vector(object@X %*% fixef(object)) +  # fixed-effect contribution
               sigma(object) * (as(t(object@A) %*%    # random-effects contribution
                                matrix(rnorm(nsim * dims["q"]), nc = nsim),
-                                  "matrix") 
+                                  "matrix")
                                ## residual contribution
                                + matrix(rnorm(nsim * dims["n"]), nc = nsim))
           if (length(object@V) == 0 && length(object@muEta) == 0)
@@ -1094,7 +1094,7 @@ setMethod("with", signature(data = "mer"),
 
 formatVC <- function(varc, digits = max(3, getOption("digits") - 2))
 ### "format()" the 'VarCorr' matrix of the random effects -- for show()ing
-{  
+{
     sc <- unname(attr(varc, "sc"))
     recorr <- lapply(varc, attr, "correlation")
     reStdDev <- c(lapply(varc, attr, "stddev"), list(Residual = sc))
@@ -1377,7 +1377,7 @@ setMethod("HPDinterval", signature(object = "matrix"),
           if (ncol(object) > nrow(object))
               object <- t(object)
           vals <- apply(object, 2, sort)
-          if (!is.matrix(vals)) 
+          if (!is.matrix(vals))
               stop("object must have nsamp > 1")
           nsamp <- nrow(vals)
           npar <- ncol(vals)
@@ -1404,7 +1404,7 @@ setMethod("VarCorr", signature(x = "merMCMC"),
           }
           .Call(merMCMC_VarCorr, x, match(type, c("raw", "varcov", "sdcorr", "logs")))
       })
-              
+
 setMethod("as.matrix", signature(x = "merMCMC"),
           function(x, ...)
           cbind(t(x@fixef), VarCorr(x, ...)))
@@ -1414,7 +1414,7 @@ setMethod("as.data.frame", signature(x = "merMCMC"),
           as.data.frame(as.matrix(x, ...), row.names = row.names, optional = optional, ...))
 
 setAs("merMCMC", "data.frame", function(from) as.data.frame(from))
-                                        
+
 aslatticeframe <- function(x, ...)
 {
     fr <- as.data.frame(x, ...)
@@ -1534,7 +1534,7 @@ devvals <- function(fm, pmat, sigma1 = FALSE)
     .Call(mer_update_RX, fm)
     as.data.frame(ans)
 }
-                   
+
 #### Odds and ends
 
 ## simulestimate <- function(x, FUN, nsim = 1, seed = NULL, control = list())
