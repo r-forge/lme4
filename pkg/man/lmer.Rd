@@ -11,17 +11,21 @@
   nonlinear mixed model.
 }
 \usage{
-lmer(formula, data, family, method, control, start,
-     verbose, subset, weights, na.action, offset,
-     contrasts, model, x, \dots)
-lmer2(formula, data, family, method, control, start,
-     verbose, subset, weights, na.action, offset,
-     contrasts, model, x, \dots)
-glmer(formula, data, family, method, control, start,
-      verbose, subset, weights, na.action, offset,
-      contrasts, model, \dots)
-nlmer(formula, data, control, start, verbose,
-      subset, weights, na.action, contrasts, model, \dots)
+lmer(formula, data, family = NULL, REML = TRUE,
+     control = list(), start = NULL, verbose = FALSE,
+     subset, weights, na.action, offset,
+     contrasts = NULL, model = TRUE, x = TRUE, \dots)
+lmer2(formula, data, family = NULL, REML = TRUE,
+      control = list(), start = NULL, verbose = FALSE,
+      subset, weights, na.action, offset,
+      contrasts = NULL, model = TRUE, x = TRUE, \dots)
+glmer(formula, data, family = gaussian, start = NULL,
+      verbose = FALSE, nAGQ = 1, subset, weights,
+      na.action, offset, contrasts = NULL, model = TRUE,
+      control = list(), \dots)
+nlmer(formula, data, start = NULL, verbose = FALSE, nAGQ = 1,
+      subset, weights, na.action, contrasts = NULL,
+      model = TRUE, control = list(), \dots)
 }
 \arguments{
   \item{formula}{a two-sided linear formula object describing the
@@ -37,21 +41,14 @@ nlmer(formula, data, control, start, verbose,
     \code{\link[stats]{family}}. If \code{family} is missing then a
     linear mixed model is fit; otherwise a generalized linear mixed
     model is fit.}
-  \item{method}{a character string.  For a linear mixed model the
-    default is \code{"REML"} indicating that the model should be fit by
-    maximizing the restricted log-likelihood.  The alternative is
-    \code{"ML"} indicating that the log-likelihood should be
-    maximized.  (This method is sometimes called "full" maximum
-    likelihood.)  For a generalized linear mixed model the criterion
-    is always the log-likelihood but this criterion does not have a
-    closed form expression and must be approximated.  The default approximation is
-    \code{"PQL"} or penalized quasi-likelihood.  Alternatives are
-    \code{"Laplace"} or \code{"AGQ"} indicating the Laplacian and
-    adaptive Gaussian quadrature approximations respectively.  The
-    \code{"PQL"} method is fastest but least accurate.  The
-    \code{"Laplace"} method is intermediate in speed and accuracy.
-    The \code{"AGQ"} method is the most accurate but can be
-    considerably slower than the others.}
+  \item{REML}{logical argument to \code{lmer} only. Should the estimates
+    be chosen to optimize the REML criterion (as opposed to the
+    log-likelihood)?  Defaults to TRUE.}
+  \item{nAGQ}{a positive integer - the number of points per axis for
+    evaluating the adaptive Gauss-Hermite approximation to the
+    log-likelihood.  This defaults to 1, corresponding to the Laplacian
+    approximation.  Values greater than 1 produce greater accuracy in
+    the evaluation of the log-likelihood at the expense of speed.}
   \item{control}{a list of control parameters. See below for details.}
   \item{start}{a list of relative precision matrices for the random
     effects.  This has the same form as the slot \code{"Omega"} in a
@@ -66,8 +63,9 @@ nlmer(formula, data, control, start, verbose,
     slot \code{X} is truncated to zero rows.}
   \item{verbose}{logical scalar.  If \code{TRUE} verbose output is
     generated during the optimization of the parameter estimates.}
-  \item{\dots}{potentially further arguments for methods.  Currently
-    none are used.}
+  \item{\dots}{other potential arguments.  A \code{method} argument was
+    used in earlier versions of the package. It's functionality has been
+    replaced by the \code{REML} and \code{nAGQ} arguments.}
 }
 \details{
   This is a revised version of the \code{\link[nlme]{lme}} function from the
