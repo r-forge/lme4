@@ -1,9 +1,11 @@
 # lmer, glmer and nlmer plus methods and utilities
 
+if (0) {
 ### FIXME: Move this function to the stats package
 rWishart <- function(n, df, invScal)
 ### Random sample from a Wishart distribution
     .Call(lme4_rWishart, n, df, invScal)
+}
 
 ### Utilities for parsing the mixed model formula
 
@@ -319,7 +321,7 @@ VecFromNames <- function(nms, mode = "numeric")
 }
 
 dimsNames <- c("nf", "n", "p", "q", "s", "np", "REML", "fTyp", "lTyp",
-               "vTyp", "nest", "useSc", "cvg")
+               "vTyp", "nest", "useSc", "nAGQ", "cvg")
 
 devNames <- c("ML", "REML", "ldL2", "ldRX2", "sigmaML", "sigmaREML",
                "pwrss", "disc", "usqr", "wrss")
@@ -364,6 +366,7 @@ mkdims <- function(fr, FL, start, s = 1L)
     dd["nest"] <- all(sapply(seq_along(fl)[-1],
                              function(i) isNested(fl[[i-1]], fl[[i]])))
     dd["useSc"] <- 1L                   # default is to use the scale parameter
+    dd["nAGQ"] <- 1L                    # default is Laplace
     dd["cvg"]  <- 0L                    # no optimization yet attempted
     dev <- VecFromNames(devNames, "numeric")
     fl <- do.call(data.frame, c(fl, check.names = FALSE))
@@ -438,7 +441,7 @@ mer_finalize <- function(ans, verbose)
 ## Modifications to lmer often involve modifying model matrices before
 ## creating and optimizing the mer object.  Everything past the model
 ## matrices is encapsulated in this function
-lmer_finalize <- function(mc, fr, FL, start, method, verbose)
+lmer_finalize <- function(mc, fr, FL, start, REML, verbose)
 {
     Y <- as.double(fr$Y)
     if (is.list(start) && all(sort(names(start)) == sort(names(FL))))
@@ -450,7 +453,7 @@ lmer_finalize <- function(mc, fr, FL, start, method, verbose)
 ### This checks that the number of levels in a grouping factor < n
 ### Only need to check the first factor because it is the one with
 ### the most levels.
-    dm$dd["REML"] <- method == "REML"
+    dm$dd["REML"] <- as.logical(REML)
     swts <- sqrt(unname(fr$wts))
     Cx <- numeric(0)
     if (length(swts))
@@ -500,7 +503,7 @@ lmer_finalize <- function(mc, fr, FL, start, method, verbose)
 
 ### The main event
 lmer <-
-    function(formula, data, family = NULL, method = c("REML", "ML"),
+    function(formula, data, family = NULL, REML = TRUE,
              control = list(), start = NULL, verbose = FALSE,
              subset, weights, na.action, offset, contrasts = NULL,
              model = TRUE, x = TRUE, ...)
@@ -515,14 +518,20 @@ lmer <-
 
     fr <- lmerFrames(mc, formula, contrasts) # model frame, X, etc.
     FL <- lmerFactorList(formula, fr$mf, 0L, 0L) # flist, Zt
-    lmer_finalize(mc, fr, FL, start, match.arg(method), verbose)
+    if (!is.null(method <- list(...)$method)) {
+        warning(paste("Argument", sQuote("methood"),
+                      "is deprecated.  Use", sQuote("REML"),
+                      "instead"))
+        REML <- match.arg(method, c("REML", "ML")) == "REML"
+    }
+    lmer_finalize(mc, fr, FL, start, REML, verbose)
 }
 
 ## for backward compatibility
 lmer2 <- 
-    function(formula, data, family = NULL, method = c("REML", "ML"),
-             control = list(), start = NULL, verbose, subset,
-             weights, na.action, offset, contrasts = NULL,
+    function(formula, data, family = NULL, REML = TRUE,
+             control = list(), start = NULL, verbose = FALSE,
+             subset, weights, na.action, offset, contrasts = NULL,
              model = TRUE, x = TRUE, ...)
 {
     .Deprecated("lmer")
@@ -532,9 +541,10 @@ lmer2 <-
 }
 
 glmer <-
-function(formula, data, family = gaussian, method = c("Laplace", "AGQ"),
-         control = list(), start = NULL, verbose, subset, weights,
-         na.action, offset, contrasts = NULL, model = TRUE, ...)
+function(formula, data, family = gaussian, start = NULL,
+         verbose = FALSE, nAGQ = 1, subset, weights,
+         na.action, offset, contrasts = NULL, model = TRUE,
+         control = list(), ...)
 ### Fit a generalized linear mixed model
 {
     mc <- match.call()
@@ -565,6 +575,20 @@ function(formula, data, family = gaussian, method = c("Laplace", "AGQ"),
     ft <- famType(glmFit$family)
     dm$dd[names(ft)] <- ft
     dm$dd["useSc"] <- as.integer(!(famNms[dm$dd["fTyp"] ] %in% c("binomial", "poisson")))
+    if (!is.null(method <- list(...)$method)) {
+        msg <- paste("Argument", sQuote("methood"),
+                     "is deprecated.\nUse", sQuote("nAGQ"),
+                      "to choose AGQ.  PQL is not available.")
+        if (match.arg(method, c("Laplacian", "AGQ")) == "Laplacian") {
+            warning(msg)
+        } else stop(msg)
+    }
+    if (!is.null(method))
+        stop(paste("Argument", sQuote("methood"),
+                   "is deprecated.  Use", sQuote("nAGQ"),
+                   "instead"))
+    if ((nAGQ <- as.integer(nAGQ)) < 1) nAGQ <- 1L
+    dm$dd["nAGQ"] <- nAGQ
     y <- unname(as.double(glmFit$y))
 #    dimnames(fr$X) <- NULL
     p <- dm$dd["p"]
@@ -608,9 +632,9 @@ function(formula, data, family = gaussian, method = c("Laplace", "AGQ"),
     ans
 }
 
-nlmer <- function(formula, data, control = list(), start = NULL,
-                  verbose = FALSE, subset, weights, na.action,
-                  contrasts = NULL, model = TRUE, method = as.integer(1), ...)
+nlmer <- function(formula, data, start = NULL, verbose = FALSE,
+                  nAGQ = 1, subset, weights, na.action,
+                  contrasts = NULL, model = TRUE, control = list(), ...)
 ### Fit a nonlinear mixed-effects model
 {
     mc <- match.call()
@@ -634,9 +658,8 @@ nlmer <- function(formula, data, control = list(), start = NULL,
 
     if (!length(vnms <- setdiff(anms, pnames)))
         stop("there are no variables used in the nonlinear model expression")
-    
-    if(!is.integer(method) || method < 1)
-	stop("number of points for AGQ method should be positive integer valued")
+    if ((nAGQ <- as.integer(nAGQ)) < 1) nAGQ <- 1L
+
     ## create a frame in which to evaluate the factor list
     fr <- lmerFrames(mc,
                      eval(substitute(foo ~ bar,
@@ -674,6 +697,8 @@ nlmer <- function(formula, data, control = list(), start = NULL,
     dm <- mkdims(fr, FL, start$STpars, s)
     p <- dm$dd["p"] <- length(start$fixef)
     n <- dm$dd["n"]
+    if ((nAGQ <- as.integer(nAGQ)) < 1) nAGQ <- 1L
+    dm$dd["nAGQ"] <- nAGQ
 
     ans <- new(Class = "mer",
                env = env,
@@ -704,8 +729,7 @@ nlmer <- function(formula, data, control = list(), start = NULL,
                sqrtXWt = matrix(0, n, s, dimnames = list(NULL, pnames)),
                sqrtrWt = unname(sqrt(fr$wts)),
                RZX = matrix(0, dm$dd["q"], p),
-               RX = matrix(0, p, p),
-	       method = as.integer(method)
+               RX = matrix(0, p, p)
                )
     .Call(mer_update_mu, ans)
 ### Add a check that the parameter names match the column names of gradient
@@ -971,8 +995,7 @@ setMethod("summary", signature(object = "mer"),
           mName <- switch(mType, LMM = "Linear", NMM = "Nonlinear",
                           GLMM = "Generalized linear",
                           GNMM = "Generalized nonlinear")
-	  method <- object@method
-	  if(method == 1)
+	  if(dims["nAGQ"] == 1)
               method <- "the Laplace approximation"
 	  else
 	      method <- "the adaptive Gaussian Hermite approximation"

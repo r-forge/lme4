@@ -48,8 +48,7 @@ setClass("mer",
                         sqrtXWt = "matrix",# sqrt of model matrix row weights
                         sqrtrWt = "numeric",# sqrt of weights used with residuals
                         RZX = "matrix", # dense sol. to L RZX = ST'ZtX = AX
-                        RX = "matrix", # Cholesky factor of downdated X'X
-			method = "integer"), # number of points used in AGQ (1 for special case, Laplace method)    
+                        RX = "matrix"),  # Cholesky factor of downdated X'X
          validity = function(object) .Call(mer_validate, object))
 
 setClass("merMCMC",
