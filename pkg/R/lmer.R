@@ -574,23 +574,20 @@ function(formula, data, family = gaussian, start = NULL,
     dm <- mkdims(fr, FL, start[["ST"]])
     ft <- famType(glmFit$family)
     dm$dd[names(ft)] <- ft
-    dm$dd["useSc"] <- as.integer(!(famNms[dm$dd["fTyp"] ] %in% c("binomial", "poisson")))
+    dm$dd["useSc"] <- as.integer(!(famNms[dm$dd["fTyp"] ] %in%
+				   c("binomial", "poisson")))
     if (!is.null(method <- list(...)$method)) {
-        msg <- paste("Argument", sQuote("methood"),
+        msg <- paste("Argument", sQuote("method"),
                      "is deprecated.\nUse", sQuote("nAGQ"),
-                      "to choose AGQ.  PQL is not available.")
+                     "to choose AGQ.  PQL is not available.")
         if (match.arg(method, c("Laplace", "AGQ")) == "Laplace") {
             warning(msg)
         } else stop(msg)
     }
-    if (!is.null(method))
-        stop(paste("Argument", sQuote("methood"),
-                   "is deprecated.  Use", sQuote("nAGQ"),
-                   "instead"))
     if ((nAGQ <- as.integer(nAGQ)) < 1) nAGQ <- 1L
     dm$dd["nAGQ"] <- nAGQ
     y <- unname(as.double(glmFit$y))
-#    dimnames(fr$X) <- NULL
+    ##    dimnames(fr$X) <- NULL
     p <- dm$dd["p"]
     fixef <- fr$fixef
     fixef[] <- coef(glmFit)
