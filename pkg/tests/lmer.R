@@ -2,13 +2,13 @@ library(lme4)
 options(show.signif.stars = FALSE)
 
 (fm1 <- lmer(Reaction ~ Days + (Days|Subject), sleepstudy))
-(fm1a <- lmer(Reaction ~ Days + (Days|Subject), sleepstudy, method = "ML"))
+(fm1a <- lmer(Reaction ~ Days + (Days|Subject), sleepstudy, REML = FALSE))
 (fm2 <- lmer(Reaction ~ Days + (1|Subject) + (0+Days|Subject), sleepstudy))
 
 if (FALSE) {                            # Not sure what's happening here
     ## transformed vars [failed in 0.995-1]
     (fm2l <- lmer(log(Reaction) ~ log(Days+1) + (log(Days+1)|Subject),
-                  data = sleepstudy, method = "ML"))
+                  data = sleepstudy, REML = FALSE))
 }
 
 ## generalized linear mixed model
