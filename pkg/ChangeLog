@@ -1,3 +1,56 @@
+2008-06-19  Martin Maechler  <maechler@stat.math.ethz.ch>
+
+	* [r153] R/lmer.R: more cleanup in 'method' back compatibility ; typo in
+	  message
+	* [r152] R/lmer.R: method: s/Laplacian/Laplace/ for back compatibility
+
+2008-06-19  Douglas Bates <bates@stat.wisc.edu>
+
+	* [r151] src/Syms.h, src/init.c, src/lmer.c: Insert hooks for AGQ code
+	* [r150] tests/lmer.Rout.save, tests/nlmer.Rout.save: Add saved test
+	  output files for comparisons
+	* [r149] tests/lmer.R: Replace method argument by REML
+	* [r148] R/AllClass.R, R/lmer.R, man/cake.Rd, man/lmer.Rd: Replace
+	  method argument by REML or nAGQ, as appropriate
+	* [r147] DESCRIPTION: Add Martin and Bin as authors; new version
+
+2008-06-18  Bin Dai <dai@stat.wisc.edu>
+
+	* [r146] R/AllClass.R, R/lmer.R, src/lmer.c: Get ready for AGQ
+
+2008-06-16  Bin Dai <dai@stat.wisc.edu>
+
+	* [r145] R/lmer.R, src/lmer.c: Basic methods lines added
+	* [r144] R/AllClass.R, src/Syms.h, src/init.c, src/lmer.c: test of svn
+
+2008-06-01  Douglas Bates <bates@stat.wisc.edu>
+
+	* [r143] inst/doc/Doxyfile: Update project number
+	* [r142] NAMESPACE, man/merMCMC-class.Rd: Document and export as.matrix
+	  method for merMCMC
+
+2008-05-30  Douglas Bates <bates@stat.wisc.edu>
+
+	* [r139] src/init.c, src/lmer.c, src/lmer.h: Remove Wishart sampling and
+	  replace with least-squares based S sampling; Reorganize code in lmer.c
+	* [r138] R/lmer.R: Added methods for merMCMC class
+
+2008-05-25  Douglas Bates <bates@stat.wisc.edu>
+
+	* [r137] inst/doc/Implementation.Rnw: Minor cleanup - still many
+	  mistakes
+
+2008-05-14  Douglas Bates <bates@stat.wisc.edu>
+
+	* [r130] DESCRIPTION, man/refit.Rd, tests/nlmer.R: Moved nlmer tests to
+	  the tests directory, added help page for refit, new release
+	* [r129] R/lmer.R: Incorporated patch from Henric Nilsson to fix bug in
+	  model names in multiple model anova output
+
+2008-05-13  Douglas Bates <bates@stat.wisc.edu>
+
+	* [r126] R/lmer.R: Allow ranef( , postVar = TRUE) for cases where each
+	  r.e. term has a separate factor
 2008-04-25  Douglas Bates <bates@stat.wisc.edu>
 
 	* [r124] DESCRIPTION: New release
