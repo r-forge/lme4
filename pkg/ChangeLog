@@ -1,3 +1,18 @@
+2008-06-21  Douglas Bates <bates@stat.wisc.edu>
+
+	* [r157] tests/lmer.R, tests/lmer.Rout.save: Get rid of calls to
+	  system.time in tests - results are not reproducible
+	* [r156] NAMESPACE, R/AllGeneric.R, R/gsummary.R, R/lmList.R, R/lmer.R,
+	  man/cbpp.Rd, man/gsummary.Rd, man/pooledSD.Rd, man/ranef.Rd: Remove
+	  gsummary; fold pooledSD into lmList; add drop argument to ranef;
+	  shorten long title in cbpp docs
+
+2008-06-20  Douglas Bates <bates@stat.wisc.edu>
+
+	* [r155] data/Pastes.rda, data/Penicillin.rda, man/Dyestuff.Rd,
+	  man/Pastes.Rd, man/Penicillin.Rd: Added Dyestuff2, Pastes and
+	  Penicillin data sets. Updated documentation
+
 2008-06-19  Martin Maechler  <maechler@stat.math.ethz.ch>
 
 	* [r153] R/lmer.R: more cleanup in 'method' back compatibility ; typo in
