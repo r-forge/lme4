@@ -7,7 +7,7 @@
 \title{Extract Random Effects}
 \usage{
 ranef(object, \dots)
-\S4method{ranef}{mer}(object, postVar, \dots)
+\S4method{ranef}{mer}(object, postVar, drop, \dots)
 }
 \description{
   A generic function to extract, and optionally accumulate, the random effects.
@@ -19,6 +19,10 @@ ranef(object, \dots)
     conditional variance covariance matrices, also called the
     \dQuote{posterior variances}, of the random effects should be
     included.  Default is \code{FALSE}.}
+  \item{drop}{an optional logical argument indicating components of the
+    return value that would be data frames with a single column, usually
+    a column called \code{\sQuote{(Intercept)}}, should be returned as
+    named vectors.}
   \item{\dots}{some methods for this generic function require additional
     arguments.}
 }

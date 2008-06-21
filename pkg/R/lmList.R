@@ -110,6 +110,26 @@ setMethod("coef", signature(object = "lmList"),
           coefs
       })
 
+pooledSD <- function(x, ...)
+{
+    stopifnot(is(x, "lmList"))
+    sumsqr <- apply(sapply(x,
+                           function(el) {
+                               if (is.null(el)) {
+                                   c(0,0)
+                               } else {
+                                   res <- resid(el)
+                                   c(sum(res^2), length(res) - length(coef(el)))
+                               }
+                           }), 1, sum)
+    if (sumsqr[2] == 0) {
+        stop("No degrees of freedom for estimating std. dev.")
+    }
+    val <- sqrt(sumsqr[1]/sumsqr[2])
+    attr(val, "df") <- sumsqr[2]
+    val
+}
+
 setMethod("show", signature(object = "lmList"),
           function(object)
       {
@@ -127,26 +147,6 @@ setMethod("show", signature(object = "lmList"),
               cat("Residual standard error:", format(RSE))
               cat("\n")
           }
-      })
-
-setMethod("pooledSD", signature(x = "lmList"),
-          function(x, ...)
-      {
-          sumsqr <- apply(sapply(x,
-                                 function(el) {
-                                     if (is.null(el)) {
-                                         c(0,0)
-                                     } else {
-                                         res <- resid(el)
-                                         c(sum(res^2), length(res) - length(coef(el)))
-                                  }
-                              }), 1, sum)
-          if (sumsqr[2] == 0) {
-              stop("No degrees of freedom for estimating std. dev.")
-          }
-          val <- sqrt(sumsqr[1]/sumsqr[2])
-          attr(val, "df") <- sumsqr[2]
-          val
       })
 
 setMethod("confint", signature(object = "lmList"),
