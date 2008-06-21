@@ -50,10 +50,18 @@ nlmer(formula, data, start = NULL, verbose = FALSE, nAGQ = 1,
     approximation.  Values greater than 1 produce greater accuracy in
     the evaluation of the log-likelihood at the expense of speed.}
   \item{control}{a list of control parameters. See below for details.}
-  \item{start}{a list of relative precision matrices for the random
-    effects.  This has the same form as the slot \code{"Omega"} in a
-    fitted model.  Only the upper triangle of these symmetric matrices
-    should be stored.}
+  \item{start}{a named list of starting values for the parameters in the
+    model. If the list is of the same form as the \code{ST} slot, it is
+    becomes the starting values of the \code{ST} slot.  It the list
+    contains components named \code{fixef} and/or \code{ST}, these are
+    used as the starting values for those slots.  (Setting starting
+    values for \code{fixef} has no effect for a linear mixed model
+    because the fixed-effects parameters do not appear in the profiled
+    deviance.)  In \code{lmer} and \code{glmer} a numeric
+    \code{start} argument of the appropriate length is used as the
+    starting value of the parameter vector that determines the \code{ST}
+    slot. In \code{nlmer} a numeric \code{start} argument is used as the
+    starting values of the \code{fixef} slot.} 
   \item{subset, weights, na.action, offset, contrasts}{further model
     specification arguments as in \code{\link[stats]{lm}}; see there for
     details.}
@@ -105,13 +113,9 @@ nlmer(formula, data, start = NULL, verbose = FALSE, nAGQ = 1,
   Calling this function simply produces an equivalent call to \code{lmer}.
 }
 \value{
-  An object of class \code{"\linkS4class{mer}"}.
-  There are many methods applicable to \code{"lmer"} objects, see the
-  above help page. %% Hmm.. or \code{\link{showMethods}(class = "lmer")}
+  An object of class \code{"\linkS4class{mer}"}, for which many methods
+  are available.  See there for details.
 }
-%\references{ ~put references to the literature/web site here ~ }
-%\author{}
-%\note{}
 \seealso{
   The \code{\linkS4class{mer}} class, \code{\link[stats]{lm}}
 }

@@ -920,10 +920,12 @@ setMethod("anova", signature(object = "mer"),
 	  }
       })
 
-setMethod("confint", signature(object = "mer"),
-	  function(object, parm, level = 0.95, ...)
-	  .NotYetImplemented()
-	  )
+if (FALSE) {
+    setMethod("confint", signature(object = "mer"),
+              function(object, parm, level = 0.95, ...)
+              .NotYetImplemented()
+              )
+}
 
 setMethod("deviance", signature(object="mer"),
 	  function(object, REML = NULL, ...)
@@ -1430,6 +1432,10 @@ aslatticeframe <- function(x, ...)
                iter = rep(1:nrow(fr), ncol(fr)))
 }
 
+## FIXME: More care should be taken to avoid duplicate argument names
+## in the eventual call to lattice functions. Accumulate the arguments
+## in a list and use do.call instead of direct calls.
+
 setMethod("xyplot", signature(x = "merMCMC"),
           function(x, data, ...)
       {
@@ -1581,7 +1587,6 @@ hatTrace <- function(x)
 {
     .NotYetImplemented()
     stopifnot(is(x, "mer"))
-##     .Call(mer_hat_trace2, x)
 }
 
 ST2Omega <- function(ST)

@@ -4,10 +4,9 @@
 \alias{fixed.effects}
 \alias{fixef,ANY-method}
 \alias{fixef,mer-method}
-\alias{fixef,glmer-method}
-\title{Extract Fixed Effects}
+\title{Extract the fixed-effects estimates}
 \description{
-  Extract the estimates of the fixed effects parameters from a fitted model.
+  Extract the estimates of the fixed-effects parameters from a fitted model.
 }
 \usage{
 fixef(object, \dots)
@@ -20,7 +19,7 @@ fixed.effects(object, \dots)  # deprecated
    any methods.}
 }
 \value{
-  a named numeric vector of fixed effects estimates.
+  a named, numeric vector of fixed-effects estimates.
 }
 \examples{
 fixef(lmer(Reaction ~ Days + (1|Subject) + (0+Days|Subject), sleepstudy))

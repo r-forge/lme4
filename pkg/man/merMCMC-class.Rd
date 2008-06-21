@@ -16,7 +16,7 @@
   Carlo samples from a fitted mixed-effects model.}
 \section{Objects from the Class}{
   Objects can be created by calls of the form \code{new("merMCMC", ...)}
-  or, more commonly via the \code{mer} method for the generic
+  or, more commonly, via the \code{mer} method for the generic
   \code{\link{mcmcsamp}} function.
 }
 \section{Slots}{
@@ -43,11 +43,29 @@
 }
 \section{Methods}{
   \describe{
+    \item{HPDinterval}{\code{signature(object = "merMCMC")}: use the
+      chain to calculate Highest Posterior Density (HPD) intervals of a
+      given empirical probability content for the model parameters.  See
+      \code{\link{HPDinterval}}.}
+    \item{VarCorr}{\code{signature(x = "merMCMC")}: transform the
+      \code{ST} and \code{sigma} slots to some combination of variances, 
+      covariances, standard deviations and correlations.  See
+      \code{\link{VarCorr}} for details.}
+    \item{as.data.frame}{\code{signature(x = "merMCMC")}: returns the
+      fixef-effects and variance-covariance parameters from the chain in
+      the form of a data frame.  The \code{type} argument for the
+      \code{\link{VarCorr}} method can be passed to this method to
+      select the type of variance-covariance parameters returned.}
+    \item{as.matrix}{\code{signature(x = "merMCMC")}: Same as the
+      \code{as.data.frame} method described above but returning a matrix.}
+    \item{coerce}{\code{signature(from = "merMCMC", to = "data.frame")}:
+      Same as the \code{as.data.frame} method.}
     \item{densityplot}{\code{signature(object = "merMCMC")}: plot
-      empirical densities for the parameters from the chain.}
+      empirical densities for the parameters from the chain.  See also
+      \code{\link{densityplot}}.}
     \item{qqmath}{\code{signature(object = "merMCMC")}: plot
       quantile-quantile plots for the parameters from the sample in the
-      chain.}
+      chain. See also \code{\link{qqmath}}.}
     \item{xyplot}{\code{signature(object = "merMCMC")}: plot
       traces of the parameter samples in the chain.}
   }
