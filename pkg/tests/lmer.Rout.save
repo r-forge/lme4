@@ -185,9 +185,7 @@ $Subject
 +         structure(contr.sdif(3),
 +                   dimnames = list(NULL, c("diag", "encourage")))
 +     print(fm5 <- lmer(y ~ trt + wk2 + (1|ID), bacteria, binomial))
-+     print(system.time(fm5 <- lmer(y ~ trt + wk2 + (1|ID), bacteria, binomial)))
 +     print(fm6 <- lmer(y ~ trt + wk2 + (1|ID), bacteria, binomial))
-+     print(system.time(lmer(y ~ trt + wk2 + (1|ID), bacteria, binomial)))
 + }
 Generalized linear mixed model fit by the Laplace approximation 
 Formula: y ~ trt + wk2 + (1 | ID) 
@@ -211,8 +209,6 @@ Correlation of Fixed Effects:
 trtdiag     -0.044              
 trtencourag  0.064 -0.495       
 wk2TRUE     -0.794  0.063 -0.056
-   user  system elapsed 
-  0.080   0.000   0.079 
 Generalized linear mixed model fit by the Laplace approximation 
 Formula: y ~ trt + wk2 + (1 | ID) 
    Data: bacteria 
@@ -235,8 +231,6 @@ Correlation of Fixed Effects:
 trtdiag     -0.044              
 trtencourag  0.064 -0.495       
 wk2TRUE     -0.794  0.063 -0.056
-   user  system elapsed 
-  0.079   0.000   0.080 
 > 
 > ## Invalid factor specification -- used to seg.fault:
 > set.seed(1)
@@ -369,5 +363,5 @@ Error : length(levels(dm$flist[[1]])) < length(Y) is not TRUE
 > 
 > 
 > cat('Time elapsed: ', proc.time(),'\n') # for ``statistical reasons''
-Time elapsed:  8.238 0.118 8.352 0 0 
+Time elapsed:  7.512 0.11 7.613 0 0 
 > 
