@@ -1,7 +1,7 @@
 \name{cbpp}
 \alias{cbpp}
 \docType{data}
-\title{Serological Incidence of Contagious Bovine Pleuropneumonia in Ethiopia}
+\title{Contagious bovine pleuropneumonia}
 \description{
   Contagious bovine pleuropneumonia (CBPP) is a major disease of cattle
   in Africa, caused by a mycoplasma.  This dataset describes the

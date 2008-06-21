@@ -20,9 +20,11 @@ importFrom("stats",
            vcov
            )
 
-export("glmer", "gsummary", "hatTrace", "HPDinterval",       
+export("glmer", #"gsummary",
+       "hatTrace", "HPDinterval",       
        "lmList", "lmer", "lmer2", "mcmcsamp", "nlmer",
-       "pooledSD", "refit", "VarCorr")
+       #"pooledSD",
+       "refit", "VarCorr")
 
 exportClasses("lmList", "mer", "merMCMC", "summary.mer")
 
@@ -43,7 +45,7 @@ exportMethods(
               "fitted",
               "fixef",
               "formula",
-              "gsummary",
+#              "gsummary",
               "head",
               "logLik",
               "mcmcsamp",

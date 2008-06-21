@@ -3,11 +3,13 @@ setGeneric("lmList",
                     na.action, offset, pool, ...)
            standardGeneric("lmList"))
 
+if (FALSE) {
 setGeneric("gsummary",
            function (object, FUN, form, level, groups,
                      omitGroupingFactor = FALSE, 
                      invariantsOnly = FALSE, ...)
            standardGeneric("gsummary"))
+}
 
 setGeneric("fixef", function(object, ...) standardGeneric("fixef"))
 
@@ -43,7 +45,7 @@ setGeneric("mcmcsamp",
            function(object, n = 1, verbose = FALSE, ...)
            standardGeneric("mcmcsamp"))
 
-setGeneric("pooledSD", function(x, ...) standardGeneric("pooledSD"))
+#setGeneric("pooledSD", function(x, ...) standardGeneric("pooledSD"))
 
 setGeneric("sigma", function(object, ...) standardGeneric("sigma"))
 

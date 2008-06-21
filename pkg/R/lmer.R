@@ -770,7 +770,7 @@ setMethod("fixef", signature(object = "mer"),
           object@fixef)
 
 setMethod("ranef", signature(object = "mer"),
-	  function(object, postVar = FALSE, ...)
+	  function(object, postVar = FALSE, drop = FALSE, ...)
 ### Extract the random effects
       {
           fl <- object@flist
@@ -797,6 +797,16 @@ setMethod("ranef", signature(object = "mer"),
               for (i in seq_along(ans))
                   attr(ans[[i]], "postVar") <- pV[[i]]
           }
+          if (drop)
+              ans <- lapply(ans, function(el)
+                        {
+                            if (ncol(el) > 1) return(el)
+                            pv <- drop(attr(el, "postVar"))
+                            el <- drop(as.matrix(el))
+                            if (!is.null(pv))
+                                attr(el, "postVar") <- pv
+                            el
+                        })
           ans
       })
 
