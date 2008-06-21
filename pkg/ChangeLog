@@ -1,5 +1,11 @@
 2008-06-21  Douglas Bates <bates@stat.wisc.edu>
 
+	* [r161] NAMESPACE, R/lmer.R, man/fixef.Rd, man/hatTrace.Rd,
+	  man/lmList-class.Rd, man/lmList.Rd, man/lmer.Rd, man/mcmcsamp.Rd,
+	  man/mer-class.Rd, man/merMCMC-class.Rd, man/ranef.Rd: Removed
+	  visibility of hatTrace and the confint method for mer objects. Major
+	  documentation cleanup.
+	* [r160] NEWS: Added a NEWS file
 	* [r157] tests/lmer.R, tests/lmer.Rout.save: Get rid of calls to
 	  system.time in tests - results are not reproducible
 	* [r156] NAMESPACE, R/AllGeneric.R, R/gsummary.R, R/lmList.R, R/lmer.R,
