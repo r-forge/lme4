@@ -1,13 +1,14 @@
-<area shape="rect" href="$lmer_8c.html#afe58def10558f89ca260e39a136b593" title="Update the theta_S parameters from the ST arrays in place." alt="" coords="339,259,416,283">
-<area shape="rect" href="$lmer_8c.html#1609bbc5bc26172bc142e9a5eb29d9a2" title="Update the theta_T parameters from the ST arrays in place." alt="" coords="340,136,415,160">
-<area shape="rect" href="$lmer_8h.html#79178d4c0ab3956a7f5d5ac93416759a" title="Extract the conditional variances of the random effects in an mer object." alt="" coords="159,113,252,137">
-<area shape="rect" href="$lmer_8h.html#1b6b095e8bf563b290d0156274c0aab0" title="Return a list of (upper) Cholesky factors from the ST list." alt="" coords="156,161,255,185">
-<area shape="rect" href="$lmer_8h.html#8559f52eaa24d57b05ded03099dbe157" title="Evaluate starting estimates for the elements of ST." alt="" coords="145,209,265,233">
-<area shape="rect" href="$lmer_8c.html#c91a1d6467c5dd44cbc4c785f643e315" title="Update the ST and A slots of an mer object." alt="" coords="332,308,423,332">
-<area shape="rect" href="$lmer_8c.html#9843ab48eb3803207fead83796089087" title="Evaluate the sparse model matrix A from the Zt and ST slots." alt="" coords="168,308,243,332">
-<area shape="rect" href="$lmer_8c.html#5542c4de7dbcdbb6630cad8fabe96542" title="Update the contents of the ranef slot in an mer object using the current contents..." alt="" coords="157,15,253,39">
-<area shape="rect" href="$lmer_8h.html#faf107495473068e7f439b17073d884e" title="Generate a Markov&#45;chain Monte Carlo sample from an mer object." alt="" coords="488,136,611,160">
-<area shape="rect" href="$lmer_8h.html#a4e16de36d36af6c715d52a045f88e78" title="Optimize the profiled deviance of an lmer object or the Laplace approximation to..." alt="" coords="500,284,599,308">
-<area shape="rect" href="$lmer_8h.html#96765a284e1652326a22d50f7d7538d4" title="Update the ST slot of an mer object from a REAL vector of parameters and update the..." alt="" coords="489,332,609,356">
-<area shape="rect" href="$lmer_8c.html#c62278f1b69b4f5e7096df5dd74308f6" title="Update the fixed effects and the orthogonal random effects in an MCMC sample from..." alt="" coords="324,40,431,64">
-<area shape="rect" href="$lmer_8h.html#bc080c9abeb9965118c6d114d6df1cb3" title="Externally callable update_ranef." alt="" coords="315,88,440,112">
+base referer
+rect $lmer_8c.html#afe58def10558f89ca260e39a136b593 353,277 433,301
+rect $lmer_8c.html#1609bbc5bc26172bc142e9a5eb29d9a2 353,154 433,178
+rect $lmer_8h.html#79178d4c0ab3956a7f5d5ac93416759a 163,131 262,155
+rect $lmer_8h.html#1b6b095e8bf563b290d0156274c0aab0 162,179 263,203
+rect $lmer_8h.html#8559f52eaa24d57b05ded03099dbe157 149,227 277,251
+rect $lmer_8c.html#c91a1d6467c5dd44cbc4c785f643e315 346,326 439,350
+rect $lmer_8c.html#9843ab48eb3803207fead83796089087 173,326 253,350
+rect $lmer_8c.html#5542c4de7dbcdbb6630cad8fabe96542 161,33 265,57
+rect $lmer_8h.html#faf107495473068e7f439b17073d884e 509,154 637,178
+rect $lmer_8h.html#a4e16de36d36af6c715d52a045f88e78 521,302 625,326
+rect $lmer_8h.html#96765a284e1652326a22d50f7d7538d4 511,350 634,374
+rect $lmer_8c.html#c62278f1b69b4f5e7096df5dd74308f6 337,58 449,82
+rect $lmer_8h.html#bc080c9abeb9965118c6d114d6df1cb3 326,106 459,130

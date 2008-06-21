@@ -1,22 +1,23 @@
-<area shape="rect" href="$lmer_8c.html#9caf4e33e6d99b66e0c987b8d17e9ebc" title="Determine the conditional estimates of the fixed effects and the conditional mode..." alt="" coords="357,206,496,230">
-<area shape="rect" href="$lmer_8c.html#c62278f1b69b4f5e7096df5dd74308f6" title="Update the fixed effects and the orthogonal random effects in an MCMC sample from..." alt="" coords="189,179,296,203">
-<area shape="rect" href="$lmer_8c.html#2f257f628f06920b351486d48ab50026" title="Update the L, sqrtrWt and resid slots." alt="" coords="389,158,464,182">
-<area shape="rect" href="$lmer_8c.html#5542c4de7dbcdbb6630cad8fabe96542" title="Update the contents of the ranef slot in an mer object using the current contents..." alt="" coords="379,302,475,326">
-<area shape="rect" href="$lmer_8c.html#2c7f7874e2eb3f6c51c53c5873cffec4" title="Update the RZX and RX slots in an mer object." alt="" coords="384,254,469,278">
-<area shape="rect" href="$lmer_8c.html#afe58def10558f89ca260e39a136b593" title="Update the theta_S parameters from the ST arrays in place." alt="" coords="204,478,281,502">
-<area shape="rect" href="$lmer_8c.html#1609bbc5bc26172bc142e9a5eb29d9a2" title="Update the theta_T parameters from the ST arrays in place." alt="" coords="389,350,464,374">
-<area shape="rect" href="$lmer_8c.html#0a84fce1f01d522d8c5379001e23bc8c" title="Extract the slot named nm from the object obj and return a null pointer if the slot..." alt="" coords="176,526,309,550">
-<area shape="rect" href="$lmer_8c.html#1d1cc0c037f6827ce66c5aa1db650224" title="Extract the parameters from ST list." alt="" coords="197,574,288,598">
-<area shape="rect" href="$lmer_8c.html#c91a1d6467c5dd44cbc4c785f643e315" title="Update the ST and A slots of an mer object." alt="" coords="197,430,288,454">
-<area shape="rect" href="$lmer_8c.html#88236137756e85a656de3402adcf4747" title="Iterate to determine the conditional modes of the random effects." alt="" coords="205,80,280,104">
-<area shape="rect" href="$lmer_8c.html#d562658adcecf9b4a01944b227be5915" title="Create PAX in dest." alt="" coords="559,206,633,230">
-<area shape="rect" href="$lmer_8c.html#c96e3dd08e67f41338d9e84118925308" title="Return the sum of squares of the first n elements of x." alt="" coords="556,156,636,180">
-<area shape="rect" href="$lmer_8c.html#c6c092e8b91bd83d19519bdc69bf6801" title="Permute the vector src according to perm into dest." alt="" coords="696,108,784,132">
-<area shape="rect" href="$lmer_8c.html#da558f58458c36a96585a9c6e695a0b6" title="Update the eta, v, mu, resid and var slots according to the current values of the..." alt="" coords="384,59,469,83">
-<area shape="rect" href="$lmer_8c.html#a85610eae75107b55d1069907486662f" title="Evaluate the derivative d mu/d eta for the GLM link function of type lTyp." alt="" coords="549,59,643,83">
-<area shape="rect" href="$lmer_8c.html#a5f4cdbae42bcf865082dea1ebe09357" title="Evaluate the GLM variance function of type vTyp given mu." alt="" coords="544,107,648,131">
-<area shape="rect" href="$lmer_8c.html#3a7fab2a88117d83971db12f53eaa91e" title="Populate the st, nc and nlev arrays." alt="" coords="551,399,641,423">
-<area shape="rect" href="$lmer_8c.html#a33caba85a1abc2725cf3a0fab3008a2" title="Determine the index in theta_S corresponding to index i in the u vector." alt="" coords="551,598,641,622">
-<area shape="rect" href="$lmer_8c.html#3c8d2696fe29e3199ff03e2194afd004" title="Multiply A on the left by T&#39;." alt="" coords="571,548,621,572">
-<area shape="rect" href="$lmer_8c.html#9843ab48eb3803207fead83796089087" title="Evaluate the sparse model matrix A from the Zt and ST slots." alt="" coords="389,499,464,523">
-<area shape="rect" href="$lmer_8c.html#3f49a530ee30ef0d40ef8bc6d60c5963" title="Return the index of the term associated with parameter index ind." alt="" coords="708,548,772,572">
+base referer
+rect $lmer_8c.html#9caf4e33e6d99b66e0c987b8d17e9ebc 374,157 518,181
+rect $lmer_8c.html#c62278f1b69b4f5e7096df5dd74308f6 198,208 310,232
+rect $lmer_8c.html#2f257f628f06920b351486d48ab50026 408,109 485,133
+rect $lmer_8c.html#5542c4de7dbcdbb6630cad8fabe96542 394,301 498,325
+rect $lmer_8c.html#2c7f7874e2eb3f6c51c53c5873cffec4 401,253 492,277
+rect $lmer_8c.html#afe58def10558f89ca260e39a136b593 214,456 294,480
+rect $lmer_8c.html#1609bbc5bc26172bc142e9a5eb29d9a2 406,349 486,373
+rect $lmer_8c.html#0a84fce1f01d522d8c5379001e23bc8c 184,504 325,528
+rect $lmer_8c.html#1d1cc0c037f6827ce66c5aa1db650224 208,552 301,576
+rect $lmer_8c.html#c91a1d6467c5dd44cbc4c785f643e315 208,408 301,432
+rect $lmer_8c.html#88236137756e85a656de3402adcf4747 214,58 294,82
+rect $lmer_8c.html#d562658adcecf9b4a01944b227be5915 582,157 662,181
+rect $lmer_8c.html#c96e3dd08e67f41338d9e84118925308 580,109 665,133
+rect $lmer_8c.html#c6c092e8b91bd83d19519bdc69bf6801 725,84 818,108
+rect $lmer_8c.html#da558f58458c36a96585a9c6e695a0b6 401,205 492,229
+rect $lmer_8c.html#a85610eae75107b55d1069907486662f 573,253 672,277
+rect $lmer_8c.html#a5f4cdbae42bcf865082dea1ebe09357 569,205 676,229
+rect $lmer_8c.html#3a7fab2a88117d83971db12f53eaa91e 576,398 669,422
+rect $lmer_8c.html#a33caba85a1abc2725cf3a0fab3008a2 574,597 670,621
+rect $lmer_8c.html#3c8d2696fe29e3199ff03e2194afd004 596,548 649,572
+rect $lmer_8c.html#9843ab48eb3803207fead83796089087 406,498 486,522
+rect $lmer_8c.html#3f49a530ee30ef0d40ef8bc6d60c5963 738,548 805,572

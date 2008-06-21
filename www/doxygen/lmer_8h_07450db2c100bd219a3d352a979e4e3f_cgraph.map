@@ -1,5 +1,6 @@
-<area shape="rect" href="$lmer_8c.html#c6c092e8b91bd83d19519bdc69bf6801" title="Permute the vector src according to perm into dest." alt="" coords="169,6,257,30">
-<area shape="rect" href="$lmer_8c.html#7123d06a1ba23fcf7f83e2a54e2c8051" title="Update the eta, mu, resid and var slots in a sparseRasch object from the current..." alt="" coords="156,54,271,78">
-<area shape="rect" href="$lmer_8c.html#c96e3dd08e67f41338d9e84118925308" title="Return the sum of squares of the first n elements of x." alt="" coords="173,102,253,126">
-<area shape="rect" href="$lmer_8c.html#a85610eae75107b55d1069907486662f" title="Evaluate the derivative d mu/d eta for the GLM link function of type lTyp." alt="" coords="325,30,419,54">
-<area shape="rect" href="$lmer_8c.html#a5f4cdbae42bcf865082dea1ebe09357" title="Evaluate the GLM variance function of type vTyp given mu." alt="" coords="320,78,424,102">
+base referer
+rect $lmer_8c.html#c6c092e8b91bd83d19519bdc69bf6801 174,8 268,32
+rect $lmer_8c.html#7123d06a1ba23fcf7f83e2a54e2c8051 160,56 282,80
+rect $lmer_8c.html#c96e3dd08e67f41338d9e84118925308 178,104 264,128
+rect $lmer_8c.html#a85610eae75107b55d1069907486662f 336,32 434,56
+rect $lmer_8c.html#a5f4cdbae42bcf865082dea1ebe09357 332,80 438,104
