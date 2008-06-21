@@ -10,42 +10,37 @@
 \alias{anova,mer-method}
 \alias{coef,mer-method}
 \alias{coerce,mer,dtCMatrix-method}
+%\alias{confint,mer-method}
 \alias{deviance,mer-method}
+\alias{expand,mer-method}
+\alias{fitted,mer-method}
+\alias{fitted,mer-method}
 \alias{formula,mer-method}
 \alias{logLik,mer-method}
 \alias{model.frame,mer-method}
 \alias{model.matrix,mer-method}
-\alias{summary,mer-method}
-\alias{terms,mer-method}
-\alias{update,mer-method}
-\alias{vcov,mer-method}
-%
-\alias{confint,mer-method}
-\alias{expand,mer-method}
-\alias{fitted,mer-method}
 \alias{print,mer-method}
 \alias{resid,mer-method}
 \alias{residuals,mer-method}
 \alias{show,mer-method}
 \alias{simulate,mer-method}
+\alias{summary,mer-method}
+\alias{terms,mer-method}
+\alias{update,mer-method}
+\alias{vcov,mer-method}
 \alias{with,mer-method}
 %
-%\alias{plot,coef.mer-method}
-%
-%\alias{plot,ranef.mer-method}
-%\alias{qqmath,ranef.mer-method}
 %
 \alias{deviance,summary.mer-method}
 \alias{logLik,summary.mer-method}
 \alias{vcov,summary.mer-method}
 \alias{summary,summary.mer-method}
 
-\description{A class of mixed-effects model representations using a
-  sparse representation of the model matrices for the random effects and
-  their corresponding sparse Cholesky factors.  The \code{summary.mer}
-  class represents the summary of these objects.  The \code{coef.mer}
-  and \code{ranef.mer} classes represent fixed and random effect
-  \dQuote{coefficients}.
+\description{The \code{mer} class represents linear or generalized
+  linear or nonlinear mixed-effects models.  It incorporates
+  sparse model matrices for the random effects and corresponding sparse
+  Cholesky factors.  The \code{summary.mer} class represents the summary
+  of these objects.
 }
 
 \section{Objects from the Class}{Objects can be created by calls of the
@@ -92,10 +87,6 @@
       zero (0), indicating no offset.}
 
     \item{\code{y}:}{The response vector (class \code{"numeric"}).}
-
-    \item{\code{cnames}:}{a list of character vectors of column names
-      for the random-effects variance-covariance matrix associated with
-      each random-effects term.}
 
     \item{\code{Gp}:}{Integer vector of group pointers within the random
       effects vector.  The elements of \code{Gp} are 0-based indices of
@@ -194,20 +185,26 @@
   The \code{"summary.mer"} class \emph{contains} the \code{"mer"},
   class and has additional slots,
   \describe{
+    
     \item{\code{methTitle}:}{character string specifying a method title}
     \item{\code{logLik}:}{the same as \code{\link{logLik}(object)}.}
-    \item{\code{ngrps}:}{...}% FIXME
-    \item{\code{sigma}:}{the scale ...}% FIXME
-    \item{\code{coefs}:}{the coefficients matrix...}% FIXME
+    \item{\code{ngrps}:}{the number of levels per grouping factor in the
+      \code{flist} slot.}
+    \item{\code{sigma}:}{the scale factor for the variance-covariance estimates}
+    \item{\code{coefs}:}{the matrix of estimates, standard errors,
+      etc. for the fixed-effects coefficients}
     \item{\code{vcov}:}{the same as \code{\link{vcov}(object)}.}
     \item{\code{REmat}:}{the formatted Random-Effects matrix}
-    \item{\code{AICtab}:}{...}% FIXME
+    \item{\code{AICtab}:}{A named vector of values of AIC, BIC, log-likelihood
+      and deviance}
   }% summary slots
 }
 \usage{
+## Methods with \sQuote{surprising} arguments
+\S4method{deviance}{mer}(object, REML = NULL, \dots)
 \S4method{expand}{mer}(x, sparse = TRUE, \dots)
 \S4method{logLik}{mer}(object, REML = NULL, \dots)
-\S4method{vcov}{mer}(object, \dots)
+\S4method{print}{mer}(x, digits, correlation, symbolic.cor, signif.stars, \dots)
 }
 \arguments{
   \item{object}{object of class \code{mer}.}
@@ -216,68 +213,102 @@
     should be returned if the model was fit by REML, otherwise the ML values.}
   \item{x}{object of class \code{mer} to expand.}
   \item{sparse}{logical scalar indicating if the sparse form of the
-    expanded \code{T} and \code{S} matrices should be returned.
-
-
-
-
-
-
-
-
-
-
-
-
-
-  }
+    expanded \code{T} and \code{S} matrices should be returned.}
+  \item{digits}{number of digits to use when printing tables of
+    parameter estimates.  Defaults to \code{max(3, getOption("digits") -
+      3)}.}
+  \item{correlation}{logical - should the correlation matrix of the
+    fixed-effects parameter estimates be printed?  Defaults to \code{TRUE}.}
+  \item{symbolic.cor}{logical - should a symbolic form of the
+    correlation matrix be printed instead of the numeric form?  Defaults
+    to \code{FALSE}.}
+  \item{signif.stars}{logical - should the \sQuote{significance stars}
+    be printed as part of the table of fixed-effects parameter
+    estimates?  Defaults to \code{getOption("show.signif.stars")}.}
   \item{\dots}{potential further arguments passed to methods.}
 }
 \section{Methods}{
   \describe{
-    \item{anova}{\code{signature(object = "mer")}: model comparisons for
-      \code{mer} objects, see \code{\link{anova}}.}
-      %% FIXME: say a bit more on lmer - model comparison ??
-    \item{coef}{\code{signature(object = "mer")}: Extract the
-      parameters that determine the Omega matrices.  The optional
-      logical argument \code{unconstr} determines the constrained or
-      unconstrained parameterization.}
-    \item{coef<-}{\code{signature(object = "mer", value = "numeric")}: Assign the
-      parameters that determine the Omega matrices.  The optional
-      logical argument \code{unconstr} determines the constrained or
-      unconstrained parameterization. }
-    \item{coerce}{\code{signature(from = "mer", to = "dtTMatrix")}:
-      Ensure that the \code{lmer} object has been factored but not
-      inverted and extract the unit lower triangular matrix \eqn{L}
-      from the \eqn{LDL} decomposition of
-      \eqn{Z^\prime Z+\Omega}{crossprod(Z)+Omega}.}
-    \item{coerce}{\code{signature(from = "mer", to = "dsTMatrix")}:
-      Ensure that the \code{lmer} object has been factored but not
-      inverted and extract the symmetric matrix
-      \eqn{Z^\prime Z+\Omega}{crossprod(Z)+Omega}.}
-    \item{deviance}{\code{signature(object = "mer")}: extracts the
-      \code{\link{deviance}} of the fitted model.}
-    \item{expand}{\code{signature(object = "mer")}: expand the contents
-      of the \code{"ST"} slot to a list of sparse matrices or a list of
-      lists of dense matrices, \code{S}, which is diagonal, and
-      \code{T}, which is unit lower-triangular.}
+    \item{VarCorr}{\code{signature(x = "mer")}: Extract variance and
+      correlation components.  See \code{\link{VarCorr}}}
+    \item{anova}{\code{signature(object = "mer")}: returns the sequential
+      decomposition of the contributions of fixed-effects terms or, for
+      multiple arguments, model comparison statistics. See
+      \code{\link{anova}}.}
+    %% FIXME: say a bit more on lmer - model comparison ??
+    \item{coef}{\code{signature(object = "mer")}: returns an object
+      similar to the \code{\link{ranef}} method but incorporating the
+      fixed-effects parameters, thereby forming a table of linear model
+      coefficients (the columns) by level of the grouping factor (the rows).}
+    \item{coerce}{\code{signature(from = "mer", to = "dtCMatrix")}:
+      returns the \code{L} slot as a \code{"dtCMatrix"}
+      %% FIXME - this produces a warning of a missing link in R-2.7.0
+      %\code{"\linkS4class{dtCMatrix}"}
+      (column-oriented, sparse, triangular matrix) object.}
+    \item{deviance}{\code{signature(object = "mer")}: returns the
+      \code{\link{deviance}} of the fitted model, or the \dQuote{REML
+	deviance} (i.e. negative twice the REML criterion), according to
+      the REML argument.  See the arguments section above for a description
+      of the REML argument.}
+    \item{expand}{\code{signature(object = "mer")}: returns a list.  If
+      \code{sparse} is \code{FALSE}, the default, the elements of the list
+      are expansions of the elements of the \code{ST} slot into a list
+      of \code{S}, the diagonal matrix, and \code{T}, the unit lower
+      triangular matrix.  If \code{sparse} is \code{TRUE} the value is a
+      list of two \eqn{q} by \eqn{q} matrices: \code{S}, a diagonal
+      matrix and \code{T}, a unit lower triangular matrix.}
+    \item{fitted}{\code{signature(object = "mer")}: returns the fitted
+      conditional means of the responses. See \code{\link{fitted}}.  The
+      \code{\link{napredict}} function is called to align with the
+      original data if the model was fit with \code{na.action = na.exclude}.}
+    \item{fixef}{\code{signature(object = "mer")}: returns the estimates
+      of the fixed-effects parameters.  See \code{\link{fixef}}.}
+    \item{formula}{\code{signature(x = "mer")}: returns the model
+      formula.  See \code{\link{formula}}. }
 %%% some of the following are also in \usage{..} because they have extra args:
-    \item{logLik}{\code{signature(object = "mer")}: Extract the
-      log-likelihood from of the fitted model, see also \code{\link{logLik}}.}
+    \item{logLik}{\code{signature(object = "mer")}: returns the
+      log-likelihood or the REML criterion, according to the optional
+      \code{REML} argument (see the arguments section above), of the
+      fitted model.  See also \code{\link{logLik}}.}
+    \item{mcmcsamp}{\code{signature(object = "mer")}: Create a Markov
+      chain Monte Carlo sample from a posterior distribution of the
+      model's parameters.  See \code{\link{mcmcsamp}} for details.}
+    \item{model.frame}{\code{signature(formula = "mer")}: returns the
+      model frame (the \code{frame} slot).}
+    \item{model.matrix}{\code{signature(object = "mer")}: returns the
+      model matrix for the fixed-effects parameters (the \code{X}
+      slot).} 
+    \item{print}{\code{signature(x = "mer")}: print information about
+      the fitted model.  See the arguments section above for a description
+      of optional arguments.}
+    \item{ranef}{\code{signature(object = "mer")}: returns the
+      conditional modes of the random effects.  See \code{\link{ranef}}.}
     \item{refit}{\code{signature(object = "mer", newresp = "numeric")}:
-      Refit the model with a new response vector.}
+      Update the response vector only and refit the model. See
+      \code{\link{refit}}.}
+    \item{resid}{\code{signature(object = "mer")}: returns the (raw)
+      residuals.  This method calls \code{\link{napredict}}.  See the
+      above description of the \code{fitted} method for details.  See
+      also \code{\link{resid}}.}
+    \item{residuals}{\code{signature(object = "mer")}: Another name
+      for the \code{resid} method.}
+    \item{show}{\code{signature(object = "mer")}: Same as the
+      \code{print} method without the optional arguments.}
+    \item{simulate}{\code{signature(object = "mer")}: simulate
+      \code{nsim} (defaults to 1) responses from the theoretical
+      distribution corresponding to the fitted model.  The \code{refit}
+      method is particularly useful in combination with this method.
+      See also \code{\link{simulate}}.}
+    \item{terms}{\code{signature(x = "mer")}: Extract the 
+      \code{\link{terms}} object for the fixed-effects terms in the
+      model formula.}
     \item{update}{\code{signature(object = "mer")}: see
       \code{\link{update}} on how to update fitted models.}
-    \item{simulate}{\code{signature(object = "mer")}: see
-      \code{\link{simulate}} on how to simulate from fitted models.}
-    \item{solve}{\code{signature(a = "mer", b = "missing")}: Invert
-      the decomposed matrices.}
-    \item{terms}{\code{signature(x = "mer")}: Extract
-      \code{\link{terms}} component.}
     \item{vcov}{\code{signature(object = "mer")}: Calculate
       variance-covariance matrix of the \emph{fixed} effect terms,
-      see also \code{\link{vcov}}.
-    }
+      see also \code{\link{vcov}}.}
+    \item{with}{\code{signature(data = "mer")}: Evaluate an R expression
+      in an environment constructed from the \code{frame} slot.}
   }
 }
 \seealso{
