@@ -48,9 +48,7 @@ if (require('MASS', quietly = TRUE)) {
         structure(contr.sdif(3),
                   dimnames = list(NULL, c("diag", "encourage")))
     print(fm5 <- lmer(y ~ trt + wk2 + (1|ID), bacteria, binomial))
-    print(system.time(fm5 <- lmer(y ~ trt + wk2 + (1|ID), bacteria, binomial)))
     print(fm6 <- lmer(y ~ trt + wk2 + (1|ID), bacteria, binomial))
-    print(system.time(lmer(y ~ trt + wk2 + (1|ID), bacteria, binomial)))
 }
 
 ## Invalid factor specification -- used to seg.fault:
