@@ -312,7 +312,7 @@ Error : length(levels(dm$flist[[1]])) < length(Y) is not TRUE
 > ##   group    (Intercept) 1.81818  1.34840
 > ##   Residual             0.68182  0.82572
 > ## ...
-> 
+> ##
 > ##SG>	 This is ... silly, because there are zero degrees of freedom
 > ##SG> to distinguish "group" from Residual.  It is comforting that the sum of
 > ##SG> the variances sum to the variance of "y", ......
