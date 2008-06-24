@@ -51,7 +51,7 @@ the response is represented by an $n$-dimensional random vector,
 $\bm{\mathcal{Y}}$.  We observe a value, $\bm y$, of the response.  The
 random effects are unobserved.
 
-For our purposes we may assume a ``spherical'' multivariate normal
+For our purposes, we will assume a ``spherical'' multivariate normal
 conditional distribution of $\bm{\mathcal{Y}}$, given
 $\bm{\mathcal{B}}$.  That is, we assume the variance-covariance matrix
 of $\bm{\mathcal{Y}}|\bm{\mathcal{B}}$ is simply $\sigma^2\bm I_n$,
@@ -66,7 +66,7 @@ $\bm\beta$,
 \begin{equation}
   \label{eq:condmean}
   \mathrm{E}[\bm{\mathcal{Y}}|\bm{\mathcal{B}}=\bm b]=
-  \bm X\bm\beta+\bm Z\bm b .
+  \bm X\bm\beta+\bm Z\bm b ,
 \end{equation}
 where $\bm X$ and $\bm Z$ are known model matrices of sizes $n\times
 p$ and $n\times q$, respectively. Thus
@@ -82,19 +82,19 @@ The marginal distribution of the random effects
   \bm{\mathcal{B}}\sim\mathcal{N}\left(\bm 0,\sigma^2\bm\Sigma(\bm\theta)\right)
 \end{equation}
 is also multivariate normal, with mean $\bm 0$ and variance-covariance
-matrix, $\sigma^2\bm\Sigma(\bm\theta)$.  The scalar, $\sigma^2$, is
-the same as in variance-covariance of the conditional distribution of
-$\bm{\mathcal{Y}}$.  As described in the next section, the relative
-variance-covariance matrix, $\bm\Sigma(\bm\theta)$, is a $q\times q$
-positive semidefinite matrix depending on a parameter vector,
-$\bm\theta$.  Typically the dimension of $\bm\theta$ is much, much
-smaller than $q$.
+matrix $\sigma^2\bm\Sigma(\bm\theta)$.  The scalar, $\sigma^2$, in
+(\ref{eq:remargin}) is the same as the $\sigma^2$ in
+(\ref{eq:yconditional}).  As described in the next section, the
+relative variance-covariance matrix, $\bm\Sigma(\bm\theta)$, is a
+$q\times q$ positive semidefinite matrix depending on a parameter
+vector, $\bm\theta$.  Typically the dimension of $\bm\theta$ is much,
+much smaller than $q$.
 
 
 \subsection{Variance-covariance of the random effects}
 \label{sec:revarcov}
 
-The relative variance-covariance matrix, $\bm\Sigma(\bm\theta)$ must
+The relative variance-covariance matrix, $\bm\Sigma(\bm\theta)$, must
 be symmetric and positive semidefinite (i.e. $\bm x\trans\bm\Sigma\bm
 x\ge0,\forall\bm x\in\mathbb{R}^q$).  Because the estimate of a
 variance component can be zero, it is important to allow for a
@@ -129,7 +129,7 @@ orthogonal random effects with marginal distribution
   \label{eq:Udist}
   \bm{\mathcal{U}}\sim\mathcal{N}\left(\bm 0,\sigma^2\bm I_q\right)
 \end{equation}
-and, for a given value of $\bm\theta$ express $\bm{\mathcal{B}}$ as a
+and, for a given value of $\bm\theta$, express $\bm{\mathcal{B}}$ as a
 linear transformation of $\bm{\mathcal{U}}$,
 \begin{equation}
   \label{eq:UtoB}
@@ -154,49 +154,48 @@ be derived from $\bm{\mathcal{Y}}|\bm{\mathcal{B}}$ as
 \end{equation}
 We will write the transpose of $\bm Z\bm T\bm S$ as $\bm A$.  Because
 the matrices $\bm T$ and $\bm S$ depend on the parameter $\bm\theta$,
-$\bm A(\bm\theta)$ is also a function of $\bm\theta$.  That is
+$\bm A$ is also a function of $\bm\theta$,
 \begin{equation}
   \label{eq:Adef}
   \bm A\trans(\bm\theta)=\bm Z\bm T(\bm\theta)\bm S(\bm\theta) .
 \end{equation}
 
 In applications, the matrix $\bm Z$ is derived from indicator columns
-of the levels of one or more factors.  Hence, it is a \emph{sparse
-  matrix}, in the sense that most of the elements of $\bm Z$ are zero.
+of the levels of one or more factors in the data and is a
+\emph{sparse} matrix, in the sense that most of its elements are zero.
 The matrix $\bm A$ is also sparse.  In fact, the structure of $\bm T$
-and $\bm S$ are such that $\bm A$ has the same pattern of nonzeros as
-$\bm Z\trans$ does.
+and $\bm S$ are such that pattern of nonzeros in $\bm A$ is that same
+as that in $\bm Z\trans$.
 
 \subsection{Sparse matrix methods}
 \label{sec:sparseMatrix}
 
-The reason for defining $\bm A$ as the transpose of a model matrix
-is because $\bm A$ is stored and manipulated as a sparse matrix.  In
-the compressed column-oriented storage form for sparse matrices there
-are advantages to storing $\bm A$ as a matrix of $n$ columns and $q$
-rows.  In particular, the CHOLMOD sparse matrix library allows us to
-evaluate the sparse Cholesky factor, $\bm L$, a lower triangular
-matrix that satisfies
+The reason for defining $\bm A$ as the transpose of a model matrix is
+because $\bm A$ is stored and manipulated as a sparse matrix.  In the
+compressed column-oriented storage form that we use for sparse
+matrices, there are advantages to storing $\bm A$ as a matrix of $n$
+columns and $q$ rows.  In particular, the CHOLMOD sparse matrix
+library allows us to evaluate the sparse Cholesky factor, $\bm
+L(\bm\theta)$, a sparse lower triangular matrix that satisfies
 \begin{equation}
   \label{eq:SparseChol}
   \bm L(\bm\theta)\bm L(\bm\theta)\trans=
   \bm P\left(\bm A(\bm\theta)\bm A(\bm\theta)\trans+\bm I_q\right)\bm P\trans ,
 \end{equation}
-directly from $\bm A$.  
+directly from $\bm A(\bm\theta)$.  
 
 In (\ref{eq:SparseChol}) the $q\times q$ matrix $\bm P$ is a
 ``fill-reducing'' permutation matrix determined from the pattern of
-nonzeros in the sparse model matrix $\bm Z$.  $\bm P$ does not affect
-the statistical theory (if $\bm{\mathcal{U}}\sim\mathcal{N}(\bm
-0,\sigma^2\bm I)$ then $\bm P\trans\bm{\mathcal{U}}$ also has a
-$\mathcal{N}(\bm 0,\sigma^2\bm I)$ distribution because $\bm P\bm
-P\trans=\bm P\trans\bm P=\bm I$) but, because it affects the number of
-nonzeros in $\bm L$, it can have a tremendous impact on the amount
-storage required for $\bm L$ and the time required to evaluate $\bm L$
-from $\bm A$.  Indeed, it is precisely because $\bm L(\bm\theta)$ can
-be evaluated quickly, even for complex models applied the large data
-sets, that the \code{lmer} function is effective in fitting such
-models.
+nonzeros in $\bm Z$.  $\bm P$ does not affect the statistical theory
+(if $\bm{\mathcal{U}}\sim\mathcal{N}(\bm 0,\sigma^2\bm I)$ then $\bm
+P\trans\bm{\mathcal{U}}$ also has a $\mathcal{N}(\bm 0,\sigma^2\bm I)$
+distribution because $\bm P\bm P\trans=\bm P\trans\bm P=\bm I$) but,
+because it affects the number of nonzeros in $\bm L$, it can have a
+tremendous impact on the amount storage required for $\bm L$ and the
+time required to evaluate $\bm L$ from $\bm A$.  Indeed, it is
+precisely because $\bm L(\bm\theta)$ can be evaluated quickly, even
+for complex models applied the large data sets, that the \code{lmer}
+function is effective in fitting such models.
 
 \section{The penalized least squares approach to linear mixed models}
 \label{sec:Penalized}
@@ -250,7 +249,7 @@ for which the solution satisfies
   \begin{bmatrix}\bm P\bm A\bm y\\\bm X\trans\bm y\end{bmatrix} .
 \end{equation}
 The Cholesky factor of the system matrix for the PLS problem can be
-expressed using $\bm L$, $\bm R_{\bm Z\bm X}$ and $\bm R_{\bm X}$ because
+expressed using $\bm L$, $\bm R_{\bm Z\bm X}$ and $\bm R_{\bm X}$, because
 \begin{equation}
   \label{eq:PLSChol}
   \begin{bmatrix}
@@ -269,11 +268,11 @@ expressed using $\bm L$, $\bm R_{\bm Z\bm X}$ and $\bm R_{\bm X}$ because
 \end{equation}
 
 In the \code{lme4} package the \code{"mer"} class is the
-representation of a mixed-effects model.  Several slots of this class
+representation of a mixed-effects model.  Several slots in this class
 are matrices corresponding directly to the matrices in the preceding
 equations. The \code{A} slot contains the sparse matrix $\bm
 A(\bm\theta)$ and the \code{L} slot contains the sparse Cholesky
-factor $\bm L(\bm\theta)$.  The \code{RZX} and \code{RX} slots contain
+factor, $\bm L(\bm\theta)$.  The \code{RZX} and \code{RX} slots contain
 $\bm R_{\bm Z\bm X}(\bm\theta)$ and $\bm R_{\bm X}(\bm\theta)$,
 respectively, stored as dense matrices.
 
@@ -304,29 +303,27 @@ The maximum likelihood estimates, $\widehat{\bm\theta}$, satisfy
   \label{eq:thetamle}
   \widehat{\bm\theta}=\arg\min_{\bm\theta}d(\bm\theta|\bm y)
 \end{equation}
-Once the value of $\widehat{\bm\theta}$ has been determined, the mle's
-of the other parameters are evaluated from (\ref{eq:PLSsol}) and
-\begin{equation}
-  \label{eq:sigmahat}
-  \widehat{\sigma^2}(\bm\theta)=\frac{r^2}{n} .
-\end{equation}
+Once the value of $\widehat{\bm\theta}$ has been determined, the mle
+of $\bm\beta$ is evaluated from (\ref{eq:PLSsol}) and the mle of
+$\sigma^2$ as $\widehat{\sigma^2}(\bm\theta)=r^2/n$.
 
 Note that nothing has been said about the form of the sparse model
 matrix, $\bm Z$, other than the fact that it is sparse.  In contrast
-to other methods for linear mixed models, these results apply equally
-well to models where $\bm Z$ is derived from multiple grouping factors
-that can be crossed or partially crossed in addition to models with
-multiple, nested grouping factors.
+to other methods for linear mixed models, these results apply to
+models where $\bm Z$ is derived from crossed or partially crossed
+grouping factors, in addition to models with multiple, nested grouping
+factors.
 
 The system (\ref{eq:PLSsol}) is similar to Henderson's ``mixed-model
-equations''.  One important difference is that Henderson represented
-his system of equations in terms of $\bm\Sigma^{-1}$ and, in important
-practical examples, $\bm\Sigma^{-1}$ does not exist at the parameter
-estimates.  Also, Henderson assumed that equations like
-(\ref{eq:PLSsol}) would need to be solved explicitly and, as we have seen,
-only the decomposition of the system matrix is needed for evaluation
-of the profiled log-likelihood.  The same is true of the profiled the
-logarithm of the REML criterion, which we define later.
+equations'' (reference?).  One important difference between
+(\ref{eq:PLSsol}) and Henderson's formulation is that Henderson
+represented his system of equations in terms of $\bm\Sigma^{-1}$ and,
+in important practical examples, $\bm\Sigma^{-1}$ does not exist at
+the parameter estimates.  Also, Henderson assumed that equations like
+(\ref{eq:PLSsol}) would need to be solved explicitly and, as we have
+seen, only the decomposition of the system matrix is needed for
+evaluation of the profiled log-likelihood.  The same is true of the
+profiled the logarithm of the REML criterion, which we define later.
 
 \section{The generalized least squares approach to linear mixed models}
 \label{sec:GLS}
@@ -356,12 +353,12 @@ The conditional estimates of $\bm\beta$ are often written as
 but, of course, this formula is not suitable for computation.  The
 matrix $\bm V(\bm\theta)$ is a symmetric $n\times n$ positive definite
 matrix and hence has a Cholesky factor.  However, this factor is
-$n\times n$, not $q\times q$, and $q$ is always smaller than $n$ ---
-sometimes orders of magnitude smaller.  Blithely writing a formula in
+$n\times n$, not $q\times q$, and $n$ is always larger than $q$ ---
+sometimes orders of magnitude larger.  Blithely writing a formula in
 terms of $\bm V^{-1}$ when $\bm V$ is $n\times n$, and $n$ can be in
-the millions, does not a computational formula make.
+the millions does not a computational formula make.
 
-\subsection{Relating the GLS approach to the Cholesky factor $L$.}
+\subsection{Relating the GLS approach to the Cholesky factor}
 \label{sec:GLStoL}
 
 We can use the fact that
