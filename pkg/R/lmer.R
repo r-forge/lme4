@@ -893,7 +893,7 @@ setMethod("anova", signature(object = "mer"),
 	  }
 	  else { ## ------ single model ---------------------
               p <- object@dims["p"]
-	      ss <- (object@RX[seq_len(p), p + 1L, drop = TRUE])^2
+              ss <- (.Call(mer_update_projection, object)[[2]])^2
 	      names(ss) <- names(object@fixef)
 	      asgn <- attr(object@X, "assign")
 	      terms <- terms(object)
