@@ -1615,10 +1615,14 @@ SEXP mer_update_dev(SEXP x)
 
 	d[disc_POS] = d[wrss_POS];
 	if (dims[nAGQ_POS] > 1) {
+	  switch(dims[nAGQ_POS])
+	    {
+	    case 2:break;
+	    }
 	    error("Code not yet written");
 	}
 	d[ML_POS] = dn * (1 + log(2 * PI/dn)) +
-	    d[wrss_POS] + d[ldL2_POS] + d[usqr_POS];
+	  dn * log(d[pwrss_POS]) + d[ldL2_POS];
     }
     return R_NilValue;
 }
@@ -2020,7 +2024,6 @@ SEXP spR_optimize(SEXP x, SEXP verbP)
     return R_NilValue;
 }
 
-#if 0
 
 /* Gauss-Hermite Quadrature x positions and weights */
 static const double
@@ -2073,6 +2076,7 @@ static const double
 		  GHQ_w5, GHQ_w6, GHQ_w7, GHQ_w8, GHQ_w9, GHQ_w10,
 		  GHQ_w11};
 
+#if 0
 static void
 safe_pd_matrix(double x[], const char uplo[], int n, double thresh)
 {
