@@ -441,7 +441,7 @@ mer_finalize <- function(ans, verbose)
 ## Modifications to lmer often involve modifying model matrices before
 ## creating and optimizing the mer object.  Everything past the model
 ## matrices is encapsulated in this function
-lmer_finalize <- function(mc, fr, FL, start, REML, verbose)
+lmer_finalize <- function(fr, FL, start, REML, verbose)
 {
     Y <- as.double(fr$Y)
     if (is.list(start) && all(sort(names(start)) == sort(names(FL))))
@@ -465,7 +465,7 @@ lmer_finalize <- function(mc, fr, FL, start, REML, verbose)
                env = new.env(),
                nlmodel = (~I(x))[[2]],
                frame = fr$mf,
-               call = mc,
+               call = match.call(),
                flist = dm$flist,
                X = fr$X,
                Zt = dm$Zt,
@@ -501,7 +501,7 @@ lmer_finalize <- function(mc, fr, FL, start, REML, verbose)
     mer_finalize(ans, verbose)
 }
 
-glmer_finalize <- function(mc, fr, FL, glmFit, start, nAGQ, verbose)
+glmer_finalize <- function(fr, FL, glmFit, start, nAGQ, verbose)
 {
     if (is.list(start) && all(sort(names(start)) == sort(names(FL))))
         start <- list(ST = start)
@@ -525,7 +525,8 @@ glmer_finalize <- function(mc, fr, FL, glmFit, start, nAGQ, verbose)
                env = new.env(),
                nlmodel = (~I(x))[[2]],
                frame = fr$mf,
-               call = mc, flist = dm$flist,
+               call = match.call(),
+               flist = dm$flist,
                Zt = dm$Zt, X = fr$X, y = y,
                pWt = unname(glmFit$prior.weights),
                offset = unname(fr$off),
@@ -565,21 +566,23 @@ lmer <-
     mc <- match.call()
     if (!is.null(family)) {             # call glmer
         mc[[1]] <- as.name("glmer")
-        return(eval(mc))
+        return(eval.parent(mc))
     }
     stopifnot(length(formula <- as.formula(formula)) == 3)
 
     fr <- lmerFrames(mc, formula, contrasts) # model frame, X, etc.
     FL <- lmerFactorList(formula, fr$mf, 0L, 0L) # flist, Zt
     if (!is.null(method <- list(...)$method)) {
-        warning(paste("Argument", sQuote("methood"),
+        warning(paste("Argument", sQuote("method"),
                       "is deprecated.  Use", sQuote("REML"),
                       "instead"))
         REML <- match.arg(method, c("REML", "ML")) == "REML"
     }
-    ans <- list(mc = quote(mc), fr = fr, FL = FL, start = start,
-                REML = REML, verbose = verbose)
-    if (doFit) ans <- do.call(lmer_finalize, ans)
+    ans <- list(fr = fr, FL = FL, start = start, REML = REML, verbose = verbose)
+    if (doFit) {
+        ans <- do.call(lmer_finalize, ans)
+        ans@call <- mc
+    }
     ans
 }
 
@@ -639,9 +642,12 @@ function(formula, data, family = gaussian, start = NULL,
     if (missing(verbose)) verbose <- cv$msVerbose
 ### FIXME: issue a warning if the model argument is FALSE.  It is ignored.    
 
-    ans <- list(mc = quote(mc), fr = fr, FL = FL, glmFit = glmFit, start = start,
+    ans <- list(fr = fr, FL = FL, glmFit = glmFit, start = start,
                 nAGQ = nAGQ, verbose = verbose)
-    if (doFit) ans <- do.call(glmer_finalize, ans)
+    if (doFit) {
+        ans <- do.call(glmer_finalize, ans)
+        ans@call <- mc
+    }
     ans
 }
 
