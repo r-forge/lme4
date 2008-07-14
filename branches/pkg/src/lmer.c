@@ -66,6 +66,58 @@ enum dimP {
     cvg_POS			/**<convergence indictor from port optimization  */
 };
 
+
+/* Gauss-Hermite Quadrature x positions and weights */
+static const double
+    GHQ_x1[1] = {0},
+    GHQ_w1[1] = {1},
+    GHQ_x2[1] = {1},
+    GHQ_w2[1] = {0.5},
+    GHQ_x3[2] = {1.7320507779261, 0},
+    GHQ_w3[2] = {0.166666666666667, 0.666666666666667},
+    GHQ_x4[2] = {2.3344141783872, 0.74196377160456},
+    GHQ_w4[2] = {0.0458758533899086, 0.454124131589555},
+    GHQ_x5[3] = {2.85696996497785, 1.35562615677371, 0},
+    GHQ_w5[3] = {0.0112574109895360, 0.222075915334214,
+		 0.533333317311434},
+    GHQ_x6[3] = {3.32425737665988, 1.88917584542184,
+		 0.61670657963811},
+    GHQ_w6[3] = {0.00255578432527774, 0.0886157433798025,
+		 0.408828457274383},
+    GHQ_x7[4] = {3.7504396535397, 2.36675937022918,
+		 1.15440537498316, 0},
+    GHQ_w7[4] = {0.000548268839501628, 0.0307571230436095,
+		 0.240123171391455, 0.457142843409801},
+    GHQ_x8[4] = {4.14454711519499, 2.80248581332504,
+		 1.63651901442728, 0.539079802125417},
+    GHQ_w8[4] = {0.000112614534992306, 0.0096352198313359,
+		 0.117239904139746, 0.373012246473389},
+    GHQ_x9[5] = {4.51274578616743, 3.20542894799789,
+		 2.07684794313409, 1.02325564627686, 0},
+    GHQ_w9[5] = {2.23458433364535e-05, 0.00278914123744297,
+		 0.0499164052656755, 0.244097495561989,
+		 0.406349194142045},
+    GHQ_x10[5] = {4.85946274516615, 3.58182342225163,
+		  2.48432579912153, 1.46598906930182,
+		  0.484935699216176},
+    GHQ_w10[5] = {4.31065250122166e-06, 0.000758070911538954,
+		  0.0191115799266379, 0.135483698910192,
+		  0.344642324578594},
+    GHQ_x11[6] = {5.18800113558601, 3.93616653976536,
+		  2.86512311160915, 1.87603498804787,
+		  0.928868981484148, 0},
+    GHQ_w11[6] = {8.12184954622583e-07, 0.000195671924393029,
+		  0.0067202850336527, 0.066138744084179,
+		  0.242240292596812, 0.36940835831095};
+
+static const double
+    *GHQ_x[12] = {(double *) NULL, GHQ_x1, GHQ_x2, GHQ_x3, GHQ_x4,
+		  GHQ_x5, GHQ_x6, GHQ_x7, GHQ_x8, GHQ_x9, GHQ_x10,
+		  GHQ_x11},
+    *GHQ_w[12] = {(double *) NULL, GHQ_w1, GHQ_w2, GHQ_w3, GHQ_w4,
+		  GHQ_w5, GHQ_w6, GHQ_w7, GHQ_w8, GHQ_w9, GHQ_w10,
+		  GHQ_w11};
+
 /**
  * Extract the slot named nm from the object obj and return a null pointer
  * if the slot has length 0 or a pointer to the REAL contents.
@@ -1600,11 +1652,13 @@ SEXP mer_ST_setPars(SEXP x, SEXP pars)
  */
 SEXP mer_update_dev(SEXP x)
 {
-    double *d = DEV_SLOT(x);
+    double *d = DEV_SLOT(x), *u = U_SLOT(x);
     int *dims = DIMS_SLOT(x);
-
+    const int q = dims[q_POS], nAGQ = dims[nAGQ_POS];
+    CHM_FR L = L_SLOT(x);
+ 
     if (MUETA_SLOT(x)) {
-	if (dims[nAGQ_POS] > 1) {
+	if (nAGQ > 1) {
 	    error("Code not yet written");
 	}
 	d[disc_POS] = lme4_devResid(MU_SLOT(x), PWT_SLOT(x), Y_SLOT(x),
@@ -1612,17 +1666,59 @@ SEXP mer_update_dev(SEXP x)
 	d[ML_POS] = d[disc_POS] + d[ldL2_POS] + d[usqr_POS];
     } else {
 	double dn = (double) dims[n_POS];
+	double *uold = Alloca(q, double);
 
 	d[disc_POS] = d[wrss_POS];
-	if (dims[nAGQ_POS] > 1) {
-	  switch(dims[nAGQ_POS])
-	    {
-	    case 2:break;
-	    }
-	    error("Code not yet written");
+	
+	d[ML_POS] = dn * (1 + log(2*PI/dn) + log(d[pwrss_POS])) + d[ldL2_POS];
+
+	/* assign values to abbsicas and weights */
+	double *ab = Alloca(nAGQ, double), *w = Alloca(nAGQ, double);  
+	Memcpy(ab, GHQ_x[nAGQ], nAGQ/2);
+	Memcpy(w, GHQ_w[nAGQ], nAGQ/2);
+	/* continue to copy weights and negative absicas */
+	for(int i = nAGQ/2; i < nAGQ; ++i){
+	  ab[i] = - GHQ_x[nAGQ][i - nAGQ/2];
+	  w[i] =   GHQ_w[nAGQ][i - nAGQ/2];
 	}
-	d[ML_POS] = dn * (1 + log(2 * PI/dn)) +
-	  dn * log(d[pwrss_POS]) + d[ldL2_POS];
+
+	/* implementation of AGQ method (Laplacian will be a trivial case) */
+	Memcpy(uold, u, q);                  /* keep original conditional mode */                      
+	double temp = 0, w_pro = 1;          /* values needed in AGQ evaluation */
+	double *z = Alloca(q, double);       /* current abbsicas vector */
+	const double sigma = sqrt(d[pwrss_POS]);   /* MLE of sigma */
+	const double factor = - dn / (2 * d[pwrss_POS]);
+	int *pointer = Alloca(q, int);       /* pointer for combinations of weights and absicas vector */
+	AZERO(pointer, q);                   /* assign initial pointers, all 0 */
+	/* add accuracy to integration approximation */
+	while(pointer[q-1] < nAGQ){
+	  /* initial calculations of weights and z */
+	  for(int i = 0; i < q; ++i){
+	    z[i] = ab[pointer[i]];
+	    w_pro *= w[pointer[i]];
+	  }
+	  CHM_DN cz = N_AS_CHM_DN(z, q, 1), sol;
+	  if (!(sol = M_cholmod_solve(CHOLMOD_L, L, cz, &c)))
+	    error(_("cholmod_solve (CHOLMOD_L) failed"));
+	  Memcpy(z, (double *)sol->x, q);
+	  for(int i = 0; i < q; ++i){
+	    u[i] = uold[i] + sigma * z[i];
+	  }
+	  temp += exp(factor * update_mu(x)) * w_pro;
+	  M_cholmod_free_dense(&sol, &c);
+
+	  /* move pointer to next combination of weights and abbsicas */
+	  int count = 0;
+	  pointer[count]++;
+	  while(pointer[count] == nAGQ && count < q-1){
+	    pointer[count] = 0;
+	    pointer[++count]++;
+	  }
+      	  w_pro = 1;
+	}
+	d[ML_POS] += log(temp);
+	Memcpy(u, uold, q);
+	update_mu(x);
     }
     return R_NilValue;
 }
@@ -2025,56 +2121,6 @@ SEXP spR_optimize(SEXP x, SEXP verbP)
 }
 
 
-/* Gauss-Hermite Quadrature x positions and weights */
-static const double
-    GHQ_x1[1] = {0},
-    GHQ_w1[1] = {1},
-    GHQ_x2[1] = {1},
-    GHQ_w2[1] = {0.5},
-    GHQ_x3[2] = {1.7320507779261, 0},
-    GHQ_w3[2] = {0.166666666666667, 0.666666666666667},
-    GHQ_x4[2] = {2.3344141783872, 0.74196377160456},
-    GHQ_w4[2] = {0.0458758533899086, 0.454124131589555},
-    GHQ_x5[3] = {2.85696996497785, 1.35562615677371, 0},
-    GHQ_w5[3] = {0.0112574109895360, 0.222075915334214,
-		 0.533333317311434},
-    GHQ_x6[3] = {3.32425737665988, 1.88917584542184,
-		 0.61670657963811},
-    GHQ_w6[3] = {0.00255578432527774, 0.0886157433798025,
-		 0.408828457274383},
-    GHQ_x7[4] = {3.7504396535397, 2.36675937022918,
-		 1.15440537498316, 0},
-    GHQ_w7[4] = {0.000548268839501628, 0.0307571230436095,
-		 0.240123171391455, 0.457142843409801},
-    GHQ_x8[4] = {4.14454711519499, 2.80248581332504,
-		 1.63651901442728, 0.539079802125417},
-    GHQ_w8[4] = {0.000112614534992306, 0.0096352198313359,
-		 0.117239904139746, 0.373012246473389},
-    GHQ_x9[5] = {4.51274578616743, 3.20542894799789,
-		 2.07684794313409, 1.02325564627686, 0},
-    GHQ_w9[5] = {2.23458433364535e-05, 0.00278914123744297,
-		 0.0499164052656755, 0.244097495561989,
-		 0.406349194142045},
-    GHQ_x10[5] = {4.85946274516615, 3.58182342225163,
-		  2.48432579912153, 1.46598906930182,
-		  0.484935699216176},
-    GHQ_w10[5] = {4.31065250122166e-06, 0.000758070911538954,
-		  0.0191115799266379, 0.135483698910192,
-		  0.344642324578594},
-    GHQ_x11[6] = {5.18800113558601, 3.93616653976536,
-		  2.86512311160915, 1.87603498804787,
-		  0.928868981484148, 0},
-    GHQ_w11[6] = {8.12184954622583e-07, 0.000195671924393029,
-		  0.0067202850336527, 0.066138744084179,
-		  0.242240292596812, 0.36940835831095};
-
-static const double
-    *GHQ_x[12] = {(double *) NULL, GHQ_x1, GHQ_x2, GHQ_x3, GHQ_x4,
-		  GHQ_x5, GHQ_x6, GHQ_x7, GHQ_x8, GHQ_x9, GHQ_x10,
-		  GHQ_x11},
-    *GHQ_w[12] = {(double *) NULL, GHQ_w1, GHQ_w2, GHQ_w3, GHQ_w4,
-		  GHQ_w5, GHQ_w6, GHQ_w7, GHQ_w8, GHQ_w9, GHQ_w10,
-		  GHQ_w11};
 
 #if 0
 static void
