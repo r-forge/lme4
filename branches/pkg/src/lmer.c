@@ -1666,59 +1666,67 @@ SEXP mer_update_dev(SEXP x)
 	d[ML_POS] = d[disc_POS] + d[ldL2_POS] + d[usqr_POS];
     } else {
 	double dn = (double) dims[n_POS];
-	double *uold = Alloca(q, double);
 
 	d[disc_POS] = d[wrss_POS];
+	if (nAGQ_POS > 1) {
+	    
+	  double *uold = Calloc(q, double);
 	
-	d[ML_POS] = dn * (1 + log(2*PI/dn) + log(d[pwrss_POS])) + d[ldL2_POS];
+	  d[ML_POS] = dn * (1 + log(2*PI/dn) + log(d[pwrss_POS])) + d[ldL2_POS];
 
-	/* assign values to abbsicas and weights */
-	double *ab = Alloca(nAGQ, double), *w = Alloca(nAGQ, double);  
-	Memcpy(ab, GHQ_x[nAGQ], nAGQ/2);
-	Memcpy(w, GHQ_w[nAGQ], nAGQ/2);
-	/* continue to copy weights and negative absicas */
-	for(int i = nAGQ/2; i < nAGQ; ++i){
-	  ab[i] = - GHQ_x[nAGQ][i - nAGQ/2];
-	  w[i] =   GHQ_w[nAGQ][i - nAGQ/2];
+	  /* assign values to abbsicas and weights */
+	  double *ab = Calloc(nAGQ, double), *w = Calloc(nAGQ, double);  
+	  Memcpy(ab, GHQ_x[nAGQ], nAGQ/2);
+	  Memcpy(w, GHQ_w[nAGQ], nAGQ/2);
+	  /* continue to copy weights and negative absicas */
+	  for(int i = nAGQ/2; i < nAGQ; ++i){
+	    ab[i] = - GHQ_x[nAGQ][i - nAGQ/2];
+	    w[i]  =   GHQ_w[nAGQ][i - nAGQ/2];
+	  }
+
+	  /* implementation of AGQ method (Laplacian will be a trivial case) */
+	  Memcpy(uold, u, q);                  /* keep original conditional mode */                      
+	  double temp = 0, w_pro = 1;          /* values needed in AGQ evaluation */
+	  double *z = Calloc(q, double);       /* current abbsicas vector */
+	  const double sigma = d[sigmaML_POS];   /* MLE of sigma */
+	  const double factor = - 1 / (2 * sigma * sigma);
+	  int *pointer = Calloc(q, int);       /* pointer for combinations of weights and absicas vector */
+	  AZERO(pointer, q);                   /* assign initial pointers, all 0 */
+	  /* add accuracy to integration approximation */
+	  while(pointer[q-1] < nAGQ){
+	    /* initial calculations of weights and z */
+	    for(int i = 0; i < q; ++i){
+	      z[i] = ab[pointer[i]];
+	      w_pro *= w[pointer[i]];
+	    }
+	    CHM_DN cz = N_AS_CHM_DN(z, q, 1), sol;
+	    if (!(sol = M_cholmod_solve(CHOLMOD_L, L, cz, &c)))
+	      error(_("cholmod_solve (CHOLMOD_L) failed"));
+	    Memcpy(z, (double *)sol->x, q);
+	    for(int i = 0; i < q; ++i){
+	      u[i] = uold[i] + sigma * z[i];
+	    }
+	    temp += exp(factor * update_mu(x)) * w_pro;
+	    M_cholmod_free_dense(&sol, &c);
+
+	    /* move pointer to next combination of weights and abbsicas */
+	    int count = 0;
+	    pointer[count]++;
+	    while(pointer[count] == nAGQ && count < q-1){
+	      pointer[count] = 0;
+	      pointer[++count]++;
+	    }
+	    w_pro = 1;
+	  }
+	  d[ML_POS] += log(temp);
+	  Memcpy(u, uold, q);
+	  free(ab); free(w); free(pointer); free(z);
+	  free(uold);
+	  update_mu(x);
 	}
-
-	/* implementation of AGQ method (Laplacian will be a trivial case) */
-	Memcpy(uold, u, q);                  /* keep original conditional mode */                      
-	double temp = 0, w_pro = 1;          /* values needed in AGQ evaluation */
-	double *z = Alloca(q, double);       /* current abbsicas vector */
-	const double sigma = sqrt(d[pwrss_POS]);   /* MLE of sigma */
-	const double factor = - dn / (2 * d[pwrss_POS]);
-	int *pointer = Alloca(q, int);       /* pointer for combinations of weights and absicas vector */
-	AZERO(pointer, q);                   /* assign initial pointers, all 0 */
-	/* add accuracy to integration approximation */
-	while(pointer[q-1] < nAGQ){
-	  /* initial calculations of weights and z */
-	  for(int i = 0; i < q; ++i){
-	    z[i] = ab[pointer[i]];
-	    w_pro *= w[pointer[i]];
-	  }
-	  CHM_DN cz = N_AS_CHM_DN(z, q, 1), sol;
-	  if (!(sol = M_cholmod_solve(CHOLMOD_L, L, cz, &c)))
-	    error(_("cholmod_solve (CHOLMOD_L) failed"));
-	  Memcpy(z, (double *)sol->x, q);
-	  for(int i = 0; i < q; ++i){
-	    u[i] = uold[i] + sigma * z[i];
-	  }
-	  temp += exp(factor * update_mu(x)) * w_pro;
-	  M_cholmod_free_dense(&sol, &c);
-
-	  /* move pointer to next combination of weights and abbsicas */
-	  int count = 0;
-	  pointer[count]++;
-	  while(pointer[count] == nAGQ && count < q-1){
-	    pointer[count] = 0;
-	    pointer[++count]++;
-	  }
-      	  w_pro = 1;
-	}
-	d[ML_POS] += log(temp);
-	Memcpy(u, uold, q);
-	update_mu(x);
+	else{
+          d[ML_POS] = dn*(1 + log(d[pwrss_POS]) + log(2*PI/dn)) + d[ldL2_POS];
+        }
     }
     return R_NilValue;
 }
