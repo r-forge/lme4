@@ -375,33 +375,35 @@ static int chkLen(char *buf, int nb, SEXP x, SEXP sym, int len, int zerok)
  * @param n length of mu and y
  * @param vTyp type of variance function: the 1-based index into
  *        c("constant", "mu(1-mu)", "mu", "mu^2", "mu^3")
- *
+ * @param ans pointer to vector of partial sums
+ * @param fac indices associating observations with partial sums 
+ *            (may be (int*)NULL)
  * @return the sum of the deviance residuals
  */
-static double
+static double*
 lme4_devResid(const double* mu, const double* pWt, const double* y,
-	      int n, int vTyp)
+	      int n, int vTyp, double *ans, int *fac)
 {
-    double ans = 0.;
     for (int i = 0; i < n; i++) {
 	double mui = mu[i], wi = pWt ? pWt[i] : 1, yi = y[i];
 	double ri = yi - mui;
+	int ai = fac ? fac[i] : 0;
 	switch(vTyp) {
 	case 1:			/* constant variance */
-	    ans += wi * ri * ri;
+	    ans[ai] += wi * ri * ri;
 	    break;
 	case 2:			/* mu(1-mu) variance */
-	    ans += 2 * wi *
+	    ans[ai] += 2 * wi *
 		(y_log_y(yi, mui) + y_log_y(1 - yi, 1 - mui));
 	    break;
 	case 3:			/* mu variance */
-	    ans += 2 * wi * (y_log_y(yi, mui) - (yi - mui));
+	    ans[ai] += 2 * wi * (y_log_y(yi, mui) - (yi - mui));
 	    break;
 	case 4:			/* mu^2 variance */
-	    ans += 2 * wi * (y_log_y(yi, mui) - (yi - mui)/mui);
+	    ans[ai] += 2 * wi * (y_log_y(yi, mui) - (yi - mui)/mui);
 	    break;
 	case 5:			/* mu^3 variance */
-	    ans += wi * (ri * ri)/(yi * mui * mui);
+	    ans[ai] += wi * (ri * ri)/(yi * mui * mui);
 	    break;
 	default:
 	    error(_("Unknown vTyp value %d"), vTyp);
@@ -1658,12 +1660,17 @@ SEXP mer_update_dev(SEXP x)
     CHM_FR L = L_SLOT(x);
  
     if (MUETA_SLOT(x)) {
-	if (nAGQ > 1) {
+	if (nAGQ < 1) {
+	    error("nAGQ must be positive");
+	} else if (nAGQ == 1) {
+	    double ans = 0;
+	    lme4_devResid(MU_SLOT(x), PWT_SLOT(x), Y_SLOT(x), dims[n_POS],
+			  dims[vTyp_POS], &ans, (int*) NULL);
+	    d[disc_POS] = ans;
+	    d[ML_POS] = d[disc_POS] + d[ldL2_POS] + d[usqr_POS];
+	} else {
 	    error("Code not yet written");
 	}
-	d[disc_POS] = lme4_devResid(MU_SLOT(x), PWT_SLOT(x), Y_SLOT(x),
-				    dims[n_POS], dims[vTyp_POS]);
-	d[ML_POS] = d[disc_POS] + d[ldL2_POS] + d[usqr_POS];
     } else {
 	double dn = (double) dims[n_POS];
 
