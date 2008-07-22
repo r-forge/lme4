@@ -1683,8 +1683,14 @@ SEXP mer_update_dev(SEXP x)
 
 	  if(nfl != 1)
 	    error("AGQ method requires number of factors to be 1!");
-	   
-	  const int nf = dims[nf_POS], nl = q/nf;       /* number of terms and levels in factor */
+
+	  const int nf = dims[nf_POS];
+	  int *Gp = Gp_SLOT(x), *nc = Alloca(nf, int), *nlev = Alloca(nf, int), ncmax;
+	  double **st = Alloca(nf, double*);
+
+          /* number of terms and levels in factor */
+	  ncmax = ST_nc_nlev(GET_SLOT(x, lme4_STSym), Gp, st, nc, nlev);
+	                       
 	  double *res = RESID_SLOT(x);
 	  double *uold = Calloc(q, double);
 
@@ -1702,21 +1708,24 @@ SEXP mer_update_dev(SEXP x)
 
 	  /* implementation of AGQ method (Laplacian will be a trivial case) */
 	  Memcpy(uold, u, q);                    /* keep original conditional mode */
+	  const int nl = nlev[0], nt = q / nl;
 	  double *tmp = Calloc(nl, double);                      
 	  double w_pro = 1, z_sum = 0;           /* values needed in AGQ evaluation */
 	  const double sigma = d[sigmaML_POS];   /* MLE of sigma */
 	  const double factor = - 1 / (2 * sigma * sigma);
-	  int *pointer = Alloca(nf, int);        /* pointer for combinations of weights and abscissas vector */
-	  AZERO(pointer, nf);                    /* assign initial pointers, all 0 */
+	  int *pointer = Alloca(nt, int);        /* pointer for combinations of weights and abscissas vector */
+	  AZERO(pointer, nt);                    /* assign initial pointers, all 0 */
 	  AZERO(tmp, nl);
+
 	  /* add accuracy to integration approximation */
-	  while(pointer[nf - 1] < nAGQ){
+	  while(pointer[nt - 1] < nAGQ){
 	    double *z = Calloc(q, double);       /* current abscissas */
 	    double *presid = Calloc(nl, double); /* current penalized residuals in different levels */
 
-	    for(int i = 0; i < nf; ++i){
+	    /* update abscissas and weights */
+	    for(int i = 0; i < nt; ++i){
 	      for(int j = 0; j < nl; ++j){
-		z[i + j * nf] = pointer[i];
+		z[i + j * nt] = pointer[i];
 	      }
 	      z_sum += ab[pointer[i]] * ab[pointer[i]];
 	      w_pro *= w[pointer[i]];
@@ -1742,7 +1751,7 @@ SEXP mer_update_dev(SEXP x)
 	    /* move pointer to next combination of weights and abbsicas */
 	    int count = 0;
 	    pointer[count]++;
-	    while(pointer[count] == nAGQ && count < nf - 1){
+	    while(pointer[count] == nAGQ && count < nt - 1){
 	      pointer[count] = 0;
 	      pointer[++count]++;
 	    }
@@ -1750,7 +1759,6 @@ SEXP mer_update_dev(SEXP x)
 	    w_pro = 1;
 	    z_sum = 0;
 	    if(presid) Free(presid);
-
 	  }
 
 	  for(int j = 0; j < nl; ++j){
