@@ -1675,61 +1675,93 @@ SEXP mer_update_dev(SEXP x)
 	double dn = (double) dims[n_POS];
 
 	d[disc_POS] = d[wrss_POS];
-	if (nAGQ_POS > 1) {
-	    
-	  double *uold = Calloc(q, double);
-	
-	  d[ML_POS] = dn * (1 + log(2*PI/dn) + log(d[pwrss_POS])) + d[ldL2_POS];
+	if (nAGQ > 1) {
 
-	  /* assign values to abbsicas and weights */
-	  double *ab = Calloc(nAGQ, double), *w = Calloc(nAGQ, double);  
+	  SEXP flistP = GET_SLOT(x, lme4_flistSym);
+	  const int nfl = LENGTH(flistP);
+	  int *flist = INTEGER(VECTOR_ELT(flistP, 0));
+
+	  if(nfl != 1)
+	    error("AGQ method requires number of factors to be 1!");
+	   
+	  const int nf = dims[nf_POS], nl = q/nf;       /* number of terms and levels in factor */
+	  double *res = RESID_SLOT(x);
+	  double *uold = Calloc(q, double);
+
+	  d[ML_POS] = dn * log(2*PI*d[pwrss_POS]/dn) + d[ldL2_POS];
+
+	  /* assign values to abscissas and weights */
+	  double *ab = Alloca(nAGQ, double), *w = Alloca(nAGQ, double);  
 	  Memcpy(ab, GHQ_x[nAGQ], nAGQ/2);
 	  Memcpy(w, GHQ_w[nAGQ], nAGQ/2);
-	  /* continue to copy weights and negative absicas */
+	  /* continue to copy weights and negative abscissas */
 	  for(int i = nAGQ/2; i < nAGQ; ++i){
 	    ab[i] = - GHQ_x[nAGQ][i - nAGQ/2];
 	    w[i]  =   GHQ_w[nAGQ][i - nAGQ/2];
 	  }
 
 	  /* implementation of AGQ method (Laplacian will be a trivial case) */
-	  Memcpy(uold, u, q);                  /* keep original conditional mode */                      
-	  double temp = 0, w_pro = 1;          /* values needed in AGQ evaluation */
-	  double *z = Calloc(q, double);       /* current abbsicas vector */
+	  Memcpy(uold, u, q);                    /* keep original conditional mode */
+	  double *tmp = Calloc(nl, double);                      
+	  double w_pro = 1, z_sum = 0;           /* values needed in AGQ evaluation */
 	  const double sigma = d[sigmaML_POS];   /* MLE of sigma */
 	  const double factor = - 1 / (2 * sigma * sigma);
-	  int *pointer = Calloc(q, int);       /* pointer for combinations of weights and absicas vector */
-	  AZERO(pointer, q);                   /* assign initial pointers, all 0 */
+	  int *pointer = Alloca(nf, int);        /* pointer for combinations of weights and abscissas vector */
+	  AZERO(pointer, nf);                    /* assign initial pointers, all 0 */
+	  AZERO(tmp, nl);
 	  /* add accuracy to integration approximation */
-	  while(pointer[q-1] < nAGQ){
-	    /* initial calculations of weights and z */
-	    for(int i = 0; i < q; ++i){
-	      z[i] = ab[pointer[i]];
+	  while(pointer[nf - 1] < nAGQ){
+	    double *z = Calloc(q, double);       /* current abscissas */
+	    double *presid = Calloc(nl, double); /* current penalized residuals in different levels */
+
+	    for(int i = 0; i < nf; ++i){
+	      for(int j = 0; j < nl; ++j){
+		z[i + j * nf] = pointer[i];
+	      }
+	      z_sum += ab[pointer[i]] * ab[pointer[i]];
 	      w_pro *= w[pointer[i]];
 	    }
 	    CHM_DN cz = N_AS_CHM_DN(z, q, 1), sol;
-	    if (!(sol = M_cholmod_solve(CHOLMOD_L, L, cz, &c)))
-	      error(_("cholmod_solve (CHOLMOD_L) failed"));
+	    if(!(sol = M_cholmod_solve(CHOLMOD_L, L, cz, &c)))
+	      error(_("cholmod_solve(CHOLMOD_L) failed"));
 	    Memcpy(z, (double *)sol->x, q);
+	    M_cholmod_free_dense(&sol, &c);
 	    for(int i = 0; i < q; ++i){
 	      u[i] = uold[i] + sigma * z[i];
 	    }
-	    temp += exp(factor * update_mu(x)) * w_pro;
-	    M_cholmod_free_dense(&sol, &c);
+	    update_mu(x);
+	    AZERO(presid, nl);
+	    for(int i = 0; i < dims[n_POS]; ++i){
+	      presid[flist[i]-1] += ( res[i] * res[i] + u[i] * u[i] );
+	    }
+
+	    for(int j = 0; j < nl; ++j){
+	      tmp[j] += exp(factor * presid[j] + z_sum / 2) * w_pro;
+	    }
 
 	    /* move pointer to next combination of weights and abbsicas */
 	    int count = 0;
 	    pointer[count]++;
-	    while(pointer[count] == nAGQ && count < q-1){
+	    while(pointer[count] == nAGQ && count < nf - 1){
 	      pointer[count] = 0;
 	      pointer[++count]++;
 	    }
+	    if(z) Free(z);
 	    w_pro = 1;
+	    z_sum = 0;
+	    if(presid) Free(presid);
+
 	  }
-	  d[ML_POS] += log(temp);
+
+	  for(int j = 0; j < nl; ++j){
+	    d[ML_POS] -= ( 2 * log(tmp[j]) );
+	  }
+	  
 	  Memcpy(u, uold, q);
-	  free(ab); free(w); free(pointer); free(z);
-	  free(uold);
 	  update_mu(x);
+	  if(tmp)   Free(tmp);
+	  if(uold)  Free(uold);
+
 	}
 	else{
           d[ML_POS] = dn*(1 + log(d[pwrss_POS]) + log(2*PI/dn)) + d[ldL2_POS];
