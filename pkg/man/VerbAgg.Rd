@@ -20,16 +20,14 @@
     \item{\code{resp}}{the subject's response to the item - an ordered
       factor with levels \code{no} < \code{perhaps} < \code{yes}}
     \item{\code{id}}{the subject identifier, as a factor}
-    \item{\code{btype}}{behavior type - a factor with levels \code{curse} \code{scold} \code{shout}}
-    \item{\code{situ}}{situation type - a factor with levels \code{other} \code{self}}
-    \item{\code{mode}}{behavior mode - a factor with levels \code{want} \code{do}}
-    \item{\code{r2}}{dichotomous version of the response - a factor with levels \code{N} \code{Y}}
-    \item{\code{Express}}{a numeric vector of one of the contrasts for
-      \code{btype} used in De Boeck and Wilson (2004)}
-    \item{\code{Blame}}{a numeric vector of the other contrast for
-      \code{btype} used in De Boeck and Wilson (2004)}
-    \item{\code{OtherSelf}}{a numeric vector of a contrast for the \code{situ}}
-    \item{\code{DoWant}}{a numeric vector of a contrast for the \code{mode}}
+    \item{\code{btype}}{behavior type - a factor with levels
+      \code{curse}, \code{scold} and \code{shout}}
+    \item{\code{situ}}{situation type - a factor with levels
+      \code{other} and \code{self} indicating other-to-blame and self-to-blame}
+    \item{\code{mode}}{behavior mode - a factor with levels \code{want}
+      and \code{do}}
+    \item{\code{r2}}{dichotomous version of the response - a factor with
+      levels \code{N} and \code{Y}}
   }
 }
 %\details{}
