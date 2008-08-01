@@ -194,6 +194,10 @@ static R_INLINE double *SLOT_REAL_NULL(SEXP obj, SEXP nm)
 /** Minimum step factor in update_u */
 #define CM_SMIN     1e-5
 
+/** precision and maximum number of iterations used in GHQ */
+#define GHQ_EPS    1e-15
+#define GHQ_MAXIT  40
+
 #define LTHRESH     30.
 #define MLTHRESH   -30.
 
@@ -201,57 +205,6 @@ static double MPTHRESH = 0;
 static double PTHRESH = 0;
 static const double INVEPS = 1/DOUBLE_EPS;
 
-
-/* Gauss-Hermite Quadrature x positions and weights */
-static const double
-    GHQ_x1[1] = {0},
-    GHQ_w1[1] = {1},
-    GHQ_x2[1] = {1},
-    GHQ_w2[1] = {0.5},
-    GHQ_x3[2] = {1.7320507779261, 0},
-    GHQ_w3[2] = {0.166666666666667, 0.666666666666667},
-    GHQ_x4[2] = {2.3344141783872, 0.74196377160456},
-    GHQ_w4[2] = {0.0458758533899086, 0.454124131589555},
-    GHQ_x5[3] = {2.85696996497785, 1.35562615677371, 0},
-    GHQ_w5[3] = {0.0112574109895360, 0.222075915334214,
-		 0.533333317311434},
-    GHQ_x6[3] = {3.32425737665988, 1.88917584542184,
-		 0.61670657963811},
-    GHQ_w6[3] = {0.00255578432527774, 0.0886157433798025,
-		 0.408828457274383},
-    GHQ_x7[4] = {3.7504396535397, 2.36675937022918,
-		 1.15440537498316, 0},
-    GHQ_w7[4] = {0.000548268839501628, 0.0307571230436095,
-		 0.240123171391455, 0.457142843409801},
-    GHQ_x8[4] = {4.14454711519499, 2.80248581332504,
-		 1.63651901442728, 0.539079802125417},
-    GHQ_w8[4] = {0.000112614534992306, 0.0096352198313359,
-		 0.117239904139746, 0.373012246473389},
-    GHQ_x9[5] = {4.51274578616743, 3.20542894799789,
-		 2.07684794313409, 1.02325564627686, 0},
-    GHQ_w9[5] = {2.23458433364535e-05, 0.00278914123744297,
-		 0.0499164052656755, 0.244097495561989,
-		 0.406349194142045},
-    GHQ_x10[5] = {4.85946274516615, 3.58182342225163,
-		  2.48432579912153, 1.46598906930182,
-		  0.484935699216176},
-    GHQ_w10[5] = {4.31065250122166e-06, 0.000758070911538954,
-		  0.0191115799266379, 0.135483698910192,
-		  0.344642324578594},
-    GHQ_x11[6] = {5.18800113558601, 3.93616653976536,
-		  2.86512311160915, 1.87603498804787,
-		  0.928868981484148, 0},
-    GHQ_w11[6] = {8.12184954622583e-07, 0.000195671924393029,
-		  0.0067202850336527, 0.066138744084179,
-		  0.242240292596812, 0.36940835831095};
-
-static const double
-    *GHQ_x[12] = {(double *) NULL, GHQ_x1, GHQ_x2, GHQ_x3, GHQ_x4,
-		  GHQ_x5, GHQ_x6, GHQ_x7, GHQ_x8, GHQ_x9, GHQ_x10,
-		  GHQ_x11},
-    *GHQ_w[12] = {(double *) NULL, GHQ_w1, GHQ_w2, GHQ_w3, GHQ_w4,
-		  GHQ_w5, GHQ_w6, GHQ_w7, GHQ_w8, GHQ_w9, GHQ_w10,
-		  GHQ_w11};
 /* abscissas and weights used in AGQ method */
 static double
     ab[AGQ_MAX], w[AGQ_MAX];
@@ -1412,6 +1365,111 @@ SEXP mer_MCMCsamp(SEXP x, SEXP fm)
     return x;
 }
 
+
+/**
+ * Generate zeros and weights of Hermite polynomial of order N, for AGQ method
+ *
+ * changed from fortran in package 'glmmML'
+ * @param N order of the Hermite polynomial
+ * @param X zeros of the polynomial, abscissas for AGQ
+ * @param W weights used in AGQ
+ *
+ */
+
+static int internal_ghq(int N, double *X, double *W)
+{
+    int NR, IT, I, K, J;
+    double Z = 0, HF = 0, HD = 0;
+    double Z0, F0, F1, P, FD, Q, WP, GD, R, R1, R2;
+    double HN = 1/(double)N;
+
+/*   scanf("%d", &N); */
+
+/*   X = malloc( (N + 1) * sizeof(double) ); */
+/*   W = malloc( (N + 1) * sizeof(double) ); */
+
+
+    for(NR = 1; NR <= N / 2; ++NR){
+	if(NR == 1)
+	    Z = -1.1611 + 1.46 * sqrt( (double)N);
+	else
+	    Z -= HN * (N/2 + 1 - NR);
+/* 	IT = 0; */
+/* 	do{ */
+	for (IT = 0; IT <= GHQ_MAXIT; IT++) {
+	    Z0 = Z;
+	    F0 = 1.0;
+	    F1 = 2.0 * Z;
+	    for(K = 2; K <= N; ++K){
+		HF = 2.0 * Z * F1 - 2.0 * (double)(K - 1.0) * F0;
+		HD = 2.0 * K * F1;
+		F0 = F1;
+		F1 = HF;
+	    }
+	    P = 1.0;
+	    for(I = 1; I <= NR-1; ++I){
+		P *= (Z - X[I]);
+	    }
+	    FD = HF / P;
+	    Q = 0.0;
+	    for(I = 1; I <= NR - 1; ++I){
+		WP = 1.0;
+		for(J = 1; J <= NR - 1; ++J){
+		    if(J != I) WP *= ( Z - X[J] );
+		}
+		Q += WP;
+	    }
+	    GD = (HD-Q*FD)/P;
+	    Z -= (FD/GD);
+	    /*Rprintf("[%d]\nZ = %.20f\nZ0 = %.20f\n%.20f\n%.20f\n", IT, Z, Z0, abs((Z-Z0)/Z), GHQ_EPS );*/
+	    if (fabs((Z - Z0) / Z) < GHQ_EPS) break;
+/* 	    IT++; */
+	} /* while(IT <= GHQ_MAXIT && abs((Z-Z0) / Z) > GHQ_EPS); */
+/* 	printf("[%d] %.4f\t", NR, Z ); */
+
+	X[NR] = Z;
+	X[N+1-NR] = -Z;
+	R=1.0;
+	for(K = 1; K <= N; ++K){
+	    R *= (2.0 * (double)K );
+	}
+	W[N+1-NR] = W[NR] = 3.544907701811 * R / (HD*HD);
+    }
+    if( N % 2 ){
+	R1=1.0;
+	R2=1.0;
+	for(J = 1; J <= N; ++J){
+	    R1=2.0*R1*J;
+	    if(J>=(N+1)/2) R2 *= J;
+	}
+	W[N/2+1]=0.88622692545276*R1/(R2*R2);
+	X[N/2+1]=0.0;
+    }
+
+/*   printf("\n"); */
+/*   for(I = 1; I <= N; ++I){ */
+/*     printf("%.4f %.4f\n", X[I], W[I]); */
+/*   } */
+    return 1;
+}
+
+
+SEXP lme4_ghq(SEXP np)
+{
+    int n = asInteger(np);
+    SEXP ans = PROTECT(allocVector(VECSXP, 2));
+
+    if (n < 1) n = 1;
+    SET_VECTOR_ELT(ans, 0, allocVector(REALSXP, n + 1));
+    SET_VECTOR_ELT(ans, 1, allocVector(REALSXP, n + 1));
+    
+    internal_ghq(n, REAL(VECTOR_ELT(ans, 0)), REAL(VECTOR_ELT(ans, 1)));
+    UNPROTECT(1);
+    return ans;
+}
+
+
+
 /**
  * Optimize the profiled deviance of an lmer object or the Laplace
  * approximation to the deviance of a nlmer or glmer object.
@@ -1459,15 +1517,20 @@ mer_optimize(SEXP x, SEXP verbp)
 	for (int j = 0; j < nc; j++) b[pos + 2*j] = 0;
 	pos += nc * (nc + 1);
     }
+
+
     /* assign values to abscissas and weights */
   
-    Memcpy(ab, GHQ_x[nAGQ], nAGQ/2);
-    Memcpy(w, GHQ_w[nAGQ], nAGQ/2);
-    /* continue to copy weights and negative abscissas */
-    for(int i = nAGQ/2; i < nAGQ; ++i){
-      ab[i] = - GHQ_x[nAGQ][i - nAGQ/2];
-      w[i]  =   GHQ_w[nAGQ][i - nAGQ/2];
+    if (nAGQ > 1){
+      double *tmp1 = Calloc(nAGQ+1, double), *tmp2 = Calloc(nAGQ+1, double);
+      internal_ghq(nAGQ, tmp1, tmp2);
+      Memcpy(ab, tmp1+1, nAGQ);
+      Memcpy(w, tmp2+1, nAGQ);
+      if (tmp1) Free(tmp1);
+      if (tmp2) Free(tmp2);
     }
+
+
     do {
 	ST_setPars(x, xv);		/* update ST and A */
 /* FIXME: Change this so that update_dev is always called and that
@@ -2087,6 +2150,7 @@ SEXP mer_validate(SEXP x)
 	    return mkString(_("Gp must be non-decreasing"));
     }
 #if 0
+
 /* FIXME: Need to incorporate the assign attribute in the calculation of nq */
     if (q != nq)
 	return mkString(_("q is not sum of columns by levels"));
@@ -2264,8 +2328,61 @@ SEXP spR_optimize(SEXP x, SEXP verbP)
 }
 
 
-
 #if 0
+
+
+/* Gauss-Hermite Quadrature x positions and weights */
+static const double
+    GHQ_x1[1] = {0},
+    GHQ_w1[1] = {1},
+    GHQ_x2[1] = {1},
+    GHQ_w2[1] = {0.5},
+    GHQ_x3[2] = {1.7320507779261, 0},
+    GHQ_w3[2] = {0.166666666666667, 0.666666666666667},
+    GHQ_x4[2] = {2.3344141783872, 0.74196377160456},
+    GHQ_w4[2] = {0.0458758533899086, 0.454124131589555},
+    GHQ_x5[3] = {2.85696996497785, 1.35562615677371, 0},
+    GHQ_w5[3] = {0.0112574109895360, 0.222075915334214,
+		 0.533333317311434},
+    GHQ_x6[3] = {3.32425737665988, 1.88917584542184,
+		 0.61670657963811},
+    GHQ_w6[3] = {0.00255578432527774, 0.0886157433798025,
+		 0.408828457274383},
+    GHQ_x7[4] = {3.7504396535397, 2.36675937022918,
+		 1.15440537498316, 0},
+    GHQ_w7[4] = {0.000548268839501628, 0.0307571230436095,
+		 0.240123171391455, 0.457142843409801},
+    GHQ_x8[4] = {4.14454711519499, 2.80248581332504,
+		 1.63651901442728, 0.539079802125417},
+    GHQ_w8[4] = {0.000112614534992306, 0.0096352198313359,
+		 0.117239904139746, 0.373012246473389},
+    GHQ_x9[5] = {4.51274578616743, 3.20542894799789,
+		 2.07684794313409, 1.02325564627686, 0},
+    GHQ_w9[5] = {2.23458433364535e-05, 0.00278914123744297,
+		 0.0499164052656755, 0.244097495561989,
+		 0.406349194142045},
+    GHQ_x10[5] = {4.85946274516615, 3.58182342225163,
+		  2.48432579912153, 1.46598906930182,
+		  0.484935699216176},
+    GHQ_w10[5] = {4.31065250122166e-06, 0.000758070911538954,
+		  0.0191115799266379, 0.135483698910192,
+		  0.344642324578594},
+    GHQ_x11[6] = {5.18800113558601, 3.93616653976536,
+		  2.86512311160915, 1.87603498804787,
+		  0.928868981484148, 0},
+    GHQ_w11[6] = {8.12184954622583e-07, 0.000195671924393029,
+		  0.0067202850336527, 0.066138744084179,
+		  0.242240292596812, 0.36940835831095};
+
+static const double
+    *GHQ_x[12] = {(double *) NULL, GHQ_x1, GHQ_x2, GHQ_x3, GHQ_x4,
+		  GHQ_x5, GHQ_x6, GHQ_x7, GHQ_x8, GHQ_x9, GHQ_x10,
+		  GHQ_x11},
+    *GHQ_w[12] = {(double *) NULL, GHQ_w1, GHQ_w2, GHQ_w3, GHQ_w4,
+		  GHQ_w5, GHQ_w6, GHQ_w7, GHQ_w8, GHQ_w9, GHQ_w10,
+		  GHQ_w11};
+
+
 static void
 safe_pd_matrix(double x[], const char uplo[], int n, double thresh)
 {
