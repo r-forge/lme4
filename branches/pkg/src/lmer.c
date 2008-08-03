@@ -185,8 +185,6 @@ static R_INLINE double *SLOT_REAL_NULL(SEXP obj, SEXP nm)
 #define BUF_SIZE 127
 #endif	
 
-/** Maximum number of abscissas used in AGQ */
-#define AGQ_MAX     150
 /** Maximum number of iterations in update_u */
 #define CM_MAXITER  300
 /** Tolerance level for convergence criterion in update_u */
@@ -207,7 +205,7 @@ static const double INVEPS = 1/DOUBLE_EPS;
 
 /* abscissas and weights used in AGQ method */
 static double
-    ab[AGQ_MAX], w[AGQ_MAX];
+    *ab, *w;
 
 /* In-line functions */
 
@@ -1376,12 +1374,13 @@ SEXP mer_MCMCsamp(SEXP x, SEXP fm)
  *
  */
 
-static int internal_ghq(int N, double *X, double *W)
+static int internal_ghq(int N, double *x, double *w)
 {
     int NR, IT, I, K, J;
     double Z = 0, HF = 0, HD = 0;
     double Z0, F0, F1, P, FD, Q, WP, GD, R, R1, R2;
     double HN = 1/(double)N;
+    double *X = Calloc(N + 1, double), *W = Calloc(N + 1, double);
 
 /*   scanf("%d", &N); */
 
@@ -1446,6 +1445,12 @@ static int internal_ghq(int N, double *X, double *W)
 	X[N/2+1]=0.0;
     }
 
+    Memcpy(x, X + 1, N);
+    Memcpy(w, W + 1, N);
+
+    if(X) Free(X);
+    if(W) Free(W);
+
 /*   printf("\n"); */
 /*   for(I = 1; I <= N; ++I){ */
 /*     printf("%.4f %.4f\n", X[I], W[I]); */
@@ -1460,8 +1465,8 @@ SEXP lme4_ghq(SEXP np)
     SEXP ans = PROTECT(allocVector(VECSXP, 2));
 
     if (n < 1) n = 1;
-    SET_VECTOR_ELT(ans, 0, allocVector(REALSXP, n + 1));
-    SET_VECTOR_ELT(ans, 1, allocVector(REALSXP, n + 1));
+    SET_VECTOR_ELT(ans, 0, allocVector(REALSXP, n ));
+    SET_VECTOR_ELT(ans, 1, allocVector(REALSXP, n ));
     
     internal_ghq(n, REAL(VECTOR_ELT(ans, 0)), REAL(VECTOR_ELT(ans, 1)));
     UNPROTECT(1);
@@ -1520,15 +1525,21 @@ mer_optimize(SEXP x, SEXP verbp)
 
 
     /* assign values to abscissas and weights */
-  
-    if (nAGQ > 1){
-      double *tmp1 = Calloc(nAGQ+1, double), *tmp2 = Calloc(nAGQ+1, double);
+    if (nAGQ > 1){ 
+      ab = REAL( GET_SLOT(x, install("ghx")) );
+      w  = REAL( GET_SLOT(x, install("ghw")) );
+
+      for(int i = 0; i < nAGQ; ++i){
+	ab[i] *= sqrt(2);                /* scale abscissas */
+      } 
+
+      /*double *tmp1 = Calloc(nAGQ+1, double), *tmp2 = Calloc(nAGQ+1, double);
       internal_ghq(nAGQ, tmp1, tmp2);
       Memcpy(ab, tmp1+1, nAGQ);
       Memcpy(w, tmp2+1, nAGQ);
       if (tmp1) Free(tmp1);
-      if (tmp2) Free(tmp2);
-    }
+      if (tmp2) Free(tmp2);*/
+      }
 
 
     do {

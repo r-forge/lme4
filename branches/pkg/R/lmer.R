@@ -512,7 +512,9 @@ glmer_finalize <- function(fr, FL, glmFit, start, nAGQ, verbose)
     dm$dd["useSc"] <- as.integer(!(famNms[dm$dd["fTyp"] ] %in%
 				   c("binomial", "poisson")))
     if ((nAGQ <- as.integer(nAGQ)) < 1) nAGQ <- 1L
+    if (nAGQ %% 2 == 0) nAGQ <- nAGQ + 1L # reset nAGQ to be an odd number
     dm$dd["nAGQ"] <- nAGQ
+    AGQlist = .Call("lme4_ghq", nAGQ, PACKAGE = "lme4")
     y <- unname(as.double(glmFit$y))
     ##    dimnames(fr$X) <- NULL
     p <- dm$dd["p"]
@@ -545,7 +547,9 @@ glmer_finalize <- function(fr, FL, glmFit, start, nAGQ, verbose)
                sqrtXWt = as.matrix(numeric(dm$dd["n"])),
                sqrtrWt = numeric(dm$dd["n"]),
                RZX = matrix(0, dm$dd["q"], p),
-               RX = matrix(0, p, p))
+               RX = matrix(0, p, p),
+	       ghx = AGQlist[[1]],
+	       ghw = AGQlist[[2]])
     if (!is.null(stp <- start$STpars) && is.numeric(stp)) {
         STp <- .Call(mer_ST_getPars, ans)
         if (length(STp) == length(stp))
@@ -717,7 +721,9 @@ nlmer <- function(formula, data, start = NULL, verbose = FALSE,
     p <- dm$dd["p"] <- length(start$fixef)
     n <- dm$dd["n"]
     if ((nAGQ <- as.integer(nAGQ)) < 1) nAGQ <- 1L
+    if (nAGQ %% 2 == 0) nAGQ <- nAGQ + 1L      # reset nAGQ to be an odd number
     dm$dd["nAGQ"] <- nAGQ
+    AGQlist = .Call('lme4_ghq', nAGQ, PACKAGE = "lme4")
 
     ans <- new(Class = "mer",
                env = env,
@@ -748,7 +754,9 @@ nlmer <- function(formula, data, start = NULL, verbose = FALSE,
                sqrtXWt = matrix(0, n, s, dimnames = list(NULL, pnames)),
                sqrtrWt = unname(sqrt(fr$wts)),
                RZX = matrix(0, dm$dd["q"], p),
-               RX = matrix(0, p, p)
+               RX = matrix(0, p, p),
+	       ghx = AGQlist[[1]],
+	       ghw = AGQlist[[2]] 
                )
     .Call(mer_update_mu, ans)
 ### Add a check that the parameter names match the column names of gradient
