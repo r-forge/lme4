@@ -240,6 +240,10 @@ lmerFactorList <- function(formula, mf, rmInt, drop)
                  ff <- eval(substitute(as.factor(fac)[,drop = TRUE],
                                        list(fac = x[[3]])), mf)
                  im <- as(ff, "sparseMatrix") # transpose of indicators
+		 ## Could well be that we should rather check earlier .. :
+		 if(!isTRUE(validObject(im, test=TRUE)))
+		     stop("invalid conditioning factor in random effect: ", format(x[[3]]))
+
                  mm <- model.matrix(eval(substitute(~ expr, # model matrix
                                                     list(expr = x[[2]]))),
                                     mf)
@@ -640,7 +644,7 @@ function(formula, data, family = gaussian, start = NULL,
 ### FIXME: issue a warning if the control argument has an msVerbose component
     cv <- do.call(lmerControl, control)
     if (missing(verbose)) verbose <- cv$msVerbose
-### FIXME: issue a warning if the model argument is FALSE.  It is ignored.    
+### FIXME: issue a warning if the model argument is FALSE.  It is ignored.
 
     ans <- list(fr = fr, FL = FL, glmFit = glmFit, start = start,
                 nAGQ = nAGQ, verbose = verbose)
@@ -1158,8 +1162,8 @@ formatVC <- function(varc, digits = max(3, getOption("digits") - 2))
 
 ## This is modeled a bit after  print.summary.lm :
 printMer <- function(x, digits = max(3, getOption("digits") - 3),
-                      correlation = TRUE, symbolic.cor = FALSE,
-                      signif.stars = getOption("show.signif.stars"), ...)
+                     correlation = TRUE, symbolic.cor = FALSE,
+                     signif.stars = getOption("show.signif.stars"), ...)
 {
     so <- summary(x)
     REML <- so@dims["REML"]
@@ -1192,20 +1196,27 @@ printMer <- function(x, digits = max(3, getOption("digits") - 3),
 	printCoefmat(so@coefs, zap.ind = 3, #, tst.ind = 4
 		     digits = digits, signif.stars = signif.stars)
 	if(correlation) {
-	    rn <- rownames(so@coefs)
 	    corF <- so@vcov@factors$correlation
 	    if (!is.null(corF)) {
 		p <- ncol(corF)
 		if (p > 1) {
+		    rn <- rownames(so@coefs)
+		    rns <- abbreviate(rn, minlen=11)
 		    cat("\nCorrelation of Fixed Effects:\n")
 		    if (is.logical(symbolic.cor) && symbolic.cor) {
-			print(symnum(as(corF, "matrix"), abbr.col = NULL))
+			corf <- as(corF, "matrix")
+			dimnames(corf) <- list(rns,
+					       if(getRversion() >= "2.8.0")
+					       abbreviate(rn, minlength=1, strict=TRUE)
+					       else ## for now
+					       .Internal(abbreviate(rn, 1, TRUE))
+					       )
+			print(symnum(corf))
 		    }
 		    else {
 			corf <- matrix(format(round(corF@x, 3), nsmall = 3),
-				       nc = p)
-			dimnames(corf) <- list(abbreviate(rn, minlen=11),
-					       abbreviate(rn, minlen=6))
+				       nc = p,
+                                       dimnames = list(rns, abbreviate(rn, minlen=6)))
 			corf[!lower.tri(corf)] <- ""
 			print(corf[-1, -p, drop=FALSE], quote = FALSE)
 		    }
@@ -1446,7 +1457,7 @@ dotplot.ranef.mer <- function(x, data, ...)
                 xlab = NULL, ...)
     }
     lapply(x, f, ...)
-}    
+}
 
 #### Creating and displaying a Markov Chain Monte Carlo sample from
 #### the posterior distribution of the parameters
