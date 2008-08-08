@@ -1,3 +1,12 @@
+2008-08-08  Martin Maechler  <maechler@stat.math.ethz.ch>
+
+	* R/lmer.R (lmerFactorList): check matrix validity: error out
+	instead of later segfault.
+	(printMer): improve abbreviation for row/col names of correlation
+	matrix.
+
+	* tests/lmer-1.R: regression test against seg.fault
+
 2008-07-25  Douglas Bates <bates@stat.wisc.edu>
 
 	* [r202] DESCRIPTION, src/lmer.c: Implement cloglog inverse link
