@@ -918,31 +918,36 @@ setMethod("anova", signature(object = "mer"),
 	      return(val)
 	  }
 	  else { ## ------ single model ---------------------
-              p <- object@dims["p"]
-              ss <- (.Call(mer_update_projection, object)[[2]])^2
-	      names(ss) <- names(object@fixef)
-	      asgn <- attr(object@X, "assign")
-	      terms <- terms(object)
-	      nmeffects <- attr(terms, "term.labels")
-	      if ("(Intercept)" %in% names(ss))
-		  nmeffects <- c("(Intercept)", nmeffects)
-	      ss <- unlist(lapply(split(ss, asgn), sum))
-	      df <- unlist(lapply(split(asgn,  asgn), length))
-	      #dfr <- unlist(lapply(split(dfr, asgn), function(x) x[1]))
-	      ms <- ss/df
-	      f <- ms/(sigma(object)^2)
-	      #P <- pf(f, df, dfr, lower.tail = FALSE)
-	      #table <- data.frame(df, ss, ms, dfr, f, P)
-	      table <- data.frame(df, ss, ms, f)
-	      dimnames(table) <-
-		  list(nmeffects,
-#			c("Df", "Sum Sq", "Mean Sq", "Denom", "F value", "Pr(>F)"))
-		       c("Df", "Sum Sq", "Mean Sq", "F value"))
-	      if ("(Intercept)" %in% nmeffects)
-		  table <- table[-match("(Intercept)", nmeffects), ]
-	      attr(table, "heading") <- "Analysis of Variance Table"
-	      class(table) <- c("anova", "data.frame")
-	      table
+            if (length(object@muEta))
+              stop("single argument anova for GLMMs not yet implemented")
+            if (length(object@V))
+              stop("single argument anova for NLMMs not yet implemented")
+            
+            p <- object@dims["p"]
+            ss <- (.Call(mer_update_projection, object)[[2]])^2
+            names(ss) <- names(object@fixef)
+            asgn <- attr(object@X, "assign")
+            terms <- terms(object)
+            nmeffects <- attr(terms, "term.labels")
+            if ("(Intercept)" %in% names(ss))
+              nmeffects <- c("(Intercept)", nmeffects)
+            ss <- unlist(lapply(split(ss, asgn), sum))
+            df <- unlist(lapply(split(asgn,  asgn), length))
+                                        #dfr <- unlist(lapply(split(dfr, asgn), function(x) x[1]))
+            ms <- ss/df
+            f <- ms/(sigma(object)^2)
+                                        #P <- pf(f, df, dfr, lower.tail = FALSE)
+                                        #table <- data.frame(df, ss, ms, dfr, f, P)
+            table <- data.frame(df, ss, ms, f)
+            dimnames(table) <-
+              list(nmeffects,
+                                        #			c("Df", "Sum Sq", "Mean Sq", "Denom", "F value", "Pr(>F)"))
+                   c("Df", "Sum Sq", "Mean Sq", "F value"))
+            if ("(Intercept)" %in% nmeffects)
+              table <- table[-match("(Intercept)", nmeffects), ]
+            attr(table, "heading") <- "Analysis of Variance Table"
+            class(table) <- c("anova", "data.frame")
+            table
 	  }
       })
 
