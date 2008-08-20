@@ -922,7 +922,7 @@ setMethod("anova", signature(object = "mer"),
               stop("single argument anova for GLMMs not yet implemented")
             if (length(object@V))
               stop("single argument anova for NLMMs not yet implemented")
-            
+
             p <- object@dims["p"]
             ss <- (.Call(mer_update_projection, object)[[2]])^2
             names(ss) <- names(object@fixef)
@@ -963,7 +963,7 @@ setMethod("deviance", signature(object="mer"),
       {
           if (missing(REML) || is.null(REML) || is.na(REML[1]))
               REML <- object@dims["REML"]
-          object@deviance[ifelse(REML, "REML", "ML")]
+          object@deviance[if(REML) "REML" else "ML"]
       })
 
 setMethod("fitted", signature(object = "mer"),
@@ -1029,7 +1029,7 @@ setMethod("summary", signature(object = "mer"),
           coefs <- cbind("Estimate" = fcoef, "Std. Error" = corF@sd) #, DF = DF)
           llik <- logLik(object, REML)
           dev <- object@deviance
-          mType <- ifelse(non <- as.logical(length(object@V)), "NMM", "LMM")
+          mType <- if((non <- as.logical(length(object@V))) "NMM" else "LMM"
           if (gen <- as.logical(length(object@muEta)))
               mType <- paste("G", mType, sep = '')
           mName <- switch(mType, LMM = "Linear", NMM = "Nonlinear",
@@ -1040,7 +1040,7 @@ setMethod("summary", signature(object = "mer"),
 	  else
 	      method <- "the adaptive Gaussian Hermite approximation"
           if (mType == "LMM")
-              method <- ifelse(REML, "REML", "maximum likelihood")
+              method <- if(REML) "REML" else "maximum likelihood"
 
           AICframe <- data.frame(AIC = AIC(llik), BIC = BIC(llik),
                                  logLik = c(llik),
@@ -1655,7 +1655,7 @@ devvals <- function(fm, pmat, sigma1 = FALSE)
         stop(gettextf("pmat must have %d columns", np + sigma1))
     storage.mode(pmat) <- "double"
     if (is.null(pnms <- dimnames(pmat)[[2]]))
-        pnms <- c(ifelse(sigma1, character(0), "sigma"),
+        pnms <- c(if(sigma1) character(0) else "sigma",
                   paste("th", seq_len(np), sep = ""))
     dev <- fm@deviance
     ans <- matrix(0, nrow(pmat), ncol(pmat) + length(dev),
