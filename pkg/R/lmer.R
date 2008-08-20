@@ -1029,7 +1029,7 @@ setMethod("summary", signature(object = "mer"),
           coefs <- cbind("Estimate" = fcoef, "Std. Error" = corF@sd) #, DF = DF)
           llik <- logLik(object, REML)
           dev <- object@deviance
-          mType <- if((non <- as.logical(length(object@V))) "NMM" else "LMM"
+          mType <- if((non <- as.logical(length(object@V)))) "NMM" else "LMM"
           if (gen <- as.logical(length(object@muEta)))
               mType <- paste("G", mType, sep = '')
           mName <- switch(mType, LMM = "Linear", NMM = "Nonlinear",
