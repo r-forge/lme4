@@ -1782,6 +1782,8 @@ SEXP mer_update_dev(SEXP x)
 	  const int nl = nlev[0], nt = q / nl;
 	  double *tmp = Calloc(nl, double);
 	  double w_pro = 1, z_sum = 0;           /* values needed in AGQ evaluation */
+	  const double sigma = d[sigmaML_POS];   /* MLE of sigma */
+
 	  int *pointer = Alloca(nt, int);
 	  AZERO(pointer, nt);
 	  AZERO(tmp, nl);
@@ -1813,8 +1815,13 @@ SEXP mer_update_dev(SEXP x)
 	    lme4_devResid(MU_SLOT(x), PWT_SLOT(x), Y_SLOT(x), dims[n_POS],
 			  dims[vTyp_POS], ans, flist);
 
+	    for(int i = 0; i < nt; ++i){
+	      for(int j = 0; j < nl; ++j)
+		ans[j] += u[i + j * nt] * u[i + j * nt];
+	    }
+
 	    for(int j = 0; j < nl; ++j){
-	      tmp[j] += exp(ans[j] + u[j]*u[j] + z_sum / 2) * w_pro;
+	      tmp[j] += exp( -1/2 * ans[j] + z_sum / 2 ) * w_pro;
 	    }
 
 	    /* move pointer to next combination of weights and abbsicas */
@@ -1834,7 +1841,7 @@ SEXP mer_update_dev(SEXP x)
 	  }
 
  	  for(int j = 0; j < nl; ++j){
-	    d[ML_POS] += log(tmp[j]);
+	    d[ML_POS] -= 2 * log(tmp[j]);
 	  }
 	  
 	  Memcpy(u, uold, q);
@@ -1901,9 +1908,15 @@ SEXP mer_update_dev(SEXP x)
 	      u[i] = uold[i] + sigma * z[i];
 	    }
 	    update_mu(x);
+
 	    AZERO(presid, nl);
 	    for(int i = 0; i < dims[n_POS]; ++i){
-	      presid[flist[i]-1] += ( res[i] * res[i] + u[i] * u[i] );
+	      presid[flist[i]-1] += ( res[i] * res[i] );
+	    }
+	    
+	    for(int i = 0; i < nt; ++i){
+	      for(int j = 0; j < nl; ++j)
+		presid[j] += u[i + j * nt] * u[i + j * nt];
 	    }
 
 	    for(int j = 0; j < nl; ++j){
