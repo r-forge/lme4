@@ -1685,7 +1685,7 @@ SEXP mer_ST_getPars(SEXP x)
  * @param ST pointers to the nf ST factorizations of the diagonal
  *     elements of Sigma 
  * @param Gpp length nf+1 vector of group pointers for the rows of Zt
- * @param Zt transpose of Z matrix
+* @param Zt transpose of Z matrix
  *
  */
 SEXP mer_ST_initialize(SEXP ST, SEXP Gpp, SEXP Zt)
@@ -1757,7 +1757,8 @@ SEXP mer_update_dev(SEXP x)
 			  dims[vTyp_POS], &ans, (int*) NULL);
 	    d[disc_POS] = ans;
 	    d[ML_POS] = d[disc_POS] + d[ldL2_POS] + d[usqr_POS];
-	} else {
+	    } 
+	else {
 
 	  SEXP flistP = GET_SLOT(x, lme4_flistSym);
 	  const int nfl = LENGTH(flistP);
@@ -1773,7 +1774,7 @@ SEXP mer_update_dev(SEXP x)
           /* number of terms and levels in factor */
 	  ncmax = ST_nc_nlev(GET_SLOT(x, lme4_STSym), Gp, st, nc, nlev);
 
-	  d[ML_POS] = d[ldL2_POS];
+	  d[ML_POS] = 0;
 
 	  double *uold = Calloc(q, double);
 
@@ -1781,12 +1782,13 @@ SEXP mer_update_dev(SEXP x)
 	  Memcpy(uold, u, q);                    /* keep original conditional mode */
 	  const int nl = nlev[0], nt = q / nl;
 	  double *tmp = Calloc(nl, double);
-	  double w_pro = 1, z_sum = 0;           /* values needed in AGQ evaluation */
-	  const double sigma = d[sigmaML_POS];   /* MLE of sigma */
 
+
+	  double w_pro = 1, z_sum = 0;           /* values needed in AGQ evaluation */
 	  int *pointer = Alloca(nt, int);
 	  AZERO(pointer, nt);
 	  AZERO(tmp, nl);
+
 
 	  while(pointer[nt - 1] < nAGQ){
 	    double *z = Calloc(q, double);       /* current abscissas */
@@ -1797,31 +1799,35 @@ SEXP mer_update_dev(SEXP x)
 	      for(int j = 0; j < nl; ++j){
 		z[i + j * nt] = ab[pointer[i]];
 	      }
-	      z_sum += ab[pointer[i]] * ab[pointer[i]];
 	      w_pro *= w[pointer[i]];
 	    }
-	    
+
 	    CHM_DN cz = N_AS_CHM_DN(z, q, 1), sol;
 	    if(!(sol = M_cholmod_solve(CHOLMOD_L, L, cz, &c)))
 	      error(_("cholmod_solve(CHOLMOD_L) failed"));
 	    Memcpy(z, (double *)sol->x, q);
 	    M_cholmod_free_dense(&sol, &c);
+
 	    for(int i = 0; i < q; ++i){
 	      u[i] = uold[i] + z[i];
 	    }
+	    
+	    
 	    update_mu(x);
-
+	    
 	    AZERO(ans, nl)
 	    lme4_devResid(MU_SLOT(x), PWT_SLOT(x), Y_SLOT(x), dims[n_POS],
 			  dims[vTyp_POS], ans, flist);
 
 	    for(int i = 0; i < nt; ++i){
-	      for(int j = 0; j < nl; ++j)
+	      for(int j = 0; j < nl; ++j){
 		ans[j] += u[i + j * nt] * u[i + j * nt];
+		/* Rprintf("%d\t", i+j*nt); */
+	      }
 	    }
 
-	    for(int j = 0; j < nl; ++j){
-	      tmp[j] += exp( -1/2 * ans[j] + z_sum / 2 ) * w_pro;
+	    for(int i = 0; i < nl; ++i){
+	      tmp[i] += exp( -1/2 * ans[i] ) * w_pro;
 	    }
 
 	    /* move pointer to next combination of weights and abbsicas */
@@ -1839,6 +1845,14 @@ SEXP mer_update_dev(SEXP x)
 	    if(ans)  Free(ans);
 
 	  }
+
+	  	  
+	  CHM_DN ctmp = N_AS_CHM_DN(tmp, q, 1), sol;
+	  if(!(sol = M_cholmod_solve(CHOLMOD_L, L, ctmp, &c)))
+	    error(_("cholmod_solve(CHOLMOD_L) failed"));
+	  Memcpy(tmp, (double *)sol->x, q);
+	  M_cholmod_free_dense(&sol, &c);
+	  
 
  	  for(int j = 0; j < nl; ++j){
 	    d[ML_POS] -= 2 * log(tmp[j]);
