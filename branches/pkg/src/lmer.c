@@ -1751,7 +1751,7 @@ SEXP mer_update_dev(SEXP x)
     if (MUETA_SLOT(x)) { /* GLMM */
 	if (nAGQ < 1) {
 	    error("nAGQ must be positive");
-	} else if (nAGQ == 1) {
+	}else if (nAGQ == 1) {
 	    double ans = 0;
 	    lme4_devResid(MU_SLOT(x), PWT_SLOT(x), Y_SLOT(x), dims[n_POS],
 			  dims[vTyp_POS], &ans, (int*) NULL);
@@ -1774,7 +1774,7 @@ SEXP mer_update_dev(SEXP x)
           /* number of terms and levels in factor */
 	  ncmax = ST_nc_nlev(GET_SLOT(x, lme4_STSym), Gp, st, nc, nlev);
 
-	  d[ML_POS] = 0;
+	  d[ML_POS] = d[ldL2_POS];
 
 	  double *uold = Calloc(q, double);
 
@@ -1800,6 +1800,7 @@ SEXP mer_update_dev(SEXP x)
 		z[i + j * nt] = ab[pointer[i]];
 	      }
 	      w_pro *= w[pointer[i]];
+	      z_sum += z[pointer[i]] * z[pointer[i]];
 	    }
 
 	    CHM_DN cz = N_AS_CHM_DN(z, q, 1), sol;
@@ -1822,12 +1823,11 @@ SEXP mer_update_dev(SEXP x)
 	    for(int i = 0; i < nt; ++i){
 	      for(int j = 0; j < nl; ++j){
 		ans[j] += u[i + j * nt] * u[i + j * nt];
-		/* Rprintf("%d\t", i+j*nt); */
 	      }
 	    }
 
 	    for(int i = 0; i < nl; ++i){
-	      tmp[i] += exp( -1/2 * ans[i] ) * w_pro;
+	      tmp[i] += exp( -0.5 * ans[i]) * w_pro;
 	    }
 
 	    /* move pointer to next combination of weights and abbsicas */
@@ -1837,7 +1837,7 @@ SEXP mer_update_dev(SEXP x)
 	      pointer[count] = 0;
 	      pointer[++count]++;
 	    }
-	    if(z) Free(z);
+
 	    w_pro = 1;
 	    z_sum = 0;
 
@@ -1846,13 +1846,6 @@ SEXP mer_update_dev(SEXP x)
 
 	  }
 
-	  	  
-	  CHM_DN ctmp = N_AS_CHM_DN(tmp, q, 1), sol;
-	  if(!(sol = M_cholmod_solve(CHOLMOD_L, L, ctmp, &c)))
-	    error(_("cholmod_solve(CHOLMOD_L) failed"));
-	  Memcpy(tmp, (double *)sol->x, q);
-	  M_cholmod_free_dense(&sol, &c);
-	  
 
  	  for(int j = 0; j < nl; ++j){
 	    d[ML_POS] -= 2 * log(tmp[j]);
