@@ -1529,9 +1529,6 @@ mer_optimize(SEXP x, SEXP verbp)
       ab = REAL( GET_SLOT(x, install("ghx")) );
       w  = REAL( GET_SLOT(x, install("ghw")) );
 
-      for(int i = 0; i < nAGQ; ++i){
-	ab[i] *= sqrt(2);                /* scale abscissas */
-      } 
 
       /*double *tmp1 = Calloc(nAGQ+1, double), *tmp2 = Calloc(nAGQ+1, double);
       internal_ghq(nAGQ, tmp1, tmp2);
@@ -1827,7 +1824,7 @@ SEXP mer_update_dev(SEXP x)
 	    }
 
 	    for(int i = 0; i < nl; ++i){
-	      tmp[i] += exp( -0.5 * ans[i]) * w_pro;
+	      tmp[i] += exp( -0.5 * ans[i]) * w_pro / sqrt(PI);
 	    }
 
 	    /* move pointer to next combination of weights and abbsicas */
@@ -1927,7 +1924,7 @@ SEXP mer_update_dev(SEXP x)
 	    }
 
 	    for(int j = 0; j < nl; ++j){
-	      tmp[j] += exp(factor * presid[j] + z_sum / 2) * w_pro;
+	      tmp[j] += exp(factor * presid[j] + z_sum) * w_pro / sqrt(PI);
 	    }
 
 	    /* move pointer to next combination of weights and abbsicas */
