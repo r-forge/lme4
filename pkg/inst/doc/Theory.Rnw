@@ -62,10 +62,10 @@ values that optimize an objective function --- either the likelihood
 of the parameters given the observed data, for maxmimum likelihood
 (ML) estimates, or a related objective function called the REML
 criterion.  Because this objective function must be evaluated at many
-different parameter values during the optimization process, we focus
-on the evaluation of the objective function and the critical
-computation in the this evalution, which is determining the solution
-to a penalized, weighted least squares (PWLS) problem.
+different values of the model parameters during the optimization
+process, we focus on the evaluation of the objective function and a
+critical computation in this evalution --- determining the solution to a
+penalized, weighted least squares (PWLS) problem.
 
 The dimension of the solution of the PWLS problem can be very large,
 perhaps in the millions.  Furthermore, such problems must be solved
@@ -113,7 +113,7 @@ representing a count. In our formulation, the random variable $\bm B$
 is always continous.
 
 We specify a mixed model by describing the unconditional distribution
-of $\bc B$ and the conditional distribution $\bc Y|\bc B$.
+of $\bc B$ and the conditional distribution $(\bc Y|\bc B=\bm b)$.
 
 \subsection{The unconditional distribution of $\bc B$}
 \label{sec:uncond-distr-B}
@@ -128,29 +128,29 @@ matrix,
   \bm\Lambda\trans(\bm\theta)\right) .
 \end{equation}
 
-The scalar, $\sigma$, in \ref{eq:2}, is called the \emph{common scale
+The scalar, $\sigma$, in (\ref{eq:2}), is called the \emph{common scale
   parameter}.  As we will see later, not all types of mixed models
 incorporate this parameter. We will include $\sigma^2$ in the general
 form of the unconditional distribution of $\bc B$ with the
-understanding that, in some models, $\sigma=1$ by definition.
+understanding that, in some models, $\sigma\equiv 1$.
 
 The $q\times q$ matrix $\bm\Lambda(\bm\theta)$, which is a left factor
 of the covariance matrix (when $\sigma=1$) or the relative covariance
 matrix (when $\sigma\ne 1$), depends on an $m$-dimensional parameter
 $\bm\theta$.
 %% FIXME: check how to write "much less than"
-Typically $m<q$; in the examples we show below it is always the
+Typically $m\ll q$; in the examples we show below it is always the
 case that $m<5$, even when $q$ is in the thousands.  The fact that $m$
 is very small is important because, as we shall see, determining the
 parameter estimates in a mixed model can be expressed as an
 optimization problem with respect to $\bm\theta$ only.
 
 The parameter $\bm\theta$ may be, and typically is, subject to
-constraints. For ease of computation, we require that these can be
-expressed as ``box'' constraints of the form
+constraints. For ease of computation, we require that the constraints
+be expressed as ``box'' constraints of the form
 $\theta_{iL}\le\theta_i\le\theta_{iU},i=1,\dots,m$ for constants
-$\theta_{iL}$ and $\theta_{iU}, i=1,\dots,m$.  We shall write such
-constraints as $\bm\theta_L\le\bm\theta\le\bm\theta_R$.  The matrix
+$\theta_{iL}$ and $\theta_{iU}, i=1,\dots,m$.  We shall write the set
+of such constraints as $\bm\theta_L\le\bm\theta\le\bm\theta_R$.  The matrix
 $\bm\Lambda(\bm\theta)$ is required to be non-singular
 (i.e. invertible) when $\bm\theta$ is not on the boundary.
 
@@ -198,10 +198,10 @@ distribution (\ref{eq:1}) are called \emph{linear mixed models}.
 \label{sec:change-vari-spher}
 
 Because the conditional distribution $(\bc Y|\bc B=\bm b)$ depends on
-$\bm b$ only through the linear predictor, we can express the model in
-terms of a linear transformation of $\bc B$.  We define the linear
-transformation from a $q$-dimensional ``spherical'' Gaussian random variable,
-$\bc U$, to $\bc B$ as
+$\bm b$ only through the linear predictor, it is easy to express the
+model in terms of a linear transformation of $\bc B$.  We define the
+linear transformation from a $q$-dimensional ``spherical'' Gaussian
+random variable, $\bc U$, to $\bc B$ as
 \begin{equation}
   \label{eq:3}
   \bc B=\bm\Lambda(\bm\theta)\bc U,\quad
@@ -212,9 +212,11 @@ probability density for $\bc U$ are spheres centered at the mean - in
 this case, $\bm0$.)
 
 When $\bm\theta$ is not on the boundary this is an invertible
-transformation but we will only need to express $\bc B$ in terms of
-$\bc U$ and that transformation is defined even when $\bm\theta$ is on
-the boundary.
+transformation.  When $\bm\theta$ is on the boundary the
+transformation can fail to be invertible.  However, we will only
+require that we be able to express $\bc B$ in terms of $\bc U$ and
+that transformation is well-defined, even when $\bm\theta$ is on the
+boundary.
 
 The linear predictor, as a function of $\bm u$, is
 \begin{equation}
@@ -224,23 +226,23 @@ The linear predictor, as a function of $\bm u$, is
 \end{equation}
 When we wish to emphasize the role of the model parameters,
 $\bm\theta$ and $\bm\beta$, in the formulation of $\bm\gamma$, we will
-use the notation $\bm\gamma(\bm u,\bm\theta,\bm\beta)$.
+write the linear predictor as $\bm\gamma(\bm u,\bm\theta,\bm\beta)$.
 
-\section{The conditional density $(\bc U|\bc Y=\bm y)$}
+\subsection{The conditional density $(\bc U|\bc Y=\bm y)$}
 \label{sec:cond-dens-bc}
 
-Because we observe $\bm y$ and do not observe $\bm b$, the conditional
-distribution of interest, for the purposes of statistical inference,
-is $(\bc U|\bc Y=\bm y)$ (or $(\bc B|\bc Y=\bm y)$ but, if we know
-$(\bc U|\bc Y=\bm y)$, it is staightforward to derive $(\bc B|\bc
-Y=\bm y)$.) This conditional distribution is always a continuous
-distribution with a well-defined density.
+Because we observe $\bm y$ and do not observe $\bm b$ or $\bm u$, the
+conditional distribution of interest, for the purposes of statistical
+inference, is $(\bc U|\bc Y=\bm y)$ (or, equivalently, $(\bc B|\bc
+Y=\bm y)$).  This conditional distribution is always a continuous
+distribution, defined by the conditional probability density, $f_{\bc
+  U|\bc Y}(\bm u|\bm y)$.
 
-We can evaluate the conditional density, $f_{\bc U|\bc Y}(\bm u|\bm
-y)$, up to a constant, as the product of the unconditional density,
-$f_{\bc U}(\bm u)$, and the conditional density (or the probability mass
-function, whichever is appropriate), $f_{\bc Y|\bc U}(\bm y|\bm u)$.
-We write this unnormalized conditional density as
+We can evaluate $f_{\bc U|\bc Y}(\bm u|\bm y)$ , up to a constant, as
+the product of the unconditional density, $f_{\bc U}(\bm u)$, and the
+conditional density (or the probability mass function, whichever is
+appropriate), $f_{\bc Y|\bc U}(\bm y|\bm u)$.  We write this
+unnormalized conditional density as
 \begin{equation}
   \label{eq:5}
   h(\bm u|\bm y,\bm\theta,\bm\beta,\sigma) =
@@ -264,34 +266,37 @@ $\sigma$, given the observed data $\bm y$.  The \emph{maximum
   likelihood estimates} of these parameters are the values that
 maximize $L$.
 
-\section{The PWLS problem}
+\section{Methods for linear mixed models}
 \label{sec:pwls-problem}
 
 As indicated in the introduction, a critical step in our methods for
 determining the maximum likelihood estimates of the parameters in a
 mixed model is solving a penalized, weighted least squares (PWLS)
 problem.  We will motivate the general form of the PWLS problem by
-first considering computational methods for linear mixed models.
+first considering computational methods for linear mixed models that
+result in a penalized least squares (PLS) problem.
 
 Recall from \S\ref{sec:cond-distr-YB} that, in a linear mixed model,
 both the conditional distribution, $(\bc Y|\bc U=\bm u)$, and the
-unconditional distribution, $\bc U$, are spherical Gaussian distributions
-and that the conditional mean, $\bm\mu_{\bc Y|\bc U}(\bm u)$, is the
-linear predictor, $\bm\gamma(\bm u)$.  It is convenient to express all
-of these densities on the scale of the logarithm of the density or, as
-is common in many statistical expressions, on the \emph{deviance
-  scale} (negative twice the logarithm of the density),
+unconditional distribution, $\bc U$, are spherical Gaussian
+distributions and that the conditional mean, $\bm\mu_{\bc Y|\bc U}(\bm
+u)$, is the linear predictor, $\bm\gamma(\bm u)$.  Because all the
+distributions determining the model are continuous distributions, we
+consider their densities.  It is convenient to express these densities
+on the scale of the logarithm of the density or, as is common in many
+statistical expressions, on the \emph{deviance scale} (negative twice
+the logarithm of the density),
 \begin{equation}
   \label{eq:7}
   \begin{aligned}
-    -2\log(f_{\bc U}(\bm u))&=q\log(2\pi\sigma)+\frac{\|\bm u\|^2}{\sigma^2}\\
-    -2\log(f_{\bc Y|\bc U}(\bm y|\bm u))&=n\log(2\pi\sigma)+
+    -2\log(f_{\bc U}(\bm u))&=q\log(2\pi\sigma^2)+\frac{\|\bm u\|^2}{\sigma^2}\\
+    -2\log(f_{\bc Y|\bc U}(\bm y|\bm u))&=n\log(2\pi\sigma^2)+
     \frac{\|\bm y-\bm Z\bm\Lambda(\bm\theta)\bm u-\bm X\bm\beta\|^2}{\sigma^2}\\    
     -2\log(h(\bm u|\bm y,\bm\theta,\bm\beta,\sigma))
-    &= (n+q)\log(2\pi\sigma)+
+    &= (n+q)\log(2\pi\sigma^2)+
     \frac{\|\bm y-\bm Z\bm\Lambda(\bm\theta)\bm u-\bm X\bm\beta\|^2+\|\bm
       u\|^2}{\sigma^2}\\
-    &= (n+q)\log(2\pi\sigma)+
+    &= (n+q)\log(2\pi\sigma^2)+
     \frac{d(\bm u|\bm y,\bm\theta,\bm\beta)}{\sigma^2}
   \end{aligned}
 \end{equation}
@@ -312,8 +317,8 @@ common scale parameter, $\sigma$.
 \subsection{The canonical form of the discrepancy}
 \label{sec:conditional-mode-bm}
 
-Using a so-called ``pseudo data'' representation, we can
-write the discrepancy as a residual sum of squares from a model that
+Using a so-called ``pseudo data'' representation, we can write the
+discrepancy as a residual sum of squares for a regression model that
 is linear in both $\bm u$ and $\bm\beta$
 \begin{equation}
   \label{eq:10}
@@ -324,7 +329,7 @@ is linear in both $\bm u$ and $\bm\beta$
       \bm I_q & \bm0
     \end{bmatrix}
     \begin{bmatrix}\bm u\\\bm\beta\end{bmatrix}
-  \right\|^2
+  \right\|^2 .
 \end{equation}
 The term ``pseudo data'' reflects the fact that we have added $q$
 ``pseudo observations'' to the observed response, $\bm y$, and to the
@@ -403,11 +408,9 @@ the positive definite system (\ref{eq:13}) as
   \begin{bmatrix}\bm P_{\bm Z}&\bm0\\
     \bm0&\bm P_{\bm X}\end{bmatrix}\trans
 \end{multline}
-The diagonal elements of $\bm L_{\bm Z}$ and $\bm L_{\bm X}$ are only
-known up to a change in sign.  By convention we choose them to be
-positive so that the determinants $|\bm L_{\bm Z}|$ and $|\bm L_{\bm
-  X}|$ are positive.  These determinants are easily calculated as the
-product of the diagonal elements.
+The diagonal elements of $\bm L_{\bm Z}$ and $\bm L_{\bm X}$ are
+determined only up to a change in sign.  By convention we choose them
+to be positive. 
 
 The discrepancy can now be written in the canonical form
 \begin{equation}
@@ -416,9 +419,11 @@ The discrepancy can now be written in the canonical form
   \left\|
     \begin{bmatrix}
       \bm L_{\bm Z}\trans&\bm L_{\bm{XZ}}\trans\\
-      \bm 0&\bm L_{\bm X}
+      \bm 0&\bm L_{\bm X}\trans
     \end{bmatrix}
-    \begin{bmatrix}\bm u-\tilde{\bm u}\\\bm\beta-\tilde{\bm\beta}
+    \begin{bmatrix}
+      \bm P_{\bm Z}(\bm u-\tilde{\bm u})\\
+      \bm P_{\bm X}(\bm\beta-\tilde{\bm\beta})
     \end{bmatrix}
   \right\|^2
 \end{equation}
@@ -426,8 +431,36 @@ where
 \begin{equation}
   \label{eq:18}
   \tilde{d}(\bm y,\bm\theta)=
-  d(\tilde{\bm u}|\bm y,\bm\theta,\tilde{\bm\theta})
+  d(\tilde{\bm u}(\bm\theta)|\bm y,\bm\theta,\tilde{\bm\beta}(\bm\theta))
 \end{equation}
+is the minimum discrepancy, given $\bm\theta$.
+
+
+\subsection{Profiled log-likelihood for linear mixed models}
+\label{sec:prof-log-likel}
+
+Substituting (\ref{eq:17}) into (\ref{eq:7}) provides the unnormalized
+conditional density $h(\bm u|\bm y,\bm\theta,\bm\beta,\sigma)$ on the
+deviance scale as
+\begin{multline}
+  \label{eq:32}
+  -2\log(h(\bm u|\bm y,\bm\theta,\bm\beta,\sigma))\\=
+  (n+q)\log(2\pi\sigma^2)+\frac{\tilde{d}(\bm y,\bm\theta) +
+  \left\|
+    \begin{bmatrix}
+      \bm L_{\bm Z}\trans&\bm L_{\bm{XZ}}\trans\\
+      \bm 0&\bm L_{\bm X}\trans
+    \end{bmatrix}
+    \begin{bmatrix}
+      \bm P_{\bm Z}(\bm u-\tilde{\bm u})\\
+      \bm P_{\bm X}(\bm\beta-\tilde{\bm\beta})
+    \end{bmatrix}
+  \right\|^2}{\sigma^2} .
+\end{multline}
+We need to integrate $h$ with respect to $\bm u$ and minimize the
+resulting function with respect to the parameter values.
+We first minimize $h$ with respect to $\bm\beta$ by setting
+$\bm\beta=\tilde{\bm\beta}(\bm\theta)$.
 from which we can evaluate the \emph{profiled likelihood}, a function
 of $\bm\theta$ only.  On the deviance scale the profiled likelihood is
 \begin{equation}
@@ -436,21 +469,39 @@ of $\bm\theta$ only.  On the deviance scale the profiled likelihood is
   \log(|\bm L_{\bm Z}(\bm\theta)|^2)+
   n\left(1+\log\left(\frac{2\pi\tilde{d}(\bm y,\bm\theta)}{n}\right)\right)
 \end{equation}
+and the maximum likelihood estimate of $\bm\theta$ is
+\begin{equation}
+  \label{eq:29}
+  \widehat{\bm\theta}_L=\arg\min_{\bm\theta}
+  \left(-2\log(\tilde{L}(\bm\theta|\bm y))\right) .
+\end{equation}
+
+The maximum likelihood estimates of $\sigma^2$ and $\bm\beta$ are then
+evaluated as
+\begin{align}
+  \label{eq:30}
+  \widehat{\sigma^2_L}&=
+  \frac{\tilde{d}(\widehat{\bm\theta}_L,\bm y)}{n}\\
+  \widehat{\bm\beta}_L&=\tilde{\bm\beta}(\widehat{\bm\theta}_L) .
+\end{align}
 
 \subsection{The REML criterion}
 \label{sec:reml-criterion}
 
-In practice the restricted or residual maximum likelihood estimates of
-variance components are often preferred to the maximum likelihood
-estimates.  For example, in a linear regression model
+In practice the so-called REML estimates of variance components are
+often preferred to the maximum likelihood estimates.  (``REML'' is an
+acronym for ``restricted'' or ``residual'' maximum likelihood,
+although neither term is completely accurate because these estimates
+do not maximize a likelihood.) We can motivate the use
+of the REML criterion by considering a linear regression model,
 \begin{equation}
   \label{eq:20}
-  \bc Y\sim\mathcal{N}(\bm X\bm\beta,\sigma^2\bm I_n)
+  \bc Y\sim\mathcal{N}(\bm X\bm\beta,\sigma^2\bm I_n),
 \end{equation}
-we typically use the estimate
+in which we typically estimate $\sigma^2$ by
 \begin{equation}
   \label{eq:21}
-  \widehat{\sigma^2}=\frac{\|\bm y-\bm X\widehat{\bm\beta}\|^2}{n-p}
+  \widehat{\sigma^2_R}=\frac{\|\bm y-\bm X\widehat{\bm\beta}\|^2}{n-p}
 \end{equation}
 even though the maximum likelihood estimate of $\sigma^2$ is
 \begin{equation}
@@ -459,36 +510,196 @@ even though the maximum likelihood estimate of $\sigma^2$ is
     X\widehat{\bm\beta}\|^2}{n} .
 \end{equation}
 
-Although not the REML criterion is not usually derived in this way, it
-can be expressed as
+The argument for preferring $\widehat{\sigma^2_R}$ to
+$\widehat{\sigma^2_{L}}$ as an estimate of $\sigma^2$ is that the
+numerator in both estimates is the sum of squared residuals at
+$\widehat{\bm\beta}$ and, although the residual vector $\bm y-\bm
+X\bm\beta$ is an $n$-dimensional vector, the residual at
+$\widehat{\bm\theta}$ satisfies $p$ linearly independent constraints,
+$\bm X\trans(\bm y-\bm X\widehat{\bm\beta})=\bm 0$. That is, the residual at
+$\widehat{\bm\theta}$ is the projection of the observed response
+vector, $\bm y$, into an $(n-p)$-dimensional linear subspace of the
+$n$-dimensional response space.  The estimate $\widehat{\sigma^2_R}$
+takes into account the fact that $\sigma^2$ is estimated from
+residuals that have only $n-p$ \emph{degrees of freedom}.
+
+The REML criterion for determining parameter estimates
+$\widehat{\bm\theta}_R$ and $\widehat{\sigma_R^2}$ in a linear mixed
+model has the property that these estimates would
+specialize to $\widehat{\sigma^2_R}$ from (\ref{eq:21}) for a linear
+regression model.  Although not usually derived in this way, the REML
+criterion can be expressed as
 \begin{equation}
   \label{eq:23}
-  d_R(\bm\theta,\bm\sigma|\bm y)=-2\log
-  \int_{\mathbb{R}^p}L(\bm u|\bm y,\bm\theta,\bm\beta,\sigma)\,d\bm\beta
+  c_R(\bm\theta,\bm\sigma|\bm y)=-2\log
+  \int_{\mathbb{R}^p}L(\bm u|\bm
+  y,\bm\theta,\bm\beta,\sigma)\,d\bm\beta
 \end{equation}
-on the deviance scale.  The profiled REML criterion is
+on the deviance scale.  The REML estimates $\widehat{\bm\theta}_R$ and
+$\widehat{\sigma_R^2}$ minimize $c_R(\bm\theta,\bm\sigma|\bm y)$.
+
+The profiled REML criterion, a function of $\bm\theta$ only, is
 \begin{equation}
   \label{eq:24}
-  \tilde{d}_R(\bm\theta|\bm y)=
+  \tilde{c}_R(\bm\theta|\bm y)=
   \log(|\bm L_{\bm Z}(\bm\theta)|^2)+
   \log(|\bm L_{\bm X}(\bm\theta)|^2)+(n-p)
-  \left(1+\log\left(\frac{2\pi\tilde{d}(\bm\theta|\bm y)}{n-p}\right)\right) .
+  \left(1+\log\left(\frac{2\pi\tilde{d}(\bm\theta|\bm y)}{n-p}\right)\right)
 \end{equation}
+and the REML estimate of $\bm\theta$ is
+\begin{equation}
+  \label{eq:31}
+  \widehat{\bm\theta}_R =
+  \arg\min_{\bm\theta}\tilde{c}_R(\bm\theta,\bm y) .
+\end{equation}
+The REML estimate of $\sigma^2$ is
+$\widehat{\sigma^2_R}=\tilde{d}(\widehat{\bm\theta}_R|\bm y)/(n-p)$.
+
+It is not entirely clear how one would define a ``REML estimate'' of
+$\bm\beta$ because the REML criterion, $c_R(\bm\theta,\bm\sigma|\bm
+y)$, defined in (\ref{eq:23}), does not depend on $\bm\beta$.
+However, it is customary (and not unreasonable) to use
+$\widehat{\bm\beta}_R=\tilde{\bm\beta}(\widehat{\bm\theta}_r)$ as the REML
+estimate of $\bm\beta$.
 
 Note that the profiled REML criterion can be evaluated from a sparse
 Cholesky decomposition like that in (\ref{eq:16}) but without the
 requirement that the permutation can be applied to the columns of $\bm
-Z\bm\Lambda(\bm\theta)$ separately from the columns of $\bm X$.  That
+Z\bm\Lambda(\bm\theta)$ separately from the columnns of $\bm X$.  That
 is, we can use a general fill-reducing permutation rather than the
 specific form (\ref{eq:15}) with separate permutations represented by
 $\bm P_{\bm Z}$ and $\bm P_{\bm X}$. This can be useful in cases where
 both $\bm Z$ and $\bm X$ are large and sparse.
 
+\subsection{Implementation details for linear mixed models}
+\label{sec:impl-line-mixed}
+
+We determine the maximum likelihood (ML) or REML estimates of the
+parameters $\bm\theta$, $\bm\beta$ and $\sigma$ in a linear mixed
+model by first minimizing the profiled log-likelihood or the profiled REML
+criterion with respect to $\bm\theta$.  Thus the first implementation
+question is evaluating the profiled log-likelihood or the profiled
+REML criterion.
+
+For many models, in particular models with scalar random effects,
+which are described later, the matrix $\bm\Lambda(\bm\theta)$ is
+diagonal.  For such a model, if both $\bm Z$ and $\bm X$ are sparse
+and we plan to use the REML criterion then we create and store
+\begin{equation}
+  \label{eq:8}
+  \bm A=
+  \begin{bmatrix}
+    \bm Z\trans\bm Z & \bm Z\trans\bm X\\
+    \bm X\trans\bm Z & \bm X\trans\bm X
+  \end{bmatrix}\quad\text{and}\quad
+  \bm c =\begin{bmatrix}\bm Z\trans\bm y\\\bm X\trans\bm y\end{bmatrix}
+\end{equation}
+and determine a fill-reducing permutation, $\bm P$, for $\bm A$.
+Given a value of $\bm\theta$ we create the factorization
+\begin{equation}
+  \label{eq:26}
+  \bm L(\bm\theta)\bm L(\bm\theta)\trans=\bm P\left(
+    \begin{bmatrix}
+      \bm\Lambda(\bm\theta) & \bm0\\\bm0&\bm I_p
+    \end{bmatrix} \bm A
+    \begin{bmatrix}
+      \bm\Lambda(\bm\theta) & \bm0\\\bm0&\bm I_p
+    \end{bmatrix}+
+    \begin{bmatrix}\bm I_q&\bm0\\\bm0&\bm0\end{bmatrix}\right)
+  \bm P\trans
+\end{equation}
+solve for $\tilde{\bm u}(\bm\theta)$ and
+$\tilde{\bm\beta}(\bm\theta)$ in
+\begin{equation}
+  \label{eq:28}
+  \bm L\bm L\trans\bm P
+  \begin{bmatrix}
+    \tilde{\bm u}(\bm\theta)\\\tilde{\bm\beta}(\bm\theta)
+  \end{bmatrix}=
+  \bm P
+  \begin{bmatrix}\bm\Lambda(\bm\theta) & \bm0\\\bm0&\bm I_p
+  \end{bmatrix} \bm c
+\end{equation}
+then evaluate $\tilde{d}(\bm y|\bm\theta)$
+and the profiled REML criterion as
+\begin{equation}
+  \label{eq:27}
+  \tilde{d}_R(\bm\theta|\bm y)=\log(|\bm L(\bm\theta)|^2)+
+  (n-p)\left(1+\log\left(\frac{2\pi\tilde{d}(\bm y|\bm\theta)}
+      {n-p}\right)\right) .
+\end{equation}
 \bibliography{lme4}
+\appendix{}
+
+\section{Notation}
+\label{sec:notation}
+
+\subsection{Random variables in the model}
+\label{sec:rand-vari-model}
+\begin{description}
+\item[$\bc B$] Random-effects vector of dimension $q$,
+  $\bc{B}\sim\mathcal{N}(\bm 0,\sigma^2\bm V(\bm\theta)\bm
+  V(\bm\theta)\trans)$.
+\item[$\bm U$] ``Spherical'' random-effects vector of dimension $q$,
+  $\bc U\sim\mathcal{N}(\bm 0,\sigma^2\bm I_q)$, $\bc B=\bm
+  V(\bm\theta)\bc U$.
+\item[$\bc Y$] Response vector of dimension $n$.
+\end{description}
+
+\subsection{Parameters of the model}
+\label{sec:parameters-model}
+\begin{description}
+\item[$\bm\beta$] Fixed-effects parameters (dimension $p$).
+\item[$\bm\theta$] Parameters determining the left factor,
+  $\bm\Lambda(\bm\theta)$ of the relative covariance matrix of $\bc B$
+  (dimension $m$).
+\item[$\sigma$] the common scale parameter - not used in some
+  generalized linear mixed models and generalized nonlinear mixed
+  models. 
+\end{description}
+
+\subsection{Dimensions}
+\label{sec:dimensions}
+\begin{description}
+\item[$m$] dimension of the parameter $\bm\theta$.
+\item[$n$] dimension of the response vector, $\bm y$, and the random
+  variable, $\bm{\mathcal{Y}}$.
+\item[$p$] dimension of the fixed-effects parameter, $\bm\beta$.
+\item[$q$] dimension of the random effects, $\bc B$ or $\bc U$.
+\item[$s$] dimension of the parameter vector, $\bm\phi$, in the
+  nonlinear model function.
+\end{description}
+
+\subsection{Matrices}
+\label{sec:matrices}
+\begin{description}
+\item[$\bm L$] Left Cholesky factor of a positive-definite symmetric
+  matrix.  $\bm L_{\bm Z}$ is $q\times q$; $\bm L_{\bm X}$ is $p\times p$.
+\item[$\bm P$] Fill-reducing permutation for the random effects model
+  matrix. (Size $q\times q$.)
+\item[$\bm V$] Left factor of the relative covariance matrix of the
+  random effects. (Size $q\times q$.)
+\item[$\bm X$] Model matrix for the fixed-effects parameters,
+  $\bm\beta$. (Size $(ns)\times p$.)
+\item[$\bm Z$] Model matrix for the random effects. (Size $(ns)\times q$.)
+\end{description}
+
+\section{Integrating a quadratic deviance expression}
+\label{sec:integr-quadr-devi}
+
+In (\ref{eq:6}) we defined the likelihood of the parameters given the
+observed data as
+\begin{displaymath}
+  L(\bm\theta,\bm\beta,\sigma|\bm y) =
+  \int_{\mathbb{R}^q}h(\bm u|\bm y,\bm\theta,\bm\beta,\sigma)\,d\bm u .
+\end{displaymath}
+which is often alarmingly described as ``an intractable integral''.
+In point of fact, this integral can be evaluated exactly in the case
+of a linear mixed model and can be approximated quite accurately for
+other forms of mixed models.  
+
 \end{document}
 
-% variance of the random noise terms in an
-% ordinary least squares regression model is 
 
 % is the discrepancy evaluated at 
 % For linear mixed models the discrepancy is a penalized residual sum of
