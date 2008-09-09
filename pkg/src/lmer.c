@@ -37,8 +37,8 @@ cholmod_common c;
 
 /** positions in the deviance vector */
 enum devP {
-    ML_POS=0,			/**<Maximum likelihood deviance  */
-    REML_POS,			/**<REML deviance */
+    ML_POS=0,			/**<Maximum likelihood estimation criterion  */
+    REML_POS,			/**<REML criterion */
     ldL2_POS,			/**<2*log-determinant of L */
     ldRX2_POS,			/**<2*log-determinant of RX */
     sigmaML_POS,		/**<current ML estimate of sigma */
@@ -46,7 +46,10 @@ enum devP {
     pwrss_POS,			/**<penalized weighted residual sum of squares */
     disc_POS,			/**<discrepancy */
     usqr_POS,			/**<squared length of u */
-    wrss_POS			/**<weighted residual sum of squares  */
+    wrss_POS,			/**<weighted residual sum of squares  */
+    dev_POS,			/**<deviance - defined for quasi families  */
+    llik_POS,			/**<log-likelihood - undefined for quasi families  */
+    NULLdev_POS			/**<null deviance */
 };
 /** positions in the dims vector */
 enum dimP {
@@ -2110,8 +2113,8 @@ SEXP mer_validate(SEXP x)
 
     if (Gp[0] != 0 || Gp[nt] != q)
 	return mkString(_("Gp[1] != 0 or Gp[dims['nt'] + 1] != dims['q']"));
-    if (LENGTH(devianceP) != (wrss_POS + 1) ||
-	LENGTH(getAttrib(devianceP, R_NamesSymbol)) != (wrss_POS + 1))
+    if (LENGTH(devianceP) != (NULLdev_POS + 1) ||
+	LENGTH(getAttrib(devianceP, R_NamesSymbol)) != (NULLdev_POS + 1))
 	return mkString(_("deviance slot not named or incorrect length"));
     if (LENGTH(dimsP) != (cvg_POS + 1) ||
 	LENGTH(getAttrib(dimsP, R_NamesSymbol)) != (cvg_POS + 1))
@@ -2334,75 +2337,6 @@ SEXP spR_optimize(SEXP x, SEXP verbP)
 
 
 #if 0
-
-/* Gauss-Hermite Quadrature x positions and weights */
-static const double
-    GHQ_x1[1] = {0},
-    GHQ_w1[1] = {1},
-    GHQ_x2[1] = {1},
-    GHQ_w2[1] = {0.5},
-    GHQ_x3[2] = {1.7320507779261, 0},
-    GHQ_w3[2] = {0.166666666666667, 0.666666666666667},
-    GHQ_x4[2] = {2.3344141783872, 0.74196377160456},
-    GHQ_w4[2] = {0.0458758533899086, 0.454124131589555},
-    GHQ_x5[3] = {2.85696996497785, 1.35562615677371, 0},
-    GHQ_w5[3] = {0.0112574109895360, 0.222075915334214,
-		 0.533333317311434},
-    GHQ_x6[3] = {3.32425737665988, 1.88917584542184,
-		 0.61670657963811},
-    GHQ_w6[3] = {0.00255578432527774, 0.0886157433798025,
-		 0.408828457274383},
-    GHQ_x7[4] = {3.7504396535397, 2.36675937022918,
-		 1.15440537498316, 0},
-    GHQ_w7[4] = {0.000548268839501628, 0.0307571230436095,
-		 0.240123171391455, 0.457142843409801},
-    GHQ_x8[4] = {4.14454711519499, 2.80248581332504,
-		 1.63651901442728, 0.539079802125417},
-    GHQ_w8[4] = {0.000112614534992306, 0.0096352198313359,
-		 0.117239904139746, 0.373012246473389},
-    GHQ_x9[5] = {4.51274578616743, 3.20542894799789,
-		 2.07684794313409, 1.02325564627686, 0},
-    GHQ_w9[5] = {2.23458433364535e-05, 0.00278914123744297,
-		 0.0499164052656755, 0.244097495561989,
-		 0.406349194142045},
-    GHQ_x10[5] = {4.85946274516615, 3.58182342225163,
-		  2.48432579912153, 1.46598906930182,
-		  0.484935699216176},
-    GHQ_w10[5] = {4.31065250122166e-06, 0.000758070911538954,
-		  0.0191115799266379, 0.135483698910192,
-		  0.344642324578594},
-    GHQ_x11[6] = {5.18800113558601, 3.93616653976536,
-		  2.86512311160915, 1.87603498804787,
-		  0.928868981484148, 0},
-    GHQ_w11[6] = {8.12184954622583e-07, 0.000195671924393029,
-		  0.0067202850336527, 0.066138744084179,
-		  0.242240292596812, 0.36940835831095};
-
-static const double
-    *GHQ_x[12] = {(double *) NULL, GHQ_x1, GHQ_x2, GHQ_x3, GHQ_x4,
-		  GHQ_x5, GHQ_x6, GHQ_x7, GHQ_x8, GHQ_x9, GHQ_x10,
-		  GHQ_x11},
-    *GHQ_w[12] = {(double *) NULL, GHQ_w1, GHQ_w2, GHQ_w3, GHQ_w4,
-		  GHQ_w5, GHQ_w6, GHQ_w7, GHQ_w8, GHQ_w9, GHQ_w10,
-		  GHQ_w11};
-
-static void
-safe_pd_matrix(double x[], const char uplo[], int n, double thresh)
-{
-    int info, lwork = 3 * n, nm1 = n - 1;
-    double *work = Alloca(3 * n, double),
-	*w = Alloca(n, double),
-	*xcp = Memcpy(Alloca(n * n, double), x, n * n);
-
-    F77_CALL(dsyev)("N", uplo, &n, xcp, &n, w, work, &lwork, &info);
-    if (info) error(_("dsyev returned %d"), info);
-    if (w[nm1] <= 0) error(_("no positive eigenvalues!"));
-    if ((w[0]/w[nm1]) < thresh) {
-	int i, np1 = n + 1;
-	double incr = w[nm1] * thresh;
-	for (int i = 0; i < n; i++) x[i * np1] += incr;
-    }
-}
 
 /**
  * Update the ST list of arrays and the sparse model matrix A

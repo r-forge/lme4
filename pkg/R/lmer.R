@@ -254,7 +254,8 @@ dimsDefault <- list(s = 1L,             # identity mechanistic model
                     cvg = 0L)                  # no optimization yet attempted
                     
 devNames <- c("ML", "REML", "ldL2", "ldRX2", "sigmaML",
-              "sigmaREML", "pwrss", "disc", "usqr", "wrss")
+              "sigmaREML", "pwrss", "disc", "usqr", "wrss",
+              "dev", "llik", "NULLdev")
 
 
 ##' Create model matrices from r.e. terms.
