@@ -1,6 +1,6 @@
 #include "lmer.h"
-#include <Rmath.h>		/* for dnorm5, etc. */
-#include <R_ext/Lapack.h>     /* for Lapack (dpotrf, etc.) and BLAS */
+#include <Rmath.h>		 /* for dnorm5, etc. */
+#include <R_ext/Lapack.h>        /* for Lapack (dpotrf, etc.) and BLAS */
 #include <R_ext/stats_package.h> /* for S_nlminb_iterate */
 #include "Matrix.h"		 /* for cholmod functions */
 
@@ -37,8 +37,8 @@ cholmod_common c;
 
 /** positions in the deviance vector */
 enum devP {
-    ML_POS=0,			/**<Maximum likelihood deviance  */
-    REML_POS,			/**<REML deviance */
+    ML_POS=0,			/**<Maximum likelihood estimation criterion  */
+    REML_POS,			/**<REML criterion */
     ldL2_POS,			/**<2*log-determinant of L */
     ldRX2_POS,			/**<2*log-determinant of RX */
     sigmaML_POS,		/**<current ML estimate of sigma */
@@ -46,23 +46,30 @@ enum devP {
     pwrss_POS,			/**<penalized weighted residual sum of squares */
     disc_POS,			/**<discrepancy */
     usqr_POS,			/**<squared length of u */
-    wrss_POS			/**<weighted residual sum of squares  */
+    wrss_POS,			/**<weighted residual sum of squares  */
+    dev_POS,			/**<deviance - defined for quasi families  */
+    llik_POS,			/**<log-likelihood - undefined for quasi families  */
+    NULLdev_POS			/**<null deviance */
 };
 /** positions in the dims vector */
 enum dimP {
-    nf_POS=0,			/**<number of terms in random effects */
+    nt_POS=0,			/**<number of terms in random effects */
     n_POS,			/**<number of observations */
     p_POS,			/**<number of fixed-effects parameters */
     q_POS,			/**<number of random effects */
     s_POS,			/**<number of variables in h (1 unless nonlinear) */
     np_POS,			/**<total number of parameters for T and S */
+    LMM_POS,			/**<is the model a linear mixed model? */
     isREML_POS,			/**<indicator of REML estimation */
     fTyp_POS,			/**<family type for generalized model */
     lTyp_POS,			/**<link type for generalized model */
     vTyp_POS,			/**<variance type for generalized model */
     nest_POS,			/**<indicator of nested grouping factors */
     useSc_POS,			/**<does the family use a separate scale parameter */
-    nAGQ_POS,			/**<use adaptive Gauss-Hermite quadrature? */
+    nAGQ_POS,			/**<number of adaptive Gauss-Hermite quadrature pts */
+    verb_POS,			/**<verbose output in mer_optimize? */
+    mxit_POS,			/**<maximum # of iterations in mer_optimize */
+    mxfn_POS,			/**<maximum # of function evaluations in mer_optimize */
     cvg_POS			/**<convergence indictor from port optimization  */
 };
 
@@ -107,6 +114,12 @@ static R_INLINE double *SLOT_REAL_NULL(SEXP obj, SEXP nm)
 
 /** Return the double pointer to the fixef slot */
 #define FIXEF_SLOT(x) SLOT_REAL_NULL(x, lme4_fixefSym)
+
+/** Return the double pointer to the ghw slot */
+#define GHW_SLOT(x) SLOT_REAL_NULL(x, lme4_ghwSym)
+
+/** Return the double pointer to the ghx slot */
+#define GHX_SLOT(x) SLOT_REAL_NULL(x, lme4_ghxSym)
 
 /** Return the integer pointer to the Gp slot */
 #define Gp_SLOT(x) INTEGER(GET_SLOT(x, lme4_GpSym))
@@ -203,10 +216,6 @@ static double MPTHRESH = 0;
 static double PTHRESH = 0;
 static const double INVEPS = 1/DOUBLE_EPS;
 
-/* abscissas and weights used in AGQ method */
-static double
-    *ab, *w;
-
 /* In-line functions */
 
 /**
@@ -231,16 +240,16 @@ apply_perm(double *dest, const double *src, const int *perm, int n)
 /**
  * Return the index of the term associated with parameter index ind
  *
- * @param ind an index in [0, Gp[nf] - 1]
- * @param nf total number of terms
- * @param Gp group pointers, a vector of length nf+1 with Gp[0] = 0
+ * @param ind an index in [0, Gp[nt] - 1]
+ * @param nt total number of terms
+ * @param Gp group pointers, a vector of length nt+1 with Gp[0] = 0
  *
  * @return sum of squares
  */
-static R_INLINE int Gp_grp(int ind, int nf, const int *Gp)
+static R_INLINE int Gp_grp(int ind, int nt, const int *Gp)
 {
-    for (int i = 0; i < nf; i++) if (ind < Gp[i + 1]) return i;
-    error(_("invalid row index %d (max is %d)"), ind, Gp[nf]);
+    for (int i = 0; i < nt; i++) if (ind < Gp[i + 1]) return i;
+    error(_("invalid row index %d (max is %d)"), ind, Gp[nt]);
     return -1;                  /* -Wall */
 }
 
@@ -384,11 +393,11 @@ static void
 lme4_muEta(double* mu, double* muEta, const double* eta, int n, int lTyp)
 {
     for (int i = 0; i < n; i++) { /* apply the generalized linear part */
-	double etai = eta[i], tmp;
+	double etai = eta[i], tmp, t2;
 	switch(lTyp) {
 	case 1:		/* logit */
-	    tmp = (etai < MLTHRESH) ? DOUBLE_EPS :
-	    ((etai > LTHRESH) ? INVEPS : exp(etai));
+	    tmp = (etai < MLTHRESH) ? DOUBLE_EPS : ((etai > LTHRESH) ?
+						    INVEPS : exp(etai));
 	    mu[i] = tmp/(1 + tmp);
 	    muEta[i] = mu[i] * (1 - mu[i]);
 	    break;
@@ -407,14 +416,18 @@ lme4_muEta(double* mu, double* muEta, const double* eta, int n, int lTyp)
 	    error(_("cauchit link not yet coded"));
 	    break;
 	case 4:		/* cloglog */
-	    error(_("cloglog link not yet coded"));
+	    tmp = (etai < MLTHRESH) ? DOUBLE_EPS : ((etai > LTHRESH) ?
+						    INVEPS : exp(etai));
+	    t2 = -expm1(-tmp);
+	    mu[i] = (t2 < DOUBLE_EPS) ? DOUBLE_EPS : t2;
+	    muEta[i] = tmp * exp(-tmp);
 	    break;
 	case 5:		/* identity */
-	    mu[i] = eta[i];
+	    mu[i] = etai;
 	    muEta[i] = 1.;
 	    break;
 	case 6:		/* log */
-	    tmp = exp(eta[i]);
+	    tmp = exp(etai);
 	    muEta[i] = mu[i] =
 		(tmp < DOUBLE_EPS) ? DOUBLE_EPS : tmp;
 	    break;
@@ -513,8 +526,8 @@ P_sdmult(double *dest, const int *perm, const CHM_SP A,
 static double *ST_getPars(SEXP x, double *pars)
 {
     SEXP ST = GET_SLOT(x, lme4_STSym);
-    int nf = LENGTH(ST), pos = 0;
-    for (int i = 0; i < nf; i++) {
+    int nt = LENGTH(ST), pos = 0;
+    for (int i = 0; i < nt; i++) {
 	SEXP STi = VECTOR_ELT(ST, i);
 	double *st = REAL(STi);
 	int nci = INTEGER(getAttrib(STi, R_DimSymbol))[0];
@@ -532,12 +545,12 @@ static double *ST_getPars(SEXP x, double *pars)
 /**
  * Populate the st, nc and nlev arrays.  Return the maximum element of nc.
  *
- * @param ST pointer to a list (length nf) of matrices
- * @param Gp group pointers (length nf + 1)
- * @param st length nf array of (double*) pointers to be filled with
+ * @param ST pointer to a list (length nt) of matrices
+ * @param Gp group pointers (length nt + 1)
+ * @param st length nt array of (double*) pointers to be filled with
  * pointers to the contents of the matrices in ST.  Not used if NULL.
- * @param nc length nf array to be filled with the number of columns
- * @param nlev length nf array to be filled with the number of
+ * @param nc length nt array to be filled with the number of columns
+ * @param nlev length nt array to be filled with the number of
  *        levels of the grouping factor for each term
  * 
  * @return maximum element of nc
@@ -545,9 +558,9 @@ static double *ST_getPars(SEXP x, double *pars)
 static int			/* populate the st, nc and nlev arrays */
 ST_nc_nlev(const SEXP ST, const int *Gp, double **st, int *nc, int *nlev)
 {
-    int ans = 0, nf = LENGTH(ST);
+    int ans = 0, nt = LENGTH(ST);
 
-    for (int i = 0; i < nf; i++) {
+    for (int i = 0; i < nt; i++) {
 	SEXP STi = VECTOR_ELT(ST, i);
 	int nci = *INTEGER(getAttrib(STi, R_DimSymbol));
 
@@ -563,17 +576,17 @@ ST_nc_nlev(const SEXP ST, const int *Gp, double **st, int *nc, int *nlev)
  * Determine the index in theta_S corresponding to index i in the u vector
  *
  * @param i index in u vector (0 <= i < q)
- * @param nf number of random effects terms in the model
- * @param Gp vector of group pointers into u (length nf + 1, Gp[0] == 0)
- * @param nlev vector of length nf giving the number of levels per term
- * @param spt vector of group pointers into theta_S (length nf + 1,
+ * @param nt number of random effects terms in the model
+ * @param Gp vector of group pointers into u (length nt + 1, Gp[0] == 0)
+ * @param nlev vector of length nt giving the number of levels per term
+ * @param spt vector of group pointers into theta_S (length nt + 1,
  *            spt[0] == 0)
  */
 
 static R_INLINE int
-theta_S_ind(int i, int nf, int *Gp, int *nlev, int *spt)
+theta_S_ind(int i, int nt, int *Gp, int *nlev, int *spt)
 {
-	int trm = Gp_grp(i, nf, Gp);
+	int trm = Gp_grp(i, nt, Gp);
 	return (spt[trm] + (i - Gp[trm]) / nlev[trm]);
 }
 
@@ -585,17 +598,17 @@ theta_S_ind(int i, int nf, int *Gp, int *nlev, int *spt)
  * @param nc number of columns per term
  * @param nlev number of levels per term
  * @param st ST arrays for each term
- * @param nf number of terms
+ * @param nt number of terms
  * 
  */
-static void Tt_Zt(CHM_SP A, int *Gp, int *nc, int *nlev, double **st, int nf)
+static void Tt_Zt(CHM_SP A, int *Gp, int *nc, int *nlev, double **st, int nt)
 {
     int *ai = (int*)(A->i), *ap = (int *)(A->p);
     double *ax = (double*)(A->x), one[] = {1,0};
 
     for (int j = 0; j < A->ncol; j++) /* multiply column j by T' */
 	for (int p = ap[j]; p < ap[j + 1];) {
-	    int i = Gp_grp(ai[p], nf, Gp);
+	    int i = Gp_grp(ai[p], nt, Gp);
 	    
 	    if (nc[i] <= 1) p++;
 	    else {
@@ -676,10 +689,10 @@ static void update_A(SEXP x)
     CHM_SP A = A_SLOT(x), Zt = Zt_SLOT(x);
     int *Gp = Gp_SLOT(x), *ai = (int*)(A->i), *ap = (int*)(A->p),
 	*zi = (int*)(Zt->i), *zp = (int*)(Zt->p), ncmax,
-	nf = DIMS_SLOT(x)[nf_POS];
+	nt = DIMS_SLOT(x)[nt_POS];
     int annz = ap[A->ncol], znnz = zp[Zt->ncol];
-    int *nc = Alloca(nf, int), *nlev = Alloca(nf, int);
-    double **st = Alloca(nf, double*), *ax = (double*)(A->x),
+    int *nc = Alloca(nt, int), *nlev = Alloca(nt, int);
+    double **st = Alloca(nt, double*), *ax = (double*)(A->x),
 	*zx = (double*)(Zt->x);
     R_CheckStack();
 
@@ -700,10 +713,10 @@ static void update_A(SEXP x)
 	}
     }
 				/* When T != I multiply A on the left by T' */
-    if (ncmax > 1) Tt_Zt(A, Gp, nc, nlev, st, nf);
+    if (ncmax > 1) Tt_Zt(A, Gp, nc, nlev, st, nt);
 				/* Multiply A on the left by S */
     for (int p = 0; p < annz; p++) {
-	int i = Gp_grp(ai[p], nf, Gp);
+	int i = Gp_grp(ai[p], nt, Gp);
 	ax[p] *= st[i][((ai[p] - Gp[i]) / nlev[i]) * (nc[i] + 1)];
     }
 }
@@ -897,16 +910,16 @@ static double update_mu(SEXP x)
 static void update_ranef(SEXP x)
 {
     int *Gp = Gp_SLOT(x), *dims = DIMS_SLOT(x), *perm = PERM_VEC(x);
-    int nf = dims[nf_POS], q = dims[q_POS];
+    int nt = dims[nt_POS], q = dims[q_POS];
     double *b = RANEF_SLOT(x), *u = U_SLOT(x), one[] = {1,0};
-    int *nc = Alloca(nf, int), *nlev = Alloca(nf, int);
-    double **st = Alloca(nf, double*);
+    int *nc = Alloca(nt, int), *nlev = Alloca(nt, int);
+    double **st = Alloca(nt, double*);
     R_CheckStack(); 
 
     ST_nc_nlev(GET_SLOT(x, lme4_STSym), Gp, st, nc, nlev);
 				/* inverse permutation */
     for (int i = 0; i < q; i++) b[perm[i]] = u[i];
-    for (int i = 0; i < nf; i++) {
+    for (int i = 0; i < nt; i++) {
 	for (int k = 0; k < nc[i]; k++) { /* multiply by \tilde{S}_i */
 	    double dd = st[i][k * (nc[i] + 1)];
 	    int base = Gp[i] + k * nlev[i];
@@ -1024,48 +1037,16 @@ static double lmm_update_fixef_u(SEXP x)
 }
 
 /**
- * Update the ST and A slots of an mer object.
- *
- * @param x an mer object
- * @param pars double vector of the appropriate length
- *
- */
-static void
-ST_setPars(SEXP x, const double *pars)
-{
-    int *Gp = Gp_SLOT(x), nf = DIMS_SLOT(x)[nf_POS], pos = 0;
-    int *nc = Alloca(nf, int), *nlev = Alloca(nf, int);
-    double **st = Alloca(nf, double*);
-    R_CheckStack();
-
-    ST_nc_nlev(GET_SLOT(x, lme4_STSym), Gp, st, nc, nlev);
-				/* install the parameters in the ST slot */
-    for (int i = 0; i < nf; i++) {
-	int nci = nc[i], ncp1 = nc[i] + 1;
-	double *sti = st[i];
-
-	for (int j = 0; j < nci; j++)
-	    sti[j * ncp1] = pars[pos++];
-	for (int j = 0; j < (nci - 1); j++)
-	    for (int k = j + 1; k < nci; k++)
-		sti[k + j * nci] = pars[pos++];
-    }
-    update_A(x);
-}
-
-/**
  * Iterate to determine the conditional modes of the random effects.
  *
  * @param x pointer to an mer object
- * @param verb indicator of verbose iterations 
- *             (negative values produce a lot of output)
  *
  * @return number of iterations to convergence (0 for non-convergence) 
  */
-static int update_u(SEXP x, int verb)
+static int update_u(SEXP x)
 {
     int *dims = DIMS_SLOT(x);
-    int i, n = dims[n_POS], q = dims[q_POS];
+    int i, n = dims[n_POS], q = dims[q_POS], verb = dims[verb_POS];
     double *Cx = Cx_SLOT(x), *sXwt = SXWT_SLOT(x),
 	*res = RESID_SLOT(x), *u = U_SLOT(x),
 	cfac = ((double)n) / ((double)q), 
@@ -1193,9 +1174,9 @@ static void MCMC_beta_u(SEXP x, double sigma, double *fvals, double *rvals)
 /* FIXME: Probably should fold this function into MCMC_S */
 static void MCMC_T(SEXP x, double sigma)
 {
-    int *Gp = Gp_SLOT(x), nf = (DIMS_SLOT(x))[nf_POS];
-    double **st = Alloca(nf, double*);
-    int *nc = Alloca(nf, int), *nlev = Alloca(nf, int);
+    int *Gp = Gp_SLOT(x), nt = (DIMS_SLOT(x))[nt_POS];
+    double **st = Alloca(nt, double*);
+    int *nc = Alloca(nt, int), *nlev = Alloca(nt, int);
     R_CheckStack();
 
     if (ST_nc_nlev(GET_SLOT(x, lme4_STSym), Gp, st, nc, nlev) < 2) return;
@@ -1215,20 +1196,20 @@ static void MCMC_S(SEXP x, double sigma)
     int *Gp = Gp_SLOT(x), *ai = (int*)(A->i),
 	*ap = (int*)(A->p), *dims = DIMS_SLOT(x), *perm = PERM_VEC(x);
     int annz = ap[A->ncol], info, i1 = 1, n = dims[n_POS],
-	nf = dims[nf_POS], ns, p = dims[p_POS], pos,
+	nt = dims[nt_POS], ns, p = dims[p_POS], pos,
 	q = dims[q_POS], znnz = ((int*)(Zt->p))[Zt->ncol];
     double *R, *ax = (double*)(A->x), *b = RANEF_SLOT(x),
 	*eta = ETA_SLOT(x), *offset = OFFSET_SLOT(x),  
 	*rr, *ss, one = 1, *u = U_SLOT(x), *y = Y_SLOT(x);
-    int *nc = Alloca(nf, int), *nlev = Alloca(nf, int),
-	*spt = Alloca(nf + 1, int);
-    double **st = Alloca(nf, double*);
+    int *nc = Alloca(nt, int), *nlev = Alloca(nt, int),
+	*spt = Alloca(nt + 1, int);
+    double **st = Alloca(nt, double*);
     R_CheckStack();
 
     ST_nc_nlev(GET_SLOT(x, lme4_STSym), Gp, st, nc, nlev);
     ns = 0;			/* ns is length(theta_S) */
     spt[0] = 0;			/* pointers into ss for terms */
-    for (int i = 0; i < nf; i++) {
+    for (int i = 0; i < nt; i++) {
 	ns += nc[i];
 	spt[i + 1] = spt[i] + nc[i];
     }
@@ -1237,7 +1218,7 @@ static void MCMC_S(SEXP x, double sigma)
 	Memcpy(ax, (double*)(Zt->x), znnz);
     } else error("Code not yet written for MCMC_S with NLMMs");
 				/* Create T'Zt in A */
-    Tt_Zt(A, Gp, nc, nlev, st, nf); 
+    Tt_Zt(A, Gp, nc, nlev, st, nt); 
 				/* Create P'u in ranef slot */
     for (int i = 0; i < q; i++) b[perm[i]] = u[i];
 				/* Create X\beta + offset in eta slot */
@@ -1253,7 +1234,7 @@ static void MCMC_S(SEXP x, double sigma)
     AZERO(ss, ns);
     /* Accumulate crossproduct from pseudo-data part of model matrix */
     for (int i = 0; i < q; i++) {
-	int sj = theta_S_ind(i, nf, Gp, nlev, spt);
+	int sj = theta_S_ind(i, nt, Gp, nlev, spt);
 	AZERO(rr, ns);
 	rr[sj] = b[i];
 	F77_CALL(dsyr)("U", &ns, &one, rr, &i1, R, &ns);
@@ -1265,7 +1246,7 @@ static void MCMC_S(SEXP x, double sigma)
 	AZERO(rr, ns);
 	for (int p = ap[j]; p < ap[j + 1]; p++) {
 	    int i = ai[p];	/* row in T'Zt */
-	    int sj = theta_S_ind(i, nf, Gp, nlev, spt);
+	    int sj = theta_S_ind(i, nt, Gp, nlev, spt);
 
 	    rr[sj] += ax[p] * b[i];
 	    ss[sj] += rr[sj] * (y[j] - eta[j]);
@@ -1281,13 +1262,248 @@ static void MCMC_S(SEXP x, double sigma)
     for (int j = 0; j < ns; j++) ss[j] += rr[j];
     /* Copy positive part of solution onto diagonals of ST */
     pos = 0;
-    for (int i = 0; i < nf; i++) {
+    for (int i = 0; i < nt; i++) {
 	for (int j = 0; j < nc[i]; j++) {
 	    st[i][j * (nc[i] + 1)] = (ss[pos] > 0) ? ss[pos] : 0;
 	    pos++;
 	}
     }
     update_A(x);
+}
+
+
+/**
+ * Update the ST, A, L, u, fixef and deviance slots of an mer object.
+ *
+ * @param x an mer object
+ * @param pars double vector of the appropriate length
+ * @return updated deviance
+ *
+ */
+static void
+ST_setPars(SEXP x, const double *pars)
+{
+    int *Gp = Gp_SLOT(x), nt = DIMS_SLOT(x)[nt_POS], pos = 0;
+    int *nc = Alloca(nt, int), *nlev = Alloca(nt, int);
+    double **st = Alloca(nt, double*);
+    R_CheckStack();
+
+    ST_nc_nlev(GET_SLOT(x, lme4_STSym), Gp, st, nc, nlev);
+				/* install the parameters in the ST slot */
+    for (int i = 0; i < nt; i++) {
+	int nci = nc[i], ncp1 = nc[i] + 1;
+	double *sti = st[i];
+
+	for (int j = 0; j < nci; j++)
+	    sti[j * ncp1] = pars[pos++];
+	for (int j = 0; j < (nci - 1); j++)
+	    for (int k = j + 1; k < nci; k++)
+		sti[k + j * nci] = pars[pos++];
+    }
+    update_A(x);
+}
+
+static double update_dev(SEXP x)
+{
+    SEXP flistP = GET_SLOT(x, lme4_flistSym);
+    double *d = DEV_SLOT(x), *u = U_SLOT(x);
+    int *dims = DIMS_SLOT(x);
+    const int q = dims[q_POS], nAGQ = dims[nAGQ_POS], dn = dims[n_POS];
+    CHM_FR L = L_SLOT(x);
+ 
+/* FIXME: This should allow for a GNLMM.  Right now generalized and
+ * nonlinear are mutually exclusive.
+ */
+/* FIXME: Check these conditions in mer_validate. */
+    if (!(MUETA_SLOT(x) || V_SLOT(x))) { 
+	update_L(x);
+	update_RX(x);
+	return lmm_update_fixef_u(x);
+    }
+				/* generalized or nonlinear or both */
+    update_u(x);
+    if (nAGQ < 1) error("nAGQ must be positive");
+    if ((nAGQ > 1) & (LENGTH(flistP) != 1))
+	error("AGQ method requires a single grouping factor");
+    d[ML_POS] = d[ldL2_POS];
+
+    if (1/*MUETA_SLOT(x)*/) {	/* GLMM */
+	if (nAGQ == 1) {
+	    double ans = 0;
+	    lme4_devResid(MU_SLOT(x), PWT_SLOT(x), Y_SLOT(x), dims[n_POS],
+			  dims[vTyp_POS], &ans, (int*) NULL);
+	    d[disc_POS] = ans;
+	    d[ML_POS] += d[disc_POS] + d[usqr_POS];
+	    return d[ML_POS];
+	}
+				/* Adaptive Gauss-Hermite quadrature */
+				/* Single grouping factor has been checked. */
+	const int nl = nlevels(VECTOR_ELT(flistP, 0));
+	const int nre = q / nl; 	/* number of random effects per level */
+	int *fl0 = INTEGER(VECTOR_ELT(flistP, 0)), *pointer = Alloca(nre, int);
+	double *ghw = GHW_SLOT(x), *ghx = GHX_SLOT(x),
+	                        /* store conditional mode */
+	    *uold = Memcpy(Calloc(q, double), u, q),
+	    *tmp = Calloc(nl, double),
+	    w_pro = 1, z_sum = 0;           /* values needed in AGQ evaluation */
+	/* constants used in AGQ evaluation */
+	const double sigma = (dims[useSc_POS] == 1)?d[sigmaML_POS]:1;
+	const double factor = - 0.5 / (sigma * sigma);
+
+	R_CheckStack();
+
+	AZERO(pointer, nre);
+	AZERO(tmp, nl);
+
+	while(pointer[nre - 1] < nAGQ){
+	    double *z = Calloc(q, double);       /* current abscissas */
+	    double *ans = Calloc(nl, double);    /* current penalized residuals in different levels */
+
+				/* update abscissas and weights */
+	    for(int i = 0; i < nre; ++i){
+		for(int j = 0; j < nl; ++j){
+		    z[i + j * nre] = ghx[pointer[i]];
+		}
+		w_pro *= ghw[pointer[i]];
+		if(!MUETA_SLOT(x))
+		  z_sum += z[pointer[i]] * z[pointer[i]];
+	    }
+
+	    CHM_DN cz = N_AS_CHM_DN(z, q, 1), sol;
+	    if(!(sol = M_cholmod_solve(CHOLMOD_L, L, cz, &c)))
+		error(_("cholmod_solve(CHOLMOD_L) failed"));
+	    Memcpy(z, (double *)sol->x, q);
+	    M_cholmod_free_dense(&sol, &c);
+
+	    for(int i = 0; i < q; ++i) u[i] = uold[i] + sigma * z[i];
+	    update_mu(x);
+	    
+	    AZERO(ans, nl);
+	    lme4_devResid(MU_SLOT(x), PWT_SLOT(x), Y_SLOT(x), dims[n_POS],
+			  dims[vTyp_POS], ans, fl0);
+	    
+	    for(int i = 0; i < nre; ++i)
+		for(int j = 0; j < nl; ++j)
+		    ans[j] += u[i + j * nre] * u[i + j * nre];
+
+	    for(int i = 0; i < nl; ++i)
+		tmp[i] += exp( factor * ans[i] + z_sum) * w_pro / sqrt(PI);
+				/* move pointer to next combination of weights and abbsicas */
+	    int count = 0;
+	    pointer[count]++;
+	    while(pointer[count] == nAGQ && count < nre - 1){
+		pointer[count] = 0;
+		pointer[++count]++;
+	    }
+
+	    w_pro = 1;
+	    z_sum = 0;
+
+	    if(z)    Free(z);
+	    if(ans)  Free(ans);
+	    
+	}
+
+	for(int j = 0; j < nl; ++j) d[ML_POS] -= 2 * log(tmp[j]);
+	Memcpy(u, uold, q);
+	update_mu(x);
+	d[ML_POS] += MUETA_SLOT(x)?0:(dn * log(2*PI*d[pwrss_POS]/dn));
+	if(tmp)   Free(tmp);
+	if(uold)  Free(uold);
+    } else {  /* NLMM */
+	double dn = (double) dims[n_POS];
+
+	d[disc_POS] = d[wrss_POS];
+	if (nAGQ > 1) {
+				/* Adaptive Gauss-Hermite quadrature */
+				/* Single grouping factor has been checked. */
+	    const int nl = nlevels(VECTOR_ELT(flistP, 0));
+	    const int nre = q / nl;
+	    int *fl0 = INTEGER(VECTOR_ELT(flistP, 0)), *pointer = Alloca(nre, int);
+	    double *ghw = GHW_SLOT(x), *ghx = GHX_SLOT(x),
+		*res = RESID_SLOT(x), *tmp = Calloc(nl, double),
+				/* store conditional mode */
+		*uold = Memcpy(Calloc(q, double), u, q),
+		w_pro = 1, z_sum = 0;           /* values needed in AGQ evaluation */
+	    const double sigma = d[sigmaML_POS];   /* MLE of sigma */
+	    const double factor = - 1 / (2 * sigma * sigma);
+
+	    R_CheckStack();
+
+	    AZERO(pointer, nre);
+	    AZERO(tmp, nl);
+	    
+	    d[ML_POS] = dn * log(2*PI*d[pwrss_POS]/dn) + d[ldL2_POS];
+	    
+	    /* implementation of AGQ method (Laplacian will be a trivial case) */
+	    AZERO(pointer, nre);                    /* assign initial pointers, all 0 */
+	    AZERO(tmp, nl);
+
+	    /* add accuracy to integration approximation */
+	    while(pointer[nre - 1] < nAGQ){
+		double *z = Calloc(q, double);       /* current abscissas */
+		double *presid = Calloc(nl, double); /* current penalized residuals in different levels */
+		
+		/* update abscissas and weights */
+		for(int i = 0; i < nre; ++i){
+		    for(int j = 0; j < nl; ++j){
+			z[i + j * nre] = ghx[pointer[i]];
+		    }
+		    z_sum += ghx[pointer[i]] * ghx[pointer[i]];
+		    w_pro *= ghw[pointer[i]];
+		}
+		CHM_DN cz = N_AS_CHM_DN(z, q, 1), sol;
+		if(!(sol = M_cholmod_solve(CHOLMOD_L, L, cz, &c)))
+		    error(_("cholmod_solve(CHOLMOD_L) failed"));
+		Memcpy(z, (double *)sol->x, q);
+		M_cholmod_free_dense(&sol, &c);
+		for(int i = 0; i < q; ++i){
+		    u[i] = uold[i] + sigma * z[i];
+		}
+		update_mu(x);
+		
+		AZERO(presid, nl);
+		for(int i = 0; i < dims[n_POS]; ++i){
+		    presid[fl0[i]-1] += ( res[i] * res[i] );
+		}
+		
+		for(int i = 0; i < nre; ++i){
+		    for(int j = 0; j < nl; ++j)
+			presid[j] += u[i + j * nre] * u[i + j * nre];
+		}
+		
+		for(int j = 0; j < nl; ++j){
+		    tmp[j] += exp(factor * presid[j] + z_sum) * w_pro / sqrt(PI);
+		}
+		
+		/* move pointer to next combination of weights and abbsicas */
+		int count = 0;
+		pointer[count]++;
+		while(pointer[count] == nAGQ && count < nre - 1){
+		    pointer[count] = 0;
+		    pointer[++count]++;
+		}
+		if(z) Free(z);
+		w_pro = 1;
+		z_sum = 0;
+		if(presid) Free(presid);
+	    }
+	    
+	    for(int j = 0; j < nl; ++j){
+		d[ML_POS] -= ( 2 * log(tmp[j]) );
+	    }
+	    
+	    Memcpy(u, uold, q);
+	    update_mu(x);
+	    if(tmp)   Free(tmp);
+	    if(uold)  Free(uold);
+	    
+	}
+	else{
+	    d[ML_POS] = dn*(1 + log(d[pwrss_POS]) + log(2*PI/dn)) + d[ldL2_POS];
+        }
+    }
+    return d[ML_POS];
 }
 
 /* Externally callable functions */
@@ -1352,12 +1568,8 @@ SEXP mer_MCMCsamp(SEXP x, SEXP fm)
     }
     PutRNGstate();
 		/* Restore pars from the first columns of the samples */
-    ST_setPars(fm, STsamp);
     Memcpy(FIXEF_SLOT(fm), fixsamp, p);
-    update_u(fm, 0);
-    update_L(fm);
-    update_RX(fm);
-    lmm_update_fixef_u(fm);
+    ST_setPars(fm, STsamp);
     update_ranef(fm);
 
     return x;
@@ -1374,7 +1586,7 @@ SEXP mer_MCMCsamp(SEXP x, SEXP fm)
  *
  */
 
-static int internal_ghq(int N, double *x, double *w)
+static void internal_ghq(int N, double *x, double *w)
 {
     int NR, IT, I, K, J;
     double Z = 0, HF = 0, HD = 0;
@@ -1382,19 +1594,11 @@ static int internal_ghq(int N, double *x, double *w)
     double HN = 1/(double)N;
     double *X = Calloc(N + 1, double), *W = Calloc(N + 1, double);
 
-/*   scanf("%d", &N); */
-
-/*   X = malloc( (N + 1) * sizeof(double) ); */
-/*   W = malloc( (N + 1) * sizeof(double) ); */
-
-
-    for(NR = 1; NR <= N / 2; ++NR){
+    for(NR = 1; NR <= N / 2; NR++){
 	if(NR == 1)
-	    Z = -1.1611 + 1.46 * sqrt( (double)N);
+	    Z = -1.1611 + 1.46 * sqrt((double)N);
 	else
 	    Z -= HN * (N/2 + 1 - NR);
-/* 	IT = 0; */
-/* 	do{ */
 	for (IT = 0; IT <= GHQ_MAXIT; IT++) {
 	    Z0 = Z;
 	    F0 = 1.0;
@@ -1420,11 +1624,8 @@ static int internal_ghq(int N, double *x, double *w)
 	    }
 	    GD = (HD-Q*FD)/P;
 	    Z -= (FD/GD);
-	    /*Rprintf("[%d]\nZ = %.20f\nZ0 = %.20f\n%.20f\n%.20f\n", IT, Z, Z0, abs((Z-Z0)/Z), GHQ_EPS );*/
 	    if (fabs((Z - Z0) / Z) < GHQ_EPS) break;
-/* 	    IT++; */
-	} /* while(IT <= GHQ_MAXIT && abs((Z-Z0) / Z) > GHQ_EPS); */
-/* 	printf("[%d] %.4f\t", NR, Z ); */
+	}
 
 	X[NR] = Z;
 	X[N+1-NR] = -Z;
@@ -1434,6 +1635,7 @@ static int internal_ghq(int N, double *x, double *w)
 	}
 	W[N+1-NR] = W[NR] = 3.544907701811 * R / (HD*HD);
     }
+
     if( N % 2 ){
 	R1=1.0;
 	R2=1.0;
@@ -1450,15 +1652,15 @@ static int internal_ghq(int N, double *x, double *w)
 
     if(X) Free(X);
     if(W) Free(W);
-
-/*   printf("\n"); */
-/*   for(I = 1; I <= N; ++I){ */
-/*     printf("%.4f %.4f\n", X[I], W[I]); */
-/*   } */
-    return 1;
 }
 
-
+/**
+ * Return zeros and weights of Hermite polynomial of order n as a list
+ *
+ * @param np pointer to a scalar integer SEXP
+ * @return a list with two components, the abscissas and the weights.
+ *
+ */
 SEXP lme4_ghq(SEXP np)
 {
     int n = asInteger(np);
@@ -1480,22 +1682,19 @@ SEXP lme4_ghq(SEXP np)
  * approximation to the deviance of a nlmer or glmer object.
  *
  * @param x pointer to an mer object
- * @param verbp pointer to indicator of verbose output
  *
  * @return R_NilValue
  */
-SEXP 
-mer_optimize(SEXP x, SEXP verbp)
+SEXP mer_optimize(SEXP x)
 {
     SEXP ST = GET_SLOT(x, lme4_STSym);
-    int *dims = DIMS_SLOT(x), verb = asInteger(verbp);
-    int lmm = !(MUETA_SLOT(x) || V_SLOT(x)), nf = dims[nf_POS];
-    int nv = dims[np_POS] + (lmm ? 0 : dims[p_POS]);
+    int *dims = DIMS_SLOT(x);
+    int lmm = !(MUETA_SLOT(x) || V_SLOT(x)), nt = dims[nt_POS];
+    int nv = dims[np_POS] + (lmm ? 0 : dims[p_POS]), verb = dims[verb_POS];
     int liv = S_iv_length(OPT, nv), lv = S_v_length(OPT, nv);
     double *g = (double*)NULL, *h = (double*)NULL, fx = R_PosInf;
     double *fixef = FIXEF_SLOT(x);
     int *iv = Alloca(liv, int);
-    int nAGQ = dims[nAGQ_POS];
     double *b = Alloca(2 * nv, double), *d = Alloca(nv, double),
 	*v = Alloca(lv, double), *xv = Alloca(nv, double);
     R_CheckStack();
@@ -1511,54 +1710,30 @@ mer_optimize(SEXP x, SEXP verbp)
     }
 				/* initialize the state vectors v and iv */
     S_Rf_divset(OPT, iv, liv, lv, v);
-    if (verb) iv[OUTLEV] = 1;
+    iv[OUTLEV] = (verb < 0) ? -verb : verb;
+    iv[MXFCAL] = dims[mxfn_POS];
+    iv[MXITER] = dims[mxit_POS];
 				/* set the bounds to plus/minus Infty  */
     for (int i = 0; i < nv; i++) {
 	b[2*i] = R_NegInf; b[2*i+1] = R_PosInf; d[i] = 1;
     }
 				/* reset lower bounds on elements of theta_S */
-    for (int i = 0, pos = 0; i < nf; i++) {
+    for (int i = 0, pos = 0; i < nt; i++) {
 	int nc = *INTEGER(getAttrib(VECTOR_ELT(ST, i), R_DimSymbol));
 	for (int j = 0; j < nc; j++) b[pos + 2*j] = 0;
 	pos += nc * (nc + 1);
     }
 
-
-    /* assign values to abscissas and weights */
-    if (nAGQ > 1){ 
-      ab = REAL( GET_SLOT(x, install("ghx")) );
-      w  = REAL( GET_SLOT(x, install("ghw")) );
-
-
-      /*double *tmp1 = Calloc(nAGQ+1, double), *tmp2 = Calloc(nAGQ+1, double);
-      internal_ghq(nAGQ, tmp1, tmp2);
-      Memcpy(ab, tmp1+1, nAGQ);
-      Memcpy(w, tmp2+1, nAGQ);
-      if (tmp1) Free(tmp1);
-      if (tmp2) Free(tmp2);*/
-      }
-
-
     do {
-	ST_setPars(x, xv);		/* update ST and A */
-/* FIXME: Change this so that update_dev is always called and that
- * function does the selection of methods based on lmm. The Memcpy
- * call should always be used but the number of values to copy can be
- * zero. */
-	if (lmm) {
-	    update_L(x);
-	    update_RX(x);
-	    fx = lmm_update_fixef_u(x);
-	} else {
+	if (!lmm)	  /* Some time soon we will get rid of this */
 	    Memcpy(fixef, xv + dims[np_POS], dims[p_POS]);
-	    update_u(x, verb);
-	    mer_update_dev(x);
-	    fx = DEV_SLOT(x)[ML_POS];
-	}
+	ST_setPars(x, xv);	/* update ST and A etc. */
+	fx = update_dev(x);
 	S_nlminb_iterate(b, d, fx, g, h, iv, liv, lv, nv, v, xv);
     } while (iv[0] == 1 || iv[0] == 2);
-    update_RX(x);
-    lmm_update_fixef_u(x);
+    ST_setPars(x, xv);
+    if (!lmm) update_RX(x);
+    update_ranef(x);
     dims[cvg_POS] = iv[0];
     return R_NilValue;
 }
@@ -1568,58 +1743,75 @@ mer_optimize(SEXP x, SEXP verbp)
  * object.  Some people called these posterior variances, hence the name.
  *
  * @param x pointer to an mer object
+ * @param which pointer to a logical vector
  *
  * @return pointer to a list of arrays
  */
-SEXP mer_postVar(SEXP x)
+SEXP mer_postVar(SEXP x, SEXP which)
 {
-    int *Gp = Gp_SLOT(x), *dims = DIMS_SLOT(x);
-    int nf = dims[nf_POS], q = dims[q_POS];
-    SEXP ans = PROTECT(allocVector(VECSXP, nf));
+    int *Gp = Gp_SLOT(x), *dims = DIMS_SLOT(x), *ww;
+    SEXP ans, flistP = GET_SLOT(x, lme4_flistSym);
+    const int nf = LENGTH(flistP), nt = dims[nt_POS], q = dims[q_POS];
+    int nr = 0, pos = 0;
+    int *asgn = INTEGER(getAttrib(flistP, install("assign")));
     double *vv, one[] = {1,0}, sc;
     CHM_SP sm1, sm2;
     CHM_DN dm1;
     CHM_FR L = L_SLOT(x);
     int *Perm = (int*)(L->Perm), *iperm = Alloca(q, int),
-	*nc = Alloca(nf, int), *nlev = Alloca(nf, int);
-    double **st = Alloca(nf, double*);
+	*nc = Alloca(nt, int), *nlev = Alloca(nt, int);
+    double **st = Alloca(nt, double*);
     R_CheckStack();
+
+/* FIXME: Write the code for nt != nf */
+    if (nt != nf) error(_("Code not written yet"));
+				/* determine length of list to return */
+    if (!isLogical(which) || LENGTH(which) != nf)
+	error(_("which must be a logical vector of length %d"), nf);
+    ww = LOGICAL(which);
+    for (int i = 0; i < nt; i++) if (ww[i]) nr++;
+    if (!nr) return(allocVector(VECSXP, 0));
+    ans = PROTECT(allocVector(VECSXP, nr));
 
     ST_nc_nlev(GET_SLOT(x, lme4_STSym), Gp, st, nc, nlev);
     for (int j = 0; j < q; j++) iperm[Perm[j]] = j; /* inverse permutation */
     sc = dims[useSc_POS] ?
 	(DEV_SLOT(x)[dims[isREML_POS] ? sigmaREML_POS : sigmaML_POS]) : 1;
-    for (int i = 0; i < nf; i++) {
-	int ncisqr = nc[i] * nc[i];
-	CHM_SP rhs = M_cholmod_allocate_sparse(q, nc[i], nc[i],
-					       1/*sorted*/, 1/*packed*/,
-					       0/*stype*/, CHOLMOD_REAL, &c);
+    for (int i = 0; i < nt; i++) {
+	if (ww[i]) {
+	    const int nci = nc[i];
+	    const int ncisqr = nci * nci;
+	    CHM_SP rhs = M_cholmod_allocate_sparse(q, nci, nci,
+						   1/*sorted*/, 1/*packed*/,
+						   0/*stype*/, CHOLMOD_REAL, &c);
 
-	SET_VECTOR_ELT(ans, i, alloc3DArray(REALSXP, nc[i], nc[i], nlev[i]));
-	vv = REAL(VECTOR_ELT(ans, i));
-	for (int j = 0; j <= nc[i]; j++) ((int *)(rhs->p))[j] = j;
-	for (int j = 0; j < nc[i]; j++)
-	    ((double *)(rhs->x))[j] = st[i][j * (nc[i] + 1)] * sc;
-	for (int k = 0; k < nlev[i]; k++) {
-	    double *vvk = vv + k * ncisqr;
-	    for (int j = 0; j < nc[i]; j++)
-		((int*)(rhs->i))[j] = iperm[Gp[i] + k + j * nlev[i]];
-	    sm1 = M_cholmod_spsolve(CHOLMOD_L, L, rhs, &c);
-	    sm2 = M_cholmod_transpose(sm1, 1 /*values*/, &c);
-	    M_cholmod_free_sparse(&sm1, &c);
-	    sm1 = M_cholmod_aat(sm2, (int*)NULL, (size_t)0, 1 /*mode*/, &c);
-	    dm1 = M_cholmod_sparse_to_dense(sm1, &c);
-	    M_cholmod_free_sparse(&sm1, &c); M_cholmod_free_sparse(&sm2, &c);
-	    Memcpy(vvk, (double*)(dm1->x), ncisqr);
-	    M_cholmod_free_dense(&dm1, &c);
-	    if (nc[i] > 1) {
-		F77_CALL(dtrmm)("L", "L", "N", "U", nc + i, nc + i,
-				one, st[i], nc + i, vvk, nc + i);
-		F77_CALL(dtrmm)("R", "L", "T", "U", nc + i, nc + i,
-				one, st[i], nc + i, vvk, nc + i);
+	    SET_VECTOR_ELT(ans, pos, alloc3DArray(REALSXP, nci, nci, nlev[i]));
+	    vv = REAL(VECTOR_ELT(ans, pos));
+	    pos++;
+	    for (int j = 0; j <= nci; j++) ((int *)(rhs->p))[j] = j;
+	    for (int j = 0; j < nci; j++)
+		((double *)(rhs->x))[j] = st[i][j * (nci + 1)] * sc;
+	    for (int k = 0; k < nlev[i]; k++) {
+		double *vvk = vv + k * ncisqr;
+		for (int j = 0; j < nci; j++)
+		    ((int*)(rhs->i))[j] = iperm[Gp[i] + k + j * nlev[i]];
+		sm1 = M_cholmod_spsolve(CHOLMOD_L, L, rhs, &c);
+		sm2 = M_cholmod_transpose(sm1, 1 /*values*/, &c);
+		M_cholmod_free_sparse(&sm1, &c);
+		sm1 = M_cholmod_aat(sm2, (int*)NULL, (size_t)0, 1 /*mode*/, &c);
+		dm1 = M_cholmod_sparse_to_dense(sm1, &c);
+		M_cholmod_free_sparse(&sm1, &c); M_cholmod_free_sparse(&sm2, &c);
+		Memcpy(vvk, (double*)(dm1->x), ncisqr);
+		M_cholmod_free_dense(&dm1, &c);
+		if (nci > 1) {
+		    F77_CALL(dtrmm)("L", "L", "N", "U", nc + i, nc + i,
+				    one, st[i], nc + i, vvk, nc + i);
+		    F77_CALL(dtrmm)("R", "L", "T", "U", nc + i, nc + i,
+				    one, st[i], nc + i, vvk, nc + i);
+		}
 	    }
+	    M_cholmod_free_sparse(&rhs, &c);
 	}
-	M_cholmod_free_sparse(&rhs, &c);
     }
     UNPROTECT(1);
     return ans;
@@ -1635,13 +1827,13 @@ SEXP mer_postVar(SEXP x)
 SEXP mer_ST_chol(SEXP x)
 {
     SEXP ans = PROTECT(duplicate(GET_SLOT(x, lme4_STSym)));
-    int ncmax, nf = DIMS_SLOT(x)[nf_POS];
-    int *nc = Alloca(nf, int), *nlev = Alloca(nf, int);
-    double **st = Alloca(nf, double*);
+    int ncmax, nt = DIMS_SLOT(x)[nt_POS];
+    int *nc = Alloca(nt, int), *nlev = Alloca(nt, int);
+    double **st = Alloca(nt, double*);
     R_CheckStack();
 
     ncmax = ST_nc_nlev(ans, Gp_SLOT(x), st, nc, nlev);
-    for (int k = 0; k < nf; k++) {
+    for (int k = 0; k < nt; k++) {
 	if (nc[k] > 1) {	/* nothing to do for nc[k] == 1 */
 	    int nck = nc[k], nckp1 = nc[k] + 1;
 	    double *stk = st[k];
@@ -1679,28 +1871,28 @@ SEXP mer_ST_getPars(SEXP x)
 /**
  * Evaluate starting estimates for the elements of ST
  *
- * @param ST pointers to the nf ST factorizations of the diagonal
+ * @param ST pointers to the nt ST factorizations of the diagonal
  *     elements of Sigma 
- * @param Gpp length nf+1 vector of group pointers for the rows of Zt
-* @param Zt transpose of Z matrix
+ * @param Gpp length nt+1 vector of group pointers for the rows of Zt
+ * @param Zt transpose of Z matrix
  *
  */
 SEXP mer_ST_initialize(SEXP ST, SEXP Gpp, SEXP Zt)
 {
     int *Gp = INTEGER(Gpp),
 	*Zdims = INTEGER(GET_SLOT(Zt, lme4_DimSym)),
-	*zi = INTEGER(GET_SLOT(Zt, lme4_iSym)), nf = LENGTH(ST);
-    int *nc = Alloca(nf, int), *nlev = Alloca(nf, int),
+	*zi = INTEGER(GET_SLOT(Zt, lme4_iSym)), nt = LENGTH(ST);
+    int *nc = Alloca(nt, int), *nlev = Alloca(nt, int),
 	nnz = INTEGER(GET_SLOT(Zt, lme4_pSym))[Zdims[1]];
     double *rowsqr = Alloca(Zdims[0], double),
-	**st = Alloca(nf, double*),
+	**st = Alloca(nt, double*),
 	*zx = REAL(GET_SLOT(Zt, lme4_xSym));
     R_CheckStack();
     
     ST_nc_nlev(ST, Gp, st, nc, nlev);
     AZERO(rowsqr, Zdims[0]);
     for (int i = 0; i < nnz; i++) rowsqr[zi[i]] += zx[i] * zx[i];
-    for (int i = 0; i < nf; i++) {
+    for (int i = 0; i < nt; i++) {
 	AZERO(st[i], nc[i] * nc[i]);
 	for (int j = 0; j < nc[i]; j++) {
 	    double *stij = st[i] + j * (nc[i] + 1);
@@ -1723,238 +1915,27 @@ SEXP mer_ST_initialize(SEXP ST, SEXP Gpp, SEXP Zt)
  */
 SEXP mer_ST_setPars(SEXP x, SEXP pars)
 {
-    int npar = DIMS_SLOT(x)[np_POS];
+  SEXP rpars = PROTECT(coerceVector(pars, REALSXP));
+  int npar = DIMS_SLOT(x)[np_POS];
 
-    if (!isReal(pars) || LENGTH(pars) != npar)
+    if (LENGTH(pars) != npar)
 	error(_("pars must be a real vector of length %d"), npar);
-    ST_setPars(x, REAL(pars));
+    ST_setPars(x, REAL(rpars));
+    UNPROTECT(1);
     return R_NilValue;
 }
 
 /**
- * Evaluate the discrepancy and log of the penalized discrepancy.
- * update_mu must be called first.
+ * Update the deviance vector in GLMMs, NLMMs and GNLMMs
+ * If nAGQ > 1, adaptive Gauss-Hermite quadrature is applied.
  *
  * @param x pointer to an mer object
  *
+ * @return R_NilValue
  */
 SEXP mer_update_dev(SEXP x)
 {
-    double *d = DEV_SLOT(x), *u = U_SLOT(x);
-    int *dims = DIMS_SLOT(x);
-    const int q = dims[q_POS], nAGQ = dims[nAGQ_POS];
-    CHM_FR L = L_SLOT(x);
- 
-    if (MUETA_SLOT(x)) { /* GLMM */
-	if (nAGQ < 1) {
-	    error("nAGQ must be positive");
-	}else if (nAGQ == 1) {
-	    double ans = 0;
-	    lme4_devResid(MU_SLOT(x), PWT_SLOT(x), Y_SLOT(x), dims[n_POS],
-			  dims[vTyp_POS], &ans, (int*) NULL);
-	    d[disc_POS] = ans;
-	    d[ML_POS] = d[disc_POS] + d[ldL2_POS] + d[usqr_POS];
-	    } 
-	else {
-
-	  SEXP flistP = GET_SLOT(x, lme4_flistSym);
-	  const int nfl = LENGTH(flistP);
-	  int *flist = INTEGER(VECTOR_ELT(flistP, 0));
-
-	  if(nfl != 1)
-	    error("AGQ method requires number of factors to be 1!");
-
-	  const int nf = dims[nf_POS];
-	  int *Gp = Gp_SLOT(x), *nc = Alloca(nf, int), *nlev = Alloca(nf, int), ncmax;
-	  double **st = Alloca(nf, double*);
-
-          /* number of terms and levels in factor */
-	  ncmax = ST_nc_nlev(GET_SLOT(x, lme4_STSym), Gp, st, nc, nlev);
-
-	  d[ML_POS] = d[ldL2_POS];
-
-	  double *uold = Calloc(q, double);
-
-	  /*implementation of AGQ method */
-	  Memcpy(uold, u, q);                    /* keep original conditional mode */
-	  const int nl = nlev[0], nt = q / nl;
-	  double *tmp = Calloc(nl, double);
-
-
-	  double w_pro = 1, z_sum = 0;           /* values needed in AGQ evaluation */
-	  int *pointer = Alloca(nt, int);
-	  AZERO(pointer, nt);
-	  AZERO(tmp, nl);
-
-
-	  while(pointer[nt - 1] < nAGQ){
-	    double *z = Calloc(q, double);       /* current abscissas */
-	    double *ans = Calloc(nl, double);    /* current penalized residuals in different levels */
-	    
-	    /* update abscissas and weights */
-	    for(int i = 0; i < nt; ++i){
-	      for(int j = 0; j < nl; ++j){
-		z[i + j * nt] = ab[pointer[i]];
-	      }
-	      w_pro *= w[pointer[i]];
-	      z_sum += z[pointer[i]] * z[pointer[i]];
-	    }
-
-	    CHM_DN cz = N_AS_CHM_DN(z, q, 1), sol;
-	    if(!(sol = M_cholmod_solve(CHOLMOD_L, L, cz, &c)))
-	      error(_("cholmod_solve(CHOLMOD_L) failed"));
-	    Memcpy(z, (double *)sol->x, q);
-	    M_cholmod_free_dense(&sol, &c);
-
-	    for(int i = 0; i < q; ++i){
-	      u[i] = uold[i] + z[i];
-	    }
-	    
-	    
-	    update_mu(x);
-	    
-	    AZERO(ans, nl)
-	    lme4_devResid(MU_SLOT(x), PWT_SLOT(x), Y_SLOT(x), dims[n_POS],
-			  dims[vTyp_POS], ans, flist);
-
-	    for(int i = 0; i < nt; ++i){
-	      for(int j = 0; j < nl; ++j){
-		ans[j] += u[i + j * nt] * u[i + j * nt];
-	      }
-	    }
-
-	    for(int i = 0; i < nl; ++i){
-	      tmp[i] += exp( -0.5 * ans[i]) * w_pro / sqrt(PI);
-	    }
-
-	    /* move pointer to next combination of weights and abbsicas */
-	    int count = 0;
-	    pointer[count]++;
-	    while(pointer[count] == nAGQ && count < nt - 1){
-	      pointer[count] = 0;
-	      pointer[++count]++;
-	    }
-
-	    w_pro = 1;
-	    z_sum = 0;
-
-	    if(z)    Free(z);
-	    if(ans)  Free(ans);
-
-	  }
-
-
- 	  for(int j = 0; j < nl; ++j){
-	    d[ML_POS] -= 2 * log(tmp[j]);
-	  }
-	  
-	  Memcpy(u, uold, q);
-	  update_mu(x);
-	  if(tmp)   Free(tmp);
-	  if(uold)  Free(uold);
-
-	}
-    } else {  /* NLMM */
-	double dn = (double) dims[n_POS];
-
-	d[disc_POS] = d[wrss_POS];
-	if (nAGQ > 1) {
-
-	  SEXP flistP = GET_SLOT(x, lme4_flistSym);
-	  const int nfl = LENGTH(flistP);
-	  int *flist = INTEGER(VECTOR_ELT(flistP, 0));
-
-	  if(nfl != 1)
-	    error("AGQ method requires number of factors to be 1!");
-
-	  const int nf = dims[nf_POS];
-	  int *Gp = Gp_SLOT(x), *nc = Alloca(nf, int), *nlev = Alloca(nf, int), ncmax;
-	  double **st = Alloca(nf, double*);
-
-          /* number of terms and levels in factor */
-	  ncmax = ST_nc_nlev(GET_SLOT(x, lme4_STSym), Gp, st, nc, nlev);
-	                       
-	  double *res = RESID_SLOT(x), *uold = Calloc(q, double);
-
-	  d[ML_POS] = dn * log(2*PI*d[pwrss_POS]/dn) + d[ldL2_POS];
-
-
-	  /* implementation of AGQ method (Laplacian will be a trivial case) */
-	  Memcpy(uold, u, q);                    /* keep original conditional mode */
-	  const int nl = nlev[0], nt = q / nl;
-	  double *tmp = Calloc(nl, double);                      
-	  double w_pro = 1, z_sum = 0;           /* values needed in AGQ evaluation */
-	  const double sigma = d[sigmaML_POS];   /* MLE of sigma */
-	  const double factor = - 1 / (2 * sigma * sigma);
-	  int *pointer = Alloca(nt, int);        /* pointer for combinations of weights and abscissas vector */
-	  AZERO(pointer, nt);                    /* assign initial pointers, all 0 */
-	  AZERO(tmp, nl);
-
-	  /* add accuracy to integration approximation */
-	  while(pointer[nt - 1] < nAGQ){
-	    double *z = Calloc(q, double);       /* current abscissas */
-	    double *presid = Calloc(nl, double); /* current penalized residuals in different levels */
-
-	    /* update abscissas and weights */
-	    for(int i = 0; i < nt; ++i){
-	      for(int j = 0; j < nl; ++j){
-		z[i + j * nt] = ab[pointer[i]];
-	      }
-	      z_sum += ab[pointer[i]] * ab[pointer[i]];
-	      w_pro *= w[pointer[i]];
-	    }
-	    CHM_DN cz = N_AS_CHM_DN(z, q, 1), sol;
-	    if(!(sol = M_cholmod_solve(CHOLMOD_L, L, cz, &c)))
-	      error(_("cholmod_solve(CHOLMOD_L) failed"));
-	    Memcpy(z, (double *)sol->x, q);
-	    M_cholmod_free_dense(&sol, &c);
-	    for(int i = 0; i < q; ++i){
-	      u[i] = uold[i] + sigma * z[i];
-	    }
-	    update_mu(x);
-
-	    AZERO(presid, nl);
-	    for(int i = 0; i < dims[n_POS]; ++i){
-	      presid[flist[i]-1] += ( res[i] * res[i] );
-	    }
-	    
-	    for(int i = 0; i < nt; ++i){
-	      for(int j = 0; j < nl; ++j)
-		presid[j] += u[i + j * nt] * u[i + j * nt];
-	    }
-
-	    for(int j = 0; j < nl; ++j){
-	      tmp[j] += exp(factor * presid[j] + z_sum) * w_pro / sqrt(PI);
-	    }
-
-	    /* move pointer to next combination of weights and abbsicas */
-	    int count = 0;
-	    pointer[count]++;
-	    while(pointer[count] == nAGQ && count < nt - 1){
-	      pointer[count] = 0;
-	      pointer[++count]++;
-	    }
-	    if(z) Free(z);
-	    w_pro = 1;
-	    z_sum = 0;
-	    if(presid) Free(presid);
-	  }
-
-	  for(int j = 0; j < nl; ++j){
-	    d[ML_POS] -= ( 2 * log(tmp[j]) );
-	  }
-	  
-	  Memcpy(u, uold, q);
-	  update_mu(x);
-	  if(tmp)   Free(tmp);
-	  if(uold)  Free(uold);
-
-	}
-	else{
-          d[ML_POS] = dn*(1 + log(d[pwrss_POS]) + log(2*PI/dn)) + d[ldL2_POS];
-        }
-    }
-    return R_NilValue;
+    return ScalarReal(update_dev(x));
 }
 
 /**
@@ -1999,9 +1980,9 @@ SEXP mer_update_mu(SEXP x)
  *
  * @return number of iterations to convergence (0 for non-convergence) 
  */
-SEXP mer_update_u(SEXP x, SEXP verbP)
+SEXP mer_update_u(SEXP x)
 {
-    return ScalarInteger(update_u(x, asInteger(verbP)));
+    return ScalarInteger(update_u(x));
 }
 
 /**
@@ -2061,15 +2042,15 @@ SEXP merMCMC_VarCorr(SEXP x, SEXP typP)
     SEXP ST = GET_SLOT(x, lme4_STSym),
 	ncs = GET_SLOT(x, install("nc"));
     int *Gp = Gp_SLOT(x), *Sd = INTEGER(GET_DIM(ST)), *nc = INTEGER(ncs);
-    int maxnc = 0, nf = LENGTH(ncs), np = Sd[0], nsamp = Sd[1], pos;
+    int maxnc = 0, nt = LENGTH(ncs), np = Sd[0], nsamp = Sd[1], pos;
     double *sig = SLOT_REAL_NULL(x, lme4_sigmaSym);
     SEXP ans = PROTECT(allocMatrix(REALSXP, nsamp, np + (sig ? 1 : 0)));
     double *av = REAL(ans), *STx = REAL(ST);
     double *as = av + nsamp * np, *t1, *t2, var;
-    int *nlev = Alloca(nf, int);
+    int *nlev = Alloca(nt, int);
     R_CheckStack();
 
-    for (int j = 0; j < nf; j++) {
+    for (int j = 0; j < nt; j++) {
 	nlev[j] = (Gp[j + 1] - Gp[j])/nc[j];
 	if (maxnc < nc[j]) maxnc = nc[j];
     }
@@ -2082,7 +2063,7 @@ SEXP merMCMC_VarCorr(SEXP x, SEXP typP)
     for (int i = 0; i < nsamp; i++) {
 	var = 1; pos = 0;
 	if (sig) var = as[i] = sig[i] * sig[i];
-	for (int k = 0; k < nf; k++) {
+	for (int k = 0; k < nt; k++) {
 	    if (nc[k] < 2) {
 		double sd = STx[pos + i * np] * sig[i];
 		av[i + nsamp * pos++] = sd * sd;
@@ -2110,30 +2091,36 @@ SEXP mer_validate(SEXP x)
 	dimsP = GET_SLOT(x, lme4_dimsSym),
 	flistP = GET_SLOT(x, lme4_flistSym), asgnP;
     int *Gp = INTEGER(GpP), *dd = INTEGER(dimsP), *asgn;
-    int n = dd[n_POS], nf = dd[nf_POS], nq, nfl,
+    const int n = dd[n_POS], nAGQ = dd[nAGQ_POS],
+	nt = dd[nt_POS], nfl = LENGTH(flistP),
 	p = dd[p_POS], q = dd[q_POS], s = dd[s_POS];
-    int nv = n * s;
+    int nq, nv = n * s;
     CHM_SP Zt = Zt_SLOT(x), A =  A_SLOT(x);
     CHM_FR L = L_SLOT(x);
     char *buf = Alloca(BUF_SIZE + 1, char);
     R_CheckStack();
 				/* check lengths */
-    if (nf < 1 || LENGTH(ST) != nf)
-	return mkString(_("Slot ST must have length dims['nf']"));
+    if (nt < 1 || LENGTH(ST) != nt)
+	return mkString(_("Slot ST must have length dims['nt']"));
     asgnP = getAttrib(flistP, install("assign"));
-    if (!isInteger(asgnP) || LENGTH(asgnP) != nf)
-	return mkString(_("Slot flist must have integer attribute 'assign' of length dims['nf']"));
+    if (!isInteger(asgnP) || LENGTH(asgnP) != nt)
+	return mkString(_("Slot flist must have integer attribute 'assign' of length dims['nt']"));
     asgn = INTEGER(asgnP);
-    nfl = LENGTH(flistP);
-    for (int i = 0; i < nf; i++)
+    if (nAGQ < 1)
+	return mkString(_("nAGQ must be positive"));
+    if ((nAGQ > 1) & (nfl != 1))
+	return mkString(_("AGQ method requires a single grouping factor"));
+
+    for (int i = 0; i < nt; i++)
 	if (asgn[i] <= 0 || asgn[i] > nfl)
-	    return mkString(_("All elements of the assign attribute must be in [1,length(ST)]"));
-    if (LENGTH(GpP) != nf + 1)
-	return mkString(_("Slot Gp must have length dims['nf'] + 1"));
-    if (Gp[0] != 0 || Gp[nf] != q)
-	return mkString(_("Gp[1] != 0 or Gp[dims['nf'] + 1] != dims['q']"));
-    if (LENGTH(devianceP) != (wrss_POS + 1) ||
-	LENGTH(getAttrib(devianceP, R_NamesSymbol)) != (wrss_POS + 1))
+	    return mkString(_("All elements of the assign attribute must be in [1,length(flist)]"));
+    if (LENGTH(GpP) != nt + 1)
+	return mkString(_("Slot Gp must have length dims['nt'] + 1"));
+
+    if (Gp[0] != 0 || Gp[nt] != q)
+	return mkString(_("Gp[1] != 0 or Gp[dims['nt'] + 1] != dims['q']"));
+    if (LENGTH(devianceP) != (NULLdev_POS + 1) ||
+	LENGTH(getAttrib(devianceP, R_NamesSymbol)) != (NULLdev_POS + 1))
 	return mkString(_("deviance slot not named or incorrect length"));
     if (LENGTH(dimsP) != (cvg_POS + 1) ||
 	LENGTH(getAttrib(dimsP, R_NamesSymbol)) != (cvg_POS + 1))
@@ -2168,7 +2155,7 @@ SEXP mer_validate(SEXP x)
 	    return mkString(_("flist must be a list of factors"));
 /* 	nq += dm[0] * LENGTH(getAttrib(fli, R_LevelsSymbol)); */
     }
-    for (int i = 0; i < nf; i++) {
+    for (int i = 0; i < nt; i++) {
 	SEXP STi = VECTOR_ELT(ST, i);
 	int *dm = INTEGER(getAttrib(STi, R_DimSymbol));
 	if (!isMatrix(STi) || !isReal(STi) || dm[0] != dm[1])
@@ -2178,7 +2165,6 @@ SEXP mer_validate(SEXP x)
 	    return mkString(_("Gp must be non-decreasing"));
     }
 #if 0
-
 /* FIXME: Need to incorporate the assign attribute in the calculation of nq */
     if (q != nq)
 	return mkString(_("q is not sum of columns by levels"));
@@ -2200,7 +2186,7 @@ SEXP merMCMC_validate(SEXP x)
 	devianceP = GET_SLOT(x, lme4_devianceSym),
 	dimsP = GET_SLOT(x, lme4_dimsSym);
     int *Gp = INTEGER(GpP), *dd = INTEGER(dimsP);
-    int nf = dd[nf_POS], np = dd[np_POS], nsamp = LENGTH(devianceP),
+    int nt = dd[nt_POS], np = dd[np_POS], nsamp = LENGTH(devianceP),
 	p = dd[p_POS], q = dd[q_POS];
     char *buf = Alloca(BUF_SIZE + 1, char);
     R_CheckStack();
@@ -2210,12 +2196,12 @@ SEXP merMCMC_validate(SEXP x)
     if (LENGTH(dimsP) != (cvg_POS + 1) ||
 	LENGTH(getAttrib(dimsP, R_NamesSymbol)) != (cvg_POS + 1))
 	return mkString(_("dims slot not named or incorrect length"));
-    if (LENGTH(GpP) != nf + 1)
-	return mkString(_("Slot Gp must have length dims['nf'] + 1"));
-    if (Gp[0] != 0 || Gp[nf] != q)
-	return mkString(_("Gp[1] != 0 or Gp[dims['nf'] + 1] != dims['q']"));
+    if (LENGTH(GpP) != nt + 1)
+	return mkString(_("Slot Gp must have length dims['nt'] + 1"));
+    if (Gp[0] != 0 || Gp[nt] != q)
+	return mkString(_("Gp[1] != 0 or Gp[dims['nt'] + 1] != dims['q']"));
 
-    if (chkLen(buf, BUF_SIZE, x, lme4_ncSym, nf, 0))
+    if (chkLen(buf, BUF_SIZE, x, lme4_ncSym, nt, 0))
 	return(mkString(buf));
     if (chkLen(buf, BUF_SIZE, x, lme4_sigmaSym, nsamp, !dd[useSc_POS]))
 	return(mkString(buf));
@@ -2358,77 +2344,6 @@ SEXP spR_optimize(SEXP x, SEXP verbP)
 
 #if 0
 
-
-/* Gauss-Hermite Quadrature x positions and weights */
-static const double
-    GHQ_x1[1] = {0},
-    GHQ_w1[1] = {1},
-    GHQ_x2[1] = {1},
-    GHQ_w2[1] = {0.5},
-    GHQ_x3[2] = {1.7320507779261, 0},
-    GHQ_w3[2] = {0.166666666666667, 0.666666666666667},
-    GHQ_x4[2] = {2.3344141783872, 0.74196377160456},
-    GHQ_w4[2] = {0.0458758533899086, 0.454124131589555},
-    GHQ_x5[3] = {2.85696996497785, 1.35562615677371, 0},
-    GHQ_w5[3] = {0.0112574109895360, 0.222075915334214,
-		 0.533333317311434},
-    GHQ_x6[3] = {3.32425737665988, 1.88917584542184,
-		 0.61670657963811},
-    GHQ_w6[3] = {0.00255578432527774, 0.0886157433798025,
-		 0.408828457274383},
-    GHQ_x7[4] = {3.7504396535397, 2.36675937022918,
-		 1.15440537498316, 0},
-    GHQ_w7[4] = {0.000548268839501628, 0.0307571230436095,
-		 0.240123171391455, 0.457142843409801},
-    GHQ_x8[4] = {4.14454711519499, 2.80248581332504,
-		 1.63651901442728, 0.539079802125417},
-    GHQ_w8[4] = {0.000112614534992306, 0.0096352198313359,
-		 0.117239904139746, 0.373012246473389},
-    GHQ_x9[5] = {4.51274578616743, 3.20542894799789,
-		 2.07684794313409, 1.02325564627686, 0},
-    GHQ_w9[5] = {2.23458433364535e-05, 0.00278914123744297,
-		 0.0499164052656755, 0.244097495561989,
-		 0.406349194142045},
-    GHQ_x10[5] = {4.85946274516615, 3.58182342225163,
-		  2.48432579912153, 1.46598906930182,
-		  0.484935699216176},
-    GHQ_w10[5] = {4.31065250122166e-06, 0.000758070911538954,
-		  0.0191115799266379, 0.135483698910192,
-		  0.344642324578594},
-    GHQ_x11[6] = {5.18800113558601, 3.93616653976536,
-		  2.86512311160915, 1.87603498804787,
-		  0.928868981484148, 0},
-    GHQ_w11[6] = {8.12184954622583e-07, 0.000195671924393029,
-		  0.0067202850336527, 0.066138744084179,
-		  0.242240292596812, 0.36940835831095};
-
-static const double
-    *GHQ_x[12] = {(double *) NULL, GHQ_x1, GHQ_x2, GHQ_x3, GHQ_x4,
-		  GHQ_x5, GHQ_x6, GHQ_x7, GHQ_x8, GHQ_x9, GHQ_x10,
-		  GHQ_x11},
-    *GHQ_w[12] = {(double *) NULL, GHQ_w1, GHQ_w2, GHQ_w3, GHQ_w4,
-		  GHQ_w5, GHQ_w6, GHQ_w7, GHQ_w8, GHQ_w9, GHQ_w10,
-		  GHQ_w11};
-
-
-static void
-safe_pd_matrix(double x[], const char uplo[], int n, double thresh)
-{
-    int info, lwork = 3 * n, nm1 = n - 1;
-    double *work = Alloca(3 * n, double),
-	*w = Alloca(n, double),
-	*xcp = Memcpy(Alloca(n * n, double), x, n * n);
-
-    F77_CALL(dsyev)("N", uplo, &n, xcp, &n, w, work, &lwork, &info);
-    if (info) error(_("dsyev returned %d"), info);
-    if (w[nm1] <= 0) error(_("no positive eigenvalues!"));
-    if ((w[0]/w[nm1]) < thresh) {
-	int i, np1 = n + 1;
-	double incr = w[nm1] * thresh;
-	for (int i = 0; i < n; i++) x[i * np1] += incr;
-    }
-}
-
 /**
  * Update the ST list of arrays and the sparse model matrix A
  *
@@ -2441,17 +2356,17 @@ safe_pd_matrix(double x[], const char uplo[], int n, double thresh)
 static void MCMC_ST(SEXP x, double sigma, double *vals)
 {
     int *Gp = Gp_SLOT(x), *dims = DIMS_SLOT(x), *perm = PERM_VEC(x);
-    int nf = dims[nf_POS], q = dims[q_POS], pos = 0;
+    int nt = dims[nt_POS], q = dims[q_POS], pos = 0;
     double *Ptu = Calloc(q, double), *u = U_SLOT(x);
-    double **st = Alloca(nf, double*);
-    int *nc = Alloca(nf, int), *nlev = Alloca(nf, int);
+    double **st = Alloca(nt, double*);
+    int *nc = Alloca(nt, int), *nlev = Alloca(nt, int);
     R_CheckStack();
 
     ST_nc_nlev(GET_SLOT(x, lme4_STSym), Gp, st, nc, nlev);
 				/* inverse permutation of u */
     for (int j = 0; j < q; j++) Ptu[perm[j]] = u[j];
 
-    for (int i = 0; i < nf; i++) {
+    for (int i = 0; i < nt; i++) {
 	int qi = nc[i], nl = nlev[i];
 	double *sti = st[i], *ui = Ptu + Gp[i];
 
@@ -2494,6 +2409,8 @@ static void MCMC_ST(SEXP x, double sigma, double *vals)
     update_A(x);
     Free(Ptu);
 }
+
+
 
 /* Functions for sampling from a Wishart distribution */
 /* FIXME: Move these to the R sources */

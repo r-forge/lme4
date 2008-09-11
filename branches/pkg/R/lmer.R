@@ -1,6 +1,6 @@
 # lmer, glmer and nlmer plus methods and utilities
 
-if (0) {
+if (FALSE) {
 ### FIXME: Move this function to the stats package
 rWishart <- function(n, df, invScal)
 ### Random sample from a Wishart distribution
@@ -206,9 +206,19 @@ lmerFrames <- function(mc, formula, contrasts, vnms = character(0))
     list(Y = Y, X = X, wts = as.double(wts), off = as.double(off), mf = mf, fixef = fixef)
 }
 
+##' Is f1 nested within f2?
+##'
+##' Does every level of f1 occur in conjunction with exactly one level
+##' of f2? The function is based on converting a triplet sparse matrix
+##' to a compressed column-oriented form in which the nesting can be
+##' quickly evaluated.
+##'
+##' @param f1 factor 1
+##' @param f2 factor 2
+
+##' @return TRUE if factor 1 is nested within factor 2
+
 isNested <- function(f1, f2)
-### Is f1 nested within f2?  That is, does every level of f1 occur
-### in conjunction with exactly one level of f2?
 {
     f1 <- as.factor(f1)
     f2 <- as.factor(f2)
@@ -222,14 +232,51 @@ isNested <- function(f1, f2)
     all(diff(sm@p) < 2)
 }
 
-lmerFactorList <- function(formula, mf, rmInt, drop)
-### Create the list of grouping factors and the corresponding
-### transposed model matrices.
-### rmInt is a logical scalar indicating if the `(Intercept)` column
-### should be removed before creating Zt
-### drop is a logical scalar indicating if elements with numeric value
-### 0 should be dropped from the sparse model matrices
+##' dimsNames and devNames are in the package's namespace rather than
+##' in the function lmerFactorList because the function sparseRasch
+##' needs to access them. 
+
+dimsNames <- c("nt", "n", "p", "q", "s", "np", "LMM", "REML",
+               "fTyp", "lTyp", "vTyp", "nest", "useSc", "nAGQ",
+               "verb", "mxit", "mxfn", "cvg")
+dimsDefault <- list(s = 1L,             # identity mechanistic model
+                    mxit= 300L,         # maximum number of iterations
+                    mxfn= 900L, # maximum number of function evaluations
+                    verb= 0L,           # no verbose output
+                    np= 0L,             # number of parameters in ST
+                    LMM= 0L,            # not a linear mixed model
+                    REML= 0L,         # glmer and nlmer don't use REML
+                    fTyp= 2L,           # default family is "gaussian"
+                    lTyp= 5L,           # default link is "identity"
+                    vTyp= 1L, # default variance function is "constant"
+                    useSc= 1L, # default is to use the scale parameter
+                    nAGQ= 1L,                  # default is Laplace
+                    cvg = 0L)                  # no optimization yet attempted
+                    
+devNames <- c("ML", "REML", "ldL2", "ldRX2", "sigmaML",
+              "sigmaREML", "pwrss", "disc", "usqr", "wrss",
+              "dev", "llik", "NULLdev")
+
+
+##' Create model matrices from r.e. terms.
+##'
+##' Create the list of model matrices from the random-effects terms in
+##' the formula and the model frame.
+##' 
+##' @param formula model formula
+##' @param mf model frame
+##' @param rmInt logical scalar - should the `(Intercept)` column
+##'        be removed before creating Zt
+##' @param drop logical scalar indicating if elements with numeric
+##'        value 0 should be dropped from the sparse model matrices 
+##'
+##' @return a list with components named \code{"trms"}, \code{"fl"}
+##'        and \code{"dims"}
+lmerFactorList <- function(formula, fr, rmInt, drop)
 {
+    mf <- fr$mf
+    ## record dimensions and algorithm settings
+
     ## create factor list for the random effects
     bars <- expandSlash(findbars(formula[[3]]))
     if (!length(bars)) stop("No random effects terms specified in formula")
@@ -240,6 +287,10 @@ lmerFactorList <- function(formula, mf, rmInt, drop)
                  ff <- eval(substitute(as.factor(fac)[,drop = TRUE],
                                        list(fac = x[[3]])), mf)
                  im <- as(ff, "sparseMatrix") # transpose of indicators
+		 ## Could well be that we should rather check earlier .. :
+		 if(!isTRUE(validObject(im, test=TRUE)))
+		     stop("invalid conditioning factor in random effect: ", format(x[[3]]))
+
                  mm <- model.matrix(eval(substitute(~ expr, # model matrix
                                                     list(expr = x[[2]]))),
                                     mf)
@@ -269,9 +320,15 @@ lmerFactorList <- function(formula, mf, rmInt, drop)
                  }
                  ans
              })
+    dd <-
+        VecFromNames(dimsNames, "integer",
+                     c(list(n = nrow(mf), p = ncol(fr$X), nt = length(fl),
+                            q = sum(sapply(fl, function(el) nrow(el$Zt)))),
+                       dimsDefault))
     ## order terms by decreasing number of levels in the factor but don't
     ## change the order if this is already true
     nlev <- sapply(fl, function(el) length(levels(el$f)))
+    ## determine the number of random effects at this point
     if (any(diff(nlev)) > 0) fl <- fl[rev(order(nlev))]
     ## separate the terms from the factor list
     trms <- lapply(fl, "[", -1)
@@ -286,7 +343,11 @@ lmerFactorList <- function(formula, mf, rmInt, drop)
         attr(fl, "assign") <- match(fnms, ufn)
     }
     names(fl) <- ufn
-    list(trms = trms, fl = fl)
+    ## check for nesting of factors
+    dd["nest"] <- all(sapply(seq_along(fl)[-1],
+                             function(i) isNested(fl[[i-1]], fl[[i]])))
+
+    list(trms = trms, fl = fl, dims = dd)
 }
 
 checkSTform <- function(ST, STnew)
@@ -300,36 +361,36 @@ checkSTform <- function(ST, STnew)
     all(unlist(lapply(STnew, function(m) all(diag(m) > 0))))
 }
 
-lmerControl <- function(msVerbose = getOption("verbose"))
+lmerControl <- function(msVerbose = getOption("verbose"),
+                        maxIter = 300L, maxFN = 900L)
 ### Control parameters for lmer, glmer and nlmer
 {
     list(
-### FIXME: Should the user have control of maxIter and tolerance? If
-### so, how should they be passed to the lmer_optimize C function?
-         ## maxIter = as.integer(maxIter),
-         ## tolerance = as.double(tolerance),
+         maxIter = as.integer(maxIter),
+         maxFN = as.integer(maxFN),
 	 msVerbose = as.integer(msVerbose))# "integer" on purpose
 }
 
-VecFromNames <- function(nms, mode = "numeric")
+VecFromNames <- function(nms, mode = "numeric", defaults = list())
 ### Generate a named vector of the given mode
 {
     ans <- vector(mode = mode, length = length(nms))
     names(ans) <- nms
     ans[] <- NA
+    if ((nd <- length(defaults <- as.list(defaults))) > 0) {
+        if (length(dnms <- names(defaults)) < nd)
+            stop("defaults must be a named list")
+        stopifnot(all(dnms %in% nms))
+        ans[dnms] <- as(unlist(defaults), mode)
+    }
     ans
 }
 
-dimsNames <- c("nf", "n", "p", "q", "s", "np", "REML", "fTyp", "lTyp",
-               "vTyp", "nest", "useSc", "nAGQ", "cvg")
-
-devNames <- c("ML", "REML", "ldL2", "ldRX2", "sigmaML", "sigmaREML",
-               "pwrss", "disc", "usqr", "wrss")
-
-mkdims <- function(fr, FL, start, s = 1L)
+mkZt <- function(fr, FL, start, s = 1L)
 ### Create the standard versions of flist, Zt, Gp, ST, A, Cm,
-### Cx, L and dd
+### Cx, and L. Update dd.
 {
+    dd <- FL$dims
     fl <- FL$fl
     asgn <- attr(fl, "assign")
     trms <- FL$trms
@@ -347,27 +408,11 @@ mkdims <- function(fr, FL, start, s = 1L)
     if (s < 2) Cm <- new("dgCMatrix")
     if (!is.null(start) && checkSTform(ST, start)) ST <- start
 
-    ## record dimensions and algorithm settings
-    dd <- VecFromNames(dimsNames, "integer")
-    dd["nf"] <- length(ST)            # number of random-effects terms
-    dd["n"] <- nrow(fr$mf)            # number of observations
-    dd["p"] <- ncol(fr$X)             # number of fixed-effects coefficients
-    dd["q"] <- nrow(Zt)               # number of random effects
-    dd["s"] <- s
     nvc <- sapply(nc, function (qi) (qi * (qi + 1))/2) # no. of var. comp.
 ### FIXME: Check number of variance components versus number of
 ### levels in the factor for each term. Warn or stop as appropriate
+
     dd["np"] <- as.integer(sum(nvc))    # number of parameters in optimization
-    dd["REML"] <- 0L                    # glmer and nlmer don't use REML
-    dd["fTyp"] <- 2L                    # default family is "gaussian"
-    dd["lTyp"] <- 5L                    # default link is "identity"
-    dd["vTyp"] <- 1L                    # default variance function is "constant"
-    ## check for nesting of factors
-    dd["nest"] <- all(sapply(seq_along(fl)[-1],
-                             function(i) isNested(fl[[i-1]], fl[[i]])))
-    dd["useSc"] <- 1L                   # default is to use the scale parameter
-    dd["nAGQ"] <- 1L                    # default is Laplace
-    dd["cvg"]  <- 0L                    # no optimization yet attempted
     dev <- VecFromNames(devNames, "numeric")
     fl <- do.call(data.frame, c(fl, check.names = FALSE))
     attr(fl, "assign") <- asgn
@@ -429,9 +474,9 @@ convergenceMessage <- function(cvg)
     msg
 }
 
-mer_finalize <- function(ans, verbose)
+mer_finalize <- function(ans)
 {
-    .Call(mer_optimize, ans, verbose)
+    .Call(mer_optimize, ans)
     if (ans@dims["cvg"] > 6) warning(convergenceMessage(ans@dims["cvg"]))
     .Call(mer_update_ranef, ans)
     .Call(mer_update_mu, ans)
@@ -447,13 +492,14 @@ lmer_finalize <- function(fr, FL, start, REML, verbose)
     if (is.list(start) && all(sort(names(start)) == sort(names(FL))))
         start <- list(ST = start)
     if (is.numeric(start)) start <- list(STpars = start)
-    dm <- mkdims(fr, FL, start[["ST"]])
+    dm <- mkZt(fr, FL, start[["ST"]])
     stopifnot(length(levels(dm$flist[[1]])) < length(Y))
 ### FIXME: A kinder, gentler error message may be in order.
 ### This checks that the number of levels in a grouping factor < n
 ### Only need to check the first factor because it is the one with
 ### the most levels.
     dm$dd["REML"] <- as.logical(REML)
+    dm$dd["verb"] <- as.integer(verbose)
     swts <- sqrt(unname(fr$wts))
     Cx <- numeric(0)
     if (length(swts))
@@ -498,7 +544,7 @@ lmer_finalize <- function(fr, FL, start, REML, verbose)
         if (length(STp) == length(stp))
             .Call(mer_ST_setPars, ans, stp)
     }
-    mer_finalize(ans, verbose)
+    mer_finalize(ans)
 }
 
 glmer_finalize <- function(fr, FL, glmFit, start, nAGQ, verbose)
@@ -506,18 +552,19 @@ glmer_finalize <- function(fr, FL, glmFit, start, nAGQ, verbose)
     if (is.list(start) && all(sort(names(start)) == sort(names(FL))))
         start <- list(ST = start)
     if (is.numeric(start)) start <- list(STpars = start)
-    dm <- mkdims(fr, FL, start[["ST"]])
+    dm <- mkZt(fr, FL, start[["ST"]])
     ft <- famType(glmFit$family)
     dm$dd[names(ft)] <- ft
     dm$dd["useSc"] <- as.integer(!(famNms[dm$dd["fTyp"] ] %in%
 				   c("binomial", "poisson")))
     if ((nAGQ <- as.integer(nAGQ)) < 1) nAGQ <- 1L
     if (nAGQ %% 2 == 0) nAGQ <- nAGQ + 1L # reset nAGQ to be an odd number
-    dm$dd["nAGQ"] <- nAGQ
-    AGQlist = .Call("lme4_ghq", nAGQ, PACKAGE = "lme4")
+    dm$dd["nAGQ"] <- as.integer(nAGQ)
+    AGQlist <- .Call(lme4_ghq, nAGQ)
     y <- unname(as.double(glmFit$y))
     ##    dimnames(fr$X) <- NULL
     p <- dm$dd["p"]
+    dm$dd["verb"] <- as.integer(verbose)
     fixef <- fr$fixef
     fixef[] <- coef(glmFit)
     if (!is.null(ff <- start$fixef) && is.numeric(ff) &&
@@ -555,7 +602,7 @@ glmer_finalize <- function(fr, FL, glmFit, start, nAGQ, verbose)
         if (length(STp) == length(stp))
             .Call(mer_ST_setPars, ans, stp)
     }
-    mer_finalize(ans, verbose)
+    mer_finalize(ans)
     ans
 }
 
@@ -575,7 +622,7 @@ lmer <-
     stopifnot(length(formula <- as.formula(formula)) == 3)
 
     fr <- lmerFrames(mc, formula, contrasts) # model frame, X, etc.
-    FL <- lmerFactorList(formula, fr$mf, 0L, 0L) # flist, Zt
+    FL <- lmerFactorList(formula, fr, 0L, 0L) # flist, Zt, dims
     if (!is.null(method <- list(...)$method)) {
         warning(paste("Argument", sQuote("method"),
                       "is deprecated.  Use", sQuote("REML"),
@@ -640,11 +687,11 @@ function(formula, data, family = gaussian, start = NULL,
     glmFit <- glm.fit(fr$X, fr$Y, weights = wts, # glm on fixed effects
                       offset = offset, family = family,
                       intercept = attr(attr(fr$mf, "terms"), "intercept") > 0)
-    FL <- lmerFactorList(formula, fr$mf, 0L, 0L) # flist, Zt
+    FL <- lmerFactorList(formula, fr, 0L, 0L) # flist, Zt
 ### FIXME: issue a warning if the control argument has an msVerbose component
     cv <- do.call(lmerControl, control)
     if (missing(verbose)) verbose <- cv$msVerbose
-### FIXME: issue a warning if the model argument is FALSE.  It is ignored.    
+### FIXME: issue a warning if the model argument is FALSE.  It is ignored.
 
     ans <- list(fr = fr, FL = FL, glmFit = glmFit, start = start,
                 nAGQ = nAGQ, verbose = verbose)
@@ -700,14 +747,15 @@ nlmer <- function(formula, data, start = NULL, verbose = FALSE,
 
     n <- nrow(mf)
     mf <- mf[rep(seq_len(n), s), ]
-    row.names(mf) <- seq_len(nrow(mf))
+    row.names(mf) <- NULL
     ss <- rep.int(n, s)
     for (nm in pnames)
         mf[[nm]] <- rep.int(as.numeric(nm == pnames), ss)
+    fr$mf <- mf
                                         # factor list and model matrices
     FL <- lmerFactorList(substitute(foo ~ bar, list(foo = nlform[[2]],
                                                     bar = formula[[3]])),
-                         mf, TRUE, TRUE)
+                         fr, TRUE, TRUE)
     X <- as.matrix(mf[,pnames])
     rownames(X) <- NULL
     xnms <- colnames(fr$X)
@@ -717,18 +765,23 @@ nlmer <- function(formula, data, start = NULL, verbose = FALSE,
 ### they must be constructed differently
 #    if (length(xnms) > 0)
 #        Xt <- cbind(Xt, fr$X[rep.int(seq_len(n), s), xnms, drop = FALSE])
-    dm <- mkdims(fr, FL, start$STpars, s)
+    dm <- mkZt(fr, FL, start$STpars, s)
+    cv <- do.call("lmerControl", control)
+    if (missing(verbose)) verbose <- cv$msVerbose
+    dm$dd["verb"] <- as.integer(verbose)
     p <- dm$dd["p"] <- length(start$fixef)
-    n <- dm$dd["n"]
+### FIXME: It is better to have lmerFactorList take the value of s
+    dm$dd["n"] <- n
+    dm$dd["s"] <- s
     if ((nAGQ <- as.integer(nAGQ)) < 1) nAGQ <- 1L
     if (nAGQ %% 2 == 0) nAGQ <- nAGQ + 1L      # reset nAGQ to be an odd number
     dm$dd["nAGQ"] <- nAGQ
-    AGQlist = .Call('lme4_ghq', nAGQ, PACKAGE = "lme4")
+    AGQlist = .Call(lme4_ghq, nAGQ)
 
     ans <- new(Class = "mer",
                env = env,
                nlmodel = nlmod,
-               frame = if (model) fr$mf else fr$mf[0,],
+               frame = fr$mf,
                call = mc,
                flist = dm$flist,
                X = X,
@@ -760,9 +813,7 @@ nlmer <- function(formula, data, start = NULL, verbose = FALSE,
                )
     .Call(mer_update_mu, ans)
 ### Add a check that the parameter names match the column names of gradient
-    cv <- do.call("lmerControl", control)
-    if (missing(verbose)) verbose <- cv$msVerbose
-    mer_finalize(ans, verbose)
+    mer_finalize(ans)
 }
 
 #### Extractors specific to mixed-effects models
@@ -799,31 +850,63 @@ setMethod("fixef", signature(object = "mer"),
 ### Extract the fixed effects
           object@fixef)
 
+##' Create a list of lists from multiple parallel lists
+
+##' @param A a list
+##' @param ... other, parallel lists
+
+##' @return a list of lists
+
+plist <- function(A, ...)
+{
+    dots <- list(...)
+    stopifnot(is.list(A), all(sapply(dots, is.list)),
+              all(sapply(dots, length) == length(A)))
+    dots <- c(list(A), dots)
+    ans <- A
+    for (i in seq_along(A)) ans[[i]] <- lapply(dots, "[[", i)
+    ans
+}
+
+##' Extract the random effects.
+##'
+##' Extract the conditional modes, which for a linear mixed model are
+##' also the conditional means, of the random effects, given the
+##' observed responses.  These also depend on the model parameters.
+##'
+##' @param object an object that inherits from the \code{\linkS4class{mer}} class
+##' @param postVar logical scalar - should the posterior variance be returned
+##' @param drop logical scalar - drop dimensions of single extent
+##' @param whichel - vector of names of factors for which to return results
+
+##' @return a named list of arrays or vectors, aligned to the factor list 
+
 setMethod("ranef", signature(object = "mer"),
-	  function(object, postVar = FALSE, drop = FALSE, ...)
-### Extract the random effects
+          function(object, postVar = FALSE, drop = FALSE, whichel = names(wt), ...)
       {
-          fl <- object@flist
-          levs <- lapply(fl, levels)
-          asgn <- attr(fl, "assign")
-          Gp <- object@Gp
-          ii <- lapply(diff(Gp), seq_len)
           rr <- object@ranef
-          cn <- lapply(object@ST, colnames)
-          ans <-
-              lapply(split(lapply(seq_len(length(ii)),
-                                  function(i)
-                                  data.frame(matrix(rr[ii[[i]] + Gp[i]],
-                                                    nc = length(cn[[i]]),
-                                                    dimnames = list(
-                                                    levs[[asgn[i]]], cn[[i]])),
-                                             check.names = FALSE)),
-                           asgn), function(lst) do.call(cbind, lst))
-          names(ans) <- names(fl)
-          class(ans) <- "ranef.mer"
+          ## nt is the number of terms, cn is the list of column names
+          nt <- length(cn <- lapply(object@ST, colnames))
+          lterm <- lapply(plist(reinds(object@Gp), cn),
+                          function(el) {
+                              cni <- el[[2]]
+                              matrix(rr[ el[[1]] ], nc = length(cni),
+                                     dimnames = list(NULL, cni))
+                          })
+          wt <- whichterms(object)
+          ans <- lapply(plist(wt, object@flist),
+                        function(el) {
+                            ans <- do.call(cbind, lterm[ el[[1]] ])
+                            rownames(ans) <- levels(el[[2]])
+                            data.frame(ans, check.names = FALSE)
+                        })
+          ## Process whichel
+          stopifnot(is(whichel, "character"))
+          whchL <- names(wt) %in% whichel 
+          ans <- ans[whchL]
+
           if (postVar) {
-              if (length(fl) < length(Gp)) .NotYetImplemented
-              pV <- .Call(mer_postVar, object)
+              pV <- .Call(mer_postVar, object, whchL)
               for (i in seq_along(ans))
                   attr(ans[[i]], "postVar") <- pV[[i]]
           }
@@ -837,6 +920,7 @@ setMethod("ranef", signature(object = "mer"),
                                 attr(el, "postVar") <- pv
                             el
                         })
+          class(ans) <- "ranef.mer"
           ans
       })
 
@@ -922,31 +1006,36 @@ setMethod("anova", signature(object = "mer"),
 	      return(val)
 	  }
 	  else { ## ------ single model ---------------------
-              p <- object@dims["p"]
-              ss <- (.Call(mer_update_projection, object)[[2]])^2
-	      names(ss) <- names(object@fixef)
-	      asgn <- attr(object@X, "assign")
-	      terms <- terms(object)
-	      nmeffects <- attr(terms, "term.labels")
-	      if ("(Intercept)" %in% names(ss))
-		  nmeffects <- c("(Intercept)", nmeffects)
-	      ss <- unlist(lapply(split(ss, asgn), sum))
-	      df <- unlist(lapply(split(asgn,  asgn), length))
-	      #dfr <- unlist(lapply(split(dfr, asgn), function(x) x[1]))
-	      ms <- ss/df
-	      f <- ms/(sigma(object)^2)
-	      #P <- pf(f, df, dfr, lower.tail = FALSE)
-	      #table <- data.frame(df, ss, ms, dfr, f, P)
-	      table <- data.frame(df, ss, ms, f)
-	      dimnames(table) <-
-		  list(nmeffects,
-#			c("Df", "Sum Sq", "Mean Sq", "Denom", "F value", "Pr(>F)"))
-		       c("Df", "Sum Sq", "Mean Sq", "F value"))
-	      if ("(Intercept)" %in% nmeffects)
-		  table <- table[-match("(Intercept)", nmeffects), ]
-	      attr(table, "heading") <- "Analysis of Variance Table"
-	      class(table) <- c("anova", "data.frame")
-	      table
+            if (length(object@muEta))
+              stop("single argument anova for GLMMs not yet implemented")
+            if (length(object@V))
+              stop("single argument anova for NLMMs not yet implemented")
+
+            p <- object@dims["p"]
+            ss <- (.Call(mer_update_projection, object)[[2]])^2
+            names(ss) <- names(object@fixef)
+            asgn <- attr(object@X, "assign")
+            terms <- terms(object)
+            nmeffects <- attr(terms, "term.labels")
+            if ("(Intercept)" %in% names(ss))
+              nmeffects <- c("(Intercept)", nmeffects)
+            ss <- unlist(lapply(split(ss, asgn), sum))
+            df <- unlist(lapply(split(asgn,  asgn), length))
+            ## dfr <- unlist(lapply(split(dfr, asgn), function(x) x[1]))
+            ms <- ss/df
+            f <- ms/(sigma(object)^2)
+            ## P <- pf(f, df, dfr, lower.tail = FALSE)
+            ## table <- data.frame(df, ss, ms, dfr, f, P)
+            table <- data.frame(df, ss, ms, f)
+            dimnames(table) <-
+              list(nmeffects,
+                                        #			c("Df", "Sum Sq", "Mean Sq", "Denom", "F value", "Pr(>F)"))
+                   c("Df", "Sum Sq", "Mean Sq", "F value"))
+            if ("(Intercept)" %in% nmeffects)
+              table <- table[-match("(Intercept)", nmeffects), ]
+            attr(table, "heading") <- "Analysis of Variance Table"
+            class(table) <- c("anova", "data.frame")
+            table
 	  }
       })
 
@@ -962,7 +1051,7 @@ setMethod("deviance", signature(object="mer"),
       {
           if (missing(REML) || is.null(REML) || is.na(REML[1]))
               REML <- object@dims["REML"]
-          object@deviance[ifelse(REML, "REML", "ML")]
+          object@deviance[if(REML) "REML" else "ML"]
       })
 
 setMethod("fitted", signature(object = "mer"),
@@ -1028,7 +1117,7 @@ setMethod("summary", signature(object = "mer"),
           coefs <- cbind("Estimate" = fcoef, "Std. Error" = corF@sd) #, DF = DF)
           llik <- logLik(object, REML)
           dev <- object@deviance
-          mType <- ifelse(non <- as.logical(length(object@V)), "NMM", "LMM")
+          mType <- if((non <- as.logical(length(object@V)))) "NMM" else "LMM"
           if (gen <- as.logical(length(object@muEta)))
               mType <- paste("G", mType, sep = '')
           mName <- switch(mType, LMM = "Linear", NMM = "Nonlinear",
@@ -1039,7 +1128,7 @@ setMethod("summary", signature(object = "mer"),
 	  else
 	      method <- "the adaptive Gaussian Hermite approximation"
           if (mType == "LMM")
-              method <- ifelse(REML, "REML", "maximum likelihood")
+              method <- if(REML) "REML" else "maximum likelihood"
 
           AICframe <- data.frame(AIC = AIC(llik), BIC = BIC(llik),
                                  logLik = c(llik),
@@ -1166,8 +1255,8 @@ formatVC <- function(varc, digits = max(3, getOption("digits") - 2))
 
 ## This is modeled a bit after  print.summary.lm :
 printMer <- function(x, digits = max(3, getOption("digits") - 3),
-                      correlation = TRUE, symbolic.cor = FALSE,
-                      signif.stars = getOption("show.signif.stars"), ...)
+                     correlation = TRUE, symbolic.cor = FALSE,
+                     signif.stars = getOption("show.signif.stars"), ...)
 {
     so <- summary(x)
     REML <- so@dims["REML"]
@@ -1200,20 +1289,27 @@ printMer <- function(x, digits = max(3, getOption("digits") - 3),
 	printCoefmat(so@coefs, zap.ind = 3, #, tst.ind = 4
 		     digits = digits, signif.stars = signif.stars)
 	if(correlation) {
-	    rn <- rownames(so@coefs)
 	    corF <- so@vcov@factors$correlation
 	    if (!is.null(corF)) {
 		p <- ncol(corF)
 		if (p > 1) {
+		    rn <- rownames(so@coefs)
+		    rns <- abbreviate(rn, minlen=11)
 		    cat("\nCorrelation of Fixed Effects:\n")
 		    if (is.logical(symbolic.cor) && symbolic.cor) {
-			print(symnum(as(corF, "matrix"), abbr.col = NULL))
+			corf <- as(corF, "matrix")
+			dimnames(corf) <- list(rns,
+					       if(getRversion() >= "2.8.0")
+					       abbreviate(rn, minlength=1, strict=TRUE)
+					       else ## for now
+					       .Internal(abbreviate(rn, 1, TRUE))
+					       )
+			print(symnum(corf))
 		    }
 		    else {
 			corf <- matrix(format(round(corF@x, 3), nsmall = 3),
-				       nc = p)
-			dimnames(corf) <- list(abbreviate(rn, minlen=11),
-					       abbreviate(rn, minlen=6))
+				       nc = p,
+                                       dimnames = list(rns, abbreviate(rn, minlen=6)))
 			corf[!lower.tri(corf)] <- ""
 			print(corf[-1, -p, drop=FALSE], quote = FALSE)
 		    }
@@ -1261,7 +1357,7 @@ setMethod("refit", signature(object = "mer", newresp = "numeric"),
           newresp <- as.double(newresp[!is.na(newresp)])
           stopifnot(length(newresp) == object@dims["n"])
           object@y <- newresp
-          mer_finalize(object, FALSE) # non-verbose fit
+          mer_finalize(object)
       })
 
 BlockDiagonal <- function(lst)
@@ -1415,6 +1511,46 @@ qqmath.ranef.mer <- function(x, data, ...)
     lapply(x, f)
 }
 
+dotplot.ranef.mer <- function(x, data, ...)
+{
+    prepanel.ci <- function(x, y, se, subscripts, ...) {
+        if (is.null(se)) return(list())
+        x <- as.numeric(x)
+        hw <- 1.96 * as.numeric(se[subscripts])
+        list(xlim = range(x - hw, x + hw, finite = TRUE))
+    }
+    panel.ci <- function(x, y, se, subscripts, pch = 16,
+                         horizontal = TRUE, col = dot.symbol$col,
+                         lty = dot.line$lty, lwd = dot.line$lwd,
+                         col.line = dot.line$col, levels.fos = unique(y),
+                         groups = NULL, ...)
+    {
+        x <- as.numeric(x)
+        y <- as.numeric(y)
+        dot.line <- trellis.par.get("dot.line")
+        dot.symbol <- trellis.par.get("dot.symbol")
+        sup.symbol <- trellis.par.get("superpose.symbol")
+        panel.abline(h = levels.fos, col = col.line, lty = lty, lwd = lwd)
+        panel.abline(v = 0, col = col.line, lty = lty, lwd = lwd)
+        if (!is.null(se)) {
+            se <- as.numeric(se[subscripts])
+            panel.segments( x - 1.96 * se, y, x + 1.96 * se, y, col = 'black')
+        }
+        panel.xyplot(x, y, pch = pch, ...)
+    }
+    f <- function(x, ...) {
+        ss <- stack(x)
+        ss$ind <- factor(as.character(ss$ind), levels = colnames(x))
+        ss$.nn <- rep.int(reorder(factor(rownames(x)), x[[1]]), ncol(x))
+        se <- NULL
+        if (!is.null(pv <- attr(x, "postVar")))
+            se <- unlist(lapply(1:(dim(pv)[1]), function(i) sqrt(pv[i, i, ])))
+        dotplot(.nn ~ values | ind, ss, se = se,
+                prepanel = prepanel.ci, panel = panel.ci,
+                xlab = NULL, ...)
+    }
+    lapply(x, f, ...)
+}
 
 #### Creating and displaying a Markov Chain Monte Carlo sample from
 #### the posterior distribution of the parameters
@@ -1607,7 +1743,7 @@ devvals <- function(fm, pmat, sigma1 = FALSE)
         stop(gettextf("pmat must have %d columns", np + sigma1))
     storage.mode(pmat) <- "double"
     if (is.null(pnms <- dimnames(pmat)[[2]]))
-        pnms <- c(ifelse(sigma1, character(0), "sigma"),
+        pnms <- c(if(sigma1) character(0) else "sigma",
                   paste("th", seq_len(np), sep = ""))
     dev <- fm@deviance
     ans <- matrix(0, nrow(pmat), ncol(pmat) + length(dev),
@@ -1806,13 +1942,17 @@ yfrm <- function(fm)
                                       slot, object = fm, simplify = FALSE)))
 }
 
-### Evaluate conditional components of a linear mixed model for a grid of ST
-### parameter values.
-###
-### @param fm - a fitted linear mixed model
-### @param parmat - a numeric matrix whose rows constitute suitable parameter
-###     values for fm@ST
-### @param type - which slot to extract
+##' Evaluate conditional components of an LMM.
+##'
+##' Evaluate conditional components of a linear mixed model for a grid of ST
+##' parameter values.
+##'
+##' @param fm - a fitted linear mixed model
+##' @param parmat - a numeric matrix whose rows constitute suitable parameter
+##'     values for fm@ST
+##' @param type - which slot to extract
+##' @return a data frame of deviance values or fixed-effects or random effects
+##' @keywords models
 devmat <-
     function(fm, parmat, slotname = c("deviance", "fixef", "ranef", "u"), ...)
 {
@@ -1834,12 +1974,71 @@ devmat <-
 
     slotval <- function(x) {            # function to apply
         .Call(mer_ST_setPars, fm, x)
-        .Call(mer_update_L, fm)
-        .Call(mer_update_RX, fm)
-        .Call(mer_update_ranef, fm)
+        .Call(mer_update_dev, fm)
+        if (slotname != "deviance") .Call(mer_update_ranef, fm)
         slot(fm, slotname)
     }
     ans <- apply(parmat, 2, slotval)
     slotval(oldpars)                    # restore the fitted model
     as.data.frame(t(rbind(parmat, ans)))
 }
+
+##' Find terms associated with grouping factor names.
+
+##' Determine the random-effects associated with particular grouping
+##' factors.
+
+##' @param fm a fitted model object of S4 class "mer"
+##' @param fnm one or more grouping factor names, as a character vector
+
+##' @return a list of indices of terms
+##' @keywords models
+##' @export
+##' @examples
+##' fm1 <- lmer(strength ~ (1|batch) + (1|sample), Pastes)
+##' whichterms(fm1)
+whichterms <- function(fm, fnm = names(fm@flist))
+{
+    stopifnot(is(fm, "mer"), is.character(fnm))
+    fl <- fm@flist
+    asgn <- attr(fl, "assign")
+    fnms <- names(fl)
+    stopifnot(all(fnm %in% fnms))
+    if (is.null(names(fnm))) names(fnm) <- fnm
+    
+    lapply(fnm, function(nm) which(asgn == match(nm, fnms)))
+}
+
+##' Random-effects indices by term
+
+##' Returns a list of indices into the ranef vector by random-effects
+##' terms.
+
+##' @param Gp the Gp slot from an mer object
+
+##' @return a list of random-effects indices
+##' @keywords models
+reinds <- function(Gp)
+{
+    lens <- diff(Gp)
+    lapply(seq_along(lens), function(i) Gp[i] + seq_len(lens[i]))
+}
+
+##' Random-effects indices associated with grouping factor names
+
+##' Determine the random-effects indices with particular grouping
+##' factors.
+
+##' @param fm a fitted model object of S4 class "mer"
+##' @param fnm one or more grouping factor names, as a character vector
+
+##' @return a list of indices of terms
+##' @keywords models
+##' @export
+##' @examples
+##' fm1 <- lmer(strength ~ (1|batch) + (1|sample), Pastes)
+##' whichreind(fm1)
+whichreind <- function(fm, fnm = names(fm@flist))
+    lapply(whichterms(fm, fnm),
+           function (ind) unlist(reinds(fm@Gp)[ind]))
+
