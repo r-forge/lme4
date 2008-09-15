@@ -1308,7 +1308,7 @@ static double update_dev(SEXP x)
     SEXP flistP = GET_SLOT(x, lme4_flistSym);
     double *d = DEV_SLOT(x), *u = U_SLOT(x);
     int *dims = DIMS_SLOT(x);
-    const int q = dims[q_POS], nAGQ = dims[nAGQ_POS];
+    const int q = dims[q_POS], nAGQ = dims[nAGQ_POS], dn = dims[n_POS];
     CHM_FR L = L_SLOT(x);
  
 /* FIXME: This should allow for a GNLMM.  Right now generalized and
@@ -1327,7 +1327,7 @@ static double update_dev(SEXP x)
 	error("AGQ method requires a single grouping factor");
     d[ML_POS] = d[ldL2_POS];
 
-    if (MUETA_SLOT(x)) {	/* GLMM */
+    if (1/*MUETA_SLOT(x)*/) {	/* GLMM */
 	if (nAGQ == 1) {
 	    double ans = 0;
 	    lme4_devResid(MU_SLOT(x), PWT_SLOT(x), Y_SLOT(x), dims[n_POS],
@@ -1346,6 +1346,10 @@ static double update_dev(SEXP x)
 	    *uold = Memcpy(Calloc(q, double), u, q),
 	    *tmp = Calloc(nl, double),
 	    w_pro = 1, z_sum = 0;           /* values needed in AGQ evaluation */
+	/* constants used in AGQ evaluation */
+	const double sigma = (dims[useSc_POS] == 1)?d[sigmaML_POS]:1;
+	const double factor = - 0.5 / (sigma * sigma);
+
 	R_CheckStack();
 
 	AZERO(pointer, nre);
@@ -1361,7 +1365,8 @@ static double update_dev(SEXP x)
 		    z[i + j * nre] = ghx[pointer[i]];
 		}
 		w_pro *= ghw[pointer[i]];
-		z_sum += z[pointer[i]] * z[pointer[i]];
+		if(!MUETA_SLOT(x))
+		  z_sum += z[pointer[i]] * z[pointer[i]];
 	    }
 
 	    CHM_DN cz = N_AS_CHM_DN(z, q, 1), sol;
@@ -1370,7 +1375,7 @@ static double update_dev(SEXP x)
 	    Memcpy(z, (double *)sol->x, q);
 	    M_cholmod_free_dense(&sol, &c);
 
-	    for(int i = 0; i < q; ++i) u[i] = uold[i] + z[i];
+	    for(int i = 0; i < q; ++i) u[i] = uold[i] + sigma * z[i];
 	    update_mu(x);
 	    
 	    AZERO(ans, nl);
@@ -1382,7 +1387,7 @@ static double update_dev(SEXP x)
 		    ans[j] += u[i + j * nre] * u[i + j * nre];
 
 	    for(int i = 0; i < nl; ++i)
-		tmp[i] += exp( -0.5 * ans[i]) * w_pro / sqrt(PI);
+		tmp[i] += exp( factor * ans[i] + z_sum) * w_pro / sqrt(PI);
 				/* move pointer to next combination of weights and abbsicas */
 	    int count = 0;
 	    pointer[count]++;
@@ -1402,6 +1407,7 @@ static double update_dev(SEXP x)
 	for(int j = 0; j < nl; ++j) d[ML_POS] -= 2 * log(tmp[j]);
 	Memcpy(u, uold, q);
 	update_mu(x);
+	d[ML_POS] += MUETA_SLOT(x)?0:(dn * log(2*PI*d[pwrss_POS]/dn));
 	if(tmp)   Free(tmp);
 	if(uold)  Free(uold);
     } else {  /* NLMM */
@@ -1575,8 +1581,8 @@ SEXP mer_MCMCsamp(SEXP x, SEXP fm)
  *
  * changed from fortran in package 'glmmML'
  * @param N order of the Hermite polynomial
- * @param X zeros of the polynomial, abscissas for AGQ
- * @param W weights used in AGQ
+ * @param x zeros of the polynomial, abscissas for AGQ
+ * @param w weights used in AGQ
  *
  */
 
@@ -1943,25 +1949,21 @@ SEXP mer_update_dev(SEXP x)
  * @return penalized weighted residual sum of squares
  *
  */
-SEXP mer_update_L(SEXP x)
-{
-    return ScalarReal(update_L(x));
-}
+SEXP mer_update_L(SEXP x){return ScalarReal(update_L(x));}
 
 /**
  * Externally callable update_mu.
+ *
  * Update the eta, v, mu, resid and var slots according to the current
  * values of the parameters and u.  Also evaluate d[wrss_POS] using
- * the current contents of sqrtrWt.  The sqrtrWt slot is updated in update_L.
+ * the current contents of sqrtrWt.  The sqrtrWt slot is updated in
+ * update_L.
  *
  * @param x pointer to an mer object
  *
  * @return penalized, weighted residual sum of squares
  */
-SEXP mer_update_mu(SEXP x)
-{
-    return ScalarReal(update_mu(x));
-}
+SEXP mer_update_mu(SEXP x){return ScalarReal(update_mu(x));}
 
 /**
  * Externally callable update_u.
@@ -1969,15 +1971,10 @@ SEXP mer_update_mu(SEXP x)
  * Iterate to determine the conditional modes of the random effects.
  *
  * @param x pointer to an mer object
- * @param verbP scalar integer indicator of verbose output
- *             (negative values produce a lot of output)
  *
  * @return number of iterations to convergence (0 for non-convergence) 
  */
-SEXP mer_update_u(SEXP x)
-{
-    return ScalarInteger(update_u(x));
-}
+SEXP mer_update_u(SEXP x){return ScalarInteger(update_u(x));}
 
 /**
  * Externally callable lmm_update_projection.
