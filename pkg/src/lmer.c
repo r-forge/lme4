@@ -638,8 +638,8 @@ static void lmm_update_projection(SEXP x, double *pb, double *pbeta)
     int *dims = DIMS_SLOT(x), i1 = 1;
     int n = dims[n_POS], p = dims[p_POS], q = dims[q_POS];
     double *WX = (double*) NULL, *X = X_SLOT(x),
-	*d = DEV_SLOT(x), *RZX = RZX_SLOT(x), *RX = RX_SLOT(x),
-	*sXwt = SXWT_SLOT(x),
+	*cx = Cx_SLOT(x), *d = DEV_SLOT(x), *RZX = RZX_SLOT(x),
+	*RX = RX_SLOT(x), *sXwt = SXWT_SLOT(x), 
 	*wy = (double*)NULL, *y = Y_SLOT(x),
 	mone[] = {-1,0}, one[] = {1,0}, zero[] = {0,0};
     CHM_SP A = A_SLOT(x);
@@ -648,14 +648,16 @@ static void lmm_update_projection(SEXP x, double *pb, double *pbeta)
     R_CheckStack();
 	
     if (sXwt) {		     /* Replace X and y by weighted X and y */
+	if (!cx) error(_("Cx slot has zero length when sXwt does not."));
+
+	A->x = (void*)cx;
 	WX = Calloc(n * p, double);
 	wy = Calloc(n, double);
 	
-	AZERO(WX, n * p);
 	for (int i = 0; i < n; i++) {
 	    wy[i] = sXwt[i] * y[i];
 	    for (int j = 0; j < p; j++)
-		WX[i + j * n] += sXwt[i] * X[i + j * n];
+		WX[i + j * n] = sXwt[i] * X[i + j * n];
 	}
 	X = WX;
 	y = wy;

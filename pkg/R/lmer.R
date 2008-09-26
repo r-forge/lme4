@@ -195,8 +195,8 @@ lmerFrames <- function(mc, formula, contrasts, vnms = character(0))
     off <- model.offset(mf); if (is.null(off)) off <- numeric(0)
 
     ## check weights and offset
-    if (any(wts < 0))
-        stop(gettextf("negative weights not allowed"))
+    if (any(wts <= 0))
+        stop(gettextf("negative weights or weights of zero are not allowed"))
     if(length(off) && length(off) != NROW(Y))
         stop(gettextf("number of offsets is %d should equal %d (number of observations)",
                       length(off), NROW(Y)))
@@ -386,7 +386,7 @@ VecFromNames <- function(nms, mode = "numeric", defaults = list())
     ans
 }
 
-mkZt <- function(fr, FL, start, s = 1L)
+mkZt <- function(FL, start, s = 1L)
 ### Create the standard versions of flist, Zt, Gp, ST, A, Cm,
 ### Cx, and L. Update dd.
 {
@@ -492,7 +492,7 @@ lmer_finalize <- function(fr, FL, start, REML, verbose)
     if (is.list(start) && all(sort(names(start)) == sort(names(FL))))
         start <- list(ST = start)
     if (is.numeric(start)) start <- list(STpars = start)
-    dm <- mkZt(fr, FL, start[["ST"]])
+    dm <- mkZt(FL, start[["ST"]])
     stopifnot(length(levels(dm$flist[[1]])) < length(Y))
 ### FIXME: A kinder, gentler error message may be in order.
 ### This checks that the number of levels in a grouping factor < n
@@ -552,7 +552,7 @@ glmer_finalize <- function(fr, FL, glmFit, start, nAGQ, verbose)
     if (is.list(start) && all(sort(names(start)) == sort(names(FL))))
         start <- list(ST = start)
     if (is.numeric(start)) start <- list(STpars = start)
-    dm <- mkZt(fr, FL, start[["ST"]])
+    dm <- mkZt(FL, start[["ST"]])
     ft <- famType(glmFit$family)
     dm$dd[names(ft)] <- ft
     dm$dd["useSc"] <- as.integer(!(famNms[dm$dd["fTyp"] ] %in%
@@ -765,7 +765,7 @@ nlmer <- function(formula, data, start = NULL, verbose = FALSE,
 ### they must be constructed differently
 #    if (length(xnms) > 0)
 #        Xt <- cbind(Xt, fr$X[rep.int(seq_len(n), s), xnms, drop = FALSE])
-    dm <- mkZt(fr, FL, start$STpars, s)
+    dm <- mkZt(FL, start$STpars, s)
     cv <- do.call("lmerControl", control)
     if (missing(verbose)) verbose <- cv$msVerbose
     dm$dd["verb"] <- as.integer(verbose)
@@ -818,28 +818,31 @@ nlmer <- function(formula, data, start = NULL, verbose = FALSE,
 
 #### Extractors specific to mixed-effects models
 
-setMethod("coef", signature(object = "mer"),
-	  function(object, ...)
-      {
-          if (length(list(...)))
-              warning(paste('arguments named "',
-                            paste(names(list(...)), collapse = ", "),
-                                  '" ignored', sep = ''))
-          fef <- data.frame(rbind(fixef(object)), check.names = FALSE)
-          ref <- ranef(object)
-          val <- lapply(ref, function(x) fef[rep(1, nrow(x)),,drop = FALSE])
-          for (i in seq(a = val)) {
-              refi <- ref[[i]]
-              row.names(val[[i]]) <- row.names(refi)
-              nmsi <- colnames(refi)
-              if (!all(nmsi %in% names(fef)))
-                  stop("unable to align random and fixed effects")
-              for (nm in nmsi) val[[i]][[nm]] <- val[[i]][[nm]] + refi[,nm]
-          }
-          class(val) <- "coef.mer"
-          val
-#          new("coef.mer", val)
-       })
+coef.mer <- function(object, ...)
+{
+    if (length(list(...)))
+        warning(paste('arguments named "',
+                      paste(names(list(...)), collapse = ", "),
+                      '" ignored', sep = ''))
+    fef <- data.frame(rbind(fixef(object)), check.names = FALSE)
+    ref <- ranef(object)
+    val <- lapply(ref, function(x) fef[rep(1, nrow(x)),,drop = FALSE])
+    for (i in seq(a = val)) {
+        refi <- ref[[i]]
+        row.names(val[[i]]) <- row.names(refi)
+        nmsi <- colnames(refi)
+        if (!all(nmsi %in% names(fef)))
+            stop("unable to align random and fixed effects")
+        for (nm in nmsi) val[[i]][[nm]] <- val[[i]][[nm]] + refi[,nm]
+    }
+    class(val) <- "coef.mer"
+    val
+}
+
+setMethod("coef", signature(object = "mer"), coef.mer)
+## questionable whether this should be added
+#setMethod("coefficients", signature(object = "mer"), coef.mer)
+
 
 setAs("mer", "dtCMatrix", function(from)
 ### Extract the L matrix
@@ -1442,8 +1445,7 @@ printMer <- function(x, digits = max(3, getOption("digits") - 3),
     if (!is.null(x@call$data))
         cat("   Data:", deparse(x@call$data), "\n")
     if (!is.null(x@call$subset))
-        cat(" Subset:",
-            deparse(asOneSidedFormula(x@call$subset)[[2]]),"\n")
+        cat(" Subset:", deparse(x@call$subset),"\n")
     print(so@AICtab, digits = digits)
 
     cat("Random effects:\n")
@@ -1507,8 +1509,7 @@ printNlmer <- function(x, digits = max(3, getOption("digits") - 3),
     if (!is.null(x@call$data))
         cat("   Data:", deparse(x@call$data), "\n")
     if (!is.null(x@call$subset))
-        cat(" Subset:",
-            deparse(asOneSidedFormula(x@call$subset)[[2]]),"\n")
+        cat(" Subset:", deparse(x@call$subset),"\n")
 
     cat("Random effects:\n")
     print(formatVC(VarCorr(x)), quote = FALSE,
