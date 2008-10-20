@@ -9,6 +9,7 @@ static R_CallMethodDef CallEntries[] = {
   
     CALLDEF(lme4_ghq, 1),
     CALLDEF(mer_MCMCsamp, 2),
+    CALLDEF(mer_PIRLS, 1),
     CALLDEF(mer_ST_chol, 1),
     CALLDEF(mer_ST_getPars, 1),
     CALLDEF(mer_ST_initialize, 3),
@@ -56,22 +57,18 @@ void R_init_lme4(DllInfo *dll)
     c.final_ll = 1;	    /* LL' form of simplicial factorization */
 
     lme4_ASym = install("A");
-    lme4_CmSym = install("Cm");
-    lme4_CxSym = install("Cx");
-    lme4_DimSym = install("Dim");
     lme4_GpSym = install("Gp");
     lme4_LSym = install("L");
     lme4_RXSym = install("RX");
     lme4_RZXSym = install("RZX");
     lme4_STSym = install("ST");
-    lme4_VSym = install("V");
     lme4_XSym = install("X");
-    lme4_XstSym = install("Xst");
     lme4_ZtSym = install("Zt");
     lme4_devianceSym = install("deviance");
     lme4_dimsSym = install("dims");
     lme4_envSym = install("env");
     lme4_etaSym = install("eta");
+    lme4_etaGammaSym = install("etaGamma");
     lme4_fixefSym = install("fixef");
     lme4_flistSym = install("flist");
     lme4_ghwSym = install("ghw");

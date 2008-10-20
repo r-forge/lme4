@@ -10,6 +10,7 @@
 SEXP lme4_ghq(SEXP np);
 
 SEXP mer_MCMCsamp(SEXP x, SEXP fm);
+SEXP mer_PIRLS(SEXP x);
 SEXP mer_ST_chol(SEXP x);
 SEXP mer_ST_getPars(SEXP x);
 SEXP mer_ST_initialize(SEXP ST, SEXP Gp, SEXP Zt);
