@@ -32,7 +32,6 @@ SEXP attribute_hidden
     lme4_ranefSym,
     lme4_residSym,
     lme4_sigmaSym,
-    lme4_sqrtXWtSym,
     lme4_sqrtrWtSym,
     lme4_uSym,
     lme4_varSym,

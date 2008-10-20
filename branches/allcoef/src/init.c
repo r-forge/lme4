@@ -1,4 +1,5 @@
 #include "lmer.h"
+#include "ST.h"
 #include <R_ext/Rdynload.h>
 #include "Matrix.h"
 #include "Syms.h" 
@@ -18,12 +19,9 @@ static R_CallMethodDef CallEntries[] = {
     CALLDEF(mer_optimize, 1),
     CALLDEF(mer_postVar, 2),
     CALLDEF(mer_update_L, 1),
-    CALLDEF(mer_update_RX, 1),
     CALLDEF(mer_update_dev, 1),
-    CALLDEF(mer_update_projection, 1),
     CALLDEF(mer_update_ranef, 1),
     CALLDEF(mer_update_mu, 1),
-    CALLDEF(mer_update_u, 1),
     CALLDEF(mer_validate, 1),
     
     CALLDEF(merMCMC_validate, 1),
@@ -87,7 +85,6 @@ void R_init_lme4(DllInfo *dll)
     lme4_residSym = install("resid");
     lme4_sigmaSym = install("sigma");
     lme4_sqrtrWtSym = install("sqrtrWt");
-    lme4_sqrtXWtSym = install("sqrtXWt");
     lme4_uSym = install("u");
     lme4_varSym = install("var");
     lme4_xSym = install("x");

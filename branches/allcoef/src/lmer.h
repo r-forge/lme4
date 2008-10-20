@@ -5,6 +5,9 @@
 /* Rdefines.h includes Rinternals.h (for SEXP, REAL, etc.) and defines
  * GET_SLOT, MAKE_CLASS, NEW_OBJECT, SET_SLOT, etc. */
 #include <Rdefines.h>
+#ifdef	__cplusplus
+extern "C" {
+#endif
 
 /* SEXP lme4_rWishart(SEXP ns, SEXP dfp, SEXP scal); */
 SEXP lme4_ghq(SEXP np);
@@ -19,17 +22,18 @@ SEXP mer_create_L(SEXP CmP);
 SEXP mer_optimize(SEXP x);
 SEXP mer_postVar(SEXP x, SEXP which);
 SEXP mer_update_L(SEXP x);
-SEXP mer_update_RX(SEXP x);
 SEXP mer_update_dev(SEXP x);
-SEXP mer_update_projection(SEXP x);
 SEXP mer_update_ranef(SEXP x);
 SEXP mer_update_mu(SEXP x);
-SEXP mer_update_u(SEXP x);
 SEXP mer_validate(SEXP x);
 SEXP merMCMC_validate(SEXP x);
 SEXP merMCMC_VarCorr(SEXP x, SEXP typ);
 
 SEXP spR_optimize(SEXP x, SEXP verbP);
 SEXP spR_update_mu(SEXP x);
+
+#ifdef	__cplusplus
+}
+#endif
 
 #endif /* LME4_LMER_H */
