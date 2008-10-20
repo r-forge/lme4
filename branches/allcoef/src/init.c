@@ -1,4 +1,4 @@
-#include "lmer.h"
+#include "mer.h"
 #include "ST.h"
 #include <R_ext/Rdynload.h>
 #include "Matrix.h"
