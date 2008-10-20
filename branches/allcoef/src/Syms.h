@@ -1,15 +1,12 @@
 /** Pointers to symbols initialized in R_init_lme4 */
 SEXP attribute_hidden
     lme4_ASym,
-    lme4_CmSym,
-    lme4_CxSym,
     lme4_DimSym,
     lme4_GpSym,
     lme4_LSym,
     lme4_RXSym,
     lme4_RZXSym,
     lme4_STSym,
-    lme4_VSym,
     lme4_XSym,
     lme4_XstSym,
     lme4_ZtSym,
@@ -17,6 +14,7 @@ SEXP attribute_hidden
     lme4_dimsSym,
     lme4_envSym,
     lme4_etaSym,
+    lme4_etaGammaSym,
     lme4_fixefSym,
     lme4_flistSym,
     lme4_ghwSym,
