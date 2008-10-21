@@ -9,13 +9,12 @@
 extern "C" {
 #endif
 
-SEXP mer_ST_chol(SEXP x);
-SEXP mer_ST_getPars(SEXP x);
-SEXP mer_ST_initialize(SEXP ST, SEXP Gp, SEXP Zt);
-SEXP mer_ST_setPars(SEXP x, SEXP pars);
-
-SEXP spR_optimize(SEXP x, SEXP verbP);
-SEXP spR_update_mu(SEXP x);
+    SEXP ST_generate_A(SEXP Zt, SEXP Gp, SEXP ST);
+    SEXP ST_update_A(SEXP x);
+    SEXP mer_ST_chol(SEXP x);
+    SEXP mer_ST_getPars(SEXP x);
+    SEXP mer_ST_initialize(SEXP ST, SEXP Gp, SEXP Zt);
+    SEXP mer_ST_setPars(SEXP x, SEXP pars);
 
 #ifdef	__cplusplus
 }

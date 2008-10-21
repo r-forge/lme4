@@ -1,4 +1,4 @@
-#include "lmer.h"
+#include "mer.h"
 #include <Rmath.h>		 /* for dnorm5, etc. */
 #include <R_ext/Lapack.h>        /* for Lapack (dpotrf, etc.) and BLAS */
 
@@ -823,8 +823,8 @@ SEXP merMCMC_validate(SEXP x)
     if (Gp[0] != 0 || Gp[nt] != q)
 	return mkString(_("Gp[1] != 0 or Gp[dims['nt'] + 1] != dims['q']"));
 
-    if (chkLen(buf, BUF_SIZE, x, lme4_ncSym, nt, 0))
-	return(mkString(buf));
+//     if (chkLen(buf, BUF_SIZE, x, lme4_ncSym, nt, 0))
+// 	return(mkString(buf));
     if (chkLen(buf, BUF_SIZE, x, lme4_sigmaSym, nsamp, !dd[useSc_POS]))
 	return(mkString(buf));
     if (chkDims(buf, BUF_SIZE, x, lme4_STSym, np, nsamp))

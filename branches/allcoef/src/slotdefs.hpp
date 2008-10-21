@@ -1,7 +1,5 @@
 #include "Matrix.h"
 
-extern "C" {
-
 #ifdef ENABLE_NLS		/** Allow for translation of error messages */
 #include <libintl.h>
 #define _(String) dgettext ("lme4", String)
@@ -182,4 +180,3 @@ static R_INLINE double *SLOT_REAL_NULL(SEXP obj, SEXP nm)
  * from the Zt slot and return the pointer. */
 #define Zt_SLOT(x) AS_CHM_SP(GET_SLOT(x, lme4_ZtSym))
 
-}
