@@ -1,4 +1,9 @@
-#include "Matrix.h"
+#include <R.h>
+/* Rdefines.h includes Rinternals.h (for SEXP, REAL, etc.) and defines
+ * GET_SLOT, MAKE_CLASS, NEW_OBJECT, SET_SLOT, etc. */
+#include <Rdefines.h>
+#include <Rmath.h>		 /* for dnorm5, etc. */
+#include <R_ext/Lapack.h>        /* for Lapack (dpotrf, etc.) and BLAS */
 
 #ifdef ENABLE_NLS		/** Allow for translation of error messages */
 #include <libintl.h>
@@ -83,7 +88,7 @@ enum dimP {
  * a NULL pointer 
  *
  */
-static R_INLINE double *SLOT_REAL_NULL(SEXP obj, SEXP nm)
+static inline double *SLOT_REAL_NULL(SEXP obj, SEXP nm)
 {
     SEXP pt = GET_SLOT(obj, nm);
     return LENGTH(pt) ? REAL(pt) : (double*) NULL;
@@ -180,3 +185,14 @@ static R_INLINE double *SLOT_REAL_NULL(SEXP obj, SEXP nm)
  * from the Zt slot and return the pointer. */
 #define Zt_SLOT(x) AS_CHM_SP(GET_SLOT(x, lme4_ZtSym))
 
+static inline SEXP
+ALLOC_SLOT(SEXP obj, SEXP nm, SEXPTYPE type, int length)
+{
+    SEXP val = allocVector(type, length);
+    SET_SLOT(obj, nm, val);
+    return val;
+}
+
+SEXP CHM_SP2SEXP(CHM_SP A, const char *cls);
+SEXP CHM_SP2SEXP(CHM_SP A, const char *cls, const char *uplo);
+SEXP CHM_SP2SEXP(CHM_SP A, const char *cls, const char *uplo, const char *diag);

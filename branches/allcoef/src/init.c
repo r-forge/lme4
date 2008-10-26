@@ -8,29 +8,33 @@
 
 static R_CallMethodDef CallEntries[] = {
   
-    CALLDEF(ST_generate_A, 3),
-    CALLDEF(ST_update_A, 1),
+    CALLDEF(ST_Lambda, 1),
+    CALLDEF(ST_Tmatrix, 1),
+    CALLDEF(ST_bounds, 1),
+    CALLDEF(ST_create_A, 2),
+    CALLDEF(ST_getPars, 1),
+    CALLDEF(ST_initialize, 2),
+    CALLDEF(ST_setPars, 2),
+    CALLDEF(ST_update_A, 3),
+    CALLDEF(ST_update_ranef, 4),
+    CALLDEF(ST_validate, 1),
+
     CALLDEF(lme4_ghq, 1),
+
+    CALLDEF(merMCMC_VarCorr, 2),
+    CALLDEF(merMCMC_validate, 1),
+    
     CALLDEF(mer_MCMCsamp, 2),
     CALLDEF(mer_PIRLS, 1),
-    CALLDEF(mer_ST_chol, 1),
-    CALLDEF(mer_ST_getPars, 1),
-    CALLDEF(mer_ST_initialize, 3),
-    CALLDEF(mer_ST_setPars, 2),
     CALLDEF(mer_create_L, 1),
     CALLDEF(mer_optimize, 1),
     CALLDEF(mer_postVar, 2),
-    CALLDEF(mer_update_L, 1),
     CALLDEF(mer_update_dev, 1),
-    CALLDEF(mer_update_ranef, 1),
     CALLDEF(mer_update_mu, 1),
     CALLDEF(mer_validate, 1),
     
-    CALLDEF(merMCMC_validate, 1),
-    CALLDEF(merMCMC_VarCorr, 2),
-    
-    CALLDEF(spR_optimize, 2),
-    CALLDEF(spR_update_mu, 1),
+/*    CALLDEF(spR_optimize, 2), */
+/*    CALLDEF(spR_update_mu, 1), */
 
   {NULL, NULL, 0}
 };

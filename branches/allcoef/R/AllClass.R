@@ -46,6 +46,13 @@ setClass("mer",
 			ghw = "numeric"), # weights used for AGQ
          validity = function(object) .Call(mer_validate, object))
 
+setClass("ST",
+         representation(ST = "list", # list of TSST' rep of rel. cov. mats
+                        Gp = "integer"), # pointers to r.e. term groups
+         validity = function(object) .Call(ST_validate, object))
+
+         
+
 ##' Parameterized components of an mer model.
 ##'
 ##' The virtual class of parameterized components of an mer model
@@ -67,14 +74,6 @@ setClass("merREfac",
                         "VIRTUAL"),
          contains = "merParam")
 
-setClass("STmer",
-         representation(call = "call",   # matched call
-                        Gp = "integer", # pointers to r.e. term groups
-                        ST = "list", # list of TSST' rep of rel. cov. mats
-                        mer = "mer"),
-         validity = function(object) .Call(ST_validate, object))
-
-         
 setClass("merMCMC",
          representation(
                         Gp = "integer",   # Gp slot from mer object
