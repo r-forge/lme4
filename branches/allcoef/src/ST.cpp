@@ -95,8 +95,10 @@ CHM_SP STinternal::create_A(CHM_SP Zt)
 	return A;
     }
     CHM_SP Lmb = Lambda();
-    CHM_SP A = M_cholmod_ssmult(Lmb, Zt, 0, 1, 1, &c);
+    CHM_SP Lmbt = M_cholmod_transpose(Lmb, 1, &c);
     M_cholmod_free_sparse(&Lmb, &c);
+    CHM_SP A = M_cholmod_ssmult(Lmbt, Zt, 0, 1, 1, &c);
+    M_cholmod_free_sparse(&Lmbt, &c);
     return A;
 }
 
