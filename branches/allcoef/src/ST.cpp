@@ -22,146 +22,163 @@
 // the group pointers.
 
 #include "ST.h"
-#include <cmath>		 // for sqrt, etc. 
-#include <R_ext/Lapack.h>        // for Lapack (dpotrf, etc.) and BLAS
-#include "slotdefs.hpp"
 
-class STinternal {
-public:
-    STinternal(SEXP x)		  //< external, R-level object
-    {
-	assign_vals(GET_SLOT(x, lme4_STSym),
-		    INTEGER(GET_SLOT(x, lme4_GpSym)));
-    }
-
-    STinternal(SEXP ST,		  //< matrix list 
-	       int *new_Gp)	  //< group pointers
-    {
-	assign_vals(ST, new_Gp);
-    }
-	
-    ~STinternal() {delete[] nlev; delete[] nc; delete[] st;}
-
-    SEXP validate() { return ScalarLogical(1); }
-
-    int Gp_grp(int ind)
-    {
-	if (ind < 0 || ind >= Gp[nt])
-	    error(_("Invalid negative row index, %d, not in [0, %d]"),
-		  ind, Gp[nt]);
-	for (int i = 0; i < nt; i++)
-	    if (ind < Gp[i + 1]) return i;
-	return -1;                  /* -Wall */
-    }
-
-    SEXP generate_A(SEXP Zt)
-    {
-//    int *Zdims = INTEGER(GET_SLOT(Zt, lme4_DimSym));
-	
-	if (maxnc < 2) return duplicate(Zt);
-// FIXME: Generate the pattern of Lambda and use ssmult on the pattern
-	error(_("Code not yet written"));
-	return R_NilValue;
-    }
-
-    void update_A(CHM_SP Zt, CHM_SP A);
-
-/**
- * Extract the parameters from ST list
- *
- * @param pars vector of the appropriate length
- */
-    void getPars(double *pars)
-    {
-	int pos = 0;
-	for (int i = 0; i < nt; i++) {
-	    int nci = nc[i], ncp1 = nc[i] + 1;
-	    for (int j = 0; j < nci; j++)
-		pars[pos++] = st[i][j * ncp1];
-	    for (int j = 0; j < (nci - 1); j++)
-		for (int k = j + 1; k < nci; k++)
-		    pars[pos++] = st[i][k + j * nci];
+double* STinternal::Sdiag(double *d)
+{
+    for (int i = 0, pos = 0; i < nt; i++)
+	for (int c = 0; c < nc[i]; c++) {
+	    double dd = st[i][c * (nc[i] + 1)];
+	    for (int j = 0; j < nlev[i]; j++)
+		d[pos++] = dd;
 	}
-    }
+    return d;
+}
 
-    int npars() { return np; }
-
-    void update_ranef(const double *u, const int *perm, double *b);
-    
-/**
- * Install new parameters in the ST slot.
- *
- * @param pars double vector of the appropriate length
- *
- */
-    void setPars(const double *pars)
-    {
-	int pos = 0;
-	for (int i = 0; i < nt; i++) {
-	    int nci = nc[i], ncp1 = nc[i] + 1;
-	    double *sti = st[i];
-
-	    for (int j = 0; j < nci; j++)
-		sti[j * ncp1] = pars[pos++];
-	    for (int j = 0; j < (nci - 1); j++)
-		for (int k = j + 1; k < nci; k++)
-		    sti[k + j * nci] = pars[pos++];
-	}
-    }
-
-
-/**
- * Overwrite the contents of the st member with the product of T and S
- */
-    void chol()
-    {
-	for (int k = 0; k < nt; k++) {
-	    if (nc[k] > 1) {	// nothing to do for nc[k] == 1 
-		int nck = nc[k], nckp1 = nc[k] + 1;
-		double *stk = st[k];
-		
-		for (int j = 0; j < nck; j++) {
-		    double dd = stk[j * nckp1]; // diagonal el
-		    for (int i = j + 1; i < nck; i++) {
-			stk[j + i * nck] = dd * stk[i + j * nck];
-			stk[i + j * nck] = 0;
-		    }
+CHM_SP STinternal::Tmatrix()
+{
+    if (maxnc < 2)
+	return M_cholmod_speye((size_t)Gp[nt], (size_t)Gp[nt],
+			       CHOLMOD_REAL, &c);
+    int nnz;
+    for (int i = 0; i < nt; i++)
+	nnz += nlev[i] * nc[i] * (nc[i] + 1);
+    CHM_SP A = M_cholmod_allocate_sparse((size_t) Gp[nt], // nrow
+					 (size_t) Gp[nt], // ncol
+					 (size_t) nnz,
+					 1, // sorted
+					 1, // packed
+					 0, // not symmetric
+					 CHOLMOD_REAL, &c);
+    double *ax = (double*)(A->x);
+    int *ai = (int*)(A->i), *ap = (int*)(A->p);
+    for (int k = 0, p = 0; k < nt; k++) { // kth term
+	for (int j = 0; j < nc[k]; j++) { // jth col of st[k]
+	    for (int jj = 0; jj < nlev[k]; jj++) {
+		for (int i = j; i < nc[k]; i++) { // ith row
+		    if (i == j) { // diagonal block
+			int Tcol = Gp[k] + j * nlev[k] + jj;
+			ap[Tcol + 1] = ap[Tcol] + nc[k] - j;
+			ax[p] = 1.;
+		    } else ax[p] = st[k][i + j * nc[k]];
+		    ai[p++] = Gp[k] + i * nlev[k] + jj;
 		}
 	    }
 	}
     }
+    return A;
+}
 
-    int theta_S_ind(int i, int *spt)
-    {
-	int trm = Gp_grp(i);
-	return (spt[trm] + (i - Gp[trm]) / nlev[trm]);
+CHM_SP STinternal::Lambda()
+{
+    CHM_SP A = Tmatrix();
+    double *ax = (double*)(A->x), *dd = Sdiag(new double[Gp[nt]]);
+    int *ap = (int*)(A->p), nc = (int)(A->ncol);
+    for (int j = 0; j < nc; j++) /* scale column j */
+	for (int p = ap[j]; p < ap[j+1]; p++) ax[p] *= dd[j];
+    delete[] dd;
+    return A;
+}
+
+CHM_SP STinternal::create_A(CHM_SP Zt)
+{
+    if (((int)(Zt->nrow)) != Gp[nt])
+	error(_("nrow(Zt) = %d != ncol(Lambda) = %d"),
+	      Zt->nrow, Gp[nt]);
+    if (maxnc < 2) { // scale the rows
+	CHM_SP A = M_cholmod_copy_sparse(Zt, &c);
+	double *ax = (double*)(A->x), *dd = Sdiag(new double[Gp[nt]]);
+	int *ap = (int*)(A->p), *ai = (int*)(A->i);
+	for (int j = 0; j < ((int)(A->ncol)); j++)
+	    for (int p = ap[j]; p < ap[j+1]; p++)
+		ax[p] *= dd[ai[p]];
+	delete[] dd;
+	return A;
     }
-    
-private:
-    double **st;
-    int *Gp, *nc, *nlev, nt, maxnc, np;
-    void assign_vals(SEXP ST, int *new_Gp)
-    {
-	Gp = new_Gp;
-	nt = LENGTH(ST);
-	st = new double*[nt];
-	nc = new int[nt];
-	nlev = new int[nt];
-	maxnc = -1;
-	np = 0;
-	for (int i = 0; i < nt; i++) {
-	    SEXP STi = VECTOR_ELT(ST, i);
-	    int nci = *INTEGER(getAttrib(STi, R_DimSymbol));
-	    
-	    if (nci > maxnc) maxnc = nci;
-	    st[i] = REAL(STi);
-	    nc[i] = nci;
-	    nlev[i] = (Gp[i + 1] - Gp[i])/nci;
-	    np += (nci * (nci + 1))/2;
+    CHM_SP Lmb = Lambda();
+    CHM_SP A = M_cholmod_ssmult(Lmb, Zt, 0, 1, 1, &c);
+    M_cholmod_free_sparse(&Lmb, &c);
+    return A;
+}
+
+double* STinternal::getPars(double *pars)
+{
+    for (int i = 0, pos = 0; i < nt; i++) {
+	int nci = nc[i], ncp1 = nc[i] + 1;
+	for (int j = 0; j < nci; j++)
+	    pars[pos++] = st[i][j * ncp1];
+	for (int j = 0; j < (nci - 1); j++)
+	    for (int k = j + 1; k < nci; k++)
+		pars[pos++] = st[i][k + j * nci];
+    }
+    return pars;
+}
+
+void STinternal::setPars(const double *pars)
+{
+    double *bds = bounds(new double[2 * np]);
+    for (int i = 0; i < np; i++)
+	if (pars[i] < bds[2 * i] || pars[i] > bds[2*i + 1])
+	    error(_("pars[%d] = %g is not in [%g,%g]"),
+		  i + 1, pars[i], bds[2*i], bds[2*i + 1]);
+    delete[] bds;
+
+    for (int i = 0, pos = 0; i < nt; i++) {
+	int nci = nc[i], ncp1 = nc[i] + 1;
+	double *sti = st[i];
+
+	for (int j = 0; j < nci; j++)
+	    sti[j * ncp1] = pars[pos++];
+	for (int j = 0; j < (nci - 1); j++)
+	    for (int k = j + 1; k < nci; k++)
+		sti[k + j * nci] = pars[pos++];
+    }
+}
+
+void STinternal::initialize(SEXP Zt)
+{
+    int *Zdims = INTEGER(GET_SLOT(Zt, lme4_DimSym)),
+	*zi = INTEGER(GET_SLOT(Zt, lme4_iSym));
+    int nnz = INTEGER(GET_SLOT(Zt, lme4_pSym))[Zdims[1]];
+    double *rowsqr = Alloca(Zdims[0], double),
+	*zx = REAL(GET_SLOT(Zt, lme4_xSym));
+    R_CheckStack();
+	
+    AZERO(rowsqr, Zdims[0]);
+    for (int i = 0; i < nnz; i++) 
+	rowsqr[zi[i]] += zx[i] * zx[i];
+    for (int i = 0; i < nt; i++) {
+	AZERO(st[i], nc[i] * nc[i]);
+	for (int j = 0; j < nc[i]; j++) {
+	    double *stij = st[i] + j * (nc[i] + 1);
+	    for (int k = 0; k < nlev[i]; k++)
+		*stij += rowsqr[Gp[i] + j * nlev[i] + k];
+	    *stij = sqrt(nlev[i]/(0.375 * *stij));
 	}
     }
+}
 
-};
+double* STinternal::bounds(double *b)
+{
+    for (int i = 0; i < np; i++) {
+	b[2*i] = R_NegInf;
+	b[2*i + 1] = R_PosInf;
+    }
+    for (int i = 0, pos = 0; i < nt; i++) { // low = 0 on els of theta_S
+	for (int j = 0; j < nc[i]; j++) b[pos + 2*j] = 0.;
+	pos += nc[i] * (nc[i] + 1);
+    }
+    return b;
+}
+
+int STinternal::Gp_grp(int ind)
+{
+    if (ind < 0 || ind >= Gp[nt])
+	error(_("Invalid negative row index, %d, not in [0, %d]"),
+	      ind, Gp[nt]);
+    for (int i = 0; i < nt; i++)
+	if (ind < Gp[i + 1]) return i;
+    return -1;                  /* -Wall */
+}
 
 void STinternal::update_A(CHM_SP Zt, CHM_SP A)
 {
@@ -200,10 +217,10 @@ void STinternal::update_A(CHM_SP Zt, CHM_SP A)
 		}
 	    }
     }
-    for (int p = 0; p < annz; p++) { // Multiply A on the left by S
-	int i = Gp_grp(ai[p]);
-	ax[p] *= st[i][((ai[p] - Gp[i]) / nlev[i]) * (nc[i] + 1)];
-    }
+
+    double *dd = Sdiag(new double[Gp[nt]]);
+    for (int p = 0; p < annz; p++) ax[p] *= dd[ai[p]]; // scale rows by S
+    delete[] dd;
 }
 
 
@@ -267,43 +284,72 @@ ST_nc_nlev(const SEXP ST, const int *Gp, double **st, int *nc, int *nlev)
 extern "C" {
 
 /**
- * Generate the pattern of the A matrix.
+ * Generate the A matrix from Zt.
  *
+ * @param x an ST object
  * @param Zt the dgCMatrix representation of Z'
- * @param Gp integer vector of group pointers
- * @param ST list of matrices providing the ST representation
  *
- * @return pointer to a list of arrays
+ * @return the A matrix as an dgCMatrix object
  */
-    SEXP ST_generate_A(SEXP Zt, SEXP Gpp, SEXP ST)
+    SEXP ST_create_A(SEXP x, SEXP Zt)
     {
-	if (!isNewList(ST) || !isInteger(Gpp) ||
-	    LENGTH(Gpp) != (LENGTH(ST) + 1))
-	    error(_("Incompatible ST and Gp"));
-	return STinternal(ST, INTEGER(Gpp)).generate_A(Zt);
-    }
-    
-    SEXP ST_update_A(SEXP x)
-    {
-	SEXP xm = GET_SLOT(x, lme4_merSym);
-	STinternal(x).update_A(Zt_SLOT(xm), A_SLOT(xm));
-	return R_NilValue;
+	CHM_SP A = STinternal(x).create_A(AS_CHM_SP(Zt));
+	SEXP ans = CHM_SP2SEXP(A, "dgCMatrix");
+	M_cholmod_free_sparse(&A, &c);
+	return ans;
     }
 
 /**
- * Return a list of (upper) Cholesky factors from the ST list
+ * Return the T matrix as a dtCMatrix object
  *
- * @param x an mer object
- *
- * @return a list of upper Cholesky factors
+ * @param x an ST object
+ 
+ * @return the T matrix as an dgCMatrix object
  */
-    SEXP ST_chol(SEXP x)
+    SEXP ST_Tmatrix(SEXP x)
     {
-	SEXP myST = PROTECT(duplicate(GET_SLOT(x, lme4_STSym)));
-	STinternal ST(myST, Gp_SLOT(x));
-	ST.chol();
-	UNPROTECT(1);
-	return myST;
+	CHM_SP A = STinternal(x).Tmatrix();
+	SEXP ans = CHM_SP2SEXP(A, "dtCMatrix", "L", "N");
+	M_cholmod_free_sparse(&A, &c);
+	return ans;
+    }
+
+/**
+ * Return the Lambda matrix as a dgCMatrix object
+ *
+ * @param x an ST object
+ 
+ * @return the Lambda matrix as an dgCMatrix object
+ */
+    SEXP ST_Lambda(SEXP x)
+    {
+	CHM_SP A = STinternal(x).Lambda();
+	SEXP ans = CHM_SP2SEXP(A, "dtCMatrix", "L", "N");
+	M_cholmod_free_sparse(&A, &c);
+	return ans;
+    }
+    
+
+/**
+ * Return the bounds on the parameter vector
+ *
+ * @param x an ST object
+ *
+ * @return numeric vector
+ */
+    SEXP ST_bounds(SEXP x)
+    {
+	STinternal ST = STinternal(x);
+	SEXP ans = allocVector(REALSXP, 2 * ST.npars());
+	ST.bounds(REAL(ans));
+	return ans;
+    }
+    
+
+    SEXP ST_update_A(SEXP ST, SEXP Zt, SEXP A)
+    {
+	STinternal(ST).update_A(AS_CHM_SP(Zt), AS_CHM_SP(A));
+	return R_NilValue;
     }
 
 /**
@@ -318,7 +364,6 @@ extern "C" {
 	STinternal ST(x);
 	SEXP ans = PROTECT(allocVector(REALSXP, ST.npars()));
 	ST.getPars(REAL(ans));
-	
 	UNPROTECT(1); 
 	return ans;
     }
@@ -333,30 +378,9 @@ extern "C" {
  * @param Zt transpose of Z matrix
  *
  */
-    SEXP mer_ST_initialize(SEXP ST, SEXP Gpp, SEXP Zt)
+    SEXP ST_initialize(SEXP x, SEXP Zt)
     {
-	int *Gp = INTEGER(Gpp),
-	    *Zdims = INTEGER(GET_SLOT(Zt, lme4_DimSym)),
-	    *zi = INTEGER(GET_SLOT(Zt, lme4_iSym)), nt = LENGTH(ST);
-	int *nc = Alloca(nt, int), *nlev = Alloca(nt, int),
-	    nnz = INTEGER(GET_SLOT(Zt, lme4_pSym))[Zdims[1]];
-	double *rowsqr = Alloca(Zdims[0], double),
-	    **st = Alloca(nt, double*),
-	    *zx = REAL(GET_SLOT(Zt, lme4_xSym));
-	R_CheckStack();
-	
-	ST_nc_nlev(ST, Gp, st, nc, nlev);
-	AZERO(rowsqr, Zdims[0]);
-	for (int i = 0; i < nnz; i++) rowsqr[zi[i]] += zx[i] * zx[i];
-	for (int i = 0; i < nt; i++) {
-	    AZERO(st[i], nc[i] * nc[i]);
-	    for (int j = 0; j < nc[i]; j++) {
-		double *stij = st[i] + j * (nc[i] + 1);
-		for (int k = 0; k < nlev[i]; k++)
-		    *stij += rowsqr[Gp[i] + j * nlev[i] + k];
-		*stij = sqrt(nlev[i]/(0.375 * *stij));
-	    }
-	}
+	STinternal(x).initialize(Zt);
 	return R_NilValue;
     }
 
@@ -392,14 +416,20 @@ extern "C" {
  *
  * @return R_NilValue
  */
-    SEXP mer_update_ranef(SEXP x)
+    SEXP ST_update_ranef(SEXP ST, SEXP u, SEXP perm, SEXP b)
     {
-	SEXP xm = GET_SLOT(x, lme4_merSym);
-	STinternal ST(x);
-	ST.update_ranef(U_SLOT(xm), PERM_SLOT(xm), RANEF_SLOT(xm));
+	int ulen = LENGTH(u);
+	if (!isReal(u) || !isInteger(perm) || !isReal(b) ||
+	    ulen != LENGTH(perm) || ulen != LENGTH(b))
+	    error (_("u and b must be numeric and perm must be integer, all the same length"));
+	STinternal(ST).update_ranef(REAL(u), INTEGER(perm), REAL(b));
 	return R_NilValue;
     }
 
+    SEXP ST_validate(SEXP x)
+    {
+	return STinternal(x).validate();
+    }
 /**
  * Extract the conditional variances of the random effects in an mer
  * object.  Some people called these posterior variances, hence the name.
@@ -415,7 +445,7 @@ extern "C" {
 	SEXP ans, flistP = GET_SLOT(x, lme4_flistSym);
 	const int nf = LENGTH(flistP), nt = dims[nt_POS], q = dims[q_POS];
 	int nr = 0, pos = 0;
-	int *asgn = INTEGER(getAttrib(flistP, install("assign")));
+//	int *asgn = INTEGER(getAttrib(flistP, install("assign")));
 	double *vv, one[] = {1,0}, sc;
 	CHM_SP sm1, sm2;
 	CHM_DN dm1;

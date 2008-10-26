@@ -506,27 +506,20 @@ lmer_finalize <- function(fr, FL, start, REML, verbose)
         Cx <- (dm$A)@x
     p <- dm$dd["p"]
     n <- length(Y)
+    ST <- new("ST", ST = dm@ST, Gp = dm@Gp)
 
     ans <- new(Class = "mer",
                env = new.env(),
                nlmodel = (~I(x))[[2]],
                frame = fr$mf,
-               call = call("foo"),      # later overwritten
                flist = dm$flist,
                X = fr$X,
                Zt = dm$Zt,
                pWt = unname(fr$wts),
                offset = unname(fr$off),
-### FIXME: Should y retain its names? As it stands any row names in the
-### frame are dropped.  Really?  Are they part of the frame slot (if not
-### reduced to 0 rows)?
                y = unname(Y),
-               Gp = unname(dm$Gp),
                dims = dm$dd,
-               ST = dm$ST,
-               A = dm$A,
-               Cm = dm$Cm,
-               Cx = Cx,
+               A = .Call("ST_create_A", ST, dm$Zt),
                L = dm$L,
                deviance = dm$dev,
                fixef = fr$fixef,
@@ -536,7 +529,6 @@ lmer_finalize <- function(fr, FL, start, REML, verbose)
                mu = numeric(n),
                resid = numeric(n),
                sqrtrWt = swts,
-               sqrtXWt = as.matrix(swts),
                RZX = matrix(0, dm$dd["q"], p),
                RX = matrix(0, p, p))
     if (!is.null(stp <- start$STpars) && is.numeric(stp)) {

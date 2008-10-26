@@ -41,7 +41,7 @@ export("glmer",
        "refit",
        "VarCorr")
 
-exportClasses("lmList", "mer", "merMCMC", "summary.mer")
+exportClasses("ST", "lmList", "mer", "merMCMC", "summary.mer")
 
 exportMethods(
               "BIC",
