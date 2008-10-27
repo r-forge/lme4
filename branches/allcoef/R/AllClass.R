@@ -13,45 +13,47 @@ setOldClass("data.frame")
 setOldClass("family")
 setOldClass("logLik")
 
-setClass("mer",
+setClass("mer", # mixed-effects representation used for PIRLS
 	 representation(## original data
-                        env = "environment",# evaluation env for nonlinear model
-                        nlmodel = "call",# nonlinear model call
+                        env = "environment", # evaluation env for nonlinear model
+                        nlmodel = "call",    # nonlinear model call
+### FIXME: Move frame up in class hierarchy                        
                         frame = "data.frame",# model frame (or empty frame)
-                        flist = "data.frame",  # list of grouping factors
-                        X = "matrix",    # fixed effects model matrix
-                        Xst = "dgCMatrix", # sparse fixed effects model matrix
-                        Zt = "dgCMatrix",# sparse form of Z'
-                        pWt = "numeric",# prior weights,
-                        offset = "numeric", # length 0 -> no offset
-                        y = "numeric",   # response vector
-                        dims = "integer",# dimensions and indicators
+### FIXME: Just need fl1 as a integer vector instead of flist?
+                        flist = "data.frame",# list of grouping factors
+                        X = "matrix",        # fixed effects model matrix
+### FIXME: Probably do without this for the time being?
+                        Xst = "dgCMatrix",   # sparse fixed effects model matrix
+                        Zt = "dgCMatrix",    # sparse form of Z'
+                        pWt = "numeric",     # prior weights,
+                        offset = "numeric",  # length 0 -> no offset
+                        y = "numeric",       # response vector
+                        dims = "integer",    # dimensions and indicators
                         ## slots that vary during optimization
-                        etaGamma = "matrix",    # gradient matrix
-                        A = "dgCMatrix", # (ZTS)'
-                        L = "CHMfactor", # Cholesky factor of weighted P(AA' + I)P'
-                        deviance = "numeric", # ML and REML deviance and components
-			fixef = "numeric",# fixed effects (length p)
-			ranef = "numeric",# random effects (length q)
-                        u = "numeric",   # orthogonal random effects (q)
-                        eta = "numeric", # unbounded predictor
-                        mu = "numeric",  # fitted values at current beta and b
-                        muEta = "numeric",# d mu/d eta evaluated at current eta
-                        var = "numeric", # conditional variances of Y
-                        resid = "numeric",# raw residuals at current beta and b
-                        sqrtrWt = "numeric",# sqrt of weights used with residuals
-                        RZX = "matrix", # dense sol. to L RZX = ST'ZtX = AX
-                        RX = "matrix",  # Cholesky factor of downdated X'X
-		        ghx = "numeric", # zeros of Hermite polynomial
-			ghw = "numeric"), # weights used for AGQ
+                        etaGamma = "matrix", # gradient matrix
+                        perm = "integer",    # permutation vector
+                        A = "dgCMatrix",     # (Z %*% Lambda)'
+                        L = "CHMfactor",     # Cholesky factor of U'U + I
+                        deviance = "numeric",# deviance and components
+			fixef = "numeric",   # fixed effects (length p)
+			ranef = "numeric",   # random effects (length q)
+                        u = "numeric",       # orthogonal random effects (q)
+                        eta = "numeric",     # unbounded predictor
+                        mu = "numeric",      # conditional mean
+                        muEta = "numeric",   # d mu/d eta at current eta
+                        var = "numeric",     # conditional variances of Y
+                        resid = "numeric",   # raw residuals
+                        sqrtrWt = "numeric", # sqrt of weights used with residuals
+                        RZX = "matrix",      # dense sol. to L RZX = UV
+                        RX = "matrix",       # Cholesky factor of downdated V'V
+		        ghx = "numeric",     # zeros of Hermite polynomial
+			ghw = "numeric"),    # weights used for AGQ
          validity = function(object) .Call(mer_validate, object))
 
-setClass("ST",
+setClass("ST",  # Scale/unit Triangular representation of relative covariance
          representation(ST = "list", # list of TSST' rep of rel. cov. mats
                         Gp = "integer"), # pointers to r.e. term groups
          validity = function(object) .Call(ST_validate, object))
-
-         
 
 ##' Parameterized components of an mer model.
 ##'
