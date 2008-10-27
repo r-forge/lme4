@@ -122,7 +122,7 @@ mer::mer(SEXP x)
     u = REAL(sl);
     sl = GET_SLOT(x, lme4_etaGammaSym);
     s = LENGTH(sl);
-    if (!(s % n))
+    if (s % n)
 	error(_("length(etaGamma) = %d is not a multiple of length(y) = %d"),
 	      s, n);
     s = s / n;
@@ -180,7 +180,7 @@ CHM_SP mer::A_to_U()
 	    (muEta ? muEta[jj] : 1) * (srwt ? srwt[jj] : 1);
 	Ati[p] = perm[Ati[p]];
     }
-    At->ncol /= s;
+    At->ncol = N;
     U = M_cholmod_triplet_to_sparse(At, nz, &c);
     M_cholmod_free_triplet(&At, &c);
     return U;
@@ -211,9 +211,8 @@ void mer::eval_nonlin(const double *tmp2)
     UNPROTECT(1);
 }
 
-double* mer::X_to_V()
+double* mer::X_to_V(double *V)
 {
-    double *V = new double[n * p];
     for (int i = 0; i < N*p; i++) V[i] = 0.; // zero the array
     for (int j = 0; j < p; j++) {
 	for (int i = 0; i < N; i++) {
@@ -235,15 +234,15 @@ double* mer::X_to_V()
  */
 double mer::update_mu()
 {
-    double *tmp = new double[N];
+    double *tmp = new double[N], d1[2] = {1,0};
     CHM_DN ctmp = N_AS_CHM_DN(tmp, N, 1), cu = N_AS_CHM_DN(u, q, 1);
 
 				// tmp := offset or tmp := 0
     for (int i = 0; i < N; i++) tmp[i] = offset ? offset[i] : 0;
 				// tmp := tmp + X beta
-    F77_CALL(dgemv)("N", &N, &p, &one, X, &N, fixef, &i1, &one, tmp, &i1);
+    F77_CALL(dgemv)("N", &N, &p, d1, X, &N, fixef, &i1, d1, tmp, &i1);
 				// tmp := tmp + A' u
-    if (!M_cholmod_sdmult(A, 1 /* trans */, &one, &one, cu, ctmp, &c))
+    if (!M_cholmod_sdmult(A, 1 /* trans */, d1, d1, cu, ctmp, &c))
 	error(_("cholmod_sdmult error returned"));
 				// fill in eta
 //FIXME: Do the check for etaGamma in eval_nonlin?
@@ -267,7 +266,7 @@ double mer::PIRLS()
     double *V = new double[n * p], *betaold = new double[p],
 	*cbeta = new double[p], *tmp = new double[q], *uold = new double[q],
 	*wtres = new double[q], cfac = ((double)n)/((double)(q+p)),
-	crit, pwrss_old, step;
+	crit, pwrss_old, step, d1[2] = {1,0}, d0[2] = {0,0};
     CHM_SP U;
     CHM_DN SOL, cRZX = N_AS_CHM_DN(RZX, q, p), cV = N_AS_CHM_DN(V, n, p),
 	cwtres = N_AS_CHM_DN(wtres, n, 1), ctmp = N_AS_CHM_DN(tmp, q, 1);
@@ -291,24 +290,24 @@ double mer::PIRLS()
 	} else dble_cpy(wtres, res, n);
 	pwrss_old = sqr_length(wtres, n) + sqr_length(u, q);			 
 	U = A_to_U();		// create U
-	V = X_to_V();		// create V
-	if (!M_cholmod_factorize_p(U, &one, (int*)NULL, 0 /*fsize*/, L, &c)) // L
+	X_to_V(V);		// update V
+	if (!M_cholmod_factorize_p(U, d1, (int*)NULL, 0 /*fsize*/, L, &c)) // L
 	    error(_("cholmod_factorize_p failed: status %d, minor %d from ncol %d"),
 		  c.status, L->minor, L->n);
-	if (!M_cholmod_sdmult(U, 0/*no transpose*/, &one, &zero, cV, cRZX, &c)) // RZX
+	if (!M_cholmod_sdmult(U, 0/*no transpose*/, d1, d0, cV, cRZX, &c)) // RZX
 	    error(_("cholmod_sdmult failed: status %d"), c.status);
 	if (!(SOL = M_cholmod_solve(CHOLMOD_L, L, cRZX, &c)))
 	    error(_("cholmod_solve (CHOLMOD_P) failed: status %d"), c.status);
 	dble_cpy(RZX, (double*)(SOL->x), q * p);
 	M_cholmod_free_dense(&SOL, &c);
 				// solve for RX in downdated V'V*/
-	F77_CALL(dsyrk)("U", "T", &p, &n, &one, V, &n, &zero, RX, &p); /* V'V */
-	F77_CALL(dsyrk)("U", "T", &p, &q, &mone, RZX, &q, &one, RX, &p);
+	F77_CALL(dsyrk)("U", "T", &p, &n, d1, V, &n, d0, RX, &p); /* V'V */
+	F77_CALL(dsyrk)("U", "T", &p, &q, &mone, RZX, &q, d1, RX, &p);
 	F77_CALL(dpotrf)("U", &p, RX, &p, &info);
 	if (info)
 	    error(_("Downdated V'V is not positive definite, %d."), info);
 				// tmp := U %*% wtdResid 
-	M_cholmod_sdmult(U, 0 /* notrans */, &one, &zero, cwtres, ctmp, &c);
+	M_cholmod_sdmult(U, 0 /* notrans */, d1, d0, cwtres, ctmp, &c);
 	for (int j = 0; j < q; j++) tmp[j] -= u[j]; // tmp := tmp - u
 	M_cholmod_free_sparse(&U, &c);
 				// solve L %*% tmp = tmp
@@ -317,10 +316,10 @@ double mer::PIRLS()
 	dble_cpy(tmp, (double*)(SOL->x), q);
 	M_cholmod_free_dense(&SOL, &c);
 				// solve RX'cbeta = V'wtres - RZX'cu
-	F77_CALL(dgemv)("T", &n, &p, &one, V, &n, wtres, &i1,
-			&zero, cbeta, &i1);
+	F77_CALL(dgemv)("T", &n, &p, d1, V, &n, wtres, &i1,
+			d0, cbeta, &i1);
 	F77_CALL(dgemv)("T", &q, &p, &mone, RZX, &q, tmp, &i1,
-			&one, cbeta, &i1);
+			d1, cbeta, &i1);
 	F77_CALL(dtrsv)("U", "T", "N", &p, RX, &p, cbeta, &i1);
 	/* evaluate convergence criterion */
 	crit = cfac * (sqr_length(tmp, q) + sqr_length(cbeta, p))/ pwrss_old;
@@ -332,7 +331,7 @@ double mer::PIRLS()
 	F77_CALL(dtrsv)("U", "N", "N", &p, RX, &p, cbeta, &i1);
 	/* solve t(L) %*% SOL = tmp - RZX cbeta */
 	F77_CALL(dgemv)("N", &q, &p, &mone, RZX, &q, cbeta, &i1,
-			&one, tmp, &i1);
+			d1, tmp, &i1);
 	if (!(SOL = M_cholmod_solve(CHOLMOD_Lt, L, ctmp, &c)))
 	    error(_("cholmod_solve (CHOLMOD_Lt) failed"));
 	dble_cpy(tmp, (double*)(SOL->x), q);
