@@ -92,7 +92,7 @@ private:
  * Fill in the V matrix using X, etaGamma, muEta and srwt.
  * @param V pointer to storage for N * p doubles
  */
-    double* X_to_V();
+    double* X_to_V(double *V);
     void eval_nonlin(const double *tmp);
     void eval_muEta();
     void eval_varFunc();

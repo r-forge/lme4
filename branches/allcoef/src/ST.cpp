@@ -39,9 +39,9 @@ CHM_SP STinternal::Tmatrix()
     if (maxnc < 2)
 	return M_cholmod_speye((size_t)Gp[nt], (size_t)Gp[nt],
 			       CHOLMOD_REAL, &c);
-    int nnz;
+    int nnz = 0;
     for (int i = 0; i < nt; i++)
-	nnz += nlev[i] * nc[i] * (nc[i] + 1);
+	nnz += nlev[i] * (nc[i] * (nc[i] + 1)) / 2;
     CHM_SP A = M_cholmod_allocate_sparse((size_t) Gp[nt], // nrow
 					 (size_t) Gp[nt], // ncol
 					 (size_t) nnz,
