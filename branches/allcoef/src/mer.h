@@ -36,7 +36,12 @@ SEXP mer_validate(SEXP x);
 class mer {
 public:
     mer(SEXP x);		//< external, R-level object
-    ~mer(){delete L; delete A;};
+    ~mer(){
+	delete L; delete A; 
+	d[wrss_POS] = wrss;
+	d[usqr_POS] = usqr;
+	d[pwrss_POS] = pwrss;
+    }
 /**
  * Update the u and fixef slots in an mer object
  * @return updated deviance

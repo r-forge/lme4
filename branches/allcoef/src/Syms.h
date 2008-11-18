@@ -16,6 +16,7 @@ SEXP attribute_hidden
     lme4_etaSym,
     lme4_etaGammaSym,
     lme4_fixefSym,
+    lme4_fl1Sym,
     lme4_flistSym,
     lme4_ghwSym,
     lme4_ghxSym,

@@ -2,7 +2,8 @@
 
 double mer::mone = -1;		// These don't really change but they
 double mer::one = 1;		// are passed to Fortran code as
-double mer::zero = 0;		// pointers 
+double mer::zero = 0;		// pointers. FIXME Add const to those
+				// declarations.
 int mer::i1 = 1;
 
 const double mer::CM_TOL = 1e-10;
@@ -29,7 +30,7 @@ inline double *dble_cpy(double *dest, const double *src, int nn)
 }
 
 /**
- * Zero the first nn elements of dest
+ * Zero the first nn elements of double pointer dest
  *
  * @param dest vector
  * @param nn number of elements in dest
@@ -39,9 +40,15 @@ inline void dble_zero(double *dest, int nn)
     for (int i = 0; i < nn; i++) dest[i] = 0.;
 }
 
+/**
+ * Zero the first nn elements of int pointer dest
+ *
+ * @param dest vector
+ * @param nn number of elements in dest
+ */
 inline void int_zero(int *dest, int nn)
 {
-    for (int i = 0; i < nn; i++) dest[i] = 0.;
+    for (int i = 0; i < nn; i++) dest[i] = 0;
 }
 
 /**
@@ -71,13 +78,6 @@ inline double y_log_y(double y, double mu)
 {
     return (y) ? (y * log(y/mu)) : 0;
 }
-
-/* Constants */
-    
-#ifndef BUF_SIZE
-/** size of buffer for an error message */
-#define BUF_SIZE 127
-#endif	
 
 // Definition of methods for the mer class
 
@@ -213,7 +213,7 @@ void mer::eval_nonlin(const double *tmp2)
 
 double* mer::X_to_V(double *V)
 {
-    for (int i = 0; i < N*p; i++) V[i] = 0.; // zero the array
+    dble_zero(V, N * p);	// zero the array
     for (int j = 0; j < p; j++) {
 	for (int i = 0; i < N; i++) {
 	    int ii = i % n;
@@ -256,7 +256,7 @@ double mer::update_mu()
 	double wtres = (res[i] = y[i] - mu[i]) * (srwt ? srwt[i] : 1);
 	wrss += wtres * wtres;
     }
-    usqr = sqr_length(u, q);	// store u'u 
+    usqr = sqr_length(u, q);
     return pwrss = wrss + usqr;
 }
 
@@ -265,7 +265,7 @@ double mer::PIRLS()
     int cvg, info, verb = dims[verb_POS];
     double *V = new double[n * p], *betaold = new double[p],
 	*cbeta = new double[p], *tmp = new double[q], *uold = new double[q],
-	*wtres = new double[q], cfac = ((double)n)/((double)(q+p)),
+	*wtres = new double[n], cfac = ((double)n)/((double)(q+p)),
 	crit, pwrss_old, step, d1[2] = {1,0}, d0[2] = {0,0};
     CHM_SP U;
     CHM_DN SOL, cRZX = N_AS_CHM_DN(RZX, q, p), cV = N_AS_CHM_DN(V, n, p),
@@ -355,60 +355,22 @@ double mer::PIRLS()
 	    break;
 	}
     }
-    delete[] V; delete[] betaold; delete[] cbeta; delete[] tmp;
-    delete[] uold; delete[] wtres;
+    delete[] V;
+    delete[] betaold;
+    delete[] cbeta;
+    delete[] tmp;
+    delete[] uold;
+    delete[] wtres;
+    d[usqr_POS] = usqr;
+    d[wrss_POS] = wrss;
+    d[ldL2_POS] = M_chm_factor_ldetL2(L);
+    d[pwrss_POS] = d[usqr_POS] + d[wrss_POS];
+    d[sigmaML_POS] = sqrt(d[pwrss_POS]/
+			  (srwt ? sqr_length(srwt, n) : (double) n));
+    d[sigmaREML_POS] = (V || muEta) ? NA_REAL :
+	d[sigmaML_POS] * sqrt((((double) n)/((double)(n - p))));
 
     return update_dev();
-}
-
-
-
-/* Stand-alone utility functions (sorted by function name) */
-
-/**
- * Check that slot sym of object x is a numeric matrix of dimension nr
- * by nc.
- *
- * @param buf character buffer of length nb + 1
- * @param nb number of writable positions in the buffer
- * @param x pointer to an mer object
- * @param sym name (symbol, actually) of the slot to check
- * @param nr expected number of rows
- * @param nc expected number of columns
- *
- * @return 0 for success, number of characters written to buf on failure
- */
-static int chkDims(char *buf, int nb, SEXP x, SEXP sym, int nr, int nc)
-{
-    SEXP MP = GET_SLOT(x, sym);
-    int *dm = isMatrix(MP) ? INTEGER(getAttrib(MP, R_DimSymbol)) : (int*) NULL;
-    if (!dm || !isReal(MP) || dm[0] != nr || dm[1] != nc)
-	return snprintf(buf, BUF_SIZE,
-			_("Slot %s must be a numeric matrix of size %d by %d"),
-			CHAR(PRINTNAME(sym)), nr, nc);
-    return 0;
-}
-
-/** Check that the length of the sym slot in x is len or, possibly, zero.
- *
- * @param buf character buffer of length nb + 1
- * @param nb number of writable positions in the buffer
- * @param x pointer to an mer object
- * @param sym name (symbol, actually) of the slot to check
- * @param len expected length
- * @param zerok is a length of zero allowed?
- *
- * @return 0 for success, number of characters written to buf on failure
-
- */
-static int chkLen(char *buf, int nb, SEXP x, SEXP sym, int len, int zerok)
-{
-    int ll;
-
-    if (!(ll = LENGTH(GET_SLOT(x, sym))) == len && zerok && !ll)
-	return snprintf(buf, BUF_SIZE, _("Slot %s must have length %d."),
-			CHAR(PRINTNAME(sym)), len);
-    return 0;
 }
 
 /**
@@ -417,7 +379,7 @@ static int chkLen(char *buf, int nb, SEXP x, SEXP sym, int len, int zerok)
  * @param ans pointer to vector of partial sums
  * @param fac indices associating observations with partial sums 
  *            (may be (int*)NULL)
-  * @return the sum of the deviance residuals
+ * @return ans
  */
 double* mer::eval_devResid(double *ans, const int *fac)
 {
@@ -632,6 +594,18 @@ double mer::update_dev()
 	update_mu();
 	d[ML_POS] += muEta ? 0 : (dn * log(2*PI*d[pwrss_POS]/dn));
 	delete[] tmp; delete[] uold;
+    }
+    if (dims[fTyp_POS] == 2 && dims[lTyp_POS] == 5 &&
+	dims[vTyp_POS] == 1) {
+	double dn = (double)n, dnmp = (double)(n - p);
+
+	d[REML_POS] = d[ldL2_POS] + d[ldRX2_POS] +
+	    dnmp * (1. + log(d[pwrss_POS]) + log(2. * PI / dnmp));
+	d[sigmaML_POS] = sqrt(d[pwrss_POS]/
+			      (srwt ? sqr_length(srwt, n) : dn));
+	d[sigmaREML_POS] = d[sigmaML_POS] * sqrt(dn/dnmp);
+
+	return d[dims[isREML_POS] ? REML_POS : ML_POS];
     }
     return d[ML_POS];
 }
@@ -855,6 +829,61 @@ SEXP merMCMC_VarCorr(SEXP x, SEXP typP)
     return ans;
 }
 
+/* Stand-alone utility functions (sorted by function name) */
+
+/* Constants */
+    
+#ifndef BUF_SIZE
+/** size of buffer for an error message */
+#define BUF_SIZE 127
+#endif	
+
+/**
+ * Check that slot sym of object x is a numeric matrix of dimension nr
+ * by nc.
+ *
+ * @param buf character buffer of length nb + 1
+ * @param nb number of writable positions in the buffer
+ * @param x pointer to an mer object
+ * @param sym name (symbol, actually) of the slot to check
+ * @param nr expected number of rows
+ * @param nc expected number of columns
+ *
+ * @return 0 for success, number of characters written to buf on failure
+ */
+static int chkDims(char *buf, int nb, SEXP x, SEXP sym, int nr, int nc)
+{
+    SEXP MP = GET_SLOT(x, sym);
+    int *dm = isMatrix(MP) ? INTEGER(getAttrib(MP, R_DimSymbol)) : (int*) NULL;
+    if (!dm || !isReal(MP) || dm[0] != nr || dm[1] != nc)
+	return snprintf(buf, BUF_SIZE,
+			_("Slot %s must be a numeric matrix of size %d by %d"),
+			CHAR(PRINTNAME(sym)), nr, nc);
+    return 0;
+}
+
+/** Check that the length of the sym slot in x is len or, possibly, zero.
+ *
+ * @param buf character buffer of length nb + 1
+ * @param nb number of writable positions in the buffer
+ * @param x pointer to an mer object
+ * @param sym name (symbol, actually) of the slot to check
+ * @param len expected length
+ * @param zerok is a length of zero allowed?
+ *
+ * @return 0 for success, number of characters written to buf on failure
+
+ */
+static int chkLen(char *buf, int nb, SEXP x, SEXP sym, int len, int zerok)
+{
+    int ll;
+
+    if (!(ll = LENGTH(GET_SLOT(x, sym))) == len && zerok && !ll)
+	return snprintf(buf, BUF_SIZE, _("Slot %s must have length %d."),
+			CHAR(PRINTNAME(sym)), len);
+    return 0;
+}
+
 /**
  * Check validity of an mer object
  *
@@ -866,30 +895,20 @@ SEXP merMCMC_VarCorr(SEXP x, SEXP typP)
 SEXP mer_validate(SEXP x)
 {
     SEXP devianceP = GET_SLOT(x, lme4_devianceSym),
-	dimsP = GET_SLOT(x, lme4_dimsSym),
-	flistP = GET_SLOT(x, lme4_flistSym), asgnP;
-    int *dd = INTEGER(dimsP), *asgn;
-    const int n = dd[n_POS], nAGQ = dd[nAGQ_POS],
-	nt = dd[nt_POS], nfl = LENGTH(flistP),
+      dimsP = GET_SLOT(x, lme4_dimsSym);
+    int *dd = INTEGER(dimsP);
+    const int n = dd[n_POS], nAGQ = dd[nAGQ_POS], 
 	p = dd[p_POS], q = dd[q_POS], s = dd[s_POS];
-    int nq, nv = n * s;
-    CHM_SP Zt = Zt_SLOT(x), A =  A_SLOT(x);
+    int nv = n * s;
+    CHM_SP A =  A_SLOT(x);
     CHM_FR L = L_SLOT(x);
     char *buf = Alloca(BUF_SIZE + 1, char);
     R_CheckStack();
 				/* check lengths */
-    asgnP = getAttrib(flistP, install("assign"));
-    if (!isInteger(asgnP) || LENGTH(asgnP) != nt)
-	return mkString(_("Slot flist must have integer attribute 'assign' of length dims['nt']"));
-    asgn = INTEGER(asgnP);
     if (nAGQ < 1)
 	return mkString(_("nAGQ must be positive"));
-    if ((nAGQ > 1) & (nfl != 1))
-	return mkString(_("AGQ method requires a single grouping factor"));
-
-    for (int i = 0; i < nt; i++)
-	if (asgn[i] <= 0 || asgn[i] > nfl)
-	    return mkString(_("All elements of the assign attribute must be in [1,length(flist)]"));
+    if (chkLen(buf, BUF_SIZE, x, lme4_ghwSym, nAGQ, 0)) return(mkString(buf));
+    if (chkLen(buf, BUF_SIZE, x, lme4_ghxSym, nAGQ, 0)) return(mkString(buf));
 
     if (LENGTH(devianceP) != (NULLdev_POS + 1) ||
 	LENGTH(getAttrib(devianceP, R_NamesSymbol)) != (NULLdev_POS + 1))
@@ -899,8 +918,6 @@ SEXP mer_validate(SEXP x)
 	return mkString(_("dims slot not named or incorrect length"));
     if (((int)(L->n)) != q || !L->is_ll || !L->is_monotonic)
 	return mkString(_("Slot L must be a monotonic LL' factorization of size dims['q']"));
-    if (((int)(Zt->nrow)) != q || ((int)(Zt->ncol)) != nv)
-	return mkString(_("Slot Zt must by dims['q']  by dims['n']*dims['s']"));
     if (((int)(A->nrow)) != q || ((int)(A->ncol)) != nv)
 	return mkString(_("Slot A must be dims['q']  by dims['n']*dims['s']"));
     if (chkLen(buf, BUF_SIZE, x, lme4_etaSym, n, 0)) return(mkString(buf));
@@ -910,7 +927,7 @@ SEXP mer_validate(SEXP x)
     if (chkLen(buf, BUF_SIZE, x, lme4_muSym, n, 0)) return(mkString(buf));
     if (chkLen(buf, BUF_SIZE, x, lme4_offsetSym, n, 1)) return(mkString(buf));
     if (chkLen(buf, BUF_SIZE, x, lme4_pWtSym, n, 1)) return(mkString(buf));
-    if (chkLen(buf, BUF_SIZE, x, lme4_ranefSym, q, 0)) return(mkString(buf));
+//    if (chkLen(buf, BUF_SIZE, x, lme4_ranefSym, q, 0)) return(mkString(buf));
     if (chkLen(buf, BUF_SIZE, x, lme4_residSym, n, 0)) return(mkString(buf));
     if (chkLen(buf, BUF_SIZE, x, lme4_sqrtrWtSym, n, 1)) return(mkString(buf));
     if (chkLen(buf, BUF_SIZE, x, lme4_uSym, q, 0)) return(mkString(buf));
@@ -920,12 +937,6 @@ SEXP mer_validate(SEXP x)
     if (chkDims(buf, BUF_SIZE, x, lme4_RZXSym, q, p)) return(mkString(buf));
     if (chkDims(buf, BUF_SIZE, x, lme4_RXSym, p, p)) return(mkString(buf));
 
-    nq = 0;
-    for (int i = 0; i < LENGTH(flistP); i++) {
-	SEXP fli = VECTOR_ELT(flistP, i);
-	if (!isFactor(fli))
-	    return mkString(_("flist must be a list of factors"));
-    }
     return ScalarLogical(1);
 }
 
