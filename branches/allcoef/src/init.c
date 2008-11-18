@@ -75,6 +75,7 @@ void R_init_lme4(DllInfo *dll)
     lme4_etaSym = install("eta");
     lme4_etaGammaSym = install("etaGamma");
     lme4_fixefSym = install("fixef");
+    lme4_fl1Sym = install("fl1");
     lme4_flistSym = install("flist");
     lme4_ghwSym = install("ghw");
     lme4_ghxSym = install("ghx");

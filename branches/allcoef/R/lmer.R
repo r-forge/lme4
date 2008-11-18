@@ -1,11 +1,37 @@
 # lmer, glmer and nlmer plus methods and utilities
 
-if (FALSE) {
-### FIXME: Move this function to the stats package
-rWishart <- function(n, df, invScal)
-### Random sample from a Wishart distribution
-    .Call(lme4_rWishart, n, df, invScal)
-}
+dimsDefault <- c(nt = -1L,              # number of terms
+                 n = -1L,               # number of observations
+                 p = -1L,               # number of fixed effects
+                 q = -1L,               # number of random effects
+                 s = 1L,                # identity mechanistic model
+                 np= -1L,               # number of parameters in ST
+                 LMM= 0L,               # not a linear mixed model
+                 REML= 0L,              # not REML
+                 fTyp= 2L,              # default family is "gaussian"
+                 lTyp= 5L,              # default link is "identity"
+                 vTyp= 1L,   # default variance function is "constant"
+                 nest = 0L,             # not nested
+                 useSc= 1L,    # default is to use the scale parameter
+                 nAGQ= 1L,              # default is Laplace
+                 verb= 0L,              # no verbose output
+                 mxit= 300L,            # maximum number of iterations
+                 mxfn= 900L,            # max. no. funct. eval.
+                 cvg = 0L)             # no optimization yet attempted
+
+devDefault <- c(ML = NA,                # deviance (for ML estimation)
+                REML = NA,              # REML criterion
+                ldL2 = NA,              # 2 * log(det(L))
+                ldRX2 = NA,             # 2 * log(det(RX))
+                sigmaML = 1,            # ML estimate of common scale
+                sigmaREML = NA,         # REML estimate of common scale
+                pwrss = -1,             # penalized, weighted RSS
+                disc = NA,              # discrepancy
+                usqr = -1,              # squared length of u
+                wrss = -1,              # weighted residual sum of squares
+                dev = NA,               # deviance
+                llik = NA,              # log-likelihood
+                NULLdev = 0)            # null deviance
 
 ### Utilities for parsing the mixed model formula
 
@@ -102,26 +128,6 @@ expandSlash <- function(bb)
                                                         bar = trm))))
         x
     }))
-}
-
-### Utilities used in lmer, glmer and nlmer
-
-createCm <- function(A, s)
-### Create the nonzero pattern for the sparse matrix Cm from A.
-### ncol(A) is s * ncol(Cm).  The s groups of ncol(Cm) consecutive
-### columns in A are overlaid to produce Cm.
-{
-    stopifnot(is(A, "dgCMatrix"))
-    s <- as.integer(s)[1]
-    if (s == 1L) return(A)
-    if ((nc <- ncol(A)) %% s)
-        stop(gettextf("ncol(A) = %d is not a multiple of s = %d",
-                      nc, s))
-    ncC <- as.integer(nc / s)
-    TA <- as(A, "TsparseMatrix")
-    as(new("dgTMatrix", Dim = c(nrow(A), ncC),
-           i = TA@i, j = as.integer(TA@j %% ncC), x = TA@x),
-       "CsparseMatrix")
 }
 
 ### FIXME: somehow the environment of the mf formula does not have
@@ -232,32 +238,6 @@ isNested <- function(f1, f2)
     all(diff(sm@p) < 2)
 }
 
-##' dimsNames and devNames are in the package's namespace rather than
-##' in the function lmerFactorList because the function sparseRasch
-##' needs to access them. 
-
-dimsNames <- c("nt", "n", "p", "q", "s", "np", "LMM", "REML",
-               "fTyp", "lTyp", "vTyp", "nest", "useSc", "nAGQ",
-               "verb", "mxit", "mxfn", "cvg")
-dimsDefault <- list(s = 1L,             # identity mechanistic model
-                    mxit= 300L,         # maximum number of iterations
-                    mxfn= 900L, # maximum number of function evaluations
-                    verb= 0L,           # no verbose output
-                    np= 0L,             # number of parameters in ST
-                    LMM= 0L,            # not a linear mixed model
-                    REML= 0L,         # glmer and nlmer don't use REML
-                    fTyp= 2L,           # default family is "gaussian"
-                    lTyp= 5L,           # default link is "identity"
-                    vTyp= 1L, # default variance function is "constant"
-                    useSc= 1L, # default is to use the scale parameter
-                    nAGQ= 1L,                  # default is Laplace
-                    cvg = 0L)                  # no optimization yet attempted
-                    
-devNames <- c("ML", "REML", "ldL2", "ldRX2", "sigmaML",
-              "sigmaREML", "pwrss", "disc", "usqr", "wrss",
-              "dev", "llik", "NULLdev")
-
-
 ##' Create model matrices from r.e. terms.
 ##'
 ##' Create the list of model matrices from the random-effects terms in
@@ -300,31 +280,19 @@ lmerFactorList <- function(formula, fr, rmInt, drop)
                          stop("lhs of a random-effects term cannot be an intercept only")
                      mm <- mm[ , -icol , drop = FALSE]
                  }
-                 ans <- list(f = ff,
-                             A = do.call(rBind,
-                             lapply(seq_len(ncol(mm)), function(j) im)),
-                             Zt = do.call(rBind,
-                             lapply(seq_len(ncol(mm)),
-                                    function(j) {im@x <- mm[,j]; im})),
-                             ST = matrix(0, ncol(mm), ncol(mm),
-                             dimnames = list(colnames(mm), colnames(mm))))
-                 if (drop) {
-                     ## This is only used for nlmer models.
-                     ## Need to do something more complicated for A
-                     ## here.  Essentially you need to create a copy
-                     ## of im for each column of mm, im@x <- mm[,j],
-                     ## create the appropriate number of copies,
-                     ## prepend matrices of zeros, then rBind and drop0.
-                     ans$A@x <- rep(0, length(ans$A@x))
-                     ans$Zt <- drop0(ans$Zt)
-                 }
-                 ans
+                 list(f = ff,
+                      Zt = drop0(do.call(rBind,
+                      lapply(seq_len(ncol(mm)),
+                             function(j) {im@x <- mm[,j]; im}))),
+                      ST = matrix(0, ncol(mm), ncol(mm),
+                      dimnames = list(colnames(mm), colnames(mm))))
              })
-    dd <-
-        VecFromNames(dimsNames, "integer",
-                     c(list(n = nrow(mf), p = ncol(fr$X), nt = length(fl),
-                            q = sum(sapply(fl, function(el) nrow(el$Zt)))),
-                       dimsDefault))
+    dd <- dimsDefault
+    dd["n"] <- nrow(mf)
+    dd["p"] <- ncol(fr$X)
+    dd["nt"] <- length(fl)
+    dd["q"] <- sum(sapply(fl, function(el) nrow(el$Zt)))
+    
     ## order terms by decreasing number of levels in the factor but don't
     ## change the order if this is already true
     nlev <- sapply(fl, function(el) length(levels(el$f)))
@@ -350,17 +318,6 @@ lmerFactorList <- function(formula, fr, rmInt, drop)
     list(trms = trms, fl = fl, dims = dd)
 }
 
-checkSTform <- function(ST, STnew)
-### Check that the 'STnew' argument matches the form of ST.
-{
-    stopifnot(is.list(STnew), length(STnew) == length(ST),
-              all.equal(names(ST), names(STnew)))
-    lapply(seq_along(STnew), function (i)
-           stopifnot(class(STnew[[i]]) == class(ST[[i]]),
-                     all.equal(dim(STnew[[i]]), dim(ST[[i]]))))
-    all(unlist(lapply(STnew, function(m) all(diag(m) > 0))))
-}
-
 lmerControl <- function(msVerbose = getOption("verbose"),
                         maxIter = 300L, maxFN = 900L)
 ### Control parameters for lmer, glmer and nlmer
@@ -371,54 +328,107 @@ lmerControl <- function(msVerbose = getOption("verbose"),
 	 msVerbose = as.integer(msVerbose))# "integer" on purpose
 }
 
-VecFromNames <- function(nms, mode = "numeric", defaults = list())
-### Generate a named vector of the given mode
+lmer2 <-
+    function(formula, data, family = NULL, REML = TRUE,
+             control = list(), start = NULL, verbose = FALSE, doFit = TRUE,
+             subset, weights, na.action, offset, contrasts = NULL,
+             model = TRUE, x = TRUE, ...)
 {
-    ans <- vector(mode = mode, length = length(nms))
-    names(ans) <- nms
-    ans[] <- NA
-    if ((nd <- length(defaults <- as.list(defaults))) > 0) {
-        if (length(dnms <- names(defaults)) < nd)
-            stop("defaults must be a named list")
-        stopifnot(all(dnms %in% nms))
-        ans[dnms] <- as(unlist(defaults), mode)
+    mc <- match.call()
+    if (!is.null(family)) {             # call glmer
+        mc[[1]] <- as.name("glmer")
+        return(eval.parent(mc))
     }
-    ans
+    stopifnot(length(formula <- as.formula(formula)) == 3)
+    fr <- lmerFrames(mc, formula, contrasts) # model frame, X, etc.
+    FL <- lmerFactorList(formula, fr, 0L, 0L) # flist, Zt, dims
+    mer <- mkZt(fr, FL, NULL)
+    mer
 }
 
 mkZt <- function(fr, FL, start, s = 1L)
-### Create the standard versions of flist, Zt, Gp, ST, A, Cm,
-### Cx, and L. Update dd.
+### Create the standard versions of flist, Zt, Gp, ST, A and L.
+### Update dd.
 {
     dd <- FL$dims
     fl <- FL$fl
     asgn <- attr(fl, "assign")
+    fl <- do.call(data.frame, c(fl, check.names = FALSE))
+    attr(fl, "assign") <- asgn
     trms <- FL$trms
-    ST <- lapply(trms, `[[`, "ST")
     Ztl <- lapply(trms, `[[`, "Zt")
     Zt <- do.call(rBind, Ztl)
     Zt@Dimnames <- vector("list", 2)
-    Gp <- unname(c(0L, cumsum(sapply(Ztl, nrow))))
-    .Call(mer_ST_initialize, ST, Gp, Zt)
-    A <- do.call(rBind, lapply(trms, `[[`, "A"))
+    ST <- new("ST", ST = lapply(trms, `[[`, "ST"),
+              Gp = unname(c(0L, cumsum(sapply(Ztl, nrow)))))
     rm(Ztl, FL)                         # because they could be large
-    nc <- sapply(ST, ncol)         # of columns in els of ST
-    Cm <- createCm(A, s)
-    L <- .Call(mer_create_L, Cm)
-    if (s < 2) Cm <- new("dgCMatrix")
+    .Call(ST_initialize, ST, Zt)
+    A <- .Call(ST_create_A, ST, Zt)
+    L <- Cholesky(tcrossprod(A), perm = TRUE, LDL = FALSE, Imult = 1)
+    perm <- L@perm
+    L@perm <- seq_len(nrow(A)) - 1L
     if (!is.null(start) && checkSTform(ST, start)) ST <- start
-
-    nvc <- sapply(nc, function (qi) (qi * (qi + 1))/2) # no. of var. comp.
+    
 ### FIXME: Check number of variance components versus number of
 ### levels in the factor for each term. Warn or stop as appropriate
+    bds <- .Call(ST_bounds, ST)
+    if (length(bds) %% 2) stop("length of bounds vector must be even")
+    dd["np"] <- as.integer(length(bds)/2) # number of parameters in optimization
+    X <- fr$X
+    q <- nrow(Zt)
+    y <- unname(fr$Y)
+    n <- length(y)
+    p <- ncol(X)
+    wts <- unname(fr$wts)
+    PIRLS <- new(Class = "PIRLS",
+                 env = new.env(),
+                 nlmodel = (~I(x))[[2]],
+                 X = X,
+                 pWt = wts,
+                 offset = unname(fr$off),
+                 y = y,
+                 dims = dd,
+                 perm = perm,
+                 fl1 = as.integer(flist[[1]]),
+                 A = A,
+                 L = L,
+                 deviance = devDefault,
+                 fixef = fr$fixef,
+                 u = numeric(q),
+                 eta = numeric(n),
+                 mu = numeric(n),
+                 resid = numeric(n),
+                 sqrtrWt = sqrt(wts),
+                 RZX = matrix(0, q, p),
+                 RX = matrix(0, p, p),
+                 ghx = numeric(0),
+                 ghw = numeric(0))
+    .Call(mer_update_mu, PIRLS)
+    new("mer",
+        rCF = ST,
+        PLS = PIRLS,
+        Zt = Zt,
+        flist = fl,
+        frame = fr$mf,
+        ranef = numeric(q))
+}
 
-    dd["np"] <- as.integer(sum(nvc))    # number of parameters in optimization
-    dev <- VecFromNames(devNames, "numeric")
-    fl <- do.call(data.frame, c(fl, check.names = FALSE))
-    attr(fl, "assign") <- asgn
-
-    list(Gp = Gp, ST = ST, A = A, Cm = Cm, L = L, Zt = Zt,
-         dd = dd, dev = dev, flist = fl)
+mer.tst <-
+    function(formula, data, family = NULL, REML = TRUE,
+             control = list(), start = NULL, verbose = FALSE, doFit = TRUE,
+             subset, weights, na.action, offset, contrasts = NULL,
+             model = TRUE, x = TRUE, ...)
+{
+    mc <- match.call()
+    if (!is.null(family)) {             # call glmer
+        mc[[1]] <- as.name("glmer")
+        return(eval.parent(mc))
+    }
+    stopifnot(length(formula <- as.formula(formula)) == 3)
+    fr <- lme4:::lmerFrames(mc, formula, contrasts) # model frame, X, etc.
+    FL <- lmerFactorList(formula, fr, 0L, 0L) # flist, Zt, dims
+    Ztl <- mkZt(fr, FL, NULL)
+    Ztl
 }
 
 famNms <- c("binomial", "gaussian", "Gamma", "inverse.gaussian",
@@ -627,19 +637,6 @@ lmer <-
         ans@call <- mc
     }
     ans
-}
-
-## for backward compatibility
-lmer2 <-
-    function(formula, data, family = NULL, REML = TRUE,
-             control = list(), start = NULL, verbose = FALSE,
-             subset, weights, na.action, offset, contrasts = NULL,
-             model = TRUE, x = TRUE, ...)
-{
-    .Deprecated("lmer")
-    mc <- match.call()
-    mc[[1]] <- as.name("lmer")
-    eval.parent(mc)
 }
 
 glmer <-
@@ -2205,4 +2202,13 @@ reinds <- function(Gp)
 whichreind <- function(fm, fnm = names(fm@flist))
     lapply(whichterms(fm, fnm),
            function (ind) unlist(reinds(fm@Gp)[ind]))
+
+
+
+if (FALSE) {
+### FIXME: Move this function to the stats package
+rWishart <- function(n, df, invScal)
+### Random sample from a Wishart distribution
+    .Call(lme4_rWishart, n, df, invScal)
+}
 

@@ -54,3 +54,18 @@ setGeneric("VarCorr", function(x, ...) standardGeneric("VarCorr"))
 setGeneric("traceplot", function(x, ...) standardGeneric("traceplot"))
 
 setGeneric("refit", function(object, newresp, ...) standardGeneric("refit"))
+
+#' returns an A template from Zt
+setGeneric("createA", function(rCF, Zt, ...) standardGeneric("createA"))
+
+#' returns the parameter bounds
+setGeneric("getBounds", function(rCF, ...) standardGeneric("getBounds"))
+
+#' returns the current parameter values
+setGeneric("getPars", function(rCF, ...) standardGeneric("getPars"))
+
+#' sets the parameter values
+setGeneric("setPars", function(rCF, pars, ...) standardGeneric("setPars"))
+
+#' sets parameter values and updates the A matrix
+setGeneric("setParsA", function(rCF, pars, Zt, A, ...) standardGeneric("setParsA"))
