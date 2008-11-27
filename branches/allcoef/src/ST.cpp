@@ -293,9 +293,9 @@ extern "C" {
  *
  * @return the A matrix as an dgCMatrix object
  */
-    SEXP ST_create_A(SEXP x, SEXP Zt)
+    SEXP ST_create_A(SEXP x, SEXP rho)
     {
-	CHM_SP A = STinternal(x).create_A(AS_CHM_SP(Zt));
+	CHM_SP A = STinternal(x).create_A(AS_CHM_SP(findVarInFrame(rho, lme4_ZtSym)));
 	SEXP ans = CHM_SP2SEXP(A, "dgCMatrix");
 	M_cholmod_free_sparse(&A, &c);
 	return ans;
@@ -348,9 +348,17 @@ extern "C" {
     }
     
 
-    SEXP ST_update_A(SEXP ST, SEXP Zt, SEXP A)
+/**
+ * Update the A array from the Zt array
+ *
+ * @param x an ST object
+ *
+ * @return numeric vector
+ */
+    SEXP ST_update_A(SEXP ST, SEXP rho)
     {
-	STinternal(ST).update_A(AS_CHM_SP(Zt), AS_CHM_SP(A));
+	STinternal(ST).update_A(AS_CHM_SP(findVarInFrame(rho, lme4_ZtSym)),
+				AS_CHM_SP(findVarInFrame(rho, lme4_ASym)));
 	return R_NilValue;
     }
 
@@ -380,9 +388,9 @@ extern "C" {
  * @param Zt transpose of Z matrix
  *
  */
-    SEXP ST_initialize(SEXP x, SEXP Zt)
+    SEXP ST_initialize(SEXP x, SEXP rho)
     {
-	STinternal(x).initialize(Zt);
+	STinternal(x).initialize(findVarInFrame(rho, lme4_ZtSym));
 	return R_NilValue;
     }
 
@@ -395,7 +403,7 @@ extern "C" {
  *
  * @return R_NilValue
  */
-    SEXP ST_setPars(SEXP x, SEXP pars)
+    SEXP ST_setPars(SEXP x, SEXP pars, SEXP rho)
     {
 	SEXP rpars = PROTECT(coerceVector(pars, REALSXP));
 	STinternal ST(x);
@@ -405,6 +413,8 @@ extern "C" {
 	    error(_("pars must be a real vector of length %d"), np);
 	ST.setPars(REAL(rpars));
 	UNPROTECT(1);
+	ST.update_A(AS_CHM_SP(findVarInFrame(rho, lme4_ZtSym)),
+		    AS_CHM_SP(findVarInFrame(rho, lme4_ASym)));
 	return R_NilValue;
     }
 
@@ -418,14 +428,17 @@ extern "C" {
  *
  * @return R_NilValue
  */
-    SEXP ST_update_ranef(SEXP ST, SEXP u, SEXP perm, SEXP b)
+    SEXP ST_create_ranef(SEXP x, SEXP rho)
     {
+	SEXP u = findVarInFrame(rho, lme4_uSym),
+	    perm = findVarInFrame(rho, lme4_permSym);
 	int ulen = LENGTH(u);
-	if (!isReal(u) || !isInteger(perm) || !isReal(b) ||
-	    ulen != LENGTH(perm) || ulen != LENGTH(b))
-	    error (_("u and b must be numeric and perm must be integer, all the same length"));
-	STinternal(ST).update_ranef(REAL(u), INTEGER(perm), REAL(b));
-	return R_NilValue;
+	SEXP b = PROTECT(allocVector(REALSXP, ulen));
+	if (!isReal(u) || !isInteger(perm) || ulen != LENGTH(perm))
+	    error (_("u must be numeric, perm integer and of equal length"));
+	STinternal(x).update_ranef(REAL(u), INTEGER(perm), REAL(b));
+	UNPROTECT(1);
+	return b;
     }
 
     SEXP ST_validate(SEXP x)

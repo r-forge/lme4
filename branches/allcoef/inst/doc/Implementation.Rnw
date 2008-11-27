@@ -42,6 +42,113 @@ data("Rail", package = "MEMSS")
 data("ScotsSec", package = "mlmRev")
 @
 
+\section{Overview}
+\label{sec:overview}
+
+The maximum likelihood (ML) estimates of the parameters in a mixed-effects
+model are, as the name implies, those values that maximize the
+likelihood. Often estimates of the parameters in Gaussian linear mixed
+models are chosen to optimize the REML criterion, which is similar to
+the likelihood.
+
+Our definition of mixed models includes two or three types of parameters:
+\begin{description}
+\item[$\bm\theta$] An $m$-dimensional vector of parameters that
+  determine the $q\times q$ relative covariance factor,
+  $\bm\Lambda(\bm\theta)$.  These parameters may be subject to
+  constraints.  The dimension $m$ is typically very small.
+\item[$\bm\beta$] A $q$-dimensional vector of fixed-effects
+  coefficients in the linear predictor.
+\item[$\sigma$] The positive scalar parameter that determines the
+  conditional covariance matrix of the response, given the random
+  effects.  This covariance matrix can depend on the conditional mean
+  and, at most, this one additional scalar parameter.  This parameter
+  is not present in models for which $(\mathcal{\bm Y}|\mathcal{\bm
+    B}=\bm b)$ is Bernoulli or Poisson.  We will include this
+  parameter in the general descriptions with the understanding that
+  for some models $\sigma\equiv 1$.
+\end{description}
+
+We optimize the likelihood by minimizing the quantity,
+\begin{equation}
+  \label{eq:log-lik}
+  \begin{pmatrix}
+    \hat{\bm\theta}\\
+    \hat{\bm\beta}\\
+    \hat\sigma
+  \end{pmatrix}=\arg\min_{\bm\theta,\bm\beta,\sigma}
+  -2\el(\bm\theta,\bm\beta,\sigma|\bm y)
+\end{equation}
+where $\el$ is the logarithm of the likelihood.
+
+We are able to reduce the complexity of the optimization enormously by
+using penalized, iteratively reweighted least squares (PIRLS) to
+determine the conditional estimates of the fixed-effects coefficients
+($\bm\beta$) and the common scale parameter ($\sigma$) given
+$\bm\theta$ and $\bm y$. The PIRLS step reduces to a linear or
+nonlinear least squares calculation, which is much easier than a
+general optimization because the penalty term regularizes the least
+squares problem.
+
+When preparing for the PIRLS calculations we create an environment and
+populate it with several objects:
+\begin{description}
+  \item[\code{y}] the response - a numeric vector of length $n$
+  \item[\code{X}] the fixed-effects model matrix.  A dense matrix of
+    dimension $n\cdot s\times p$ where $p$ is the number of
+    fixed-effects parameters and $s$ is the number of variables in the
+    nonlinear model function. For a Gaussian linear mixed model or a
+    generalized linear mixed model $s\equiv 1$.
+  \item[\code{Zt}] the transpose of the random-effects model matrix.
+    A sparse matrix of dimension $q\times n\cdot s$.
+  \item[\code{offset}] the offset in the model.  A numeric vector of
+    length $n$ if an offset is used, otherwise of length $0$.
+  \item[\code{pWt}] the prior weights in the model.  A numeric vector of
+    length $n$ if prior weights are used, otherwise of length $0$.
+  \item[\code{rCF}] an object of a class that inherits from the
+    \code{"reCovFac"} class. There must be methods for the
+    \code{getPars}, \code{getBounds}, \code{getLambda} and
+    \code{setPars} generics defined for this objects.  The
+    \code{setPars} method records the parameters and updates the
+    sparse matrix $\code{A}$ in the environment in which the method is
+    evaluated.
+  \item[\code{A}] $\bm\Lambda(\bm\theta)\trans\bm Z\trans$ for some
+    value of $\bm\theta$ that is not on the boundary.
+  \item[\code{perm}] an integer 0-based permutation vector of length
+    $q$ providing the fill-reducing permutation for the sparse
+    Cholesky decomposition of $\bm A\bm A\trans+\bm I_q$.
+  \item[\code{muEta}] a numeric vector.  If the model incorporates a
+    non-trivial link function this vector is of length $n$.  If the
+    length function is the identity this vector is of length 0.
+  \item[\code{etaGamma}] a numeric matrix.  If the model incorporates
+    a nonlinear model this matrix is of size $n\times s$ with
+    named columns, otherwise this matrix is of size $0\times 1$ and
+    the column is named \code{"x"}.
+  \item[nlmodel] an object of class \code{"call"} defining the
+    nonlinear model.  This object is not accessed if \code{etaGamma}
+    has zero rows.
+  \item[\code{nlenv}] an environment in which to evaluate
+    \code{nlmodel}.  Any variables in the call must be defined in this
+    environment.
+\end{description}
+
+At the time of initialization the objects \code{y}, \code{X},
+\code{Zt}, \code{offset}, \code{pWt} and \code{rCF} must be defined in
+the environment and of consistent dimension.
+
+The sequence for a Gaussian linear mixed model is to install \code{y},
+\code{X}, \code{Zt}, \code{offset} and \code{pWt} in the environment
+\code{rho}.  The \code{getLambda} method produces
+$\bm\Lambda(\bm\theta^{(0)}$ from which $\bm A$ is evaluated and
+assigned in the environment.  The \code{etaGamma}, \code{muEta},
+\code{nlmodel} and \code{nlenv} objects are the default values. 
+
+The form of $\bm A$ determines the fill-reducing permutation which is
+assigned as \code{perm} in the environment. The Cholesky factor
+\code{L} in the environment is the factor of $\bm U\trans\bm U+\bm
+I_q$ where $\bm U=\bm Z\bm\Lambda(\bm\theta)\bm P$ and uses an
+identity permutation.
+
 \section{A simple example}
 \label{sec:example}
 

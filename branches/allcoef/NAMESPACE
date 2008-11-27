@@ -29,17 +29,20 @@ importFrom("stats",
 ## update(), xtabs() and cov2cor()
 
 
-export("glmer",
-       #"gsummary", "hatTrace",
+export(
        "HPDinterval",
+       "VarCorr",
+       "getBounds",
+       "getPars",
+       "glmer",
        "lmList",
        "lmer",
        "lmer2",
        "mcmcsamp",
        "nlmer",
-       #"pooledSD",
        "refit",
-       "VarCorr")
+       "setPars"
+       )
 
 exportClasses("ST", "lmList", "mer", "merMCMC", "summary.mer")
 
@@ -60,7 +63,8 @@ exportMethods(
               "fitted",
               "fixef",
               "formula",
-#              "gsummary",
+              "getBounds",
+              "getPars",
               "head",
               "logLik",
               "mcmcsamp",
@@ -72,6 +76,7 @@ exportMethods(
               "ranef",
               "refit",
               "resid", "residuals",
+              "setPars",
               "show",
               "simulate",
               "summary",

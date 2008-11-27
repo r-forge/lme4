@@ -24,39 +24,39 @@ setClass("ST",  # Scale/unit Triangular representation of relative covariance
 
 setClass("PIRLS", # penalized iteratively reweighted least squares
 	 representation(## original data
-                        env = "environment", # evaluation env for nonlinear model
+                        rho = "environment", # evaluation environment for PIRLS
+                        nlenv = "environment", # evaluation env for nonlinear model
                         nlmodel = "call",    # nonlinear model call
                         X = "matrix",        # fixed effects model matrix
                         pWt = "numeric",     # prior weights,
                         offset = "numeric",  # length 0 -> no offset
                         y = "numeric",       # response vector
-                        dims = "integer",    # dimensions and indicators
-                        perm = "integer",    # permutation vector
-                        fl1 = "integer",     # first grouping factor
-                        ghw = "numeric",     # weights used for AGQ
-                        ghx = "numeric",     # zeros of Hermite polynomial
+                        dims = "integer"),    # dimensions and indicators
+#                        fl1 = "integer",     # first grouping factor
+#                        ghw = "numeric",     # weights used for AGQ
+#                        ghx = "numeric"),     # zeros of Hermite polynomial
                         ## slots that vary during optimization
-                        A = "dgCMatrix",     # (Z %*% Lambda)'
-                        L = "CHMfactor",     # Cholesky factor of U'U + I
-                        RX = "matrix",       # Cholesky factor of downdated V'V
-                        RZX = "matrix",      # dense sol. to L RZX = UV
-                        deviance = "numeric",# deviance and components
-                        eta = "numeric",     # unbounded predictor
-                        etaGamma = "matrix", # gradient matrix
-                        fixef = "numeric",   # fixed effects (length p)
-                        mu = "numeric",      # conditional mean
-                        muEta = "numeric",   # d mu/d eta at current eta
-                        resid = "numeric",   # raw residuals
-                        sqrtrWt = "numeric", # sqrt of weights used with residuals
-                        u = "numeric",       # orthogonal random effects (q)
-                        var = "numeric"),    # conditional variances of Y
+#                        A = "dgCMatrix",     # (Z %*% Lambda)'
+#                        L = "CHMfactor",     # Cholesky factor of U'U + I
+#                        RX = "matrix",       # Cholesky factor of downdated V'V
+#                        RZX = "matrix",      # dense sol. to L RZX = UV
+#                        deviance = "numeric",# deviance and components
+#                        eta = "numeric",     # unbounded predictor
+#                        etaGamma = "matrix", # gradient matrix
+#                        fixef = "numeric",   # fixed effects (length p)
+#                        mu = "numeric",      # conditional mean
+#                        muEta = "numeric",   # d mu/d eta at current eta
+#                        resid = "numeric",   # raw residuals
+#                        sqrtrWt = "numeric", # sqrt of weights used with residuals
+#                        u = "numeric",       # orthogonal random effects (q)
+#                        var = "numeric"),    # conditional variances of Y
          validity = function(object) .Call(mer_validate, object))
 
 setClass("mer",
          representation(rCF = "reCovFac",
                         PLS = "PIRLS",
-                        Zt = "dgCMatrix",    # sparse form of Z'
-                        flist = "data.frame",# list of grouping factors
+#                        Zt = "dgCMatrix",    # sparse form of Z'
+#                        flist = "data.frame",# list of grouping factors
                         frame = "data.frame",# model frame
                         ranef = "numeric")   # random effects (length q)
          )

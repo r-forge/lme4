@@ -13,6 +13,22 @@ setGeneric("gsummary",
 
 setGeneric("fixef", function(object, ...) standardGeneric("fixef"))
 
+#' returns an A template from Zt
+setGeneric("create_A", function(rCF, rho, ...) standardGeneric("create_A"))
+
+#' returns the parameter bounds
+setGeneric("getBounds", function(rCF, ...) standardGeneric("getBounds"))
+
+#' returns the current parameter values
+setGeneric("getPars", function(rCF, ...) standardGeneric("getPars"))
+
+#' sets the parameter values
+setGeneric("setPars", function(rCF, pars, rho, ...) standardGeneric("setPars"))
+
+#' returns Lambda as a square sparse matrix
+setGeneric("getLambda", function(rCF, ...) standardGeneric("getLambda"))
+
+
 fixed.effects <- function(object, ...) {
     ## fixed.effects was an alternative name for fixef
     .Deprecated("fixef")
@@ -54,18 +70,3 @@ setGeneric("VarCorr", function(x, ...) standardGeneric("VarCorr"))
 setGeneric("traceplot", function(x, ...) standardGeneric("traceplot"))
 
 setGeneric("refit", function(object, newresp, ...) standardGeneric("refit"))
-
-#' returns an A template from Zt
-setGeneric("createA", function(rCF, Zt, ...) standardGeneric("createA"))
-
-#' returns the parameter bounds
-setGeneric("getBounds", function(rCF, ...) standardGeneric("getBounds"))
-
-#' returns the current parameter values
-setGeneric("getPars", function(rCF, ...) standardGeneric("getPars"))
-
-#' sets the parameter values
-setGeneric("setPars", function(rCF, pars, ...) standardGeneric("setPars"))
-
-#' sets parameter values and updates the A matrix
-setGeneric("setParsA", function(rCF, pars, Zt, A, ...) standardGeneric("setParsA"))
