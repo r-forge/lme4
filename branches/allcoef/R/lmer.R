@@ -1,3 +1,4 @@
+### FIXME: Don't need to initialize perm to the identity.
 # lmer, glmer and nlmer plus methods and utilities
 
 dimsDefault <- c(nt = -1L,              # number of terms
@@ -32,6 +33,19 @@ devDefault <- c(ML = NA,                # deviance (for ML estimation)
                 dev = NA,               # deviance
                 llik = NA,              # log-likelihood
                 NULLdev = 0)            # null deviance
+
+default_rho <- function()
+{
+    rho <- new.env(parent = emptyenv())
+    rho$nlmodel <- (~I(x))[[2]]
+    rho$muEta <- rho$pWt <- rho$offset <- rho$var <- rho$sqrtrWt <-
+        rho$ghx <- rho$ghw <- numeric(0)
+    rho$etaGamma <- array(0, c(0L,1L), list(NULL, "x"))
+    rho$nlenv <- new.env(parent = rho)
+    rho$deviance <- devDefault
+    rho$dims <- dimsDefault
+    rho
+}
 
 ### Utilities for parsing the mixed model formula
 
@@ -134,7 +148,7 @@ expandSlash <- function(bb)
 ### .globalEnv in its parent list.  example(Mmmec, package = "mlmRev")
 ### used to have a formula of ~ offset(log(expected)) + ... and the
 ### offset function was not found in eval(mf, parent.frame(2))
-lmerFrames <- function(mc, formula, contrasts, vnms = character(0))
+lmerFrames <- function(mc, formula, contrasts, rho, vnms = character(0))
 ### Create the model frame, X, Y, wts, offset and terms
 
 ### mc - matched call of calling function
@@ -171,45 +185,35 @@ lmerFrames <- function(mc, formula, contrasts, vnms = character(0))
     mf[[1]] <- as.name("model.frame")
     fe <- mf                            # save a copy of the call
     mf <- eval(mf, parent.frame(2))
+### FIXME: Does this blow up when family == binomial and response is a matrix?
+    rho$y <- unname(as.double(as.vector(model.response(mf, "any"))))
 
-    ## evaluate the terms for the fixed-effects only (used in anova)
-    fe$formula <- fixed.form
-    fe <- eval(fe, parent.frame(2)) # allow model.frame to update them
-
-    ## response vector
-    Y <- model.response(mf, "any")
-    ## avoid problems with 1D arrays, but keep names
-    if(length(dim(Y)) == 1) {
-        nm <- rownames(Y)
-        dim(Y) <- NULL
-        if(!is.null(nm)) names(Y) <- nm
-    }
-    mt <- attr(fe, "terms")
+    fe$formula <- fixed.form        #terms for fixed-effects only (for anova)
+    mt <- attr(eval(fe, parent.frame(2)), "terms")
 
     ## Extract X checking for a null model. This check shouldn't be
     ## needed because an empty formula is changed to ~ 1 but it can't hurt.
-    X <- if (!is.empty.model(mt))
-        model.matrix(mt, mf, contrasts) else matrix(,NROW(Y),0)
+    X <- if (!is.empty.model(mt)) model.matrix(mt, mf, contrasts) else matrix(,NROW(Y),0)
     storage.mode(X) <- "double"      # when ncol(X) == 0, X is logical
+
     fixef <- numeric(ncol(X))
-    names(fixef) <- colnames(X)
+    names(fixef) <- colnames(X)      #transfer variable names to fixef
     dimnames(X) <- NULL
+    rho$X <- X
+    rho$fixef <- fixef
 
-    ## Extract the weights and offset.  For S4 classes we want the
-    ## `not used' condition to be numeric(0) instead of NULL
-    wts <- model.weights(mf); if (is.null(wts)) wts <- numeric(0)
-    off <- model.offset(mf); if (is.null(off)) off <- numeric(0)
+    if (!is.null(wts <- model.weights(mf))) {
+        rho$pWt <- wts <- unname(as.double(wts))
+        if (length(wts) != n)           # is this checked in model.frame?
+            stop(gettextf("length(weights) = %d != length of response = %d"),
+                 length(wts), nrow(X))
+        if (any(wts < 0))
+            stop(gettextf("negative weights not allowed"))
+    }
+    if (!is.null(off <- model.offset(mf))) rho$offset <- unname(as.double(off))
 
-    ## check weights and offset
-    if (any(wts < 0))
-        stop(gettextf("negative weights not allowed"))
-    if(length(off) && length(off) != NROW(Y))
-        stop(gettextf("number of offsets is %d should equal %d (number of observations)",
-                      length(off), NROW(Y)))
-
-    ## remove the terms attribute from mf
-    attr(mf, "terms") <- mt
-    list(Y = Y, X = X, wts = as.double(wts), off = as.double(off), mf = mf, fixef = fixef)
+    attr(mf, "terms") <- mt             # terms for fixed effects on mf
+    rho$frame <- mf
 }
 
 ##' Is f1 nested within f2?
@@ -252,10 +256,9 @@ isNested <- function(f1, f2)
 ##'
 ##' @return a list with components named \code{"trms"}, \code{"fl"}
 ##'        and \code{"dims"}
-lmerFactorList <- function(formula, fr, rmInt, drop)
+lmerFactorList <- function(formula, rho, rmInt, drop)
 {
-    mf <- fr$mf
-    ## record dimensions and algorithm settings
+    mf <- rho$frame
 
     ## create factor list for the random effects
     bars <- expandSlash(findbars(formula[[3]]))
@@ -289,7 +292,7 @@ lmerFactorList <- function(formula, fr, rmInt, drop)
              })
     dd <- dimsDefault
     dd["n"] <- nrow(mf)
-    dd["p"] <- ncol(fr$X)
+    dd["p"] <- ncol(rho$X)
     dd["nt"] <- length(fl)
     dd["q"] <- sum(sapply(fl, function(el) nrow(el$Zt)))
     
@@ -328,6 +331,40 @@ lmerControl <- function(msVerbose = getOption("verbose"),
 	 msVerbose = as.integer(msVerbose))# "integer" on purpose
 }
 
+### Create the standard versions of flist, Zt, Gp, ST, A and L.
+mkZt <- function(FL, rho, start, s = 1L)
+{
+    fl <- FL$fl
+    asgn <- attr(fl, "assign")
+    fl <- do.call(data.frame, c(fl, check.names = FALSE))
+    attr(fl, "assign") <- asgn
+    rho$flist <- fl
+    
+    trms <- FL$trms
+    Ztl <- lapply(trms, `[[`, "Zt")
+    Zt <- do.call(rBind, Ztl)
+    Zt@Dimnames <- vector("list", 2)
+    rho$Zt <- Zt
+    ST <- new("ST", ST = lapply(trms, `[[`, "ST"),
+              Gp = unname(c(0L, cumsum(sapply(Ztl, nrow)))))
+    .Call(ST_initialize, ST, rho)
+    rho$rCF <- ST
+    rm(Ztl, FL)                         # because they could be large
+    rho$A <- create_A(ST, rho)
+
+### FIXME: Check number of variance components versus number of
+### levels in the factor for each term. Warn or stop as appropriate
+
+    n <- length(rho$y)
+    p <- length(rho$fixef)
+    q <- nrow(Zt)
+    rho$eta <- rho$mu <- rho$resid <- numeric(n)
+    rho$perm <- (1:q) - 1L
+    rho$u <- numeric(q)
+    rho$RZX <- matrix(0, q, p)
+    rho$RX <- matrix(0, p, p)
+}
+
 lmer2 <-
     function(formula, data, family = NULL, REML = TRUE,
              control = list(), start = NULL, verbose = FALSE, doFit = TRUE,
@@ -340,95 +377,19 @@ lmer2 <-
         return(eval.parent(mc))
     }
     stopifnot(length(formula <- as.formula(formula)) == 3)
-    fr <- lmerFrames(mc, formula, contrasts) # model frame, X, etc.
-    FL <- lmerFactorList(formula, fr, 0L, 0L) # flist, Zt, dims
-    mer <- mkZt(fr, FL, NULL)
-    mer
-}
-
-mkZt <- function(fr, FL, start, s = 1L)
-### Create the standard versions of flist, Zt, Gp, ST, A and L.
-### Update dd.
-{
-    dd <- FL$dims
-    fl <- FL$fl
-    asgn <- attr(fl, "assign")
-    fl <- do.call(data.frame, c(fl, check.names = FALSE))
-    attr(fl, "assign") <- asgn
-    trms <- FL$trms
-    Ztl <- lapply(trms, `[[`, "Zt")
-    Zt <- do.call(rBind, Ztl)
-    Zt@Dimnames <- vector("list", 2)
-    ST <- new("ST", ST = lapply(trms, `[[`, "ST"),
-              Gp = unname(c(0L, cumsum(sapply(Ztl, nrow)))))
-    rm(Ztl, FL)                         # because they could be large
-    .Call(ST_initialize, ST, Zt)
-    A <- .Call(ST_create_A, ST, Zt)
-    L <- Cholesky(tcrossprod(A), perm = TRUE, LDL = FALSE, Imult = 1)
-    perm <- L@perm
-    L@perm <- seq_len(nrow(A)) - 1L
-    if (!is.null(start) && checkSTform(ST, start)) ST <- start
-    
-### FIXME: Check number of variance components versus number of
-### levels in the factor for each term. Warn or stop as appropriate
-    bds <- .Call(ST_bounds, ST)
-    if (length(bds) %% 2) stop("length of bounds vector must be even")
-    dd["np"] <- as.integer(length(bds)/2) # number of parameters in optimization
-    X <- fr$X
-    q <- nrow(Zt)
-    y <- unname(fr$Y)
-    n <- length(y)
-    p <- ncol(X)
-    wts <- unname(fr$wts)
-    PIRLS <- new(Class = "PIRLS",
-                 env = new.env(),
-                 nlmodel = (~I(x))[[2]],
-                 X = X,
-                 pWt = wts,
-                 offset = unname(fr$off),
-                 y = y,
-                 dims = dd,
-                 perm = perm,
-                 fl1 = as.integer(flist[[1]]),
-                 A = A,
-                 L = L,
-                 deviance = devDefault,
-                 fixef = fr$fixef,
-                 u = numeric(q),
-                 eta = numeric(n),
-                 mu = numeric(n),
-                 resid = numeric(n),
-                 sqrtrWt = sqrt(wts),
-                 RZX = matrix(0, q, p),
-                 RX = matrix(0, p, p),
-                 ghx = numeric(0),
-                 ghw = numeric(0))
-    .Call(mer_update_mu, PIRLS)
-    new("mer",
-        rCF = ST,
-        PLS = PIRLS,
-        Zt = Zt,
-        flist = fl,
-        frame = fr$mf,
-        ranef = numeric(q))
-}
-
-mer.tst <-
-    function(formula, data, family = NULL, REML = TRUE,
-             control = list(), start = NULL, verbose = FALSE, doFit = TRUE,
-             subset, weights, na.action, offset, contrasts = NULL,
-             model = TRUE, x = TRUE, ...)
-{
-    mc <- match.call()
-    if (!is.null(family)) {             # call glmer
-        mc[[1]] <- as.name("glmer")
-        return(eval.parent(mc))
+    rho <- default_rho()
+    lmerFrames(mc, formula, contrasts, rho) # model frame, X, etc.
+    FL <- lmerFactorList(formula, rho, 0L, 0L) # flist, Zt, dims
+    mkZt(FL, rho, NULL)
+    return(rho)
+    obj <- function(pars) {
+        setPars(rho$rCF, pars, rho)
+        .Call(mer_PIRLS, rho)
     }
-    stopifnot(length(formula <- as.formula(formula)) == 3)
-    fr <- lme4:::lmerFrames(mc, formula, contrasts) # model frame, X, etc.
-    FL <- lmerFactorList(formula, fr, 0L, 0L) # flist, Zt, dims
-    Ztl <- mkZt(fr, FL, NULL)
-    Ztl
+    obj(getPars(rho$rCF))               # test evaluation
+    bds <- matrix(getBounds(rho@rCF), ncol = 2)
+    nlminb(getPars(rho@rCF), obj, lower = bds[,1], upper = bds[,2], control = list(trace = 1))
+    rho
 }
 
 famNms <- c("binomial", "gaussian", "Gamma", "inverse.gaussian",

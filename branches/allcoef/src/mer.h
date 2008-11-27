@@ -16,13 +16,11 @@ SEXP merMCMC_VarCorr(SEXP x, SEXP typ);
 SEXP merMCMC_validate(SEXP x);
 
 SEXP mer_MCMCsamp(SEXP x, SEXP fm);
-SEXP mer_PIRLS(SEXP x);
-SEXP mer_create_L(SEXP CmP);
-SEXP mer_optimize(SEXP x);
+SEXP mer_PIRLS(SEXP rho);
 SEXP mer_postVar(SEXP x, SEXP which);
-SEXP mer_update_dev(SEXP x);
-SEXP mer_update_mu(SEXP x);
-SEXP mer_validate(SEXP x);
+SEXP mer_update_dev(SEXP rho);
+SEXP mer_update_mu(SEXP rho);
+SEXP mer_validate(SEXP rho);
 
 //SEXP spR_optimize(SEXP x, SEXP verbP);
 //SEXP spR_update_mu(SEXP x);
@@ -35,12 +33,16 @@ SEXP mer_validate(SEXP x);
 
 class mer {
 public:
-    mer(SEXP x);		//< external, R-level object
+    mer(SEXP rho);		//< instantiate from an environment
     ~mer(){
 	delete L; delete A; 
 	d[wrss_POS] = wrss;
 	d[usqr_POS] = usqr;
 	d[pwrss_POS] = pwrss;
+	d[sigmaML_POS] = sigmaML;
+	d[sigmaREML_POS] = sigmaREML;
+	d[ldL2_POS] = ldL2;
+	d[ldRX2_POS] = ldRX2;
     }
 /**
  * Update the u and fixef slots in an mer object
@@ -70,13 +72,15 @@ private:
     int *dims, *perm, N, n, p, q, s;
     double *RX, *RZX, *V, *X, *d, *eta, *fixef, *etaGamma, *mu,
 	*muEta, *offset, *pWt, *srwt, *res, *u, *var, *y,
-	*ghx, *ghw, wrss, pwrss, usqr;
-    SEXP flistP, nlmodel, pnames, rho;
+	*ghx, *ghw, ldL2, ldRX2, pwrss, sigmaML, sigmaREML,
+	usqr, wrss;
+    SEXP flistP, nlmodel, pnames, nlenv;
     CHM_FR L;
     CHM_SP A;
 
-    void extractL(SEXP x);
-    void extractA(SEXP x);
+    void extractA(SEXP rho);
+    void createL(SEXP rho);
+    void extractL(SEXP rho);
     double *apply_perm(double *dest, const double *src)
     {
 	for (int i = 0; i < q; i++) dest[i] = src[perm ? perm[i] : i];

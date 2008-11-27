@@ -14,9 +14,9 @@ static R_CallMethodDef CallEntries[] = {
     CALLDEF(ST_create_A, 2),
     CALLDEF(ST_getPars, 1),
     CALLDEF(ST_initialize, 2),
-    CALLDEF(ST_setPars, 2),
-    CALLDEF(ST_update_A, 3),
-    CALLDEF(ST_update_ranef, 4),
+    CALLDEF(ST_setPars, 3),
+    CALLDEF(ST_update_A, 2),
+    CALLDEF(ST_create_ranef, 2),
     CALLDEF(ST_validate, 1),
 
     CALLDEF(lme4_ghq, 1),
@@ -26,8 +26,6 @@ static R_CallMethodDef CallEntries[] = {
     
     CALLDEF(mer_MCMCsamp, 2),
     CALLDEF(mer_PIRLS, 1),
-    CALLDEF(mer_create_L, 1),
-    CALLDEF(mer_optimize, 1),
     CALLDEF(mer_postVar, 2),
     CALLDEF(mer_update_dev, 1),
     CALLDEF(mer_update_mu, 1),
@@ -71,9 +69,8 @@ void R_init_lme4(DllInfo *dll)
     lme4_ZtSym = install("Zt");
     lme4_devianceSym = install("deviance");
     lme4_dimsSym = install("dims");
-    lme4_envSym = install("env");
-    lme4_etaSym = install("eta");
     lme4_etaGammaSym = install("etaGamma");
+    lme4_etaSym = install("eta");
     lme4_fixefSym = install("fixef");
     lme4_fl1Sym = install("fl1");
     lme4_flistSym = install("flist");
@@ -82,15 +79,17 @@ void R_init_lme4(DllInfo *dll)
     lme4_gradientSym = install("gradient");
     lme4_iSym = install("i");
     lme4_merSym = install("mer");
-    lme4_nlmodelSym = install("nlmodel");
     lme4_muEtaSym = install("muEta");
     lme4_muSym = install("mu");
+    lme4_nlenvSym = install("nlenv");
+    lme4_nlmodelSym = install("nlmodel");
     lme4_offsetSym = install("offset");
     lme4_pSym = install("p");
-    lme4_permSym = install("perm");
     lme4_pWtSym = install("pWt");
+    lme4_permSym = install("perm");
     lme4_ranefSym = install("ranef");
     lme4_residSym = install("resid");
+    lme4_rhoSym = install("rho");
     lme4_sigmaSym = install("sigma");
     lme4_sqrtrWtSym = install("sqrtrWt");
     lme4_uSym = install("u");

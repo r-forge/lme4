@@ -1,20 +1,3 @@
-library(lme4)
-
-VecFromNames <- function(nms, mode = "numeric", defaults = list())
-### Generate a named vector of the given mode
-{
-    ans <- vector(mode = mode, length = length(nms))
-    names(ans) <- nms
-    ans[] <- NA
-    if ((nd <- length(defaults <- as.list(defaults))) > 0) {
-        if (length(dnms <- names(defaults)) < nd)
-            stop("defaults must be a named list")
-        stopifnot(all(dnms %in% nms))
-        ans[dnms] <- as(unlist(defaults), mode)
-    }
-    ans
-}
-
 ##' Is f1 nested within f2?
 ##'
 ##' Does every level of f1 occur in conjunction with exactly one level
@@ -40,32 +23,6 @@ isNested <- function(f1, f2)
              "CsparseMatrix")
     all(diff(sm@p) < 2)
 }
-
-##' dimsNames and devNames are in the package's namespace rather than
-##' in the function lmerFactorList because the function sparseRasch
-##' needs to access them. 
-
-dimsNames <- c("nt", "n", "p", "q", "s", "np", "LMM", "REML",
-               "fTyp", "lTyp", "vTyp", "nest", "useSc", "nAGQ",
-               "verb", "mxit", "mxfn", "cvg")
-dimsDefault <- list(s = 1L,             # identity mechanistic model
-                    mxit= 300L,         # maximum number of iterations
-                    mxfn= 900L, # maximum number of function evaluations
-                    verb= 0L,           # no verbose output
-                    np= 0L,             # number of parameters in ST
-                    LMM= 0L,            # not a linear mixed model
-                    REML= 0L,         # glmer and nlmer don't use REML
-                    fTyp= 2L,           # default family is "gaussian"
-                    lTyp= 5L,           # default link is "identity"
-                    vTyp= 1L, # default variance function is "constant"
-                    useSc= 1L, # default is to use the scale parameter
-                    nAGQ= 1L,                  # default is Laplace
-                    cvg = 0L)                  # no optimization yet attempted
-                    
-devNames <- c("ML", "REML", "ldL2", "ldRX2", "sigmaML",
-              "sigmaREML", "pwrss", "disc", "usqr", "wrss",
-              "dev", "llik", "NULLdev")
-
 
 ##' Create model matrices from r.e. terms.
 ##'
@@ -116,11 +73,12 @@ lmerFactorList <- function(formula, fr, rmInt, drop)
                       ST = matrix(0, ncol(mm), ncol(mm),
                       dimnames = list(colnames(mm), colnames(mm))))
              })
-    dd <-
-        VecFromNames(dimsNames, "integer",
-                     c(list(n = nrow(mf), p = ncol(fr$X), nt = length(fl),
-                            q = sum(sapply(fl, function(el) nrow(el$Zt)))),
-                       dimsDefault))
+    dd <- dimsDefault
+    dd["n"] <- nrow(mf)
+    dd["p"] <- ncol(fr$X)
+    dd["nt"] <- length(fl)
+    dd["q"] <- sum(sapply(fl, function(el) nrow(el$Zt)))
+    
     ## order terms by decreasing number of levels in the factor but don't
     ## change the order if this is already true
     nlev <- sapply(fl, function(el) length(levels(el$f)))
@@ -180,22 +138,22 @@ mkZt <- function(fr, FL, start, s = 1L)
     n <- length(y)
     p <- ncol(X)
     wts <- unname(fr$wts)
-    ans <- new(Class = "mer",
+    ans <- new(Class = "PIRLS",
                env = new.env(),
                nlmodel = (~I(x))[[2]],
-               frame = fr$mf,
-               flist = fl,
+#               frame = fr$mf,
+#               flist = fl,
                X = X,
-               Zt = Zt,
+#               Zt = Zt,
                pWt = wts,
                offset = unname(fr$off),
                y = y,
                dims = dd,
                A = A,
                L = L,
-               deviance = VecFromNames(devNames, "numeric"),
+               deviance = devDefault,
                fixef = fr$fixef,
-               ranef = numeric(q),
+#               ranef = numeric(q),
                u = numeric(q),
                perm = perm,
                eta = numeric(n),

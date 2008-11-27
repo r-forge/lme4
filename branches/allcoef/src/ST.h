@@ -15,12 +15,12 @@ extern "C" {
     SEXP ST_Lambda(SEXP x);
     SEXP ST_Tmatrix(SEXP x);
     SEXP ST_bounds(SEXP x);
-    SEXP ST_create_A(SEXP x, SEXP Zt);
+    SEXP ST_create_A(SEXP x, SEXP rho);
     SEXP ST_getPars(SEXP x);
-    SEXP ST_initialize(SEXP x, SEXP Zt);
-    SEXP ST_setPars(SEXP x, SEXP pars);
-    SEXP ST_update_A(SEXP ST, SEXP Zt, SEXP A);
-    SEXP ST_update_ranef(SEXP ST, SEXP u, SEXP perm, SEXP b);
+    SEXP ST_initialize(SEXP x, SEXP rho);
+    SEXP ST_setPars(SEXP x, SEXP pars, SEXP rho);
+    SEXP ST_update_A(SEXP ST, SEXP rho);
+    SEXP ST_create_ranef(SEXP ST, SEXP rho);
     SEXP ST_validate(SEXP x);
 
 #ifdef	__cplusplus
