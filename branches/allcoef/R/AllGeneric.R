@@ -14,19 +14,21 @@ setGeneric("gsummary",
 setGeneric("fixef", function(object, ...) standardGeneric("fixef"))
 
 #' returns an A template from Zt
-setGeneric("create_A", function(rCF, rho, ...) standardGeneric("create_A"))
+setGeneric("create_A", function(rCF, rho, ...) standardGeneric("create_A"),
+           valueClass = "dgCMatrix")
 
 #' returns the parameter bounds
-setGeneric("getBounds", function(rCF, ...) standardGeneric("getBounds"))
-
-#' returns the current parameter values
-setGeneric("getPars", function(rCF, ...) standardGeneric("getPars"))
-
-#' sets the parameter values
-setGeneric("setPars", function(rCF, pars, rho, ...) standardGeneric("setPars"))
+setGeneric("getBounds", function(x, ...) standardGeneric("getBounds"))
 
 #' returns Lambda as a square sparse matrix
 setGeneric("getLambda", function(rCF, ...) standardGeneric("getLambda"))
+
+#' returns the current parameter values
+setGeneric("getPars", function(x, ...) standardGeneric("getPars"))
+
+#' sets the parameter values
+setGeneric("setPars", function(x, pars, ...) standardGeneric("setPars"))
+
 
 
 fixed.effects <- function(object, ...) {

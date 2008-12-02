@@ -1,10 +1,3 @@
-//Notes: Change the implementation so that an mer object is
-//instantiated from an environment.
-// We should have a way of creating the L factor based on U, not on A.
-// Check that the deviance is being calculated correctly.  In
-//particular, is the penalized weighted residual sum of squares being
-//used where it should be the weighted residual sum of squares.
-
 #include "mer.h"
 
 double mer::mone = -1;		// These don't really change but they
@@ -85,6 +78,10 @@ inline double y_log_y(double y, double mu)
 {
     return (y) ? (y * log(y/mu)) : 0;
 }
+
+//FIXME: consider creating a version that installs the variable of the
+//correct length if it is not present.  Create modifications with
+//shorter calling sequences.
 
 double *VAR_REAL_NULL(SEXP rho, SEXP nm, int len, int nullOK)
 {
@@ -229,21 +226,24 @@ void mer::createL(SEXP rho)
 CHM_SP mer::A_to_U()
 {
     CHM_TR At = M_cholmod_sparse_to_triplet(A, &c);
-    int *Ati = (int*)(At->i), *Atj = (int*)(At->j), nz = At->nnz;
+    int *Ati = (int*)(At->i), *Atj = (int*)(At->j), nz = At->nnz,
+	*iperm = new int[q];
     double *Atx = (double*)(At->x);
     CHM_SP U;
 	
+    for (int j = 0; j < q; j++) iperm[perm[j]] = j;
     for (int p = 0; p < nz; p++) {
 	int j = Atj[p], jj;
 	    
 	Atj[p] = jj = j % n;
 	Atx[p] *= (etaGamma ? etaGamma[j] : 1) *
 	    (muEta ? muEta[jj] : 1) * (srwt ? srwt[jj] : 1);
-	Ati[p] = perm[Ati[p]];
+	Ati[p] = iperm[Ati[p]];
     }
     At->ncol = N;
     U = M_cholmod_triplet_to_sparse(At, nz, &c);
     M_cholmod_free_triplet(&At, &c);
+    delete[] iperm;
     return U;
 }
 
@@ -295,18 +295,19 @@ double* mer::X_to_V(double *V)
  */
 double mer::update_mu()
 {
-    double *tmp = new double[N], d1[2] = {1,0};
-    CHM_DN ctmp = N_AS_CHM_DN(tmp, N, 1), cu = N_AS_CHM_DN(u, q, 1);
+    double *tmp = new double[N], *pu = new double[q], d1[2] = {1,0};
+    CHM_DN ctmp = N_AS_CHM_DN(tmp, N, 1), cpu = N_AS_CHM_DN(pu, q, 1);
 
 				// tmp := offset or tmp := 0
     for (int i = 0; i < N; i++) tmp[i] = offset ? offset[i] : 0;
 				// tmp := tmp + X beta
     F77_CALL(dgemv)("N", &N, &p, d1, X, &N, fixef, &i1, d1, tmp, &i1);
-				// tmp := tmp + A' u
-    if (!M_cholmod_sdmult(A, 1 /* trans */, d1, d1, cu, ctmp, &c))
+				// tmp := tmp + A'P'u
+    for (int j = 0; j < q; j++) pu[perm[j]] = u[j];
+    if (!M_cholmod_sdmult(A, 1 /* trans */, d1, d1, cpu, ctmp, &c))
 	error(_("cholmod_sdmult error returned"));
+    delete[] pu;
 				// fill in eta
-//FIXME: Do the check for etaGamma in eval_nonlin?
     if (etaGamma) eval_nonlin(tmp); else dble_cpy(eta, tmp, n);
     delete[] tmp;
 				// inverse link

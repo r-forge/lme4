@@ -1,4 +1,3 @@
-### FIXME: Don't need to initialize perm to the identity.
 # lmer, glmer and nlmer plus methods and utilities
 
 dimsDefault <- c(nt = -1L,              # number of terms
@@ -290,12 +289,6 @@ lmerFactorList <- function(formula, rho, rmInt, drop)
                       ST = matrix(0, ncol(mm), ncol(mm),
                       dimnames = list(colnames(mm), colnames(mm))))
              })
-    dd <- dimsDefault
-    dd["n"] <- nrow(mf)
-    dd["p"] <- ncol(rho$X)
-    dd["nt"] <- length(fl)
-    dd["q"] <- sum(sapply(fl, function(el) nrow(el$Zt)))
-    
     ## order terms by decreasing number of levels in the factor but don't
     ## change the order if this is already true
     nlev <- sapply(fl, function(el) length(levels(el$f)))
@@ -305,20 +298,45 @@ lmerFactorList <- function(formula, rho, rmInt, drop)
     trms <- lapply(fl, "[", -1)
     names(trms) <- NULL
     fl <- lapply(fl, "[[", "f")
-    attr(fl, "assign") <- seq_along(fl)
+    asgn <- seq_along(fl)
     ## check for repeated factors
     fnms <- names(fl)
     if (length(fnms) > length(ufn <- unique(fnms))) {
         ## check that the lengths of the number of levels coincide
         fl <- fl[match(ufn, fnms)]
-        attr(fl, "assign") <- match(fnms, ufn)
+        asgn <- match(fnms, ufn)
     }
     names(fl) <- ufn
-    ## check for nesting of factors
-    dd["nest"] <- all(sapply(seq_along(fl)[-1],
-                             function(i) isNested(fl[[i-1]], fl[[i]])))
+    fl <- do.call(data.frame, c(fl, check.names = FALSE))
+    attr(fl, "assign") <- asgn
+    rho$flist <- fl
 
-    list(trms = trms, fl = fl, dims = dd)
+    rho$dims["nest"] <-                 ## check for nesting of factors
+          all(sapply(seq_along(fl)[-1],
+                     function(i) isNested(fl[[i-1]], fl[[i]])))
+    Ztl <- lapply(trms, `[[`, "Zt")
+    Zt <- do.call(rBind, Ztl)
+    Zt@Dimnames <- vector("list", 2)
+    rho$Zt <- Zt
+
+    ST <- new("ST", ST = lapply(trms, `[[`, "ST"),
+              Gp = unname(c(0L, cumsum(sapply(Ztl, nrow)))))
+    .Call(ST_initialize, ST, rho)
+    rho$rCF <- ST
+    rho$.active <- c(rho$.active, "rCF")
+
+    rho$A <- create_A(ST, rho)
+    n <- length(rho$y)
+    p <- length(rho$fixef)
+    q <- nrow(Zt)
+    rho$dims[c("n", "p", "q")] <- c(n, p, q)
+    rho$eta <- numeric(n)
+    rho$mu <- numeric(n)
+    rho$resid <- numeric(n)
+    rho$perm <- integer(q)
+    rho$u <- numeric(q)
+    rho$RZX <- matrix(0, q, p)
+    rho$RX <- matrix(0, p, p)
 }
 
 lmerControl <- function(msVerbose = getOption("verbose"),
@@ -331,41 +349,7 @@ lmerControl <- function(msVerbose = getOption("verbose"),
 	 msVerbose = as.integer(msVerbose))# "integer" on purpose
 }
 
-### Create the standard versions of flist, Zt, Gp, ST, A and L.
-mkZt <- function(FL, rho, start, s = 1L)
-{
-    fl <- FL$fl
-    asgn <- attr(fl, "assign")
-    fl <- do.call(data.frame, c(fl, check.names = FALSE))
-    attr(fl, "assign") <- asgn
-    rho$flist <- fl
-    
-    trms <- FL$trms
-    Ztl <- lapply(trms, `[[`, "Zt")
-    Zt <- do.call(rBind, Ztl)
-    Zt@Dimnames <- vector("list", 2)
-    rho$Zt <- Zt
-    ST <- new("ST", ST = lapply(trms, `[[`, "ST"),
-              Gp = unname(c(0L, cumsum(sapply(Ztl, nrow)))))
-    .Call(ST_initialize, ST, rho)
-    rho$rCF <- ST
-    rm(Ztl, FL)                         # because they could be large
-    rho$A <- create_A(ST, rho)
-
-### FIXME: Check number of variance components versus number of
-### levels in the factor for each term. Warn or stop as appropriate
-
-    n <- length(rho$y)
-    p <- length(rho$fixef)
-    q <- nrow(Zt)
-    rho$eta <- rho$mu <- rho$resid <- numeric(n)
-    rho$perm <- (1:q) - 1L
-    rho$u <- numeric(q)
-    rho$RZX <- matrix(0, q, p)
-    rho$RX <- matrix(0, p, p)
-}
-
-lmer2 <-
+lmer <-
     function(formula, data, family = NULL, REML = TRUE,
              control = list(), start = NULL, verbose = FALSE, doFit = TRUE,
              subset, weights, na.action, offset, contrasts = NULL,
@@ -378,18 +362,35 @@ lmer2 <-
     }
     stopifnot(length(formula <- as.formula(formula)) == 3)
     rho <- default_rho()
+    ## install objects in the frame rho
     lmerFrames(mc, formula, contrasts, rho) # model frame, X, etc.
-    FL <- lmerFactorList(formula, rho, 0L, 0L) # flist, Zt, dims
-    mkZt(FL, rho, NULL)
-    return(rho)
-    obj <- function(pars) {
-        setPars(rho$rCF, pars, rho)
-        .Call(mer_PIRLS, rho)
-    }
-    obj(getPars(rho$rCF))               # test evaluation
-    bds <- matrix(getBounds(rho@rCF), ncol = 2)
-    nlminb(getPars(rho@rCF), obj, lower = bds[,1], upper = bds[,2], control = list(trace = 1))
-    rho
+    lmerFactorList(formula, rho, 0L, 0L)    # flist, Zt, dims
+    if (REML) rho$dims["REML"] <- 1L
+    if (!doFit) return(rho)
+    ctrl <- list(trace = as.integer(verbose))
+    bds <- getBounds(rho)
+    nlminb(getPars(rho), function(x) setPars(rho, x),
+           lower = bds[,1], upper = bds[,2], control = ctrl)
+    rho$Class <- "mer"
+    nlmodel <- rho$nlmodel
+    rm("nlmodel", envir = rho)          # it gets quoted
+    ans <- do.call(new, as.list(rho))
+    ans@call <- mc
+    ans@nlmodel <- nlmodel
+    ans
+}
+
+## for backward compatibility
+lmer2 <-
+    function(formula, data, family = NULL, REML = TRUE,
+             control = list(), start = NULL, verbose = FALSE,
+             subset, weights, na.action, offset, contrasts = NULL,
+             model = TRUE, x = TRUE, ...)
+{
+    .Deprecated("lmer")
+    mc <- match.call()
+    mc[[1]] <- as.name("lmer")
+    eval.parent(mc)
 }
 
 famNms <- c("binomial", "gaussian", "Gamma", "inverse.gaussian",
@@ -566,37 +567,6 @@ glmer_finalize <- function(fr, FL, glmFit, start, nAGQ, verbose)
             .Call(mer_ST_setPars, ans, stp)
     }
     mer_finalize(ans)
-    ans
-}
-
-### The main event
-lmer <-
-    function(formula, data, family = NULL, REML = TRUE,
-             control = list(), start = NULL, verbose = FALSE, doFit = TRUE,
-             subset, weights, na.action, offset, contrasts = NULL,
-             model = TRUE, x = TRUE, ...)
-### Linear Mixed-Effects in R
-{
-    mc <- match.call()
-    if (!is.null(family)) {             # call glmer
-        mc[[1]] <- as.name("glmer")
-        return(eval.parent(mc))
-    }
-    stopifnot(length(formula <- as.formula(formula)) == 3)
-
-    fr <- lmerFrames(mc, formula, contrasts) # model frame, X, etc.
-    FL <- lmerFactorList(formula, fr, 0L, 0L) # flist, Zt, dims
-    if (!is.null(method <- list(...)$method)) {
-        warning(paste("Argument", sQuote("method"),
-                      "is deprecated.  Use", sQuote("REML"),
-                      "instead"))
-        REML <- match.arg(method, c("REML", "ML")) == "REML"
-    }
-    ans <- list(fr = fr, FL = FL, start = start, REML = REML, verbose = verbose)
-    if (doFit) {
-        ans <- do.call(lmer_finalize, ans)
-        ans@call <- mc
-    }
     ans
 }
 
@@ -890,7 +860,7 @@ setMethod("VarCorr", signature(x = "mer"),
 ### Create the VarCorr object of variances and covariances
       {
           sc <- sigma(x)
-	  ans <- lapply(cc <- .Call(mer_ST_chol, x),
+	  ans <- lapply(chol(x@rCF),
                         function(ch) {
                             val <- crossprod(sc * ch) # variance-covariance
                             stddev <- sqrt(diag(val))
@@ -1239,7 +1209,7 @@ setMethod("summary", signature(object = "mer"),
           coefs <- cbind("Estimate" = fcoef, "Std. Error" = corF@sd) #, DF = DF)
           llik <- logLik(object, REML)
           dev <- object@deviance
-          mType <- if((non <- as.logical(length(object@V)))) "NMM" else "LMM"
+          mType <- if((non <- as.logical(length(object@etaGamma)))) "NMM" else "LMM"
           if (gen <- as.logical(length(object@muEta)))
               mType <- paste("G", mType, sep = '')
           mName <- switch(mType, LMM = "Linear", NMM = "Nonlinear",
@@ -1323,8 +1293,8 @@ setMethod("vcov", signature(object = "mer"),
 	  function(object, ...)
 ### Extract the conditional variance-covariance matrix of the fixed effects
       {
-          rr <- as(sigma(object)^2 *
-                   chol2inv(object@RX, size = object@dims['p']), "dpoMatrix")
+          rr <- as(sigma(object)^2 * chol2inv(object@RX),
+                   "dpoMatrix")
           nms <- colnames(object@X)
           dimnames(rr) <- list(nms, nms)
           rr@factors$correlation <- as(rr, "corMatrix")

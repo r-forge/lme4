@@ -15,12 +15,13 @@ extern "C" {
     SEXP ST_Lambda(SEXP x);
     SEXP ST_Tmatrix(SEXP x);
     SEXP ST_bounds(SEXP x);
+    SEXP ST_chol(SEXP x);
     SEXP ST_create_A(SEXP x, SEXP rho);
+    SEXP ST_create_ranef(SEXP ST, SEXP u, SEXP perm);
     SEXP ST_getPars(SEXP x);
     SEXP ST_initialize(SEXP x, SEXP rho);
     SEXP ST_setPars(SEXP x, SEXP pars, SEXP rho);
     SEXP ST_update_A(SEXP ST, SEXP rho);
-    SEXP ST_create_ranef(SEXP ST, SEXP rho);
     SEXP ST_validate(SEXP x);
 
 #ifdef	__cplusplus
@@ -62,13 +63,12 @@ public:
     int Gp_grp(int ind);
 
 /**
- * Fill the integer vector b, of length 2 * np with parameter bounds
- * in the order low_1, high_1, low_2, ...
+ * Fill numeric vectors lower and upper, of length np with parameter bounds
  *
- * @param b pointer to an integer vector of length 2 * np
- * @return b with values filled in
+ * @param lower pointer to an numeric vector of length np
+ * @param upper pointer to an numeric vector of length np
  */
-    double *bounds(double *b);
+    void bounds(double *lower, double *upper);
 
 /**
  * Assign values to the diagonal of S
@@ -116,8 +116,10 @@ public:
 
     int npars() {return np;}
 
-    void update_ranef(const double *u, const int *perm, double *b);
-    
+    SEXP create_ranef(SEXP u, SEXP perm);
+
+    void chol(SEXP ans);
+
 /**
  * Install new parameters in the ST slot.
  *
@@ -135,38 +137,7 @@ public:
 private:
     double **st;
     int *Gp, *nc, *nlev, nt, maxnc, np;
-    void assign_vals(SEXP ST, SEXP Gpp)
-    {
-	nt = LENGTH(ST);
-	if (!isInteger(Gpp) || !isNewList(ST) ||
-	    LENGTH(Gpp) != (nt + 1))
-	    error(_("Incompatible ST and Gp slots"));
-	Gp = INTEGER(Gpp);
-	if (Gp[0]) error(_("Gp[1] = %d != 0"), Gp[0]);
-	st = new double*[nt];
-	nc = new int[nt];
-	nlev = new int[nt];
-	maxnc = -1;
-	np = 0;
-	for (int i = 0; i < nt; i++) {
-	    SEXP STi = VECTOR_ELT(ST, i);
-	    int *dd = INTEGER(getAttrib(STi, R_DimSymbol));
-	    if (!(isReal(STi) && isMatrix(STi) && dd[0] && dd[0] == dd[1]))
-		error(_("ST[[%d]] is not a non-empty, square numeric matrix"), i + 1);
-	    int nci = dd[0];
-	    int Gpd = Gp[i + 1] - Gp[i];
-
-	    if (nci > maxnc) maxnc = nci;
-	    st[i] = REAL(STi);
-	    nc[i] = nci;
-	    if (Gpd <= 0 || Gpd % nci)
-		error(_("diff(Gp)[%d] is not a positive multiple of nc[%d]"),
-		      i + 1, i + 1);
-	    nlev[i] = (Gp[i + 1] - Gp[i])/nci;
-	    np += (nci * (nci + 1))/2;
-	}
-    }
-
+    void assign_vals(SEXP ST, SEXP Gpp);
 };
 
 #endif /* __cplusplus */
