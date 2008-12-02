@@ -23,6 +23,38 @@
 
 #include "ST.h"
 
+void STinternal::assign_vals(SEXP ST, SEXP Gpp)
+{
+    nt = LENGTH(ST);
+    if (!isInteger(Gpp) || !isNewList(ST) ||
+	LENGTH(Gpp) != (nt + 1))
+	error(_("Incompatible ST and Gp slots"));
+    Gp = INTEGER(Gpp);
+    if (Gp[0]) error(_("Gp[1] = %d != 0"), Gp[0]);
+    st = new double*[nt];
+    nc = new int[nt];
+    nlev = new int[nt];
+    maxnc = -1;
+    np = 0;
+    for (int i = 0; i < nt; i++) {
+	SEXP STi = VECTOR_ELT(ST, i);
+	int *dd = INTEGER(getAttrib(STi, R_DimSymbol));
+	if (!(isReal(STi) && isMatrix(STi) && dd[0] && dd[0] == dd[1]))
+	    error(_("ST[[%d]] is not a non-empty, square numeric matrix"), i + 1);
+	int nci = dd[0];
+	int Gpd = Gp[i + 1] - Gp[i];
+
+	if (nci > maxnc) maxnc = nci;
+	st[i] = REAL(STi);
+	nc[i] = nci;
+	if (Gpd <= 0 || Gpd % nci)
+	    error(_("diff(Gp)[%d] is not a positive multiple of nc[%d]"),
+		  i + 1, i + 1);
+	nlev[i] = (Gp[i + 1] - Gp[i])/nci;
+	np += (nci * (nci + 1))/2;
+    }
+}
+
 double* STinternal::Sdiag(double *d)
 {
     for (int i = 0, pos = 0; i < nt; i++)
@@ -117,12 +149,13 @@ double* STinternal::getPars(double *pars)
 
 void STinternal::setPars(const double *pars)
 {
-    double *bds = bounds(new double[2 * np]);
+    double *lower = new double[np], *upper = new double[np];
+    bounds(lower, upper);
     for (int i = 0; i < np; i++)
-	if (pars[i] < bds[2 * i] || pars[i] > bds[2*i + 1])
+	if (pars[i] < lower[i] || pars[i] > upper[i])
 	    error(_("pars[%d] = %g is not in [%g,%g]"),
-		  i + 1, pars[i], bds[2*i], bds[2*i + 1]);
-    delete[] bds;
+		  i + 1, pars[i], lower[i], upper[i]);
+    delete[] lower; delete[] upper;
 
     for (int i = 0, pos = 0; i < nt; i++) {
 	int nci = nc[i], ncp1 = nc[i] + 1;
@@ -159,17 +192,17 @@ void STinternal::initialize(SEXP Zt)
     }
 }
 
-double* STinternal::bounds(double *b)
+void STinternal::bounds(double *lower, double *upper)
 {
     for (int i = 0; i < np; i++) {
-	b[2*i] = R_NegInf;
-	b[2*i + 1] = R_PosInf;
+	lower[i] = R_NegInf;
+	upper[i] = R_PosInf;
     }
     for (int i = 0, pos = 0; i < nt; i++) { // low = 0 on els of theta_S
-	for (int j = 0; j < nc[i]; j++) b[pos + 2*j] = 0.;
-	pos += nc[i] * (nc[i] + 1);
+	int nci = nc[i];
+	for (int j = 0; j < nci; j++) lower[pos + j] = 0.;
+	pos += (nci * (nci + 1)) / 2;
     }
-    return b;
 }
 
 int STinternal::Gp_grp(int ind)
@@ -227,17 +260,21 @@ void STinternal::update_A(CHM_SP Zt, CHM_SP A)
 
 
 /**
- * Update the contents of the ranef slot in an mer object using the
- * current contents of the u and ST slots.
+ * Create the ranef matrices from u and perm.
  *
  * b = T  %*% S %*% t(P) %*% u
  *
  * @param x an mer object
  */
-void STinternal::update_ranef(const double *u, const int *perm, double *b)
+SEXP STinternal::create_ranef(SEXP uu, SEXP pperm)
 {
     int q = Gp[nt];
-    double one[] = {1,0};
+    if (!isReal(uu) || !isInteger(pperm) || LENGTH(uu) != q ||
+	LENGTH(pperm) != q)
+	error(_("u must be numeric and perm integer, both of length %d"),
+	      q);
+    double *b = new double[q], *u = REAL(uu), d1 = 1.;
+    int *perm = INTEGER(pperm);
 
     for (int i = 0; i < q; i++) b[perm[i]] = u[i]; // inverse permutation
     for (int i = 0; i < nt; i++) {
@@ -247,11 +284,38 @@ void STinternal::update_ranef(const double *u, const int *perm, double *b)
 	    for (int kk = 0; kk < nlev[i]; kk++) b[base + kk] *= dd;
 	}
 	if (nc[i] > 1) {	// multiply by \tilde{T}_i
-	    F77_CALL(dtrmm)("R", "L", "T", "U", nlev + i, nc + i, one,
+	    F77_CALL(dtrmm)("R", "L", "T", "U", nlev + i, nc + i, &d1,
 			    st[i], nc + i, b + Gp[i], nlev + i);
 	}
     }
+    SEXP ans = PROTECT(allocVector(VECSXP, nt));
+    for (int i = 0; i < nt; i++) {
+	SET_VECTOR_ELT(ans, i, allocMatrix(REALSXP, nlev[i], nc[i]));
+	Memcpy(REAL(VECTOR_ELT(ans, i)), b + Gp[i], nlev[i] * nc[i]);
+    }
+    delete[] b;
+    UNPROTECT(1);
+    return ans;
 }
+
+void STinternal::chol(SEXP ans)
+{
+    for (int k = 0; k < nt; k++) {
+	if (nc[k] > 1) {	// nothing to do for nc[k] == 1
+	    int nck = nc[k], nckp1 = nc[k] + 1;
+	    double *ak = REAL(VECTOR_ELT(ans, k)), *stk = st[k];
+	    
+	    for (int j = 0; j < nck; j++) {
+		double dd = stk[j * nckp1]; // diagonal el
+		for (int i = j + 1; i < nck; i++) {
+		    ak[j + i * nck] = dd * stk[i + j * nck];
+		    ak[i + j * nck] = 0;
+		}
+	    }
+	}
+    }
+}
+
 
 /**
  * Populate the st, nc and nlev arrays.  Return the maximum element of nc.
@@ -284,6 +348,21 @@ ST_nc_nlev(const SEXP ST, const int *Gp, double **st, int *nc, int *nlev)
 }
 
 extern "C" {
+
+/**
+ * Return a list of (upper) Cholesky factors from the ST list
+ *
+ * @param x an ST object
+ *
+ * @return a list of upper Cholesky factors
+ */
+SEXP ST_chol(SEXP x)
+{
+    SEXP ans = PROTECT(duplicate(GET_SLOT(x, lme4_STSym)));
+    STinternal(x).chol(ans);
+    UNPROTECT(1);
+    return ans;
+}
 
 /**
  * Generate the A matrix from Zt.
@@ -337,13 +416,15 @@ extern "C" {
  *
  * @param x an ST object
  *
- * @return numeric vector
+ * @return numeric matrix with 2 columns and np rows
  */
     SEXP ST_bounds(SEXP x)
     {
 	STinternal ST = STinternal(x);
-	SEXP ans = allocVector(REALSXP, 2 * ST.npars());
-	ST.bounds(REAL(ans));
+	int np = ST.npars();
+	SEXP ans = allocMatrix(REALSXP, np, 2);
+	double *low = REAL(ans);
+	ST.bounds(low, low + np);
 	return ans;
     }
     
@@ -419,26 +500,17 @@ extern "C" {
     }
 
 /**
- * Externally callable update_ranef.
- * Update the contents of the ranef slot in an mer object.  For a
- * linear mixed model the conditional estimates of the fixed effects
- * and the conditional mode of u are evaluated first.
+ * Create the random effects in the original scale as a list of matrices
  *
- * @param x an mer object
+ * @param x an ST object
+ * @param u the vector of orthogonal random effects
+ * @param u the permutation vector
  *
- * @return R_NilValue
+ * @return a list of matrices
  */
-    SEXP ST_create_ranef(SEXP x, SEXP rho)
+    SEXP ST_create_ranef(SEXP x, SEXP u, SEXP perm)
     {
-	SEXP u = findVarInFrame(rho, lme4_uSym),
-	    perm = findVarInFrame(rho, lme4_permSym);
-	int ulen = LENGTH(u);
-	SEXP b = PROTECT(allocVector(REALSXP, ulen));
-	if (!isReal(u) || !isInteger(perm) || ulen != LENGTH(perm))
-	    error (_("u must be numeric, perm integer and of equal length"));
-	STinternal(x).update_ranef(REAL(u), INTEGER(perm), REAL(b));
-	UNPROTECT(1);
-	return b;
+	return STinternal(x).create_ranef(u, perm);
     }
 
     SEXP ST_validate(SEXP x)
