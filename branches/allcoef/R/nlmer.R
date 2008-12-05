@@ -65,5 +65,31 @@ nlmer <- function(formula, data, start = NULL, verbose = FALSE,
     rownames(rho$X) <- NULL
     rho$fixef <- numeric(ncol(rho$X))
     names(rho$fixef) <- colnames(rho$X)
+
+    ## create factor list for the random effects
+    bars <- lme4:::expandSlash(lme4:::findbars(formula[[3]]))
+    if (!length(bars)) stop("No random effects terms specified in formula")
+    names(bars) <- unlist(lapply(bars, function(x) deparse(x[[3]])))
+    fl <- lapply(bars,
+                 function(x)
+             {
+                 ff <- eval(substitute(as.factor(fac)[,drop = TRUE],
+                                       list(fac = x[[3]])), mf)
+                 im <- as(ff, "sparseMatrix") # transpose of indicators
+		 ## Could well be that we should rather check earlier .. :
+		 if(!isTRUE(validObject(im, test=TRUE)))
+		     stop("invalid conditioning factor in random effect: ", format(x[[3]]))
+
+                 mm <- model.matrix(eval(substitute(~ 0 + expr, # model matrix
+                                                    list(expr = x[[2]]))),
+                                    mf)
+                 list(f = ff,
+                      Zt = drop0(do.call(rBind,
+                      lapply(seq_len(ncol(mm)),
+                             function(j) {im@x <- mm[,j]; im}))),
+                      ST = matrix(0, ncol(mm), ncol(mm),
+                      dimnames = list(colnames(mm), colnames(mm))))
+             })
+
     return(rho)
 }
