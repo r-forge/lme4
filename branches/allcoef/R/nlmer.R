@@ -22,20 +22,23 @@ nlmer <- function(formula, data, start = NULL, verbose = FALSE,
 
     nlmod <- as.call(nlform[[3]]) # evaluate the model frame (carefully)
     anms <- all.vars(nlmod)
-    fr.form[[3]] <-                     # the frame formula includes all variables
+    fr.form[[3]] <-         # the frame formula includes all variables
         substitute(foo + bar,
-                   list(foo = parse(text = paste(all.vars(nlform), collapse = ' + '))[[1]],
+                   list(foo = parse(text = paste(all.vars(nlform),
+                                    collapse = ' + '))[[1]],
                             bar = lme4:::subbars(formula[[3]])))
     mf$formula <- fr.form
-    fr.env <- new.env()                 
-    if (is.data.frame(data))            # the frame environment starts as data
+    fr.env <- new.env()         # parent is current evaluation frame
+    if (is.data.frame(data))    # add data columns to frame environment
         lapply(names(data), function(nm) assign(nm, data[[nm]], envir = fr.env))
-    if (is.numeric(start)) start <- list(fixef = start)
-    stopifnot((s <- length(pnames <- names(start$fixef))) > 0)
+                                        # check for parameter names in start 
+    if (is.numeric(start)) start <- list(nlpars = start)
+    stopifnot((s <- length(pnames <- names(start$nlpars))) > 0)
     if (!all(pnames %in% anms))
         stop("not all parameter names are used in the nonlinear model expression")
     lapply(pnames,                      # add the parameter names
-           function(nm) assign(nm, unname(rep(start$fixef[nm], n)), nm, envir = fr.env))
+           function(nm) assign(nm, unname(rep(start$nlpars[nm], n)),
+                               nm, envir = fr.env))
     mf$data <- fr.env
     fr <- eval(mf, parent.frame())
     rho$y <- model.response(fr, "double")
@@ -43,7 +46,7 @@ nlmer <- function(formula, data, start = NULL, verbose = FALSE,
     rho$frame <- fr
 
     ## create nlenv and check the evaluation of the nonlinear model function
-    rho$nlenv <- new.env()              # want it to inherit from this environment
+    rho$nlenv <- new.env()  # want it to inherit from this environment (or formula env)
     lapply(anms, function(nm) assign(nm, fr[[nm]], envir = rho$nlenv))
     rho$nlmodel <- nlmod
     if (is.null(rho$etaGamma <- attr(eval(nlmod, rho$nlenv), "gradient")))
@@ -53,12 +56,14 @@ nlmer <- function(formula, data, start = NULL, verbose = FALSE,
     fr <- do.call(rbind, lapply(1:s, function(i) fr)) # rbind s copies of the frame
     for (nm in pnames) fr[[nm]] <- as.numeric(rep(nm == pnames, each = n))
 
-    fe.form <- nlform
-    fe.form[[3]] <- substitute(0 + foo + bar,
-                               list(foo = parse(text = paste(pnames, collapse = ' + '))[[1]],
+    fe.form <- nlform # modify formula to suppress intercept and add pnames
+    fe.form[[3]] <- substitute(0 + foo + bar, 
+                               list(foo = parse(text = paste(pnames,
+                                                collapse = ' + '))[[1]],
                                     bar = lme4:::nobars(formula[[3]])))
-    X <- model.matrix(fe.form, fr)
-    rownames(X) <- NULL
-    rho$X <- X
+    rho$X <- model.matrix(fe.form, fr)
+    rownames(rho$X) <- NULL
+    rho$fixef <- numeric(ncol(rho$X))
+    names(rho$fixef) <- colnames(rho$X)
     return(rho)
 }
