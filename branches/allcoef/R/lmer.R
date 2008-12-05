@@ -637,48 +637,57 @@ nlmer <- function(formula, data, start = NULL, verbose = FALSE,
     if (is.numeric(start)) start <- list(fixef = start)
     s <- length(pnames <- names(start$fixef))
     stopifnot(length(start$fixef) > 0, s > 0,
-              inherits(data, "data.frame"), nrow(data) > 1)
-### FIXME: Allow for the data argument to be missing.  What should the
-### default be?
+              ## Allow for the data argument to be missing?  If so,
+              ## what should the default environment be?
+              inherits(data, "data.frame"), (n <- nrow(data)) > 1)
     if (any(pnames %in% names(data)))
         stop("parameter names must be distinct from names of the variables in data")
     anms <- all.vars(nlmod)
     if (!all(pnames %in% anms))
         stop("not all parameter names are used in the nonlinear model expression")
+###    if (!length(
+    nlenv <- new.env()
+    for (nm in (vnms <- setdiff(anms, pnames))) assign(nm, data[[nm]], envir = nlenv)
+    for (nm in pnams) assign(nm, rep(start$fixef[nm], n), envir = nlenv)
+    pred <- eval(nlmod, envir = nlenv)
+###        )
+###        stop("there are no variables used in the nonlinear model expression")
+    rho <- default_rho()
+    rho$nlmodel <- nlmod
+    rho$nlenv <- new.env()
 
+### FIXME: This check may not be necessary
     if (!length(vnms <- setdiff(anms, pnames)))
         stop("there are no variables used in the nonlinear model expression")
-    if ((nAGQ <- as.integer(nAGQ)) < 1) nAGQ <- 1L
 
+    if ((nAGQ <- as.integer(nAGQ)) < 1) nAGQ <- 1L
+    rho <- default_rho()
     ## create a frame in which to evaluate the factor list
-    fr <- lmerFrames(mc,
-                     eval(substitute(foo ~ bar,
-                                     list(foo = nlform[[2]],
-                                          bar = subnms(formula[[3]],
-                                          lapply(pnames, as.name))))),
-                     contrasts, vnms)
-    mf <- fr$mf
-    env <- new.env()
-    lapply(names(mf), function(nm) assign(nm, env = env, mf[[nm]]))
+    lmerFrames(mc,
+               eval(substitute(foo ~ bar,
+                               list(foo = nlform[[2]],
+                                    bar = subnms(formula[[3]],
+                                    lapply(pnames, as.name))))),
+               contrasts, rho, vnms)
+    mf <- rho$frame
+    lapply(names(mf), function(nm) assign(nm, env = rho$nlenv, mf[[nm]]))
     n <- nrow(mf)
     lapply(pnames,
-           function(nm) assign(nm, env = env, rep(start$fixef[[nm]],
+           function(nm) assign(nm, env = rho$nlenv, rep(start$fixef[[nm]],
                                    length.out = n)))
-
-    n <- nrow(mf)
     mf <- mf[rep(seq_len(n), s), ]
     row.names(mf) <- NULL
     ss <- rep.int(n, s)
     for (nm in pnames)
         mf[[nm]] <- rep.int(as.numeric(nm == pnames), ss)
-    fr$mf <- mf
+    rho$frame <- mf
                                         # factor list and model matrices
     FL <- lmerFactorList(substitute(foo ~ bar, list(foo = nlform[[2]],
                                                     bar = formula[[3]])),
-                         fr, TRUE, TRUE)
+                         rho, TRUE, TRUE)
     X <- as.matrix(mf[,pnames])
     rownames(X) <- NULL
-    xnms <- colnames(fr$X)
+    xnms <- colnames(rho$X)
     if (!is.na(icol <- match("(Intercept)",xnms))) xnms <- xnms[-icol]
 ### FIXME: The only times there would be additional columns in the
 ### fixed effects would be as interactions with parameter names and
