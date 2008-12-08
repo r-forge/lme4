@@ -79,16 +79,16 @@ inline double y_log_y(double y, double mu)
     return (y) ? (y * log(y/mu)) : 0;
 }
 
-//FIXME: consider creating a version that installs the variable of the
-//correct length if it is not present.  Create modifications with
-//shorter calling sequences.
-
-double *VAR_REAL_NULL(SEXP rho, SEXP nm, int len, int nullOK)
+double *VAR_REAL_NULL(SEXP rho, SEXP nm, int len, int nullOK, int absentOK)
 {
     const char *pn = CHAR(PRINTNAME(nm));
     SEXP var = findVarInFrame(rho, nm);
-    if (var == R_UnboundValue)
-	error(_("object named '%s' not found in environment"));
+    if (var == R_UnboundValue) {
+	if (absentOK) {
+	    defineVar(nm, allocVector(REALSXP, len), rho);
+	    return(REAL(findVarInFrame(rho, nm)));
+	} else error(_("object named '%s' not found in environment"));
+    }
     int ll = LENGTH(var);
     
     if (!ll) {
@@ -117,16 +117,54 @@ void mer::extractA(SEXP x)
     memcpy(A, Acp, sizeof(cholmod_sparse));
 }
 
-void mer::extractL(SEXP x)
+// FIXME: Change this so that perm is always initialized to a permutation
+void mer::extractL_perm(SEXP rho)
 {
+    SEXP LL = findVarInFrame(rho, lme4_LSym),
+	pp = findVarInFrame(rho, lme4_permSym);
+    perm = (int*)NULL;		// sentinel
+    if (pp != R_UnboundValue && isInteger(pp) && LENGTH(pp) == q)
+	perm = INTEGER(pp);
+    if (LL == R_UnboundValue) {	// need to create L and possibly perm
+	double d1[2] = {1,0};
+	if (pp == R_UnboundValue) {
+	    defineVar(lme4_permSym, allocVector(INTSXP, q), rho);
+	    perm = INTEGER(findVarInFrame(rho, lme4_permSym));
+	}
+	for (int i = 0; i < q; i++) perm[i] = i; // identity permutation
+
+	CHM_SP U = A_to_U();
+	L = M_cholmod_analyze(U, &c);
+	Memcpy(perm, (int*)(L->Perm), q);
+	M_cholmod_free_sparse(&U, &c);
+	M_cholmod_free_factor(&L, &c);
+				//set the natural ordering
+	int nm = c.nmethods, ord0 = c.method[0].ordering, posto = c.postorder;
+	c.nmethods = 1; c.method[0].ordering = CHOLMOD_NATURAL; c.postorder = FALSE;
+	U = A_to_U();
+	L = M_cholmod_analyze(U, &c);
+				// force a numeric factorization to change the xtype of L
+	if (!M_cholmod_factorize_p(U, d1, (int*)NULL, 0 /*fsize*/, L, &c)) // L
+	    error(_("cholmod_factorize_p failed: status %d, minor %d from ncol %d"),
+		  c.status, L->minor, L->n);
+	M_cholmod_free_sparse(&U, &c);
+				//restore the former settings
+	c.nmethods = nm; c.method[0].ordering = ord0; c.postorder = posto;
+				//define object L in environment rho from this newly created L
+	LL = M_chm_factor_to_SEXP(L, 0);
+	defineVar(lme4_LSym, LL, rho);
+	M_cholmod_free_factor(&L, &c);
+	LL = findVarInFrame(rho, lme4_LSym);
+    } else {
+	if (!perm) error(_("perm must be defined when L is defined"));
+    }
+    CHM_FR Lcp = AS_CHM_FR(LL);
+    if (!(Lcp->is_ll))	   /* should never happen, but check anyway */
+	error(_("L must be LL', not LDL'"));
     // The struct in the result of AS_CHM_FR is allocated with
     // alloca and will be freed when it goes out of scope.  The
     // contents of the pointers do not.  We copy the pointers to a
     // struct we will explicitly free in the destructor.
-
-    CHM_FR Lcp = AS_CHM_FR(x);
-    if (!(Lcp->is_ll))	   /* should never happen, but check anyway */
-	error(_("L must be LL', not LDL'"));
     L = new cholmod_factor;
     memcpy(L, Lcp, sizeof(cholmod_factor));
 }
@@ -165,26 +203,21 @@ mer::mer(SEXP rho)
     if (((int)(A->ncol)) != N)
 	error(_("Number of columns of A = %d is not (n = %d)*(s = %d)"),
 	      A->ncol, n, s);
-    perm = INTEGER(findVarInFrame(rho, lme4_permSym));
-    muEta = VAR_REAL_NULL(rho, lme4_muEtaSym, n, TRUE);
-    if ((sl = findVarInFrame(rho, lme4_LSym)) == R_UnboundValue) {
-	createL(rho);
-	sl = findVarInFrame(rho, lme4_LSym);
-    }
-    extractL(sl);
+    extractL_perm(rho);
 
-    RX = VAR_REAL_NULL(rho, lme4_RXSym, p * p, FALSE);
-    RZX = VAR_REAL_NULL(rho, lme4_RZXSym, q * p, FALSE);
-    X = VAR_REAL_NULL(rho, lme4_XSym, n * p, FALSE);
-    d = VAR_REAL_NULL(rho, lme4_devianceSym, NULLdev_POS + 1, FALSE);
+    RX = VAR_REAL_NULL(rho, lme4_RXSym, p * p, FALSE, FALSE);
+    RZX = VAR_REAL_NULL(rho, lme4_RZXSym, q * p, FALSE, FALSE);
+    X = VAR_REAL_NULL(rho, lme4_XSym, N * p, FALSE, FALSE);
+    d = VAR_REAL_NULL(rho, lme4_devianceSym, NULLdev_POS + 1, FALSE, FALSE);
     dims = INTEGER(findVarInFrame(rho, lme4_dimsSym));
-    eta = VAR_REAL_NULL(rho, lme4_etaSym, n, FALSE);
-    mu = VAR_REAL_NULL(rho, lme4_muSym, n, FALSE);
-    offset = VAR_REAL_NULL(rho, lme4_offsetSym, n, TRUE);
-    pWt = VAR_REAL_NULL(rho, lme4_pWtSym, n, TRUE);
-    res = VAR_REAL_NULL(rho, lme4_residSym, n, FALSE);
-    srwt = VAR_REAL_NULL(rho, lme4_sqrtrWtSym, n, TRUE);
-    var = VAR_REAL_NULL(rho, lme4_varSym, n, TRUE);
+    eta = VAR_REAL_NULL(rho, lme4_etaSym, n, FALSE, TRUE);
+    mu = VAR_REAL_NULL(rho, lme4_muSym, n, FALSE, TRUE);
+    offset = VAR_REAL_NULL(rho, lme4_offsetSym, n, TRUE, FALSE);
+    pWt = VAR_REAL_NULL(rho, lme4_pWtSym, n, TRUE, FALSE);
+    res = VAR_REAL_NULL(rho, lme4_residSym, n, FALSE, TRUE);
+    srwt = VAR_REAL_NULL(rho, lme4_sqrtrWtSym, n, TRUE, FALSE);
+    var = VAR_REAL_NULL(rho, lme4_varSym, n, TRUE, FALSE);
+    muEta = VAR_REAL_NULL(rho, lme4_muEtaSym, n, TRUE, FALSE);
     if ((pWt || var) & !srwt)
 	error(_("0 = length(srwt) != max(length(pWt) = %d, length(var) = %d)"),
 	      LENGTH(findVarInFrame(rho, lme4_pWtSym)),
@@ -193,43 +226,12 @@ mer::mer(SEXP rho)
     nlenv = findVarInFrame(rho, lme4_nlenvSym);
 }
 
-void mer::createL(SEXP rho)
-{
-    double d1[2] = {1,0};
-
-    // create and store the permutation
-    for (int i = 0; i < q; i++) perm[i] = i; // identity permutation
-    CHM_SP U = A_to_U();
-    CHM_FR L = M_cholmod_analyze(U, &c);
-    Memcpy(perm, (int*)(L->Perm), q);
-    M_cholmod_free_sparse(&U, &c);
-    M_cholmod_free_factor(&L, &c);
-
-    //set the natural ordering
-    int nm = c.nmethods, ord0 = c.method[0].ordering, posto = c.postorder;
-    c.nmethods = 1; c.method[0].ordering = CHOLMOD_NATURAL; c.postorder = FALSE;
-    U = A_to_U();
-    L = M_cholmod_analyze(U, &c);
-    // force a numeric factorization to change the xtype of L
-    if (!M_cholmod_factorize_p(U, d1, (int*)NULL, 0 /*fsize*/, L, &c)) // L
-	error(_("cholmod_factorize_p failed: status %d, minor %d from ncol %d"),
-	      c.status, L->minor, L->n);
-    M_cholmod_free_sparse(&U, &c);
-    //restore the former settings
-    c.nmethods = nm; c.method[0].ordering = ord0; c.postorder = posto;
-    //define object L in environment rho from this newly created L
-    SEXP LL = M_chm_factor_to_SEXP(L, 0);
-    defineVar(lme4_LSym, LL, rho);
-    M_cholmod_free_factor(&L, &c);
-}
-
 CHM_SP mer::A_to_U()
 {
     CHM_TR At = M_cholmod_sparse_to_triplet(A, &c);
     int *Ati = (int*)(At->i), *Atj = (int*)(At->j), nz = At->nnz,
 	*iperm = new int[q];
     double *Atx = (double*)(At->x);
-    CHM_SP U;
 	
     for (int j = 0; j < q; j++) iperm[perm[j]] = j;
     for (int p = 0; p < nz; p++) {
@@ -240,8 +242,8 @@ CHM_SP mer::A_to_U()
 	    (muEta ? muEta[jj] : 1) * (srwt ? srwt[jj] : 1);
 	Ati[p] = iperm[Ati[p]];
     }
-    At->ncol = N;
-    U = M_cholmod_triplet_to_sparse(At, nz, &c);
+    At->ncol = n;
+    CHM_SP U = M_cholmod_triplet_to_sparse(At, nz, &c);
     M_cholmod_free_triplet(&At, &c);
     delete[] iperm;
     return U;
@@ -268,13 +270,13 @@ void mer::eval_nonlin(const double *tmp2)
     // colnames of the gradient corresponding to the order of the
     // pnames has been checked
     dble_cpy(eta, REAL(vv), n);
-    dble_cpy(etaGamma, REAL(gg), n * p);
+    dble_cpy(etaGamma, REAL(gg), n * s);
     UNPROTECT(1);
 }
 
-double* mer::X_to_V(double *V)
+void mer::X_to_V()
 {
-    dble_zero(V, N * p);	// zero the array
+    dble_zero(V, n * p);	// zero the array
     for (int j = 0; j < p; j++) {
 	for (int i = 0; i < N; i++) {
 	    int ii = i % n;
@@ -283,7 +285,6 @@ double* mer::X_to_V(double *V)
 		(muEta ? muEta[ii] : 1) * (srwt ? srwt[ii] : 1);
 	}
     }
-    return V;
 }
 
 /**
@@ -325,13 +326,13 @@ double mer::update_mu()
 double mer::PIRLS()
 {
     int cvg, info, verb = dims[verb_POS];
-    double *V = new double[n * p], *betaold = new double[p],
+    double *betaold = new double[p],
 	*cbeta = new double[p], *tmp = new double[q], *uold = new double[q],
 	*wtres = new double[n], cfac = ((double)n)/((double)(q+p)),
 	crit, pwrss_old, step, d1[2] = {1,0}, d0[2] = {0,0};
-    CHM_SP U;
-    CHM_DN SOL, cRZX = N_AS_CHM_DN(RZX, q, p), cV = N_AS_CHM_DN(V, n, p),
+    CHM_DN SOL, cRZX = N_AS_CHM_DN(RZX, q, p), cV,
 	cwtres = N_AS_CHM_DN(wtres, n, 1), ctmp = N_AS_CHM_DN(tmp, q, 1);
+    CHM_SP U;
     R_CheckStack();
 
     dble_zero(u, q); // resetting u to zero at the beginning of each
@@ -339,6 +340,8 @@ double mer::PIRLS()
 		     // is necessary to obtain a repeatable
 		     // evaluation.  If this is not done the
 		     // optimization algorithm can take wild steps.
+    V = new double[n * p];
+    cV = N_AS_CHM_DN(V, n, p);
     cvg = FALSE;
     update_mu();
     for (int i = 0; i < CM_MAXITER; i++) {
@@ -352,10 +355,10 @@ double mer::PIRLS()
 	} else dble_cpy(wtres, res, n);
 	pwrss_old = sqr_length(wtres, n) + sqr_length(u, q);			 
 	U = A_to_U();		// create U
-	X_to_V(V);		// update V
-	if (!M_cholmod_factorize_p(U, d1, (int*)NULL, 0 /*fsize*/, L, &c)) // L
+	if (!M_cholmod_factorize_p(U, d1, (int*)NULL, 0 /*fsize*/, L, &c))
 	    error(_("cholmod_factorize_p failed: status %d, minor %d from ncol %d"),
 		  c.status, L->minor, L->n);
+	X_to_V();		// update V
 	if (!M_cholmod_sdmult(U, 0/*no transpose*/, d1, d0, cV, cRZX, &c)) // RZX
 	    error(_("cholmod_sdmult failed: status %d"), c.status);
 	if (!(SOL = M_cholmod_solve(CHOLMOD_L, L, cRZX, &c)))
@@ -671,29 +674,6 @@ double mer::update_dev()
 /* Externally callable functions */
 
 /**
- * Create and initialize L
- *
- * @param CmP pointer to the model matrix for the orthogonal random
- * effects (transposed)
- *
- * @return L
- */
-SEXP mer_create_L(SEXP CmP)
-{
-    double one[] = {1, 0};
-    CHM_SP Cm = AS_CHM_SP(CmP);
-    CHM_FR L;
-    R_CheckStack();
-
-    L = M_cholmod_analyze(Cm, &c);
-    if (!M_cholmod_factorize_p(Cm, one, (int*)NULL, 0 /*fsize*/, L, &c))
-	error(_("cholmod_factorize_p failed: status %d, minor %d from ncol %d"),
-	      c.status, L->minor, L->n);
-
-    return M_chm_factor_to_SEXP(L, 1);
-}
-
-/**
  * Generate zeros and weights of Hermite polynomial of order N, for
  * the AGQ method.
  *
@@ -809,29 +789,37 @@ SEXP mer_MCMCsamp(SEXP x, SEXP fm)
 }
 
 /**
- * Optimize the profiled deviance of an lmer object or the Laplace
- * approximation to the deviance of a nlmer or glmer object.
- *
- * @param x pointer to an mer object
- *
- * @return R_NilValue
- */
-SEXP mer_optimize(SEXP x)
-{
-    return R_NilValue;
-}
-
-/**
  * Update the deviance vector in GLMMs, NLMMs and GNLMMs
  * If nAGQ > 1, adaptive Gauss-Hermite quadrature is applied.
  *
- * @param x pointer to an mer object
+ * @param x pointer to an mer environment
  *
- * @return R_NilValue
+ * @return deviance value
  */
-SEXP mer_update_dev(SEXP x)
-{
-    return ScalarReal(mer(x).update_dev());
+SEXP mer_update_dev(SEXP x) {return ScalarReal(mer(x).update_dev());}
+
+/**
+ * Update the u and fixef slots in an mer object to their conditional
+ * modes using PIRLS (penalized, iteratively reweighted least squares).
+ *
+ * @param x an mer object
+ * 
+ * @return deviance value
+ */
+SEXP mer_PIRLS(SEXP x) {return ScalarReal(mer(x).PIRLS());}
+
+/**
+ * Create the U matrix from the A matrix
+ *
+ * @param x an mer environment
+ * 
+ * @return U
+ */
+SEXP mer_A_to_U(SEXP x) {
+    CHM_SP U = mer(x).A_to_U();
+    SEXP ans = CHM_SP2SEXP(U, "dgCMatrix");
+    M_cholmod_free_sparse(&U, &c);
+    return ans;
 }
 
 /**
@@ -1039,18 +1027,6 @@ SEXP merMCMC_validate(SEXP x)
 	    return(mkString(buf));
     return ScalarLogical(1);
 }
-
-/**
- * Update the u and fixef slots in an mer object
- *
- * Update the u and fixef slots in an mer object to their conditional
- * modes using PIRLS (penalized, iteratively reweighted least squares).
- *
- * @param x an mer object
- * 
- * @return not sure yet
- */
-SEXP mer_PIRLS(SEXP x) {return ScalarReal(mer(x).PIRLS());}
 
 #if 0
 
@@ -2124,6 +2100,29 @@ SEXP mer_optimize(SEXP x)
 	    d[ML_POS] = dn*(1 + log(d[pwrss_POS]) + log(2*PI/dn)) + d[ldL2_POS];
         }
     }
+
+/** No longer used?
+ * Create and initialize L
+ *
+ * @param CmP pointer to the model matrix for the orthogonal random
+ * effects (transposed)
+ *
+ * @return L
+ */
+SEXP mer_create_L(SEXP CmP)
+{
+    double one[] = {1, 0};
+    CHM_SP Cm = AS_CHM_SP(CmP);
+    CHM_FR L;
+    R_CheckStack();
+
+    L = M_cholmod_analyze(Cm, &c);
+    if (!M_cholmod_factorize_p(Cm, one, (int*)NULL, 0 /*fsize*/, L, &c))
+	error(_("cholmod_factorize_p failed: status %d, minor %d from ncol %d"),
+	      c.status, L->minor, L->n);
+
+    return M_chm_factor_to_SEXP(L, 1);
+}
 
 
 

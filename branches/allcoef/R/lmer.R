@@ -95,6 +95,7 @@ subbars <- function(term)
     term
 }
 
+if (0) {                                # no longer used
 subnms <- function(term, nlist)
 ### Substitute any names from nlist in term with 1
 {
@@ -106,6 +107,7 @@ subnms <- function(term, nlist)
     stopifnot(length(term) >= 2)
     for (j in 2:length(term)) term[[j]] <- subnms(term[[j]], nlist)
     term
+}
 }
 
 slashTerms <- function(x)
@@ -248,19 +250,19 @@ isNested <- function(f1, f2)
 ##' 
 ##' @param formula model formula
 ##' @param mf model frame
+##' @rho environment containing information on the model and to be modified
 ##' @param rmInt logical scalar - should the `(Intercept)` column
 ##'        be removed before creating Zt
 ##' @param drop logical scalar indicating if elements with numeric
 ##'        value 0 should be dropped from the sparse model matrices 
 ##'
-##' @return a list with components named \code{"trms"}, \code{"fl"}
-##'        and \code{"dims"}
-lmerFactorList <- function(formula, rho, rmInt, drop)
+lmerFactorList <- function(formula, mf, rho, rmInt = FALSE, drop = TRUE)
 {
-    mf <- rho$frame
-
     ## create factor list for the random effects
     bars <- expandSlash(findbars(formula[[3]]))
+
+### Is this check necessary?  Can we use lmer/nlmer to do a straight glm or nls
+### fit?  Probably not but should we be able to do so?
     if (!length(bars)) stop("No random effects terms specified in formula")
     names(bars) <- unlist(lapply(bars, function(x) deparse(x[[3]])))
     fl <- lapply(bars,
@@ -272,16 +274,10 @@ lmerFactorList <- function(formula, rho, rmInt, drop)
 		 ## Could well be that we should rather check earlier .. :
 		 if(!isTRUE(validObject(im, test=TRUE)))
 		     stop("invalid conditioning factor in random effect: ", format(x[[3]]))
-
-                 mm <- model.matrix(eval(substitute(~ expr, # model matrix
+                 ## evaluate the model matrix, possibly dropping the intercept
+                 mm <- model.matrix(eval(substitute(if (rmInt) ~ 0 + expr else ~ expr,
                                                     list(expr = x[[2]]))),
                                     mf)
-                 if (rmInt) {
-                     if (is.na(icol <- match("(Intercept)", colnames(mm)))) break
-                     if (ncol(mm) < 2)
-                         stop("lhs of a random-effects term cannot be an intercept only")
-                     mm <- mm[ , -icol , drop = FALSE]
-                 }
                  list(f = ff,
                       Zt = drop0(do.call(rBind,
                       lapply(seq_len(ncol(mm)),
@@ -339,15 +335,12 @@ lmerFactorList <- function(formula, rho, rmInt, drop)
     rho$RX <- matrix(0, p, p)
 }
 
-lmerControl <- function(msVerbose = getOption("verbose"),
-                        maxIter = 300L, maxFN = 900L)
 ### Control parameters for lmer, glmer and nlmer
-{
-    list(
-         maxIter = as.integer(maxIter),
-         maxFN = as.integer(maxFN),
-	 msVerbose = as.integer(msVerbose))# "integer" on purpose
-}
+lmerControl <- function(trace = getOption("verbose"),
+                        iter.max = 300L, eval.max = 900L)
+    list(iter.max = as.integer(iter.max[1]),
+         eval.max = as.integer(eval.max[1]),
+	 trace = as.integer(trace))
 
 lmer <-
     function(formula, data, family = NULL, REML = TRUE,
@@ -364,21 +357,32 @@ lmer <-
     rho <- default_rho()
     ## install objects in the frame rho
     lmerFrames(mc, formula, contrasts, rho) # model frame, X, etc.
-    lmerFactorList(formula, rho, 0L, 0L)    # flist, Zt, dims
+    lmerFactorList(formula, rho$frame, rho) # flist, Zt
     if (REML) rho$dims["REML"] <- 1L
     if (!doFit) return(rho)
-    ctrl <- list(trace = as.integer(verbose))
+    merFinalize(rho, control, verbose, mc)
+}
+
+merFinalize <- function(rho, control, verbose, mc)
+{
+    if (!missing(verbose)) control$trace <- as.integer(verbose[1])
     bds <- getBounds(rho)
-    nlminb(getPars(rho), function(x) setPars(rho, x),
-           lower = bds[,1], upper = bds[,2], control = ctrl)
-    rho$Class <- "mer"
+### FIXME: Save the result from nlminb and force another setPars
+    res <- nlminb(getPars(rho), function(x) setPars(rho, x),
+                  lower = bds[,1], upper = bds[,2], control = control)
+    if (res$convergence != 0)
+        warning(res$message)
     nlmodel <- rho$nlmodel
-    rm("nlmodel", envir = rho)          # it gets quoted
-    ans <- do.call(new, as.list(rho))
+    rho.lst <- as.list(rho)
+    rho.lst$nlmodel <- NULL          # it gets quoted in the conversion
+    rho.lst <-
+        rho.lst[which(names(rho.lst) %in% slotNames(getClass("mer")))]
+    rho.lst$Class <- "mer"
+    ans <- do.call(new, rho.lst)
     ans@call <- mc
     ans@nlmodel <- nlmodel
     ans
-}
+}    
 
 ## for backward compatibility
 lmer2 <-

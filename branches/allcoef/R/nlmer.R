@@ -1,9 +1,12 @@
+### To Do: Remove the parameters from the frame before installing it
+### in the environment
+
 nlmer <- function(formula, data, start = NULL, verbose = FALSE,
                   nAGQ = 1, doFit = TRUE, subset, weights, na.action,
                   contrasts = NULL, model = TRUE, control = list(), ...)
 ### Fit a nonlinear mixed-effects model
 {
-    rho <- lme4:::default_rho()
+    rho <- default_rho()
     mf <- mc <- match.call()
     m <- match(c("data", "subset", "weights", "na.action", "offset"), names(mf), 0)
     mf <- mf[c(1, m)]
@@ -26,7 +29,7 @@ nlmer <- function(formula, data, start = NULL, verbose = FALSE,
         substitute(foo + bar,
                    list(foo = parse(text = paste(all.vars(nlform),
                                     collapse = ' + '))[[1]],
-                            bar = lme4:::subbars(formula[[3]])))
+                            bar = subbars(formula[[3]])))
     mf$formula <- fr.form
     fr.env <- new.env()         # parent is current evaluation frame
     if (is.data.frame(data))    # add data columns to frame environment
@@ -49,8 +52,8 @@ nlmer <- function(formula, data, start = NULL, verbose = FALSE,
     rho$nlenv <- new.env()  # want it to inherit from this environment (or formula env)
     lapply(anms, function(nm) assign(nm, fr[[nm]], envir = rho$nlenv))
     rho$nlmodel <- nlmod
-    if (is.null(rho$etaGamma <- attr(eval(nlmod, rho$nlenv), "gradient")))
-        stop("At present the nonlinear model must return a gradient attribute")
+    if (is.null(rho$etaGamma <- attr(eval(rho$nlmodel, rho$nlenv), "gradient")))
+        stop("The nonlinear model in nlmer must return a gradient attribute")
 
     ## build the extended frame for evaluation of X and Zt
     fr <- do.call(rbind, lapply(1:s, function(i) fr)) # rbind s copies of the frame
@@ -60,36 +63,13 @@ nlmer <- function(formula, data, start = NULL, verbose = FALSE,
     fe.form[[3]] <- substitute(0 + foo + bar, 
                                list(foo = parse(text = paste(pnames,
                                                 collapse = ' + '))[[1]],
-                                    bar = lme4:::nobars(formula[[3]])))
+                                    bar = nobars(formula[[3]])))
     rho$X <- model.matrix(fe.form, fr)
     rownames(rho$X) <- NULL
     rho$fixef <- numeric(ncol(rho$X))
     names(rho$fixef) <- colnames(rho$X)
-
-    ## create factor list for the random effects
-    bars <- lme4:::expandSlash(lme4:::findbars(formula[[3]]))
-    if (!length(bars)) stop("No random effects terms specified in formula")
-    names(bars) <- unlist(lapply(bars, function(x) deparse(x[[3]])))
-    fl <- lapply(bars,
-                 function(x)
-             {
-                 ff <- eval(substitute(as.factor(fac)[,drop = TRUE],
-                                       list(fac = x[[3]])), mf)
-                 im <- as(ff, "sparseMatrix") # transpose of indicators
-		 ## Could well be that we should rather check earlier .. :
-		 if(!isTRUE(validObject(im, test=TRUE)))
-		     stop("invalid conditioning factor in random effect: ", format(x[[3]]))
-
-                 mm <- model.matrix(eval(substitute(~ 0 + expr, # model matrix
-                                                    list(expr = x[[2]]))),
-                                    mf)
-                 list(f = ff,
-                      Zt = drop0(do.call(rBind,
-                      lapply(seq_len(ncol(mm)),
-                             function(j) {im@x <- mm[,j]; im}))),
-                      ST = matrix(0, ncol(mm), ncol(mm),
-                      dimnames = list(colnames(mm), colnames(mm))))
-             })
-
-    return(rho)
+    rho$fixef[names(start$nlpars)] <- start$nlpars
+    lmerFactorList(formula, fr, rho, TRUE, TRUE)
+    if (!doFit) return(rho)
+    merFinalize(rho, control, verbose, quote(mc))
 }

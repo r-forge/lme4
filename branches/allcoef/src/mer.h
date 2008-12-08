@@ -15,6 +15,7 @@ SEXP lme4_ghq(SEXP np);
 SEXP merMCMC_VarCorr(SEXP x, SEXP typ);
 SEXP merMCMC_validate(SEXP x);
 
+SEXP mer_A_to_U(SEXP rho);
 SEXP mer_MCMCsamp(SEXP x, SEXP fm);
 SEXP mer_PIRLS(SEXP rho);
 SEXP mer_postVar(SEXP x, SEXP which);
@@ -44,6 +45,11 @@ public:
 	d[ldL2_POS] = ldL2;
 	d[ldRX2_POS] = ldRX2;
     }
+/**
+ * Create a sparse matrix U from A, etaGamma, muEta, srwt and Perm
+ * @return a freshly allocated q by n sparse matrix
+ */
+    CHM_SP A_to_U();
 /**
  * Update the u and fixef slots in an mer object
  * @return updated deviance
@@ -79,8 +85,7 @@ private:
     CHM_SP A;
 
     void extractA(SEXP rho);
-    void createL(SEXP rho);
-    void extractL(SEXP rho);
+    void extractL_perm(SEXP rho);
     double *apply_perm(double *dest, const double *src)
     {
 	for (int i = 0; i < q; i++) dest[i] = src[perm ? perm[i] : i];
@@ -93,15 +98,9 @@ private:
 	return dest;
     }
 /**
- * Create a sparse matrix U from A, etaGamma, muEta, srwt and Perm
- * @return a freshly allocated q by n sparse matrix
- */
-    CHM_SP A_to_U();
-/**
  * Fill in the V matrix using X, etaGamma, muEta and srwt.
- * @param V pointer to storage for N * p doubles
  */
-    double* X_to_V(double *V);
+    void X_to_V();
     void eval_nonlin(const double *tmp);
     void eval_muEta();
     void eval_varFunc();
