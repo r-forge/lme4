@@ -71,5 +71,6 @@ nlmer <- function(formula, data, start = NULL, verbose = FALSE,
     rho$fixef[names(start$nlpars)] <- start$nlpars
     lmerFactorList(formula, fr, rho, TRUE, TRUE)
     if (!doFit) return(rho)
-    merFinalize(rho, control, verbose, quote(mc))
+    rho$dims["verb"] <- -1L
+    merFinalize(rho, control, verbose, mc)
 }
