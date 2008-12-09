@@ -50,15 +50,12 @@ nlmer <- function(formula, data, start = NULL, verbose = FALSE,
     for (nm in pnames) # convert these variables in fr to indicators
         fr[[nm]] <- as.numeric(rep(nm == pnames, each = n))
     fe.form <- nlform # modify formula to suppress intercept and add pnames
-    fe.form[[3]] <- substitute(0 + foo + bar, 
-                               list(foo = parse(text = paste(pnames,
-                                                collapse = ' + '))[[1]],
-                                    bar = lme4:::nobars(formula[[3]])))
+    fe.form[[3]] <- substitute(0 + bar, list(bar = lme4:::nobars(formula[[3]])))
     rho$X <- model.matrix(fe.form, fr)
     rownames(rho$X) <- NULL
-    rho$fixef <- numeric(ncol(rho$X))
-    names(rho$fixef) <- colnames(rho$X)
-    rho$fixef[names(start$nlpars)] <- start$nlpars
+    if ((qrX <- qr(rho$X))$rank < ncol(rho$X))
+        stop(gettextf("rank of X = %d < ncol(X) = %d", qrX$rank, ncol(rho$X)))
+    rho$beta0 <- rho$fixef <- qr.coef(qrX, unlist(lapply(pnames, get, envir = rho$nlenv)))
     lme4:::lmerFactorList(formula, fr, rho, TRUE, TRUE)
     if (!doFit) return(rho)
 #    rho$dims["verb"] <- -1L

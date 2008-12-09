@@ -76,8 +76,8 @@ private:
 	LTHRESH, MLTHRESH, MPTHRESH, PTHRESH, INVEPS;
 
     int *dims, *perm, N, n, p, q, s;
-    double *RX, *RZX, *V, *X, *d, *eta, *fixef, *etaGamma, *mu,
-	*muEta, *offset, *pWt, *srwt, *res, *u, *var, *y,
+    double *RX, *RZX, *V, *X, *beta0, *d, *eta, *fixef, *etaGamma,
+	*mu, *muEta, *offset, *pWt, *srwt, *res, *u, *var, *y,
 	*ghx, *ghw, ldL2, ldRX2, pwrss, sigmaML, sigmaREML,
 	usqr, wrss;
     SEXP flistP, nlmodel, pnames, nlenv;

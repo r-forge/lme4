@@ -6,7 +6,7 @@ double mer::zero = 0;		// pointers. FIXME: Add const to those
 				// declarations.
 int mer::i1 = 1;
 
-const double mer::CM_TOL = 1e-10;
+const double mer::CM_TOL = 1e-12;
 const double mer::CM_SMIN = 1e-5;
 const double mer::LTHRESH = 30;
 const double mer::MLTHRESH = -30;
@@ -208,6 +208,7 @@ mer::mer(SEXP rho)
     RX = VAR_REAL_NULL(rho, lme4_RXSym, p * p, FALSE, FALSE);
     RZX = VAR_REAL_NULL(rho, lme4_RZXSym, q * p, FALSE, FALSE);
     X = VAR_REAL_NULL(rho, lme4_XSym, N * p, FALSE, FALSE);
+    beta0 = VAR_REAL_NULL(rho, install("beta0"), p, TRUE, FALSE);
     d = VAR_REAL_NULL(rho, lme4_devianceSym, NULLdev_POS + 1, FALSE, FALSE);
     dims = INTEGER(findVarInFrame(rho, lme4_dimsSym));
     eta = VAR_REAL_NULL(rho, lme4_etaSym, n, FALSE, TRUE);
@@ -340,6 +341,7 @@ double mer::PIRLS()
 		     // is necessary to obtain a repeatable
 		     // evaluation.  If this is not done the
 		     // optimization algorithm can take wild steps.
+    if (beta0) Memcpy(fixef, beta0, p);
     V = new double[n * p];
     cV = N_AS_CHM_DN(V, n, p);
     cvg = FALSE;
