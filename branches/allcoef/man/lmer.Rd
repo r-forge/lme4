@@ -14,18 +14,18 @@
 lmer(formula, data, family = NULL, REML = TRUE,
      control = list(), start = NULL, verbose = FALSE,
      doFit = TRUE, subset, weights, na.action, offset,
-     contrasts = NULL, model = TRUE, x = TRUE, \dots)
+     contrasts = NULL, x = TRUE, \dots)
 lmer2(formula, data, family = NULL, REML = TRUE,
       control = list(), start = NULL, verbose = FALSE,
       subset, weights, na.action, offset,
-      contrasts = NULL, model = TRUE, x = TRUE, \dots)
+      contrasts = NULL, x = TRUE, \dots)
 glmer(formula, data, family = gaussian, start = NULL,
       verbose = FALSE, nAGQ = 1, doFit = TRUE, subset, weights,
-      na.action, offset, contrasts = NULL, model = TRUE,
+      na.action, offset, contrasts = NULL,
       control = list(), \dots)
 nlmer(formula, data, start = NULL, verbose = FALSE, nAGQ = 1,
       doFit = TRUE, subset, weights, na.action,
-      contrasts = NULL, model = TRUE, control = list(), \dots)
+      contrasts = NULL, control = list(), \dots)
 }
 \arguments{
   \item{formula}{a two-sided linear formula object describing the
@@ -70,8 +70,6 @@ nlmer(formula, data, start = NULL, verbose = FALSE, nAGQ = 1,
   \item{subset, weights, na.action, offset, contrasts}{further model
     specification arguments as in \code{\link[stats]{lm}}; see there for
     details.}
-  \item{model}{logical scalar.  If \code{FALSE} the model frame in
-    slot \code{frame} is truncated to zero rows.}
   \item{x}{logical scalar.  If \code{FALSE} the model matrix in
     slot \code{X} is truncated to zero rows.}
   \item{verbose}{logical scalar.  If \code{TRUE} verbose output is
