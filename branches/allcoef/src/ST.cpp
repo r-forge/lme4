@@ -22,6 +22,112 @@
 // the group pointers.
 
 #include "ST.h"
+#include "lme4utils.hpp"
+
+class STinternal {
+public:
+    STinternal(SEXP x)		  //< external, R-level object
+    {assign_vals(GET_SLOT(x, lme4_STSym), GET_SLOT(x, lme4_GpSym));}
+
+    STinternal(SEXP ST,		  //< matrix list 
+	       SEXP Gp)		  //< group pointers
+    {assign_vals(ST, Gp);}
+
+    ~STinternal() {delete[] nlev; delete[] nc; delete[] st;}
+
+/**
+ * Initialize the parameters in the ST slot from the Zt matrix
+ *
+ * @param Zt sparse transposed random effects model matrix
+ *
+ */
+    void initialize(SEXP Zt);
+
+/**
+ * Validate method.  This part is a no-op because validation is
+ * done in the constructor.
+ */
+    SEXP validate() {return ScalarLogical(1);}
+
+/**
+ * Utility that returns the index of the term corresponding to a row
+ * or column index in Lambda.
+ *
+ * @param ind index in Lambda - must be in the range [0, Gp[nt]]
+ */
+    int Gp_grp(int ind);
+
+/**
+ * Fill numeric vectors lower and upper, of length np with parameter bounds
+ *
+ * @param lower pointer to an numeric vector of length np
+ * @param upper pointer to an numeric vector of length np
+ */
+    void bounds(double *lower, double *upper);
+
+/**
+ * Assign values to the diagonal of S
+ *
+ * @param d pointer to a vector of Gp[nt] values
+ * @return d
+ */
+    double *Sdiag(double *d);
+
+/**
+ * Create the T matrix as a CHM_SP object
+ *
+ * @return T as a CHM_SP object
+ */
+    CHM_SP Tmatrix();
+    
+/**
+ * Create the Lambda matrix as a CHM_SP object
+ *
+ * @return Lambda as a CHM_SP object
+ */
+    CHM_SP Lambda();
+/**
+ * Create A from Zt
+ *
+ * @return A as a CHM_SP object
+ */
+    CHM_SP create_A(CHM_SP Zt);
+
+/**
+ * Update A from Zt
+ *
+ * @param Zt original model matrix
+ * @param A scaled model matrix
+ */
+    void update_A(CHM_SP Zt, CHM_SP A);
+
+/**
+ * Extract the parameter values
+ *
+ * @param pars vector of length np
+ * @return pars
+ */
+    double *getPars(double *pars);
+
+    int npars() {return np;}
+
+    void chol(SEXP ans);
+
+    SEXP create_ranef(SEXP u, SEXP perm);
+
+/**
+ * Install new parameters in the ST slot.
+ *
+ * @param pars double vector of the appropriate length
+ *
+ */
+    void setPars(const double *pars);
+
+private:
+    double **st;
+    int *Gp, *nc, *nlev, nt, maxnc, np;
+    void assign_vals(SEXP ST, SEXP Gpp);
+};
 
 void STinternal::assign_vals(SEXP ST, SEXP Gpp)
 {
@@ -258,13 +364,13 @@ void STinternal::update_A(CHM_SP Zt, CHM_SP A)
     delete[] dd;
 }
 
-
 /**
  * Create the ranef matrices from u and perm.
  *
  * b = T  %*% S %*% t(P) %*% u
  *
- * @param x an mer object
+ * @param uu pointer to the spherical random effects
+ * @param pperm pointer to the 0-based permutation vector
  */
 SEXP STinternal::create_ranef(SEXP uu, SEXP pperm)
 {
@@ -316,37 +422,6 @@ void STinternal::chol(SEXP ans)
     }
 }
 
-
-/**
- * Populate the st, nc and nlev arrays.  Return the maximum element of nc.
- *
- * @param ST pointer to a list (length nt) of matrices
- * @param Gp group pointers (length nt + 1)
- * @param st length nt array of (double*) pointers to be filled with
- * pointers to the contents of the matrices in ST.  Not used if NULL.
- * @param nc length nt array to be filled with the number of columns
- * @param nlev length nt array to be filled with the number of
- *        levels of the grouping factor for each term
- * 
- * @return maximum element of nc
- */
-static int			/* populate the st, nc and nlev arrays */
-ST_nc_nlev(const SEXP ST, const int *Gp, double **st, int *nc, int *nlev)
-{
-    int ans = 0, nt = LENGTH(ST);
-
-    for (int i = 0; i < nt; i++) {
-	SEXP STi = VECTOR_ELT(ST, i);
-	int nci = *INTEGER(getAttrib(STi, R_DimSymbol));
-
-	if (nci > ans) ans = nci;
-	if (st) st[i] = REAL(STi);
-	nc[i] = nci;
-	nlev[i] = (Gp[i + 1] - Gp[i])/nci;
-    }
-    return ans;
-}
-
 extern "C" {
 
 /**
@@ -368,7 +443,7 @@ SEXP ST_chol(SEXP x)
  * Generate the A matrix from Zt.
  *
  * @param x an ST object
- * @param Zt the dgCMatrix representation of Z'
+ * @param rho an evironment with Zt matrix
  *
  * @return the A matrix as an dgCMatrix object
  */
@@ -432,7 +507,8 @@ SEXP ST_chol(SEXP x)
 /**
  * Update the A array from the Zt array
  *
- * @param x an ST object
+ * @param ST an ST object
+ * @param rho an evironment that contains Zt and A
  *
  * @return numeric vector
  */
@@ -459,15 +535,13 @@ SEXP ST_chol(SEXP x)
 	return ans;
     }
 
-
 /**
  * Evaluate starting estimates for the elements of ST
  *
- * @param ST pointers to the nt ST factorizations of the diagonal
- *     elements of Sigma 
- * @param Gpp length nt+1 vector of group pointers for the rows of Zt
- * @param Zt transpose of Z matrix
+ * @param x an ST object
+ * @param rho environment that contains Zt
  *
+ * @return R_NilValue
  */
     SEXP ST_initialize(SEXP x, SEXP rho)
     {
@@ -481,6 +555,7 @@ SEXP ST_chol(SEXP x)
  *
  * @param x an mer object
  * @param pars a REAL vector of the appropriate length
+ * @param rho environment that contains Zt and A
  *
  * @return R_NilValue
  */
@@ -504,7 +579,7 @@ SEXP ST_chol(SEXP x)
  *
  * @param x an ST object
  * @param u the vector of orthogonal random effects
- * @param u the permutation vector
+ * @param perm the permutation vector
  *
  * @return a list of matrices
  */
@@ -517,6 +592,40 @@ SEXP ST_chol(SEXP x)
     {
 	return STinternal(x).validate();
     }
+
+}
+
+#if 0
+/**
+ * Populate the st, nc and nlev arrays.  Return the maximum element of nc.
+ *
+ * @param ST pointer to a list (length nt) of matrices
+ * @param Gp group pointers (length nt + 1)
+ * @param st length nt array of (double*) pointers to be filled with
+ * pointers to the contents of the matrices in ST.  Not used if NULL.
+ * @param nc length nt array to be filled with the number of columns
+ * @param nlev length nt array to be filled with the number of
+ *        levels of the grouping factor for each term
+ * 
+ * @return maximum element of nc
+ */
+static int			/* populate the st, nc and nlev arrays */
+ST_nc_nlev(const SEXP ST, const int *Gp, double **st, int *nc, int *nlev)
+{
+    int ans = 0, nt = LENGTH(ST);
+
+    for (int i = 0; i < nt; i++) {
+	SEXP STi = VECTOR_ELT(ST, i);
+	int nci = *INTEGER(getAttrib(STi, R_DimSymbol));
+
+	if (nci > ans) ans = nci;
+	if (st) st[i] = REAL(STi);
+	nc[i] = nci;
+	nlev[i] = (Gp[i + 1] - Gp[i])/nci;
+    }
+    return ans;
+}
+
 /**
  * Extract the conditional variances of the random effects in an mer
  * object.  Some people called these posterior variances, hence the name.
@@ -595,5 +704,4 @@ SEXP ST_chol(SEXP x)
 	UNPROTECT(1);
 	return ans;
     }
-    
-}
+#endif

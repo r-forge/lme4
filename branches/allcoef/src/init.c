@@ -28,7 +28,7 @@ static R_CallMethodDef CallEntries[] = {
     CALLDEF(mer_A_to_U, 1),
     CALLDEF(mer_MCMCsamp, 2),
     CALLDEF(mer_PIRLS, 1),
-    CALLDEF(mer_postVar, 2),
+/*     CALLDEF(mer_postVar, 2), */
     CALLDEF(mer_update_dev, 1),
     CALLDEF(mer_update_mu, 1),
     CALLDEF(mer_validate, 1),
@@ -87,13 +87,14 @@ void R_init_lme4(DllInfo *dll)
     lme4_nlmodelSym = install("nlmodel");
     lme4_offsetSym = install("offset");
     lme4_pSym = install("p");
-    lme4_pWtSym = install("pWt");
+    lme4_weightsSym = install("weights");
     lme4_permSym = install("perm");
     lme4_ranefSym = install("ranef");
     lme4_residSym = install("resid");
     lme4_rhoSym = install("rho");
     lme4_sigmaSym = install("sigma");
     lme4_sqrtrWtSym = install("sqrtrWt");
+    lme4_startSym = install("start");
     lme4_uSym = install("u");
     lme4_varSym = install("var");
     lme4_xSym = install("x");

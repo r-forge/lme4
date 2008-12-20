@@ -33,9 +33,9 @@ devDefault <- c(ML = NA,                # deviance (for ML estimation)
                 llik = NA,              # log-likelihood
                 NULLdev = 0)            # null deviance
 
-default_rho <- function()
+default_rho <- function(parent)
 {
-    rho <- new.env(parent = emptyenv())
+    rho <- new.env(parent = parent)
     rho$nlmodel <- (~I(x))[[2]]
     rho$muEta <- rho$pWt <- rho$offset <- rho$var <- rho$sqrtrWt <-
         rho$ghx <- rho$ghw <- numeric(0)
@@ -80,6 +80,7 @@ nobars <- function(term)
     term
 }
 
+if (0) {                                # no longer used
 subbars <- function(term)
 ### Substitute the '+' function for the '|' function
 {
@@ -95,7 +96,6 @@ subbars <- function(term)
     term
 }
 
-if (0) {                                # no longer used
 subnms <- function(term, nlist)
 ### Substitute any names from nlist in term with 1
 {
@@ -143,78 +143,6 @@ expandSlash <- function(bb)
                                                         bar = trm))))
         x
     }))
-}
-
-### FIXME: somehow the environment of the mf formula does not have
-### .globalEnv in its parent list.  example(Mmmec, package = "mlmRev")
-### used to have a formula of ~ offset(log(expected)) + ... and the
-### offset function was not found in eval(mf, parent.frame(2))
-lmerFrames <- function(mc, formula, contrasts, rho, vnms = character(0))
-### Create the model frame, X, Y, wts, offset and terms
-
-### mc - matched call of calling function
-### formula - two-sided formula
-### contrasts - contrasts argument
-### vnms - names of variables to be included in the model frame
-{
-    mf <- mc
-    m <- match(c("data", "subset", "weights", "na.action", "offset"),
-               names(mf), 0)
-    mf <- mf[c(1, m)]
-
-    ## The model formula for evaluation of the model frame.  It looks
-    ## like a linear model formula but includes any random effects
-    ## terms and any names of parameters used in a nonlinear mixed model.
-    frame.form <- subbars(formula)      # substitute `+' for `|'
-    if (length(vnms) > 0)               # add the variables names for nlmer
-        frame.form[[3]] <-
-            substitute(foo + bar,
-                       list(foo = parse(text = paste(vnms, collapse = ' + '))[[1]],
-                            bar = frame.form[[3]]))
-
-    ## The model formula for the fixed-effects terms only.
-    fixed.form <- nobars(formula)       # remove any terms with `|'
-    if (inherits(fixed.form, "name"))   # RHS is empty - use `y ~ 1'
-        fixed.form <- substitute(foo ~ 1, list(foo = fixed.form))
-
-    ## attach the correct environment
-    environment(fixed.form) <- environment(frame.form) <- environment(formula)
-
-    ## evaluate a model frame
-    mf$formula <- frame.form
-    mf$drop.unused.levels <- TRUE
-    mf[[1]] <- as.name("model.frame")
-    fe <- mf                            # save a copy of the call
-    mf <- eval(mf, parent.frame(2))
-### FIXME: Does this blow up when family == binomial and response is a matrix?
-    rho$y <- unname(as.double(as.vector(model.response(mf, "any"))))
-
-    fe$formula <- fixed.form        #terms for fixed-effects only (for anova)
-    mt <- attr(eval(fe, parent.frame(2)), "terms")
-
-    ## Extract X checking for a null model. This check shouldn't be
-    ## needed because an empty formula is changed to ~ 1 but it can't hurt.
-    X <- if (!is.empty.model(mt)) model.matrix(mt, mf, contrasts) else matrix(,NROW(Y),0)
-    storage.mode(X) <- "double"      # when ncol(X) == 0, X is logical
-
-    fixef <- numeric(ncol(X))
-    names(fixef) <- colnames(X)      #transfer variable names to fixef
-    dimnames(X) <- NULL
-    rho$X <- X
-    rho$fixef <- fixef
-
-    if (!is.null(wts <- model.weights(mf))) {
-        rho$pWt <- wts <- unname(as.double(wts))
-        if (length(wts) != n)           # is this checked in model.frame?
-            stop(gettextf("length(weights) = %d != length of response = %d"),
-                 length(wts), nrow(X))
-        if (any(wts < 0))
-            stop(gettextf("negative weights not allowed"))
-    }
-    if (!is.null(off <- model.offset(mf))) rho$offset <- unname(as.double(off))
-
-    attr(mf, "terms") <- mt             # terms for fixed effects on mf
-    rho$frame <- mf
 }
 
 ##' Is f1 nested within f2?
@@ -329,7 +257,7 @@ lmerFactorList <- function(formula, mf, rho, rmInt = FALSE, drop = TRUE)
     rho$eta <- numeric(n)
     rho$mu <- numeric(n)
     rho$resid <- numeric(n)
-    rho$perm <- integer(q)
+    rho$perm <- 1:q - 1L                # 0-based identity permutation
     rho$u <- numeric(q)
     rho$RZX <- matrix(0, q, p)
     rho$RX <- matrix(0, p, p)
@@ -343,22 +271,86 @@ lmerControl <- function(trace = getOption("verbose"),
 	 trace = as.integer(trace))
 
 lmer <-
-    function(formula, data, family = NULL, REML = TRUE,
+    function(formula, data, family = gaussian, REML = TRUE,
              control = list(), start = NULL, verbose = FALSE, doFit = TRUE,
              subset, weights, na.action, offset, contrasts = NULL,
-             model = TRUE, x = TRUE, ...)
+             mustart, etastart, ...)
 {
-    mc <- match.call()
-    if (!is.null(family)) {             # call glmer
-        mc[[1]] <- as.name("glmer")
-        return(eval.parent(mc))
-    }
+    rho <- default_rho(environment(formula))
+    if (missing(data)) data <- environment(formula)
     stopifnot(length(formula <- as.formula(formula)) == 3)
-    rho <- default_rho()
-    ## install objects in the frame rho
-    lmerFrames(mc, formula, contrasts, rho) # model frame, X, etc.
+
+    ## evaluate and install the model frame
+    mf <- mc <- match.call()
+    m <- match(c("data", "subset", "weights", "na.action", "offset"), names(mf), 0)
+    mf <- mf[c(1, m)]
+    mf$drop.unused.levels <- TRUE
+    mf[[1]] <- as.name("model.frame")
+    fr.form <- formula            # simplified formula for model frame
+    fr.form[[3]] <-
+        parse(text = paste(all.vars(formula), collapse = ' + '))[[1]]
+    environment(fr.form) <- environment(formula)
+    mf$formula <- fr.form
+    fr <- eval(mf, parent.frame())
+    rho$y <- model.response(fr)
+    if(length(dim(rho$y)) == 1) { # avoid problems with 1D arrays, but keep names
+        nm <- rownames(rho$y)
+        dim(rho$y) <- NULL
+        if(!is.null(nm)) names(rho$y) <- nm
+    }
+    rho$frame <- fr       # this frame may contain redundant variables
+    attr(rho$frame, "terms") <- NULL
+    rho$nobs <- nrow(fr)
+    rho$weights <- as.numeric(as.vector(model.weights(fr)))
+    if (length(rho$weights) && any(rho$weights) < 0)
+        stop(gettext("negative weights not allowed", domain = "R-lme4"))
+    loff <- length(rho$offset <- as.numeric(as.vector(model.offset(fr))))
+    if (loff) {
+        if (loff == 1) {
+            rho$offset <- rep.int(rho$offset, rho$nobs)
+        } else if (loff != rho$nobs) {
+            stop(gettextf("number of offsets is %d should equal %d (number of observations)",
+                          loff, rho$nobs), domain = "R-lme4")
+        }
+    }
+            
+    ## evaluate the fixed-effects model matrix
+    fe.form <- formula
+    nb <- nobars(formula[[3]]) #fixed-effects terms only
+    if (is.null(nb)) nb <- 1
+    fe.form[[3]] <- nb
+    rho$X <- model.matrix(fe.form, fr)
+    rownames(rho$X) <- NULL
+    rho$start <- rho$fixef <- numeric(ncol(rho$X))
+    names(rho$fixef) <- colnames(rho$X)
+    
+    ## evaluate and check the family
+    if(is.character(family))
+        family <- get(family, mode = "function", envir = parent.frame(2))
+    if(is.function(family)) family <- family()
+    ft <- famType(family)
+    rho$dims[names(ft)] <- ft
+    rho$family <- family
+
+    ## these allow starting values to be expressed in terms of other vars.
+    rho$mustart <- model.extract(mf, "mustart")
+    rho$etastart <- model.extract(mf, "etastart")
+    
+    eval(family$initialize, rho)
+
+    ## Check for method argument which is no longer used
+    if (!is.null(method <- list(...)$method)) {
+        msg <- paste("Argument", sQuote("method"),
+                     "is deprecated.\nUse", sQuote("nAGQ"),
+                     "to choose AGQ.  PQL is not available.")
+        if (match.arg(method, c("Laplace", "AGQ")) == "Laplace") {
+            warning(msg)
+        } else stop(msg)
+    }
+    
     lmerFactorList(formula, rho$frame, rho) # flist, Zt
-    if (REML) rho$dims["REML"] <- 1L
+    if (REML & ft["fTyp"] == 2 & ft["lTyp"] == 5 & ft["vTyp"] == 1)
+        rho$dims["REML"] <- 1L
     if (!doFit) return(rho)
     merFinalize(rho, control, verbose, mc)
 }
@@ -367,7 +359,6 @@ merFinalize <- function(rho, control, verbose, mc)
 {
     if (!missing(verbose)) control$trace <- as.integer(verbose[1])
     bds <- getBounds(rho)
-### FIXME: Save the result from nlminb and force another setPars
     res <- nlminb(getPars(rho), function(x) setPars(rho, x),
                   lower = bds[,1], upper = bds[,2], control = control)
     if (res$convergence != 0)
@@ -405,6 +396,7 @@ varNms <- c("constant", "mu(1-mu)", "mu", "mu^2", "mu^3")
 
 famType <- function(family)
 {
+    if (is.null(family)) return(c(fTyp = 2L, lTyp = 5L, vTyp = 1L))
     if (!(fTyp <- match(family$family, famNms, nomatch = 0)))
         stop(gettextf("unknown GLM family: %s",
                       sQuote(family$family), domain = "R-lme4"))
@@ -426,206 +418,16 @@ famType <- function(family)
     c(fTyp = fTyp, lTyp = lTyp, vTyp = vTyp)
 }
 
-convergenceMessage <- function(cvg)
-### Create the convergence message
-{
-    msg <- switch(as.character(cvg),
-                  "3" = "X-convergence (3)",
-                  "4" = "relative convergence (4)",
-                  "5" = "both X-convergence and relative convergence (5)",
-                  "6" = "absolute function convergence (6)",
-
-                  "7" = "singular convergence (7)",
-                  "8" = "false convergence (8)",
-                  "9" = "function evaluation limit reached without convergence (9)",
-                  "10" = "iteration limit reached without convergence (9)",
-                  "14" = "storage has been allocated (?) (14)",
-
-                  "15" = "LIV too small (15)",
-                  "16" = "LV too small (16)",
-                  "63" = "fn cannot be computed at initial par (63)",
-                  "65" = "gr cannot be computed at initial par (65)")
-    if (is.null(msg))
-        msg <- paste("See PORT documentation.  Code (", cvg, ")", sep = "")
-    msg
-}
-
-mer_finalize <- function(ans)
-{
-    .Call(mer_optimize, ans)
-    if (ans@dims["cvg"] > 6) warning(convergenceMessage(ans@dims["cvg"]))
-    .Call(mer_update_ranef, ans)
-    .Call(mer_update_mu, ans)
-    ans
-}
-
-## Modifications to lmer often involve modifying model matrices before
-## creating and optimizing the mer object.  Everything past the model
-## matrices is encapsulated in this function
-lmer_finalize <- function(fr, FL, start, REML, verbose)
-{
-    Y <- as.double(fr$Y)
-    if (is.list(start) && all(sort(names(start)) == sort(names(FL))))
-        start <- list(ST = start)
-    if (is.numeric(start)) start <- list(STpars = start)
-    dm <- mkZt(fr, FL, start[["ST"]])
-    stopifnot(length(levels(dm$flist[[1]])) < length(Y))
-### FIXME: A kinder, gentler error message may be in order.
-### This checks that the number of levels in a grouping factor < n
-### Only need to check the first factor because it is the one with
-### the most levels.
-    dm$dd["REML"] <- as.logical(REML)
-    dm$dd["verb"] <- as.integer(verbose)
-    swts <- sqrt(unname(fr$wts))
-    Cx <- numeric(0)
-    if (length(swts))
-        Cx <- (dm$A)@x
-    p <- dm$dd["p"]
-    n <- length(Y)
-    ST <- new("ST", ST = dm@ST, Gp = dm@Gp)
-
-    ans <- new(Class = "mer",
-               env = new.env(),
-               nlmodel = (~I(x))[[2]],
-               frame = fr$mf,
-               flist = dm$flist,
-               X = fr$X,
-               Zt = dm$Zt,
-               pWt = unname(fr$wts),
-               offset = unname(fr$off),
-               y = unname(Y),
-               dims = dm$dd,
-               A = .Call("ST_create_A", ST, dm$Zt),
-               L = dm$L,
-               deviance = dm$dev,
-               fixef = fr$fixef,
-               ranef = numeric(dm$dd["q"]),
-               u = numeric(dm$dd["q"]),
-               eta = numeric(n),
-               mu = numeric(n),
-               resid = numeric(n),
-               sqrtrWt = swts,
-               RZX = matrix(0, dm$dd["q"], p),
-               RX = matrix(0, p, p))
-    if (!is.null(stp <- start$STpars) && is.numeric(stp)) {
-        STp <- .Call(mer_ST_getPars, ans)
-        if (length(STp) == length(stp))
-            .Call(mer_ST_setPars, ans, stp)
-    }
-    mer_finalize(ans)
-}
-
-glmer_finalize <- function(fr, FL, glmFit, start, nAGQ, verbose)
-{
-    if (is.list(start) && all(sort(names(start)) == sort(names(FL))))
-        start <- list(ST = start)
-    if (is.numeric(start)) start <- list(STpars = start)
-    dm <- mkZt(fr, FL, start[["ST"]])
-    ft <- famType(glmFit$family)
-    dm$dd[names(ft)] <- ft
-    dm$dd["useSc"] <- as.integer(!(famNms[dm$dd["fTyp"] ] %in%
-				   c("binomial", "poisson")))
-    if ((nAGQ <- as.integer(nAGQ)) < 1) nAGQ <- 1L
-    if (nAGQ %% 2 == 0) nAGQ <- nAGQ + 1L # reset nAGQ to be an odd number
-    dm$dd["nAGQ"] <- as.integer(nAGQ)
-    AGQlist <- .Call(lme4_ghq, nAGQ)
-    y <- unname(as.double(glmFit$y))
-    ##    dimnames(fr$X) <- NULL
-    p <- dm$dd["p"]
-    dm$dd["verb"] <- as.integer(verbose)
-    fixef <- fr$fixef
-    fixef[] <- coef(glmFit)
-    if (!is.null(ff <- start$fixef) && is.numeric(ff) &&
-        length(ff) == length(fixef)) fixef <- ff
-
-    ans <- new(Class = "mer",
-               env = new.env(),
-               nlmodel = (~I(x))[[2]],
-               frame = fr$mf,
-               call = call("foo"),      # later overwritten
-               flist = dm$flist,
-               Zt = dm$Zt, X = fr$X, y = y,
-               pWt = unname(glmFit$prior.weights),
-               offset = unname(fr$off),
-               Gp = unname(dm$Gp),
-               dims = dm$dd, ST = dm$ST, A = dm$A,
-               Cm = dm$Cm, Cx = (dm$A)@x, L = dm$L,
-               deviance = dm$dev,
-               fixef = fixef,
-               ranef = numeric(dm$dd["q"]),
-               u = numeric(dm$dd["q"]),
-               eta = unname(glmFit$linear.predictors),
-               mu = unname(glmFit$fitted.values),
-               muEta = numeric(dm$dd["n"]),
-               var = numeric(dm$dd["n"]),
-               resid = unname(glmFit$residuals),
-               sqrtXWt = as.matrix(numeric(dm$dd["n"])),
-               sqrtrWt = numeric(dm$dd["n"]),
-               RZX = matrix(0, dm$dd["q"], p),
-               RX = matrix(0, p, p),
-	       ghx = AGQlist[[1]],
-	       ghw = AGQlist[[2]])
-    if (!is.null(stp <- start$STpars) && is.numeric(stp)) {
-        STp <- .Call(mer_ST_getPars, ans)
-        if (length(STp) == length(stp))
-            .Call(mer_ST_setPars, ans, stp)
-    }
-    mer_finalize(ans)
-    ans
-}
-
 glmer <-
 function(formula, data, family = gaussian, start = NULL,
          verbose = FALSE, nAGQ = 1, doFit = TRUE, subset, weights,
-         na.action, offset, contrasts = NULL, model = TRUE,
+         na.action, offset, contrasts = NULL,
          control = list(), ...)
-### Fit a generalized linear mixed model
 {
     mc <- match.call()
-                                        # Evaluate and check the family
-    if(is.character(family))
-        family <- get(family, mode = "function", envir = parent.frame(2))
-    if(is.function(family)) family <- family()
-    if(is.null(family$family)) stop("'family' not recognized")
-    if(family$family == "gaussian" && family$link == "identity") {
-        mc[[1]] <- as.name("lmer")      # use lmer not glmer
-        mc$family <- NULL
-        return(eval.parent(mc))
-    }
-    stopifnot(length(formula <- as.formula(formula)) == 3)
-
-    ## Check for method argument which is no longer used
-    if (!is.null(method <- list(...)$method)) {
-        msg <- paste("Argument", sQuote("method"),
-                     "is deprecated.\nUse", sQuote("nAGQ"),
-                     "to choose AGQ.  PQL is not available.")
-        if (match.arg(method, c("Laplace", "AGQ")) == "Laplace") {
-            warning(msg)
-        } else stop(msg)
-    }
-
-    fr <- lmerFrames(mc, formula, contrasts) # model frame, X, etc.
-    offset <- wts <- NULL
-    if (length(fr$wts)) wts <- fr$wts
-    if (length(fr$off)) offset <- fr$off
-    glmFit <- glm.fit(fr$X, fr$Y, weights = wts, # glm on fixed effects
-                      offset = offset, family = family,
-                      intercept = attr(attr(fr$mf, "terms"), "intercept") > 0)
-    FL <- lmerFactorList(formula, fr, 0L, 0L) # flist, Zt
-### FIXME: issue a warning if the control argument has an msVerbose component
-    cv <- do.call(lmerControl, control)
-    if (missing(verbose)) verbose <- cv$msVerbose
-### FIXME: issue a warning if the model argument is FALSE.  It is ignored.
-
-    ans <- list(fr = fr, FL = FL, glmFit = glmFit, start = start,
-                nAGQ = nAGQ, verbose = verbose)
-    if (doFit) {
-        ans <- do.call(glmer_finalize, ans)
-        ans@call <- mc
-    }
-    ans
+    mc[[1]] <- as.name("lmer")
+    eval(mc, parent.frame())
 }
-
 
 #### Extractors specific to mixed-effects models
 

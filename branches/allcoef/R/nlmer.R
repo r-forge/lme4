@@ -1,12 +1,35 @@
-### To Do: Remove the parameters from the frame before installing it
-### in the environment
+##' Fit a nonlinear mixed-effects model
+##'
+##' @param formula a nonlinear mixed model formula (see detailed documentation)
+##' @param data an optional data frame containing the variables named in
+##'    \code{formula}.  By default the variables are taken from the
+##'    environment from which \code{nlmer} is called.
+##' @param start starting estimates for the nonlinear model
+##'    parameters, as a named numeric vector 
+##' @param verbose integer scalar passed to nlminb.  If negative then
+##'    diagnostic output from the PIRLS (penalized iteratively
+##'    reweighted least squares) step is also provided.
+##' @param nAGQ number of adaptive Gauss-Hermite quadrature points to use
+##' @param doFit logical scalar.  If FALSE the optimization
+##'    environment is returned. Otherwise the parameters are estimated
+##'    and an object of S4 class "mer" is returned.
+##' @param subset further model specifications as in
+##'    \code{\link[stats]{lm}}; see there for details.
+##' @param weights  further model specifications as in
+##'    \code{\link[stats]{lm}}; see there for details.
+##' @param na.action  further model specifications as in
+##'    \code{\link[stats]{lm}}; see there for details.
+##' @param contrasts  further model specifications as in
+##'    \code{\link[stats]{lm}}; see there for details.
+##' @param control a list of control parameters passed to nlminb.  The
+##'    defaults are given in the (hidden) function \code{lmerControl}.
 
+##' @return if doFit is FALSE an environment, otherwise an object of S4 class "mer"
 nlmer <- function(formula, data, start = NULL, verbose = FALSE,
                   nAGQ = 1, doFit = TRUE, subset, weights, na.action,
-                  contrasts = NULL, model = TRUE, control = list(), ...)
-### Fit a nonlinear mixed-effects model
+                  contrasts = NULL, control = list(), ...)
 {
-    rho <- lme4:::default_rho()
+    rho <- default_rho()
     mf <- mc <- match.call()
     m <- match(c("data", "subset", "weights", "na.action", "offset"), names(mf), 0)
     mf <- mf[c(1, m)]
@@ -50,14 +73,13 @@ nlmer <- function(formula, data, start = NULL, verbose = FALSE,
     for (nm in pnames) # convert these variables in fr to indicators
         fr[[nm]] <- as.numeric(rep(nm == pnames, each = n))
     fe.form <- nlform # modify formula to suppress intercept and add pnames
-    fe.form[[3]] <- substitute(0 + bar, list(bar = lme4:::nobars(formula[[3]])))
+    fe.form[[3]] <- substitute(0 + bar, list(bar = nobars(formula[[3]])))
     rho$X <- model.matrix(fe.form, fr)
     rownames(rho$X) <- NULL
     if ((qrX <- qr(rho$X))$rank < ncol(rho$X))
         stop(gettextf("rank of X = %d < ncol(X) = %d", qrX$rank, ncol(rho$X)))
     rho$beta0 <- rho$fixef <- qr.coef(qrX, unlist(lapply(pnames, get, envir = rho$nlenv)))
-    lme4:::lmerFactorList(formula, fr, rho, TRUE, TRUE)
+    lmerFactorList(formula, fr, rho, TRUE, TRUE)
     if (!doFit) return(rho)
-#    rho$dims["verb"] <- -1L
-    lme4:::merFinalize(rho, control, verbose, mc)
+    merFinalize(rho, control, verbose, mc)
 }
