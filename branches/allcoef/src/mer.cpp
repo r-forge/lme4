@@ -504,7 +504,7 @@ double mer::PIRLS()
     ldRX2 = 0;
     for (int j = 0; j < p; j++) ldRX2 += 2 * log(RX[j * (p + 1)]);
     ldL2 = M_chm_factor_ldetL2(L);
-    sigmaML = sqrt(pwrss)/(srwt ? sqr_length(srwt, n) : (double) n);
+    sigmaML = sqrt(pwrss/(srwt ? sqr_length(srwt, n) : (double) n));
     sigmaREML = (etaGamma || muEta) ? NA_REAL :
 	sigmaML * sqrt((((double) n)/((double)(n - p))));
 
