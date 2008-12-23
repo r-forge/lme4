@@ -1,5 +1,7 @@
 # lmer, glmer and nlmer plus methods and utilities
 
+### FIXME: Collapse the dims vector removing the elements that are no longer used
+
 dimsDefault <- c(nt = -1L,              # number of terms
                  n = -1L,               # number of observations
                  p = -1L,               # number of fixed effects
@@ -33,6 +35,8 @@ devDefault <- c(ML = NA,                # deviance (for ML estimation)
                 llik = NA,              # log-likelihood
                 NULLdev = 0)            # null deviance
 
+### This environment has to have a parent for evaluation of the initializer
+
 default_rho <- function(parent)
 {
     rho <- new.env(parent = parent)
@@ -40,7 +44,7 @@ default_rho <- function(parent)
     rho$muEta <- rho$pWt <- rho$offset <- rho$var <- rho$sqrtrWt <-
         rho$ghx <- rho$ghw <- numeric(0)
     rho$etaGamma <- array(0, c(0L,1L), list(NULL, "x"))
-    rho$nlenv <- new.env(parent = rho)
+    rho$nlenv <- new.env(parent = emptyenv())
     rho$deviance <- devDefault
     rho$dims <- dimsDefault
     rho
@@ -78,36 +82,6 @@ nobars <- function(term)
     term[[2]] <- nb2
     term[[3]] <- nb3
     term
-}
-
-if (0) {                                # no longer used
-subbars <- function(term)
-### Substitute the '+' function for the '|' function
-{
-    if (is.name(term) || !is.language(term)) return(term)
-    if (length(term) == 2) {
-	term[[2]] <- subbars(term[[2]])
-	return(term)
-    }
-    stopifnot(length(term) >= 3)
-    if (is.call(term) && term[[1]] == as.name('|'))
-	term[[1]] <- as.name('+')
-    for (j in 2:length(term)) term[[j]] <- subbars(term[[j]])
-    term
-}
-
-subnms <- function(term, nlist)
-### Substitute any names from nlist in term with 1
-{
-    if (!is.language(term)) return(term)
-    if (is.name(term)) {
-        if (any(unlist(lapply(nlist, get("=="), term)))) return(1)
-        return(term)
-    }
-    stopifnot(length(term) >= 2)
-    for (j in 2:length(term)) term[[j]] <- subnms(term[[j]], nlist)
-    term
-}
 }
 
 slashTerms <- function(x)
@@ -352,6 +326,8 @@ lmer <-
     if (REML & ft["fTyp"] == 2 & ft["lTyp"] == 5 & ft["vTyp"] == 1)
         rho$dims["REML"] <- 1L
     if (!doFit) return(rho)
+### FIXME: put control, verbose and mc in the environment.  Must be
+###    be careful of mc in merFinalize.  Don't allow it to be evaluated.
     merFinalize(rho, control, verbose, mc)
 }
 
@@ -458,28 +434,12 @@ setAs("mer", "dtCMatrix", function(from)
 ### Extract the L matrix
       as(from@L, "sparseMatrix"))
 
+
+##' Extract the fixed effects
+
 setMethod("fixef", signature(object = "mer"),
           function(object, ...)
-### Extract the fixed effects
           object@fixef)
-
-##' Create a list of lists from multiple parallel lists
-
-##' @param A a list
-##' @param ... other, parallel lists
-
-##' @return a list of lists
-
-plist <- function(A, ...)
-{
-    dots <- list(...)
-    stopifnot(is.list(A), all(sapply(dots, is.list)),
-              all(sapply(dots, length) == length(A)))
-    dots <- c(list(A), dots)
-    ans <- A
-    for (i in seq_along(A)) ans[[i]] <- lapply(dots, "[[", i)
-    ans
-}
 
 ##' Extract the random effects.
 ##'
@@ -495,33 +455,24 @@ plist <- function(A, ...)
 ##' @return a named list of arrays or vectors, aligned to the factor list 
 
 setMethod("ranef", signature(object = "mer"),
-          function(object, postVar = FALSE, drop = FALSE, whichel = names(wt), ...)
+          function(object, postVar = FALSE, drop = FALSE, whichel = NULL, ...)
       {
-          rr <- object@ranef
-          ## nt is the number of terms, cn is the list of column names
-          nt <- length(cn <- lapply(object@ST, colnames))
-          lterm <- lapply(plist(reinds(object@Gp), cn),
-                          function(el) {
-                              cni <- el[[2]]
-                              matrix(rr[ el[[1]] ], nc = length(cni),
-                                     dimnames = list(NULL, cni))
-                          })
-          wt <- whichterms(object)
-          ans <- lapply(plist(wt, object@flist),
-                        function(el) {
-                            ans <- do.call(cbind, lterm[ el[[1]] ])
-                            rownames(ans) <- levels(el[[2]])
-                            data.frame(ans, check.names = FALSE)
-                        })
-          ## Process whichel
-          stopifnot(is(whichel, "character"))
-          whchL <- names(wt) %in% whichel 
-          ans <- ans[whchL]
+          ## evaluate the list of matrices
+          ml <- ranef(object@rCF, u = object@u, perm = object@perm,
+                       postVar = postVar, ...)
+          ## produce a list of data frames corresponding to factors, not terms
+          fl <- object@flist
+          asgn <- attr(fl, "assign")
+          ans <- lapply(seq_along(fl),
+                        function(i)
+                            data.frame(do.call(cbind, ml[asgn == i]),
+                                       row.names = levels(fl[[i]]),
+                                       check.names = FALSE))
+          names(ans) <- names(fl)
 
+          if (!is.null(whichel)) ans <- ans[whichel]
           if (postVar) {
-              pV <- .Call(mer_postVar, object, whchL)
-              for (i in seq_along(ans))
-                  attr(ans[[i]], "postVar") <- pV[[i]]
+              stop("code not yet written")
           }
           if (drop)
               ans <- lapply(ans, function(el)
@@ -1162,6 +1113,7 @@ BlockDiagonal <- function(lst)
         x = unlist(lapply(lst, slot, "x")))
 }
 
+### FIXME: This method needs replacing.
 setMethod("expand", signature(x = "mer"),
           function(x, sparse = TRUE, ...)
       {
@@ -1767,67 +1719,6 @@ devmat <-
     slotval(oldpars)                    # restore the fitted model
     as.data.frame(t(rbind(parmat, ans)))
 }
-
-##' Find terms associated with grouping factor names.
-
-##' Determine the random-effects associated with particular grouping
-##' factors.
-
-##' @param fm a fitted model object of S4 class "mer"
-##' @param fnm one or more grouping factor names, as a character vector
-
-##' @return a list of indices of terms
-##' @keywords models
-##' @export
-##' @examples
-##' fm1 <- lmer(strength ~ (1|batch) + (1|sample), Pastes)
-##' whichterms(fm1)
-whichterms <- function(fm, fnm = names(fm@flist))
-{
-    stopifnot(is(fm, "mer"), is.character(fnm))
-    fl <- fm@flist
-    asgn <- attr(fl, "assign")
-    fnms <- names(fl)
-    stopifnot(all(fnm %in% fnms))
-    if (is.null(names(fnm))) names(fnm) <- fnm
-    
-    lapply(fnm, function(nm) which(asgn == match(nm, fnms)))
-}
-
-##' Random-effects indices by term
-
-##' Returns a list of indices into the ranef vector by random-effects
-##' terms.
-
-##' @param Gp the Gp slot from an mer object
-
-##' @return a list of random-effects indices
-##' @keywords models
-reinds <- function(Gp)
-{
-    lens <- diff(Gp)
-    lapply(seq_along(lens), function(i) Gp[i] + seq_len(lens[i]))
-}
-
-##' Random-effects indices associated with grouping factor names
-
-##' Determine the random-effects indices with particular grouping
-##' factors.
-
-##' @param fm a fitted model object of S4 class "mer"
-##' @param fnm one or more grouping factor names, as a character vector
-
-##' @return a list of indices of terms
-##' @keywords models
-##' @export
-##' @examples
-##' fm1 <- lmer(strength ~ (1|batch) + (1|sample), Pastes)
-##' whichreind(fm1)
-whichreind <- function(fm, fnm = names(fm@flist))
-    lapply(whichterms(fm, fnm),
-           function (ind) unlist(reinds(fm@Gp)[ind]))
-
-
 
 if (FALSE) {
 ### FIXME: Move this function to the stats package
