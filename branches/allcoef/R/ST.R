@@ -34,3 +34,4 @@ setMethod("ranef", signature(object = "ST"),
 
 setMethod("chol", signature(x = "ST"),
           function(x, ...) .Call(ST_chol, x))
+
