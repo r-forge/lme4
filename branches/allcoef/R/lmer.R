@@ -1,7 +1,5 @@
 # lmer, glmer and nlmer plus methods and utilities
 
-### FIXME: Collapse the dims vector removing the elements that are no longer used
-
 dimsDefault <- c(
                  LMM= 0L,               # not a linear mixed model
                  REML= 0L,              # not REML
@@ -306,7 +304,10 @@ lmer <-
     
     eval(family$initialize, rho)
 
+    ## enforce modes on some vectors in rho
     rho$y <- unname(as.double(rho$y))
+    if (exists("n", envir = rho))
+        rho$n <- as.double(rho$n)
     
     ## Check for method argument which is no longer used
     if (!is.null(method <- list(...)$method)) {
