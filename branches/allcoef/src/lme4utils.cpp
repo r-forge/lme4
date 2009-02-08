@@ -1,5 +1,3 @@
-#include <R.h>
-#include <Rdefines.h>
 #include "Matrix.h"
 
 #include "lme4utils.hpp"
