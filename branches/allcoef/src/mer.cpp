@@ -48,7 +48,7 @@ private:
 
     int *dims, *perm, N, n, p, q, s;
     double *RX, *RZX, *V, *X, *beta0, *d, *eta, *fixef, *etaGamma,
-	*mu, *muEta, *offset, *pWt, *srwt, *res, *u, *var, *y,
+	*mu, *muEta, *nvec, *offset, *pWt, *srwt, *res, *u, *var, *y,
 	*ghx, *ghw, ldL2, ldRX2, pwrss, sigmaML, sigmaREML,
 	usqr, wrss;
     SEXP flistP, nlmodel, pnames, nlenv;
@@ -232,6 +232,8 @@ mer::mer(SEXP rho)
     // Extract slots that must have positive length.
     // Get dimensions of the problem
     SEXP sl = findVarInFrame(rho, lme4_ySym);
+    if (sl == R_UnboundValue)
+	error(_("Environment must contain response y"));
     n = LENGTH(sl);  	// number of observations
     if (!isReal(sl))
 	error(_("Response vector y must be numeric (double)"));
@@ -285,6 +287,14 @@ mer::mer(SEXP rho)
     var = VAR_REAL_NULL(rho, lme4_varSym, n, !ncv, ncv);
     int nidl = dims[lTyp_POS] != 5; // non-identity link
     muEta = VAR_REAL_NULL(rho, lme4_muEtaSym, n, !nidl, nidl);
+    nvec = (double*)NULL;
+    sl = findVarInFrame(rho, install("n"));
+    if (sl != R_UnboundValue) {
+	if (!isReal(sl)) error(_("Vector n must be numeric (double)"));
+	if (LENGTH(sl) != n) error(_("length(n) = %d != length(y) = %d"),
+				   LENGTH(sl), n);
+	nvec = REAL(sl);
+    }
     int reswt = pWt || var;	// force non-null srwt if TRUE
     srwt = VAR_REAL_NULL(rho, lme4_sqrtrWtSym, n, !reswt, reswt);
     nlmodel = findVarInFrame(rho, lme4_nlmodelSym);
@@ -316,7 +326,7 @@ CHM_SP mer::A_to_U()
 
 void mer::eval_nonlin(const double *tmp2)
 {
-    for (int i = 0; i < s; i++) { /* par. vals. into env. */
+    for (int i = 0; i < s; i++) { // par. vals. into environment
 	SEXP vv = findVarInFrame(nlenv, install(CHAR(STRING_ELT(pnames, i))));
 	if (!isReal(vv) || LENGTH(vv) != n)
 	    error(_("Parameter %s in the environment must be a length %d numeric vector"),
@@ -415,7 +425,7 @@ double mer::PIRLS()
 	dble_cpy(uold, u, q);	// record current coefficients
 	dble_cpy(betaold, fixef, p);
 
-	if (srwt) {    /* Update the weights and weighted residuals */
+	if (srwt) {	  // Update the weights and weighted residuals
 	    for (int j = 0; j < n; j++)
 		wtres[j] = res[j] *
 		    (srwt[j] = sqrt((pWt ? pWt[j] : 1.0) * (var ? var[j] : 1.0)));
@@ -425,7 +435,7 @@ double mer::PIRLS()
 	if (!M_cholmod_factorize_p(U, d1, (int*)NULL, 0 /*fsize*/, L, &c))
 	    error(_("cholmod_factorize_p failed: status %d, minor %d from ncol %d"),
 		  c.status, L->minor, L->n);
-	X_to_V();		// update V
+	X_to_V();		   // update V
 	if (!M_cholmod_sdmult(U, 0/*no transpose*/, d1, d0, cV, cRZX, &c)) // RZX
 	    error(_("cholmod_sdmult failed: status %d"), c.status);
 	if (!(SOL = M_cholmod_solve(CHOLMOD_L, L, cRZX, &c)))
@@ -482,8 +492,8 @@ double mer::PIRLS()
 	    }
 	}
 	if (step <= CM_SMIN) break;
-	if (!(muEta || etaGamma)) { /* linear mixed models require */
-	    cvg = TRUE;		    /* only 1 iteration */
+	if (!(muEta || etaGamma)) { // Gaussian linear mixed models require
+	    cvg = TRUE;		    // only 1 iteration
 	    break;
 	}
     }
@@ -650,6 +660,9 @@ void mer::eval_varFunc()
  * @param Grps integer vector of groups.  If (int*)NULL, no groups are used
  *
  * @return ans
+ *
+ * \note: The ans vector *must* be zeroed before passing to this method.
+ *
  */
 double* mer::eval_m2lcond(double *ans, const int *Grps)
 {
@@ -657,10 +670,12 @@ double* mer::eval_m2lcond(double *ans, const int *Grps)
     if ((fTyp == 4 && vTyp != 3) || (fTyp == 1 && vTyp != 2))
 	error(_("Variance function is not consistent with poisson or binomial family"));
     for (int i = 0; i < n; i++) {
-	double mui = mu[i], wi = pWt ? pWt[i] : 1, yi = y[i];
+	double mui = mu[i], ni = nvec[i], wi = pWt ? pWt[i] : 1, yi = y[i];
 	int ai = Grps ? (Grps[i] - 1) : 0;
 	switch(fTyp) {
-	case 5:			/* Poisson family */
+	case 1:			// binomial family
+	    ans[ai] -= 2 * dbinom(yi, ni, mui, 1);
+	case 5:			// Poisson family
 	    ans[ai] -= 2 * dpois(yi, mui, 1) * wi;
 	    break;
 	default:

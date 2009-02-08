@@ -1,3 +1,6 @@
+#define NO_C_HEADERS
+#include <cstddef>
+#include <cmath>
 #include <R.h>
 /* Rdefines.h includes Rinternals.h (for SEXP, REAL, etc.) and defines
  * GET_SLOT, MAKE_CLASS, NEW_OBJECT, SET_SLOT, etc. */
