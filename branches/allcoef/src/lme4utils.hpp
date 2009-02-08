@@ -56,13 +56,7 @@ enum devP {
 
 /** positions in the dims vector */
 enum dimP {
-    nt_POS=0,			/**<number of terms in random effects */
-    n_POS,			/**<number of observations */
-    p_POS,			/**<number of fixed-effects parameters */
-    q_POS,			/**<number of random effects */
-    s_POS,			/**<number of variables in h (1 unless nonlinear) */
-    np_POS,			/**<total number of parameters for T and S */
-    LMM_POS,			/**<is the model a linear mixed model? */
+    LMM_POS=0,			/**<is the model a linear mixed model? */
     isREML_POS,			/**<indicator of REML estimation */
     fTyp_POS,			/**<family type for generalized model */
     lTyp_POS,			/**<link type for generalized model */

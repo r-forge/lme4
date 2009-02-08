@@ -26,111 +26,37 @@
 
 class STinternal {
 public:
-    STinternal(SEXP x)		  //< external, R-level object
-    {assign_vals(GET_SLOT(x, lme4_STSym), GET_SLOT(x, lme4_GpSym));}
-
-    STinternal(SEXP ST,		  //< matrix list 
-	       SEXP Gp)		  //< group pointers
-    {assign_vals(ST, Gp);}
-
+    STinternal(SEXP x);		  //< external, R-level object
     ~STinternal() {delete[] nlev; delete[] nc; delete[] st;}
 
-/**
- * Initialize the parameters in the ST slot from the Zt matrix
- *
- * @param Zt sparse transposed random effects model matrix
- *
- */
     void initialize(SEXP Zt);
-
+    int Gp_grp(int ind);
+    void bounds(double *lower, double *upper);
+    double *Sdiag(double *d);
+    CHM_SP Tmatrix();
+    CHM_SP Lambda();
+    CHM_SP create_A(CHM_SP Zt);
+    void update_A(CHM_SP Zt, CHM_SP A);
+    double *getPars(double *pars);
+    int npars() {return np;}
+    void chol(SEXP ans);
+    SEXP create_ranef(SEXP u, SEXP perm);
+    SEXP condVar(CHM_FR L, SEXP pperm, SEXP flistP, SEXP which);
+    void setPars(const double *pars);
 /**
  * Validate method.  This part is a no-op because validation is
  * done in the constructor.
  */
     SEXP validate() {return ScalarLogical(1);}
 
-/**
- * Utility that returns the index of the term corresponding to a row
- * or column index in Lambda.
- *
- * @param ind index in Lambda - must be in the range [0, Gp[nt]]
- */
-    int Gp_grp(int ind);
-
-/**
- * Fill numeric vectors lower and upper, of length np with parameter bounds
- *
- * @param lower pointer to an numeric vector of length np
- * @param upper pointer to an numeric vector of length np
- */
-    void bounds(double *lower, double *upper);
-
-/**
- * Assign values to the diagonal of S
- *
- * @param d pointer to a vector of Gp[nt] values
- * @return d
- */
-    double *Sdiag(double *d);
-
-/**
- * Create the T matrix as a CHM_SP object
- *
- * @return T as a CHM_SP object
- */
-    CHM_SP Tmatrix();
-    
-/**
- * Create the Lambda matrix as a CHM_SP object
- *
- * @return Lambda as a CHM_SP object
- */
-    CHM_SP Lambda();
-/**
- * Create A from Zt
- *
- * @return A as a CHM_SP object
- */
-    CHM_SP create_A(CHM_SP Zt);
-
-/**
- * Update A from Zt
- *
- * @param Zt original model matrix
- * @param A scaled model matrix
- */
-    void update_A(CHM_SP Zt, CHM_SP A);
-
-/**
- * Extract the parameter values
- *
- * @param pars vector of length np
- * @return pars
- */
-    double *getPars(double *pars);
-
-    int npars() {return np;}
-
-    void chol(SEXP ans);
-
-    SEXP create_ranef(SEXP u, SEXP perm);
-
-/**
- * Install new parameters in the ST slot.
- *
- * @param pars double vector of the appropriate length
- *
- */
-    void setPars(const double *pars);
-
 private:
     double **st;
     int *Gp, *nc, *nlev, nt, maxnc, np;
-    void assign_vals(SEXP ST, SEXP Gpp);
 };
 
-void STinternal::assign_vals(SEXP ST, SEXP Gpp)
+STinternal::STinternal(SEXP x)
 {
+    SEXP ST = GET_SLOT(x, lme4_STSym), Gpp = GET_SLOT(x, lme4_GpSym);
     nt = LENGTH(ST);
     if (!isInteger(Gpp) || !isNewList(ST) ||
 	LENGTH(Gpp) != (nt + 1))
@@ -161,6 +87,12 @@ void STinternal::assign_vals(SEXP ST, SEXP Gpp)
     }
 }
 
+/**
+ * Assign values to the diagonal of S
+ *
+ * @param d pointer to a vector of Gp[nt] values
+ * @return d
+ */
 double* STinternal::Sdiag(double *d)
 {
     for (int i = 0, pos = 0; i < nt; i++)
@@ -172,6 +104,11 @@ double* STinternal::Sdiag(double *d)
     return d;
 }
 
+/**
+ * Create the T matrix as a CHM_SP object
+ *
+ * @return T as a CHM_SP object
+ */
 CHM_SP STinternal::Tmatrix()
 {
     if (maxnc < 2)
@@ -206,6 +143,11 @@ CHM_SP STinternal::Tmatrix()
     return A;
 }
 
+/**
+ * Create the Lambda matrix as a CHM_SP object
+ *
+ * @return Lambda as a CHM_SP object
+ */
 CHM_SP STinternal::Lambda()
 {
     CHM_SP A = Tmatrix();
@@ -217,6 +159,11 @@ CHM_SP STinternal::Lambda()
     return A;
 }
 
+/**
+ * Create A from Zt
+ *
+ * @return A as a CHM_SP object
+ */
 CHM_SP STinternal::create_A(CHM_SP Zt)
 {
     if (((int)(Zt->nrow)) != Gp[nt])
@@ -253,6 +200,12 @@ double* STinternal::getPars(double *pars)
     return pars;
 }
 
+/**
+ * Install new parameters in the ST slot.
+ *
+ * @param pars double vector of the appropriate length
+ *
+ */
 void STinternal::setPars(const double *pars)
 {
     double *lower = new double[np], *upper = new double[np];
@@ -275,6 +228,12 @@ void STinternal::setPars(const double *pars)
     }
 }
 
+/**
+ * Initialize the parameters in the ST slot from the Zt matrix
+ *
+ * @param Zt sparse transposed random effects model matrix
+ *
+ */
 void STinternal::initialize(SEXP Zt)
 {
     int *Zdims = INTEGER(GET_SLOT(Zt, lme4_DimSym)),
@@ -298,6 +257,12 @@ void STinternal::initialize(SEXP Zt)
     }
 }
 
+/**
+ * Fill numeric vectors lower and upper, of length np with parameter bounds
+ *
+ * @param lower pointer to an numeric vector of length np
+ * @param upper pointer to an numeric vector of length np
+ */
 void STinternal::bounds(double *lower, double *upper)
 {
     for (int i = 0; i < np; i++) {
@@ -311,6 +276,12 @@ void STinternal::bounds(double *lower, double *upper)
     }
 }
 
+/**
+ * Utility that returns the index of the term corresponding to a row
+ * or column index in Lambda.
+ *
+ * @param ind index in Lambda - must be in the range [0, Gp[nt]]
+ */
 int STinternal::Gp_grp(int ind)
 {
     if (ind < 0 || ind >= Gp[nt])
@@ -321,6 +292,13 @@ int STinternal::Gp_grp(int ind)
     return -1;                  /* -Wall */
 }
 
+
+/**
+ * Update A from Zt
+ *
+ * @param Zt original model matrix
+ * @param A scaled model matrix
+ */
 void STinternal::update_A(CHM_SP Zt, CHM_SP A)
 {
     int *ai = (int*)(A->i), *ap = (int*)(A->p),
@@ -374,12 +352,13 @@ void STinternal::update_A(CHM_SP Zt, CHM_SP A)
  */
 SEXP STinternal::create_ranef(SEXP uu, SEXP pperm)
 {
-    int q = Gp[nt];
+    const int q = Gp[nt];
     if (!isReal(uu) || !isInteger(pperm) || LENGTH(uu) != q ||
 	LENGTH(pperm) != q)
 	error(_("u must be numeric and perm integer, both of length %d"),
 	      q);
-    double *b = new double[q], *u = REAL(uu), d1 = 1.;
+    double *b = new double[q], *u = REAL(uu);
+    const double d1 = 1.;
     int *perm = INTEGER(pperm);
 
     for (int i = 0; i < q; i++) b[perm[i]] = u[i]; // inverse permutation
@@ -403,6 +382,84 @@ SEXP STinternal::create_ranef(SEXP uu, SEXP pperm)
     UNPROTECT(1);
     return ans;
 }
+
+/**
+ * Evaluate the conditional variances, up to the common scale parameter.
+ *
+ * b = T  %*% S %*% t(P) %*% u
+ *
+ * @param uu pointer to the spherical random effects
+ * @param pperm pointer to the 0-based permutation vector
+ */
+SEXP STinternal::condVar(CHM_FR L, SEXP pperm, SEXP flistP, SEXP which)
+{
+    SEXP ans;
+    const int nf = LENGTH(flistP), q = Gp[nt];
+    if (!isInteger(pperm) || LENGTH(pperm) != q)
+	error(_("perm must be an integer vector of length %d"), q);
+    int nr = 0, pos = 0;
+    int *asgn = INTEGER(getAttrib(flistP, install("assign")));
+    double *vv, one[] = {1,0};
+    CHM_SP sm1, sm2;
+    CHM_DN dm1;
+    int *perm = INTEGER(pperm), *iperm = new int[q];
+	
+    if (nt != nf) {
+	for (int i = 0; i < nt; i++) {
+	    if (asgn[i] < 1 || asgn[i] > nf)
+		error(_("asgn[%d] is not in [1,%d]"), i + 1, nf);
+	}
+	// FIXME: Write the code for nt != nf
+	error(_("Code for more terms than factors not yet written"));
+    }
+				// determine length of list to return 
+    if (!isLogical(which) || LENGTH(which) != nf)
+	error(_("which must be a logical vector of length %d"), nf);
+    int *ww = LOGICAL(which);
+    for (int i = 0; i < nt; i++) if (ww[i]) nr++;
+    if (!nr) return(allocVector(VECSXP, 0));
+    ans = PROTECT(allocVector(VECSXP, nr));
+	
+    for (int j = 0; j < q; j++) iperm[perm[j]] = j; // inverse permutation
+    for (int i = 0; i < nt; i++) {
+	if (ww[i]) {
+	    const int nci = nc[i];
+	    const int ncisqr = nci * nci;
+	    CHM_SP rhs = M_cholmod_allocate_sparse(q, nci, nci,
+						   1/*sorted*/, 1/*packed*/,
+						   0/*stype*/, CHOLMOD_REAL, &c);
+	    SET_VECTOR_ELT(ans, pos, alloc3DArray(REALSXP, nci, nci, nlev[i]));
+	    vv = REAL(VECTOR_ELT(ans, pos));
+	    pos++;
+	    for (int j = 0; j <= nci; j++) ((int *)(rhs->p))[j] = j;
+	    for (int j = 0; j < nci; j++)
+		((double *)(rhs->x))[j] = st[i][j * (nci + 1)];
+	    for (int k = 0; k < nlev[i]; k++) {
+		double *vvk = vv + k * ncisqr;
+		for (int j = 0; j < nci; j++)
+		    ((int*)(rhs->i))[j] = iperm[Gp[i] + k + j * nlev[i]];
+		sm1 = M_cholmod_spsolve(CHOLMOD_L, L, rhs, &c);
+		sm2 = M_cholmod_transpose(sm1, 1 /*values*/, &c);
+		M_cholmod_free_sparse(&sm1, &c);
+		sm1 = M_cholmod_aat(sm2, (int*)NULL, (size_t)0, 1 /*mode*/, &c);
+		dm1 = M_cholmod_sparse_to_dense(sm1, &c);
+		M_cholmod_free_sparse(&sm1, &c); M_cholmod_free_sparse(&sm2, &c);
+		Memcpy(vvk, (double*)(dm1->x), ncisqr);
+		M_cholmod_free_dense(&dm1, &c);
+		if (nci > 1) {
+		    F77_CALL(dtrmm)("L", "L", "N", "U", nc + i, nc + i,
+				    one, st[i], nc + i, vvk, nc + i);
+		    F77_CALL(dtrmm)("R", "L", "T", "U", nc + i, nc + i,
+				    one, st[i], nc + i, vvk, nc + i);
+		}
+	    }
+	    M_cholmod_free_sparse(&rhs, &c);
+	}
+    }
+    UNPROTECT(1);
+    return ans;
+}
+
 
 void STinternal::chol(SEXP ans)
 {
@@ -588,6 +645,21 @@ SEXP ST_chol(SEXP x)
 	return STinternal(x).create_ranef(u, perm);
     }
 
+/**
+ * Evaluate the conditional variances of the random effects, up to the
+ * common scale parameter. Some people called these posterior
+ * variances, hence the name.
+ *
+ * @param x pointer to an mer object
+ * @param which pointer to a logical vector
+ *
+ * @return pointer to a list of arrays
+ */
+    SEXP ST_postVar(SEXP x, SEXP L, SEXP perm, SEXP flist, SEXP which)
+    {
+	return STinternal(x).condVar(AS_CHM_FR(L), perm, flist, which);
+    }
+
     SEXP ST_validate(SEXP x)
     {
 	return STinternal(x).validate();
@@ -595,113 +667,3 @@ SEXP ST_chol(SEXP x)
 
 }
 
-#if 0
-/**
- * Populate the st, nc and nlev arrays.  Return the maximum element of nc.
- *
- * @param ST pointer to a list (length nt) of matrices
- * @param Gp group pointers (length nt + 1)
- * @param st length nt array of (double*) pointers to be filled with
- * pointers to the contents of the matrices in ST.  Not used if NULL.
- * @param nc length nt array to be filled with the number of columns
- * @param nlev length nt array to be filled with the number of
- *        levels of the grouping factor for each term
- * 
- * @return maximum element of nc
- */
-static int			/* populate the st, nc and nlev arrays */
-ST_nc_nlev(const SEXP ST, const int *Gp, double **st, int *nc, int *nlev)
-{
-    int ans = 0, nt = LENGTH(ST);
-
-    for (int i = 0; i < nt; i++) {
-	SEXP STi = VECTOR_ELT(ST, i);
-	int nci = *INTEGER(getAttrib(STi, R_DimSymbol));
-
-	if (nci > ans) ans = nci;
-	if (st) st[i] = REAL(STi);
-	nc[i] = nci;
-	nlev[i] = (Gp[i + 1] - Gp[i])/nci;
-    }
-    return ans;
-}
-
-/**
- * Extract the conditional variances of the random effects in an mer
- * object.  Some people called these posterior variances, hence the name.
- *
- * @param x pointer to an mer object
- * @param which pointer to a logical vector
- *
- * @return pointer to a list of arrays
- */
-    SEXP mer_postVar(SEXP x, SEXP which)
-    {
-	int *Gp = Gp_SLOT(x), *dims = DIMS_SLOT(x), *ww;
-	SEXP ans, flistP = GET_SLOT(x, lme4_flistSym);
-	const int nf = LENGTH(flistP), nt = dims[nt_POS], q = dims[q_POS];
-	int nr = 0, pos = 0;
-//	int *asgn = INTEGER(getAttrib(flistP, install("assign")));
-	double *vv, one[] = {1,0}, sc;
-	CHM_SP sm1, sm2;
-	CHM_DN dm1;
-	CHM_FR L = L_SLOT(x);
-	int *Perm = (int*)(L->Perm), *iperm = Alloca(q, int),
-	    *nc = Alloca(nt, int), *nlev = Alloca(nt, int);
-	double **st = Alloca(nt, double*);
-	R_CheckStack();
-	
-/* FIXME: Write the code for nt != nf */
-	if (nt != nf) error(_("Code not written yet"));
-	/* determine length of list to return */
-	if (!isLogical(which) || LENGTH(which) != nf)
-	    error(_("which must be a logical vector of length %d"), nf);
-	ww = LOGICAL(which);
-	for (int i = 0; i < nt; i++) if (ww[i]) nr++;
-	if (!nr) return(allocVector(VECSXP, 0));
-	ans = PROTECT(allocVector(VECSXP, nr));
-	
-	ST_nc_nlev(GET_SLOT(x, lme4_STSym), Gp, st, nc, nlev);
-	for (int j = 0; j < q; j++) iperm[Perm[j]] = j; /* inverse permutation */
-	sc = dims[useSc_POS] ?
-	    (DEV_SLOT(x)[dims[isREML_POS] ? sigmaREML_POS : sigmaML_POS]) : 1;
-	for (int i = 0; i < nt; i++) {
-	    if (ww[i]) {
-		const int nci = nc[i];
-		const int ncisqr = nci * nci;
-		CHM_SP rhs = M_cholmod_allocate_sparse(q, nci, nci,
-						       1/*sorted*/, 1/*packed*/,
-						       0/*stype*/, CHOLMOD_REAL, &c);
-		
-		SET_VECTOR_ELT(ans, pos, alloc3DArray(REALSXP, nci, nci, nlev[i]));
-		vv = REAL(VECTOR_ELT(ans, pos));
-		pos++;
-		for (int j = 0; j <= nci; j++) ((int *)(rhs->p))[j] = j;
-		for (int j = 0; j < nci; j++)
-		    ((double *)(rhs->x))[j] = st[i][j * (nci + 1)] * sc;
-		for (int k = 0; k < nlev[i]; k++) {
-		    double *vvk = vv + k * ncisqr;
-		    for (int j = 0; j < nci; j++)
-			((int*)(rhs->i))[j] = iperm[Gp[i] + k + j * nlev[i]];
-		    sm1 = M_cholmod_spsolve(CHOLMOD_L, L, rhs, &c);
-		    sm2 = M_cholmod_transpose(sm1, 1 /*values*/, &c);
-		    M_cholmod_free_sparse(&sm1, &c);
-		    sm1 = M_cholmod_aat(sm2, (int*)NULL, (size_t)0, 1 /*mode*/, &c);
-		    dm1 = M_cholmod_sparse_to_dense(sm1, &c);
-		    M_cholmod_free_sparse(&sm1, &c); M_cholmod_free_sparse(&sm2, &c);
-		    Memcpy(vvk, (double*)(dm1->x), ncisqr);
-		    M_cholmod_free_dense(&dm1, &c);
-		    if (nci > 1) {
-			F77_CALL(dtrmm)("L", "L", "N", "U", nc + i, nc + i,
-					one, st[i], nc + i, vvk, nc + i);
-			F77_CALL(dtrmm)("R", "L", "T", "U", nc + i, nc + i,
-					one, st[i], nc + i, vvk, nc + i);
-		    }
-		}
-		M_cholmod_free_sparse(&rhs, &c);
-	    }
-	}
-	UNPROTECT(1);
-	return ans;
-    }
-#endif

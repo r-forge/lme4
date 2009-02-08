@@ -20,6 +20,7 @@ extern "C" {
     SEXP ST_create_ranef(SEXP ST, SEXP u, SEXP perm);
     SEXP ST_getPars(SEXP x);
     SEXP ST_initialize(SEXP x, SEXP rho);
+    SEXP ST_postVar(SEXP x, SEXP L, SEXP perm, SEXP flist, SEXP which);
     SEXP ST_setPars(SEXP x, SEXP pars, SEXP rho);
     SEXP ST_update_A(SEXP ST, SEXP rho);
     SEXP ST_validate(SEXP x);

@@ -84,7 +84,7 @@ nlmer <- function(formula, data, start = NULL, verbose = FALSE,
     fr <- do.call(rbind, lapply(1:s, function(i) fr)) # rbind s copies of the frame
     for (nm in pnames) # convert these variables in fr to indicators
         fr[[nm]] <- as.numeric(rep(nm == pnames, each = n))
-    fe.form <- nlform # modify formula to suppress intercept and add pnames
+    fe.form <- nlform # modify formula to suppress intercept (Is this a good idea?)
     fe.form[[3]] <- substitute(0 + bar, list(bar = nobars(formula[[3]])))
     rho$X <- model.matrix(fe.form, fr)
     rownames(rho$X) <- NULL

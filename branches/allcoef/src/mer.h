@@ -12,8 +12,8 @@ extern "C" {
 // SEXP lme4_rWishart(SEXP ns, SEXP dfp, SEXP scal); 
 SEXP lme4_ghq(SEXP np);
 
-SEXP merMCMC_VarCorr(SEXP x, SEXP typ);
-SEXP merMCMC_validate(SEXP x);
+//SEXP merMCMC_VarCorr(SEXP x, SEXP typ);
+//SEXP merMCMC_validate(SEXP x);
 
 SEXP mer_A_to_U(SEXP rho);
 SEXP mer_MCMCsamp(SEXP x, SEXP fm);
