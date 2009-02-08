@@ -2,12 +2,7 @@
 
 ### FIXME: Collapse the dims vector removing the elements that are no longer used
 
-dimsDefault <- c(nt = -1L,              # number of terms
-                 n = -1L,               # number of observations
-                 p = -1L,               # number of fixed effects
-                 q = -1L,               # number of random effects
-                 s = 1L,                # identity mechanistic model
-                 np= -1L,               # number of parameters in ST
+dimsDefault <- c(
                  LMM= 0L,               # not a linear mixed model
                  REML= 0L,              # not REML
                  fTyp= 2L,              # default family is "gaussian"
@@ -227,7 +222,6 @@ lmerFactorList <- function(formula, mf, rho, rmInt = FALSE, drop = TRUE)
     n <- length(rho$y)
     p <- length(rho$fixef)
     q <- nrow(Zt)
-    rho$dims[c("n", "p", "q")] <- c(n, p, q)
     rho$eta <- numeric(n)
     rho$mu <- numeric(n)
     rho$resid <- numeric(n)
@@ -312,6 +306,8 @@ lmer <-
     
     eval(family$initialize, rho)
 
+    rho$y <- unname(as.double(rho$y))
+    
     ## Check for method argument which is no longer used
     if (!is.null(method <- list(...)$method)) {
         msg <- paste("Argument", sQuote("method"),
@@ -323,8 +319,14 @@ lmer <-
     }
     
     lmerFactorList(formula, rho$frame, rho) # flist, Zt
-    if (REML & ft["fTyp"] == 2 & ft["lTyp"] == 5 & ft["vTyp"] == 1)
-        rho$dims["REML"] <- 1L
+    if (!(rho$dims["LMM"] <- ft["fTyp"] == 2 && ft["lTyp"] == 5 && ft["vTyp"] == 1)) {
+        n <- length(rho$y)
+        if (ft["lTyp"] != 5) rho$muEta <- numeric(n)
+        if (ft["vTyp"] != 1) rho$var <- numeric(n)
+        if (length(rho$var) || length(rho$weights)) rho$sqrtrWt <- numeric(n)
+    }
+    if (REML && rho$dims["LMM"]) rho$dims["REML"] <- 1L
+
     if (!doFit) return(rho)
 ### FIXME: put control, verbose and mc in the environment.  Must be
 ###    be careful of mc in merFinalize.  Don't allow it to be evaluated.
@@ -455,7 +457,7 @@ setMethod("fixef", signature(object = "mer"),
 ##' @return a named list of arrays or vectors, aligned to the factor list 
 
 setMethod("ranef", signature(object = "mer"),
-          function(object, postVar = FALSE, drop = FALSE, whichel = NULL, ...)
+          function(object, postVar = FALSE, drop = FALSE, whichel = names(ans), ...)
       {
           ## evaluate the list of matrices
           ml <- ranef(object@rCF, u = object@u, perm = object@perm,
@@ -470,9 +472,25 @@ setMethod("ranef", signature(object = "mer"),
                                        check.names = FALSE))
           names(ans) <- names(fl)
 
-          if (!is.null(whichel)) ans <- ans[whichel]
+          ## Process whichel
+          stopifnot(is(whichel, "character"))
+          whchL <- names(ans) %in% whichel 
+          ans <- ans[whchL]
+
           if (postVar) {
-              stop("code not yet written")
+### the desired calculation is a diagonal block of
+### sigma^2 Lambda(theta)P'L^{-T}L^{-1} P Lambda(theta)
+### rewrite this in a general form
+              pV <- .Call(ST_postVar, object@rCF, object@L,
+                          object@perm, object@flist, whchL)
+### need to multiply by sigma^2
+              dd <- object@dims
+              sc <- 1
+              if (dd["useSc"])
+                  sc <- object@deviance[if (dd["REML"]) "sigmaREML" else "sigmaML"]
+              sc <- sc * sc
+              for (i in seq_along(ans))
+                  attr(ans[[i]], "postVar") <- pV[[i]] * sc
           }
           if (drop)
               ans <- lapply(ans, function(el)
@@ -635,9 +653,9 @@ setMethod("logLik", signature(object="mer"),
           if (is.null(REML) || is.na(REML[1]))
               REML <- dims["REML"]
           val <- -deviance(object, REML = REML)/2
-          attr(val, "nall") <- attr(val, "nobs") <- dims["n"]
-          attr(val, "df") <-
-              dims["p"] + dims["np"] + as.logical(dims["useSc"])
+          attr(val, "nall") <- attr(val, "nobs") <- length(object@y)
+          attr(val, "df") <- length(object@fixef) +
+              length(getPars(object@rCF)) + as.logical(dims["useSc"])
           attr(val, "REML") <-  as.logical(REML)
           class(val) <- "logLik"
           val
@@ -833,10 +851,10 @@ setMethod("simulate", "mer",
           dims <- object@dims
           etasim <- as.vector(object@X %*% fixef(object)) +  # fixed-effect contribution
               sigma(object) * (as(t(object@A) %*%    # random-effects contribution
-                               matrix(rnorm(nsim * dims["q"]), nc = nsim),
+                               matrix(rnorm(nsim * length(object@u)), nc = nsim),
                                   "matrix")
                                ## residual contribution
-                               + matrix(rnorm(nsim * dims["n"]), nc = nsim))
+                               + matrix(rnorm(nsim * length(object@y)), nc = nsim))
           if (length(object@V) == 0 && length(object@muEta) == 0)
               return(etasim)
           stop("simulate method for GLMMs and NLMMs not yet implemented")
@@ -1014,12 +1032,13 @@ printMer <- function(x, digits = max(3, getOption("digits") - 3),
     print(so@REmat, quote = FALSE, digits = digits, ...)
 
     ngrps <- so@ngrps
-    cat(sprintf("Number of obs: %d, groups: ", dims["n"]))
+    n <- length(x@y)
+    cat(sprintf("Number of obs: %d, groups: ", n))
     cat(paste(paste(names(ngrps), ngrps, sep = ", "), collapse = "; "))
     cat("\n")
     if (is.na(so@sigma))
 	cat("\nEstimated scale (compare to 1):",
-            sqrt(exp(so@deviance["lr2"])/so@dims["n"]), "\n")
+            sqrt(exp(so@deviance["lr2"])/n), "\n")
     if (nrow(so@coefs) > 0) {
 	cat("\nFixed effects:\n")
 	printCoefmat(so@coefs, zap.ind = 3, #, tst.ind = 4
@@ -1078,7 +1097,7 @@ printNlmer <- function(x, digits = max(3, getOption("digits") - 3),
     print(formatVC(VarCorr(x)), quote = FALSE,
           digits = max(3, getOption("digits") - 3))
 
-    cat(sprintf("Number of obs: %d, groups: ", dims["n"]))
+    cat(sprintf("Number of obs: %d, groups: ", length(x@y)))
     ngrps <- sapply(x@flist, function(x) length(levels(x)))
     cat(paste(paste(names(ngrps), ngrps, sep = ", "), collapse = "; "))
     cat("\n")
@@ -1091,7 +1110,7 @@ setMethod("refit", signature(object = "mer", newresp = "numeric"),
           function(object, newresp, ...)
       {
           newresp <- as.double(newresp[!is.na(newresp)])
-          stopifnot(length(newresp) == object@dims["n"])
+          stopifnot(length(newresp) == length(object@y))
           object@y <- newresp
           mer_finalize(object)
       })
@@ -1299,16 +1318,18 @@ setMethod("mcmcsamp", signature(object = "mer"),
       {
           n <- max(1, as.integer(n)[1])
           dd <- object@dims
-          ranef <- matrix(numeric(0), nrow = dd["q"], ncol = 0)
-          if (saveb) ranef <- matrix(object@ranef, nrow = dd["q"], ncol = n)
+          q <- length(object@u)
+          p <- length(object@fixef)
+          ranef <- matrix(numeric(0), nrow = q, ncol = 0)
+          if (saveb) ranef <- matrix(object@ranef, nrow = q, ncol = n)
           sigma <- matrix(unname(sigma(object)), nrow = 1,
                           ncol = (if (dd["useSc"]) n else 0))
           ff <- object@fixef
-          fixef <- matrix(ff, dd["p"], n)
+          fixef <- matrix(ff, p, n)
           rownames(fixef) <- names(ff)
           ans <- new("merMCMC",
                      Gp = object@Gp,
-                     ST = matrix(.Call(mer_ST_getPars, object), dd["np"], n),
+                     ST = matrix(.Call(mer_ST_getPars, object), length(getPars(object@rCF)), n),
                      call = object@call,
                      dims = object@dims,
                      deviance = rep(unname(object@deviance["ML"]), n),

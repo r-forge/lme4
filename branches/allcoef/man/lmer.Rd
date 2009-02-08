@@ -142,7 +142,8 @@ anova(fm1, fm2)
 (gm1 <- glmer(cbind(incidence, size - incidence) ~ period + (1 | herd),
               family = binomial, data = cbpp))
 ## nonlinear mixed models
-(nm1 <- nlmer(circumference ~ SSlogis(age, Asym, xmid, scal) ~ Asym|Tree,
+(nm1 <- nlmer(circumference ~ SSlogis(age, Asym, xmid, scal) ~
+              Asym + xmid + scal + Asym|Tree,
               Orange, start = c(Asym = 200, xmid = 725, scal = 350)))
 }
 \keyword{models}

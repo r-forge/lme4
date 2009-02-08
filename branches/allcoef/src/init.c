@@ -16,14 +16,15 @@ static R_CallMethodDef CallEntries[] = {
     CALLDEF(ST_create_ranef, 3),
     CALLDEF(ST_getPars, 1),
     CALLDEF(ST_initialize, 2),
+    CALLDEF(ST_postVar, 5),
     CALLDEF(ST_setPars, 3),
     CALLDEF(ST_update_A, 2),
     CALLDEF(ST_validate, 1),
 
     CALLDEF(lme4_ghq, 1),
 
-    CALLDEF(merMCMC_VarCorr, 2),
-    CALLDEF(merMCMC_validate, 1),
+/*    CALLDEF(merMCMC_VarCorr, 2), */
+/*    CALLDEF(merMCMC_validate, 1), */
     
     CALLDEF(mer_A_to_U, 1),
     CALLDEF(mer_MCMCsamp, 2),

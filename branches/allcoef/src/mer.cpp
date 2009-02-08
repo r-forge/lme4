@@ -56,17 +56,6 @@ private:
     CHM_SP A;
 
     void extractL(SEXP rho);
-//     double *apply_perm(double *dest, const double *src)
-//     {
-// 	for (int i = 0; i < q; i++) dest[i] = src[perm ? perm[i] : i];
-// 	return dest;
-//     }
-
-//     double* apply_iperm(double *dest, const double *src)
-//     {
-// 	for (int i = 0; i < q; i++) dest[perm ? perm[i] : i] = src[i];
-// 	return dest;
-//     }
 /**
  * Fill in the V matrix using X, etaGamma, muEta and srwt.
  */
@@ -74,6 +63,7 @@ private:
     void eval_nonlin(const double *tmp);
     void eval_muEta();
     void eval_varFunc();
+    double* eval_m2lcond(double *ans, const int *Grps);
     double* eval_devResid(double *ans, const int *Grps);
 };
 
@@ -233,7 +223,7 @@ void mer::extractL(SEXP rho)
     } 
     L = new cholmod_factor;
     M_as_cholmod_factor(L, LL);
-    if (!(L->is_ll))	   /* should never happen, but check anyway */
+    if (!(L->is_ll))	   // should never happen, but check anyway
 	error(_("L must be LL', not LDL'"));
 }
 
@@ -243,6 +233,8 @@ mer::mer(SEXP rho)
     // Get dimensions of the problem
     SEXP sl = findVarInFrame(rho, lme4_ySym);
     n = LENGTH(sl);  	// number of observations
+    if (!isReal(sl))
+	error(_("Response vector y must be numeric (double)"));
     y = REAL(sl);
     sl = findVarInFrame(rho, lme4_fixefSym);
     p = LENGTH(sl);		// number of fixed effects
@@ -651,6 +643,34 @@ void mer::eval_varFunc()
     }
 }
 
+/**
+ * Evaluate -2*log(cond dens)
+ *
+ * @param ans double precision vector to hold the partial sums
+ * @param Grps integer vector of groups.  If (int*)NULL, no groups are used
+ *
+ * @return ans
+ */
+double* mer::eval_m2lcond(double *ans, const int *Grps)
+{
+    const int fTyp = dims[fTyp_POS], vTyp = dims[vTyp_POS];
+    if ((fTyp == 4 && vTyp != 3) || (fTyp == 1 && vTyp != 2))
+	error(_("Variance function is not consistent with poisson or binomial family"));
+    for (int i = 0; i < n; i++) {
+	double mui = mu[i], wi = pWt ? pWt[i] : 1, yi = y[i];
+	int ai = Grps ? (Grps[i] - 1) : 0;
+	switch(fTyp) {
+	case 5:			/* Poisson family */
+	    ans[ai] -= 2 * dpois(yi, mui, 1) * wi;
+	    break;
+	default:
+	    error(_("Unknown fTyp value %d"), fTyp);
+	}
+    }
+    return ans;
+    
+}
+
 double mer::update_dev()
 {
     int nAGQ = dims[nAGQ_POS];
@@ -659,7 +679,7 @@ double mer::update_dev()
     d[ML_POS] = ldL2;
 
     if (dims[fTyp_POS] == 2 && dims[lTyp_POS] == 5 &&
-	dims[vTyp_POS] == 1) {	// Gaussian mixed models
+	dims[vTyp_POS] == 1) {	// Gaussian linear mixed models
 	double dnmp = (double)(n - p);
 
 	d[REML_POS] = ldL2 + ldRX2 +
@@ -670,10 +690,8 @@ double mer::update_dev()
 
     if (nAGQ == 1) {		// Laplace evaluation
 	double ans = 0;
-	eval_devResid(&ans, (int*) NULL);
+	eval_m2lcond(&ans, (int*) NULL);
 	d[disc_POS] = ans;
-//FIXME: Need to take the definition of the AIC function from the
-//R glm family and use it to evaluate the deviance.
 	d[ML_POS] += d[disc_POS] + d[usqr_POS];
 	return d[ML_POS];
     } else {			// Adaptive Gauss-Hermite quadrature
@@ -911,46 +929,6 @@ SEXP mer_A_to_U(SEXP x) {
  */
 SEXP mer_update_mu(SEXP x){return ScalarReal(mer(x).update_mu());}
 
-SEXP merMCMC_VarCorr(SEXP x, SEXP typP)
-{
-    SEXP ST = GET_SLOT(x, lme4_STSym),
-	ncs = GET_SLOT(x, install("nc"));
-    int *Gp, *Sd, *nc;// = Gp_SLOT(x), *Sd = INTEGER(GET_DIM(ST)), *nc = INTEGER(ncs);
-    int maxnc = 0, nt = LENGTH(ncs), np = Sd[0], nsamp = Sd[1], pos;
-    double *sig //= SLOT_REAL_NULL(x, lme4_sigmaSym)
-	;
-    SEXP ans = PROTECT(allocMatrix(REALSXP, nsamp, np + (sig ? 1 : 0)));
-    double *av = REAL(ans), *STx = REAL(ST);
-    double *as = av + nsamp * np, *t1, *t2, var;
-    int *nlev = Alloca(nt, int);
-    R_CheckStack();
-    
-    for (int j = 0; j < nt; j++) {
-	nlev[j] = (Gp[j + 1] - Gp[j])/nc[j];
-	if (maxnc < nc[j]) maxnc = nc[j];
-    }
-    if (maxnc > 1) {
-	t1 = Alloca(maxnc * maxnc, double);
-	t2 = Alloca(maxnc * maxnc, double);
-	R_CheckStack();
-    }
-    
-    for (int i = 0; i < nsamp; i++) {
-	var = 1; pos = 0;
-	if (sig) var = as[i] = sig[i] * sig[i];
-	for (int k = 0; k < nt; k++) {
-	    if (nc[k] < 2) {
-		double sd = STx[pos + i * np] * sig[i];
-		av[i + nsamp * pos++] = sd * sd;
-	    }
-	    else error(_("Code not yet written"));
-	}
-    }
-    
-    UNPROTECT(1);
-    return ans;
-}
-
 /* Stand-alone utility functions (sorted by function name) */
 
 /* Constants */
@@ -960,6 +938,20 @@ SEXP merMCMC_VarCorr(SEXP x, SEXP typP)
 #define BUF_SIZE 127
 #endif	
 
+/**
+ * Check validity of an mer object
+ *
+ * @param x Pointer to an mer object
+ *
+ * @return TRUE if the object is a valid mer object, otherwise a string
+ *         that describes the violation.
+ */
+SEXP mer_validate(SEXP x)
+{
+    return ScalarLogical(1);
+}
+
+#if 0
 /**
  * Check that slot sym of object x is a numeric matrix of dimension nr
  * by nc.
@@ -1006,16 +998,6 @@ static int chkLen(char *buf, int nb, SEXP x, SEXP sym, int len, int zerok)
     return 0;
 }
 
-/**
- * Check validity of an mer object
- *
- * @param x Pointer to an mer object
- *
- * @return TRUE if the object is a valid mer object, otherwise a string
- *         that describes the violation.
- */
-SEXP mer_validate(SEXP x)
-{
     SEXP rho = GET_SLOT(x, lme4_rhoSym), dimsP = GET_SLOT(x, lme4_dimsSym);
     int *dd = INTEGER(dimsP);
     const int n = dd[n_POS], nAGQ = dd[nAGQ_POS], // p = dd[p_POS],
@@ -1057,12 +1039,14 @@ SEXP mer_validate(SEXP x)
 //     if (chkDims(buf, BUF_SIZE, x, lme4_XSym, nv, p)) return(mkString(buf));
 //     if (chkDims(buf, BUF_SIZE, x, lme4_RZXSym, q, p)) return(mkString(buf));
 //     if (chkDims(buf, BUF_SIZE, x, lme4_RXSym, p, p)) return(mkString(buf));
+#endif
 
-    return ScalarLogical(1);
-}
+
+
+#if 0
 
 /**
- * Check validity of an merMCMC object
+ * Check Validity of an merMCMC object
  *
  * @param x Pointer to an merMCMC object
  *
@@ -1103,9 +1087,6 @@ SEXP merMCMC_validate(SEXP x)
 	    return(mkString(buf));
     return ScalarLogical(1);
 }
-
-#if 0
-
 
 /**
  * Update the eta, mu, resid and var slots in a sparseRasch object
@@ -1844,5 +1825,46 @@ SEXP mer_optimize(SEXP x)
 	    d[ML_POS] = dn*(1 + log(d[pwrss_POS]) + log(2*PI/dn)) + d[ldL2_POS];
         }
     }
+
+
+SEXP merMCMC_VarCorr(SEXP x, SEXP typP)
+{
+    SEXP ST = GET_SLOT(x, lme4_STSym),
+	ncs = GET_SLOT(x, install("nc"));
+    int *Gp, *Sd, *nc;// = Gp_SLOT(x), *Sd = INTEGER(GET_DIM(ST)), *nc = INTEGER(ncs);
+    int maxnc = 0, nt = LENGTH(ncs), np = Sd[0], nsamp = Sd[1], pos;
+    double *sig //= SLOT_REAL_NULL(x, lme4_sigmaSym)
+	;
+    SEXP ans = PROTECT(allocMatrix(REALSXP, nsamp, np + (sig ? 1 : 0)));
+    double *av = REAL(ans), *STx = REAL(ST);
+    double *as = av + nsamp * np, *t1, *t2, var;
+    int *nlev = Alloca(nt, int);
+    R_CheckStack();
+    
+    for (int j = 0; j < nt; j++) {
+	nlev[j] = (Gp[j + 1] - Gp[j])/nc[j];
+	if (maxnc < nc[j]) maxnc = nc[j];
+    }
+    if (maxnc > 1) {
+	t1 = Alloca(maxnc * maxnc, double);
+	t2 = Alloca(maxnc * maxnc, double);
+	R_CheckStack();
+    }
+    
+    for (int i = 0; i < nsamp; i++) {
+	var = 1; pos = 0;
+	if (sig) var = as[i] = sig[i] * sig[i];
+	for (int k = 0; k < nt; k++) {
+	    if (nc[k] < 2) {
+		double sd = STx[pos + i * np] * sig[i];
+		av[i + nsamp * pos++] = sd * sd;
+	    }
+	    else error(_("Code not yet written"));
+	}
+    }
+    
+    UNPROTECT(1);
+    return ans;
+}
 
 #endif
