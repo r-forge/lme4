@@ -11,14 +11,14 @@
   nonlinear mixed model.
 }
 \usage{
-lmer(formula, data, family = NULL, REML = TRUE,
+lmer(formula, data, family = gaussian, REML = TRUE,
      control = list(), start = NULL, verbose = FALSE,
      doFit = TRUE, subset, weights, na.action, offset,
-     contrasts = NULL, x = TRUE, \dots)
-lmer2(formula, data, family = NULL, REML = TRUE,
+     contrasts = NULL, mustart, etastart, \dots)
+lmer2(formula, data, family = gaussian, REML = TRUE,
       control = list(), start = NULL, verbose = FALSE,
       subset, weights, na.action, offset,
-      contrasts = NULL, x = TRUE, \dots)
+      contrasts = NULL, mustart, etastart, \dots)
 glmer(formula, data, family = gaussian, start = NULL,
       verbose = FALSE, nAGQ = 1, doFit = TRUE, subset, weights,
       na.action, offset, contrasts = NULL,
@@ -70,8 +70,9 @@ nlmer(formula, data, start = NULL, verbose = FALSE, nAGQ = 1,
   \item{subset, weights, na.action, offset, contrasts}{further model
     specification arguments as in \code{\link[stats]{lm}}; see there for
     details.}
-  \item{x}{logical scalar.  If \code{FALSE} the model matrix in
-    slot \code{X} is truncated to zero rows.}
+  \item{mustart, etastart}{optional starting values on the scale of the
+    conditional mean or the unbounded predictor as in
+    \code{\link[stats]{glm}}; see there for details.}
   \item{verbose}{logical scalar.  If \code{TRUE} verbose output is
     generated during the optimization of the parameter estimates.}
   \item{\dots}{other potential arguments.  A \code{method} argument was
@@ -139,8 +140,10 @@ nlmer(formula, data, start = NULL, verbose = FALSE, nAGQ = 1,
 (fm2 <- lmer(Reaction ~ Days + (1|Subject) + (0+Days|Subject), sleepstudy))
 anova(fm1, fm2)
 ## generalized linear mixed model
+\dontrun{
 (gm1 <- glmer(cbind(incidence, size - incidence) ~ period + (1 | herd),
               family = binomial, data = cbpp))
+}
 ## nonlinear mixed models
 (nm1 <- nlmer(circumference ~ SSlogis(age, Asym, xmid, scal) ~
               Asym + xmid + scal + Asym|Tree,

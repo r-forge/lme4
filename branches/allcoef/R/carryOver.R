@@ -121,8 +121,8 @@ carryOver <-
     ## default is undiscounted model
     lf$FL <- updateFL(lf$FL, lagged)
    
-    ans <- do.call(if (!is.null(lf$glmFit))
-                   glmer_finalize else lmer_finalize, lf)
+#    ans <- do.call(if (!is.null(lf$glmFit))
+#                   glmer_finalize else lmer_finalize, lf)
     ans@call <- match.call()
     ans
 }
