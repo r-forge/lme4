@@ -48,7 +48,7 @@ private:
 
     int *dims, *perm, N, n, p, q, s;
     double *RX, *RZX, *V, *X, *beta0, *d, *eta, *fixef, *etaGamma,
-	*mu, *muEta, *nvec, *offset, *pWt, *srwt, *res, *u, *var, *y,
+	*mu, *muEta, *nvec, *offset, *pWt, *srwt, *res, *u, *u0, *var, *y,
 	*ghx, *ghw, ldL2, ldRX2, pwrss, sigmaML, sigmaREML,
 	usqr, wrss;
     SEXP flistP, nlmodel, pnames, nlenv;
@@ -205,17 +205,19 @@ void mer::extractL(SEXP rho)
 	M_cholmod_free_factor(&L, &c);
 				//set the natural ordering
 	int nm = c.nmethods, ord0 = c.method[0].ordering, posto = c.postorder;
-	c.nmethods = 1; c.method[0].ordering = CHOLMOD_NATURAL; c.postorder = FALSE;
+	c.nmethods = 1; c.method[0].ordering = CHOLMOD_NATURAL;
+	c.postorder = FALSE;
+
 	U = A_to_U();
 	L = M_cholmod_analyze(U, &c);
-				// force a numeric factorization to change the xtype of L
-	if (!M_cholmod_factorize_p(U, d1, (int*)NULL, 0 /*fsize*/, L, &c)) // L
+				// force a numeric factorization
+	if (!M_cholmod_factorize_p(U, d1, (int*)NULL, 0 /*fsize*/, L, &c))
 	    error(_("cholmod_factorize_p failed: status %d, minor %d from ncol %d"),
 		  c.status, L->minor, L->n);
 	M_cholmod_free_sparse(&U, &c);
 				//restore the former settings
 	c.nmethods = nm; c.method[0].ordering = ord0; c.postorder = posto;
-				//define object L in environment rho from this newly created L
+				//define object L in rho
 	LL = M_chm_factor_to_SEXP(L, 0);
 	defineVar(lme4_LSym, LL, rho);
 	M_cholmod_free_factor(&L, &c);
@@ -262,7 +264,8 @@ mer::mer(SEXP rho)
     N = (s ? s * n : n);	// number of rows in X (cols in A)
 
     A = new cholmod_sparse;
-    M_as_cholmod_sparse(A, findVarInFrame(rho, lme4_ASym), (Rboolean)TRUE, (Rboolean)FALSE);
+    M_as_cholmod_sparse(A, findVarInFrame(rho, lme4_ASym),
+			(Rboolean)TRUE, (Rboolean)FALSE);
     if (((int)(A->ncol)) != N)
 	error(_("Number of columns of A = %d is not (n = %d)*(s = %d)"),
 	      A->ncol, n, s);
@@ -410,10 +413,14 @@ double mer::PIRLS()
     CHM_SP U;
     R_CheckStack();
 
+    if (verb < 0) Rprintf("cfac = %g\n", cfac);
+
     // reset u and fixef to initial values.  This can result in more
     // iterations but it gives a repeatable function evaluation for
     // the optimizer.
     dble_zero(u, q); 
+    if (u0) Memcpy(u, u0, q);
+    dble_zero(fixef, p);
     if (beta0) Memcpy(fixef, beta0, p);
 
     V = new double[n * p];
@@ -428,7 +435,7 @@ double mer::PIRLS()
 	if (srwt) {	  // Update the weights and weighted residuals
 	    for (int j = 0; j < n; j++)
 		wtres[j] = res[j] *
-		    (srwt[j] = sqrt((pWt ? pWt[j] : 1.0) * (var ? var[j] : 1.0)));
+		    (srwt[j] = sqrt((pWt? pWt[j] : 1) * (var ? var[j] : 1)));
 	} else dble_cpy(wtres, res, n);
 	pwrss_old = sqr_length(wtres, n) + sqr_length(u, q);			 
 	U = A_to_U();		// create U
@@ -436,14 +443,14 @@ double mer::PIRLS()
 	    error(_("cholmod_factorize_p failed: status %d, minor %d from ncol %d"),
 		  c.status, L->minor, L->n);
 	X_to_V();		   // update V
-	if (!M_cholmod_sdmult(U, 0/*no transpose*/, d1, d0, cV, cRZX, &c)) // RZX
+	if (!M_cholmod_sdmult(U, 0/*no transpose*/, d1, d0, cV, cRZX, &c))
 	    error(_("cholmod_sdmult failed: status %d"), c.status);
 	if (!(SOL = M_cholmod_solve(CHOLMOD_L, L, cRZX, &c)))
-	    error(_("cholmod_solve (CHOLMOD_P) failed: status %d"), c.status);
+	    error(_("cholmod_solve (CHOLMOD_L) failed: status %d"), c.status);
 	dble_cpy(RZX, (double*)(SOL->x), q * p);
 	M_cholmod_free_dense(&SOL, &c);
-				// solve for RX in downdated V'V*/
-	F77_CALL(dsyrk)("U", "T", &p, &n, d1, V, &n, d0, RX, &p); /* V'V */
+				// solve for RX in downdated V'V
+	F77_CALL(dsyrk)("U", "T", &p, &n, d1, V, &n, d0, RX, &p); //V'V
 	F77_CALL(dsyrk)("U", "T", &p, &q, &mone, RZX, &q, d1, RX, &p);
 	F77_CALL(dpotrf)("U", &p, RX, &p, &info);
 	if (info)
@@ -464,7 +471,9 @@ double mer::PIRLS()
 			d1, cbeta, &i1);
 	F77_CALL(dtrsv)("U", "T", "N", &p, RX, &p, cbeta, &i1);
 				// evaluate convergence criterion
-	crit = cfac * (sqr_length(tmp, q) + sqr_length(cbeta, p))/ pwrss_old;
+	double cul2 = sqr_length(tmp, q), cbetal2 = sqr_length(cbeta, p);
+	crit = cfac * (cul2 + cbetal2)/ pwrss_old;
+	if (verb < 0) Rprintf("cul2 = %g, cbetal2 = %g\n", cul2, cbetal2);
 	if (crit < CM_TOL) {	// don't do needless evaluations 
 	    cvg = TRUE;
 	    break;
@@ -480,12 +489,14 @@ double mer::PIRLS()
 	M_cholmod_free_dense(&SOL, &c);
 	
 	for (step = 1; step > CM_SMIN; step /= 2) { // step halving 
-	    for (int j = 0; j < q; j++) u[j] = uold[j] + step * tmp[j];
-	    for (int j = 0; j < p; j++) fixef[j] = betaold[j] + step * cbeta[j];
+	    for (int j = 0; j < q; j++)
+		u[j] = uold[j] + step * tmp[j];
+	    for (int j = 0; j < p; j++)
+		fixef[j] = betaold[j] + step * cbeta[j];
 	    pwrss = update_mu();
 	    if (verb < 0)
-		Rprintf("%2d,%8.6f,%12.4g: %15.6g %15.6g %15.6g %15.6g\n",
-			i, step, crit, pwrss, pwrss_old, u[1], u[2]);
+		Rprintf("%2d,%8.6f,%12.4g: %15.6g %15.6g %15.6g %15.6g %15.6g\n",
+			i, step, crit, pwrss, pwrss_old, fixef[0], u[0], u[1]);
 	    if (pwrss < pwrss_old) {
 		pwrss_old = pwrss;
 		break;
@@ -555,14 +566,6 @@ double* mer::eval_devResid(double *ans, const int *fac)
 /**
  * Evaluate the inverse link and the derivative d mu/d eta for the GLM
  * link function of type dims[lTyp_POS]
- *
- * @param mu pointer to the mu vector
- * @param muEta pointer to the muEta vector
- * @param eta pointer to the eta vector
- * @param n length of mu, muEta and eta
- * @param lTyp type of link: the 1-based index into
- *        c("logit", "probit", "cauchit", "cloglog", "identity",
- *          "log", "sqrt", "1/mu^2", "inverse")
  */
 void mer::eval_muEta()
 {
@@ -893,7 +896,7 @@ SEXP lme4_ghq(SEXP np)
  */
 SEXP mer_MCMCsamp(SEXP x, SEXP fm)
 {
-    return x; /* This is (obviously) a stub.  The real function is below. */
+    return x;			// This is, obviously, a stub.
 }
 
 /**
@@ -944,942 +947,14 @@ SEXP mer_A_to_U(SEXP x) {
  */
 SEXP mer_update_mu(SEXP x){return ScalarReal(mer(x).update_mu());}
 
-/* Stand-alone utility functions (sorted by function name) */
-
-/* Constants */
-    
-#ifndef BUF_SIZE
-/** size of buffer for an error message */
-#define BUF_SIZE 127
-#endif	
-
 /**
  * Check validity of an mer object
  *
  * @param x Pointer to an mer object
- *
- * @return TRUE if the object is a valid mer object, otherwise a string
- *         that describes the violation.
+ * @return TRUE, the real checking is in mer::mer
  */
 SEXP mer_validate(SEXP x)
 {
     return ScalarLogical(1);
 }
 
-#if 0
-/**
- * Check that slot sym of object x is a numeric matrix of dimension nr
- * by nc.
- *
- * @param buf character buffer of length nb + 1
- * @param nb number of writable positions in the buffer
- * @param x pointer to an mer object
- * @param sym name (symbol, actually) of the slot to check
- * @param nr expected number of rows
- * @param nc expected number of columns
- *
- * @return 0 for success, number of characters written to buf on failure
- */
-static int chkDims(char *buf, int nb, SEXP x, SEXP sym, int nr, int nc)
-{
-    SEXP MP = GET_SLOT(x, sym);
-    int *dm = isMatrix(MP) ? INTEGER(getAttrib(MP, R_DimSymbol)) : (int*) NULL;
-    if (!dm || !isReal(MP) || dm[0] != nr || dm[1] != nc)
-	return snprintf(buf, BUF_SIZE,
-			_("Slot %s must be a numeric matrix of size %d by %d"),
-			CHAR(PRINTNAME(sym)), nr, nc);
-    return 0;
-}
-
-/** Check that the length of the sym slot in x is len or, possibly, zero.
- *
- * @param buf character buffer of length nb + 1
- * @param nb number of writable positions in the buffer
- * @param x pointer to an mer object
- * @param sym name (symbol, actually) of the slot to check
- * @param len expected length
- * @param zerok is a length of zero allowed?
- *
- * @return 0 for success, number of characters written to buf on failure
-
- */
-static int chkLen(char *buf, int nb, SEXP x, SEXP sym, int len, int zerok)
-{
-    int ll;
-
-    if (!(ll = LENGTH(GET_SLOT(x, sym))) == len && zerok && !ll)
-	return snprintf(buf, BUF_SIZE, _("Slot %s must have length %d."),
-			CHAR(PRINTNAME(sym)), len);
-    return 0;
-}
-
-    SEXP rho = GET_SLOT(x, lme4_rhoSym), dimsP = GET_SLOT(x, lme4_dimsSym);
-    int *dd = INTEGER(dimsP);
-    const int n = dd[n_POS], nAGQ = dd[nAGQ_POS], // p = dd[p_POS],
-	q = dd[q_POS], s = dd[s_POS];
-    int nv = n * s;
-    CHM_SP A =  AS_CHM_SP(findVarInFrame(rho, lme4_ASym));
-    CHM_FR L = AS_CHM_FR(findVarInFrame(rho, lme4_LSym));
-//    char *buf = Alloca(BUF_SIZE + 1, char);
-    R_CheckStack();
-				/* check lengths */
-    if (nAGQ < 1)
-	return mkString(_("nAGQ must be positive"));
-//    if (chkLen(buf, BUF_SIZE, x, lme4_ghwSym, nAGQ, 0)) return(mkString(buf));
-//    if (chkLen(buf, BUF_SIZE, x, lme4_ghxSym, nAGQ, 0)) return(mkString(buf));
-
-//     if (LENGTH(devianceP) != (NULLdev_POS + 1) ||
-// 	LENGTH(getAttrib(devianceP, R_NamesSymbol)) != (NULLdev_POS + 1))
-// 	return mkString(_("deviance slot not named or incorrect length"));
-    if (LENGTH(dimsP) != (cvg_POS + 1) ||
-	LENGTH(getAttrib(dimsP, R_NamesSymbol)) != (cvg_POS + 1))
-	return mkString(_("dims slot not named or incorrect length"));
-    if (((int)(L->n)) != q || !L->is_ll || !L->is_monotonic)
-	return mkString(_("Slot L must be a monotonic LL' factorization of size dims['q']"));
-    if (((int)(A->nrow)) != q || ((int)(A->ncol)) != nv)
-	return mkString(_("Slot A must be dims['q']  by dims['n']*dims['s']"));
-//    if (chkLen(buf, BUF_SIZE, x, lme4_etaSym, n, 0)) return(mkString(buf));
-//    if (chkLen(buf, BUF_SIZE, x, lme4_etaGammaSym, nv, 1)) return(mkString(buf));
-//    if (chkLen(buf, BUF_SIZE, x, lme4_fixefSym, p, 0)) return(mkString(buf));
-//    if (chkLen(buf, BUF_SIZE, x, lme4_muEtaSym, n, 1)) return(mkString(buf));
-//     if (chkLen(buf, BUF_SIZE, x, lme4_muSym, n, 0)) return(mkString(buf));
-//     if (chkLen(buf, BUF_SIZE, x, lme4_offsetSym, n, 1)) return(mkString(buf));
-//     if (chkLen(buf, BUF_SIZE, x, lme4_pWtSym, n, 1)) return(mkString(buf));
-//    if (chkLen(buf, BUF_SIZE, x, lme4_ranefSym, q, 0)) return(mkString(buf));
-//     if (chkLen(buf, BUF_SIZE, x, lme4_residSym, n, 0)) return(mkString(buf));
-//     if (chkLen(buf, BUF_SIZE, x, lme4_sqrtrWtSym, n, 1)) return(mkString(buf));
-//     if (chkLen(buf, BUF_SIZE, x, lme4_uSym, q, 0)) return(mkString(buf));
-//     if (chkLen(buf, BUF_SIZE, x, lme4_varSym, n, 1)) return(mkString(buf));
-//     if (chkLen(buf, BUF_SIZE, x, lme4_ySym, n, 0)) return(mkString(buf));
-//     if (chkDims(buf, BUF_SIZE, x, lme4_XSym, nv, p)) return(mkString(buf));
-//     if (chkDims(buf, BUF_SIZE, x, lme4_RZXSym, q, p)) return(mkString(buf));
-//     if (chkDims(buf, BUF_SIZE, x, lme4_RXSym, p, p)) return(mkString(buf));
-#endif
-
-
-
-#if 0
-
-/**
- * Check Validity of an merMCMC object
- *
- * @param x Pointer to an merMCMC object
- *
- * @return TRUE if the object is a valid merMCMC object, otherwise a string
- *         that describes the violation.
- */
-SEXP merMCMC_validate(SEXP x)
-{
-    SEXP GpP = GET_SLOT(x, lme4_GpSym),
-	devianceP = GET_SLOT(x, lme4_devianceSym),
-	dimsP = GET_SLOT(x, lme4_dimsSym);
-    int *Gp = INTEGER(GpP), *dd = INTEGER(dimsP);
-    int nt = dd[nt_POS], np = dd[np_POS], nsamp = LENGTH(devianceP),
-	p = dd[p_POS], q = dd[q_POS];
-    char *buf = Alloca(BUF_SIZE + 1, char);
-    R_CheckStack();
-				/* check lengths */
-    if (nsamp <= 0)
-	return mkString(_("number of samples must be positive"));
-    if (LENGTH(dimsP) != (cvg_POS + 1) ||
-	LENGTH(getAttrib(dimsP, R_NamesSymbol)) != (cvg_POS + 1))
-	return mkString(_("dims slot not named or incorrect length"));
-    if (LENGTH(GpP) != nt + 1)
-	return mkString(_("Slot Gp must have length dims['nt'] + 1"));
-    if (Gp[0] != 0 || Gp[nt] != q)
-	return mkString(_("Gp[1] != 0 or Gp[dims['nt'] + 1] != dims['q']"));
-
-//     if (chkLen(buf, BUF_SIZE, x, lme4_ncSym, nt, 0))
-// 	return(mkString(buf));
-    if (chkLen(buf, BUF_SIZE, x, lme4_sigmaSym, nsamp, !dd[useSc_POS]))
-	return(mkString(buf));
-    if (chkDims(buf, BUF_SIZE, x, lme4_STSym, np, nsamp))
-	return(mkString(buf));
-    if (chkDims(buf, BUF_SIZE, x, lme4_fixefSym, p, nsamp))
-	return(mkString(buf));
-    if (LENGTH(GET_SLOT(x, lme4_ranefSym)))
-	if (chkDims(buf, BUF_SIZE, x, lme4_ranefSym, q, nsamp))
-	    return(mkString(buf));
-    return ScalarLogical(1);
-}
-
-/**
- * Update the eta, mu, resid and var slots in a sparseRasch object
- * from the current values of the model parameters in the beta slot.
- *
- * @param x pointer to an sparseRasch object
- *
- * @return R_NilValue
- */
-SEXP spR_update_mu(SEXP x)
-{
-    int *dims = DIMS_SLOT(x);
-    int n = dims[n_POS];
-    double *d = DEV_SLOT(x), *eta = Calloc(n, double), *mu = MU_SLOT(x),
-	*offset = OFFSET_SLOT(x), *srwt = SRWT_SLOT(x),
-	*res = RESID_SLOT(x), *y = Y_SLOT(x), one[] = {1,0};
-    CHM_SP Zt = Zt_SLOT(x);
-    CHM_DN cbeta = AS_CHM_DN(GET_SLOT(x, lme4_fixefSym)),
-	ceta = N_AS_CHM_DN(eta, n, 1);
-    R_CheckStack();
-    
-    for (int i = 0; i < n; i++) eta[i] = offset ? offset[i] : 0;
-    if (!M_cholmod_sdmult(Zt, 1 /* trans */, one, one, cbeta, ceta, &c))
-	error(_("cholmod_sdmult error returned"));
-    lme4_muEta(mu, MUETA_SLOT(x), eta, n, dims[lTyp_POS]);
-    lme4_varFunc(VAR_SLOT(x), mu, n, dims[vTyp_POS]);
-
-    d[wrss_POS] = 0;		/* update resid slot and d[wrss_POS] */
-    for (int i = 0; i < n; i++) {
-	res[i] = (y[i] - mu[i]) * srwt[i];
-	d[wrss_POS] += res[i] * res[i];
-    }
-
-    Free(eta);
-    return R_NilValue;
-}
-
-/**
- * Optimize the log-likelihood for the sparse representation of a
- * Rasch model.
- *
- * @param x pointer to a sparseRasch object
- * @param verbP pointer to indicator of verbose output
- *
- * @return R_NilValue
- */
-SEXP spR_optimize(SEXP x, SEXP verbP)
-{
-    int *zp, m, n, nnz, verb = asInteger(verbP);
-    double *Zcp, *Ztx, *d = DEV_SLOT(x), *fixef = FIXEF_SLOT(x),
-	*mu = MU_SLOT(x), *muEta = MUETA_SLOT(x),
-	*pWt = PWT_SLOT(x), *res = RESID_SLOT(x),
-	*srwt = SRWT_SLOT(x), *tmp, *tmp2,
-	*var = VAR_SLOT(x), *y = Y_SLOT(x), cfac, crit,
-	one[] = {1, 0}, step, wrss_old, zero[] = {0, 0};
-    CHM_SP Zt = Zt_SLOT(x);
-    CHM_FR L = L_SLOT(x);
-    CHM_DN cres = N_AS_CHM_DN(res, Zt->ncol, 1), ctmp, sol;
-    R_CheckStack();
-    
-    zp = (int*)Zt->p;
-    m = Zt->nrow;
-    n = Zt->ncol;
-    nnz = zp[n];
-    Zcp = Calloc(nnz, double);
-    Ztx = (double*)Zt->x;
-    tmp = Calloc(m, double);
-    tmp2 = Calloc(m, double);
-    ctmp = N_AS_CHM_DN(tmp, m, 1);
-    cfac = ((double)n) / ((double)m);
-    R_CheckStack();
-
-    spR_update_mu(x);
-    for (int i = 0; ; i++) {
-	d[wrss_POS] = 0;
-	for (int j = 0; j < n; j++) {
-	    srwt[j] = sqrt((pWt ? pWt[j] : 1) / var[j]);
-	    res[j] = srwt[j] * (y[j] - mu[j]);
-	    d[wrss_POS] += res[j] * res[j];
-	    for (int p = zp[j]; p < zp[j + 1]; p++)
-		Zcp[p] = srwt[j] * muEta[j] * Ztx[p];
-	}
-	Zt->x = (void*)Zcp;
-	if (!M_cholmod_factorize_p(Zt, zero, (int*)NULL, 0 /*fsize*/, L, &c))
-	    error(_("cholmod_factorize_p failed: status %d, minor %d from ncol %d"),
-		  c.status, L->minor, L->n);
-	wrss_old = d[wrss_POS];
-				/* tmp := Zt %*% muEta %*% var %*% wtdResid */
-	M_cholmod_sdmult(Zt, 0 /* notrans */, one, zero, cres, ctmp, &c);
-	dble_cpy(tmp2, tmp, m);
-	apply_perm(tmp, tmp2, (int*)L->Perm, m);
-				/* solve L %*% sol = tmp */
-	if (!(sol = M_cholmod_solve(CHOLMOD_L, L, ctmp, &c)))
-	    error(_("cholmod_solve (CHOLMOD_L) failed"));
-	dble_cpy(tmp, (double*)(sol->x), m);
-	M_cholmod_free_dense(&sol, &c);
-				/* evaluate convergence criterion */
-	crit = cfac * sqr_length(tmp, m) / wrss_old;
-	if (crit < CM_TOL) break; /* don't do needless evaluations */
-				/* solve t(L) %*% sol = tmp */
-	if (!(sol = M_cholmod_solve(CHOLMOD_Lt, L, ctmp, &c)))
-	    error(_("cholmod_solve (CHOLMOD_Lt) failed"));
-	dble_cpy(tmp, (double*)(sol->x), m);
-	M_cholmod_free_dense(&sol, &c);
-
-	dble_cpy(tmp2, fixef, m);
-	for (step = 1; step > CM_SMIN; step /= 2) { /* step halving */
-	    for (int j = 0; j < m; j++) fixef[j] = tmp2[j] + step * tmp[j];
-	    spR_update_mu(x);
-	    if (verb < 0)
-		Rprintf("%2d,%8.6f,%12.4g: %15.6g %15.6g %15.6g %15.6g\n",
-			i, step, crit, d[wrss_POS], wrss_old, fixef[1], fixef[2]);
-	    if (d[wrss_POS] < wrss_old) {
-		wrss_old = d[wrss_POS];
-		break;
-	    }
-	}
-	if (step <= CM_SMIN || i > CM_MAXITER) return 0;
-    }
-    Free(tmp2);
-    Free(Zcp);
-    Free(tmp);
-    return R_NilValue;
-}
-
-/**
- * Update the ST list of arrays and the sparse model matrix A
- *
- * @param x an mer object
- * @param sigma current standard deviation of the per-observation
- *        noise terms.
- * @param vals pointer to memory in which to store the updated values
- *        of the ST parameters
- */
-static void MCMC_ST(SEXP x, double sigma, double *vals)
-{
-    int *Gp = Gp_SLOT(x), *dims = DIMS_SLOT(x), *perm = PERM_VEC(x);
-    int nt = dims[nt_POS], q = dims[q_POS], pos = 0;
-    double *Ptu = Calloc(q, double), *u = U_SLOT(x);
-    double **st = Alloca(nt, double*);
-    int *nc = Alloca(nt, int), *nlev = Alloca(nt, int);
-    R_CheckStack();
-
-    ST_nc_nlev(GET_SLOT(x, lme4_STSym), Gp, st, nc, nlev);
-				/* inverse permutation of u */
-    for (int j = 0; j < q; j++) Ptu[perm[j]] = u[j];
-
-    for (int i = 0; i < nt; i++) {
-	int qi = nc[i], nl = nlev[i];
-	double *sti = st[i], *ui = Ptu + Gp[i];
-
-	if (qi == 1) {
-	    *sti *= sqrt(sqr_length(ui, nl)/rchisq((double)nl))/sigma;
-	    vals[pos++] = *sti;
-	} else {
-	    int info, qisq = qi * qi, qip1 = qi + 1;
-	    double invsigsq = 1/(sigma * sigma), one[] = {1,0}, zer[] = {0,0};
-
-	    double *scal = Alloca(qisq, double), *tmp = Alloca(qisq, double);
-	    R_CheckStack();
-				/* scal := crossprod(U_i)/sigma^2 */
-	    F77_CALL(dsyrk)("L", "T", &qi, &nl, &invsigsq, ui, &nl,
-			    zer, scal, &qi); 
-	    F77_CALL(dpotrf)("L", &qi, scal, &qi, &info);
-	    if (info)
-		error(_("scal matrix %d is not positive definite"), i + 1);
-	    /* solve W_i' B_i = R_i for W_i a random std Wishart factor */
-	    F77_CALL(dtrsm)("L", "L", "T", "N", &qi, &qi, one,
-			    std_rWishart_factor((double)(nl - qi + 1), qi, 0, tmp),
-			    &qi, scal, &qi);
-				/* B_i := T(theta) %*% S(theta) %*% B_i */
-	    for (int k = 0; k < qi; k++)
-		for (int j = 0; j < qi; j++)
-		    scal[j * qi + k] *= st[i][k * qip1];
-	    F77_CALL(dtrmm)("L", "L", "N", "U", &qi, &qi, one, st[i], &qi, scal, &qi);
-				/* Create the lower Cholesky factor */
-	    F77_CALL(dsyrk)("L", "T", &qi, &qi, one, scal, &qi, zer, tmp, &qi); 
-	    F77_CALL(dpotrf)("L", &qi, tmp, &qi, &info);
-	    if (info)
-		error(_("crossproduct matrix %d is not positive definite"), i + 1);
-				/* Update S_i and T_i */
-	    for (int j = 0; j < qi; j++) vals[pos++] = sti[j * qip1] = tmp[j * qip1];
-	    for (int j = 0; j < qi; j++)
-		for (int k = j + 1; k < qi; k++)
-		    vals[pos++] = sti[j * qi + k] = tmp[j * qi + k]/sti[j * qip1];
-	}
-    }
-    update_A(x);
-    Free(Ptu);
-}
-
-
-
-/* Functions for sampling from a Wishart distribution */
-/* FIXME: Move these to the R sources */
-
-/**
- * Simulate the Cholesky factor of a standardized Wishart variate with
- * dimension p and nu degrees of freedom.
- *
- * @param nu degrees of freedom
- * @param p dimension of the Wishart distribution
- * @param upper if 0 the result is lower triangular, otherwise upper
-                triangular
- * @param ans array of size p * p to hold the result
- *
- * @return ans
- */
-static double
-*std_rWishart_factor(double nu, int p, int upper, double ans[])
-{
-    int pp1 = p + 1;
-
-    if (nu < (double) p || p <= 0)
-	error("inconsistent degrees of freedom and dimension");
-
-    AZERO(ans, p * p);
-    for (int j = 0; j < p; j++) {	/* jth column */
-	ans[j * pp1] = sqrt(rchisq(nu - (double) j));
-	for (int i = 0; i < j; i++) {
-	    int uind = i + j * p, /* upper triangle index */
-		lind = j + i * p; /* lower triangle index */
-	    ans[(upper ? uind : lind)] = norm_rand();
-	    ans[(upper ? lind : uind)] = 0;
-	}
-    }
-    return ans;
-}
-
-/**
- * Simulate a sample of random matrices from a Wishart distribution
- *
- * @param ns Number of samples to generate
- * @param nuP Degrees of freedom
- * @param scal Positive-definite scale matrix
- *
- * @return
- */
-SEXP
-lme4_rWishart(SEXP ns, SEXP nuP, SEXP scal)
-{
-    SEXP ans;
-    int *dims = INTEGER(getAttrib(scal, R_DimSymbol)), info,
-	n = asInteger(ns), psqr;
-    double *scCp, *ansp, *tmp, nu = asReal(nuP), one = 1, zero = 0;
-
-    if (!isMatrix(scal) || !isReal(scal) || dims[0] != dims[1])
-	error("scal must be a square, real matrix");
-    if (n <= 0) n = 1;
-    psqr = dims[0] * dims[0];
-    tmp = Alloca(psqr, double);
-    scCp = Alloca(psqr, double);
-    R_CheckStack();
-
-    dble_cpy(scCp, REAL(scal), psqr);
-    AZERO(tmp, psqr);
-    F77_CALL(dpotrf)("U", &(dims[0]), scCp, &(dims[0]), &info);
-    if (info)
-	error("scal matrix is not positive-definite");
-    PROTECT(ans = alloc3DArray(REALSXP, dims[0], dims[0], n));
-    ansp = REAL(ans);
-    GetRNGstate();
-    for (int j = 0; j < n; j++) {
-	double *ansj = ansp + j * psqr;
-	std_rWishart_factor(nu, dims[0], 1, tmp);
-	F77_CALL(dtrmm)("R", "U", "N", "N", dims, dims,
-			&one, scCp, dims, tmp, dims);
-	F77_CALL(dsyrk)("U", "T", &(dims[1]), &(dims[1]),
-			&one, tmp, &(dims[1]),
-			&zero, ansj, &(dims[1]));
-
-	for (int i = 1; i < dims[0]; i++)
-	    for (int k = 0; k < i; k++)
-		ansj[i + k * dims[0]] = ansj[k + i * dims[0]];
-    }
-
-    PutRNGstate();
-    UNPROTECT(1);
-    return ans;
-}
-
-
-/**
- * Permute the vector src according to the inverse of perm into dest
- *
- * @param dest destination
- * @param src source
- * @param perm NULL or 0-based permutation of length n
- * @param n length of src, dest and perm
- *
- * @return dest
- *
- * \note If perm is NULL the first n elements of src are copied to dest.
- */
-static R_INLINE double*
-apply_iperm(double *dest, const double *src, const int *perm, int n)
-{
-    for (int i = 0; i < n; i++) dest[perm ? perm[i] : i] = src[i];
-    return dest;
-}
-
-/**
- * Update the fixed effects and the orthogonal random effects in an
- * MCMC sample from an mer object.
- *
- * @param x an mer object
- * @param sigma current standard deviation of the per-observation
- *        noise terms.
- * @param fvals pointer to memory in which to store the updated beta
- * @param rvals pointer to memory in which to store the updated b (may
- *              be (double*)NULL)
- */
-static void MCMC_beta_u(SEXP x, double sigma, double *fvals, double *rvals)
-{
-    int *dims = DIMS_SLOT(x);
-    int i1 = 1, p = dims[p_POS], q = dims[q_POS];
-    double *V = etaGamma_SLOT(x), *fixef = FIXEF_SLOT(x), *muEta = MUETA_SLOT(x),
-	*u = U_SLOT(x), mone[] = {-1,0}, one[] = {1,0};
-    CHM_FR L = L_SLOT(x);
-    double *del1 = Alloca(q, double), *del2 = Alloca(p, double);
-    CHM_DN sol, rhs = N_AS_CHM_DN(del1, q, 1);
-    R_CheckStack();
-
-    if (V || muEta) {
-	error(_("Update not yet written"));
-    } else {			/* Linear mixed model */
-	update_L(x);
-	update_RX(x);
-	lmm_update_fixef_u(x);
-				/* Update beta */
-	for (int j = 0; j < p; j++) del2[j] = sigma * norm_rand();
-	F77_CALL(dtrsv)("U", "N", "N", &p, RX_SLOT(x), &p, del2, &i1);
-	for (int j = 0; j < p; j++) fixef[j] += del2[j];
-				/* Update u */
-	for (int j = 0; j < q; j++) del1[j] = sigma * norm_rand();
-	F77_CALL(dgemv)("N", &q, &p, mone, RZX_SLOT(x), &q,
-			del2, &i1, one, del1, &i1);
-	sol = M_cholmod_solve(CHOLMOD_Lt, L, rhs, &c);
-	for (int j = 0; j < q; j++) u[j] += ((double*)(sol->x))[j];
-	M_cholmod_free_dense(&sol, &c);
-	update_mu(x);	     /* and parts of the deviance slot */
-    }
-    dble_cpy(fvals, fixef, p);
-    if (rvals) {
-	update_ranef(x);
-	dble_cpy(rvals, RANEF_SLOT(x), q);
-    }
-}
-
-/**
- * Update the theta_T parameters from the ST arrays in place.
- *
- * @param x an mer object
- * @param sigma current standard deviation of the per-observation
- *        noise terms.
- */
-/* FIXME: Probably should fold this function into MCMC_S */
-static void MCMC_T(SEXP x, double sigma)
-{
-    int *Gp = Gp_SLOT(x), nt = (DIMS_SLOT(x))[nt_POS];
-    double **st = Alloca(nt, double*);
-    int *nc = Alloca(nt, int), *nlev = Alloca(nt, int);
-    R_CheckStack();
-
-    if (ST_nc_nlev(GET_SLOT(x, lme4_STSym), Gp, st, nc, nlev) < 2) return;
-    error("Code for non-trivial theta_T not yet written");
-}
-
-/**
- * Update the theta_S parameters from the ST arrays in place.
- *
- * @param x an mer object
- * @param sigma current standard deviation of the per-observation
- *        noise terms.
- */
-static void MCMC_S(SEXP x, double sigma)
-{
-    CHM_SP A = A_SLOT(x), Zt = Zt_SLOT(x);
-    int *Gp = Gp_SLOT(x), *ai = (int*)(A->i),
-	*ap = (int*)(A->p), *dims = DIMS_SLOT(x), *perm = PERM_VEC(x);
-    int annz = ap[A->ncol], info, i1 = 1, n = dims[n_POS],
-	nt = dims[nt_POS], ns, p = dims[p_POS], pos,
-	q = dims[q_POS], znnz = ((int*)(Zt->p))[Zt->ncol];
-    double *R, *ax = (double*)(A->x), *b = RANEF_SLOT(x),
-	*eta = ETA_SLOT(x), *offset = OFFSET_SLOT(x),  
-	*rr, *ss, one = 1, *u = U_SLOT(x), *y = Y_SLOT(x);
-    int *nc = Alloca(nt, int), *nlev = Alloca(nt, int),
-	*spt = Alloca(nt + 1, int);
-    double **st = Alloca(nt, double*);
-    R_CheckStack();
-
-    ST_nc_nlev(GET_SLOT(x, lme4_STSym), Gp, st, nc, nlev);
-    ns = 0;			/* ns is length(theta_S) */
-    spt[0] = 0;			/* pointers into ss for terms */
-    for (int i = 0; i < nt; i++) {
-	ns += nc[i];
-	spt[i + 1] = spt[i] + nc[i];
-    }
-
-    if (annz == znnz) { /* Copy Z' to A unless A has new nonzeros */
-	dble_cpy(ax, (double*)(Zt->x), znnz);
-    } else error("Code not yet written for MCMC_S with NLMMs");
-				/* Create T'Zt in A */
-    Tt_Zt(A, Gp, nc, nlev, st, nt); 
-				/* Create P'u in ranef slot */
-    for (int i = 0; i < q; i++) b[perm[i]] = u[i];
-				/* Create X\beta + offset in eta slot */
-    for (int i = 0; i < n; i++) eta[i] = offset ? offset[i] : 0;
-    F77_CALL(dgemv)("N", &n, &p, &one, X_SLOT(x), &n,
-		    FIXEF_SLOT(x), &i1, &one, eta, &i1);
-				/* Allocate R, rr and ss */
-    R = Alloca(ns * ns, double); /* crossproduct matrix then factor */
-    rr = Alloca(ns, double);	 /* row of model matrix for theta_S */
-    ss = Alloca(ns, double);	 /* right hand side, then theta_S */
-    R_CheckStack();
-    AZERO(R, ns * ns);
-    AZERO(ss, ns);
-    /* Accumulate crossproduct from pseudo-data part of model matrix */
-    for (int i = 0; i < q; i++) {
-	int sj = theta_S_ind(i, nt, Gp, nlev, spt);
-	AZERO(rr, ns);
-	rr[sj] = b[i];
-	F77_CALL(dsyr)("U", &ns, &one, rr, &i1, R, &ns);
-    }	
-    /* Accumulate crossproduct and residual product of the model matrix. */
-    /* This is done one row at a time.  Rows of the model matrix
-     * correspond to columns of T'Zt */
-    for (int j = 0; j < n; j++) { /* jth column of T'Zt */
-	AZERO(rr, ns);
-	for (int p = ap[j]; p < ap[j + 1]; p++) {
-	    int i = ai[p];	/* row in T'Zt */
-	    int sj = theta_S_ind(i, nt, Gp, nlev, spt);
-
-	    rr[sj] += ax[p] * b[i];
-	    ss[sj] += rr[sj] * (y[j] - eta[j]);
-	}
-	F77_CALL(dsyr)("U", &ns, &one, rr, &i1, R, &ns);
-    }
-    F77_CALL(dposv)("U", &ns, &i1, R, &ns, ss, &ns, &info);
-    if (info)
-	error(_("Model matrix for theta_S is not positive definite, %d."), info);
-    for (int j = 0; j < ns; j++) rr[j] = sigma * norm_rand();
-    /* Sample from the conditional Gaussian distribution */
-    F77_CALL(dtrsv)("U", "N", "N", &ns, R, &ns, rr, &i1);
-    for (int j = 0; j < ns; j++) ss[j] += rr[j];
-    /* Copy positive part of solution onto diagonals of ST */
-    pos = 0;
-    for (int i = 0; i < nt; i++) {
-	for (int j = 0; j < nc[i]; j++) {
-	    st[i][j * (nc[i] + 1)] = (ss[pos] > 0) ? ss[pos] : 0;
-	    pos++;
-	}
-    }
-    update_A(x);
-}
-
-/**
- * Generate a Markov-chain Monte Carlo sample from an mer object
- *
- * @param x pointer to an merMCMC object
- * @param fm pointer to an mer object
- *
- * @return x with samples filled in
- */
-SEXP mer_MCMCsamp(SEXP x, SEXP fm)
-{
-    SEXP devsamp = GET_SLOT(x, lme4_devianceSym);
-    int *dims = DIMS_SLOT(x), nsamp = LENGTH(devsamp);
-    int n = dims[n_POS], np = dims[np_POS],
-	p = dims[p_POS], q = dims[q_POS];
-    double
-	*STsamp = REAL(GET_SLOT(x, lme4_STSym)),
-	*d = DEV_SLOT(fm), *dev = REAL(devsamp),
-	*sig //= SLOT_REAL_NULL(x, lme4_sigmaSym)
-	, *fixsamp = FIXEF_SLOT(x), *resamp = RANEF_SLOT(x);
-
-    GetRNGstate();
-    /* The first column of storage slots contains the fitted values */
-    for (int i = 1; i < nsamp; i++) {
-/* FIXME: This is probably wrong for a model with weights. */
-	if (sig) 		/* update and store sigma */
-	    sig[i] = sqrt(d[pwrss_POS]/rchisq((double)(n + q)));
-			/* update L, RX, beta, u, eta, mu, res and d */
-	MCMC_beta_u(fm, sig ? sig[i] : 1, fixsamp + i * p,
-		    resamp + (resamp ? i : 0) * q); 
-	dev[i] = d[ML_POS];
-				/* update theta_T, theta_S and A */
- 	MCMC_T(fm, sig ? sig[i] : 1);
- 	MCMC_S(fm, sig ? sig[i] : 1);
-	ST_getPars(fm, STsamp + i * np); /* record theta */
-    }
-    PutRNGstate();
-		/* Restore pars from the first columns of the samples */
-    dble_cpy(FIXEF_SLOT(fm), fixsamp, p);
-    ST_setPars(fm, STsamp);
-    update_ranef(fm);
-
-    return x;
-}
-
-/**
- * Externally callable update_L.
- * Update the A, L, sqrtrWt and resid slots.  It is assumed that
- * update_mu has already been called at the current values of u and
- * the model parameters.
- *
- * @param x an mer object
- *
- * @return penalized weighted residual sum of squares
- *
- */
-SEXP mer_update_L(SEXP x){return ScalarReal(update_L(x));}
-
-/**
- * Externally callable update_u.
- *
- * Iterate to determine the conditional modes of the random effects.
- *
- * @param x pointer to an mer object
- *
- * @return number of iterations to convergence (0 for non-convergence) 
- */
-SEXP mer_update_u(SEXP x){return ScalarInteger(update_u(x));}
-
-/**
- * Externally callable lmm_update_projection.
- * Create the projections onto the column spaces of the random effects
- * and the fixed effects.
- *
- * @param x an mer object
- *
- * @return a list with two elements, both REAL vectors
- */
-SEXP mer_update_projection(SEXP x)
-{
-    SEXP ans = PROTECT(allocVector(VECSXP, 2));
-    int *dims = DIMS_SLOT(x);
-
-    SET_VECTOR_ELT(ans, 0, allocVector(REALSXP, dims[q_POS]));
-    SET_VECTOR_ELT(ans, 1, allocVector(REALSXP, dims[p_POS]));
-    lmm_update_projection(x, REAL(VECTOR_ELT(ans, 0)),
-			  REAL(VECTOR_ELT(ans, 1)));
-
-    UNPROTECT(1);
-    return ans;
-}
-
-/**
- * Externally callable update_RX
- *
- * @param x pointer to an mer object
- *
- * @return profiled deviance or REML deviance
- */
-SEXP
-mer_update_RX(SEXP x)
-{
-    return ScalarReal(update_RX(x));
-}
-
-/**
- * Create PAX in dest.
- *
- * @param dest values to be calculated
- * @param perm NULL or a 0-based permutation vector defining P
- * @param A sparse matrix
- * @param X dense matrix
- * @param nc number of columns in X
- *
- */
-static void
-P_sdmult(double *dest, const int *perm, const CHM_SP A,
-	 const double *X, int nc)
-{
-    int *ai = (int*)(A->i), *ap = (int*)(A->p), m = A->nrow, n = A->ncol;
-    double *ax = (double*)(A->x), *tmp = Alloca(m, double);
-    R_CheckStack();
-
-    for (int k = 0; k < nc; k++) {
-	AZERO(tmp, m);
-	for (int j = 0; j < n; j++) {
-	    for (int p = ap[j]; p < ap[j + 1]; p++)
-		tmp[ai[p]] += X[j + k * n] * ax[p];
-	}
-	apply_perm(dest + k * m, tmp, perm, m);
-    }
-}
-
-SEXP mer_optimize(SEXP x)
-{
-    SEXP ST = GET_SLOT(x, lme4_STSym);
-    int *dims = DIMS_SLOT(x);
-    int lmm = !(MUETA_SLOT(x) || ETAGAMMA_SLOT(x)), nt = dims[nt_POS];
-    int nv = dims[np_POS] + (lmm ? 0 : dims[p_POS]), verb = dims[verb_POS];
-    int liv = S_iv_length(OPT, nv), lv = S_v_length(OPT, nv);
-    double *g = (double*)NULL, *h = (double*)NULL, fx = R_PosInf;
-    double *fixef = FIXEF_SLOT(x);
-    int *iv = Alloca(liv, int);
-    double *b = Alloca(2 * nv, double), *d = Alloca(nv, double),
-	*v = Alloca(lv, double), *xv = Alloca(nv, double);
-    R_CheckStack();
-
-    ST_getPars(x, xv);
-    if (!lmm) {
-	double eta = 1.e-5; /* estimated rel. error on computed lpdisc */
-
-	dble_cpy(xv + dims[np_POS], fixef, dims[p_POS]);
-	v[31] = eta;		/* RFCTOL */
-	v[36] = eta;		/* SCTOL */
-	v[41] = eta;		/* ETA0 */
-    }
-				/* initialize the state vectors v and iv */
-    S_Rf_divset(OPT, iv, liv, lv, v);
-    iv[OUTLEV] = (verb < 0) ? -verb : verb;
-    iv[MXFCAL] = dims[mxfn_POS];
-    iv[MXITER] = dims[mxit_POS];
-				/* set the bounds to plus/minus Infty  */
-    for (int i = 0; i < nv; i++) {
-	b[2*i] = R_NegInf; b[2*i+1] = R_PosInf; d[i] = 1;
-    }
-				/* reset lower bounds on elements of theta_S */
-    for (int i = 0, pos = 0; i < nt; i++) {
-	int nc = *INTEGER(getAttrib(VECTOR_ELT(ST, i), R_DimSymbol));
-	for (int j = 0; j < nc; j++) b[pos + 2*j] = 0;
-	pos += nc * (nc + 1);
-    }
-
-    do {
-	if (!lmm)	  /* Some time soon we will get rid of this */
-	    dble_cpy(fixef, xv + dims[np_POS], dims[p_POS]);
-	ST_setPars(x, xv);	/* update ST and A etc. */
-	fx = update_dev(x);
-	S_nlminb_iterate(b, d, fx, g, h, iv, liv, lv, nv, v, xv);
-    } while (iv[0] == 1 || iv[0] == 2);
-    ST_setPars(x, xv);
-    update_ranef(x);
-    dims[cvg_POS] = iv[0];
-    return R_NilValue;
-}
-
-/* this is the nonlinear part of update_dev.  It should all be folded
- * into one function and use the definition of the likelihood methods
- * here instead of duplicating all this code.
- */
-
-    else {  /* NLMM */
-	double dn = (double) dims[n_POS];
-	
-	d[disc_POS] = d[wrss_POS];
-	if (nAGQ > 1) {
-	    /* Adaptive Gauss-Hermite quadrature */
-	    /* Single grouping factor has been checked. */
-	    const int nl = nlevels(VECTOR_ELT(flistP, 0));
-	    const int nre = q / nl;
-	    int *fl0 = INTEGER(VECTOR_ELT(flistP, 0)), *pointer = Alloca(nre, int);
-	    double *ghw = GHW_SLOT(x), *ghx = GHX_SLOT(x),
-		*res = RESID_SLOT(x), *tmp = Calloc(nl, double),
-		/* store conditional mode */
-		*uold = dble_cpy(Calloc(q, double), u, q),
-		w_pro = 1, z_sum = 0;           /* values needed in AGQ evaluation */
-	    const double sigma = d[sigmaML_POS];   /* MLE of sigma */
-	    const double factor = - 1 / (2 * sigma * sigma);
-
-	    R_CheckStack();
-
-	    AZERO(pointer, nre);
-	    AZERO(tmp, nl);
-	    
-	    d[ML_POS] = dn * log(2*PI*d[pwrss_POS]/dn) + d[ldL2_POS];
-	    
-	    /* implementation of AGQ method (Laplacian will be a trivial case) */
-	    AZERO(pointer, nre);                    /* assign initial pointers, all 0 */
-	    AZERO(tmp, nl);
-
-	    /* add accuracy to integration approximation */
-	    while(pointer[nre - 1] < nAGQ){
-		double *z = Calloc(q, double);       /* current abscissas */
-		double *presid = Calloc(nl, double); /* current penalized residuals in different levels */
-		
-		/* update abscissas and weights */
-		for(int i = 0; i < nre; ++i){
-		    for(int j = 0; j < nl; ++j){
-			z[i + j * nre] = ghx[pointer[i]];
-		    }
-		    z_sum += ghx[pointer[i]] * ghx[pointer[i]];
-		    w_pro *= ghw[pointer[i]];
-		}
-		CHM_DN cz = N_AS_CHM_DN(z, q, 1), sol;
-		if(!(sol = M_cholmod_solve(CHOLMOD_L, L, cz, &c)))
-		    error(_("cholmod_solve(CHOLMOD_L) failed"));
-		dble_cpy(z, (double *)sol->x, q);
-		M_cholmod_free_dense(&sol, &c);
-		for(int i = 0; i < q; ++i){
-		    u[i] = uold[i] + sigma * z[i];
-		}
-		update_mu(x);
-		
-		AZERO(presid, nl);
-		for(int i = 0; i < dims[n_POS]; ++i){
-		    presid[fl0[i]-1] += ( res[i] * res[i] );
-		}
-		
-		for(int i = 0; i < nre; ++i){
-		    for(int j = 0; j < nl; ++j)
-			presid[j] += u[i + j * nre] * u[i + j * nre];
-		}
-		
-		for(int j = 0; j < nl; ++j){
-		    tmp[j] += exp(factor * presid[j] + z_sum) * w_pro / sqrt(PI);
-		}
-		
-		/* move pointer to next combination of weights and abbsicas */
-		int count = 0;
-		pointer[count]++;
-		while(pointer[count] == nAGQ && count < nre - 1){
-		    pointer[count] = 0;
-		    pointer[++count]++;
-		}
-		if(z) Free(z);
-		w_pro = 1;
-		z_sum = 0;
-		if(presid) Free(presid);
-	    }
-	    
-	    for(int j = 0; j < nl; ++j){
-		d[ML_POS] -= ( 2 * log(tmp[j]) );
-	    }
-	    
-	    dble_cpy(u, uold, q);
-	    update_mu(x);
-	    if(tmp)   Free(tmp);
-	    if(uold)  Free(uold);
-	    
-	}
-	else{
-	    d[ML_POS] = dn*(1 + log(d[pwrss_POS]) + log(2*PI/dn)) + d[ldL2_POS];
-        }
-    }
-
-
-SEXP merMCMC_VarCorr(SEXP x, SEXP typP)
-{
-    SEXP ST = GET_SLOT(x, lme4_STSym),
-	ncs = GET_SLOT(x, install("nc"));
-    int *Gp, *Sd, *nc;// = Gp_SLOT(x), *Sd = INTEGER(GET_DIM(ST)), *nc = INTEGER(ncs);
-    int maxnc = 0, nt = LENGTH(ncs), np = Sd[0], nsamp = Sd[1], pos;
-    double *sig //= SLOT_REAL_NULL(x, lme4_sigmaSym)
-	;
-    SEXP ans = PROTECT(allocMatrix(REALSXP, nsamp, np + (sig ? 1 : 0)));
-    double *av = REAL(ans), *STx = REAL(ST);
-    double *as = av + nsamp * np, *t1, *t2, var;
-    int *nlev = Alloca(nt, int);
-    R_CheckStack();
-    
-    for (int j = 0; j < nt; j++) {
-	nlev[j] = (Gp[j + 1] - Gp[j])/nc[j];
-	if (maxnc < nc[j]) maxnc = nc[j];
-    }
-    if (maxnc > 1) {
-	t1 = Alloca(maxnc * maxnc, double);
-	t2 = Alloca(maxnc * maxnc, double);
-	R_CheckStack();
-    }
-    
-    for (int i = 0; i < nsamp; i++) {
-	var = 1; pos = 0;
-	if (sig) var = as[i] = sig[i] * sig[i];
-	for (int k = 0; k < nt; k++) {
-	    if (nc[k] < 2) {
-		double sd = STx[pos + i * np] * sig[i];
-		av[i + nsamp * pos++] = sd * sd;
-	    }
-	    else error(_("Code not yet written"));
-	}
-    }
-    
-    UNPROTECT(1);
-    return ans;
-}
-
-#endif
