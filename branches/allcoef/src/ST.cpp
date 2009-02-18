@@ -18,6 +18,10 @@
 // q_i == 1 the corresponding block of T is an identity matrix of size
 // n_i by n_i.
 
+// For improved convergence we return and set the parameters
+// determining S on the square root scale.  That is, the diagonal
+// element of S is the square of the corresponding parameter.
+
 // The representation is defined by ST, a list of matrices, and Gp,
 // the group pointers.
 
@@ -192,7 +196,7 @@ double* STinternal::getPars(double *pars)
     for (int i = 0, pos = 0; i < nt; i++) {
 	int nci = nc[i], ncp1 = nc[i] + 1;
 	for (int j = 0; j < nci; j++)
-	    pars[pos++] = st[i][j * ncp1];
+	    pars[pos++] = sqrt(st[i][j * ncp1]);
 	for (int j = 0; j < (nci - 1); j++)
 	    for (int k = j + 1; k < nci; k++)
 		pars[pos++] = st[i][k + j * nci];
@@ -220,8 +224,10 @@ void STinternal::setPars(const double *pars)
 	int nci = nc[i], ncp1 = nc[i] + 1;
 	double *sti = st[i];
 
-	for (int j = 0; j < nci; j++)
-	    sti[j * ncp1] = pars[pos++];
+	for (int j = 0; j < nci; j++) {
+	    sti[j * ncp1] = pars[pos] * pars[pos];
+	    pos++;
+	}
 	for (int j = 0; j < (nci - 1); j++)
 	    for (int k = j + 1; k < nci; k++)
 		sti[k + j * nci] = pars[pos++];
@@ -388,7 +394,9 @@ SEXP STinternal::create_ranef(SEXP uu, SEXP pperm)
  *
  * b = T  %*% S %*% t(P) %*% u
  *
- * @param uu pointer to the spherical random effects
+ * @param L current Cholesky factor
+ * @param flistP pointer to the factor list
+ * @param which pointer to a logical vector
  * @param pperm pointer to the 0-based permutation vector
  */
 SEXP STinternal::condVar(CHM_FR L, SEXP pperm, SEXP flistP, SEXP which)
@@ -651,6 +659,9 @@ SEXP ST_chol(SEXP x)
  * variances, hence the name.
  *
  * @param x pointer to an mer object
+ * @param L pointer to the current Cholesky factor
+ * @param perm pointer to the permutaion vector
+ * @param flist pointer to the factor list
  * @param which pointer to a logical vector
  *
  * @return pointer to a list of arrays
