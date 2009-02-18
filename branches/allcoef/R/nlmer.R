@@ -91,7 +91,20 @@ nlmer <- function(formula, data, start = NULL, verbose = FALSE,
     if ((qrX <- qr(rho$X))$rank < ncol(rho$X))
         stop(gettextf("rank of X = %d < ncol(X) = %d", qrX$rank, ncol(rho$X)))
     rho$start <- rho$fixef <- qr.coef(qrX, unlist(lapply(pnames, get, envir = rho$nlenv)))
+    rho$RX <- qr.R(qrX)
     lmerFactorList(formula, fr, rho, TRUE, TRUE)
+
+                                        # evaluate the control argument
+    control <- do.call(lmerControl, as.list(control))
+    if (!missing(verbose)) control$trace <- as.integer(verbose[1])
+    rho$dims["verb"] <- control$trace
+    control$trace <- abs(control$trace) # negative values give PIRLS output
+    rho$control <- control
+    rho$mc <- mc                        # store the matched call
+
+    rho$bds <- getBounds(rho)
+    setPars(rho, getPars(rho))          # one evaluation to check structure
+    
     if (!doFit) return(rho)
-    merFinalize(rho, control, verbose, mc)
+    merFinalize(rho)
 }

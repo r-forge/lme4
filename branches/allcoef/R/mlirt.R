@@ -14,7 +14,8 @@ mlirt <-
     stopifnot(length(formula <- as.formula(formula)) == 3,
               all.equal(family$family, "binomial"))
 
-    fr <- lmerFrames(mc, formula, contrasts) # model frame, X, etc.
+#    fr <- lmerFrames(mc, formula, contrasts) # model frame, X, etc.
+    fr <- NULL
     cv <- do.call("lmerControl", control)
 
     ## Should difficulties be modeled as random effects?

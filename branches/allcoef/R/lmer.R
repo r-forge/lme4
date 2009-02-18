@@ -177,8 +177,8 @@ lmerFactorList <- function(formula, mf, rho, rmInt = FALSE, drop = TRUE)
                       Zt = drop0(do.call(rBind,
                       lapply(seq_len(ncol(mm)),
                              function(j) {im@x <- mm[,j]; im}))),
-                      ST = matrix(0, ncol(mm), ncol(mm),
-                      dimnames = list(colnames(mm), colnames(mm))))
+                      ST = `dimnames<-`(diag(nrow = ncol(mm), ncol = ncol(mm)),
+                                        list(colnames(mm), colnames(mm))))
              })
     ## order terms by decreasing number of levels in the factor but don't
     ## change the order if this is already true
@@ -212,7 +212,6 @@ lmerFactorList <- function(formula, mf, rho, rmInt = FALSE, drop = TRUE)
 
     ST <- new("ST", ST = lapply(trms, `[[`, "ST"),
               Gp = unname(c(0L, cumsum(sapply(Ztl, nrow)))))
-    .Call(ST_initialize, ST, rho)
     rho$rCF <- ST
     rho$.active <- c(rho$.active, "rCF")
 
@@ -327,19 +326,25 @@ lmer <-
         if (length(rho$var) || length(rho$weights)) rho$sqrtrWt <- numeric(n)
     }
     if (REML && rho$dims["LMM"]) rho$dims["REML"] <- 1L
+                                        # evaluate the control argument
+    control <- do.call(lmerControl, as.list(control))
+    if (!missing(verbose)) control$trace <- as.integer(verbose[1])
+    rho$dims["verb"] <- control$trace
+    control$trace <- abs(control$trace) # negative values give PIRLS output
+    rho$control <- control
+    rho$mc <- mc                    # store the matched call
 
+    rho$bds <- getBounds(rho)
+    setPars(rho, getPars(rho))          # one evaluation to check structure
+    
     if (!doFit) return(rho)
-### FIXME: put control, verbose and mc in the environment.  Must be
-###    be careful of mc in merFinalize.  Don't allow it to be evaluated.
-    merFinalize(rho, control, verbose, mc)
+    merFinalize(rho)
 }
 
-merFinalize <- function(rho, control, verbose, mc)
+merFinalize <- function(rho)
 {
-    if (!missing(verbose)) control$trace <- as.integer(verbose[1])
-    bds <- getBounds(rho)
     res <- nlminb(getPars(rho), function(x) setPars(rho, x),
-                  lower = bds[,1], upper = bds[,2], control = control)
+                  lower = rho$bds[,1], upper = rho$bds[,2], control = rho$control)
     if (res$convergence != 0)
         warning(res$message)
     nlmodel <- rho$nlmodel
@@ -349,17 +354,17 @@ merFinalize <- function(rho, control, verbose, mc)
         rho.lst[which(names(rho.lst) %in% slotNames(getClass("mer")))]
     rho.lst$Class <- "mer"
     ans <- do.call(new, rho.lst)
-    ans@call <- mc
+    ans@call <- rho$mc
     ans@nlmodel <- nlmodel
     ans
 }    
 
 ## for backward compatibility
 lmer2 <-
-    function(formula, data, family = NULL, REML = TRUE,
+    function(formula, data, family = gaussian, REML = TRUE,
              control = list(), start = NULL, verbose = FALSE,
              subset, weights, na.action, offset, contrasts = NULL,
-             model = TRUE, x = TRUE, ...)
+             model = TRUE, mustart, etastart, ...)
 {
     .Deprecated("lmer")
     mc <- match.call()
@@ -595,7 +600,8 @@ setMethod("anova", signature(object = "mer"),
               stop("single argument anova for NLMMs not yet implemented")
 
             p <- object@dims["p"]
-            ss <- (.Call(mer_update_projection, object)[[2]])^2
+            ss <- object@fixef
+#            ss <- (.Call(mer_update_projection, object)[[2]])^2
             names(ss) <- names(object@fixef)
             asgn <- attr(object@X, "assign")
             terms <- terms(object)
@@ -1113,7 +1119,7 @@ setMethod("refit", signature(object = "mer", newresp = "numeric"),
           newresp <- as.double(newresp[!is.na(newresp)])
           stopifnot(length(newresp) == length(object@y))
           object@y <- newresp
-          mer_finalize(object)
+         # mer_finalize(object)
       })
 
 BlockDiagonal <- function(lst)
@@ -1491,35 +1497,6 @@ mcmccompnames <- function(ans, object, saveb, trans, glmer, deviance)
     ans
 }
 
-devvals <- function(fm, pmat, sigma1 = FALSE)
-{
-    if (!is(fm, "mer"))
-        stop('fm must be an "mer" fitted model')
-### FIXME: add a check in here for glmer and nlmer
-    np <- length(p0 <- .Call(mer_ST_getPars, fm))
-    pmat <- as.matrix(pmat)
-    if (ncol(pmat) != np + sigma1)
-        stop(gettextf("pmat must have %d columns", np + sigma1))
-    storage.mode(pmat) <- "double"
-    if (is.null(pnms <- dimnames(pmat)[[2]]))
-        pnms <- c(if(sigma1) character(0) else "sigma",
-                  paste("th", seq_len(np), sep = ""))
-    dev <- fm@deviance
-    ans <- matrix(0, nrow(pmat), ncol(pmat) + length(dev),
-                  dimnames = list(NULL, c(pnms, names(dev))))
-    for (i in seq_len(nrow(pmat))) {
-        .Call(mer_ST_setPars, fm,
-              ## This expression does not allow for correlated random
-              ## effects.  It would be best to make the appropriate
-              ## changes in the C code for ST_setPars.
-              if (sigma1) pmat[i,-1]/pmat[i,1] else pmat[i,])
-        ans[i, ] <- c(pmat[i, ], .Call(mer_update_RX, fm))
-    }
-    .Call(mer_ST_setPars, fm, p0)
-    .Call(mer_update_RX, fm)
-    as.data.frame(ans)
-}
-
 #### Odds and ends
 
 ## simulestimate <- function(x, FUN, nsim = 1, seed = NULL, control = list())
@@ -1722,7 +1699,7 @@ devmat <-
               dd["vTyp"] == 1L, # variance function is "constant"
               length(fm@V) == 0L, # nonlinear parameter gradient is identity
               length(fm@muEta) == 0L) # eta -> mu map is identity
-    oldpars <- .Call(mer_ST_getPars, fm)
+    oldpars <- getPars(fm)
 
     parmat <- as.matrix(parmat)
     storage.mode(parmat) <- "double"
@@ -1732,9 +1709,8 @@ devmat <-
     slotname <- match.arg(slotname)
 
     slotval <- function(x) {            # function to apply
-        .Call(mer_ST_setPars, fm, x)
-        .Call(mer_update_dev, fm)
-        if (slotname != "deviance") .Call(mer_update_ranef, fm)
+        setPars(fm, x)
+        if (slotname != "deviance") stop("Code not yet written")
         slot(fm, slotname)
     }
     ans <- apply(parmat, 2, slotval)

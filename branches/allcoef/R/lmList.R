@@ -21,7 +21,8 @@ setMethod("lmList", signature(formula = "formula", data = "data.frame"),
                        "na.action", "offset"), names(mf), 0)
           mf <- mf[c(1, m)]
           ## substitute `+' for `|' in the formula
-          mf$formula <- subbars(formula) 
+### FIXME: Figure out what to do here instead of subbars
+#          mf$formula <- subbars(formula) 
           mf$x <- mf$model <- mf$y <- mf$family <- NULL
           mf$drop.unused.levels <- TRUE
           mf[[1]] <- as.name("model.frame")
