@@ -146,8 +146,9 @@ anova(fm1, fm2)
 }
 ## nonlinear mixed models
 (nm1 <- nlmer(circumference ~ SSlogis(age, Asym, xmid, scal) ~
-              Asym + xmid + scal + Asym|Tree,
-              Orange, start = c(Asym = 200, xmid = 725, scal = 350)))
+              Asym + xmid + scal + (Asym|Tree),
+              Orange, 
+              start = c(Asym = 200, xmid = 725, scal = 350)))
 }
 \keyword{models}
 \keyword{methods}
