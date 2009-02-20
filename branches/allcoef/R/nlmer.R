@@ -31,7 +31,9 @@ nlmer <- function(formula, data, start = NULL, verbose = FALSE,
 {
     rho <- default_rho(environment(formula))
     mf <- mc <- match.call()
-    m <- match(c("data", "subset", "weights", "na.action", "offset"), names(mf), 0)
+    m <- match(c("data", "subset", "weights", "na.action",
+                 "offset", "etastart", "mustart"),
+               names(mf), 0)
     mf <- mf[c(1, m)]
     mf$drop.unused.levels <- TRUE
     mf[[1]] <- as.name("model.frame")
@@ -86,14 +88,17 @@ nlmer <- function(formula, data, start = NULL, verbose = FALSE,
         fr[[nm]] <- as.numeric(rep(nm == pnames, each = n))
     fe.form <- nlform # modify formula to suppress intercept (Is this a good idea?)
     fe.form[[3]] <- substitute(0 + bar, list(bar = nobars(formula[[3]])))
-    rho$X <- model.matrix(fe.form, fr)
+    rho$X <- model.matrix(fe.form, fr, contrasts)
     rownames(rho$X) <- NULL
-    if ((qrX <- qr(rho$X))$rank < ncol(rho$X))
-        stop(gettextf("rank of X = %d < ncol(X) = %d", qrX$rank, ncol(rho$X)))
-    rho$start <- rho$fixef <- qr.coef(qrX, unlist(lapply(pnames, get, envir = rho$nlenv)))
+    p <- ncol(rho$X)
+    if ((qrX <- qr(rho$X))$rank < p)
+        stop(gettextf("rank of X = %d < ncol(X) = %d", qrX$rank, p))
+    rho$start <- numeric(p)             # must be careful that these are distinct
+    rho$start[] <- rho$fixef <- qr.coef(qrX, unlist(lapply(pnames, get, envir = rho$nlenv)))
     rho$RX <- qr.R(qrX)
     lmerFactorList(formula, fr, rho, TRUE, TRUE)
-
+    q <- length(rho$u)
+    rho$u0 <- numeric(q)
                                         # evaluate the control argument
     control <- do.call(lmerControl, as.list(control))
     if (!missing(verbose)) control$trace <- as.integer(verbose[1])
@@ -104,7 +109,9 @@ nlmer <- function(formula, data, start = NULL, verbose = FALSE,
 
     rho$bds <- getBounds(rho)
     setPars(rho, getPars(rho))          # one evaluation to check structure
-    
+    rho$beta0[] <- rho$fixef
+#    rho$u0[] <- rho$u
     if (!doFit) return(rho)
+    
     merFinalize(rho)
 }

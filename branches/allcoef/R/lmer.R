@@ -247,7 +247,9 @@ lmer <-
 
     ## evaluate and install the model frame
     mf <- mc <- match.call()
-    m <- match(c("data", "subset", "weights", "na.action", "offset"), names(mf), 0)
+    m <- match(c("data", "subset", "weights", "na.action",
+                 "etastart", "mustart", "offset"),
+               names(mf), 0)
     mf <- mf[c(1, m)]
     mf$drop.unused.levels <- TRUE
     mf[[1]] <- as.name("model.frame")
@@ -284,7 +286,7 @@ lmer <-
     nb <- nobars(formula[[3]]) #fixed-effects terms only
     if (is.null(nb)) nb <- 1
     fe.form[[3]] <- nb
-    rho$X <- model.matrix(fe.form, fr)
+    rho$X <- model.matrix(fe.form, fr, contrasts)
     rownames(rho$X) <- NULL
     rho$start <- rho$fixef <- numeric(ncol(rho$X))
     names(rho$fixef) <- colnames(rho$X)
@@ -326,6 +328,7 @@ lmer <-
         if (length(rho$var) || length(rho$weights)) rho$sqrtrWt <- numeric(n)
     }
     if (REML && rho$dims["LMM"]) rho$dims["REML"] <- 1L
+    rho$u0 <- numeric(length(rho$u))
                                         # evaluate the control argument
     control <- do.call(lmerControl, as.list(control))
     if (!missing(verbose)) control$trace <- as.integer(verbose[1])
@@ -336,6 +339,8 @@ lmer <-
 
     rho$bds <- getBounds(rho)
     setPars(rho, getPars(rho))          # one evaluation to check structure
+    rho$beta0 <- numeric(length(rho$fixef))
+    rho$beta[] <- rho$fixef
     
     if (!doFit) return(rho)
     merFinalize(rho)
