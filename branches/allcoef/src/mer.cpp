@@ -236,17 +236,24 @@ mer::mer(SEXP rho)
     SEXP sl = findVarInFrame(rho, lme4_ySym);
     if (sl == R_UnboundValue)
 	error(_("Environment must contain response y"));
-    n = LENGTH(sl);  	// number of observations
-    if (!isReal(sl))
+    if (!(n = LENGTH(sl)) || !isReal(sl)) // n = length of response
 	error(_("Response vector y must be numeric (double)"));
     y = REAL(sl);
     sl = findVarInFrame(rho, lme4_fixefSym);
-    p = LENGTH(sl);		// number of fixed effects
+    if (sl == R_UnboundValue)
+	error(_("Environment must contain numeric vector fixef"));
+    if (!(p = LENGTH(sl)) || !isReal(sl)) // p = length of fixef
+	error(_("Fixef vector must be numeric (double)"));
     fixef = REAL(sl);
     sl = findVarInFrame(rho, lme4_uSym);
-    q = LENGTH(sl);		// number of random effects
+    if (sl == R_UnboundValue)
+	error(_("Environment must contain numeric vector u"));
+    if (!(q = LENGTH(sl)) || !isReal(sl)) // q = length of u
+	error(_("u vector must be numeric (double)"));
     u = REAL(sl);
     sl = findVarInFrame(rho, lme4_etaGammaSym);
+    if (sl == R_UnboundValue)
+	error(_("Environment must contain numeric matrix etaGamma"));
     s = LENGTH(sl);		// this may be zero
     if (s % n)
 	error(_("length(etaGamma) = %d is not a multiple of length(y) = %d"),
@@ -290,6 +297,7 @@ mer::mer(SEXP rho)
     var = VAR_REAL_NULL(rho, lme4_varSym, n, !ncv, ncv);
     int nidl = dims[lTyp_POS] != 5; // non-identity link
     muEta = VAR_REAL_NULL(rho, lme4_muEtaSym, n, !nidl, nidl);
+    u0 = VAR_REAL_NULL(rho, install("u0"), q, TRUE);
     nvec = (double*)NULL;
     sl = findVarInFrame(rho, install("n"));
     if (sl != R_UnboundValue) {
