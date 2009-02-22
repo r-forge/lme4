@@ -45,8 +45,8 @@ default_rho <- function(parent)
 
 ### Utilities for parsing the mixed model formula
 
+#' Return the pairs of expressions that separated by vertical bars
 findbars <- function(term)
-### Return the pairs of expressions that separated by vertical bars
 {
     if (is.name(term) || !is.language(term)) return(NULL)
     if (term[[1]] == as.name("(")) return(findbars(term[[2]]))
@@ -56,9 +56,9 @@ findbars <- function(term)
     c(findbars(term[[2]]), findbars(term[[3]]))
 }
 
+#' Return the formula omitting the pairs of expressions that are
+#' separated by vertical bars
 nobars <- function(term)
-### Return the formula omitting the pairs of expressions that are
-### separated by vertical bars
 {
     if (!('|' %in% all.names(term))) return(term)
     if (is.call(term) && term[[1]] == as.name('|')) return(NULL)
@@ -77,9 +77,24 @@ nobars <- function(term)
     term
 }
 
+#' Substitute the '+' function for the '|' function
+subbars <- function(term)
+{
+    if (is.name(term) || !is.language(term)) return(term)
+    if (length(term) == 2) {
+	term[[2]] <- subbars(term[[2]])
+	return(term)
+    }
+    stopifnot(length(term) >= 3)
+    if (is.call(term) && term[[1]] == as.name('|'))
+	term[[1]] <- as.name('+')
+    for (j in 2:length(term)) term[[j]] <- subbars(term[[j]])
+    term
+}
+
+#' Return the list of '/'-separated terms in an expression that
+#' contains slashes
 slashTerms <- function(x)
-### Return the list of '/'-separated terms in an expression that
-### contains slashes
 {
     if (!("/" %in% all.names(x))) return(x)
     if (x[[1]] != as.name("/"))
@@ -87,8 +102,8 @@ slashTerms <- function(x)
     list(slashTerms(x[[2]]), slashTerms(x[[3]]))
 }
 
+#' from a list of length 2 return recursive interaction terms
 makeInteraction <- function(x)
-### from a list of length 2 return recursive interaction terms
 {
     if (length(x) < 2) return(x)
     trm1 <- makeInteraction(x[[1]])
@@ -253,9 +268,10 @@ lmer <-
     mf <- mf[c(1, m)]
     mf$drop.unused.levels <- TRUE
     mf[[1]] <- as.name("model.frame")
-    fr.form <- formula            # simplified formula for model frame
-    fr.form[[3]] <-
-        parse(text = paste(all.vars(formula), collapse = ' + '))[[1]]
+    fr.form <- subbars(formula)
+#    fr.form <- formula            # simplified formula for model frame
+#    fr.form[[3]] <-
+#        parse(text = paste(all.vars(formula), collapse = ' + '))[[1]]
     environment(fr.form) <- environment(formula)
     mf$formula <- fr.form
     fr <- eval(mf, parent.frame())

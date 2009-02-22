@@ -51,6 +51,7 @@ nlmer <- function(formula, data, start = NULL, verbose = FALSE,
     if (!all(pnames %in% (anms <- all.vars(nlmod))))
         stop("not all parameter names are used in the nonlinear model expression")
     fr.form <- nlform
+## FIXME: This should be changed to use subbars
     fr.form[[3]] <-         # the frame formula includes all variables
         parse(text = paste(setdiff(all.vars(formula), pnames),
                          collapse = ' + '))[[1]]
