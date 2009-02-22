@@ -151,7 +151,7 @@ isNested <- function(f1, f2)
 ##' @param drop logical scalar indicating if elements with numeric
 ##'        value 0 should be dropped from the sparse model matrices 
 ##'
-lmerFactorList <- function(formula, mf, rho, rmInt = FALSE, drop = TRUE)
+lmerFactorList <- function(formula, mf, rho, contrasts, rmInt = FALSE, drop = TRUE)
 {
     ## create factor list for the random effects
     bars <- expandSlash(findbars(formula[[3]]))
@@ -172,7 +172,7 @@ lmerFactorList <- function(formula, mf, rho, rmInt = FALSE, drop = TRUE)
                  ## evaluate the model matrix, possibly dropping the intercept
                  mm <- model.matrix(eval(substitute(if (rmInt) ~ 0 + expr else ~ expr,
                                                     list(expr = x[[2]]))),
-                                    mf)
+                                    mf, contrasts)
                  list(f = ff,
                       Zt = drop0(do.call(rBind,
                       lapply(seq_len(ncol(mm)),
@@ -320,7 +320,7 @@ lmer <-
         } else stop(msg)
     }
     
-    lmerFactorList(formula, rho$frame, rho) # flist, Zt
+    lmerFactorList(formula, rho$frame, rho, contrasts) # flist, Zt
     if (!(rho$dims["LMM"] <- ft["fTyp"] == 2 && ft["lTyp"] == 5 && ft["vTyp"] == 1)) {
         n <- length(rho$y)
         if (ft["lTyp"] != 5) rho$muEta <- numeric(n)
@@ -340,7 +340,7 @@ lmer <-
     rho$bds <- getBounds(rho)
     setPars(rho, getPars(rho))          # one evaluation to check structure
     rho$beta0 <- numeric(length(rho$fixef))
-    rho$beta[] <- rho$fixef
+    rho$beta0[] <- rho$fixef
     
     if (!doFit) return(rho)
     merFinalize(rho)
