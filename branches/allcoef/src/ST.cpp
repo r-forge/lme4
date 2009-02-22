@@ -496,13 +496,13 @@ extern "C" {
  *
  * @return a list of upper Cholesky factors
  */
-SEXP ST_chol(SEXP x)
-{
-    SEXP ans = PROTECT(duplicate(GET_SLOT(x, lme4_STSym)));
-    STinternal(x).chol(ans);
-    UNPROTECT(1);
-    return ans;
-}
+    SEXP ST_chol(SEXP x)
+    {
+	SEXP ans = PROTECT(duplicate(GET_SLOT(x, lme4_STSym)));
+	STinternal(x).chol(ans);
+	UNPROTECT(1);
+	return ans;
+    }
 
 /**
  * Generate the A matrix from Zt.
