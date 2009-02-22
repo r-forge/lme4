@@ -16,61 +16,35 @@ public:
 	d[ldL2_POS] = ldL2;
 	d[ldRX2_POS] = ldRX2;
     }
-/**
- * Create a sparse matrix U from A, etaGamma, muEta, srwt and Perm
- * @return a freshly allocated q by n sparse matrix
- */
     CHM_SP A_to_U();
-/**
- * Update the u and fixef slots in an mer object
- * @return updated deviance
- */
     double PIRLS();
-/**
- * Update the conditional mean, mu
- * @return penalized, weighted residual sum of squares
- *
- * \note This function uses the existing weights without updating
- * them. Reweighting must be done explicitly in PIRLS.
- */
     double update_mu();
-/**
- * Evaluate the deviance, possibly using AGQ.
- */
     double update_dev();
 
 private:
     static int i1;
     static const int BUF_SIZE = 127, CM_MAXITER = 300;
-    static double mone, one, zero;
     static const double CM_TOL, CM_SMIN, GHQ_EPS,
 	LTHRESH, MLTHRESH, MPTHRESH, PTHRESH, INVEPS;
 
     int *dims, *perm, N, n, p, q, s;
     double *RX, *RZX, *V, *X, *beta0, *d, *eta, *fixef, *etaGamma,
-	*mu, *muEta, *nvec, *offset, *pWt, *srwt, *res, *u, *u0, *var, *y,
-	*ghx, *ghw, ldL2, ldRX2, pwrss, sigmaML, sigmaREML,
-	usqr, wrss;
+	*gammavec, *mu, *muEta, *nvec, *offset, *pWt, *srwt, *res, *u, *u0,
+	*var, *y, *wtres, *ghx, *ghw, ldL2, ldRX2, pwrss,
+	sigmaML, sigmaREML, usqr, wrss;
     SEXP flistP, nlmodel, pnames, nlenv;
     CHM_FR L;
     CHM_SP A;
 
     void extractL(SEXP rho);
-/**
- * Fill in the V matrix using X, etaGamma, muEta and srwt.
- */
     void X_to_V();
-    void eval_nonlin(const double *tmp);
+    void eval_nonlin();
     void eval_muEta();
     void eval_varFunc();
     double* eval_m2lcond(double *ans, const int *Grps);
     double* eval_devResid(double *ans, const int *Grps);
 };
 
-double mer::mone = -1;		// These don't really change but they
-double mer::one = 1;		// are passed to Fortran code as
-double mer::zero = 0;		// pointers. FIXME: Add const to those
-				// declarations.
 int mer::i1 = 1;
 
 const double mer::CM_TOL = 1e-12;
@@ -289,15 +263,20 @@ mer::mer(SEXP rho)
     d = VAR_REAL_NULL(rho, lme4_devianceSym, NULLdev_POS + 1);
     dims = INTEGER(findVarInFrame(rho, lme4_dimsSym));
     eta = VAR_REAL_NULL(rho, lme4_etaSym, n, FALSE, TRUE);
+    gammavec = VAR_REAL_NULL(rho, install("gamma"), N, FALSE, TRUE);
     mu = VAR_REAL_NULL(rho, lme4_muSym, n, FALSE, TRUE);
     offset = VAR_REAL_NULL(rho, lme4_offsetSym, n, TRUE);
     pWt = VAR_REAL_NULL(rho, lme4_weightsSym, n, TRUE);
     res = VAR_REAL_NULL(rho, lme4_residSym, n, FALSE, TRUE);
+    wtres = VAR_REAL_NULL(rho, install("wtres"), n, FALSE, TRUE);
+
     int ncv = dims[vTyp_POS] != 1; // non-constant variance function
     var = VAR_REAL_NULL(rho, lme4_varSym, n, !ncv, ncv);
+
     int nidl = dims[lTyp_POS] != 5; // non-identity link
     muEta = VAR_REAL_NULL(rho, lme4_muEtaSym, n, !nidl, nidl);
     u0 = VAR_REAL_NULL(rho, install("u0"), q, TRUE);
+
     nvec = (double*)NULL;
     sl = findVarInFrame(rho, install("n"));
     if (sl != R_UnboundValue) {
@@ -306,12 +285,21 @@ mer::mer(SEXP rho)
 				   LENGTH(sl), n);
 	nvec = REAL(sl);
     }
+
     int reswt = pWt || var;	// force non-null srwt if TRUE
     srwt = VAR_REAL_NULL(rho, lme4_sqrtrWtSym, n, !reswt, reswt);
+    if (srwt)			// initialize to square roots of prior weights
+	for (int j = 0; j < n; j++)
+	    srwt[j] = (pWt ? sqrt(pWt[j]) : 1);
+
     nlmodel = findVarInFrame(rho, lme4_nlmodelSym);
     nlenv = findVarInFrame(rho, lme4_nlenvSym);
 }
 
+/**
+ * Create a sparse matrix U from A, etaGamma, muEta, srwt and Perm
+ * @return a freshly allocated q by n sparse matrix
+ */
 CHM_SP mer::A_to_U()
 {
     CHM_TR At = M_cholmod_sparse_to_triplet(A, &c);
@@ -335,31 +323,41 @@ CHM_SP mer::A_to_U()
     return U;
 }
 
-void mer::eval_nonlin(const double *tmp2)
+/**
+ * Evaluate the nonlinear model function from the parameter matrix
+ *
+ * @param gamma parameter matrix of size n by s (N elements total)
+ */
+void mer::eval_nonlin()
 {
-    for (int i = 0; i < s; i++) { // par. vals. into environment
-	SEXP vv = findVarInFrame(nlenv, install(CHAR(STRING_ELT(pnames, i))));
+    if (etaGamma) {
+	for (int i = 0; i < s; i++) { // par. vals. into environment
+	    SEXP vv = findVarInFrame(nlenv, install(CHAR(STRING_ELT(pnames, i))));
+	    if (!isReal(vv) || LENGTH(vv) != n)
+		error(_("Parameter %s in the environment must be a length %d numeric vector"),
+		      CHAR(STRING_ELT(pnames, i)), n);
+	    dble_cpy(REAL(vv), gammavec + i * n, n);
+	}
+	SEXP vv = PROTECT(eval(nlmodel, nlenv));
 	if (!isReal(vv) || LENGTH(vv) != n)
-	    error(_("Parameter %s in the environment must be a length %d numeric vector"),
-		  CHAR(STRING_ELT(pnames, i)), n);
-	dble_cpy(REAL(vv), tmp2 + i * n, n);
-    }
-    SEXP vv = PROTECT(eval(nlmodel, nlenv));
-    if (!isReal(vv) || LENGTH(vv) != n)
-	error(_("evaluated model is not a numeric vector of length %d"), n);
-    SEXP gg = getAttrib(vv, lme4_gradientSym);
-    if (!isReal(gg) || !isMatrix(gg))
-	error(_("gradient attribute of evaluated model must be a numeric matrix"));
-    int *gdims = INTEGER(getAttrib(gg, R_DimSymbol));
-    if (gdims[0] != n ||gdims[1] != s)
-	error(_("gradient matrix must be of size %d by %d"), n, s);
-    // colnames of the gradient corresponding to the order of the
-    // pnames has been checked
-    dble_cpy(eta, REAL(vv), n);
-    dble_cpy(etaGamma, REAL(gg), n * s);
-    UNPROTECT(1);
+	    error(_("evaluated model is not a numeric vector of length %d"), n);
+	SEXP gg = getAttrib(vv, lme4_gradientSym);
+	if (!isReal(gg) || !isMatrix(gg))
+	    error(_("gradient attribute of evaluated model must be a numeric matrix"));
+	int *gdims = INTEGER(getAttrib(gg, R_DimSymbol));
+	if (gdims[0] != n ||gdims[1] != s)
+	    error(_("gradient matrix must be of size %d by %d"), n, s);
+	// colnames of the gradient corresponding to the order of the
+	// pnames has been checked
+	dble_cpy(eta, REAL(vv), n);
+	dble_cpy(etaGamma, REAL(gg), n * s);
+	UNPROTECT(1);
+    } else dble_cpy(eta, gammavec, n);
 }
 
+/**
+ * Fill in the V matrix using X, etaGamma, muEta and srwt.
+ */
 void mer::X_to_V()
 {
     dble_zero(V, n * p);	// zero the array
@@ -374,54 +372,55 @@ void mer::X_to_V()
 }
 
 /**
- * Update the eta, etaGamma, mu, muEta, res and var members from the
+ * Update the eta, etaGamma, mu, muEta, res, wtres and var members from the
  * current values of the fixef and u.  Also evaluate d[wrss_POS] using
  * the current sqrtrWt slot.  The sqrtrWt slot is changed in update_L.
  *
  * @return penalized, weighted residual sum of squares
+ *
+ * \note This method uses the existing weights without updating
+ * them. Reweighting is done in eval_varFunc.
  */
 double mer::update_mu()
 {
-    double *tmp = new double[N], *pu = new double[q], d1[2] = {1,0};
-    CHM_DN ctmp = N_AS_CHM_DN(tmp, N, 1), cpu = N_AS_CHM_DN(pu, q, 1);
-
-				// tmp := offset or tmp := 0
-    for (int i = 0; i < N; i++) tmp[i] = offset ? offset[i] : 0;
-				// tmp := tmp + X beta
-    F77_CALL(dgemv)("N", &N, &p, d1, X, &N, fixef, &i1, d1, tmp, &i1);
-				// tmp := tmp + A'P'u
+    double *pu = new double[q], d1[2] = {1,0};
+    CHM_DN cgamma = N_AS_CHM_DN(gammavec, N, 1), cpu = N_AS_CHM_DN(pu, q, 1);
+				// gamma := offset or tmp := 0
+    for (int i = 0; i < N; i++) gammavec[i] = offset ? offset[i] : 0;
+				// gamma := gamma + X beta
+    F77_CALL(dgemv)("N", &N, &p, d1, X, &N, fixef, &i1, d1, gammavec, &i1);
+				// gamma := gamma + A'P'u
     for (int j = 0; j < q; j++) pu[perm[j]] = u[j];
-    if (!M_cholmod_sdmult(A, 1 /* trans */, d1, d1, cpu, ctmp, &c))
+    if (!M_cholmod_sdmult(A, 1 /* trans */, d1, d1, cpu, cgamma, &c))
 	error(_("cholmod_sdmult error returned"));
     delete[] pu;
-				// fill in eta
-    if (etaGamma) eval_nonlin(tmp); else dble_cpy(eta, tmp, n);
-    delete[] tmp;
-				// inverse link
-    if (muEta) {eval_muEta(); eval_varFunc();} else dble_cpy(mu, eta, n);
-    
-    wrss = 0;		
-    for (int i = 0; i < n; i++) { // update res and wrss
-	double wtres = (res[i] = y[i] - mu[i]) * (srwt ? srwt[i] : 1);
-	wrss += wtres * wtres;
-    }
+			
+    eval_nonlin(); // evaluate eta from gammavec and update etaGamma if used
+    eval_muEta();  // evaluate mu from eta and update muEta if used
+    for (int i = 0; i < n; i++)	// evaluate res and wtres
+	wtres[i] = (res[i] = y[i] - mu[i]) * (srwt ? srwt[i] : 1);
+
+    wrss = sqr_length(wtres, n);
     usqr = sqr_length(u, q);
     return pwrss = wrss + usqr;
 }
 
+/**
+ * Update the u and fixef slots in an mer object
+ *
+ * @return updated deviance
+ */
 double mer::PIRLS()
 {
     int cvg, info, verb = dims[verb_POS];
-    double *betaold = new double[p],
-	*cbeta = new double[p], *tmp = new double[q], *uold = new double[q],
-	*wtres = new double[n], cfac = ((double)n)/((double)(q+p)),
-	crit, pwrss_old, step, d1[2] = {1,0}, d0[2] = {0,0};
+    double *betaold = new double[p], *cbeta = new double[p],
+	*tmp = new double[q], *uold = new double[q],
+	cfac = ((double)n)/((double)(q+p)), crit, pwrss_old,
+	step, d1[2] = {1,0}, d0[2] = {0,0}, dm1[2] = {-1,0};
     CHM_DN SOL, cRZX = N_AS_CHM_DN(RZX, q, p), cV,
 	cwtres = N_AS_CHM_DN(wtres, n, 1), ctmp = N_AS_CHM_DN(tmp, q, 1);
     CHM_SP U;
     R_CheckStack();
-
-    if (verb < 0) Rprintf("cfac = %g\n", cfac);
 
     // reset u and fixef to initial values.  This can result in more
     // iterations but it gives a repeatable function evaluation for
@@ -434,94 +433,96 @@ double mer::PIRLS()
     V = new double[n * p];
     cV = N_AS_CHM_DN(V, n, p);
 
-    cvg = FALSE;
-    update_mu();
-    for (int i = 0; i < CM_MAXITER; i++) {
-	dble_cpy(uold, u, q);	// record current coefficients
-	dble_cpy(betaold, fixef, p);
+    if (var) {
+	update_mu();
+	eval_varFunc();
+    }
+    do {
+	cvg = FALSE;
+	for (int i = 0; i < CM_MAXITER; i++) {
+	    dble_cpy(uold, u, q); // record current coefficients
+	    dble_cpy(betaold, fixef, p);
 
-	if (srwt) {	  // Update the weights and weighted residuals
-	    for (int j = 0; j < n; j++)
-		wtres[j] = res[j] *
-		    (srwt[j] = sqrt((pWt? pWt[j] : 1) * (var ? var[j] : 1)));
-	} else dble_cpy(wtres, res, n);
-	pwrss_old = sqr_length(wtres, n) + sqr_length(u, q);			 
-	U = A_to_U();		// create U
-	if (!M_cholmod_factorize_p(U, d1, (int*)NULL, 0 /*fsize*/, L, &c))
-	    error(_("cholmod_factorize_p failed: status %d, minor %d from ncol %d"),
-		  c.status, L->minor, L->n);
-	X_to_V();		   // update V
-	if (!M_cholmod_sdmult(U, 0/*no transpose*/, d1, d0, cV, cRZX, &c))
-	    error(_("cholmod_sdmult failed: status %d"), c.status);
-	if (!(SOL = M_cholmod_solve(CHOLMOD_L, L, cRZX, &c)))
-	    error(_("cholmod_solve (CHOLMOD_L) failed: status %d"), c.status);
-	dble_cpy(RZX, (double*)(SOL->x), q * p);
-	M_cholmod_free_dense(&SOL, &c);
+	    pwrss_old = update_mu();
+	    U = A_to_U();	// create U
+	    if (!M_cholmod_factorize_p(U, d1, (int*)NULL, 0 /*fsize*/, L, &c))
+		error(_("cholmod_factorize_p failed: status %d, minor %d from ncol %d"),
+		      c.status, L->minor, L->n);
+	    X_to_V();			// update V
+	    if (!M_cholmod_sdmult(U, 0,	// no transpose
+				  d1, d0, cV, cRZX, &c))
+		error(_("cholmod_sdmult failed: status %d"), c.status);
+	    if (!(SOL = M_cholmod_solve(CHOLMOD_L, L, cRZX, &c)))
+		error(_("cholmod_solve (CHOLMOD_L) failed: status %d"), c.status);
+	    dble_cpy(RZX, (double*)(SOL->x), q * p);
+	    M_cholmod_free_dense(&SOL, &c);
 				// solve for RX in downdated V'V
-	F77_CALL(dsyrk)("U", "T", &p, &n, d1, V, &n, d0, RX, &p); //V'V
-	F77_CALL(dsyrk)("U", "T", &p, &q, &mone, RZX, &q, d1, RX, &p);
-	F77_CALL(dpotrf)("U", &p, RX, &p, &info);
-	if (info)
-	    error(_("Downdated V'V is not positive definite, %d."), info);
+	    F77_CALL(dsyrk)("U", "T", &p, &n, d1, V, &n, d0, RX, &p); //V'V
+	    F77_CALL(dsyrk)("U", "T", &p, &q, dm1, RZX, &q, d1, RX, &p);
+	    F77_CALL(dpotrf)("U", &p, RX, &p, &info);
+	    if (info)
+		error(_("Downdated V'V is not positive definite, %d."), info);
 				// tmp := U %*% wtdResid 
-	M_cholmod_sdmult(U, 0 /* notrans */, d1, d0, cwtres, ctmp, &c);
-	for (int j = 0; j < q; j++) tmp[j] -= u[j]; // tmp := tmp - u
-	M_cholmod_free_sparse(&U, &c);
+	    M_cholmod_sdmult(U, 0, // no transpose
+			     d1, d0, cwtres, ctmp, &c);
+	    for (int j = 0; j < q; j++) tmp[j] -= u[j]; // tmp := tmp - u
+	    M_cholmod_free_sparse(&U, &c);
 				// solve L %*% tmp = tmp
-	if (!(SOL = M_cholmod_solve(CHOLMOD_L, L, ctmp, &c)))
-	    error(_("cholmod_solve (CHOLMOD_L) failed"));
-	dble_cpy(tmp, (double*)(SOL->x), q);
-	M_cholmod_free_dense(&SOL, &c);
+	    if (!(SOL = M_cholmod_solve(CHOLMOD_L, L, ctmp, &c)))
+		error(_("cholmod_solve (CHOLMOD_L) failed"));
+	    dble_cpy(tmp, (double*)(SOL->x), q);
+	    M_cholmod_free_dense(&SOL, &c);
 				// solve RX'cbeta = V'wtres - RZX'cu
-	F77_CALL(dgemv)("T", &n, &p, d1, V, &n, wtres, &i1,
-			d0, cbeta, &i1);
-	F77_CALL(dgemv)("T", &q, &p, &mone, RZX, &q, tmp, &i1,
-			d1, cbeta, &i1);
-	F77_CALL(dtrsv)("U", "T", "N", &p, RX, &p, cbeta, &i1);
+	    F77_CALL(dgemv)("T", &n, &p, d1, V, &n, wtres, &i1,
+			    d0, cbeta, &i1);
+	    F77_CALL(dgemv)("T", &q, &p, dm1, RZX, &q, tmp, &i1,
+			    d1, cbeta, &i1);
+	    F77_CALL(dtrsv)("U", "T", "N", &p, RX, &p, cbeta, &i1);
 				// evaluate convergence criterion
-	double cul2 = sqr_length(tmp, q), cbetal2 = sqr_length(cbeta, p);
-	crit = cfac * (cul2 + cbetal2)/ pwrss_old;
-	if (verb < 0) Rprintf("cul2 = %g, cbetal2 = %g\n", cul2, cbetal2);
-	if (crit < CM_TOL) {	// don't do needless evaluations 
-	    cvg = TRUE;
-	    break;
-	}
+	    double cul2 = sqr_length(tmp, q), cbetal2 = sqr_length(cbeta, p);
+	    crit = cfac * (cul2 + cbetal2)/ pwrss_old;
+//	    if (verb < 0) Rprintf("cul2 = %g, cbetal2 = %g\n", cul2, cbetal2);
+	    if (crit < CM_TOL) {	// don't do needless evaluations 
+		cvg = TRUE;
+		break;
+	    }
 				// solve for delta-beta
-	F77_CALL(dtrsv)("U", "N", "N", &p, RX, &p, cbeta, &i1);
+	    F77_CALL(dtrsv)("U", "N", "N", &p, RX, &p, cbeta, &i1);
 				// solve t(L) %*% SOL = tmp - RZX cbeta
-	F77_CALL(dgemv)("N", &q, &p, &mone, RZX, &q, cbeta, &i1,
-			d1, tmp, &i1);
-	if (!(SOL = M_cholmod_solve(CHOLMOD_Lt, L, ctmp, &c)))
-	    error(_("cholmod_solve (CHOLMOD_Lt) failed"));
-	dble_cpy(tmp, (double*)(SOL->x), q);
-	M_cholmod_free_dense(&SOL, &c);
-	
-	for (step = 1; step > CM_SMIN; step /= 2) { // step halving 
-	    for (int j = 0; j < q; j++)
-		u[j] = uold[j] + step * tmp[j];
-	    for (int j = 0; j < p; j++)
-		fixef[j] = betaold[j] + step * cbeta[j];
-	    pwrss = update_mu();
-	    if (verb < 0)
-		Rprintf("%2d,%8.6f,%12.4g: %15.6g %15.6g %15.6g %15.6g %15.6g\n",
-			i, step, crit, pwrss, pwrss_old, fixef[0], u[0], u[1]);
-	    if (pwrss < pwrss_old) {
-		pwrss_old = pwrss;
+	    F77_CALL(dgemv)("N", &q, &p, dm1, RZX, &q, cbeta, &i1,
+			    d1, tmp, &i1);
+	    if (!(SOL = M_cholmod_solve(CHOLMOD_Lt, L, ctmp, &c)))
+		error(_("cholmod_solve (CHOLMOD_Lt) failed"));
+	    dble_cpy(tmp, (double*)(SOL->x), q);
+	    M_cholmod_free_dense(&SOL, &c);
+	    
+	    for (step = 1; step > CM_SMIN; step /= 2) { // step halving 
+		for (int j = 0; j < q; j++)
+		    u[j] = uold[j] + step * tmp[j];
+		for (int j = 0; j < p; j++)
+		    fixef[j] = betaold[j] + step * cbeta[j];
+		pwrss = update_mu();
+		if (verb < 0)
+		    Rprintf("%2d,%8.6f,%12.4g: %15.6g %15.6g %15.6g %15.6g %15.6g\n",
+			    i, step, crit, pwrss, pwrss_old, fixef[0], u[0], u[1]);
+		if (pwrss < pwrss_old) {
+		    pwrss_old = pwrss;
+		    break;
+		}
+	    }
+	    if (step <= CM_SMIN) break;
+	    if (!(muEta || etaGamma)) { // Gaussian linear mixed models require
+		cvg = TRUE;		    // only 1 iteration
 		break;
 	    }
 	}
-	if (step <= CM_SMIN) break;
-	if (!(muEta || etaGamma)) { // Gaussian linear mixed models require
-	    cvg = TRUE;		    // only 1 iteration
-	    break;
-	}
-    }
-    delete[] V;
-    delete[] betaold;
-    delete[] cbeta;
-    delete[] tmp;
-    delete[] uold;
-    delete[] wtres;
+				// check cvg here.  If FALSE then CM_MAXITER exceeded
+	if (!var) break;
+	eval_varFunc();
+    } while (FALSE);		// change this for GLMMs
+
+    delete[] V; delete[] betaold; delete[] cbeta; delete[] tmp; delete[] uold;
+
     ldRX2 = 0;
     for (int j = 0; j < p; j++) ldRX2 += 2 * log(RX[j * (p + 1)]);
     ldL2 = M_chm_factor_ldetL2(L);
@@ -577,48 +578,50 @@ double* mer::eval_devResid(double *ans, const int *fac)
  */
 void mer::eval_muEta()
 {
-    int lTyp = dims[lTyp_POS];
-    for (int i = 0; i < n; i++) {
-	double etai = eta[i], tmp, t2;
-	switch(lTyp) {
-	case 1:		// logit
-	    tmp = (etai < MLTHRESH) ? DOUBLE_EPS : ((etai > LTHRESH) ?
-						    INVEPS : exp(etai));
-	    mu[i] = tmp/(1 + tmp);
-	    muEta[i] = mu[i] * (1 - mu[i]);
-	    break;
-	case 2:		// probit 
-	    mu[i] = (etai < MPTHRESH) ? DOUBLE_EPS :
-	    ((etai > PTHRESH) ? 1 - DOUBLE_EPS : pnorm5(etai, 0, 1, 1, 0));
-	    tmp = dnorm4(eta[i], 0, 1, 0);
-	    muEta[i] = (tmp < DOUBLE_EPS) ? DOUBLE_EPS : tmp;
-	    break;
-	case 3:		// cauchit 
-	    error(_("cauchit link not yet coded"));
-	    break;
-	case 4:		// cloglog
-	    tmp = (etai < MLTHRESH) ? DOUBLE_EPS : ((etai > LTHRESH) ?
-						    INVEPS : exp(etai));
-	    t2 = -expm1(-tmp);
-	    mu[i] = (t2 < DOUBLE_EPS) ? DOUBLE_EPS : t2;
-	    muEta[i] = tmp * exp(-tmp);
-	    break;
-	case 5:		// identity
-	    mu[i] = etai;
-	    muEta[i] = 1.;
-	    break;
-	case 6:		// log 
-	    tmp = exp(etai);
-	    muEta[i] = mu[i] = (tmp < DOUBLE_EPS) ? DOUBLE_EPS : tmp;
-	    break;
-	case 7:		// sqrt
-	    mu[i] = etai * etai;
-	    muEta[i] = 2 * etai;
-	    break;
-	default:
-	    error(_("General form of glmer_linkinv not yet written"));
+    if (muEta) {
+	int lTyp = dims[lTyp_POS];
+	for (int i = 0; i < n; i++) {
+	    double etai = eta[i], tmp, t2;
+	    switch(lTyp) {
+	    case 1:		// logit
+		tmp = (etai < MLTHRESH) ? DOUBLE_EPS : ((etai > LTHRESH) ?
+							INVEPS : exp(etai));
+		mu[i] = tmp/(1 + tmp);
+		muEta[i] = mu[i] * (1 - mu[i]);
+		break;
+	    case 2:		// probit 
+		mu[i] = (etai < MPTHRESH) ? DOUBLE_EPS :
+		((etai > PTHRESH) ? 1 - DOUBLE_EPS : pnorm5(etai, 0, 1, 1, 0));
+		tmp = dnorm4(eta[i], 0, 1, 0);
+		muEta[i] = (tmp < DOUBLE_EPS) ? DOUBLE_EPS : tmp;
+		break;
+	    case 3:		// cauchit 
+		error(_("cauchit link not yet coded"));
+		break;
+	    case 4:		// cloglog
+		tmp = (etai < MLTHRESH) ? DOUBLE_EPS : ((etai > LTHRESH) ?
+							INVEPS : exp(etai));
+		t2 = -expm1(-tmp);
+		mu[i] = (t2 < DOUBLE_EPS) ? DOUBLE_EPS : t2;
+		muEta[i] = tmp * exp(-tmp);
+		break;
+	    case 5:		// identity
+		mu[i] = etai;
+		muEta[i] = 1.;
+		break;
+	    case 6:		// log 
+		tmp = exp(etai);
+		muEta[i] = mu[i] = (tmp < DOUBLE_EPS) ? DOUBLE_EPS : tmp;
+		break;
+	    case 7:		// sqrt
+		mu[i] = etai * etai;
+		muEta[i] = 2 * etai;
+		break;
+	    default:
+		error(_("General form of glmer_linkinv not yet written"));
+	    }
 	}
-    }
+    } else dble_cpy(mu, eta, n);
 }
 
 /**
@@ -662,6 +665,8 @@ void mer::eval_varFunc()
 	    error(_("Unknown vTyp value %d"), vTyp);
 	}
     }
+    for (int j = 0; j < n; j++)	// update srwt
+	srwt[j] = sqrt((pWt? pWt[j] : 1) * (var ? var[j] : 1));
 }
 
 /**
@@ -697,6 +702,11 @@ double* mer::eval_m2lcond(double *ans, const int *Grps)
     
 }
 
+/**
+ * Evaluate the deviance, possibly using AGQ.
+ *
+ * @return the updated deviance or approximate deviance
+ */
 double mer::update_dev()
 {
     int nAGQ = dims[nAGQ_POS];
