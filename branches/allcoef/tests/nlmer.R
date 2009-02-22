@@ -1,39 +1,33 @@
 library(lme4)
 
-showProc.time <- function() { ## CPU elapsed __since last called__
-    .ot <- .pc
-    .pc <<- proc.time()
-    cat('Time elapsed: ', (.pc - .ot)[1:3],'\n')
-}
 allEQ <- function(x,y, tolerance = 4e-4, ...)
     all.equal.numeric(x,y, tolerance=tolerance, ...)
-.pc <- proc.time()
 
 ## 'Theoph' Data modeling
 
 Th.start <- c(lKe = -2.5, lKa = 0.5, lCl = -3)
-(nm2 <- nlmer(conc ~ SSfol(Dose, Time,lKe, lKa, lCl) ~
-              lKe + lKa + lCl + 
-              (lKe+lKa+lCl|Subject), verb = 1,
-              Theoph, start = Th.start))
-showProc.time() # ~ 5.7s {dual-opteron 2814, on 64b, no optim.}
+system.time(nm2 <- nlmer(conc ~ SSfol(Dose, Time,lKe, lKa, lCl) ~
+                         lKe + lKa + lCl + 
+                         (lKe+lKa+lCl|Subject), verb = 1,
+                         Theoph, start = Th.start))  # ~ 5.7s {dual-opteron 2814, on 64b, no optim.}
+nm2
 
-(nm3 <- nlmer(conc ~ SSfol(Dose, Time,lKe, lKa, lCl) ~
-              lKe + lKa + lCl + 
-              (lKe|Subject) + (lKa|Subject) + (lCl|Subject),
-              verb = 1, Theoph, start = Th.start))
-showProc.time() # ~ 3.2s
+system.time(nm3 <- nlmer(conc ~ SSfol(Dose, Time,lKe, lKa, lCl) ~
+                         lKe + lKa + lCl + 
+                         (lKe|Subject) + (lKa|Subject) + (lCl|Subject),
+                         verb = 1, Theoph, start = Th.start)) # ~ 3.2s
+nm3
 
 ## dropping   lKe  from random effects:
-(nm4 <- nlmer(conc ~ SSfol(Dose, Time,lKe, lKa, lCl) ~
-              lKe + lKa + lCl + (lKa+lCl|Subject), verb = 1,
-              Theoph, start = Th.start))
-showProc.time()
+system.time(nm4 <- nlmer(conc ~ SSfol(Dose, Time,lKe, lKa, lCl) ~
+                         lKe + lKa + lCl + (lKa+lCl|Subject), verb = 1,
+                         Theoph, start = Th.start))
+nm4
 
-(nm5 <- nlmer(conc ~ SSfol(Dose, Time,lKe, lKa, lCl) ~
-              lKe + lKa + lCl + (lKa|Subject) + (lCl|Subject),
-              verb = 1, Theoph, start = Th.start))
-showProc.time()
+system.time(nm5 <- nlmer(conc ~ SSfol(Dose, Time,lKe, lKa, lCl) ~
+                         lKe + lKa + lCl + (lKa|Subject) + (lCl|Subject),
+                         verb = 1, Theoph, start = Th.start))
+nm5
 
 #e3 <- expand(nm3)
 #stopifnot(identical(sapply(e3, class),
