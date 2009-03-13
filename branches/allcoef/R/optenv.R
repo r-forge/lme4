@@ -31,9 +31,14 @@ setMethod("setPars", representation(x = "environment", pars = "numeric"),
           if (is.null(assign <- x$.assign) || !is.integer(assign) ||
               !all(assign %in% acseq) || length(assign) != length(pars))
               stop(gettextf("object named .assign missing in environment passed to setPars or of incorrect form"))
-
-          sum(unlist(lapply(acseq, function(i) setPars(x[[ active[i] ]],
-                                                       pars[assign == i], x, ...))))
+          ff <- function(i)
+          {
+              ans <- try(setPars(x[[ active[i] ]],pars[assign == i], x, ...),
+                         silent = TRUE)
+              if (class(ans) == "try-error") return(NA)
+              ans
+          }
+          sum(unlist(lapply(acseq, ff)))
       })
 
 setMethod("ranef", signature(object = "environment"),

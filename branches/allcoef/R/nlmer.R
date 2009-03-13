@@ -25,8 +25,8 @@
 ##'    defaults are given in the (hidden) function \code{lmerControl}.
 
 ##' @return if doFit is FALSE an environment, otherwise an object of S4 class "mer"
-nlmer <- function(formula, data, start = NULL, verbose = FALSE,
-                  nAGQ = 1, doFit = TRUE, subset, weights, na.action,
+nlmer <- function(formula, data, family = gaussian, start = NULL, verbose = FALSE,
+                  nAGQ = 1, doFit = TRUE, subset, weights, na.action, mustart, etastart,
                   contrasts = NULL, control = list(), ...)
 {
     rho <- default_rho(environment(formula))
@@ -59,6 +59,7 @@ nlmer <- function(formula, data, start = NULL, verbose = FALSE,
     mf$formula <- fr.form
     fr <- eval(mf, parent.frame())
     rho$y <- model.response(fr, "double")
+    rho$nobs <- length(rho$y)
     rho$weights <- as.numeric(as.vector(model.weights(fr)))
     if (length(rho$weights) && any(rho$weights) < 0)
         stop(gettext("negative weights not allowed", domain = "R-lme4"))
@@ -80,8 +81,32 @@ nlmer <- function(formula, data, start = NULL, verbose = FALSE,
     rho$nlenv <- new.env()  # want it to inherit from this environment (or formula env)
     lapply(all.vars(nlmod), function(nm) assign(nm, fr[[nm]], envir = rho$nlenv))
     rho$nlmodel <- nlmod
-    if (is.null(rho$etaGamma <- attr(eval(rho$nlmodel, rho$nlenv), "gradient")))
+                                        # evaluate and check the family
+    if(is.character(family))
+        family <- get(family, mode = "function", envir = parent.frame(2))
+    if(is.function(family)) family <- family()
+    ft <- famType(family)
+    rho$dims[names(ft)] <- ft
+    rho$family <- family
+
+    ## these allow starting values to be expressed in terms of other vars.
+    rho$mustart <- model.extract(mf, "mustart")
+    rho$etastart <- model.extract(mf, "etastart")
+
+    eval(family$initialize, rho)
+
+                                        # enforce modes on some vectors
+    rho$y <- unname(as.double(rho$y))
+    rho$mustart <- unname(as.double(rho$mustart))
+    rho$etastart <- unname(as.double(rho$etastart))    
+    if (exists("n", envir = rho))
+        rho$n <- as.double(rho$n)
+
+    eta <- eval(rho$nlmodel, rho$nlenv)
+    if (is.null(rho$etaGamma <- attr(eta, "gradient")))
         stop("The nonlinear model in nlmer must return a gradient attribute")
+    rho$eta <- numeric(length(eta))
+    rho$eta[] <- eta
 
     ## build the extended frame for evaluation of X and Zt
     fr <- do.call(rbind, lapply(1:s, function(i) fr)) # rbind s copies of the frame
@@ -100,6 +125,12 @@ nlmer <- function(formula, data, start = NULL, verbose = FALSE,
     lmerFactorList(formula, fr, rho, contrasts, TRUE, TRUE)
     q <- length(rho$u)
     rho$u0 <- numeric(q)
+    if (!is.null(start$theta)) {
+        st <- start$theta
+        if (is.numeric(start$theta) &&
+            length(start) == length(getPars(rho$rCF)))
+            setPars(rho$rCF, as.double(st))
+    }
                                         # evaluate the control argument
     control <- do.call(lmerControl, as.list(control))
     if (!missing(verbose)) control$trace <- as.integer(verbose[1])
@@ -111,7 +142,7 @@ nlmer <- function(formula, data, start = NULL, verbose = FALSE,
     rho$bds <- getBounds(rho)
     setPars(rho, getPars(rho))          # one evaluation to check structure
     rho$beta0[] <- rho$fixef
-#    rho$u0[] <- rho$u
+    rho$u0[] <- rho$u
     if (!doFit) return(rho)
     
     merFinalize(rho)
