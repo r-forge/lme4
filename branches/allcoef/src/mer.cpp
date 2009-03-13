@@ -8,13 +8,6 @@ public:
     mer(SEXP rho);		//< instantiate from an environment
     ~mer(){
 	delete L; delete A; 
-	d[wrss_POS] = wrss;
-	d[usqr_POS] = usqr;
-	d[pwrss_POS] = pwrss;
-	d[sigmaML_POS] = sigmaML;
-	d[sigmaREML_POS] = sigmaREML;
-	d[ldL2_POS] = ldL2;
-	d[ldRX2_POS] = ldRX2;
     }
     CHM_SP A_to_U();
     double PIRLS();
@@ -28,10 +21,9 @@ private:
 	LTHRESH, MLTHRESH, MPTHRESH, PTHRESH, INVEPS;
 
     int *dims, *perm, N, n, p, q, s;
-    double *RX, *RZX, *V, *X, *beta0, *d, *eta, *fixef, *etaGamma,
-	*gammavec, *mu, *muEta, *nvec, *offset, *pWt, *srwt, *res, *u, *u0,
-	*var, *y, *wtres, *ghx, *ghw, ldL2, ldRX2, pwrss,
-	sigmaML, sigmaREML, usqr, wrss;
+    double *RX, *RZX, *V, *X, *beta0, *d, *eta, *etaGamma, *etastart,
+	*fixef, *gammavec, *ghw, *ghx, *mu, *muEta, *mustart, *nvec,
+	*offset, *pWt, *res, *srwt, *u, *u0, *var, *wtres, *y;
     SEXP flistP, nlmodel, pnames, nlenv;
     CHM_FR L;
     CHM_SP A;
@@ -46,6 +38,8 @@ private:
 };
 
 int mer::i1 = 1;
+
+// FIXME: pass in the CM_* values rather than declaring them constant
 
 const double mer::CM_TOL = 1e-12;
 const double mer::CM_SMIN = 1e-5;
@@ -140,9 +134,9 @@ double *VAR_REAL_NULL(SEXP rho, SEXP nm, int len, int nullOK, int absentOK)
 	    return(REAL(findVarInFrame(rho, nm)));
 	} else error(_("object named '%s' not found in environment"), pn);
     }
-    int ll = LENGTH(var);
+    int ll;
     
-    if (!ll) {
+    if (var == R_NilValue || !(ll  = LENGTH(var))) {
 	if (nullOK) return (double*) NULL;
 	error(_("numeric object '%s' may not have length 0"), pn);
     }
@@ -263,8 +257,10 @@ mer::mer(SEXP rho)
     d = VAR_REAL_NULL(rho, lme4_devianceSym, NULLdev_POS + 1);
     dims = INTEGER(findVarInFrame(rho, lme4_dimsSym));
     eta = VAR_REAL_NULL(rho, lme4_etaSym, n, FALSE, TRUE);
+    etastart = VAR_REAL_NULL(rho, install("etastart"), n, TRUE);
     gammavec = VAR_REAL_NULL(rho, install("gamma"), N, FALSE, TRUE);
     mu = VAR_REAL_NULL(rho, lme4_muSym, n, FALSE, TRUE);
+    mustart = VAR_REAL_NULL(rho, install("mustart"), n, TRUE);
     offset = VAR_REAL_NULL(rho, lme4_offsetSym, n, TRUE);
     pWt = VAR_REAL_NULL(rho, lme4_weightsSym, n, TRUE);
     res = VAR_REAL_NULL(rho, lme4_residSym, n, FALSE, TRUE);
@@ -400,9 +396,9 @@ double mer::update_mu()
     for (int i = 0; i < n; i++)	// evaluate res and wtres
 	wtres[i] = (res[i] = y[i] - mu[i]) * (srwt ? srwt[i] : 1);
 
-    wrss = sqr_length(wtres, n);
-    usqr = sqr_length(u, q);
-    return pwrss = wrss + usqr;
+    d[wrss_POS] = sqr_length(wtres, n);
+    d[usqr_POS] = sqr_length(u, q);
+    return d[pwrss_POS] = d[wrss_POS] + d[usqr_POS];
 }
 
 /**
@@ -413,7 +409,8 @@ double mer::update_mu()
 double mer::PIRLS()
 {
     int cvg, info, verb = dims[verb_POS];
-    double *betaold = new double[p], *cbeta = new double[p],
+    double *betaold = new double[p], *varold,
+	*cbeta = new double[p],
 	*tmp = new double[q], *uold = new double[q],
 	cfac = ((double)n)/((double)(q+p)), crit, pwrss_old,
 	step, d1[2] = {1,0}, d0[2] = {0,0}, dm1[2] = {-1,0};
@@ -434,11 +431,21 @@ double mer::PIRLS()
     cV = N_AS_CHM_DN(V, n, p);
 
     if (var) {
-	update_mu();
+	varold = new double[n];
+	if (etastart) {
+	    Memcpy(eta, etastart, n);
+	    eval_muEta();
+	} else if (mustart)
+	    Memcpy(mu, mustart, n);
+	else
+	    update_mu();
 	eval_varFunc();
     }
-    do {
-	cvg = FALSE;
+
+    cvg = FALSE;
+    for (int ii = 0; ii < CM_MAXITER; ii++)
+    {
+	if (var) dble_cpy(varold, var, n);
 	for (int i = 0; i < CM_MAXITER; i++) {
 	    dble_cpy(uold, u, q); // record current coefficients
 	    dble_cpy(betaold, fixef, p);
@@ -501,35 +508,47 @@ double mer::PIRLS()
 		    u[j] = uold[j] + step * tmp[j];
 		for (int j = 0; j < p; j++)
 		    fixef[j] = betaold[j] + step * cbeta[j];
-		pwrss = update_mu();
+		d[pwrss_POS] = update_mu();
 		if (verb < 0)
 		    Rprintf("%2d,%8.6f,%12.4g: %15.6g %15.6g %15.6g %15.6g %15.6g\n",
-			    i, step, crit, pwrss, pwrss_old, fixef[0], u[0], u[1]);
-		if (pwrss < pwrss_old) {
-		    pwrss_old = pwrss;
+			    i, step, crit, d[pwrss_POS], pwrss_old, fixef[0], u[0], u[1]);
+		if (d[pwrss_POS] < pwrss_old) {
+		    pwrss_old = d[pwrss_POS];
 		    break;
 		}
 	    }
 	    if (step <= CM_SMIN) break;
 	    if (!(muEta || etaGamma)) { // Gaussian linear mixed models require
-		cvg = TRUE;		    // only 1 iteration
+		cvg = TRUE;		// only 1 iteration
 		break;
 	    }
 	}
-				// check cvg here.  If FALSE then CM_MAXITER exceeded
+	if (!cvg) break;
 	if (!var) break;
 	eval_varFunc();
-    } while (FALSE);		// change this for GLMMs
-
-    delete[] V; delete[] betaold; delete[] cbeta; delete[] tmp; delete[] uold;
-
-    ldRX2 = 0;
-    for (int j = 0; j < p; j++) ldRX2 += 2 * log(RX[j * (p + 1)]);
-    ldL2 = M_chm_factor_ldetL2(L);
-    sigmaML = sqrt(pwrss/(srwt ? sqr_length(srwt, n) : (double) n));
-    sigmaREML = (etaGamma || muEta) ? NA_REAL :
-	sigmaML * sqrt((((double) n)/((double)(n - p))));
-
+	crit = 0;
+	for (int j = 0; j < n; j++) {
+	    double diff = varold[j] - var[j];
+	    crit += (diff * diff)/(var[j]*var[j] + varold[j]*varold[j]);
+	}
+	if (verb < 0) Rprintf("%2d,%8.6f %15.6g %15.6g %15.6g %15.6g\n",
+			      ii, crit, var[0], var[1], varold[0], varold[1]);
+	if (crit < CM_TOL) break;
+    }
+    
+    if (!cvg) error(_("Convergence failure in PIRLS"));
+    
+    delete[] V; delete[] betaold; delete[] cbeta;
+    delete[] tmp; delete[] uold;
+    if (var) delete[] varold; 
+    
+    d[ldRX2_POS] = 0;
+    for (int j = 0; j < p; j++) d[ldRX2_POS] += 2 * log(RX[j * (p + 1)]);
+    d[ldL2_POS] = M_chm_factor_ldetL2(L);
+    d[sigmaML_POS] = sqrt(d[pwrss_POS]/(srwt ? sqr_length(srwt, n) : (double) n));
+    d[sigmaREML_POS] = (etaGamma || muEta) ? NA_REAL :
+	d[sigmaML_POS] * sqrt((((double) n)/((double)(n - p))));
+    
     return update_dev();
 }
 
@@ -666,7 +685,7 @@ void mer::eval_varFunc()
 	}
     }
     for (int j = 0; j < n; j++)	// update srwt
-	srwt[j] = sqrt((pWt? pWt[j] : 1) * (var ? var[j] : 1));
+	srwt[j] = sqrt((pWt? pWt[j] : 1) / (var ? var[j] : 1));
 }
 
 /**
@@ -712,20 +731,23 @@ double mer::update_dev()
     int nAGQ = dims[nAGQ_POS];
     double dn = (double)n;
 
-    d[ML_POS] = ldL2;
+    d[ML_POS] = d[ldL2_POS];
 
     if (dims[fTyp_POS] == 2 && dims[lTyp_POS] == 5 &&
-	dims[vTyp_POS] == 1) {	// Gaussian linear mixed models
-	double dnmp = (double)(n - p);
+	dims[vTyp_POS] == 1) {	// Gaussian-Gaussian mixed models
 
-	d[REML_POS] = ldL2 + ldRX2 +
-	    dnmp * (1. + log(pwrss) + log(2. * PI / dnmp));
-	d[ML_POS] += dn*(1. + log(pwrss) + log(2. * PI / dn));
+	d[ML_POS] += dn*(1. + log(d[pwrss_POS]) + log(2. * PI / dn));
+	if (!etaGamma) {	// linear mixed model
+	    double dnmp = (double)(n - p);
+	    d[REML_POS] = d[ldL2_POS] + d[ldRX2_POS] +
+		dnmp * (1. + log(d[pwrss_POS]) + log(2. * PI / dnmp));
+	}
 	return d[dims[isREML_POS] ? REML_POS : ML_POS];
     }
 
     if (nAGQ == 1) {		// Laplace evaluation
 	double ans = 0;
+//	eval_devResid(&ans, (int*) NULL);
 	eval_m2lcond(&ans, (int*) NULL);
 	d[disc_POS] = ans;
 	d[ML_POS] += d[disc_POS] + d[usqr_POS];
