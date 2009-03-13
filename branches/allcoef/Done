@@ -1,4 +1,10 @@
 -----
+Fix up the specifications of the result of getBounds.  It should be a
+matrix with two columns.
+-----
+Find out why there is a .p at the end of the model names in the
+printed value of anova with multiple arguments.
+-----
 Should there be an extractor function for the mean square error?  If
   so, what should it be called? (There is now a "sigma" extractor.)
 -----
@@ -46,3 +52,4 @@ Replace the glmer_create and nlmer_create C functions with R code.
 - Re-write the ccoef methods in C
 
 - Evaluate the likelihood of a fitted GLMM by the Laplacian approximation
+

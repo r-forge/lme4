@@ -1,13 +1,9 @@
-Calculate the random effects before converting to an mer object.
+-----
+For the Poisson and Binomial families, set useSc to be FALSE.  Modify
+the print and VarCorr methods to honor the useSc setting.
 -----
 Consider different classes for different model types (maybe not, that
 got too complicated in the past).
------
-Fix up the specifications of the result of getBounds.  It should be a
-matrix with two columns.
------
-Find out why there is a .p at the end of the model names in the
-printed value of anova with multiple arguments.
 -----
 Consider the steps in reimplementing AGQ.  First you need to find the
 conditional modes, then evaluate the conditional variances, then step
