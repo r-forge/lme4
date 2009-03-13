@@ -111,8 +111,8 @@ makeInteraction <- function(x)
     list(substitute(foo:bar, list(foo=x[[2]], bar = trm11)), trm1)
 }
 
+#' expand any slashes in the grouping factors returned by findbars
 expandSlash <- function(bb)
-### expand any slashes in the grouping factors returned by findbars
 {
     if (!is.list(bb)) return(expandSlash(list(bb)))
     ## I really do mean lapply(unlist(... - unlist returns a
@@ -245,22 +245,25 @@ lmerFactorList <- function(formula, mf, rho, contrasts, rmInt = FALSE, drop = TR
 
 ### Control parameters for lmer, glmer and nlmer
 lmerControl <- function(trace = getOption("verbose"),
-                        iter.max = 300L, eval.max = 900L)
+                        iter.max = 300L, eval.max = 900L,
+                        algorithm = c("Nelder-Mead", "nlminb"))
     list(iter.max = as.integer(iter.max[1]),
          eval.max = as.integer(eval.max[1]),
-	 trace = as.integer(trace))
+	 trace = as.integer(trace),
+         algorithm = match.arg(algorithm))
 
 lmer <-
     function(formula, data, family = gaussian, REML = TRUE,
-             control = list(), start = NULL, verbose = FALSE, doFit = TRUE,
+             control = list(), start = NULL, verbose = FALSE,
+             doFit = TRUE, noPIRLS = FALSE,
              subset, weights, na.action, offset, contrasts = NULL,
              mustart, etastart, ...)
 {
     rho <- default_rho(environment(formula))
+    rho$deviance["ML"] <- NA            # need to force a copy
     if (missing(data)) data <- environment(formula)
     stopifnot(length(formula <- as.formula(formula)) == 3)
-
-    ## evaluate and install the model frame
+                                        # evaluate and install the model frame
     mf <- mc <- match.call()
     m <- match(c("data", "subset", "weights", "na.action",
                  "etastart", "mustart", "offset"),
@@ -269,23 +272,23 @@ lmer <-
     mf$drop.unused.levels <- TRUE
     mf[[1]] <- as.name("model.frame")
     fr.form <- subbars(formula)
-#    fr.form <- formula            # simplified formula for model frame
-#    fr.form[[3]] <-
-#        parse(text = paste(all.vars(formula), collapse = ' + '))[[1]]
     environment(fr.form) <- environment(formula)
     mf$formula <- fr.form
     fr <- eval(mf, parent.frame())
+    n <- nrow(fr)
+                                        # components of the model frame
     rho$y <- model.response(fr)
     if(length(dim(rho$y)) == 1) { # avoid problems with 1D arrays, but keep names
         nm <- rownames(rho$y)
         dim(rho$y) <- NULL
         if(!is.null(nm)) names(rho$y) <- nm
     }
-    rho$frame <- fr       # this frame may contain redundant variables
+    rho$frame <- fr                  # may contain redundant variables
     attr(rho$frame, "terms") <- NULL
-    rho$nobs <- nrow(fr)
     rho$weights <- as.numeric(as.vector(model.weights(fr)))
-    if (length(rho$weights) && any(rho$weights) < 0)
+    if (length(rho$weights) == 0)
+        rho$weights <- rep.int(1, n)
+    if (any(rho$weights < 0))
         stop(gettext("negative weights not allowed", domain = "R-lme4"))
     loff <- length(rho$offset <- as.numeric(as.vector(model.offset(fr))))
     if (loff) {
@@ -296,35 +299,37 @@ lmer <-
                           loff, rho$nobs), domain = "R-lme4")
         }
     }
-            
-    ## evaluate the fixed-effects model matrix
-    fe.form <- formula
-    nb <- nobars(formula[[3]]) #fixed-effects terms only
+                                        # starting values expressed as mu or eta
+    rho$mustart <- model.extract(mf, "mustart")
+    rho$etastart <- model.extract(mf, "etastart")
+
+    fe.form <- formula           # evaluate fixed-effects model matrix
+    nb <- nobars(formula[[3]])   # fixed-effects terms only
     if (is.null(nb)) nb <- 1
     fe.form[[3]] <- nb
     rho$X <- model.matrix(fe.form, fr, contrasts)
     rownames(rho$X) <- NULL
-    rho$start <- rho$fixef <- numeric(ncol(rho$X))
+    p <- ncol(rho$X)
+    rho$start <- numeric(p)             # needed for family$initialize
+    rho$fixef <- numeric(p)
     names(rho$fixef) <- colnames(rho$X)
-    
-    ## evaluate and check the family
+                                        # evaluate and check family
     if(is.character(family))
         family <- get(family, mode = "function", envir = parent.frame(2))
     if(is.function(family)) family <- family()
     ft <- famType(family)
     rho$dims[names(ft)] <- ft
     rho$family <- family
-
-    ## these allow starting values to be expressed in terms of other vars.
-    rho$mustart <- model.extract(mf, "mustart")
-    rho$etastart <- model.extract(mf, "etastart")
-    
+    rho$nobs <- nrow(fr)
     eval(family$initialize, rho)
-
-    ## enforce modes on some vectors in rho
-    rho$y <- unname(as.double(rho$y))
+                                        # enforce modes on some vectors
+    rho$y <- unname(as.double(rho$y))   # must be done after initialize
+    rho$mustart <- unname(as.double(rho$mustart))
+    rho$etastart <- unname(as.double(rho$etastart))    
     if (exists("n", envir = rho))
         rho$n <- as.double(rho$n)
+    if (family$family %in% c("binomial", "poisson"))
+        rho$dims["useSc"] <- 0L
     
     ## Check for method argument which is no longer used
     if (!is.null(method <- list(...)$method)) {
@@ -338,11 +343,10 @@ lmer <-
     
     lmerFactorList(formula, rho$frame, rho, contrasts) # flist, Zt
     if (!(rho$dims["LMM"] <- ft["fTyp"] == 2 && ft["lTyp"] == 5 && ft["vTyp"] == 1)) {
-        n <- length(rho$y)
         if (ft["lTyp"] != 5) rho$muEta <- numeric(n)
         if (ft["vTyp"] != 1) rho$var <- numeric(n)
-        if (length(rho$var) || length(rho$weights)) rho$sqrtrWt <- numeric(n)
     }
+    if (length(rho$var) || length(rho$weights)) rho$sqrtrWt <- numeric(n)
     if (REML && rho$dims["LMM"]) rho$dims["REML"] <- 1L
     rho$u0 <- numeric(length(rho$u))
                                         # evaluate the control argument
@@ -351,12 +355,14 @@ lmer <-
     rho$dims["verb"] <- control$trace
     control$trace <- abs(control$trace) # negative values give PIRLS output
     rho$control <- control
-    rho$mc <- mc                    # store the matched call
+    rho$mc <- mc                        # store the matched call
 
     rho$bds <- getBounds(rho)
-    setPars(rho, getPars(rho))          # one evaluation to check structure
-    rho$beta0 <- numeric(length(rho$fixef))
-    rho$beta0[] <- rho$fixef
+    if (!noPIRLS) {
+        setPars(rho, getPars(rho))          # one evaluation to check structure
+        rho$start[] <- rho$fixef            # ensure start is distinct from fixef
+        rho$mustart[] <- rho$mu
+    }
     
     if (!doFit) return(rho)
     merFinalize(rho)
@@ -364,10 +370,16 @@ lmer <-
 
 merFinalize <- function(rho)
 {
-    res <- nlminb(getPars(rho), function(x) setPars(rho, x),
-                  lower = rho$bds[,1], upper = rho$bds[,2], control = rho$control)
+    if (rho$control$algorithm == "Nelder-Mead")
+        res <- optim(getPars(rho), function(x) setPars(rho, x),
+                     control = list(maxit = max(1000, rho$control$iter.max),
+                                    trace = rho$control$trace))
+    else 
+        res <- nlminb(getPars(rho), function(x) setPars(rho, x),
+                      lower = rho$bds[,1], upper = rho$bds[,2], control = rho$control)
     if (res$convergence != 0)
         warning(res$message)
+    setPars(rho, res$par)
     nlmodel <- rho$nlmodel
     rho.lst <- as.list(rho)
     rho.lst$nlmodel <- NULL          # it gets quoted in the conversion
@@ -1746,3 +1758,98 @@ rWishart <- function(n, df, invScal)
     .Call(lme4_rWishart, n, df, invScal)
 }
 
+simGLMM <- function(formula, data, family, theta,
+                    fixef = rep.int(1, p), verbose = FALSE,
+                    control = list(), ...)
+{
+    rho <- lme4:::default_rho(environment(formula))
+    stopifnot(inherits(data, "data.frame"),
+              length(formula <- as.formula(formula)) == 3,
+              is.name(ynm <- formula[[2]]))
+    ynm <- as.character(ynm)
+    if (is.null(data[[ynm]])) data[[ynm]] <- 1
+
+    mf <- mc <- match.call()    # evaluate and install the model frame
+    m <- match(c("data", "subset", "weights", "na.action",
+                 "etastart", "mustart", "offset"),
+               names(mf), 0)
+    mf <- mf[c(1, m)]
+    mf$drop.unused.levels <- TRUE
+    mf[[1]] <- as.name("model.frame")
+    fr.form <- substitute(~ foo, list(foo = lme4:::subbars(formula)[[3]]))
+    environment(fr.form) <- environment(formula)
+    mf$formula <- fr.form
+    fr <- eval(mf, parent.frame())
+    n <- nrow(fr)
+
+    rho$frame <- fr                  # may contain redundant variables
+    attr(rho$frame, "terms") <- NULL
+    rho$weights <- as.numeric(as.vector(model.weights(fr)))
+    if (length(rho$weights) == 0)
+        rho$weights <- rep.int(1, n)
+    if (any(rho$weights < 0))
+        stop(gettext("negative weights not allowed", domain = "R-lme4"))
+    loff <- length(rho$offset <- as.numeric(as.vector(model.offset(fr))))
+    if (loff) {
+        if (loff == 1) {
+            rho$offset <- rep.int(rho$offset, rho$nobs)
+        } else if (loff != rho$nobs) {
+            stop(gettextf("number of offsets is %d should equal %d (number of observations)",
+                          loff, rho$nobs), domain = "R-lme4")
+        }
+    }
+    rho$mustart <- model.extract(mf, "mustart")
+    rho$etastart <- model.extract(mf, "etastart")
+
+    fe.form <- formula           # evaluate fixed-effects model matrix
+    nb <- lme4:::nobars(formula[[3]])   # fixed-effects terms only
+    if (is.null(nb)) nb <- 1
+    fe.form <- eval(substitute(~ foo, list(foo = nb)))
+    rho$X <- model.matrix(fe.form, fr, contrasts)
+    rownames(rho$X) <- NULL
+    p <- ncol(rho$X)
+    stopifnot(is.numeric(fixef), length(fixef) == p)
+    
+    rho$start <- fixef                  # needed for family$initialize
+    rho$fixef <- fixef
+    names(rho$fixef) <- colnames(rho$X)
+    lme4:::lmerFactorList(formula, rho$frame, rho, contrasts)
+    if (!missing(theta)) {
+        theta <- as.double(theta)
+        stopifnot(length(theta) == length(theta0 <- getPars(rho$rCF)))
+        setPars(rho, theta)
+    }
+    q <- nrow(rho$Zt)
+    rho$u <- rnorm(q)
+    rho$eta <- numeric(n)
+    rho$y <- numeric(n)
+    rho$mu <- numeric(n)
+    rho$resid <- numeric(n)
+    rho$var <- numeric(n)
+    rho$muEta <- numeric(n)
+    rho$sqrtrWt <- numeric(n)        
+    rho$u0 <- numeric(q)
+                                       # evaluate and check family
+    if(is.character(family))
+        family <- get(family, mode = "function", envir = parent.frame(2))
+    if(is.function(family)) family <- family()
+    ft <- lme4:::famType(family)
+    rho$dims[names(ft)] <- ft
+    rho$family <- family
+    rho$nobs <- n
+    eval(family$initialize, rho)
+                                        # enforce modes on some vectors
+    .Call("mer_update_mu", rho)
+    rho$y <- switch(family$family,
+                    poisson = rpois(n, rho$mu),
+                    binomial = rbinom(n, 1, rho$mu))
+    .Call("mer_update_mu", rho)
+
+    if (!missing(verbose)) control$trace <- as.integer(verbose[1])
+    rho$dims["verb"] <- control$trace
+    control$trace <- abs(control$trace) # negative values give PIRLS output
+    rho$control <- control
+    rho$mc <- match.call()
+
+    rho
+}
