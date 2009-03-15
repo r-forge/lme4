@@ -1,5 +1,7 @@
 #define NO_C_HEADERS
 #include <cstddef>
+#include <cstdarg>
+#include <cstdlib>
 #include <cmath>
 #include <R.h>
 /* Rdefines.h includes Rinternals.h (for SEXP, REAL, etc.) and defines
