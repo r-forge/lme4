@@ -246,7 +246,7 @@ lmerFactorList <- function(formula, mf, rho, contrasts, rmInt = FALSE, drop = TR
 ### Control parameters for lmer, glmer and nlmer
 lmerControl <- function(trace = getOption("verbose"),
                         iter.max = 300L, eval.max = 900L,
-                        algorithm = c("Nelder-Mead", "nlminb"))
+                        algorithm = c("both", "Nelder-Mead", "nlminb"))
     list(iter.max = as.integer(iter.max[1]),
          eval.max = as.integer(eval.max[1]),
 	 trace = as.integer(trace),
@@ -370,13 +370,25 @@ lmer <-
 
 merFinalize <- function(rho)
 {
-    if (rho$control$algorithm == "Nelder-Mead")
-        res <- optim(getPars(rho), function(x) setPars(rho, x),
-                     control = list(maxit = max(1000, rho$control$iter.max),
-                                    trace = rho$control$trace))
-    else 
+    if (rho$control$algorithm %in% c("both", "Nelder-Mead")) {
+        t0 <- getPars(rho)
+        if (length(t0) < 2) {
+            res <- optimize(function(x) setPars(rho, x), c(0, 5))
+            res$convergence <- 0
+            res$par <- res$minimum
+        } else {
+            res <- optim(getPars(rho), function(x) setPars(rho, x),
+                         control = list(maxit = max(1000, rho$control$iter.max),
+                         trace = rho$control$trace))
+        }
+    }
+    if (rho$control$algorithm %in% c("both", "nlminb")) {
+        control = rho$control
+        control$algorithm <- NULL
         res <- nlminb(getPars(rho), function(x) setPars(rho, x),
-                      lower = rho$bds[,1], upper = rho$bds[,2], control = rho$control)
+                      lower = rho$bds[,1], upper = rho$bds[,2],
+                      control = control)
+    }
     if (res$convergence != 0)
         warning(res$message)
     setPars(rho, res$par)
