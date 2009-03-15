@@ -125,12 +125,6 @@ nlmer <- function(formula, data, family = gaussian, start = NULL, verbose = FALS
     lmerFactorList(formula, fr, rho, contrasts, TRUE, TRUE)
     q <- length(rho$u)
     rho$u0 <- numeric(q)
-    if (!is.null(start$theta)) {
-        st <- start$theta
-        if (is.numeric(start$theta) &&
-            length(start) == length(getPars(rho$rCF)))
-            setPars(rho$rCF, as.double(st))
-    }
                                         # evaluate the control argument
     control <- do.call(lmerControl, as.list(control))
     if (!missing(verbose)) control$trace <- as.integer(verbose[1])
@@ -140,7 +134,13 @@ nlmer <- function(formula, data, family = gaussian, start = NULL, verbose = FALS
     rho$mc <- mc                        # store the matched call
 
     rho$bds <- getBounds(rho)
-    setPars(rho, getPars(rho))          # one evaluation to check structure
+    theta0 <- getPars(rho)
+    if (!is.null(start$theta)) {
+        stopifnot(length(st <- as.double(start$theta)) == length(theta0))
+        setPars(rho, st)
+    } else { 
+        setPars(rho, theta0) # one evaluation to check structure
+    }
     rho$beta0[] <- rho$fixef
     rho$u0[] <- rho$u
     if (!doFit) return(rho)
