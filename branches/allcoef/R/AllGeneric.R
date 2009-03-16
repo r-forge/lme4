@@ -11,6 +11,8 @@ setGeneric("gsummary",
            standardGeneric("gsummary"))
 }
 
+setGeneric("evalDev", function(object, pars, ...) standardGeneric("evalDev"))
+
 setGeneric("fixef", function(object, ...) standardGeneric("fixef"))
 
 #' returns an A template from Zt

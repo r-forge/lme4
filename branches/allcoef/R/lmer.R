@@ -1865,3 +1865,16 @@ simGLMM <- function(formula, data, family, theta,
 
     rho
 }
+
+setMethod("evalDev", signature(object = "mer", pars = "matrix"),
+          function(object, pars, ...)
+      {
+          cc <- object@call
+          cc$doFit <- FALSE
+          cc$verbose <- FALSE
+          rho <- eval(cc, parent.frame())
+          optpars <- getPars(rho)
+          stopifnot(ncol(pars) == length(optpars))
+          storage.mode(pars) <- "double"
+          cbind(pars, apply(pars, 1, setPars, x = rho))
+      })
