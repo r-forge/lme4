@@ -638,7 +638,8 @@ static void lmm_update_projection(SEXP x, double *pb, double *pbeta)
     int *dims = DIMS_SLOT(x), i1 = 1;
     int n = dims[n_POS], p = dims[p_POS], q = dims[q_POS];
     double *WX = (double*) NULL, *X = X_SLOT(x),
-	*cx = Cx_SLOT(x), *d = DEV_SLOT(x), *RZX = RZX_SLOT(x),
+	*cx = Cx_SLOT(x), *d = DEV_SLOT(x),
+	*off = OFFSET_SLOT(x), *RZX = RZX_SLOT(x),
 	*RX = RX_SLOT(x), *sXwt = SXWT_SLOT(x), 
 	*wy = (double*)NULL, *y = Y_SLOT(x),
 	mone[] = {-1,0}, one[] = {1,0}, zero[] = {0,0};
@@ -647,37 +648,37 @@ static void lmm_update_projection(SEXP x, double *pb, double *pbeta)
     CHM_DN cpb = N_AS_CHM_DN(pb, q, 1), sol;
     R_CheckStack();
 	
-    if (sXwt) {		     /* Replace X and y by weighted X and y */
+    wy = Calloc(n, double);
+    for (int i = 0; i < n; i++) wy[i] = y[i] - (off ? off[i] : 0);
+    if (sXwt) {		     /* Replace X by weighted X and weight wy */
 	if (!cx) error(_("Cx slot has zero length when sXwt does not."));
 
 	A->x = (void*)cx;
 	WX = Calloc(n * p, double);
-	wy = Calloc(n, double);
 	
 	for (int i = 0; i < n; i++) {
-	    wy[i] = sXwt[i] * y[i];
+	    wy[i] *= sXwt[i];
 	    for (int j = 0; j < p; j++)
 		WX[i + j * n] = sXwt[i] * X[i + j * n];
 	}
 	X = WX;
-	y = wy;
     }
 				/* solve L del1 = PAy */
-    P_sdmult(pb, (int*)L->Perm, A, y, 1);
+    P_sdmult(pb, (int*)L->Perm, A, wy, 1);
     sol = M_cholmod_solve(CHOLMOD_L, L, cpb, &c);
     Memcpy(pb, (double*)sol->x, q);
     M_cholmod_free_dense(&sol, &c);
 				/* solve RX' del2 = X'y - RZX'del1 */
     F77_CALL(dgemv)("T", &n, &p, one, X, &n,
-		    y, &i1, zero, pbeta, &i1);
+		    wy, &i1, zero, pbeta, &i1);
     F77_CALL(dgemv)("T", &q, &p, mone, RZX, &q,
 		    pb, &i1, one, pbeta, &i1);
     F77_CALL(dtrsv)("U", "T", "N", &p, RX, &p, pbeta, &i1);
-    d[pwrss_POS] = sqr_length(y, n)
+    d[pwrss_POS] = sqr_length(wy, n)
 	- (sqr_length(pbeta, p) + sqr_length(pb, q));
     if (d[pwrss_POS] < 0)
 	error(_("Calculated PWRSS for a LMM is negative"));
-    if (wy) Free(wy);
+    Free(wy);
     if (WX) Free(WX);
 }
 
