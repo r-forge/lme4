@@ -1474,11 +1474,7 @@ printMer <- function(x, digits = max(3, getOption("digits") - 3),
 		    if (is.logical(symbolic.cor) && symbolic.cor) {
 			corf <- as(corF, "matrix")
 			dimnames(corf) <- list(rns,
-					       if(getRversion() >= "2.8.0")
-					       abbreviate(rn, minlength=1, strict=TRUE)
-					       else ## for now
-					       .Internal(abbreviate(rn, 1, TRUE))
-					       )
+					       abbreviate(rn, minlength=1, strict=TRUE))
 			print(symnum(corf))
 		    }
 		    else {
