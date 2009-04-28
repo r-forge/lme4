@@ -1530,6 +1530,19 @@ setMethod("refit", signature(object = "mer", newresp = "numeric"),
           mer_finalize(object)
       })
 
+## Contributed by Ben Bolker
+setMethod("refit", signature(object = "mer", newresp = "matrix"),
+          function(object, newresp, ...)
+      {
+          stopifnot(ncol(newresp) == 2,
+                    all(!is.na(wts <- rowSums(newresp))),
+                    length(wts) == object@dims["n"])
+          object@y <- newresp[,1]/wts
+          object@pWt <- wts
+          mer_finalize(object)
+      })
+
+          
 BlockDiagonal <- function(lst)
 {
     stopifnot(is(lst, "list"))
