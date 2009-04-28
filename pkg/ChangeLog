@@ -1,3 +1,8 @@
+2009-04-28  Douglas Bates <bates@stat.wisc.edu>
+
+	* [r305] R/lmer.R: Refit method for matrix response, contributed
+ 	  by Ben Bolker
+
 2009-03-24  Douglas Bates <bates@stat.wisc.edu>
 
 	* [r302] DESCRIPTION, man/Penicillin.Rd, src/lmer.c, tests/lmer-1.R,
