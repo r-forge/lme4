@@ -1,3 +1,8 @@
+2009-05-12  Douglas Bates <bates@stat.wisc.edu>
+
+	* [r307] DESCRIPTION, src/lmer.c: Avoid alloca for arrays of size q (C
+	  stack overflows); New release
+
 2009-04-28  Douglas Bates <bates@stat.wisc.edu>
 
 	* [r305] R/lmer.R: Refit method for matrix response, contributed
