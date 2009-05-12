@@ -502,7 +502,7 @@ P_sdmult(double *dest, const int *perm, const CHM_SP A,
 	 const double *X, int nc)
 {
     int *ai = (int*)(A->i), *ap = (int*)(A->p), m = A->nrow, n = A->ncol;
-    double *ax = (double*)(A->x), *tmp = Alloca(m, double);
+    double *ax = (double*)(A->x), *tmp = Calloc(m, double);
     R_CheckStack();
 
     for (int k = 0; k < nc; k++) {
@@ -513,6 +513,7 @@ P_sdmult(double *dest, const int *perm, const CHM_SP A,
 	}
 	apply_perm(dest + k * m, tmp, perm, m);
     }
+    Free(tmp);
 }
 
 /**
@@ -1054,8 +1055,8 @@ static int update_u(SEXP x)
 	*res = RESID_SLOT(x), *u = U_SLOT(x),
 	cfac = ((double)n) / ((double)q), 
 	crit, pwrss, pwrss_old, step;
-    double *tmp = Alloca(q, double), *tmp1 = Alloca(q, double),
-	*uold = Alloca(q, double), one[] = {1,0}, zero[] = {0,0};
+    double *tmp = Calloc(q, double), *tmp1 = Calloc(q, double),
+	*uold = Calloc(q, double), one[] = {1,0}, zero[] = {0,0};
     CHM_FR L = L_SLOT(x);
     CHM_DN cres = N_AS_CHM_DN(res, n, 1),
 	ctmp = N_AS_CHM_DN(tmp, q, 1), sol;
@@ -1114,6 +1115,7 @@ static int update_u(SEXP x)
 	}
 	if (step <= CM_SMIN || i > CM_MAXITER) return 0;
     }
+    Free(tmp); Free(tmp1); Free(uold);
     return i;
 }
 
@@ -1137,7 +1139,7 @@ static void MCMC_beta_u(SEXP x, double sigma, double *fvals, double *rvals)
     double *V = V_SLOT(x), *fixef = FIXEF_SLOT(x), *muEta = MUETA_SLOT(x),
 	*u = U_SLOT(x), mone[] = {-1,0}, one[] = {1,0};
     CHM_FR L = L_SLOT(x);
-    double *del1 = Alloca(q, double), *del2 = Alloca(p, double);
+    double *del1 = Calloc(q, double), *del2 = Alloca(p, double);
     CHM_DN sol, rhs = N_AS_CHM_DN(del1, q, 1);
     R_CheckStack();
 
@@ -1165,6 +1167,7 @@ static void MCMC_beta_u(SEXP x, double sigma, double *fvals, double *rvals)
 	update_ranef(x);
 	Memcpy(rvals, RANEF_SLOT(x), q);
     }
+    Free(del1);
 }
 
 /**
@@ -1761,7 +1764,7 @@ SEXP mer_postVar(SEXP x, SEXP which)
     CHM_SP sm1, sm2;
     CHM_DN dm1;
     CHM_FR L = L_SLOT(x);
-    int *Perm = (int*)(L->Perm), *iperm = Alloca(q, int),
+    int *Perm = (int*)(L->Perm), *iperm = Calloc(q, int),
 	*nc = Alloca(nt, int), *nlev = Alloca(nt, int);
     double **st = Alloca(nt, double*);
     R_CheckStack();
@@ -1816,6 +1819,7 @@ SEXP mer_postVar(SEXP x, SEXP which)
 	    M_cholmod_free_sparse(&rhs, &c);
 	}
     }
+    Free(iperm);
     UNPROTECT(1);
     return ans;
 }
@@ -1887,7 +1891,7 @@ SEXP mer_ST_initialize(SEXP ST, SEXP Gpp, SEXP Zt)
 	*zi = INTEGER(GET_SLOT(Zt, lme4_iSym)), nt = LENGTH(ST);
     int *nc = Alloca(nt, int), *nlev = Alloca(nt, int),
 	nnz = INTEGER(GET_SLOT(Zt, lme4_pSym))[Zdims[1]];
-    double *rowsqr = Alloca(Zdims[0], double),
+    double *rowsqr = Calloc(Zdims[0], double),
 	**st = Alloca(nt, double*),
 	*zx = REAL(GET_SLOT(Zt, lme4_xSym));
     R_CheckStack();
@@ -1904,6 +1908,7 @@ SEXP mer_ST_initialize(SEXP ST, SEXP Gpp, SEXP Zt)
 	    *stij = sqrt(nlev[i]/(0.375 * *stij));
 	}
     }
+    Free(rowsqr);
     return R_NilValue;
 }
 
