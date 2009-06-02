@@ -1,5 +1,7 @@
 2009-06-02  Douglas Bates <bates@stat.wisc.edu>
 
+	* [r318] R/lmer.R: Duh! Forgot the meaning of "stopifnot" and did not
+	  reverse the condition.  Now fixed.
 	* [r316] DESCRIPTION: New release
 	* [r315] R/lmer.R: More informative error message for lmer_finalize.
 	  Also check this condition in glmer_finalize.
