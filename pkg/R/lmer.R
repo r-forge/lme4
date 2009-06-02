@@ -558,7 +558,7 @@ glmer_finalize <- function(fr, FL, glmFit, start, nAGQ, verbose)
 ### This checks that the number of levels in a grouping factor < n
 ### Only need to check the first factor because it is the one with
 ### the most levels.
-    if (!(length(levels(dm$flist[[1]])) < length(Y)))
+    if (!(length(levels(dm$flist[[1]])) < ncol(dm$Zt)))
         stop(paste("Number of levels of a grouping factor for the random effects",
                    "must be less than the number of observations", sep = "\n"))
     ft <- famType(glmFit$family)
