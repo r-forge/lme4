@@ -66,7 +66,7 @@ simpleDev <- function(Zt, y, X)
     {
         Ut <- as.numeric(theta)[1] * Zt
         ll <- mePLS(Ut, y, X, L)
-        fitd <- crossprod(Zt, ll$delu) + X %*% ll$delb
+        fitd <- crossprod(Ut, ll$delu) + X %*% ll$delb
         rsqr <- sum(c(y - as.vector(fitd), as.vector(ll$delu))^2)
         determinant(ll$L, logarithm = TRUE)$modulus +
             n * (1 + log(2*pi*rsqr/n))
