@@ -82,18 +82,24 @@ accum <- function(dgTlst, coef = rep(1, length(dgTlst)))
        "dgCMatrix")
 }
 
-updateFL <- function(FL, lagged, coef = rep(1, length(lagged[[1]])))
+initial_update <- function(rho, lagged, coef = rep(1, length(lagged[[1]])))
 {
-    updt <- lapply(lagged, accum, coef = coef)
-    fl <- FL$fl
+    updt <- lapply(lagged, lme4:::accum, coef = coef)
+    fl <- rho$flist
     fnms <- names(fl)
     asgn <- attr(fl, "assign")
-    for (nm in names(updt)) {
-        trm <- which(asgn == match(nm, fnms))
-        stopifnot(length(trm) == 1)
-        FL$trms[[trm]]$A <- FL$trms[[trm]]$Zt <- updt[[nm]]
-    }
-    FL
+    stopifnot(length(updt) == 1) # too hard to decide what to do for > 1
+    ## for (nm in names(updt)) {
+    ##     trm <- which(asgn == match(nm, fnms))
+    ##     stopifnot(length(trm) == 1)
+        
+    ##     rho$trms[[trm]]$A <- rho$trms[[trm]]$Zt <- updt[[nm]]
+    ## }
+    trm <- which(asgn == match(names(updt), fnms))
+    stopifnot(length(trm) == 1)
+    trms <- evalbars(rho$formula, rho$frame)
+    rows <- diff(rho$rCF@Gp)
+    rho
 }
 
 carryOver <-
@@ -109,20 +115,70 @@ carryOver <-
               length(factors <- sapply(factors, as.character)) > 0,
               all(c(idvar, timevar, factors) %in% all.vars(formula)))
     lmerc <- mc <- match.call()
-    ## Call lmer without Znew and pre and with doFit = FALSE
+    ## Call lmer with doFit = FALSE
     lmerc$idvar <- lmerc$timevar <- lmerc$factors <- NULL
     lmerc$doFit <- FALSE
     lmerc[[1]] <- as.name("lmer")
     lf <- eval.parent(lmerc)
-    stopifnot(all(factors %in% names(lf$FL$fl)))
+    lst <- as.list(lf)                  # Not sure if we need this
+    nolag <- lme4:::merFinalize(lf)
     
     ## create model matrices for the lagged factors
-    lagged <- lagged_factor(lf$fr$mf, idvar, timevar, factors)
-    ## default is undiscounted model
-    lf$FL <- updateFL(lf$FL, lagged)
+    stopifnot(all(factors %in% names(lf$flist)))
+    lagged <- lagged_factor(lf$frame, idvar, timevar, factors)
+
+    return(initial_update(rho, lagged))
    
-#    ans <- do.call(if (!is.null(lf$glmFit))
-#                   glmer_finalize else lmer_finalize, lf)
-    ans@call <- match.call()
-    ans
+    ## default is undiscounted model
+    dm <- mkZt(updateFL(lf$FL, lagged), nolag@ST)
+    undisc <- nolag
+    undisc@Zt <- dm$Zt
+    undisc@A <- dm$A
+    undisc@L <- dm$L
+    mer_finalize(undisc)
+    undisc@call <- match.call()
+
+    ## fit the AR1 discount formula
+    nyp <- length(lagged[[1]]) - 1L     # number of year parameters
+    upars <- .Call(mer_ST_getPars, undisc)
+    ## parameter bounds
+    low <- numeric(length(upars) + 1L)
+    up <- c(1, rep(Inf, length(upars)))
+    AR1dev <- function(epars) {
+        foo <- undisc
+        foo@Zt <- mkZt(updateFL(lf$FL, lagged, epars[1]^(0:nyp)), nolag@ST)$Zt
+        .Call(mer_ST_setPars, foo, epars[-1])
+        .Call(mer_update_dev, foo)
+    }
+    AR1pars <- nlminb(c(rho = 0.5, upars), AR1dev, control = list(trace = 1),
+                      lower = low, upper = up)$par
+    AR1 <- undisc
+    AR1@Zt <- mkZt(updateFL(lf$FL, lagged, AR1pars[1]^(0:nyp)), nolag@ST)$Zt
+    .Call(mer_ST_setPars, AR1, AR1pars[-1])
+    .Call(mer_update_dev, AR1)
+    .Call(mer_update_ranef, AR1)
+    .Call(mer_update_mu, AR1)
+
+    ## fit the general coefficients discount formula
+    ## parameter bounds
+    ypind <- seq_len(nyp)
+    low <- numeric(length(upars) + nyp)
+    up <- rep(c(1, Inf), c(nyp, length(upars)))
+    AR1dev <- function(epars) {
+        foo <- undisc
+        foo@Zt <- mkZt(updateFL(lf$FL, lagged, c(1, epars[ypind])), undisc@ST)$Zt
+        .Call(mer_ST_setPars, foo, epars[-ypind])
+        .Call(mer_update_dev, foo)
+    }
+    genpars <- nlminb(c(AR1pars[1]^ypind, .Call(mer_ST_getPars, AR1)), AR1dev,
+                      control = list(trace = 1), lower = low, upper = up)$par
+    gen <- undisc
+    gen@Zt <- mkZt(updateFL(lf$FL, lagged, c(1, genpars[ypind])), nolag@ST)$Zt
+    .Call(mer_ST_setPars, gen, genpars[-ypind])
+    .Call(mer_update_dev, gen)
+    .Call(mer_update_ranef, gen)
+    .Call(mer_update_mu, gen)
+    list(nolag = nolag, undisc = undisc,
+         AR1pars = AR1pars, AR1 = AR1,
+         genpars = genpars, gen = gen)
 }
