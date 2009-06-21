@@ -1,56 +1,58 @@
 # lmer, glmer and nlmer plus methods and utilities
 
-dimsDefault <- c(
-                 LMM= 0L,               # not a linear mixed model
-                 REML= 0L,              # not REML
-                 fTyp= 2L,              # default family is "gaussian"
-                 lTyp= 5L,              # default link is "identity"
-                 vTyp= 1L,   # default variance function is "constant"
-                 nest = 0L,             # not nested
-                 useSc= 1L,    # default is to use the scale parameter
-                 nAGQ= 1L,              # default is Laplace
-                 verb= 0L,              # no verbose output
-                 mxit= 300L,            # maximum number of iterations
-                 mxfn= 900L,            # max. no. funct. eval.
-                 cvg = 0L)             # no optimization yet attempted
-
-devDefault <- c(ML = NA,                # deviance (for ML estimation)
-                REML = NA,              # REML criterion
-                ldL2 = NA,              # 2 * log(det(L))
-                ldRX2 = NA,             # 2 * log(det(RX))
-                sigmaML = 1,            # ML estimate of common scale
-                sigmaREML = NA,         # REML estimate of common scale
-                pwrss = -1,             # penalized, weighted RSS
-                disc = NA,              # discrepancy
-                usqr = -1,              # squared length of u
-                wrss = -1,              # weighted residual sum of squares
-                dev = NA,               # deviance
-                llik = NA,              # log-likelihood
-                NULLdev = 0)            # null deviance
-
-### This environment has to have a parent for evaluation of the initializer
+### This environment must have a parent to allow for evaluation of the family initializer
 
 default_rho <- function(parent)
 {
     rho <- new.env(parent = parent)
     rho$nlmodel <- (~I(x))[[2]]
-    rho$muEta <- rho$pWt <- rho$offset <- rho$var <- rho$sqrtrWt <-
-        rho$ghx <- rho$ghw <- numeric(0)
+    rho$muEta <- numeric(0)
+    rho$pWt <- numeric(0)
+    rho$offset <- numeric(0)
+    rho$var <- numeric(0)
+    rho$sqrtrWt <- numeric(0)
+    rho$ghx <- numeric(0)
+    rho$ghw <- numeric(0)
     rho$etaGamma <- array(0, c(0L,1L), list(NULL, "x"))
     rho$nlenv <- new.env(parent = emptyenv())
-    rho$deviance <- devDefault
-    rho$dims <- dimsDefault
+    rho$deviance <-
+        c(ML = NA,                  # deviance (for ML estimation)
+          REML = NA,                # REML criterion
+          ldL2 = NA,                # 2 * log(det(L))
+          ldRX2 = NA,               # 2 * log(det(RX))
+          sigmaML = 1,              # ML estimate of common scale
+          sigmaREML = NA,           # REML estimate of common scale
+          pwrss = -1,               # penalized, weighted RSS
+          disc = NA,                # discrepancy
+          usqr = -1,                # squared length of u
+          wrss = -1,                # weighted residual sum of squares
+          dev = NA,                 # deviance
+          llik = NA,                # log-likelihood
+          NULLdev = 0)              # null deviance
+    rho$dims <-
+        c(LMM= 0L,           # not a linear mixed model
+          REML= 0L,          # not REML
+          fTyp= 2L,          # default family is "gaussian"
+          lTyp= 5L,          # default link is "identity"
+          vTyp= 1L,          # default variance function is "constant"
+          nest = 0L,         # not nested
+          useSc= 1L,         # default is to use the scale parameter
+          nAGQ= 1L,          # default is Laplace
+          verb= 0L,          # no verbose output
+          mxit= 300L,        # maximum number of iterations
+          mxfn= 900L,        # max. no. funct. eval.
+          cvg = 0L)          # no optimization yet attempted
     rho
 }
 
 ### Utilities for parsing the mixed model formula
 
-#' Return the pairs of expressions that separated by vertical bars
+#' Return the pairs of expressions that are separated by vertical bars
 findbars <- function(term)
 {
     if (is.name(term) || !is.language(term)) return(NULL)
     if (term[[1]] == as.name("(")) return(findbars(term[[2]]))
-    if (!is.call(term)) stop("term must be of class call")
+    stopifnot(is.call(term))
     if (term[[1]] == as.name('|')) return(term)
     if (length(term) == 2) return(findbars(term[[2]]))
     c(findbars(term[[2]]), findbars(term[[3]]))
@@ -153,21 +155,21 @@ isNested <- function(f1, f2)
     all(diff(sm@p) < 2)
 }
 
-##' Create model matrices from r.e. terms.
+##' Create factor list and terms list from r.e. terms.
 ##'
 ##' Create the list of model matrices from the random-effects terms in
 ##' the formula and the model frame.
 ##' 
 ##' @param formula model formula
 ##' @param mf model frame
-##' @rho environment containing information on the model and to be modified
+##' @param contrasts
 ##' @param rmInt logical scalar - should the `(Intercept)` column
 ##'        be removed before creating Zt
 ##' @param drop logical scalar indicating if elements with numeric
 ##'        value 0 should be dropped from the sparse model matrices 
 ##'
-lmerFactorList <- function(formula, mf, rho, contrasts, rmInt = FALSE, drop = TRUE)
-{
+evalbars <- function(formula, mf, contrasts, rmInt = FALSE)
+{    
     ## create factor list for the random effects
     bars <- expandSlash(findbars(formula[[3]]))
 
@@ -175,32 +177,31 @@ lmerFactorList <- function(formula, mf, rho, contrasts, rmInt = FALSE, drop = TR
 ### fit?  Probably not but should we be able to do so?
     if (!length(bars)) stop("No random effects terms specified in formula")
     names(bars) <- unlist(lapply(bars, function(x) deparse(x[[3]])))
-    fl <- lapply(bars,
-                 function(x)
-             {
-                 ff <- eval(substitute(as.factor(fac)[,drop = TRUE],
-                                       list(fac = x[[3]])), mf)
-                 im <- as(ff, "sparseMatrix") # transpose of indicators
-		 ## Could well be that we should rather check earlier .. :
-		 if(!isTRUE(validObject(im, test=TRUE)))
-		     stop("invalid conditioning factor in random effect: ", format(x[[3]]))
-                 ## evaluate the model matrix, possibly dropping the intercept
-                 mm <- model.matrix(eval(substitute(if (rmInt) ~ 0 + expr else ~ expr,
-                                                    list(expr = x[[2]]))),
-                                    mf, contrasts)
-                 list(f = ff,
-                      Zt = drop0(do.call(rBind,
-                      lapply(seq_len(ncol(mm)),
-                             function(j) {im@x <- mm[,j]; im}))),
-                      ST = `dimnames<-`(diag(nrow = ncol(mm), ncol = ncol(mm)),
-                                        list(colnames(mm), colnames(mm))))
-             })
+    fl <-
+        lapply(bars,
+               function(x)
+           {
+               ff <- eval(substitute(as.factor(fac)[,drop = TRUE],
+                                     list(fac = x[[3]])), mf)
+               im <- as(ff, "sparseMatrix") # transpose of indicators
+               stopifnot(isTRUE(validObject(im, test=TRUE)))
+               ## evaluate the model matrix, possibly dropping the intercept
+               mm <- model.matrix(eval(substitute(if (rmInt) ~ 0 + expr else ~ expr,
+                                                  list(expr = x[[2]]))),
+                                  mf, contrasts)
+               list(f = ff,
+                    Zt = drop0(do.call(rBind,
+                    lapply(seq_len(ncol(mm)),
+                           function(j) {im@x <- mm[,j]; im}))),
+                    ST = `dimnames<-`(diag(nrow = ncol(mm), ncol = ncol(mm)),
+                    list(colnames(mm), colnames(mm))))
+           })
+    ## number of random effects for each term
+    nlev <- sapply(fl, function(el) length(levels(el$f)))
     ## order terms by decreasing number of levels in the factor but don't
     ## change the order if this is already true
-    nlev <- sapply(fl, function(el) length(levels(el$f)))
-    ## determine the number of random effects at this point
     if (any(diff(nlev)) > 0) fl <- fl[rev(order(nlev))]
-    ## separate the terms from the factor list
+
     trms <- lapply(fl, "[", -1)
     names(trms) <- NULL
     fl <- lapply(fl, "[[", "f")
@@ -215,11 +216,19 @@ lmerFactorList <- function(formula, mf, rho, contrasts, rmInt = FALSE, drop = TR
     names(fl) <- ufn
     fl <- do.call(data.frame, c(fl, check.names = FALSE))
     attr(fl, "assign") <- asgn
-    rho$flist <- fl
+    list(flist = fl, trms = trms,
+         nest =  all(sapply(seq_along(fl)[-1],
+         function(i) isNested(fl[[i-1]], fl[[i]]))))
+}
 
-    rho$dims["nest"] <-                 ## check for nesting of factors
-          all(sapply(seq_along(fl)[-1],
-                     function(i) isNested(fl[[i-1]], fl[[i]])))
+##' Install model matrices and the ST object
+##'
+##' Create the Zt and A sparse matrices from the terms list
+##' 
+##' @param trms the terms list component of the value of evalbars
+##'
+lmerFactorList <- function(trms, rho)
+{
     Ztl <- lapply(trms, `[[`, "Zt")
     Zt <- do.call(rBind, Ztl)
     Zt@Dimnames <- vector("list", 2)
@@ -285,6 +294,7 @@ lmer <-
     }
     rho$frame <- fr                  # may contain redundant variables
     attr(rho$frame, "terms") <- NULL
+    rho$nobs <- nrow(fr)
     rho$weights <- as.numeric(as.vector(model.weights(fr)))
     if (length(rho$weights) == 0)
         rho$weights <- rep.int(1, n)
@@ -293,10 +303,10 @@ lmer <-
     loff <- length(rho$offset <- as.numeric(as.vector(model.offset(fr))))
     if (loff) {
         if (loff == 1) {
-            rho$offset <- rep.int(rho$offset, rho$nobs)
+            rho$offset <- rep.int(rho$offset, n)
         } else if (loff != rho$nobs) {
             stop(gettextf("number of offsets is %d should equal %d (number of observations)",
-                          loff, rho$nobs), domain = "R-lme4")
+                          loff, n), domain = "R-lme4")
         }
     }
                                         # starting values expressed as mu or eta
@@ -320,7 +330,6 @@ lmer <-
     ft <- famType(family)
     rho$dims[names(ft)] <- ft
     rho$family <- family
-    rho$nobs <- nrow(fr)
     eval(family$initialize, rho)
                                         # enforce modes on some vectors
     rho$y <- unname(as.double(rho$y))   # must be done after initialize
@@ -341,7 +350,10 @@ lmer <-
         } else stop(msg)
     }
     
-    lmerFactorList(formula, rho$frame, rho, contrasts) # flist, Zt
+    eb <- evalbars(formula, rho$frame, contrasts) # flist, trms, nest
+    rho$dims["nest"] <- eb$nest
+    rho$flist <- eb$flist
+    lmerFactorList(eb$trms, rho)
     if (!(rho$dims["LMM"] <- ft["fTyp"] == 2 && ft["lTyp"] == 5 && ft["vTyp"] == 1)) {
         if (ft["lTyp"] != 5) rho$muEta <- numeric(n)
         if (ft["vTyp"] != 1) rho$var <- numeric(n)
