@@ -196,7 +196,7 @@ double* STinternal::getPars(double *pars)
     for (int i = 0, pos = 0; i < nt; i++) {
 	int nci = nc[i], ncp1 = nc[i] + 1;
 	for (int j = 0; j < nci; j++)
-	    pars[pos++] = sqrt(st[i][j * ncp1]);
+	    pars[pos++] = st[i][j * ncp1];
 	for (int j = 0; j < (nci - 1); j++)
 	    for (int k = j + 1; k < nci; k++)
 		pars[pos++] = st[i][k + j * nci];
@@ -225,7 +225,7 @@ void STinternal::setPars(const double *pars)
 	double *sti = st[i];
 
 	for (int j = 0; j < nci; j++) {
-	    sti[j * ncp1] = pars[pos] * pars[pos];
+	    sti[j * ncp1] = pars[pos];
 	    pos++;
 	}
 	for (int j = 0; j < (nci - 1); j++)
