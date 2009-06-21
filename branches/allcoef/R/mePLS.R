@@ -54,6 +54,43 @@ mePLS <- function(Ut, r, V, L, u0, super = FALSE)
          delb = delb)
 }
 
+## Generate a model with one or more simple scalar random effects
+## terms
+genSimple <- function(flist, y, X)
+{
+    if (is.factor(flist)) flist <- list(flist)
+    n <- length(y <- as.numeric(y))
+    flist <- lapply(flist, factor)      # drops unused levels
+    stopifnot(all(sapply(flist, length) == n),
+              is.matrix(X) || is(X, "Matrix"),
+              nrow(X) == n)
+    k <- length(flist)
+    theta <- rep.int(1, k)
+    nlev <- sapply(flist, function(f) length(levels(f)))
+    q <- sum(nlev)
+    Zt <- drop0(do.call(rBind, lapply(flist, as, Class =
+                                      "sparseMatrix")))
+    Lambda <- Diagonal(q)
+    Ut <- crossprod(Lambda, Zt)
+    L <- mePLS(Ut, y)$L
+    getPars <- function() theta
+    getBounds <- function()
+        list(lower = rep.int(0, k), upper = rep.int(Inf, k))
+    setPars <- function(th)
+    {
+        theta <<- th
+        stopifnot(is.numeric(th), length(th) == k)
+        Lambda <<- Diagonal(x = rep.int(th, nlev))
+        Ut <<- crossprod(Lambda, Zt)
+        ll <- mePLS(Ut, y, X, L)
+        fitd <- crossprod(Ut, ll$delu) + X %*% ll$delb
+        rsqr <- sum(c(y - as.vector(fitd), as.vector(ll$delu))^2)
+        as.vector(determinant(ll$L, logarithm = TRUE)$modulus) +
+            n * (1 + log(2*pi*rsqr/n))
+    }
+    list(getPars = getPars, getBounds = getBounds, setPars = setPars)
+}        
+        
 simpleDev <- function(Zt, y, X)
 {
     y <- as.numeric(y)
