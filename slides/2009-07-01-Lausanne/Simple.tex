@@ -1,0 +1,1451 @@
+% NOTE -- ONLY EDIT THE .Rnw FILE!!!  The .tex file is
+% likely to be overwritten.
+
+\usepackage{SweaveSlides}
+\title[lme4]{Mixed models in R using the lme4 package\\Part 3: Linear mixed models with simple, scalar random effects}
+\subject{LMM}
+\date[July 1, 2009]{University of Lausanne\\July 1, 2009}
+\AtBeginSection[]
+{
+  \begin{frame}<beamer>
+    \frametitle{Outline}
+    \tableofcontents[currentsection]
+  \end{frame}
+}
+\begin{document}
+\frame{\titlepage}
+\begin{frame}
+  \frametitle{Outline}
+  \tableofcontents[pausesections,hideallsubsections]
+\end{frame}
+
+\newcommand{\bc}[1]{\ensuremath{\bm{\mathcal{#1}}}}
+
+
+\setkeys{Gin}{width=\textwidth}
+
+\section[Packages]{R packages and data in packages}
+
+\begin{frame}[fragile]
+  \frametitle{R packages}
+  \begin{itemize}
+  \item Packages incorporate functions, data and documentation.
+  \item You can produce packages for private or in-house use or you
+    can contribute your package to the Comprehensive R Archive Network
+    (CRAN), \url{http://cran.R-project.org}
+  \item We will be using the \Emph{lme4} package from CRAN.
+    Install it from the \Emph{Packages} menu item or with
+\begin{Schunk}
+\begin{Sinput}
+> install.packages("lme4")
+\end{Sinput}
+\end{Schunk}
+\item You only need to install a package once.  If a new version
+  becomes available you can update (see the menu item).
+\item To use a package in an R session you attach it using
+\begin{Schunk}
+\begin{Sinput}
+> require(lme4)
+\end{Sinput}
+\end{Schunk}
+  or
+\begin{Schunk}
+\begin{Sinput}
+> library(lme4)
+\end{Sinput}
+\end{Schunk}
+  (This usage causes widespread confusion of the terms ``package'' and ``library''.)
+  \end{itemize}
+\end{frame}
+
+\begin{frame}[fragile]
+\frametitle{Accessing documentation}
+\begin{itemize}
+  \item To be added to CRAN, a package must pass a series of quality
+    control checks.  In particular, all functions and data sets must
+    be documented.  Examples and tests can also be included.
+  \item The \code{data} function provides names and brief descriptions
+    of the data sets in a package.
+    \begin{Schunk}
+      \begin{Sinput}
+> data(package = "lme4")        
+      \end{Sinput}
+      \begin{Soutput}
+Data sets in package 'lme4':
+
+Dyestuff                Yield of dyestuff by batch
+Dyestuff2               Yield of dyestuff by batch
+Pastes                  Paste strength by batch and cask
+Penicillin              Variation in penicillin testing
+cake                    Breakage angle of chocolate cakes
+cbpp                    Contagious bovine pleuropneumonia
+sleepstudy              Reaction times in a sleep deprivation study
+      \end{Soutput}
+    \end{Schunk}
+  \item Use \code{?} followed by the name of a function or data set to
+    view its documentation.  If the documentation contains an example
+    section, you can execute it with the \code{example} function.
+\end{itemize}
+\end{frame}
+
+\begin{frame}
+  \frametitle{Effects - fixed and random}
+  \begin{itemize}
+  \item Mixed-effects models, like many statistical models, describe
+    the relationship between a \Emph{response} variable and one or
+    more \Emph{covariates} recorded with it.
+  \item The models we will discuss are based on a \Emph{linear
+      predictor} expression incorporating \Emph{coefficients} that are
+    estimated from the observed data.
+  \item Coefficients associated with the levels of a categorical
+    covariate are sometimes called the \Emph{effects} of the levels.
+  \item When the levels of a covariate are fixed and reproducible
+    (e.g. a covariate \code{sex} that has levels \code{male} and
+    \code{female}) we incorporate them as fixed-effects parameters.
+  \item When the levels of a covariate correspond to the particular
+    observational or experimental units in the experiment we
+    incorporate them as \code{random effects}.
+  \end{itemize}
+\end{frame}
+
+\section[Dyestuff]{The Dyestuff data and model}
+
+\begin{frame}[fragile]
+  \frametitle{The Dyestuff data set}
+\begin{itemize}
+\item The \code{Dyestuff}, \code{Penicillin} and \code{Pastes} data
+  sets all come from the classic book \Emph{Statistical Methods in
+  Research and Production}, edited by O.L. Davies  and first published
+  in 1947.
+\item The \code{Dyestuff} data are a balanced one-way classification
+  of the \code{Yield} of dyestuff from samples produced from six
+  \code{Batch}es of an intermediate product. See \code{?Dyestuff}.
+\end{itemize}
+\begin{Schunk}
+\begin{Sinput}
+> str(Dyestuff)
+\end{Sinput}
+\begin{Soutput}
+'data.frame':	30 obs. of  2 variables:
+ $ Batch: Factor w/ 6 levels "A","B","C","D",..: 1 1 1 1 1 2 2 2 2 2 ...
+ $ Yield: num  1545 1440 1440 1520 1580 ...
+\end{Soutput}
+\begin{Sinput}
+> summary(Dyestuff)
+\end{Sinput}
+\begin{Soutput}
+ Batch     Yield     
+ A:5   Min.   :1440  
+ B:5   1st Qu.:1469  
+ C:5   Median :1530  
+ D:5   Mean   :1528  
+ E:5   3rd Qu.:1575  
+ F:5   Max.   :1635  
+\end{Soutput}
+\end{Schunk}
+\end{frame}
+
+\begin{frame}
+  \frametitle{The effect of the batches}
+  \begin{itemize}
+  \item To emphasize that \code{Batch} is categorical, we use letters
+    instead of numbers to designate the levels.
+  \item Because there is no inherent ordering of the levels of
+    \code{Batch}, we will reorder the levels if, say, doing so can
+    make a plot more informative.
+  \item The particular batches observed are just a selection of the
+    possible batches and are entirely used up during the course of
+    the experiment.  
+  \item It is not particularly important to estimate and compare
+    yields from these batches.  Instead we wish to estimate the
+    variability in yields due to batch-to-batch variability.
+  \item The \code{Batch} factor will be used in \Emph{random-effects}
+    terms in models that we fit.
+  \end{itemize}
+\end{frame}
+
+\begin{frame}[fragile]
+  \frametitle{Dyestuff data plot}
+  \begin{center}
+\includegraphics{figs/data-Dyestuffplot}
+  \end{center}
+  \begin{itemize}
+  \item The line joins the mean yields of the six batches, which have
+    been reordered by increasing mean yield.
+  \item The vertical positions are jittered slightly to reduce
+    overplotting.  The lowest yield for batch A was observed on two
+    distinct preparations from that batch.
+  \end{itemize}
+\end{frame}
+
+\begin{frame}[fragile]
+  \frametitle{A mixed-effects model for the dyestuff yield}
+\begin{Schunk}
+\begin{Sinput}
+> fm1 <- lmer(Yield ~ 1 + (1 | Batch), Dyestuff)
+> print(fm1)
+\end{Sinput}
+\begin{Soutput}
+Linear mixed model fit by REML 
+Formula: Yield ~ 1 + (1 | Batch) 
+   Data: Dyestuff 
+   AIC   BIC logLik deviance REMLdev
+ 325.7 329.9 -159.8    327.4   319.7
+Random effects:
+ Groups   Name        Variance Std.Dev.
+ Batch    (Intercept) 1764.0   42.001  
+ Residual             2451.3   49.510  
+Number of obs: 30, groups: Batch, 6
+Fixed effects:
+            Estimate Std. Error t value
+(Intercept)  1527.50      19.38   78.81
+\end{Soutput}
+\end{Schunk}
+\begin{itemize}
+\item Fitted model \code{fm1} has one fixed-effect parameter, the mean
+  yield, and one random-effects term, generating a simple, scalar
+  random effect for each level of \code{Batch}.
+\end{itemize}
+\end{frame}
+
+
+\begin{frame}[fragile]
+  \frametitle{Extracting information from the fitted model}
+  \begin{itemize}
+  \item \code{fm1} is an object of class \code{"mer"} (mixed-effects
+    representation). 
+  \item There are many \Emph{extractor} functions that can be applied
+    to such objects.
+  \end{itemize}
+\begin{Schunk}
+\begin{Sinput}
+> fixef(fm1)
+\end{Sinput}
+\begin{Soutput}
+(Intercept) 
+     1527.5 
+\end{Soutput}
+\begin{Sinput}
+> ranef(fm1, drop = TRUE)
+\end{Sinput}
+\begin{Soutput}
+$Batch
+        A         B         C         D         E         F 
+-17.60800   0.39129  28.56409 -23.08605  56.73689 -44.99823 
+\end{Soutput}
+\begin{Sinput}
+> fitted(fm1)
+\end{Sinput}
+\begin{Soutput}
+ [1] 1509.9 1509.9 1509.9 1509.9 1509.9 1527.9 1527.9 1527.9 1527.9
+[10] 1527.9 1556.1 1556.1 1556.1 1556.1 1556.1 1504.4 1504.4 1504.4
+[19] 1504.4 1504.4 1584.2 1584.2 1584.2 1584.2 1584.2 1482.5 1482.5
+[28] 1482.5 1482.5 1482.5
+\end{Soutput}
+\end{Schunk}
+\end{frame}
+
+
+\section[Mixed models]{Definition of mixed-effects models}
+
+\begin{frame}[fragile]
+  \frametitle{Definition of mixed-effects models}
+  \begin{itemize}
+  \item Models with random effects are often written like
+    \begin{displaymath}
+      y_{ij}=\mu+b_i+\epsilon_{ij},\;
+      b_i\sim\mathcal{N}(0,\sigma_b^2),
+      \epsilon_{ij}\sim\mathcal{N}(0,\sigma^2),i=1,\dots,I,j=1,\dots,J_i
+    \end{displaymath}
+  \item This scalar notation quickly becomes unwieldy, degenerating
+    into ``subscript fests''. We will use a vector/matrix notation.
+  \item A mixed-effects model incorporates two vector-valued random
+    variables: the response vector, $\bc{Y}$, and the random effects
+    vector, $\bc{B}$. We observe the value, $\bm y$, of $\bc{Y}$.  We
+    do not observe the value of $\bc{B}$.
+  \item In the models we will consider, the random effects are modeled
+    as a multivariate Gaussian (or ``normal'') random variable,
+    $\bc{B}\sim\mathcal{N}(\bm 0,\bm\Sigma(\bm\theta))$, where
+    $\bm\theta$ is a vector of \Emph{variance-component parameters}.
+  \end{itemize}
+\end{frame}
+
+\begin{frame}
+  \frametitle{Linear mixed models}
+  \begin{itemize}
+  \item The conditional distribution, $(\bc Y|\bc B=\bm b)$, depends on
+    $\bm b$ only through its mean, $\bm\mu_{\bc Y|\bc B=\bm b}$.
+  \item The conditional mean, $\bm\mu_{\bc Y|\bc B=\bm b}$, depends on
+    $\bm b$ and on the fixed-effects parameter vector, $\bm\beta$, through a
+    \Emph{linear predictor} expression, $\bm Z\bm b+\bm X\bm\beta$.
+    The \Emph{model matrices} $\bm Z$ and $\bm X$ are determined from the
+    form of the model and the values of the covariates.
+  \item In a \Emph{linear mixed model} the conditional distribution is
+    a ``spherical'' multivariate Gaussian
+    \begin{displaymath}
+      (\bc{Y}|\bc{B}=\bm b)\sim\mathcal{N}(\bm Z\bm b+\bm X\bm\beta,
+      \sigma^2\bm I_n)
+    \end{displaymath}
+  \item The scalar $\sigma$ is the \Emph{common scale parameter}; the
+    dimension of $\bm y$ is $n$, $\bm b$ is $q$ and $\bm\beta$ is $p$
+    so $\bm Z$ is $n\times q$ and $\bm X$ is $n\times p$.
+  \end{itemize}
+\end{frame}
+
+\begin{frame}
+  \frametitle{Simple, scalar random effects terms}
+  \begin{itemize}
+  \item A term like \code{(1|Batch)} in an \code{lmer} formula is
+    called a simple, scalar random-effects term.
+  \item The expression on the right of the \code{"|"} operator
+    (usually just the name of a variable) is evaluated as a factor,
+    called the \Emph{grouping factor} for the term.
+  \item Suppose we have $k$ such terms with $n_i,i=1,\dots,k$ levels
+    in the $i$th term's grouping factor. A scalar random-effects term
+    generates one random effect for each level of the grouping factor.
+    If all the random effects terms are scalar terms then
+    $q=\sum_{i=1}^kn_i$.
+  \item The model matrix $\bm Z$ is the horizontal concatenation of $k$
+    matrices.  For a simple, scalar term, the $i$th vertical slice,
+    which has $n_i$ columns, is the indicator columns for the $n_i$
+    levels of the $i$th grouping factor.
+  \end{itemize}
+\end{frame}
+
+\begin{frame}
+  \frametitle{Structure of the unconditional variance-covariance}
+  \begin{itemize}
+  \item Just as the matrix $\bm Z$ is the horizontal concatenation of
+    matrices generated by individual random-effects terms, the
+    (unconditional) variance-covariance matrix, $\bm\Sigma$, is
+    block-diagonal in $k$ blocks.  In other words, the unconditional
+    distributions of random effects from different terms in the model
+    are independent.  (However, the conditional distributions, given
+    the observed data, $(\bc B|\bc Y=\bm y)$, are not independent.)
+  \item If the $i$th term is a simple, scalar term then the $i$th
+    diagonal block is a multiple of the identity, $\sigma_i^2\bm I_{n_i}$.
+  \item This means that unconditional distributions of random effects
+    corresponding to different levels of the grouping factor are
+    independent.
+  \end{itemize}
+\end{frame}
+
+\begin{frame}[fragile]
+  \frametitle{Model matrices for model fm1}
+  \begin{itemize}
+  \item The formula for model \code{fm1} has a single fixed-effects
+    term, \code{1}, and one simple, scalar random-effects term,
+    \code{(1|Batch)}.
+  \item The model matrix, $\bm Z$, whose transpose is stored in a slot
+    called \code{Zt}, is the matrix of indicators for the six levels
+    of \code{Batch}.
+  \item The model matrix, $\bm X$, is $30\times 1$. All its elements
+    are unity.
+  \end{itemize}
+\begin{Schunk}
+\begin{Sinput}
+> str(model.matrix(fm1))
+\end{Sinput}
+\begin{Soutput}
+ num [1:30, 1] 1 1 1 1 1 1 1 1 1 1 ...
+ - attr(*, "assign")= int 0
+\end{Soutput}
+\begin{Sinput}
+> fm1@Zt
+\end{Sinput}
+\begin{Soutput}
+6 x 30 sparse Matrix of class "dgCMatrix"
+[1,] 1 1 1 1 1 . . . . . . . . . . . . . . . . . . . . . . . . .
+[2,] . . . . . 1 1 1 1 1 . . . . . . . . . . . . . . . . . . . .
+[3,] . . . . . . . . . . 1 1 1 1 1 . . . . . . . . . . . . . . .
+[4,] . . . . . . . . . . . . . . . 1 1 1 1 1 . . . . . . . . . .
+[5,] . . . . . . . . . . . . . . . . . . . . 1 1 1 1 1 . . . . .
+[6,] . . . . . . . . . . . . . . . . . . . . . . . . . 1 1 1 1 1
+\end{Soutput}
+\end{Schunk}
+\end{frame}
+
+\begin{frame}
+  \frametitle{Conditional means of the random effects}
+  \begin{itemize}
+  \item Technically we do not provide ``estimates'' of the random
+    effects because they are not parameters.  
+  \item One answer to the question, ``so what are those numbers
+    provided by \code{ranef} anyway?'' is that they are BLUPs (Best
+    Linear Unbiased Predictors) of the random effects.  The acronym is
+    attractive but not very informative (what is a ``linear unbiased
+    predictor'' and in what sense are these the ``best''?).  Also, the
+    concept does not generalize.
+  \item A better answer is that those values are the conditional
+    means, $\bm\mu_{\bc B|\bc Y =\bm y}$, evaluated at the estimated
+    parameter values.  Regrettably, we can only evaluate the
+    conditional means for linear mixed models.
+  \item However, these values are also the conditional modes and that
+    concept does generalize to other types of mixed models.
+  \end{itemize}
+\end{frame}
+
+\begin{frame}[fragile]
+  \frametitle{Caterpillar plot for fm1}
+  \begin{itemize}
+  \item For linear mixed models the conditional distribution of the
+    random effects, given the data, written $(\bc B|\bc Y=\bm y)$, is
+    again a multivariate Gaussian distribution.
+  \item We can evaluate the means and standard deviations of the
+    individual conditional distributions, $(\bc B_j|\bc Y=\bm y), j =
+    1,\dots,q$.  We show these in the form of a 95\% prediction
+    interval, with the levels of the grouping factor arranged in
+    increasing order of the conditional mean.
+  \item These are sometimes called ``caterpillar plots''.
+  \end{itemize}
+  \begin{center}
+\includegraphics{figs/data-fm1ranef}
+  \end{center}
+\end{frame}
+
+\begin{frame}
+  \frametitle{REML estimates versus ML estimates}
+  \begin{itemize}
+  \item The default parameter estimation criterion for linear mixed
+    models is restricted (or ``residual'') maximum likelihood (REML).
+  \item Maximum likelihood (ML) estimates (sometimes called ``full
+    maximum likelihood'') can be requested by specifying \code{REML =
+      FALSE} in the call to \code{lmer}.
+  \item Generally REML estimates of variance components are
+    preferred.  ML estimates are known to be biased.  Although REML
+    estimates are not guaranteed to be unbiased, they are usually less
+    biased than ML estimates.
+  \item Roughly, the difference between REML and ML estimates of
+    variance components is comparable to estimating $\sigma^2$ in a
+    fixed-effects regression by $\mathit{SSR}/(n-p)$ versus
+    $\mathit{SSR}/n$, where $\mathit{SSR}$ is the residual sum of
+    squares.
+  \item For a balanced, one-way classification like the
+    \code{Dyestuff} data, the REML and ML estimates of the fixed-effects
+    are identical.
+  \end{itemize}
+\end{frame}
+
+\begin{frame}[fragile]
+  \frametitle{Re-fitting the model for ML estimates}
+\begin{Schunk}
+\begin{Sinput}
+> (fm1M <- update(fm1, REML = FALSE))
+\end{Sinput}
+\begin{Soutput}
+Linear mixed model fit by maximum likelihood 
+Formula: Yield ~ 1 + (1 | Batch) 
+   Data: Dyestuff 
+   AIC   BIC logLik deviance REMLdev
+ 333.3 337.5 -163.7    327.3   319.7
+Random effects:
+ Groups   Name        Variance Std.Dev.
+ Batch    (Intercept) 1388.3   37.26   
+ Residual             2451.3   49.51   
+Number of obs: 30, groups: Batch, 6
+Fixed effects:
+            Estimate Std. Error t value
+(Intercept)  1527.50      17.69   86.33
+\end{Soutput}
+\end{Schunk}
+
+(The extra parentheses around the assignment cause the value to
+be printed.  Generally the results of assignments are not printed.)
+
+\end{frame}
+
+\begin{frame}
+  \frametitle{Verbose fitting}
+  \begin{itemize}
+  \item When fitting a large model or if the estimates of the variance
+    components seem peculiar, it is a good idea to monitor the
+    progress of the iterations in optimizing the deviance or the REML
+    criterion.
+  \item The optional argument \code{verbose = TRUE} causes \code{lmer}
+    to print iteration information during the optimzation of the
+    parameter estimates.
+  \item The quantity being minimized is the \Emph{profiled deviance}
+    or the \Emph{profiled REML criterion} of the model.  The deviance
+    is negative twice the log-likelihood.  It is profiled in the sense
+    that it is a function of $\bm\theta$ only --- $\bm\beta$ and
+    $\sigma$ are at their conditional estimates.
+  \end{itemize}
+\end{frame}
+
+\begin{frame}[fragile]
+  \frametitle{Obtain the verbose output for fitting fm1}
+\begin{Schunk}
+\begin{Sinput}
+> invisible(update(fm1, verbose = TRUE))
+\end{Sinput}
+\begin{Soutput}
+  0:     319.76562: 0.730297
+  1:     319.73549: 0.962389
+  2:     319.65735: 0.869461
+  3:     319.65441: 0.844025
+  4:     319.65428: 0.848469
+  5:     319.65428: 0.848327
+  6:     319.65428: 0.848324
+\end{Soutput}
+\end{Schunk}
+\begin{itemize}
+\item The first number on each line is the iteration count --- iteration
+  0 is at the starting value for $\bm\theta$.
+\item The second number is the profiled deviance or profiled REML
+  criterion --- the quantity being minimized.
+\item The third and subsequent numbers are the parameter vector $\bm\theta$.
+\end{itemize}
+\end{frame}
+
+\begin{frame}[fragile]
+  \frametitle{Estimates of variance components can be zero}
+  \begin{itemize}
+  \item We have been careful to state the variance of the random
+    effects is $\ge0$.
+  \item For some data sets the maximum likelihood or REML estimate,
+    $\widehat{\sigma_b^2}$ is zero.
+  \item Box and Tiao (1973) provide simulated data with a structure
+    like the \code{Dyestuff} data illustrating this.
+  \end{itemize}
+\begin{Schunk}
+\begin{Sinput}
+> str(Dyestuff2)
+\end{Sinput}
+\begin{Soutput}
+'data.frame':	30 obs. of  2 variables:
+ $ Batch: Factor w/ 6 levels "A","B","C","D",..: 1 1 1 1 1 2 2 2 2 2 ...
+ $ Yield: num  7.3 3.85 2.43 9.57 7.99 ...
+\end{Soutput}
+\end{Schunk}
+\end{frame}
+\begin{frame}[fragile]
+  \frametitle{Plot of the Dyestuff2 data}
+  \begin{center}
+\includegraphics{figs/data-Dyestuff2plot}
+  \end{center}
+  \begin{itemize}
+  \item For these data the batch-to-batch variability is not large
+    compared to the within-batch variability.
+  \end{itemize}
+\end{frame}
+\begin{frame}[fragile]
+  \frametitle{Fitting the model to Dyestuff2}
+\begin{Schunk}
+\begin{Sinput}
+> (fm1A <- lmer(Yield ~ 1 + (1 | Batch), Dyestuff2, verbose = TRUE))
+\end{Sinput}
+\begin{Soutput}
+  0:     166.04147: 0.730297
+  1:     161.82828:  0.00000
+  2:     161.82828:  0.00000
+Linear mixed model fit by REML 
+Formula: Yield ~ 1 + (1 | Batch) 
+   Data: Dyestuff2 
+   AIC   BIC logLik deviance REMLdev
+ 167.8 172.0 -80.91    162.9   161.8
+Random effects:
+ Groups   Name        Variance Std.Dev.
+ Batch    (Intercept)  0.000   0.0000  
+ Residual             13.806   3.7157  
+Number of obs: 30, groups: Batch, 6
+Fixed effects:
+            Estimate Std. Error t value
+(Intercept)   5.6656     0.6784   8.352
+\end{Soutput}
+\end{Schunk}
+\end{frame}
+\begin{frame}[fragile]
+  \frametitle{A trivial mixed-effects model is a fixed-effects model}
+  \begin{itemize}
+  \item The mixed model \code{fm1A} with an estimated variance
+    $\widehat{\sigma_b^2}=0$ is equivalent to a model with only
+    fixed-effects terms.
+  \end{itemize}
+\begin{Schunk}
+\begin{Sinput}
+> summary(lm1 <- lm(Yield ~ 1, Dyestuff2))
+\end{Sinput}
+\begin{Soutput}
+Call:
+lm(formula = Yield ~ 1, data = Dyestuff2)
+Residuals:
+    Min      1Q  Median      3Q     Max 
+-6.5576 -2.9006 -0.3006  2.4854  7.7684 
+
+Coefficients:
+            Estimate Std. Error t value Pr(>|t|)
+(Intercept)   5.6656     0.6784   8.352 3.32e-09
+
+Residual standard error: 3.716 on 29 degrees of freedom
+\end{Soutput}
+\begin{Sinput}
+> logLik(lm1)
+\end{Sinput}
+\begin{Soutput}
+'log Lik.' -81.43652 (df=2)
+\end{Soutput}
+\end{Schunk}
+\end{frame}
+\begin{frame}[fragile]
+  \frametitle{Recap of the Dyestuff model}
+  \begin{itemize}
+  \item The model is fit as
+\begin{Schunk}
+\begin{Soutput}
+lmer(formula = Yield ~ 1 + (1 | Batch), data = Dyestuff)
+\end{Soutput}
+\end{Schunk}
+\item There is one random-effects term, \code{(1|Batch)}, in the model
+  formula.  It is a simple, scalar term for the grouping factor
+  \code{Batch} with $n_1=6$ levels.  Thus $q=6$.
+\item The model matrix $\bm Z$ is the $30\times 6$ matrix of
+  indicators of the levels of \code{Batch}.
+\item The relative variance-covariance matrix, $\bm\Sigma$, is a
+  nonnegative multiple of the $6\times 6$ identity matrix $\bm I_6$.
+\item The fixed-effects parameter vector, $\bm\beta$, is of length
+  $p=1$.  All the elements of the $30\times 1$ model matrix $\bm X$
+  are unity.
+  \end{itemize}
+\end{frame}
+
+\section[Penicillin]{Crossed random-effects grouping: Penicillin}
+\begin{frame}[fragile]
+  \frametitle{The Penicillin data (see also the ?Penicillin description)}
+\begin{Schunk}
+\begin{Sinput}
+> str(Penicillin)
+\end{Sinput}
+\begin{Soutput}
+'data.frame':	144 obs. of  3 variables:
+ $ diameter: num  27 23 26 23 23 21 27 23 26 23 ...
+ $ plate   : Factor w/ 24 levels "a","b","c","d",..: 1 1 1 1 1 1 2 2 2 2 ...
+ $ sample  : Factor w/ 6 levels "A","B","C","D",..: 1 2 3 4 5 6 1 2 3 4 ...
+\end{Soutput}
+\begin{Sinput}
+> xtabs(~sample + plate, Penicillin)
+\end{Sinput}
+\begin{Soutput}
+      plate
+sample a b c d e f g h i j k l m n o p q r s t u v w x
+     A 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1
+     B 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1
+     C 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1
+     D 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1
+     E 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1
+     F 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1
+\end{Soutput}
+\end{Schunk}
+\begin{itemize}
+\item These are measurements of the potency (measured by the diameter
+  of a clear area on a Petri dish) of penicillin samples in a
+  balanced, unreplicated two-way crossed classification with the test
+  medium, \code{plate}.
+\end{itemize}
+\end{frame}
+
+\begin{frame}[fragile]
+  \frametitle{Penicillin data plot}
+  \begin{center}
+\includegraphics{figs/data-PenicillinPlot}
+  \end{center}
+\end{frame}
+
+\begin{frame}[fragile]
+  \frametitle{Model with crossed simple random effects for Penicillin}
+\begin{Schunk}
+\begin{Sinput}
+> (fm2 <- lmer(diameter ~ 1 + (1 | plate) + (1 | sample), 
++     Penicillin))
+\end{Sinput}
+\begin{Soutput}
+Linear mixed model fit by REML 
+Formula: diameter ~ 1 + (1 | plate) + (1 | sample) 
+   Data: Penicillin 
+   AIC   BIC logLik deviance REMLdev
+ 338.9 350.7 -165.4    332.3   330.9
+Random effects:
+ Groups   Name        Variance Std.Dev.
+ plate    (Intercept) 0.71691  0.84670 
+ sample   (Intercept) 3.73092  1.93156 
+ Residual             0.30242  0.54992 
+Number of obs: 144, groups: plate, 24; sample, 6
+Fixed effects:
+            Estimate Std. Error t value
+(Intercept)  22.9722     0.8085   28.41
+\end{Soutput}
+\end{Schunk}
+\end{frame}
+
+
+\begin{frame}[fragile]
+  \frametitle{Fixed and random effects for fm2}
+  \begin{itemize}
+  \item The model for the $n=144$ observations has $p=1$ fixed-effects
+    parameter and $q=30$ random effects from $k=2$ random effects
+    terms in the formula.
+  \end{itemize}
+\begin{Schunk}
+\begin{Sinput}
+> fixef(fm2)
+\end{Sinput}
+\begin{Soutput}
+(Intercept) 
+     22.972 
+\end{Soutput}
+\begin{Sinput}
+> ranef(fm2, drop = TRUE)
+\end{Sinput}
+\begin{Soutput}
+$plate
+        a         b         c         d         e         f 
+ 0.804547  0.804547  0.181672  0.337391  0.025953 -0.441203 
+        g         h         i         j         k         l 
+-1.375516  0.804547 -0.752641 -0.752641  0.960266  0.493109 
+        m         n         o         p         q         r 
+ 1.427422  0.493109  0.960266  0.025953 -0.285484 -0.285484 
+        s         t         u         v         w         x 
+-1.375516  0.960266 -0.908360 -0.285484 -0.596922 -1.219797 
+$sample
+        A         B         C         D         E         F 
+ 2.187245 -1.010563  1.938065 -0.096903 -0.013843 -3.004001 
+\end{Soutput}
+\end{Schunk}
+\end{frame}
+
+
+\begin{frame}[fragile]
+  \frametitle{Prediction intervals for random effects}
+\includegraphics{figs/data-fm2ranef}
+\end{frame}
+
+\begin{frame}[fragile]
+  \frametitle{Model matrix Z for fm2}
+  \begin{itemize}
+  \item Because the model matrix $\bm Z$ is generated from $k=2$
+    simple, scalar random effects terms, it consists of two sets of
+    indicator columns.
+  \item The structure of $\bm Z\trans$ is shown below.  (Generally we
+    will show the transpose of these model matrices - they fit better
+    on slides.)
+  \end{itemize}
+  \begin{center}
+\includegraphics{figs/data-fm2Z}
+  \end{center}
+\end{frame}
+
+\begin{frame}
+  \frametitle{Models with crossed random effects}
+  \begin{itemize}
+  \item Many people believe that mixed-effects models are equivalent
+    to hierarchical linear models (HLMs) or ``multilevel models''.
+    This is not true.  The \code{plate} and \code{sample} factors in
+    \code{fm2} are crossed.  They do not represent levels in a hierarchy.
+  \item There is no difficulty in defining and fitting models with
+    crossed random effects (meaning random-effects terms whose
+    grouping factors are crossed).  However, fitting models with
+    crossed random effects can be somewhat slower.
+  \item The crucial calculation in each \code{lmer} iteration is
+    evaluation of a $q\times q$ sparse, lower triangular, Cholesky
+    factor, $\bm L(\bm\theta)$, derived from $\bm Z$ and
+    $\bm\Sigma(\bm\theta)$.  Crossing of grouping factors increases
+    the number of nonzeros in $\bm L(\bm\theta)$ and causes some
+    ``fill-in'' of $\bm L$ relative to $\bm Z\trans\bm Z$.
+  \end{itemize}
+\end{frame}
+
+\begin{frame}[fragile]
+  \frametitle{All HLMs are mixed models but not vice-versa}
+  \begin{itemize}
+  \item Even though Raudenbush and Bryk (2002) do discuss models for
+    crossed factors in their HLM book, such models are not
+    hierarchical.
+  \item Experimental situations with crossed random factors, such as
+    ``subject'' and ``stimulus'', are common.  We can, and should, model
+    such data according to its structure.
+  \item In longitudinal studies of subjects in social contexts (e.g.
+    students in classrooms or in schools) we almost always have partial
+    crossing of the subject and the context factors, meaning that, over
+    the course of the study, a particular student may be observed in
+    more than one class but not all students are
+    observed in all classes.  The student and class factors are
+    neither fully crossed nor strictly nested.  
+  \item For longitudinal data, ``nested'' is only important if it means
+    ``nested across time''.  ``Nested at a particular time'' doesn't
+    count.
+  \item \code{lme4} handles fully or partially crossed factors gracefully.
+  \end{itemize}
+\end{frame}
+
+\begin{frame}[fragile]
+  \frametitle{Recap of the Penicillin model}
+  \begin{itemize}
+  \item The model formula is
+\begin{Schunk}
+\begin{Soutput}
+diameter ~ 1 + (1 | plate) + (1 | sample)
+\end{Soutput}
+\end{Schunk}
+\item There are two random-effects terms, \code{(1|plate)} and
+  \code{(1|sample)}.  Both are simple, scalar random effects terms,
+  with $n_1=24$ and $n_2=6$ levels, respectively.  Thus
+  $q=q_1n_1+q_2n_2=30$.
+\item The model matrix $\bm Z$ is the $144\times 30$ matrix created
+  from two sets of indicator columns.
+\item The relative variance-covariance matrix, $\bm\Sigma$, is block
+  diagonal in two blocks that are nonnegative multiples of identity
+  matrices.
+\item The fixed-effects parameter vector, $\bm\beta$, is of length
+  $p=1$.  All the elements of the $144\times 1$ model matrix $\bm X$
+  are unity.
+\end{itemize}
+\end{frame}
+
+\section[Pastes]{Nested random-effects grouping: Pastes}
+
+\begin{frame}[fragile]
+  \frametitle{The Pastes data (see also the ?Pastes description)}
+\begin{Schunk}
+\begin{Sinput}
+> str(Pastes)
+\end{Sinput}
+\begin{Soutput}
+'data.frame':	60 obs. of  4 variables:
+ $ strength: num  62.8 62.6 60.1 62.3 62.7 63.1 60 61.4 57.5 56.9 ...
+ $ batch   : Factor w/ 10 levels "A","B","C","D",..: 1 1 1 1 1 1 2 2 2 2 ...
+ $ cask    : Factor w/ 3 levels "a","b","c": 1 1 2 2 3 3 1 1 2 2 ...
+ $ sample  : Factor w/ 30 levels "A:a","A:b","A:c",..: 1 1 2 2 3 3 4 4 5 5 ...
+\end{Soutput}
+\begin{Sinput}
+> xtabs(~batch + sample, Pastes, sparse = TRUE)
+\end{Sinput}
+\begin{Soutput}
+10 x 30 sparse Matrix of class "dgCMatrix"
+A 2 2 2 . . . . . . . . . . . . . . . . . . . . . . . . . . .
+B . . . 2 2 2 . . . . . . . . . . . . . . . . . . . . . . . .
+C . . . . . . 2 2 2 . . . . . . . . . . . . . . . . . . . . .
+D . . . . . . . . . 2 2 2 . . . . . . . . . . . . . . . . . .
+E . . . . . . . . . . . . 2 2 2 . . . . . . . . . . . . . . .
+F . . . . . . . . . . . . . . . 2 2 2 . . . . . . . . . . . .
+G . . . . . . . . . . . . . . . . . . 2 2 2 . . . . . . . . .
+H . . . . . . . . . . . . . . . . . . . . . 2 2 2 . . . . . .
+I . . . . . . . . . . . . . . . . . . . . . . . . 2 2 2 . . .
+J . . . . . . . . . . . . . . . . . . . . . . . . . . . 2 2 2
+\end{Soutput}
+\end{Schunk}
+\end{frame}
+
+\begin{frame}[fragile]
+  \frametitle{Structure of the Pastes data}
+  \begin{itemize}
+  \item The \code{sample} factor is nested within the \code{batch}
+    factor. Each sample is from one of three casks selected from a
+    particular batch.
+  \item Note that there are 30, not 3, distinct samples.
+  \item We can label the casks as `a', `b' and `c' but then the
+    \code{cask} factor by itself is meaningless (because cask `a' in
+    batch `A' is unrelated to cask `a'in batches `B', `C', $\dots$).
+    The \code{cask} factor is only meaningful within a \code{batch}.
+  \item Only the \code{batch} and \code{cask} factors, which are
+    apparently crossed, were present in the original data set.
+    \code{cask} may be described as being nested within \code{batch}
+    but that is not reflected in the data.  It is \Emph{implicitly
+      nested}, not explicitly nested.
+  \item You can save yourself a lot of grief by immediately creating
+    the explicitly nested factor.  The recipe is
+\end{itemize}
+\begin{Schunk}
+\begin{Sinput}
+> Pastes <- within(Pastes, sample <- factor(batch:cask))
+\end{Sinput}
+\end{Schunk}
+\end{frame}
+
+\begin{frame}
+  \frametitle{Avoid implicitly nested representations}
+  \begin{itemize}
+  \item The \code{lme4} package allows for very general model
+    specifications.  It does not require that factors associated with
+    random effects be hierarchical or ``multilevel'' factors in the
+    design.
+  \item The same model specification can be used for data with nested
+    or crossed or partially crossed factors.  Nesting or crossing is
+    determined from the structure of the factors in the data, not the
+    model specification.
+  \item You can avoid confusion about nested and crossed factors by
+    following one simple rule: ensure that different levels of a
+    factor in the experiment correspond to different labels of the
+    factor in the data.
+  \item Samples were drawn from 30, not 3, distinct casks in this
+    experiment.  We should specify models using the \code{sample}
+    factor with 30 levels, not the \code{cask} factor with 3 levels.
+  \end{itemize}
+\end{frame}
+
+\begin{frame}[fragile]
+  \frametitle{Pastes data plot}
+\includegraphics{figs/data-Pastesplot}
+\end{frame}
+
+\begin{frame}[fragile]
+  \frametitle{A model with nested random effects}
+\begin{Schunk}
+\begin{Sinput}
+> (fm3 <- lmer(strength ~ 1 + (1 | batch) + (1 | sample), 
++     Pastes))
+\end{Sinput}
+\begin{Soutput}
+Linear mixed model fit by REML 
+Formula: strength ~ 1 + (1 | batch) + (1 | sample) 
+   Data: Pastes 
+ AIC   BIC logLik deviance REMLdev
+ 255 263.4 -123.5    248.0     247
+Random effects:
+ Groups   Name        Variance Std.Dev.
+ sample   (Intercept) 8.4337   2.9041  
+ batch    (Intercept) 1.6573   1.2874  
+ Residual             0.6780   0.8234  
+Number of obs: 60, groups: sample, 30; batch, 10
+Fixed effects:
+            Estimate Std. Error t value
+(Intercept)  60.0533     0.6768   88.73
+\end{Soutput}
+\end{Schunk}
+\end{frame}
+
+\begin{frame}[fragile]
+  \frametitle{Random effects from model fm3}
+  \begin{center}
+\includegraphics{figs/data-fm3ranef}
+  \end{center}
+Batch-to-batch variability is low compared to sample-to-sample.
+\end{frame}
+
+\begin{frame}[fragile]
+  \frametitle{Dimensions and relationships in fm3}
+  \begin{itemize}
+  \item There are $n=60$ observations, $p=1$ fixed-effects parameter,
+    $k=2$ simple, scalar random-effects terms ($q_1=q_2=1$) with
+    grouping factors having $n_1=30$ and $n_2=10$ levels.
+  \item Because both random-effects terms are simple, scalar terms,
+    $\bm\Sigma(\bm\theta)$ is block-diagonal in two diagonal blocks of
+    sizes $30$ and $10$, respectively. $\bm Z$ is generated from two
+    sets of indicators.
+  \end{itemize}
+  \begin{center}
+\includegraphics{figs/data-Z3fig}
+  \end{center}
+\end{frame}
+
+\begin{frame}
+\frametitle{Eliminate the random-effects term for batch?}
+\begin{itemize}
+\item We have seen that there is little batch-to-batch variability
+  beyond that induced by the variability of samples within batches.
+\item We can fit a reduced model without that term and compare it to
+  the original model.
+\item Somewhat confusingly, model comparisons from likelihood ratio
+  tests are obtained by calling the \code{anova} function on the two
+  models.  (Put the simpler model first in the call to \code{anova}.)
+\item Sometimes likelihood ratio tests can be evaluated using the REML
+  criterion and sometimes they can't.  Instead of learning the rules
+  of when you can and when you can't, it is easiest always to refit the
+  models with \code{REML = FALSE} before comparing.
+\end{itemize}
+\end{frame}
+
+\begin{frame}[fragile]
+  \frametitle{Comparing ML fits of the full and reduced models}
+\begin{Schunk}
+\begin{Sinput}
+> fm3M <- update(fm3, REML = FALSE)
+> fm4M <- lmer(strength ~ 1 + (1 | sample), Pastes, REML = FALSE)
+> anova(fm4M, fm3M)
+\end{Sinput}
+\begin{Soutput}
+Data: Pastes
+Models:
+fm4M: strength ~ 1 + (1 | sample)
+fm3M: strength ~ 1 + (1 | batch) + (1 | sample)
+     Df     AIC     BIC  logLik  Chisq Chi Df Pr(>Chisq)
+fm4M  3  254.40  260.69 -124.20                         
+fm3M  4  255.99  264.37 -124.00 0.4072      1     0.5234
+\end{Soutput}
+\end{Schunk}
+\end{frame}
+
+\begin{frame}
+\frametitle{p-values of LR tests on variance components}
+\begin{itemize}
+\item The likelihood ratio is a reasonable criterion for comparing
+  these two models.  However, the theory behind using a $\chi^2$
+  distribution with 1 degree of freedom as a reference distribution
+  for this test statistic does not apply in this case.  The null
+  hypothesis is on the boundary of the parameter space.
+\item Even at the best of times, the p-values for such tests are only
+  approximate because they are based on the asymptotic behavior of the
+  test statistic.  To carry the argument further, all results in
+  statistics are based on models and, as George Box famously said,
+  ``All models are wrong; some models are useful.''
+\end{itemize}
+\end{frame}
+\begin{frame}
+\frametitle{LR tests on variance components (cont'd)}
+\begin{itemize}
+\item In this case the problem with the boundary condition results in
+  a p-value that is larger than it would be if, say, you compared this
+  likelihood ratio to values obtained for data simulated from the null
+  hypothesis model.  We say these results are ``conservative''.
+\item As a rule of thumb, the p-value for the $\chi^2$ test on a
+  simple, scalar term is roughly twice as large as it should be.
+\item In this case, dividing the p-value in half would not affect our
+  conclusion. 
+\end{itemize}
+\end{frame}
+
+\begin{frame}[fragile]
+  \frametitle{Updated model, REML estimates}
+\begin{Schunk}
+\begin{Sinput}
+> (fm4 <- update(fm4M, REML = TRUE))
+\end{Sinput}
+\begin{Soutput}
+Linear mixed model fit by REML 
+Formula: strength ~ 1 + (1 | sample) 
+   Data: Pastes 
+   AIC   BIC logLik deviance REMLdev
+ 253.6 259.9 -123.8    248.4   247.6
+Random effects:
+ Groups   Name        Variance Std.Dev.
+ sample   (Intercept) 9.9767   3.1586  
+ Residual             0.6780   0.8234  
+Number of obs: 60, groups: sample, 30
+Fixed effects:
+            Estimate Std. Error t value
+(Intercept)  60.0533     0.5864   102.4
+\end{Soutput}
+\end{Schunk}
+\end{frame}
+
+\begin{frame}
+  \frametitle{Recap of the analysis of the Pastes data}
+  \begin{itemize}
+  \item The data consist of $n=60$ observations on $q_1=30$ samples
+    nested within $q_2=10$ batches.  
+  \item The data are labelled with a \code{cask} factor with $3$
+    levels but that is an implicitly nested factor.  Create the
+    explicit factor \code{sample} and ignore \code{cask} from then
+    on.
+  \item Specification of a model for nested factors is exactly the
+    same as specification of a model with crossed or partially crossed
+    factors --- provided that you avoid using implicitly nested factors.
+  \item In this case the \code{batch} factor was inert --- it did not
+    ``explain'' substantial variability in addition to that attributed
+    to the \code{sample} factor. We therefore prefer the simpler model.
+  \item At the risk of ``beating a dead horse'', notice that, if we had
+    used the \code{cask} factor in some way, we would still need to
+    create a factor like \code{sample} to be able to reduce the
+    model.  The \code{cask} factor is only meaningful within \code{batch}.
+  \end{itemize}
+\end{frame}
+
+\begin{frame}
+  \frametitle{This is all very nice, but $\dots$}
+  \begin{itemize}
+  \item These methods are interesting but the results are not really
+    new. Similar results are quoted in \Emph{Statistical Methods in
+      Research and Production}, which is a very old book.
+  \item The approach described in that book is actually quite
+    sophisticated, especially when you consider that the methods
+    described there, based on observed and expected mean squares, are
+    for hand calculation --- in pre-calculator days!
+  \item Why go to all the trouble of working with sparse matrices and
+    all that if you could get the same results with paper and pencil?
+    The one-word answer is \Emph{balance}. 
+  \item Those methods depend on the data being balanced. The design
+    must be completely balanced and the resulting data must also be
+    completely balanced.
+  \item Balance is fragile.  Even if the design is balanced, a single
+    missing or questionable observation destroys the balance.
+    Observational studies (as opposed to, say, laboratory experiments)
+    cannot be expected to yield balanced data sets.
+  \item Also, the models involve only simple, scalar random effects
+    and do not incorporate covariates.
+  \end{itemize}
+\end{frame}
+
+\section[Fixed-effects]{Incorporating fixed-effects terms: classroom}
+
+\begin{frame}[fragile]
+  \frametitle{Structure of the classroom data}
+  \begin{itemize}
+  \item The \code{classroom} data are a cross-section of students
+    within classes within schools.  The \code{mathgain} variable is
+    the difference in mathematics achievement scores in grade 1 and
+    kindergarten.
+  \item These data are quite unbalanced.  The distribution of the
+    number of students observed per classroom is
+\begin{Schunk}
+\begin{Sinput}
+> xtabs(~xtabs(~classid, classroom))
+\end{Sinput}
+\begin{Soutput}
+xtabs(~classid, classroom)
+ 1  2  3  4  5  6  7  8  9 10 
+42 53 53 61 39 31 14 13  4  2 
+\end{Soutput}
+\end{Schunk}
+\item Similarly, the distribution of the number of classes observed
+  per school is
+\begin{Schunk}
+\begin{Sinput}
+> table(xtabs(~schoolid, unique(subset(classroom, select = c(classid, 
++     schoolid)))))
+\end{Sinput}
+\begin{Soutput}
+ 1  2  3  4  5  9 
+13 34 26 21 12  1 
+\end{Soutput}
+\end{Schunk}
+  \end{itemize}
+\end{frame}
+
+\begin{frame}[fragile]
+  \frametitle{Twelve schools, each with 5 classrooms}
+\includegraphics{figs/data-Schoolsplot}
+\end{frame}
+
+\begin{frame}[fragile]
+  \frametitle{Simple, ``unconditional'' model for the classroom data}
+\begin{Schunk}
+\begin{Sinput}
+> (fm5 <- lmer(mathgain ~ 1 + (1 | classid) + (1 | schoolid), 
++     classroom))
+\end{Sinput}
+\begin{Soutput}
+Linear mixed model fit by REML 
+Formula: mathgain ~ 1 + (1 | classid) + (1 | schoolid) 
+   Data: classroom 
+   AIC   BIC logLik deviance REMLdev
+ 11777 11797  -5884    11771   11769
+Random effects:
+ Groups   Name        Variance Std.Dev.
+ classid  (Intercept)   99.228  9.9613 
+ schoolid (Intercept)   77.492  8.8030 
+ Residual             1028.234 32.0661 
+Number of obs: 1190, groups: classid, 312; schoolid, 107
+Fixed effects:
+            Estimate Std. Error t value
+(Intercept)   57.427      1.443   39.79
+\end{Soutput}
+\end{Schunk}
+\end{frame}
+
+\begin{frame}
+  \frametitle{Some comments on the ``unconditional'' model}
+  \begin{itemize}
+  \item In the multilevel modeling literature a model such as
+    \code{fm5} that does not incorporate fixed-effects terms for
+    demographic characteristics of the student, class or school, is
+    called an ``unconditional'' model.
+  \item Notice that the dominant level of variability is the residual
+    variability.  It is unlikely that random effects for both classes
+    and schools are needed when modeling these data.
+  \item We have seen in Exercises 2 that there seem to be trends with
+    respect to the \code{minority} factor and the \code{mathkind}
+    score but no overall trends with respect to \code{sex}.
+  \item A coefficient for a continuous covariate, such as
+    \code{mathkind}, or for fixed, reproducible levels of a factor
+    like \code{sex} or \code{minority} is incorporated in the
+    fixed-effects terms.
+  \end{itemize}
+\end{frame}
+
+\begin{frame}
+  \frametitle{Model-building approach}
+  \begin{itemize}
+  \item Note that these unbalanced data have, for the most part,
+    very few classes per school (sometimes as few as 1) and very few
+    students per class (also sometimes as few as 1).  Under these
+    circumstances, it is optimistic to expect to be able to partition
+    the variability across students, classes and schools.
+  \item We should consider adding fixed-effects terms and perhaps
+    removing one of the random-effects terms.
+  \item We will start by incorporating fixed-effects terms then
+    revisit the need for both random-effects terms.
+  \item We will begin with the fixed-effects terms adopted as a final
+    model in chapter 4 of West, Welch and Ga\l{}ecki (2007).
+  \item For brevity, we only display the output of model fits as this
+    contains enough information to reconstruct the call to \code{lmer}.
+  \end{itemize}
+\end{frame}
+
+\begin{frame}[fragile]
+  \frametitle{A model with fixed-effects terms}
+\begin{Schunk}
+\begin{Soutput}
+Linear mixed model fit by REML 
+Formula: mathgain ~ 1 + mathkind + minority + sex + ses + housepov + (1 |      classid) + (1 | schoolid) 
+   Data: classroom 
+   AIC   BIC logLik deviance REMLdev
+ 11396 11442  -5689    11390   11378
+Random effects:
+ Groups   Name        Variance Std.Dev.
+ classid  (Intercept)  81.555   9.0308 
+ schoolid (Intercept)  77.761   8.8182 
+ Residual             734.420  27.1002 
+Number of obs: 1190, groups: classid, 312; schoolid, 107
+Fixed effects:
+             Estimate Std. Error t value
+(Intercept) 285.05708   11.02067  25.866
+mathkind     -0.47086    0.02228 -21.133
+minorityY    -7.75581    2.38494  -3.252
+sexF         -1.23457    1.65743  -0.745
+ses           5.23967    1.24496   4.209
+housepov    -11.43837    9.93674  -1.151
+\end{Soutput}
+\end{Schunk}
+\end{frame}
+
+\begin{frame}
+  \frametitle{Where are the p-values?!!}
+  \begin{itemize}
+  \item The first thing that most users notice is that there are no
+    p-values for the fixed-effects coefficients!  Calculating a p-value
+    for $H_0:\beta_j=0$ versus $H_a:\beta_j\ne0$ is not as
+    straightforward as it may seem.  The ratio called a ``t value'' in
+    the output does not have a Student's T distribution under the null
+    hypothesis.
+  \item For simple models fit to small, balanced data sets one can
+    calculate a p-value.  Not so for unbalanced data.  When the number
+    of groups and observations are large, approximations don't matter
+    --- you can consider the ratio as having a standard normal
+    distribution.
+  \item The only time that you can calculate an ``exact'' p-value
+    and the difference between this and the standard normal dist'n is
+    important is for small, balanced data sets, which are
+    exactly the cases that appear in text books.  People get very,
+    very upset if the values calculated by the software don't agree
+    perfectly with the text book answers.
+  \item Here, just say a coefficient is ``significant'' if $|t|> 2$.
+  \end{itemize}
+\end{frame}
+
+\begin{frame}[fragile]
+  \frametitle{Removing the insignificant term for sex}
+\begin{Schunk}
+\begin{Soutput}
+Linear mixed model fit by REML 
+Formula: mathgain ~ 1 + mathkind + minority + ses + housepov + (1 | classid) +      (1 | schoolid) 
+   Data: classroom 
+   AIC   BIC logLik deviance REMLdev
+ 11397 11438  -5691    11390   11381
+Random effects:
+ Groups   Name        Variance Std.Dev.
+ classid  (Intercept)  81.095   9.0053 
+ schoolid (Intercept)  77.604   8.8093 
+ Residual             734.457  27.1009 
+Number of obs: 1190, groups: classid, 312; schoolid, 107
+Fixed effects:
+             Estimate Std. Error t value
+(Intercept) 284.70224   11.00854  25.862
+mathkind     -0.47137    0.02227 -21.170
+minorityY    -7.78040    2.38379  -3.264
+ses           5.25695    1.24455   4.224
+housepov    -11.50122    9.92738  -1.159
+\end{Soutput}
+\end{Schunk}
+\end{frame}
+
+\begin{frame}[fragile]
+  \frametitle{Removing the insignificant term for housepov}
+\begin{Schunk}
+\begin{Soutput}
+Linear mixed model fit by REML 
+Formula: mathgain ~ mathkind + minority + ses + (1 | classid) + (1 | schoolid) 
+   Data: classroom 
+   AIC   BIC logLik deviance REMLdev
+ 11403 11439  -5695    11392   11389
+Random effects:
+ Groups   Name        Variance Std.Dev.
+ classid  (Intercept)  82.839   9.1016 
+ schoolid (Intercept)  75.036   8.6623 
+ Residual             734.608  27.1036 
+Number of obs: 1190, groups: classid, 312; schoolid, 107
+Fixed effects:
+             Estimate Std. Error t value
+(Intercept) 282.41821   10.84049  26.052
+mathkind     -0.47031    0.02225 -21.137
+minorityY    -8.29077    2.33879  -3.545
+ses           5.36456    1.24066   4.324
+\end{Soutput}
+\end{Schunk}
+\end{frame}
+
+\begin{frame}
+  \frametitle{Prediction intervals on random effects for class}
+  \begin{center}
+\includegraphics{figs/data-Classpredi}
+  \end{center}
+\end{frame}
+
+\begin{frame}[fragile]
+  \frametitle{Normal probability plot of random effects for class}
+  With many levels of the grouping factor, use a normal probability
+  plot of the prediction intervals for the random effects.
+\begin{Schunk}
+\begin{Sinput}
+> qqmath(ranef(fm8, post = TRUE))$classid
+\end{Sinput}
+\end{Schunk}
+  \begin{center}
+\includegraphics{figs/data-Classpred2}
+  \end{center}
+\end{frame}
+
+\begin{frame}[fragile]
+  \frametitle{Normal probability plot of random effects for school}
+  \begin{center}
+\includegraphics{figs/data-Schoolpred}
+  \end{center}
+\end{frame}
+
+\begin{frame}[fragile]
+  \frametitle{Refit without random effects for class}
+\begin{Schunk}
+\begin{Soutput}
+Linear mixed model fit by maximum likelihood 
+Formula: mathgain ~ mathkind + minority + ses + (1 | schoolid) 
+   Data: classroom 
+   AIC   BIC logLik deviance REMLdev
+ 11415 11446  -5702    11403   11401
+Random effects:
+ Groups   Name        Variance Std.Dev.
+ schoolid (Intercept)  97.87    9.893  
+ Residual             789.14   28.092  
+Number of obs: 1190, groups: schoolid, 107
+Fixed effects:
+             Estimate Std. Error t value
+(Intercept) 282.30277   10.90127  25.896
+mathkind     -0.47045    0.02237 -21.027
+minorityY    -7.79570    2.35029  -3.317
+ses           5.51947    1.24920   4.418
+\end{Soutput}
+\end{Schunk}
+\end{frame}
+
+\begin{frame}[fragile]
+  \frametitle{Check if random effects for class are significant}
+\begin{Schunk}
+\begin{Sinput}
+> fm8M <- update(fm8, REML = FALSE)
+> anova(fm9M, fm8M)
+\end{Sinput}
+\begin{Soutput}
+Data: classroom
+Models:
+fm9M: mathgain ~ mathkind + minority + ses + (1 | schoolid)
+fm8M: mathgain ~ mathkind + minority + ses + (1 | classid) + (1 | schoolid)
+     Df     AIC     BIC  logLik  Chisq Chi Df Pr(>Chisq)
+fm9M  6 11415.5 11446.0 -5701.7                         
+fm8M  7 11405.5 11441.1 -5695.8 11.967      1  0.0005415
+\end{Soutput}
+\end{Schunk}
+\begin{itemize}
+\item Contrary to what we saw in the plots, the random-effects term
+  for \code{classid} is significant even in the presence of the
+  \code{schoolid} term
+\item Part of the reason for this inconsistency is our incorporating
+  312 random effects at a ``cost'' of 1 parameter.  In some way we are
+  undercounting the number of degrees of freedom added to the model
+  with this term.
+\end{itemize}
+\end{frame}
+
+
+\begin{frame}[fragile]\frametitle{A large observational data set}
+  \begin{itemize}
+  \item A large U.S. university (not mine) provided data on the grade
+    point score (\code{gr.pt}) by student (\code{id}), instructor
+    (\code{instr}) and department (\code{dept}) from a 10 year period.
+    I regret that I cannot make these data available to others.
+  \item These factors are unbalanced and partially crossed.
+  \end{itemize}
+\begin{Schunk}
+\begin{Sinput}
+> str(anon.grades.df)
+\end{Sinput}
+\begin{Soutput}
+'data.frame':   1721024 obs. of  9 variables:
+ $ instr   : Factor w/ 7964 levels "10000","10001",..: 1 1 1 1 1 1 1 1 1 1 ...
+ $ dept    : Factor w/ 106 levels "AERO","AFAM",..: 43 43 43 43 43 43 43 43 43 43 ...
+ $ id      : Factor w/ 54711 levels "900000001","900000002",..: 12152 1405 23882 18875 18294 20922 4150 13540 5499 6425 ...
+ $ nclass  : num  40 29 33 13 47 49 37 14 21 20 ...
+ $ vgpa    : num  NA NA NA NA NA NA NA NA NA NA ...
+ $ rawai   : num   2.88 -1.15 -0.08 -1.94  3.00 ...
+ $ gr.pt   : num  4 1.7 2 0 3.7 1.7 2 4 2 2.7 ...
+ $ section : Factor w/ 70366 levels "19959 AERO011A001",..: 18417 18417 18417 18417 9428 18417 18417 9428 9428 9428 ...
+ $ semester: num  19989 19989 19989 19989 19972 ...
+\end{Soutput}
+\end{Schunk}%$
+\end{frame}
+
+\begin{frame}[fragile]\frametitle{A preliminary model}
+\begin{Schunk}
+\begin{Soutput}
+Linear mixed model fit by REML 
+Formula: gr.pt ~ (1 | id) + (1 | instr) + (1 | dept) 
+   Data: anon.grades.df 
+     AIC     BIC   logLik deviance REMLdev
+ 3447389 3447451 -1723690  3447374 3447379
+Random effects:
+ Groups   Name        Variance Std.Dev.
+ id       (Intercept) 0.3085   0.555   
+ instr    (Intercept) 0.0795   0.282   
+ dept     (Intercept) 0.0909   0.301   
+ Residual             0.4037   0.635   
+Number of obs: 1685394, groups: id, 54711; instr, 7915; dept, 102
+
+Fixed effects:
+            Estimate Std. Error t value
+(Intercept)   3.1996     0.0314     102
+\end{Soutput}
+\end{Schunk}
+\end{frame}
+
+\begin{frame}
+  \frametitle{Comments on the model fit}
+  \begin{itemize}
+  \item $n=1685394$, $p=1$, $k=3$, $n_1=54711$, $n_2=7915$, $n_3=102$,
+    $q_1=q_2=q_3=1$, $q=62728$
+  \item This model is sometimes called the ``unconditional'' model in
+    that it does not incorporate covariates beyond the grouping factors.
+  \item It takes less than an hour to fit an "unconditional" model
+    with random effects for student (\code{id}), instructor
+    (\code{inst}) and department (\code{dept}) to these data.
+  \item Naturally, this is just the first step.  We want to look at
+    possible time trends and the possible influences of the
+    covariates.
+  \item This is an example of what ``large'' and ``unbalanced'' mean
+    today.  The size of the data sets and the complexity of the models
+    in mixed modeling can be formidable.
+  \end{itemize}
+\end{frame}
+
+\begin{frame}
+  \frametitle{Recap of simple, scalar random-effects terms}
+  \begin{itemize}
+  \item For \code{lmer} a simple, scalar random effects term is of the
+    form \code{(1|F)}.
+  \item The number of random effects generated by the $i$th such
+    term is the number of levels, $n_i$, of \code{F} (after dropping
+    ``unused'' levels --- those that do not occur in the data.  The idea
+    of having such levels is not as peculiar as it may seem if, say,
+    you are fitting a model to a subset of the original data.)
+  \item Such a term contributes $n_i$ columns to $\bm Z$.  These
+    columns are the indicator columns of the grouping factor.
+  \item Such a term contributes a diagonal block $\sigma^2_i\bm
+    I_{n_i}$ to $\bm\Sigma$.  The multipliers $\sigma_i^2$ can be
+    different for different terms. The term contributes exactly one
+    element (which happens to be $\sigma_i/\sigma$) to $\bm\theta$.
+  \end{itemize}
+\end{frame}
