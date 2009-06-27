@@ -1,0 +1,527 @@
+% NOTE -- ONLY EDIT THE .Rnw FILE!!!  The .tex file is
+% likely to be overwritten.
+
+\usepackage{SweaveSlides}
+\title[lme4]{Mixed models in R using the lme4 package\\Part 5: Interactions}
+\subject{Longitudinal}
+\date[July 2, 2009]{University of Lausanne\\July 2, 2009}
+\AtBeginSection[]
+{
+  \begin{frame}<beamer>
+    \frametitle{Outline}
+    \tableofcontents[currentsection]
+  \end{frame}
+}
+\begin{document}
+\frame{\titlepage}
+\begin{frame}
+  \frametitle{Outline}
+  \tableofcontents[pausesections,hideallsubsections]
+\end{frame}
+
+\SweaveOpts{engine=R,eps=FALSE,pdf=TRUE,width=10,height=6.5,strip.white=all}
+\SweaveOpts{prefix=TRUE,prefix.string=figs/interactions,include=TRUE}
+\setkeys{Gin}{width=\textwidth}
+<<preliminaries,echo=FALSE,results=hide>>=
+options(width=65,show.signif.stars=FALSE)
+library(lattice)
+library(Matrix)
+library(lme4)
+data(Machines, package = "MEMSS")
+Machines <- Machines[with(Machines,order(Worker, Machine)),]
+lattice.options(default.theme = function() standard.theme())
+#lattice.options(default.theme = function() standard.theme(color=FALSE))
+if (exists("ratbrain.rda")) {
+    load("ratbrain.rda")
+} else {
+    ratbrain <- within(read.delim("http://www-personal.umich.edu/~bwest/rat_brain.dat"),
+                   {
+                       treatment <- factor(treatment, 
+                                           labels = c("Basal", "Carbachol"))
+                       region <- factor(region, levels = c(3, 1, 2),
+                                        labels = c("VDB", "BST", "LS"))
+                   })
+    save(ratbrain, file = "ratbrain.rda")
+}
+@ 
+
+\section[Interactions]{Interactions with grouping factors}
+
+\begin{frame}
+  \frametitle{Interactions of covariates and grouping factors}
+  \begin{itemize}
+  \item For longitudinal data, having a random effect for the slope
+    w.r.t. time by subject is reasonably easy to understand.
+  \item Although not generally presented in this way, these random
+    effects are an interaction term between the grouping factor for the
+    random effect (\code{Subject}) and the time covariate.
+  \item We can also define interactions between a categorical
+    covariate and a random-effects grouping factor.
+  \item Different ways of expressing such interactions lead to
+    different numbers of random effects.  These different definitions
+    have different levels of complexity, affecting both their
+    expressive power and the ability to estimate all the parameters in
+    the model.
+  \end{itemize}
+\end{frame}
+
+\section[Machines data]{The Machines data}
+
+\begin{frame}
+  \frametitle{Machines data}
+  \begin{itemize}
+  \item Milliken and Johnson (1989) provide (probably artificial) data
+    on an experiment to measure productivity according to the machine
+    being used for a particular operation.
+  \item In the experiment, a sample of six different operators used
+    each of the three machines on three occasions --- a total of nine
+    runs per operator.
+  \item These three machines were the specific machines of interest
+    and we model their effect as a fixed-effect term.
+  \item The operators represented a sample from the population of
+    potential operators.  We model this factor, (\code{Worker}), as a
+    random effect.
+  \item This is a replicated ``subject/stimulus'' design with a fixed
+    set of stimuli that are themselves of interest.  (In other
+    situations the stimuli may be a sample from a population of
+    stimuli.)
+  \end{itemize}
+\end{frame}
+
+\begin{frame}[fragile]
+  \frametitle{Machines data plot}
+<<Machinesplot,fig=TRUE,echo=FALSE>>=
+print(dotplot(reorder(Worker, score) ~ score, Machines,
+              groups = Machine, 
+              xlab = "Quality and productivity score", 
+              ylab = "Worker", type = c("p","a"), 
+              auto.key = list(columns = 3, lines = TRUE), 
+              jitter.y = TRUE))
+@ 
+\end{frame}
+
+\begin{frame}
+  \frametitle{Comments on the data plot}
+  \begin{itemize}
+  \item There are obvious differences between the scores on different machines.
+  \item It seems likely that \code{Worker} will be a significant
+    random effect, especially when considering the low variation
+    within replicates.
+  \item There also appears to be a significant \code{Worker:Machine}
+    interaction.  \code{Worker} 6 has a very different pattern
+    w.r.t. machines than do the others.
+  \item We can approach the interaction in one of two ways: define
+    simple, scalar random effects for \code{Worker} and for the
+    \code{Worker:Machine} interaction or define vector-valued random
+    effects for \code{Worker}
+  \end{itemize}
+\end{frame}
+
+\section[Scalar or vector]{Scalar interactions or vector-valued random effects?}
+
+
+\begin{frame}[fragile]
+  \frametitle{Random effects for subject and subject:stimulus}
+<<MachinesModel1,echo=FALSE>>=
+print(fm1 <- lmer(score ~ Machine + (1|Worker) + (1|Worker:Machine),
+                  Machines), corr = FALSE)
+@ 
+\end{frame}
+
+\begin{frame}
+  \frametitle{Characteristics of the scalar interaction model}
+  \begin{itemize}
+  \item The model incorporates simple, scalar random effects
+    for \code{Worker} and for the \code{Worker:Machine} interaction.
+  \item These two scalar random-effects terms have $q_1=q_2=1$ so they
+    contribute $n_1=6$ and $n_2=18$ random effects for a total of
+    $q=24$. There are $2$ variance-component parameters.
+  \item The random effects allow for an overall shift in level for
+    each worker and a separate shift for each combination of worker
+    and machine.  The unconditional distributions of these random
+    effects are independent.  The unconditional variances of the
+    interaction random effects are constant.
+  \item The main restriction in this model is the assumption of
+    constant variance and independence of the interaction random
+    effects.
+  \end{itemize}
+\end{frame}
+
+\begin{frame}
+  \frametitle{Model matrix $\bm Z\trans$ for the scalar interaction model}
+  \begin{center}
+<<fm1Z,fig=TRUE,echo=FALSE,height=4.3>>=
+print(image(fm1@Zt, sub = NULL))
+@     
+  \end{center}
+  \begin{itemize}
+  \item Because we know these are scalar random effects we can
+    recognize the pattern of a balanced, nested, two-factor design,
+    similar to that of the model for the \code{Pastes} data.
+  \end{itemize}
+\end{frame}
+\begin{frame}[fragile]
+  \frametitle{Vector-valued random effects by subject}
+<<MachinesModel1,echo=FALSE>>=
+print(fm2 <- lmer(score ~ Machine + (0+Machine|Worker), Machines),
+      corr = FALSE)
+@ 
+\end{frame}
+
+
+\begin{frame}
+  \frametitle{Characteristics of the vector-valued r.e. model}
+  \begin{center}
+<<fm2Z,fig=TRUE,echo=FALSE,height=3.2>>=
+print(image(fm2@Zt, sub = NULL, xlab = NULL, ylab = NULL))
+@     
+  \end{center}
+  \begin{itemize}
+  \item We use the specification \code{(0 + Machine|Worker)} to force
+    an ``indicator'' parameterization of the random effects.
+  \item In this image the 1's are black.  The gray positions are
+    non-systematic zeros (initially zero but can become
+    nonzero).
+  \item Here $k=1$, $q_1=3$ and $n_1=6$ so we have $q=18$
+    random effects but $q_1(q_1+1)/2=6$ variance-component parameters
+    to estimate.
+  \end{itemize}
+\end{frame}
+
+\begin{frame}[fragile]
+  \frametitle{Comparing the model fits}
+  \begin{itemize}
+  \item Although not obvious from the specifications, these model fits
+    are nested.  If the variance-covariance matrix for the
+    vector-valued random effects has a special form, called
+    \Emph{compound symmetry}, the model reduces to model \code{fm1}.
+  \item The p-value of 6.5\% may or may not be significant.
+  \end{itemize}
+<<Machinesanova>>=
+fm2M <- update(fm2, REML = FALSE)
+fm1M <- update(fm1, REML = FALSE)
+anova(fm2M, fm1M)
+@ 
+\end{frame}
+
+\begin{frame}[fragile]
+  \frametitle{Model comparisons eliminating the unusual combination}
+  \begin{itemize}
+  \item In a case like this we may want to check if a single, unusual
+    combination (\code{Worker} 6 using \code{Machine} ``B'') causes
+    the more complex model to appear necessary.  We eliminate that
+    unusual combination.
+  \end{itemize}
+  
+<<MachineswoB6>>=  
+Machines1 <- subset(Machines, !(Worker == "6" & Machine == 'B'))
+xtabs(~ Machine + Worker, Machines1)
+@ 
+\end{frame}
+
+\begin{frame}[fragile]
+  \frametitle{Machines data after eliminating the unusual combination}
+<<Machines1plot,fig=TRUE,echo=FALSE>>=
+print(dotplot(reorder(Worker, score) ~ score, Machines1,
+              groups = Machine, 
+              xlab = "Quality and productivity score", 
+              ylab = "Worker", type = c("p","a"), 
+              auto.key = list(columns = 3, lines = TRUE), 
+              jitter.y = TRUE))
+@ 
+\end{frame}
+
+\begin{frame}[fragile]
+  \frametitle{Model comparisons without the unusual combination}
+<<fm1aM>>=  
+fm1aM <- lmer(score ~ Machine + (1|Worker) + (1|Worker:Machine), Machines1, REML = FALSE)
+fm2aM <- lmer(score ~ Machine + (0 + Machine|Worker), Machines1, REML = FALSE)
+anova(fm2aM, fm1aM)
+@   
+\end{frame}
+
+\begin{frame}
+  \frametitle{Trade-offs when defining interactions}
+  \begin{itemize}
+  \item It is important to realize that estimating scale parameters (i.e.
+    variances and covariances) is considerably more difficult than
+    estimating location parameters (i.e. means or fixed-effects coefficients).
+  \item A vector-valued random effect term having $q_i$ random effects
+    per level of the grouping factor requires $q_i(q_i+1)/2$
+    variance-covariance parameters to be estimated.  A simple, scalar
+    random effect for the interaction of a ``random-effects'' factor
+    and a ``fixed-effects'' factor requires only 1 additional
+    variance-covariance parameter.
+  \item Especially when the ``fixed-effects'' factor has a moderate to
+    large number of levels, the trade-off in model complexity argues
+    against the vector-valued approach.
+  \item One of the major sources of difficulty in using the
+    \code{lme4} package is the tendency to overspecify the number of
+    random effects per level of a grouping factor.
+  \end{itemize}
+\end{frame}
+
+\section[Brain activation]{The brain activation data}
+\begin{frame}
+  \frametitle{Brain activation data from West, Welch and Ga\l{}ecki (2007)}
+  \begin{center}
+<<ratbraindot1,fig=TRUE,echo=FALSE,height=4.3>>=
+print(dotplot(factor(region, levels = c("BST", "LS", "VDB")) ~ activate|treatment,
+              ratbrain, groups = animal, type = c("p","a"),
+              strip = FALSE, strip.left = TRUE,
+              xlab = "Activation (mean optical density)",
+              ylab = "Region of brain",
+              layout = c(1,2),
+              auto.key = list(columns = 5, lines = TRUE, points = FALSE)))
+              
+@
+  \end{center}
+  \begin{itemize}
+  \item In the experiment seven different regions of five rats' brains
+    were imaged in a basal condition (after injection with saline
+    solution) and after treatment with the drug Carbachol.  The data
+    provided are from three regions.
+  \item This representation of the data is similar to the figure on
+    the cover of West, Welch and Ga\l{}ecki (2007).
+  \end{itemize}
+\end{frame}
+
+\begin{frame}
+  \frametitle{Brain activation data in an alternative layout}
+  \begin{center}
+<<ratbraindot,fig=TRUE,echo=FALSE,height=5>>=
+print(dotplot(region ~ activate|animal,
+              ratbrain, groups = treatment, type = c("p","a"),
+              strip = FALSE, strip.left = TRUE,
+              xlab = "Activation (mean optical density)",
+              ylab = "Region",
+              layout = c(1,5),
+              auto.key = list(columns = 2, lines = TRUE, points = FALSE)))
+@ 
+  \end{center}
+  \begin{itemize}
+  \item The animals have similar patterns of changes but different magnitudes.
+  \end{itemize}
+\end{frame}
+
+\begin{frame}[fragile]
+  \frametitle{Reproducing the models from West et al.}
+  \begin{itemize}
+  \item These data are analyzed in West et al. (2007) allowing for
+    main effects for treatment and region, a fixed-effects interaction
+    of these two factors and vector-valued random effects for the
+    intercept and the treatment by animal.
+  \item Note that this will require estimating three variance
+    component parameters from data on five animals.
+  \item Their final model also allowed for different residual
+    variances by treatment.  We won't discuss that here.
+  \item We choose the order of the levels of \code{region} to produce
+    the same parameterization of the fixed effects.
+  \end{itemize}
+<<ratbraindat,echo=FALSE>>=
+str(ratbrain)
+@   
+\end{frame}
+
+\begin{frame}[fragile]
+  \frametitle{Model 5.1 from West et al.}
+<<m51,echo=FALSE>>=
+print(m51 <- lmer(activate ~ region * treatment + (1|animal), ratbrain), corr = FALSE)
+@ 
+\end{frame}
+
+\begin{frame}[fragile]
+  \frametitle{Model 5.2 from West et al.}
+<<m52,echo=FALSE>>=
+print(m52 <- lmer(activate ~ region * treatment + (treatment|animal), ratbrain), corr = FALSE)
+@ 
+\end{frame}
+
+
+\begin{frame}[fragile]
+  \frametitle{A variation on model 5.2 from West et al.}
+<<m52,echo=FALSE>>=
+print(m52a <- lmer(activate ~ region * treatment + (0+treatment|animal), ratbrain), corr = FALSE)
+@ 
+\end{frame}
+
+\begin{frame}[fragile]
+  \frametitle{Simple scalar random effects for the interaction}
+<<m54,echo=FALSE>>=
+print(m54 <- lmer(activate ~ region * treatment + (1|animal) +
+                  (1|animal:treatment), ratbrain), corr = FALSE)
+@   
+\end{frame}
+\begin{frame}[fragile]
+  \frametitle{Prediction intervals for the random effects}
+<<predintact,fig=TRUE,echo=FALSE,height=7.2>>=
+print(dotplot(ranef(m51, post = TRUE),
+              strip = FALSE, strip.left = TRUE)$animal,
+      split = c(1,1,1,3), more = TRUE)
+print(dotplot(ranef(m52, post = TRUE),
+              strip = FALSE, strip.left = TRUE,
+              scales = list(x = list(relation = "free")))$animal,
+      split = c(1,2,1,3), more = TRUE)
+print(dotplot(ranef(m52a, post = TRUE),
+              strip = FALSE, strip.left = TRUE,
+              scales = list(x = list(relation = "free")))$animal,
+      split = c(1,3,1,3))
+@   
+\end{frame}
+
+\begin{frame}[fragile]
+  \frametitle{Is this ``overmodeling'' the data?}
+  \begin{itemize}
+  \item The prediction intervals for the random effects indicate that
+    the vector-valued random effects are useful, as does a model comparison.
+<<anovabrain,echo=FALSE>>=
+m51M <- update(m51, REML = FALSE)
+m52M <- update(m52, REML = FALSE)
+anova(m51M, m52M)
+@     
+  \item However, these models incorporate many fixed-effects parameters
+    and random effects in a model of a relatively small amount of data.
+    Is this too much?
+  \item There are several ways we can approach this:
+    \begin{itemize}
+    \item Simplify the model by considering the difference in
+      activation under the two conditions within the same
+      animal:region combination (i.e. approach it like a paired
+      t-test).
+    \item Model the five animals with fixed effects and use F-tests.
+    \item Assess the precision of the variance estimates (done later).
+    \end{itemize}
+  \end{itemize}
+\end{frame}
+
+\section[Differences]{Considering differences}
+
+\begin{frame}[fragile]
+  \frametitle{Considering differences}
+  \begin{itemize}
+  \item Before we can analyze the differences at each
+    \code{animal:region} combination we must first calculate them.
+  \item We could do this by subsetting the \code{ratbrain} data frame
+    for the \code{"Basal"} and \code{"Carbachol"} levels of the
+    \code{treatment} factor and forming the difference of the two
+    \code{activate} columns.  For this to be correct we must have the
+    same ordering of levels of the \code{animal} and \code{region}
+    factors in each half.  It turns out we do but we shouldn't count
+    on this (remember ``Murphy's Law''?).
+  \item A better approach is to reshape the data frame (but this is
+    complicated) or to use \code{xtabs} to align the levels.  First we
+    should check that the data are indeed balanced and unreplicated.
+  \end{itemize}
+\end{frame}
+
+\begin{frame}[fragile]
+  \frametitle{Checking for balanced and unreplicated; tabling activate}
+  \begin{itemize}
+  \item We saw the balance in the data plots but we can check too
+<<ftable>>=
+ftable(xtabs(~ treatment + region + animal, ratbrain))
+@   
+\item In \code{xtabs} we can use a two-sided formula to tabulate a variable
+<<trt>>=
+ftable(atab <- xtabs(activate ~ treatment + animal + region, ratbrain))
+@   
+  \end{itemize}
+\end{frame}
+
+\begin{frame}[fragile]
+  \frametitle{Taking differences}
+  \begin{itemize}
+  \item The \code{atab} object is an array with additional attributes
+<<stratab,echo=FALSE>>=
+str(atab)
+@     
+\item Use \code{apply} to take differences over dimension 1
+<<diffstab>>=
+(diffs <- as.table(apply(atab, 2:3, diff)))
+@ 
+\end{itemize}
+\end{frame}
+
+\begin{frame}[fragile]
+  \frametitle{Taking differences (cont'd)}
+  \begin{itemize}
+  \item Finally, convert the table of differences to a data frame.
+  \end{itemize}
+<<diffsfr>>=
+str(diffs <- as.data.frame(diffs))
+names(diffs)[3] <- "actdiff"
+@ 
+\begin{center}
+<<actdiffdat,fig=TRUE,echo=FALSE,height=3>>=
+print(dotplot(reorder(animal, actdiff) ~ actdiff, diffs, groups = region,
+              xlab = "Difference in activation with Carbachol from Basal state",
+              ylab = "Animal", type = c("p","a"),
+              auto.key = list(columns = 3, lines = TRUE, points = FALSE)))
+@   
+\end{center}
+\end{frame}
+\begin{frame}[fragile]
+  \frametitle{A model for the differences}
+<<dm1,echo=FALSE>>=
+print(dm1 <- lmer(actdiff ~ region + (1|animal), diffs))
+@   
+\end{frame}
+
+%% consider comparing a randomized blocked design with random effects
+%% and with fixed effects for the blocking factor.
+
+\section[Animals fixed]{Fixed-effects for the animals}
+
+\begin{frame}
+  \frametitle{Using fixed-effects for the animals}
+  \begin{itemize}
+  \item There are five experimental units (animals) in this study.
+    That is about the lower limit under which we could hope to
+    estimate variance components.
+  \item We should compare with a fixed-effects model.
+  \item If we wish to evaluate coefficients for \code{treatment} or
+    \code{region} we must be careful about the ``contrasts'' that are
+    used to create the model.  However, the analysis of variance table
+    does not depend on the contrasts.
+  \item We use \code{aov} to fit the fixed-effects model so that a
+    summary is the analysis of variance table.
+  \item The fixed-effects anova table is the sequential table with
+    main effects first, then two-factor interactions, etc.  The anova
+    table for an \code{lmer} model gives the contributions of the
+    fixed-effects after removing the contribution of the random
+    effects, which include the \code{animal:treatment} interaction in
+    model \code{m52}.
+  \end{itemize}
+\end{frame}
+
+\begin{frame}[fragile]
+  \frametitle{Fixed-effects anova versus random effects}
+<<aovmod>>=
+summary(m52f <- aov(activate ~ animal * treatment + region * treatment,
+                    ratbrain))
+anova(m52)
+@ 
+\begin{itemize}
+\item Except for the \code{treatment} factor, the anova tables are
+  nearly identical.
+\end{itemize}
+\end{frame}
+
+\section{Summary}
+
+\begin{frame}
+  \frametitle{Summary}
+  \begin{itemize}
+  \item It is possible to fit complex models to balanced data sets
+    from carefully designed experiments but one should always be
+    cautious of creating a model that is too complex.
+  \item I prefer to proceed incrementally, taking time to examine data
+    plots, rather than starting with a model incorporating all possible terms.
+  \item Some feel that one should be able to specify the analysis
+    (and, in particular, the analysis of variance table) before even
+    beginning to collect data.  I am more of a model-builder and try
+    to avoid dogmatic approaches.
+  \item For the \code{ratbrain} data I would be very tempted to take
+    differences and analyze it as a randomized blocked design.
+  \end{itemize}
+\end{frame}

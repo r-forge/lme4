@@ -1,0 +1,60 @@
+% NOTE -- ONLY EDIT THE .Rnw FILE!!!  The .tex file is
+% likely to be overwritten.
+
+\begin{frame}
+  \frametitle{Data analysis using R}
+  \begin{itemize}
+  \item We store a ``rectangular'' data set (columns correspond to
+    variables, rows to observations or cases) as a \Emph{data frame}.
+    Typical column types are \code{numeric}, \code{factor}
+    (categorical data) and \code{ordered} (ordered categories).
+  \item R has a wealth of graphics functions.  Use them.  I
+    particularly like the functions available in the \code{lattice}
+    package.
+  \item We specify models using \code{formula} and \code{data}
+    arguments. Typically we assign the fitted model to a name and use
+    \Emph{extractor} functions to access parts of the fitted model or
+    functions like \code{summary} and \code{print} to display some of
+    the information about the fit.
+  \item In many cases there are graphical functions to display
+    information about the fit or characteristics extracted from the
+    fit.
+  \end{itemize}
+\end{frame}
+
+\begin{frame}
+  \frametitle{Fitting linear mixed models}
+  \begin{itemize}
+  \item The formula for a linear mixed model consists of several
+    \Emph{terms} separated by `\code{+}' symbols.
+  \item A random effects term, which is usually enclosed in
+    parentheses, contains the `\code{|}' symbol.  The expression to
+    the right, which is usually the name of a variable, is evaluated
+    as the grouping factor.  The expression to the left, frequently
+    `\code{1}' indicating a simple scalar random effect for each
+    level, is evaluated as a model matrix.
+  \item Remember that `\code{(x|f)}' is equivalent to
+    `\code{(1+x|f)}'.  If we want to suppress the intercept we use
+    `\code{(0+x|f)}' or `\code{(x-1|f)}'.
+  \item An interaction of a random-effects factor, `\code{f}' and a
+    fixed-effects factor, `\code{g}' can be modelled as
+    \code{g + (1|f:g) + (1:f)} or as \code{g + (0+g|f)}.  The second
+    is more difficult to fit than is the first.
+  \end{itemize}
+\end{frame}
+
+\begin{frame}
+  \frametitle{Fitting generalized linear mixed models}
+  \begin{itemize}
+  \item To fit a generalized linear mixed model we specify a
+    \code{family} in addition to the formula and data arguments.
+  \item The family includes definitions of the link function, the
+    inverse link function and the variance function.
+  \item For Bernoulli (binary) data we use the \code{binomial} family
+    for which the canonical link function is the logit.  Some people
+    prefer the probit link.  Usually the fit with probit is very
+    similar to the fit with logit.
+  \item For count data we use the \code{poisson} family for which the
+    canonical link is the logarithm.
+  \end{itemize}
+\end{frame}
