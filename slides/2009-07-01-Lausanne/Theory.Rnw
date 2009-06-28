@@ -44,6 +44,60 @@ if (exists("classroom.rda")) {
                     })
     save(classroom, file = "classroom.rda")
 }
+
+simplemer <- function(flist, y, X, theta0, super = FALSE)
+{
+    ## check arguments for consistency
+    stopifnot(is.numeric(y),
+              is.matrix(X) | is(X, "Matrix"),
+              (n <- length(y)) > 0,
+              nrow(X) == n,
+              is.list(flist),
+              length(flist) > 0,
+              all(sapply(flist, is.factor)),
+              all(sapply(flist, length) == n),
+              is.numeric(theta0),
+              length(theta0) == (k <- length(flist)))
+    super <- as.logical(super)[1]
+    
+    ## create an empty environment
+    rho <- new.env(parent = emptyenv())
+    
+    ## save arguments and derived values in the environment
+    rho$theta <- theta0
+    rho$y <- y
+    rho$X <- X
+    rho$flist <- flist
+    chol(rho$XtX <- crossprod(X))       # check for full column rank
+    rho$Xty <- crossprod(X, y)
+
+    rho$Zt <- do.call(rBind, lapply(flist, as, "sparseMatrix"))
+    rho$nlev <- sapply(flist, function(x) length(levels(factor(x))))
+    rho$L <- Cholesky(tcrossprod(rho$Zt), LDL = FALSE, Imult = 1, super = super)
+    setPars(rho, theta0)
+    return(rho)
+}
+
+setPars <- function(rho, theta)
+{
+    stopifnot(is.numeric(theta),
+              length(theta) == length(rho$theta))
+    rho$theta <- theta
+    rho$Lambda <- Diagonal(x = rep.int(theta, rho$nlev))
+    rho$Ut <- crossprod(rho$Lambda, rho$Zt)
+    L <- rho$L <- update(rho$L, rho$Ut, mult = 1)
+    rho$ldL2 <- as.vector(determinant(L, logarithm = TRUE)$modulus)
+    cu <- solve(L, solve(L, rho$Ut %*% rho$y, system = "P"), system = "L")
+    rho$RZX <- solve(L, solve(L, rho$Ut %*% rho$X, system = "P"), system = "L")
+    rho$RX <- chol(rho$XtX - crossprod(rho$RZX))
+    cb <- solve(t(rho$RX), rho$Xty - crossprod(rho$RZX, cu))
+    rho$fixef <- as.vector(solve(rho$RX, cb))
+    rho$u <- as.vector(solve(L, solve(L, cu - rho$RZX %*% rho$fixef, system = "Pt"), system = "Lt"))
+    rho$fitted <- as.vector(crossprod(rho$Ut, rho$u) + rho$X %*% rho$fixef)
+    rho$resid <- rho$y - rho$fitted
+    n <- length(rho$y)
+    rho$ldL2 + n * (1 + log((2 * pi * sum(c(rho$resid, rho$u)^2)/n)))
+}
 @ 
 
 \section[Definition]{Definition of linear mixed models}
@@ -120,11 +174,11 @@ if (exists("classroom.rda")) {
       \begin{aligned}
         f_{\bc Y,\bc U}(\bm y,\bm u)&
         =f_{\bc Y|\bc U}(\bm y|\bm u)\,f_{\bc U}(\bm u)\\
-        &=\frac{\exp(-\frac{1}{2}\|\bm y-\bm X\bm\beta-\bm U\bm u\|^2)}
+        &=\frac{\exp(-\frac{1}{2\sigma^2}\|\bm y-\bm X\bm\beta-\bm U\bm u\|^2)}
         {(2\pi\sigma^2)^{n/2}}\;
-        \frac{\exp(-\frac{1}{2}\|\bm u\|^2)}{(2\pi\sigma^2)^{q/2}}\\
-        &=\frac{\exp(-\frac{1}{2}
-          \left[\|\bm y-\bm X\bm\beta-\bm U\bm u\|^2+\|\bm u\|^2\right])}
+        \frac{\exp(-\frac{1}{2\sigma^2}\|\bm u\|^2)}{(2\pi\sigma^2)^{q/2}}\\
+        &=\frac{\exp(-
+          \left[\|\bm y-\bm X\bm\beta-\bm U\bm u\|^2+\|\bm u\|^2\right]/(2\sigma^2))}
         {(2\pi\sigma^2)^{(n+q)/2}}
       \end{aligned}
     \end{displaymath}
@@ -398,21 +452,62 @@ print(image(L, xlab = NULL, ylab = NULL, sub = "L"),
     \item Solve $\bm L\trans\bm P\bm\mu=\bm c_{\bm u}$ for $\bm
       P\bm\mu$ and $\bm\mu$ as $\bm P\trans\bm P\bm\mu$.
     \end{enumerate}
-    Define $r^2(\bm\theta,\bm\beta)=\|\bm y-\bm X\bm\beta-\bm
-    U\bm\mu_{\bc U|\bc Y}\|^2+\|\bm\mu_{\bc U|\bc Y}\|^2$.  Then
-    \begin{displaymath}
-      \|\bm y-\bm X\bm\beta-\bm U\bm u\|^2+\|\bm u\|^2=
-      r^2(\bm\theta,\bm\beta)+
-      \|\bm c_{\bm u}-\bm L\trans\bm P\bm u\|^2
-    \end{displaymath}
   \end{itemize}
 \end{frame}
 \begin{frame}
-  \frametitle{Penalized sum of squared residuals}
+  \frametitle{Evaluating the likelihood}
   \begin{itemize}
-  \item 
+  \item The exponent of $f_{\bc Y,\bc U}(\bm y,\bm u)$ can now be written
+    \begin{displaymath}
+      \|\bm y-\bm X\bm\beta-\bm U\bm u\|^2+\|\bm u\|^2=
+      r^2(\bm\theta,\bm\beta)+
+      \|\bm c_{\bm u}-\bm L\trans\bm P\bm u\|^2.
+    \end{displaymath}
+    where $r^2(\bm\theta,\bm\beta)=\|\bm y-\bm X\bm\beta-\bm
+    U\bm\mu_{\bc U|\bc Y}\|^2+\|\bm\mu_{\bc U|\bc Y}\|^2$.  The first
+    term doesn't depend on $\bm u$ and the second is relatively easy
+    to integrate.
+  \item Use the change of variable $\bm v=\bm c_{\bm u}-\bm L\trans\bm
+    P\bm u$, with $d\bm v=\abs(|\bm L||\bm P|)\,d\bm u$, in
+    \begin{multline*}
+      \int\frac{\exp\left(\frac{-\|\bm c_{\bm u}-\bm L\trans\bm P\bm u\|^2}{2\sigma^2}\right)}
+      {(2\pi\sigma^2)^{q/2}}\,d\bm u \\
+      = \int\frac{\exp\left(\frac{-\|\bm
+          v\|^2}{2\sigma^2}\right)}{(2\pi\sigma^2)^{q/2}}\,\frac{d\bm
+        v}{\abs(|\bm L||\bm P|)} = \frac{1}{\abs(|\bm L||\bm
+        P|)}=\frac{1}{|\bm L|}
+    \end{multline*}
+    because $\abs|\bm P|=1$ and $\abs|\bm L|$, which is the product of
+    its diagonal elements, all of which are positive, is positive.
   \end{itemize}
-
+\end{frame}
+\begin{frame}
+  \frametitle{Evaluating the likelihood (cont'd)}
+  \begin{itemize}
+  \item As is often the case, it is easiest to write the
+    log-likelihood.  On the deviance scale (negative twice the
+    log-likelihood) $\ell(\bm\theta,\bm\beta,\sigma|\bm y)=\log
+    L(\bm\theta,\bm\beta,\sigma|\bm y)$ becomes
+    \begin{displaymath}
+      -2\ell(\bm\theta,\bm\beta,\sigma|\bm y)=
+      n\log(2\pi\sigma^2)+\frac{r^2(\bm\theta,\bm\beta)}{\sigma^2}+
+      \log(|\bm L(\bm\theta)|^2)
+    \end{displaymath}
+  \item We wish to minimize the deviance.  Its dependence on $\sigma$
+    is straightforward.  Given values of the other parameters, we can
+    evaluate the conditional estimate
+    \begin{displaymath}
+      \widehat{\sigma^2}(\bm\theta,\bm\beta)=\frac{r^2(\bm\theta,\bm\beta)}{n}
+    \end{displaymath}
+    producing the \Emph{profiled deviance}
+    \begin{displaymath}
+    -2\tilde{\ell}(\bm\theta,\bm\beta|\bm y)=\log(|\bm L(\bm\theta)|^2)+
+      n\left[1+\log\left(\frac{2\pi r^2(\bm\theta,\bm\beta)}{n}\right)\right]
+    \end{displaymath}
+  \item However, an even greater simplification is possible because
+    the deviance depends on $\bm\beta$ only through
+    $r^2(\bm\theta,\bm\beta)$.
+  \end{itemize}
 \end{frame}
 \begin{frame}\frametitle{Recap}
   \begin{itemize}
