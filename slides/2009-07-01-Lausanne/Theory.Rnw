@@ -45,7 +45,7 @@ if (exists("classroom.rda")) {
     save(classroom, file = "classroom.rda")
 }
 
-simplemer <- function(flist, y, X, theta0, super = FALSE)
+simplemer <- function(flist, y, X, theta0 = rep.int(1, length(flist)), super = FALSE)
 {
     ## check arguments for consistency
     stopifnot(is.numeric(y),
@@ -83,17 +83,16 @@ setPars <- function(rho, theta)
     stopifnot(is.numeric(theta),
               length(theta) == length(rho$theta))
     rho$theta <- theta
-    rho$Lambda <- Diagonal(x = rep.int(theta, rho$nlev))
-    rho$Ut <- crossprod(rho$Lambda, rho$Zt)
-    L <- rho$L <- update(rho$L, rho$Ut, mult = 1)
+    Ut <- crossprod(Diagonal(x = rep.int(theta, rho$nlev)), rho$Zt)
+    L <- rho$L <- update(rho$L, Ut, mult = 1)
     rho$ldL2 <- as.vector(determinant(L, logarithm = TRUE)$modulus)
-    cu <- solve(L, solve(L, rho$Ut %*% rho$y, system = "P"), system = "L")
-    rho$RZX <- solve(L, solve(L, rho$Ut %*% rho$X, system = "P"), system = "L")
+    cu <- solve(L, solve(L, Ut %*% rho$y, system = "P"), system = "L")
+    rho$RZX <- solve(L, solve(L, Ut %*% rho$X, system = "P"), system = "L")
     rho$RX <- chol(rho$XtX - crossprod(rho$RZX))
     cb <- solve(t(rho$RX), rho$Xty - crossprod(rho$RZX, cu))
     rho$fixef <- as.vector(solve(rho$RX, cb))
-    rho$u <- as.vector(solve(L, solve(L, cu - rho$RZX %*% rho$fixef, system = "Pt"), system = "Lt"))
-    rho$fitted <- as.vector(crossprod(rho$Ut, rho$u) + rho$X %*% rho$fixef)
+    rho$u <- as.vector(solve(L, solve(L, cu - rho$RZX %*% rho$fixef, system = "Lt"), system = "Pt"))
+    rho$fitted <- as.vector(crossprod(Ut, rho$u) + rho$X %*% rho$fixef)
     rho$resid <- rho$y - rho$fitted
     n <- length(rho$y)
     rho$ldL2 + n * (1 + log((2 * pi * sum(c(rho$resid, rho$u)^2)/n)))
