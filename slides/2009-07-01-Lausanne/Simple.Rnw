@@ -19,7 +19,6 @@
   \tableofcontents[pausesections,hideallsubsections]
 \end{frame}
 
-\newcommand{\bc}[1]{\ensuremath{\bm{\mathcal{#1}}}}
 \SweaveOpts{engine=R,eps=FALSE,pdf=TRUE,width=10,height=6.5,strip.white=all}
 \SweaveOpts{prefix=TRUE,prefix.string=figs/data,include=TRUE}
 \setkeys{Gin}{width=\textwidth}
@@ -28,8 +27,8 @@ options(width=69,show.signif.stars=FALSE)
 library(lattice)
 library(Matrix)
 library(lme4)
-lattice.options(default.theme = function() standard.theme())
-#lattice.options(default.theme = function() standard.theme(color=FALSE))
+#lattice.options(default.theme = function() standard.theme())
+lattice.options(default.theme = function() standard.theme(color=FALSE))
 if (exists("classroom.rda")) {
     load("classroom.rda")
 } else {

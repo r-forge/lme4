@@ -28,8 +28,8 @@ options(width=65,show.signif.stars=FALSE)
 library(lattice)
 library(Matrix)
 library(lme4)
-lattice.options(default.theme = function() standard.theme())
-#lattice.options(default.theme = function() standard.theme(color=FALSE))
+#lattice.options(default.theme = function() standard.theme())
+lattice.options(default.theme = function() standard.theme(color=FALSE))
 @ 
 
 \section[sleepstudy]{Longitudinal data: sleepstudy}

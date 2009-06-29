@@ -29,8 +29,8 @@ library(Matrix)
 library(lme4)
 data(Machines, package = "MEMSS")
 Machines <- Machines[with(Machines,order(Worker, Machine)),]
-lattice.options(default.theme = function() standard.theme())
-#lattice.options(default.theme = function() standard.theme(color=FALSE))
+#lattice.options(default.theme = function() standard.theme())
+lattice.options(default.theme = function() standard.theme(color=FALSE))
 if (exists("ratbrain.rda")) {
     load("ratbrain.rda")
 } else {
