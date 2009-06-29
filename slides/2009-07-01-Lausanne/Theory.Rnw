@@ -25,13 +25,10 @@
 <<preliminaries,echo=FALSE,results=hide>>=
 options(width=69,show.signif.stars=FALSE)
 library(lattice)
-lattice.options(default.theme = function() standard.theme())
-#lattice.options(default.theme = function() standard.theme(color=FALSE))
+#lattice.options(default.theme = function() standard.theme())
+lattice.options(default.theme = function() standard.theme(color=FALSE))
 library(Matrix)
-#library(lme4)
-data(Dyestuff, package = "lme4")
-data(Penicillin, package = "lme4")
-data(Pastes, package = "lme4")
+library(lme4)
 if (exists("classroom.rda")) {
     load("classroom.rda")
 } else {
@@ -45,7 +42,7 @@ if (exists("classroom.rda")) {
     save(classroom, file = "classroom.rda")
 }
 
-simplemer <- function(flist, y, X, theta0 = rep.int(1, length(flist)), super = FALSE)
+simplemer <- function(flist, y, X, REML = TRUE, super = FALSE)
 {
     ## check arguments for consistency
     stopifnot(is.numeric(y),
@@ -55,48 +52,37 @@ simplemer <- function(flist, y, X, theta0 = rep.int(1, length(flist)), super = F
               is.list(flist),
               length(flist) > 0,
               all(sapply(flist, is.factor)),
-              all(sapply(flist, length) == n),
-              is.numeric(theta0),
-              length(theta0) == (k <- length(flist)))
+              all(sapply(flist, length) == n))
     super <- as.logical(super)[1]
-    
-    ## create an empty environment
-    rho <- new.env(parent = emptyenv())
-    
-    ## save arguments and derived values in the environment
-    rho$theta <- theta0
-    rho$y <- y
+
+    rho <- new.env(parent = emptyenv()) # create an empty environment
+    rho$y <- y                    # store arguments and derived values
     rho$X <- X
-    rho$flist <- flist
     chol(rho$XtX <- crossprod(X))       # check for full column rank
-    rho$Xty <- crossprod(X, y)
+    rho$REML <- as.logical(REML)[1]
 
     rho$Zt <- do.call(rBind, lapply(flist, as, "sparseMatrix"))
     rho$nlev <- sapply(flist, function(x) length(levels(factor(x))))
     rho$L <- Cholesky(tcrossprod(rho$Zt), LDL = FALSE, Imult = 1, super = super)
-    setPars(rho, theta0)
     return(rho)
 }
 
-setPars <- function(rho, theta)
-{
-    stopifnot(is.numeric(theta),
-              length(theta) == length(rho$theta))
-    rho$theta <- theta
+profDev <- function(rho, theta) {
+    stopifnot(is.numeric(theta), length(theta) == length(rho$nlev))
     Ut <- crossprod(Diagonal(x = rep.int(theta, rho$nlev)), rho$Zt)
-    L <- rho$L <- update(rho$L, Ut, mult = 1)
-    rho$ldL2 <- as.vector(determinant(L, logarithm = TRUE)$modulus)
-    cu <- solve(L, solve(L, Ut %*% rho$y, system = "P"), system = "L")
-    rho$RZX <- solve(L, solve(L, Ut %*% rho$X, system = "P"), system = "L")
-    rho$RX <- chol(rho$XtX - crossprod(rho$RZX))
-    cb <- solve(t(rho$RX), rho$Xty - crossprod(rho$RZX, cu))
-    rho$fixef <- as.vector(solve(rho$RX, cb))
-    rho$u <- as.vector(solve(L, solve(L, cu - rho$RZX %*% rho$fixef, system = "Lt"), system = "Pt"))
-    rho$fitted <- as.vector(crossprod(Ut, rho$u) + rho$X %*% rho$fixef)
-    rho$resid <- rho$y - rho$fitted
-    n <- length(rho$y)
-    rho$ldL2 + n * (1 + log((2 * pi * sum(c(rho$resid, rho$u)^2)/n)))
-}
+    L <- update(rho$L, Ut, mult = 1)
+    cu <- solve(L, solve(L, Ut %*% rho$y, sys = "P"), sys = "L")
+    RZX <- solve(L, solve(L, Ut %*% rho$X, sys = "P"), sys = "L")
+    RX <- chol(rho$XtX - crossprod(RZX))
+    cb <- solve(t(RX), crossprod(rho$X, rho$y) - crossprod(RZX, cu))
+    beta <- solve(RX, cb)
+    u <- solve(L, solve(L, cu - RZX %*% beta, sys = "Lt"), sys = "Pt")
+    fitted <- as.vector(crossprod(Ut, u) + rho$X %*% beta)
+    prss <- sum(c(rho$y - fitted, as.vector(u))^2) # penalized residual sum of squares
+    n <- length(fitted);  p <- ncol(RX)
+    if (rho$REML) return(determinant(L)$mod + 2*determinant(RX)$mod +
+                         (n-p)*(1+log(2*pi*prss/(n-p))))
+    determinant(L)$mod + n * (1 + log(2*pi*prss/n))}
 @ 
 
 \section[Definition]{Definition of linear mixed models}
@@ -374,7 +360,7 @@ print(image(Lperm, xlab = NULL, ylab = NULL, sub = "Lperm"),
 @ 
   \end{center}
   \begin{itemize}
-  \item Without permutation, we get the worse possible fill-in.  With
+  \item Without permutation, we get the worst possible fill-in.  With
     a fill-reducing permutation we get much less but still not as good
     as the original factor order.
   \item This is why the permutation is called
@@ -508,16 +494,170 @@ print(image(L, xlab = NULL, ylab = NULL, sub = "L"),
     $r^2(\bm\theta,\bm\beta)$.
   \end{itemize}
 \end{frame}
+\begin{frame}
+  \frametitle{Profiling the deviance with respect to $\bm\beta$}
+  \begin{itemize}
+  \item Because the deviance depends on $\bm\beta$ only through
+    $r^2(\bm\theta,\bm\beta)$ we can obtain the conditional estimate,
+    $\widehat{\bm\beta}(\bm\theta)$, by extending the PLS problem to
+    \begin{displaymath}
+      r^2(\bm\theta)=\min_{\bm u,\bm\beta}
+      \left[\left\|\bm y-\bm X\bm\beta-\bm U(\bm\theta)\bm u\right\|^2 +
+      \left\|\bm u\right\|^2\right]
+    \end{displaymath}
+    with the solution satisfying the equations
+    \begin{displaymath}
+      \begin{bmatrix}
+        \bm U(\bm\theta)\trans\bm U(\bm\theta)+\bm I_q & \bm
+        U(\bm\theta)\trans\bm X\\
+        \bm X\trans\bm U(\bm\theta) & \bm X\trans\bm X
+      \end{bmatrix}
+      \begin{bmatrix}
+        \bm\mu_{\bc U|\bc Y=\bm y}\\\widehat{\bm\beta}(\bm\theta)
+      \end{bmatrix}=
+      \begin{bmatrix}\bm U(\bm\theta)\trans\bm y\\\bm X\trans\bm y .
+      \end{bmatrix}
+    \end{displaymath}
+  \item The profiled deviance, which is a function of $\bm\theta$
+    only, is
+    \begin{displaymath}
+      -2\tilde{\ell}(\bm\theta)=\log(|\bm L(\bm\theta)|^2)+
+      n\left[1+\log\left(\frac{2\pi r^2(\bm\theta)}{n}\right)\right]
+    \end{displaymath}
+  \end{itemize}
+\end{frame}
+\begin{frame}
+  \frametitle{Solving the extended PLS problem}
+  \begin{itemize}
+  \item For brevity we will no longer show the dependence of matrices
+    and vectors on the parameter $\bm\theta$.
+  \item As before we use the sparse Cholesky decomposition, with $\bm
+    L$ and $\bm P$ satisfying $\bm L\bm L\trans=\bm P(\bm U\trans\bm
+    U+\bm I)$ and $\bm c_{\bm u}$, the solution to $\bm L\bm c_{\bm
+      u}=\bm P\bm U\trans\bm y$.
+  \item We extend the decomposition with the $q\times p$ matrix $\bm
+    R_{ZX}$, the upper triangular $p\times p$ matrix $\bm R_X$, and
+    the $p$-vector $\bm c_{\bm\beta}$ satisfying
+    \begin{align*}
+      \bm L\bm R_{ZX}&=\bm P\bm U\trans\bm X\\
+      \bm R_X\trans\bm R_X&=\bm X\trans\bm X-\bm R_{ZX}\trans\bm R_{ZX}\\
+      \bm R_X\trans\bm c_{\bm\beta}&=\bm X\trans\bm y-\bm
+      R_{ZX}\trans\bm c_{\bm u}
+    \end{align*}
+    so that
+    \begin{displaymath}
+      \begin{bmatrix}
+        \bm P\trans\bm L& \bm 0\\
+        \bm R_{ZX}\trans & \bm R_X\trans
+      \end{bmatrix}
+      \begin{bmatrix}
+        \bm L\trans\bm P & \bm R_{ZX}\\
+        \bm 0            & \bm R_X
+      \end{bmatrix}=
+      \begin{bmatrix}
+        \bm U\trans\bm U+\bm I & \bm U\trans\bm X\\
+        \bm X\trans\bm U       & \bm X\trans\bm X
+      \end{bmatrix} .
+    \end{displaymath}
+  \end{itemize}
+\end{frame}
+\begin{frame}
+  \frametitle{Solving the extended PLS problem (cont'd)}
+  \begin{itemize}
+  \item Finally we solve
+    \begin{align*}
+      \bm R_X\widehat{\bm\beta}(\bm\theta)&=\bm c_{\bm\beta}\\
+      \bm L\trans\bm P\bm\mu_{\bc U|\bc Y}&=\bm c_{\bm u}-\bm R_{ZX}\widehat{\bm\beta}(\bm\theta)
+    \end{align*}
+  \item The profiled REML criterion also can be expressed simply.
+    The criterion is
+    \begin{displaymath}
+      L_R(\bm\theta,\sigma^2|\bm y)=\int L(\bm\theta,\bm\beta,\sigma^2|\bm y)\,d\bm\beta
+    \end{displaymath}
+    The same change-of-variable technique for evaluating
+    the integral w.r.t. $\bm u$ as $1/\abs(|\bm L|)$ produces 
+    $1/\abs(|\bm R_X|)$ here and removes
+    $(2\pi\sigma^2)^{p/2}$ from the denominator.  On the deviance
+    scale, the profiled REML criterion is
+    \begin{displaymath}
+      -2\tilde{\ell}_R(\bm\theta)=\log(|\bm L|^2)+\log(|\bm R_x|^2)+
+      (n-p)\left[1+\log\left(\frac{2\pi r^2(\bm\theta)}{n-p}\right)\right]
+    \end{displaymath}
+  \item These calculations can be expressed in a few lines of \R code.
+    Assume \code{rho} contains \code{y}, \code{X}, \code{Zt}, \code{REML}, \code{L},
+    \code{nlev} and \code{XtX} ($\bm X\trans\bm X$).
+  \end{itemize}
+\end{frame}
+\begin{frame}[fragile]
+  \frametitle{Code for evaluating the profiled deviance}
+\begin{Schunk}
+\begin{Sinput}
+profDev <- function(rho, theta) {
+  stopifnot(is.numeric(theta), length(theta)==length(rho$nlev))
+  Ut <- crossprod(Diagonal(x=rep.int(theta,rho$nlev)),rho$Zt)
+  L <- update(rho$L, Ut, mult = 1)
+  cu <- solve(L, solve(L, Ut %*% rho$y, sys = "P"), sys = "L")
+  RZX <- solve(L, solve(L, Ut %*% rho$X, sys = "P"), sys = "L")
+  RX <- chol(rho$XtX - crossprod(RZX))
+  cb <- solve(t(RX),crossprod(rho$X,rho$y)- crossprod(RZX, cu))
+  beta <- solve(RX, cb)
+  u <- solve(L,solve(L,cu - RZX %*% beta, sys="Lt"), sys="Pt")
+  fitted <- as.vector(crossprod(Ut, u) + rho$X %*% beta)
+  prss <- sum(c(rho$y - fitted, as.vector(u))^2)
+  n <- length(fitted);  p <- ncol(RX)
+  if (rho$REML) return(determinant(L)$mod +
+                       2 * determinant(RX)$mod +
+                       (n-p) * (1+log(2*pi*prss/(n-p))))
+  determinant(L)$mod + n * (1 + log(2*pi*prss/n))
+}
+\end{Sinput}
+\end{Schunk}
+\end{frame}
+ %$
+
+\begin{frame}[fragile]
+  \frametitle{Checking profDev, lmer version of fit}
+<<fm1>>=
+invisible(lmer(mathgain ~ mathkind + minority + ses + (1|classid) + (1|schoolid), classroom, verbose = 1, REML = FALSE))
+@   
+\end{frame}
+
+\begin{frame}[fragile]
+  \frametitle{Checking profDev, nlminb applied to profDev}
+<<profDev1>>=
+ls.str(rho <- with(classroom, simplemer(list(classid, schoolid), mathgain, model.matrix(~ mathkind + minority + ses), REML = FALSE)))
+invisible(nlminb(c(0.836158, 0.489669), function(x) profDev(rho, x), lower = c(0,0), control = list(trace = 1)))
+@   
+\end{frame}
+
+\begin{frame}
+  \frametitle{How lmer works}
+  \begin{itemize}
+  \item Essentially \code{lmer} takes its arguments and creates a
+    structure like the \code{rho} environment shown above.  The
+    optimization of the profiled deviance or the profiled REML
+    criterion happens within this environment.
+  \item The creation of $\bm\Lambda(\bm\theta)$ is somewhat more
+    complex for models with vector-valued random effects but not
+    excessively so.
+  \item Some care is taken to avoid allocating storage for large
+    objects during each function evaluation.  Many of the objects
+    created in \code{profDev} are updated in place within \code{lmer}.
+
+  \item Once the optimizer, \code{nlminb}, has converged some
+    additional information for the summary is calculated.
+  \end{itemize}
+\end{frame}
+
 \begin{frame}\frametitle{Recap}
   \begin{itemize}
   \item For a linear mixed model, even one with a huge number of
     observations and random effects like the model for the grade point
     scores, evaluation of the ML or REML profiled deviance, given a
     value of $\bm\theta$, is straightforward.  It involves updating
-    $\bm T$ and $\bm S$, then updating $\bm A$,  $\bm L$, $\bm
-    R_{\bm Z\bm X}$, $\bm R_{\bm X}$, calculating the penalized
-    residual sum of squares, $r$ and a couple of determinants of
-    triangular matrices.
+    $\bm\Lambda$, $\bm U$, $\bm L$, $\bm R_{ZX}$, $\bm R_{X}$,
+    calculating the penalized residual sum of squares,
+    $r^2(\bm\theta)$ and two determinants of triangular matrices.
   \item The profiled deviance can be optimized as a function of
     $\bm\theta$ only.  The dimension of $\bm\theta$ is usually very
     small.  For the grade point scores there are only three components
