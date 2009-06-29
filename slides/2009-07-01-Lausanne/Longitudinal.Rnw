@@ -19,7 +19,6 @@
   \tableofcontents[pausesections,hideallsubsections]
 \end{frame}
 
-\newcommand{\bc}[1]{\ensuremath{\bm{\mathcal{#1}}}}
 \SweaveOpts{engine=R,eps=FALSE,pdf=TRUE,width=10,height=6.5,strip.white=all}
 \SweaveOpts{prefix=TRUE,prefix.string=figs/long,include=TRUE}
 \setkeys{Gin}{width=\textwidth}
