@@ -402,7 +402,7 @@ str(unstack(InsectSprays))
 \end{frame}
 
 <<classprep,echo=FALSE,results=hide>>=
-if (exists("classroom.rda")) {
+if (file.exists("classroom.rda")) {
     load("classroom.rda")
 } else {
     classroom <- within(read.csv("http://www-personal.umich.edu/~bwest/classroom.csv"),
