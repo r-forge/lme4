@@ -29,7 +29,7 @@ library(lattice)
 lattice.options(default.theme = function() standard.theme(color=FALSE))
 library(Matrix)
 library(lme4)
-if (exists("classroom.rda")) {
+if (file.exists("classroom.rda")) {
     load("classroom.rda")
 } else {
     classroom <- within(read.csv("http://www-personal.umich.edu/~bwest/classroom.csv"),

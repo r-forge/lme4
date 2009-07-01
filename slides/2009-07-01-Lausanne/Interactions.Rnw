@@ -31,7 +31,7 @@ data(Machines, package = "MEMSS")
 Machines <- Machines[with(Machines,order(Worker, Machine)),]
 #lattice.options(default.theme = function() standard.theme())
 lattice.options(default.theme = function() standard.theme(color=FALSE))
-if (exists("ratbrain.rda")) {
+if (file.exists("ratbrain.rda")) {
     load("ratbrain.rda")
 } else {
     ratbrain <- within(read.delim("http://www-personal.umich.edu/~bwest/rat_brain.dat"),
