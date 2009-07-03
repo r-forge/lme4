@@ -1,0 +1,135 @@
+\documentclass[11pt,a4rpaper]{article}
+\usepackage[top=1.1in,bottom=1in,left=0.9in,headheight=14pt,right=0.9in]{geometry}
+\usepackage{paralist,mdwlist,Sweave,amsmath,amsbsy,graphicx,alltt,fancyhdr,url}
+
+
+\setkeys{Gin}{width=\textwidth}
+\DefineVerbatimEnvironment{Sinput}{Verbatim}
+{formatcom={\vspace{-1.5ex}},fontshape=sl,
+  fontfamily=courier,fontseries=b, fontsize=\small}
+\DefineVerbatimEnvironment{Soutput}{Verbatim}
+{formatcom={\vspace{-2.5ex}},fontfamily=courier,fontseries=b,fontsize=\small}
+\usepackage{fancyhdr}
+\lhead{\sf Mixed-effects models workshop}\chead{\sf Exercises \#2}
+\rhead{\sf 2009-07-01 (p. \thepage)}
+\lfoot{\sf Lattice graphics}\cfoot{}\rfoot{}
+\pagestyle{fancy}
+\newcommand{\code}[1]{\texttt{\small #1}}
+\newcommand{\R}{\textsf{R}}
+\begin{document}
+Load the \code{classroom} data frame that you saved in the previous
+set of exercises and attach the \code{lattice} package.
+\begin{Schunk}
+\begin{Sinput}
+> load("classroom.rda")
+> library(lattice)
+\end{Sinput}
+\end{Schunk}
+\begin{enumerate}
+\item Create a histogram of the \code{mathkind} (mathematics score in
+  kindergarten) variable.
+\begin{center}
+\includegraphics{figs/ex2-histogram}
+\end{center}
+\item Create an empirical density plot of \code{mathkind}.
+\begin{center}
+\includegraphics{figs/ex2-density}
+\end{center}
+
+\item Create an empirical density plot of \code{mathkind} by sex using
+  the optional argument \code{groups = sex}.  It is probably a good
+  idea to suppress the points in the ``rug''.  Remember to use
+  \code{auto.key} so you can tell which curve is which.
+\begin{center}
+\includegraphics{figs/ex2-densitysex}
+\end{center}
+
+\item Create an empirical density plot of \code{mathkind} with one
+  curve for minority students and one for non-minority students.
+\begin{center}
+\includegraphics{figs/ex2-densityminority}
+\end{center}
+
+\item Create a scatter-plot of
+  the \code{mathgain} versus the kindergarten score.  Add a reference
+  grid and a scatterplot smoother curve with the optional argument
+  \code{type = c("g", "p", "smooth")}.  Repeat this plot using \code{"r"}
+  instead of \code{"smooth"} to add a reference (or ``regression'')
+  line.
+\begin{center}
+\includegraphics{figs/ex2-xyplot}
+\end{center}
+
+\item The negative correlation between \code{mathkind} and \code{mathgain} 
+\begin{Schunk}
+\begin{Sinput}
+> with(classroom, cor(mathkind, mathgain))
+\end{Sinput}
+\begin{Soutput}
+[1] -0.4870136
+\end{Soutput}
+\end{Schunk}
+  is not surprising because \code{mathgain} is the grade 1 score minus
+  the kindergarten score.  Create a new variable \code{math1} which is
+  the sum of \code{mathkind} and \code{mathgain}
+\begin{Schunk}
+\begin{Sinput}
+> classroom <- within(classroom, math1 <- mathkind + mathgain)
+> with(classroom, cor(mathkind, math1))
+\end{Sinput}
+\begin{Soutput}
+[1] 0.6311802
+\end{Soutput}
+\end{Schunk}
+  and plot \code{math1} versus \code{mathkind}.  The version shown
+  below uses the optional argument \code{aspect="iso"} to ensure that a
+  unit change on the x axis corresponds to a unit change on the y axis.
+\begin{center}
+\includegraphics{figs/ex2-xyplot1}
+\end{center}
+
+\item Create a multi-panel scatterplot of \code{math1} versus
+  \code{mathkind} with separate panels for males and females.
+\begin{center}
+\includegraphics{figs/ex2-xyplot2}
+\end{center}
+\item Create a multi-panel scatterplot of \code{math1} versus
+  \code{mathkind} with separate panels for minority and non-minority
+  students.
+\begin{center}
+\includegraphics{figs/ex2-xyplot3}
+\end{center}
+\item Create a multi-panel scatterplot of \code{math1} versus
+  \code{mathkind} classified according to \code{sex} and \code{minority}
+\begin{center}
+\includegraphics{figs/ex2-xyplot4}
+\end{center}
+\item Consider only the students in school 11.  The study includes
+  students from nine different classrooms in that school.
+\begin{Schunk}
+\begin{Sinput}
+> xtabs(~classid, classroom, schoolid == 11, drop = TRUE)
+\end{Sinput}
+\begin{Soutput}
+classid
+ 86 113 131 172 195 201 233 285 293 
+  5   3   2   4   4   5   1   3   4 
+\end{Soutput}
+\end{Schunk}
+  Create a dot-plot of the \code{mathgain} by classroom for students
+  in school 11 only.
+  \begin{center}
+\includegraphics{figs/ex2-dotplot1}
+  \end{center}
+  Repeat the plot reordering the classrooms according to increasing
+  mean gain and joining the classroom averages.
+  \begin{center}
+\includegraphics{figs/ex2-dotplot2}
+  \end{center}
+\end{enumerate}
+\end{document}
+
+%%% Local Variables: 
+%%% mode: latex
+%%% TeX-master: t
+%%% End: 

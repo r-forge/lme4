@@ -1,0 +1,362 @@
+% NOTE -- ONLY EDIT THE .Rnw FILE!!!  The .tex file is
+% likely to be overwritten.
+\usepackage{SweaveSlides}
+\title[lme4]{Mixed models in R using the lme4 package\\Part 8: Nonlinear mixed models}
+\subject{NLMM}
+\date[July 3, 2009]{University of Lausanne\\July 3, 2009}
+\AtBeginSection[]
+{
+  \begin{frame}<beamer>
+    \frametitle{Outline}
+    \tableofcontents[currentsection]
+  \end{frame}
+}
+\begin{document}
+\frame{\titlepage}
+\begin{frame}
+  \frametitle{Outline}
+  \tableofcontents[pausesections,hideallsubsections]
+\end{frame}
+
+\SweaveOpts{engine=R,eps=FALSE,pdf=TRUE,width=10,height=6.5,strip.white=all}
+\SweaveOpts{prefix=TRUE,prefix.string=figs/NLMM,include=TRUE}
+\setkeys{Gin}{width=\textwidth}
+<<preliminaries,echo=FALSE,results=hide>>=
+options(width=60,show.signif.stars=FALSE)
+library(lattice)
+library(Matrix)
+library(lme4)
+@ 
+\begin{frame}
+  \frametitle{Nonlinear mixed-effects models (NLMM)}
+  \begin{itemize}
+  \item The LMM and GLMM are powerful data analysis tools.
+  \item The ``common denominator'' of these models is the expression
+    for the linear predictor.  The models require that the fixed
+    effects parameters and the random effects occur linearly in
+    \begin{displaymath}
+      \bm\eta=\bm Z\bm b+\bm X\bm\beta=\bm U\bm u+\bm X\bm\beta
+    \end{displaymath}
+  \item This is a versatile and flexible way of specifying
+    \Emph{empirical} models, whose form is determined from the data.
+  \item In many situations, however, the form of the model is derived
+    from external considerations of the mechanism generating the
+    response.  The parameters in such \Emph{mechanistic} models often
+    occur nonlinearly.
+  \item Mechanistic models can emulate behavior like the response
+    approaching an asymptote, which is not possible with models that
+    are linear in the parameters.
+  \end{itemize}
+\end{frame}
+\begin{frame}[fragile]
+  \frametitle{The Michaelis-Menten model, SSmicmen}
+  \centerline{$y = \frac{\phi_1x}{x+\phi_2}$}
+  \begin{center}
+<<SSmicmenplot,fig=TRUE,echo=FALSE,height=5>>=
+  xx <- seq(0, 5, len = 101)
+  yy <- 5 * xx/(1+xx)
+  par(mar = c(0, 0, 0, 0))
+  plot(xx, yy, type = "l", axes = F, ylim = c(0,6), xlim = c(-1, 5),
+       xlab = "", ylab = "", lwd = 2)
+  usr <- par("usr")
+  arrows(usr[1], 0, usr[2], 0, length = 0.1, angle = 25)
+  arrows(0, usr[3], 0, usr[4], length = 0.1, angle = 25)
+  text(usr[2] - 0.2, 0.1, "x", adj = c(1, 0))
+  text(-0.1, usr[4], "y", adj = c(1, 1))
+  abline(h = 5, lty = 2, lwd = 0)
+  arrows(-0.8, 2.1, -0.8, 0, length = 0.1, angle = 25)
+  arrows(-0.8, 2.9, -0.8, 5, length = 0.1, angle = 25)
+  text(-0.8, 2.5, expression(phi[1]), adj = c(0.5, 0.5))
+  segments(1, 0, 1, 2.7, lty = 2, lwd = 0.75)
+  text(1, 2.7, expression(phi[2]), adj = c(0.5, 0))
+@ 
+  \end{center}
+  $\phi_1$ (called $V_m$ in enzyme kinetics) is the maximum reaction
+  velocity, $\phi_2$ ($K$) is the concentration at which $y=\phi_1/2$.
+\end{frame}
+\begin{frame}[fragile]
+  \frametitle{The ``asymptotic regression'' model, SSasymp}
+\centerline{$y=\phi_1+(\phi_1-\phi_2)e^{-\phi_3 x}$}
+<<ssasympplot,fig=TRUE,echo=FALSE>>=  
+xx <- seq(0, 5, len = 101)
+yy <- 5 - 4 * exp(-xx/(2*log(2)))
+par(mar = c(0, 0, 0, 0))
+plot(xx, yy, type = "l", axes = F, ylim = c(0,6), xlim = c(-1, 5),
+xlab = "", ylab = "", lwd = 2)
+usr <- par("usr")
+arrows(usr[1], 0, usr[2], 0, length = 0.1, angle = 25)
+arrows(0, usr[3], 0, usr[4], length = 0.1, angle = 25)
+text(usr[2] - 0.2, 0.1, "x", adj = c(1, 0))
+text(-0.1, usr[4], "y", adj = c(1, 1))
+abline(h = 5, lty = 2, lwd = 0)
+arrows(-0.8, 2.1, -0.8, 0, length = 0.1, angle = 25)
+arrows(-0.8, 2.9, -0.8, 5, length = 0.1, angle = 25)
+text(-0.8, 2.5, expression(phi[1]), adj = c(0.5, 0.5))
+segments(-0.4, 1, 0, 1, lty = 2, lwd = 0.75)
+arrows(-0.3, 0.25, -0.3, 0, length = 0.07, angle = 25)
+arrows(-0.3, 0.75, -0.3, 1, length = 0.07, angle = 25)
+text(-0.3, 0.5, expression(phi[2]), adj = c(0.5, 0.5))
+segments(1, 3.025, 1, 4, lty = 2, lwd = 0.75)
+arrows(0.2, 3.5, 0, 3.5, length = 0.08, angle = 25)
+arrows(0.8, 3.5, 1, 3.5, length = 0.08, angle = 25)
+text(0.5, 3.5, expression(t[0.5]), adj = c(0.5, 0.5))
+@ 
+\end{frame}
+\begin{frame}[fragile]
+  \frametitle{The logistic growth model, SSlogis}
+\centerline{$y=\frac{\phi_1}{1 + e^{-(x - \phi_2)/\phi_3}}$}
+<<SSlogisplot,fig=TRUE,echo=FALSE,height=5.8>>=  
+xx <- seq(-0.5, 5, len = 101)
+yy <- 5 / ( 1 + exp((2-xx)))
+par(mar = c(0, 0, 0, 0))
+plot(xx, yy, type = "l", axes = F, ylim = c(0,6), xlim = c(-1, 5),
+     xlab = "", ylab = "", lwd = 2)
+usr <- par("usr")
+arrows(usr[1], 0, usr[2], 0, length = 0.1, angle = 25)
+arrows(0, usr[3], 0, usr[4], length = 0.1, angle = 25)
+text(usr[2] - 0.2, 0.1, "x", adj = c(1, 0))
+text(-0.1, usr[4], "y", adj = c(1, 1))
+abline(h = 5, lty = 2, lwd = 0)
+arrows(-0.8, 2.1, -0.8, 0, length = 0.1, angle = 25)
+arrows(-0.8, 2.9, -0.8, 5, length = 0.1, angle = 25)
+text(-0.8, 2.5, expression(phi[1]), adj = c(0.5, 0.5))
+segments(2, 0, 2, 4.0, lty = 2, lwd = 0.75)
+text(2, 4.0, expression(phi[2]), adj = c(0.5, 0))
+segments(3, 5/(1+exp(-1)) + 0.025, 3, 4.0, lty = 2, lwd = 0.75)
+arrows(2.3, 3.8, 2.0, 3.8, length = 0.08, angle = 25)
+arrows(2.7, 3.8, 3.0, 3.8, length = 0.08, angle = 25)
+text(2.5, 3.8, expression(phi[3]), adj = c(0.5, 0.5))
+@ 
+\end{frame}
+\begin{frame}
+  \frametitle{Modeling repeated measures data with a nonlinear model}
+  \begin{itemize}
+  \item Nonlinear mixed-effects models are used extensively with
+    longitudinal pharmacokinetic data.
+  \item For such data the time pattern of an individual's response is
+    determined by pharmacokinetic parameters (e.g. rate constants)
+    that occur nonlinearly in the expression for the expected response.
+  \item The form of the nonlinear model is determined by the
+    pharmacokinetic theory, not derived from the data.
+    \begin{displaymath}
+      d\cdot k_e\cdot k_a\cdot C\frac{e^{-k_et}-e^{-k_at}}{k_a-k_e}
+    \end{displaymath}
+  \item These pharmacokinetic parameters vary over the population.  We
+    wish to characterize typical values in the population and the
+    extent of the variation.
+  \item Thus, we associate random effects with the parameters, $k_a$,
+    $k_e$ and $C$ in the nonlinear model.
+  \end{itemize}
+\end{frame}
+\begin{frame}
+  \frametitle{A simple example - logistic model of growth curves}
+  \begin{itemize}
+  \item The \code{Orange} data set are measurements of the growth of a
+    sample of five orange trees in a location in California.
+  \item The response is the circumference of the tree at a particular
+    height from the ground (often converted to ``diameter at breast
+    height'').
+  \item The covariates are \code{age} (days) and \code{Tree} (balanced).
+  \item A data plot indicates that the growth patterns are similar but
+    the eventual heights vary.
+  \item One possible growth model is the \Emph{logistic} growth model
+    \begin{displaymath}
+      f(t,A,t_0,s) = \frac{A}{1+e^{-(t-t_0)/s}}
+    \end{displaymath}
+    which can be seen to be related to the inverse logit link function.
+  \end{itemize}
+\end{frame}
+\begin{frame}
+  \frametitle{Orange tree growth data}
+<<Orangeplot,fig=TRUE,echo=FALSE>>=
+print(xyplot(circumference ~ age, Orange, groups = Tree, type = c("g","b"),
+             xlab = "Age of tree (days)", ylab = "Circumference"))
+@ 
+\end{frame}
+\begin{frame}
+  \frametitle{Using nlmer}
+  \begin{itemize}
+  \item The nonlinear mixed-effects model is fit with the \code{nlmer}
+    function in the \code{lme4} package.
+  \item The formula argument for \code{nlmer} is in three parts: the
+    response, the nonlinear model function depending on covariates and
+    a set of nonlinear model (nm) parameters, and the mixed-effects formula.
+  \item There is no longer a concept of an intercept or a \code{1}
+    term in the mixed-effects model.  All terms in the mixed-effects
+    formula incorporate names of nm parameters.
+  \item The default term for the fixed-effects is a separate
+    ``intercept'' parameter for each nm parameter.
+  \item At present, the nonlinear model must provide derivatives, in
+    addition to the expected response.  The \code{deriv} function can
+    be used to create such a function from an expression.
+  \item The starting values for the fixed effects must also be given.
+    It is safest to phrase these as a named vector.
+  \end{itemize}
+\end{frame}
+\begin{frame}[fragile]
+  \frametitle{Model fit for orange tree data}
+<<nm1>>=
+print(nm1 <- nlmer(circumference ~ SSlogis(age, Asym, xmid, scal) ~
+                   Asym | Tree, Orange,
+                   start = c(Asym = 200, xmid = 770, scal = 120)),
+      corr = FALSE)
+@ 
+\end{frame}
+\begin{frame}[fragile]
+  \frametitle{Random effects for trees}
+<<OrangeREplot,fig=TRUE,echo=FALSE,results=hide>>=  
+print(dotplot(ranef(nm1, post = TRUE),
+              ylab = "Tree", strip = FALSE)[[1]])
+@ 
+\end{frame}
+\begin{frame}
+  \frametitle{Extending the model}
+  \begin{itemize}
+  \item Model \code{nm1} incorporates random effects for the asymptote
+    only.  The asymptote parameter occurs linearly in the model
+    expression.  When random effects are associated with only such
+    \Emph{conditionally linear} parameters, the Laplace approximation
+    to the deviance is exact.
+  \item We can allow more general specifications of random effects.
+    In practice it is difficult to estimate many variance and
+    covariance parameters when the number of levels of the grouping
+    factor (\code{Tree}) is small.
+  \item Frequently we begin with independent random effects to see
+    which parameters show substantial variability.  Later we allow
+    covariances.
+  \item This is not a fool-proof modeling strategy by any means but it
+    is somewhat reasonable.
+  \end{itemize}
+\end{frame}
+\begin{frame}[fragile]
+  \frametitle{Independent random effects for each parameter}
+<<nm2,echo=FALSE>>=
+print(nm2 <- nlmer(circumference ~ SSlogis(age, Asym, xmid, scal) ~
+                   (Asym | Tree) + (xmid | Tree) + (scal|Tree), Orange,
+                   start = c(Asym = 200, xmid = 770, scal = 120)),
+      corr = FALSE)
+@ 
+\end{frame}
+\begin{frame}[fragile]
+  \frametitle{Correlated random effects for Asym and scal only}
+<<nm3,echo=FALSE>>=
+print(nm3 <- nlmer(circumference ~ SSlogis(age, Asym, xmid, scal) ~
+                   (Asym + scal|Tree), Orange,
+                   start = c(Asym = 200, xmid = 770, scal = 120)),
+      corr = FALSE)
+@ 
+\end{frame}
+\begin{frame}[fragile]
+  \frametitle{Singular variance-covariance matrix}
+<<Orangereplot2,fig=TRUE,echo=FALSE,results=hide,height=5>>=  
+print(dotplot(ranef(nm3, post = TRUE),
+              scales = list(x = list(relation = "free")),
+              ylab = "Tree")[[1]])
+@ 
+\end{frame}
+\begin{frame}[fragile]
+  \frametitle{Theophylline pharmacokinetics}
+<<Theophplot,fig=TRUE,echo=FALSE>>=  
+print(xyplot(conc ~ Time|Subject, Theoph, type = c("g","b"),
+             xlab = "Time since drug administration (hr)",
+             ylab = "Serum concentration (mg/l)"))
+@ 
+\end{frame}
+\begin{frame}[fragile]
+  \frametitle{Initial fit of first-order model}
+<<nm4,echo=FALSE>>=  
+Th.start <- c(lKe = -2.5, lKa = 0.5, lCl = -3)
+print(nm4 <- nlmer(conc ~ SSfol(Dose,Time,lKe,lKa,lCl) ~
+                   (lKe+lKa+lCl|Subject), Theoph, start = Th.start),
+      corr = FALSE)
+@ 
+\end{frame}
+\begin{frame}[fragile]
+  \frametitle{Remove random effect for lKe}
+<<nm5,echo=FALSE>>=  
+print(nm5 <- nlmer(conc ~ SSfol(Dose,Time,lKe,lKa,lCl) ~
+                   (lKa+lCl|Subject), Theoph, start = Th.start),
+      corr = FALSE)
+@ 
+\end{frame}
+\begin{frame}[fragile]
+  \frametitle{Remove correlation}
+<<>>=  
+print(nm6 <- nlmer(conc ~ SSfol(Dose,Time,lKe,lKa,lCl) ~
+                   (lKa|Subject) + (lCl|Subject), Theoph,
+                   start = Th.start),
+      corr = FALSE)
+@ 
+\end{frame}
+\begin{frame}[fragile]
+  \frametitle{Random effects for clearance and absorption}
+<<TheophREplot,fig=TRUE,echo=FALSE,results=hide>>=  
+print(dotplot(ranef(nm5, post = TRUE), ylab = "Subject",
+              scales=list(x=list(relation="free")))[[1]])
+@ 
+\end{frame}
+\begin{frame}
+  \frametitle{Methodology}
+  \begin{itemize}
+  \item Evaluation of the deviance is very similar to the calculation
+    for the generalized linear mixed model.  For given parameter
+    values $\bm\theta$ and $\bm\beta$ the conditional mode $\tilde{\bm
+      u}(\bm\theta,\bm\beta)$ is determined by solving a penalized
+    nonlinear least squares problem.
+  \item $r^2(\bm\theta,\bm\beta)$ and $|\bm L|^2$ determine the Laplace
+    approximation to the deviance.
+  \item As for GLMMs this can (and will) be extended to an adaptive
+    Gauss-Hermite quadrature evaluation when there is only one
+    grouping factor for the random effects.
+  \item The theory (and, I hope, the implementation) for the
+    generalized nonlinear mixed model (GNLMM) is straightforward, once
+    you get to this point.  Map first through the nonlinear model
+    function then through the inverse link function.
+  \end{itemize}
+\end{frame}
+\begin{frame}
+  \frametitle{From linear predictor to $\bm\mu$}
+  \begin{itemize}
+  \item The main change in evaluating
+    $\bm\mu_{\bm{\mathcal{Y}}|\bm{\mathcal{U}}}$ for NLMMs is in the
+    role of the linear predictor.  If there are $s$ nonlinear model
+    (nm) parameters and $n$ observations in total then the model
+    matrix $X$ is $n\cdot s\times p$ and the model matrix $Z$ is
+    $n\cdot s\times q$.
+  \item The linear predictor, $\bm v=\bm X\bm\beta+\bm U\bm u$,
+    of length $n\cdot s$, is rearranged as an $n\times s$ matrix of
+    parameter values $\bm\Phi$.  The $i$th component of the unbounded
+    predictor, $\bm\eta$, is the nonlinear model evaluated for the $i$
+    set of covariate values with the nonlinear parameters, $\bm\phi$,
+    at the $i$th row of $\bm\Phi$.
+  \end{itemize}
+  \begin{align*}
+    \bm u\rightarrow\bm b\rightarrow\bm v\rightarrow&\bm\Phi\rightarrow
+    \bm\eta\rightarrow\bm\mu\\
+    \bm b=&\bm \Lambda(\bm\theta)\bm u\\
+    \bm v=\bm X\bm\beta+\bm Z\bm b=&\bm X\bm\beta+\bm U(\bm\theta)\bm
+    P\trans\bm u=\textrm{vec}(\bm\Phi)\\
+    \bm\eta=&\bm f(\bm t,\bm\Phi)\\\bm\mu=&\bm g^{-1}\bm\eta
+  \end{align*}
+\end{frame}
+\begin{frame}
+  \frametitle{Generalizations of PIRLS}
+  \begin{itemize}
+  \item The reason that the PLS problem for determining the
+    conditional modes is relatively easy is because the standard
+    least squares-based methods for fixed-effects models are easily
+    adapted.
+  \item For linear mixed-models the PLS problem is solved directly.
+    In fact, for LMMs it is possible to determine the conditional
+    modes of the random effects and the conditional estimates of the
+    fixed effects simultaneously.
+  \item Parameter estimates for generalized linear models (GLMs) are
+    (very efficiently) determined by iteratively re-weighted least
+    squares (IRLS) so the conditional modes in a GLMM are determined
+    by penalized iteratively re-weighted least squares (PIRLS).
+  \item Nonlinear least squares, used for fixed-effects nonlinear
+    regression, is adapted as penalized nonlinear least squares (PNLS)
+    or penalized iteratively reweighted nonlinear least squares
+    (PIRNLS) for generalized nonlinear mixed models.
+  \end{itemize}
+\end{frame}

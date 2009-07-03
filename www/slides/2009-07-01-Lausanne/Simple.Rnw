@@ -20,7 +20,7 @@
 \end{frame}
 
 \SweaveOpts{engine=R,eps=FALSE,pdf=TRUE,width=10,height=6.5,strip.white=all}
-\SweaveOpts{prefix=TRUE,prefix.string=figs/data,include=TRUE}
+\SweaveOpts{prefix=TRUE,prefix.string=figs/simple,include=TRUE}
 \setkeys{Gin}{width=\textwidth}
 <<preliminaries,echo=FALSE,results=hide>>=
 options(width=69,show.signif.stars=FALSE)
@@ -29,7 +29,7 @@ library(Matrix)
 library(lme4)
 #lattice.options(default.theme = function() standard.theme())
 lattice.options(default.theme = function() standard.theme(color=FALSE))
-if (file.exists("classroom.rda")) {
+if (exists("classroom.rda")) {
     load("classroom.rda")
 } else {
     classroom <- within(read.csv("http://www-personal.umich.edu/~bwest/classroom.csv"),
