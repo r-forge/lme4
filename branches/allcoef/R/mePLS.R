@@ -7,6 +7,74 @@ isLDL <- function(x)
     as.logical(x@type[2])
 }
 
+##' Return a function to evaluate the profiled deviance or REML
+##' criterion for a linear mixed model with simple, scalar random
+##' effects terms
+
+##' @param flist a list of factors from which to generate simple,
+##'              scalar random effects terms
+##' @param y the numeric response vector
+##' @param X model matrix for the fixed-effects parameters
+##' @param REML optional logical scalar indicating if the REML
+##'             criterion should be used.  (default is TRUE).
+##' @param super optional logical scalar indicating if a supernodal
+##'        decomposition should be used (default is FALSE).
+
+##' @return a function closure that evaluates the criterion chosen.
+##'   Calling optimize or nlminb with this function as an argument
+##'   optimizes the criterion.  The updated parameters and derived
+##'   quantities are in the enclosing environment for this function.
+simplemer <- function(flist, y, X, REML = TRUE, super = FALSE)
+{
+    n <- length(y <- as.numeric(y))
+    
+    stopifnot(n > 0,                 # check arguments for consistency
+              is.matrix(X) | is(X, "Matrix"),
+              nrow(X) == n,
+              is.list(flist),
+              length(flist) > 0,
+              all(sapply(flist, is.factor)),
+              all(sapply(flist, length) == n))
+    super <- as.logical(super)[1]
+    REML <- as.logical(REML)[1]
+    nmp <- n - (p <- ncol(X))
+    beta <- numeric(p)
+
+    RX <- chol(XtX <- crossprod(X))     # check for full column rank
+    Xty <- crossprod(X, y)
+    
+    Ut <- Zt <- do.call(rBind, lapply(flist, as, "sparseMatrix"))
+    RZX <- Ut %*% X
+    thind <- rep.int(seq_along(flist),
+                     sapply(flist, function(x) length(levels(factor(x)))))
+    u <- numeric(nrow(Zt))
+    theta <- numeric(length(flist))
+    fitted <- y
+    prss <- 0
+    ldL2 <- 0
+    
+    L <- Cholesky(tcrossprod(Zt), LDL = FALSE, Imult = 1, super = super)
+    
+    function(x) {
+        theta <<- as.numeric(x)
+        stopifnot(length(theta) == length(flist))
+        Ut <<- crossprod(Diagonal(x = theta[thind]), Zt)
+        L <<- update(L, Ut, mult = 1)
+        cu <- solve(L, solve(L, Ut %*% y, sys = "P"), sys = "L")
+        RZX <<- solve(L, solve(L, Ut %*% X, sys = "P"), sys = "L")
+        RX <<- chol(XtX - crossprod(RZX))
+        cb <- solve(t(RX), Xty - crossprod(RZX, cu))
+        beta <<- solve(RX, cb)
+        u <<- solve(L, solve(L, cu - RZX %*% beta, sys = "Lt"), sys = "Pt")
+        fitted <<- as.vector(crossprod(Ut, u) + X %*% beta)
+        prss <<- sum(c(y - fitted, as.vector(u))^2) # penalized residual sum of squares
+        ldL2 <<- as.vector(determinant(L)$mod)
+        if (REML) return(as.vector(ldL2 + 2*determinant(RX)$mod +
+                                   nmp * (1 + log(2 * pi * prss/nmp))))
+        ldL2 + n * (1 + log(2 * pi * prss/n))
+    }
+}
+
 ##' Solve the penalized linear least squares problem associated with a
 ##' mixed-effects model.
 
