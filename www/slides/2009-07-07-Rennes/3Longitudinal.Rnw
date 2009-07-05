@@ -1,0 +1,380 @@
+% NOTE -- ONLY EDIT THE .Rnw FILE!!!  The .tex file is
+% likely to be overwritten.
+
+\usepackage{SweaveSlides}
+\title[lme4]{Mixed models in R using the lme4 package\\Part 3: Longitudinal data}
+\subject{Longitudinal}
+\AtBeginSection[]
+{
+  \begin{frame}<beamer>
+    \frametitle{Outline}
+    \tableofcontents[currentsection]
+  \end{frame}
+}
+\begin{document}
+\frame{\titlepage}
+\begin{frame}
+  \frametitle{Outline}
+  \tableofcontents[pausesections,hideallsubsections]
+\end{frame}
+
+\SweaveOpts{engine=R,eps=FALSE,pdf=TRUE,width=10,height=6.5,strip.white=all}
+\SweaveOpts{prefix=TRUE,prefix.string=figs/long,include=TRUE}
+\setkeys{Gin}{width=\textwidth}
+<<preliminaries,echo=FALSE,results=hide>>=
+options(width=65,show.signif.stars=FALSE)
+library(lattice)
+library(Matrix)
+library(lme4)
+lattice.options(default.theme = function() standard.theme())
+lattice.options(default.theme = function() standard.theme(color=FALSE))
+@ 
+
+\section[sleepstudy]{Longitudinal data: sleepstudy}
+
+\begin{frame}\frametitle{Simple longitudinal data}
+  \begin{itemize}
+  \item \emph{Repeated measures} data consist of measurements of a
+    response (and, perhaps, some covariates) on several \emph{experimental}
+    (or observational) \emph{units}.
+  \item Frequently the experimental (observational) unit is
+    \code{Subject} and we will refer to these units as ``subjects''.
+    However, the methods described here are not restricted to
+    data on human subjects.
+  \item \emph{Longitudinal} data are repeated measures data in which
+    the observations are taken over time.
+  \item We wish to characterize the response over time within subjects and
+    the variation in the time trends between subjects.
+  \item Frequently we are not as interested in comparing the
+    particular subjects in the study as much as we are interested in
+    modeling the variability in the population from which the subjects
+    were chosen.
+  \end{itemize}
+\end{frame}
+
+
+\begin{frame}\frametitle{Sleep deprivation data}
+  \begin{itemize}
+  \item This laboratory experiment measured the effect of sleep deprivation
+    on cognitive performance.
+  \item There were 18 subjects, chosen from the population of interest
+    (long-distance truck drivers), in the 10 day trial. These subjects were
+    restricted to 3 hours sleep per night during the trial.
+  \item On each day of the trial each subject's reaction time was
+    measured.  The reaction time shown here is the average of several
+    measurements.
+  \item These data are \emph{balanced} in that each subject is
+    measured the same number of times and on the same occasions.
+  \end{itemize}
+\end{frame}
+
+\begin{frame}[fragile]\frametitle{Reaction time versus days by subject}
+  \begin{center}
+<<sleepxy,echo=FALSE,fig=TRUE>>=
+print(xyplot(Reaction ~ Days | Subject, sleepstudy, aspect = "xy",
+                    layout = c(9,2), type = c("g", "p", "r"),
+                    index.cond = function(x,y) coef(lm(y ~ x))[1],
+                    xlab = "Days of sleep deprivation",
+                    ylab = "Average reaction time (ms)"))
+@
+  \end{center}
+\end{frame}
+
+\begin{frame}\frametitle{Comments on the sleep data plot}
+  \begin{itemize}
+  \item The plot is a ``trellis'' or ``lattice'' plot where the data
+    for each subject are presented in a separate panel.  The axes are
+    consistent across panels so we may compare patterns across
+    subjects.
+  \item A reference line fit by simple linear regression to the
+    panel's data has been added to each panel.
+  \item The aspect ratio of the panels has been adjusted so that a
+    typical reference line lies about $45^\circ$ on the page. We have
+    the greatest sensitivity in checking for differences in slopes
+    when the lines are near $\pm 45^\circ$ on the page.
+  \item The panels have been ordered not by subject number (which is
+    essentially a random order) but according to increasing intercept
+    for the simple linear regression.  If the slopes and the
+    intercepts are highly correlated we should see a pattern across
+    the panels in the slopes.
+  \end{itemize}
+\end{frame}
+
+\begin{frame}\frametitle{Assessing the linear fits}
+  \begin{itemize}
+  \item In most cases a simple linear regression provides an adequate
+    fit to the within-subject data. 
+  \item Patterns for some subjects (e.g.{} 350, 352 and 371) deviate
+    from linearity but the deviations are neither widespread nor
+    consistent in form.
+  \item There is considerable variation in the intercept (estimated
+    reaction time without sleep deprivation) across subjects -- 200
+    ms.{} up to 300 ms.{} -- and in the slope (increase in reaction time
+    per day of sleep deprivation) -- 0 ms./day up to 20 ms./day.
+  \item We can examine this variation further by plotting
+    confidence intervals for these intercepts and slopes.  Because we use a
+    pooled variance estimate and have balanced data, the intervals
+    have identical widths.
+  \item We again order the subjects by increasing intercept so we can
+    check for relationships between slopes and intercepts.
+  \end{itemize}
+\end{frame}
+
+\begin{frame}[fragile]\frametitle{95\% conf int on within-subject intercept and slope}
+  \begin{center}
+<<Sl1,fig=TRUE,echo=FALSE,height=4.5>>=
+print(plot(confint(lmList(Reaction ~ Days | Subject, sleepstudy),
+                   pooled = TRUE), order = 1))
+@ 
+  \end{center}
+
+  These intervals reinforce our earlier impressions of considerable
+  variability between subjects in both intercept and slope but little
+  evidence of a relationship between intercept and slope.
+\end{frame}
+
+
+<<fm1,echo=FALSE>>=
+fm1 <- lmer(Reaction ~ Days + (Days|Subject), sleepstudy)
+@ 
+
+\section[random slope]{A model with random effects for intercept and slope}
+
+
+\begin{frame}\frametitle{A preliminary mixed-effects model}
+  \begin{itemize}
+  \item We begin with a linear mixed model in which the fixed effects
+    $[\beta_1,\beta_2]\trans$ are the representative intercept and slope
+    for the population and the random effects $\bm b_i=[b_{i1},b_{i2}]\trans,
+    i=1,\dots,18$ are the deviations in intercept and slope associated
+    with subject $i$.
+  \item The random effects vector, $\bm b$, consists of the $18$
+  intercept effects followed by the $18$ slope effects.
+  \end{itemize}
+  \begin{center}
+<<sleepZ,fig=TRUE,echo=FALSE,results=hide,height=3.5>>=
+print(image(fm1@Zt,xlab=NULL,ylab=NULL,sub=NULL))
+@ 
+  \end{center}
+\end{frame}
+
+\begin{frame}[fragile]\frametitle{Fitting the model}
+<<sm1>>= 
+(fm1 <- lmer(Reaction ~ Days + (Days|Subject), sleepstudy))
+@ 
+\end{frame}
+
+\begin{frame}[fragile]\frametitle{Terms and matrices}
+  \begin{itemize}
+  \item The term \code{Days} in the formula generates a model matrix
+    $\bm X$ with two columns, the intercept column and the numeric
+    \code{Days} column.  (The intercept is included unless
+    suppressed.)
+  \item The term \code{(Days|Subject)} generates a vector-valued
+    random effect (intercept and slope) for each of the $18$ levels of
+    the \code{Subject} factor.
+  \end{itemize}
+\end{frame}
+
+
+\begin{frame}\frametitle{A model with uncorrelated random effects}
+  \begin{itemize}
+  \item The data plots gave little indication of a systematic
+    relationship between a subject's random effect for slope and
+    his/her random effect for the intercept.  Also, the estimated
+    correlation is quite small.
+  \item We should consider a model with uncorrelated random effects.
+    To express this we use two random-effects terms with the same
+    grouping factor and different left-hand sides.  In the formula for
+    an \code{lmer} model, distinct random effects terms are modeled as
+    being independent. Thus we specify the model with two distinct
+    random effects terms, each of which has \code{Subject} as the
+    grouping factor.  The model matrix for one term is intercept only
+    (\code{1}) and for the other term is the column for \code{Days}
+    only, which can be written \code{0+Days}. (The expression
+    \code{Days} generates a column for \code{Days} and an intercept.
+    To suppress the intercept we add \code{0+} to the expression;
+    \code{-1} also works.)
+  \end{itemize}
+\end{frame}
+
+\begin{frame}[fragile]\frametitle{A mixed-effects model with
+    independent random effects}
+<<fm2,echo=FALSE>>=
+(fm2 <- lmer(Reaction ~ Days + (1|Subject) + (0+Days|Subject), sleepstudy))
+@ 
+\end{frame}
+
+\begin{frame}[fragile]\frametitle{Comparing the models}
+  \begin{itemize}
+  \item Model \code{fm1} contains model \code{fm2} in the sense that
+    if the parameter values for model \code{fm1} were constrained so
+    as to force the correlation, and hence the covariance, to be zero,
+    and the model were re-fit, we would get model \code{fm2}.
+  \item The value \code{0}, to which the correlation is constrained, is
+    not on the boundary of the allowable parameter values.
+  \item In these circumstances a likelihood ratio test and a reference
+    distribution of a $\chi^2$ on 1 degree of freedom is suitable.
+  \end{itemize}
+<<anovafm1fm2>>=
+anova(fm2, fm1)
+@ 
+\end{frame}
+
+\begin{frame}\frametitle{Conclusions from the likelihood ratio test}
+  \begin{itemize}
+  \item Because the large p-value indicates that we would not reject
+    \code{fm2} in favor of \code{fm1}, we prefer the more parsimonious
+    \code{fm2}.
+  \item This conclusion is consistent with the AIC (Akaike's
+    Information Criterion) and the BIC (Bayesian Information
+    Criterion) values for which ``smaller is better''.
+  \item We can also use a Bayesian approach, where we regard the
+    parameters as themselves being random variables, is assessing the
+    values of such parameters.  A currently popular Bayesian method is
+    to use sequential sampling from the conditional distribution of
+    subsets of the parameters, given the data and the values of the
+    other parameters.  The general technique is called \Emph{Markov
+      chain Monte Carlo} sampling.
+  \item The \code{lme4} package has a function called \code{mcmcsamp}
+    to evaluate such samples from a fitted model.  At present,
+    however, there seem to be a few ``infelicities'', as Bill Venables
+    calls them, in this function.
+  \end{itemize}
+\end{frame}
+
+\begin{frame}[fragile]\frametitle{Likelihood ratio tests on variance components}
+  \begin{itemize}
+  \item As for the case of a covariance, we can fit the model with and
+    without the variance component and compare the fit quality.
+  \item As mentioned previously, the likelihood ratio is a reasonable
+    test statistic for the comparison but the ``asymptotic'' reference
+    distribution of a $\chi^2$ does not apply because the parameter
+    value being tested is on the boundary.
+  \item The p-value computed using the $\chi^2$ reference distribution
+    should be conservative (i.e. greater than the p-value that would
+    be obtained through simulation).
+  \end{itemize}
+<<fm3anova>>=
+fm3 <- lmer(Reaction ~ Days + (1|Subject), sleepstudy)
+anova(fm3, fm2)
+@ 
+\end{frame}
+
+\section{Conditional means}
+
+\begin{frame}[fragile]\frametitle{Conditional means of the random effects}
+<<rr1>>= 
+(rr2 <- ranef(fm2))
+@ 
+\end{frame}
+
+\begin{frame}[fragile]\frametitle{Scatterplot of the conditional means}
+  \begin{center}
+<<rr2plot,echo=FALSE,fig=TRUE,results=hide>>=
+print(plot(rr2, aspect = 1, type = c("g", "p"))[[1]])
+@
+  \end{center}
+\end{frame}
+
+\begin{frame}\frametitle{Comparing within-subject coefficients}
+  \begin{itemize}
+  \item For this model we can combine the conditional means of the
+    random effects and the estimates of the fixed effects to get
+    conditional means of the within-subject coefficients.
+  \item These conditional means will be ``shrunken'' towards the
+    fixed-effects estimates relative to the estimated coefficients
+    from each subject's data.  John Tukey called this ``borrowing
+    strength'' between subjects.
+  \item Plotting the shrinkage of the within-subject coefficients
+    shows that some of the coefficients are considerably shrunken
+    toward the fixed-effects estimates.
+  \item However, comparing the within-group and mixed model fitted
+    lines shows that large changes in coefficients occur in the noisy
+    data.  Precisely estimated within-group coefficients are not
+    changed substantially.
+  \end{itemize}
+\end{frame}
+
+\begin{frame}[fragile]\frametitle{Estimated within-group coefficients and BLUPs}
+  \begin{center}
+<<shrinkage,echo=FALSE,fig=TRUE>>=
+df <- coef(lmList(Reaction ~ Days | Subject, sleepstudy))
+cc1 <- as.data.frame(coef(fm2)[["Subject"]])
+names(cc1) <- c("A", "B")
+df <- cbind(df, cc1)
+with(df,
+     print(xyplot(`(Intercept)` ~ Days, aspect = 1,
+            x1 = B, y1 = A, 
+            panel = function(x, y, x1, y1, subscripts, ...) {
+                panel.grid(h = -1, v = -1)
+                x1 <- x1[subscripts]
+                y1 <- y1[subscripts]
+                panel.arrows(x, y, x1, y1, type = "closed", length = 0.1,
+                             angle = 15, ...)
+                panel.points(x, y,
+                             col = trellis.par.get("superpose.symbol")$col[2])
+                panel.points(x1, y1)
+            },
+                   key = list(space = "top", columns = 2,
+                   text = list(c("Mixed model", "Within-group")),
+                   points = list(col = trellis.par.get("superpose.symbol")$col[1:2],
+                   pch = trellis.par.get("superpose.symbol")$pch[1:2]))
+               )))
+@
+  \end{center}
+\end{frame}
+
+\begin{frame}[fragile]\frametitle{Observed and fitted}
+  \begin{center}
+<<shrinkfit,echo=FALSE,fig=TRUE>>=
+print(xyplot(Reaction ~ Days | Subject, sleepstudy, aspect = "xy",
+             layout = c(9,2), type = c("g", "p", "r"),
+             coef.list = df[,3:4],
+             panel = function(..., coef.list) {
+                 panel.xyplot(...)
+                 panel.abline(as.numeric(coef.list[packet.number(),]),
+                              col.line = trellis.par.get("superpose.line")$col[2],
+                              lty = trellis.par.get("superpose.line")$lty[2]
+                              )
+             },
+             index.cond = function(x,y) coef(lm(y ~ x))[1],
+             xlab = "Days of sleep deprivation",
+             ylab = "Average reaction time (ms)",
+             key = list(space = "top", columns = 2,
+             text = list(c("Mixed model", "Within-group")),
+             lines = list(col = trellis.par.get("superpose.line")$col[2:1],
+             lty = trellis.par.get("superpose.line")$lty[2:1]))))
+@ 
+  \end{center}
+\end{frame}
+
+\begin{frame}[fragile]
+  \frametitle{Plot of prediction intervals for the random effects}
+  \begin{center}
+<<caterpillar,fig=TRUE,echo=FALSE,results=hide,height=4.5>>=
+print(dotplot(ranef(fm1,post=TRUE),
+              scales = list(x = list(relation = 'free')))[["Subject"]])
+@ 
+  \end{center}
+Each set of prediction intervals have constant width because of the
+balance in the experiment.
+\end{frame}
+
+\begin{frame}\frametitle{Conclusions from the example}
+  \begin{itemize}
+  \item Carefully plotting the data is enormously helpful in
+    formulating the model.
+  \item It is relatively easy to fit and evaluate models to data like
+    these, from a balanced designed experiment.
+  \item We consider two models with random effects for the slope and
+    the intercept of the response w.r.t. time by subject.  The models
+    differ in whether the (marginal) correlation of the vector of
+    random effects per subject is allowed to be nonzero.
+  \item The ``estimates'' (actually, the conditional means) of the
+    random effects can be considered as penalized estimates of these
+    parameters in that they are shrunk towards the origin.
+  \item Most of the prediction intervals for the random effects
+    overlap zero.
+  \end{itemize}
+\end{frame}
