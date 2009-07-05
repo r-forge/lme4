@@ -45,7 +45,7 @@ simplemer <- function(flist, y, X, REML = TRUE, super = FALSE)
     
     Ut <- Zt <- do.call(rBind, lapply(flist, as, "sparseMatrix"))
     RZX <- Ut %*% X
-    thind <- rep.int(seq_along(flist),
+    Sind <- rep.int(seq_along(flist),
                      sapply(flist, function(x) length(levels(factor(x)))))
     u <- numeric(nrow(Zt))
     theta <- numeric(length(flist))
@@ -54,11 +54,12 @@ simplemer <- function(flist, y, X, REML = TRUE, super = FALSE)
     ldL2 <- 0
     
     L <- Cholesky(tcrossprod(Zt), LDL = FALSE, Imult = 1, super = super)
-    
+    S <- Diagonal(x = theta[Sind])
     function(x) {
         theta <<- as.numeric(x)
         stopifnot(length(theta) == length(flist))
-        Ut <<- crossprod(Diagonal(x = theta[thind]), Zt)
+        S@x <- theta[Sind]              # update S
+        Ut <<- crossprod(S, Zt)
         L <<- update(L, Ut, mult = 1)
         cu <- solve(L, solve(L, Ut %*% y, sys = "P"), sys = "L")
         RZX <<- solve(L, solve(L, Ut %*% X, sys = "P"), sys = "L")
