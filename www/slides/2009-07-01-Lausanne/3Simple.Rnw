@@ -1114,6 +1114,14 @@ Fixed effects:
     in mixed modeling can be formidable.
   \end{itemize}
 \end{frame}
+\section[Large]{A model fit to a large data set}
+
+\begin{frame}[fragile]
+  \frametitle{A model fit to a large data set (by today's standards)}
+  \begin{itemize}
+  \item Harold Doran of American Institutes for research recently fit a model with $n_1=1876788$ students and 
+  \end{itemize}
+\end{frame}
 
 \begin{frame}
   \frametitle{Recap of simple, scalar random-effects terms}
