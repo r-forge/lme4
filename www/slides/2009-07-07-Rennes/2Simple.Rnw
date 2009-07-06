@@ -26,7 +26,7 @@ options(width=69,show.signif.stars=FALSE)
 library(lattice)
 library(Matrix)
 library(lme4)
-#lattice.options(default.theme = function() standard.theme())
+lattice.options(default.theme = function() standard.theme())
 lattice.options(default.theme = function() standard.theme(color=FALSE))
 if (exists("classroom.rda")) {
     load("classroom.rda")
@@ -1118,13 +1118,12 @@ Fixed effects:
 \begin{frame}[fragile]
   \frametitle{A model fit to a large data set (by today's standards)}
   \begin{itemize}
-  \item Harold Doran recently fit a linear mixed model to 
-    the annual achievement test results for the last 4 years in one of
-    the United States.  There were over $5,000,000$ observations in
-    total, a total of $n_1=1876788$ students and more the $74000$
-    teachers ($n_2$).
+  \item Harold Doran recently fit a linear mixed model to the annual
+    achievement test results for the last 4 years in one of the United
+    States.  There were $n=5212017$ observations on a total of
+    $n_1=1876788$ students and $n_2=47480$ teachers.
   \item The models had simple, scalar random effects for student and
-    for teacher so $q>1.95$ million.
+    for teacher resulting in $q=1924268$ (i.e. nearly 2 million!)
   \item There were a total of $p=29$ fixed-effects parameters.
   \item At present Harold needed to fit the model to a subset and only
     evaluate the conditional means for all the students and teachers
@@ -1135,6 +1134,34 @@ Fixed effects:
   \end{itemize}
 \end{frame}
 
+\begin{frame}[fragile]
+  \frametitle{Size of the decomposition for this large model}
+  \begin{itemize}
+  \item The limiting factor on the memory size in such a model is the
+    Cholesky factor $\bm L(\bm\theta)$.
+  \item In this case the \code{x} slot is itself over 1GB in size and the \code{i} slot is over 0.5 GB.
+  \item These are close to an inherent limit on atomic R objects (the
+    range of an index into an atomic object cannot exceed $2^{31}$.
+  \end{itemize}
+  \begin{Schunk}
+    \begin{Sinput}
+> str(L)
+    \end{Sinput}
+    \begin{Soutput}
+Formal class 'dCHMsimpl' [package "Matrix"] with 10 slots
+  ..@ x       : num [1:174396181] 1.71 2.16 1.4 1.32 2.29 ...
+  ..@ p       : int [1:1924269] 0 2 4 5 7 9 10 12 14 15 ...
+  ..@ i       : int [1:174396181] 0 2 1 2 2 3 5 4 5 5 ...
+  ..@ nz      : int [1:1924268] 2 2 1 2 2 1 2 2 1 2 ...
+  ..@ nxt     : int [1:1924270] 1 2 3 4 5 6 7 8 9 10 ...
+  ..@ prv     : int [1:1924270] 1924269 0 1 2 3 4 5 6 7 8 ...
+  ..@ colcount: int [1:1924268] 2 2 1 2 2 1 2 2 1 2 ...
+  ..@ perm    : int [1:1924268] 1922843 1886519 134451 1921046 1893309 183471 1912388 1888309 196670 1922626 ...
+  ..@ type    : int [1:4] 2 1 0 1
+  ..@ Dim     : int [1:2] 1924268 192426
+    \end{Soutput}
+  \end{Schunk}
+\end{frame}
 \begin{frame}
   \frametitle{Recap of simple, scalar random-effects terms}
   \begin{itemize}
