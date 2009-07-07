@@ -115,3 +115,20 @@ setClass("merExt",
 setClass("lmerStratVar",
          representation(sfac = "factor"),
          contains = "merExt")
+
+setClass("optenv", representation(setPars = "function", getPars = "function", getBounds = "function"))
+
+setClass("merenv", contains = "optenv",
+         validity = function(object)
+     {
+         rho <- env(object)
+         if (!(is.numeric(y <- rho$y) && (n <- length(y)) > 0))
+             return("environment must contain a non-trivial numeric response y")
+         if (!(is(X <- rho$X, "Matrix") && is(Zt <- rho$Zt, "Matrix") && nrow(X) == ncol(Zt)))
+             return("environment must contain Matrix objects X and Zt with nrow(X) == ncol(Zt)")
+         if (!(is.numeric(beta <- rho$beta) && length(beta) == ncol(X)))
+             return(sprintf("environment must contain a numeric vector beta of length %d", ncol(X)))
+         if (!(is.numeric(u <- rho$u) && (q <- length(u)) == nrow(Zt)))
+             return(sprintf("environment must contain a numeric vector u of length %d", nrow(Zt)))
+         TRUE
+     })

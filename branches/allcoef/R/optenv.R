@@ -41,6 +41,13 @@ setMethod("setPars", representation(x = "environment", pars = "numeric"),
           sum(unlist(lapply(acseq, ff)))
       })
 
+setMethod("getPars", "optenv", function(x, ...) x@getPars())
+
+setMethod("getBounds", "optenv", function(x, ...) x@getBounds())
+
+setMethod("setPars", representation(x = "optenv", pars = "numeric"), function(x, pars, ...) x@setPars(pars))
+
+setMethod("env", "optenv", function(x, ...) environment(x@getPars))
 setMethod("ranef", signature(object = "environment"),
           function(object, postVar = FALSE, drop = FALSE, whichel = names(ans), ...)
       {

@@ -26,10 +26,10 @@ isLDL <- function(x)
 ##'   quantities are in the enclosing environment for this function.
 simplemer <- function(flist, y, X, REML = TRUE, super = FALSE)
 {
+    X <- Matrix(X)
     n <- length(y <- as.numeric(y))
-    
+
     stopifnot(n > 0,                 # check arguments for consistency
-              is.matrix(X) | is(X, "Matrix"),
               nrow(X) == n,
               is.list(flist),
               length(flist) > 0,
@@ -55,25 +55,30 @@ simplemer <- function(flist, y, X, REML = TRUE, super = FALSE)
     
     L <- Cholesky(tcrossprod(Zt), LDL = FALSE, Imult = 1, super = super)
     S <- Diagonal(x = theta[Sind])
-    function(x) {
-        theta <<- as.numeric(x)
-        stopifnot(length(theta) == length(flist))
-        S@x <- theta[Sind]              # update S
-        Ut <<- crossprod(S, Zt)
-        L <<- update(L, Ut, mult = 1)
-        cu <- solve(L, solve(L, Ut %*% y, sys = "P"), sys = "L")
-        RZX <<- solve(L, solve(L, Ut %*% X, sys = "P"), sys = "L")
-        RX <<- chol(XtX - crossprod(RZX))
-        cb <- solve(t(RX), Xty - crossprod(RZX, cu))
-        beta <<- solve(RX, cb)
-        u <<- solve(L, solve(L, cu - RZX %*% beta, sys = "Lt"), sys = "Pt")
-        fitted <<- as.vector(crossprod(Ut, u) + X %*% beta)
-        prss <<- sum(c(y - fitted, as.vector(u))^2) # penalized residual sum of squares
-        ldL2 <<- as.vector(determinant(L)$mod)
-        if (REML) return(as.vector(ldL2 + 2*determinant(RX)$mod +
-                                   nmp * (1 + log(2 * pi * prss/nmp))))
-        ldL2 + n * (1 + log(2 * pi * prss/n))
-    }
+    new("merenv",
+        setPars = function(x)
+     {
+         theta <<- as.numeric(x)
+         stopifnot(length(theta) == length(flist))
+         S@x <- theta[Sind]              # update S
+         Ut <<- crossprod(S, Zt)
+         L <<- update(L, Ut, mult = 1)
+         cu <- solve(L, solve(L, Ut %*% y, sys = "P"), sys = "L")
+         RZX <<- solve(L, solve(L, Ut %*% X, sys = "P"), sys = "L")
+         RX <<- chol(XtX - crossprod(RZX))
+         cb <- solve(t(RX), Xty - crossprod(RZX, cu))
+         beta <<- solve(RX, cb)
+         u <<- solve(L, solve(L, cu - RZX %*% beta, sys = "Lt"), sys = "Pt")
+         fitted <<- as.vector(crossprod(Ut, u) + X %*% beta)
+         prss <<- sum(c(y - fitted, as.vector(u))^2) # penalized residual sum of squares
+         ldL2 <<- as.vector(determinant(L)$mod)
+         if (REML) return(as.vector(ldL2 + 2*determinant(RX)$mod +
+                                    nmp * (1 + log(2 * pi * prss/nmp))))
+         ldL2 + n * (1 + log(2 * pi * prss/n))
+     },
+         getPars = function() theta,
+         getBounds = function() list(lower = rep.int(0, length(theta)), upper = rep.int(Inf, length(theta)))
+         )
 }
 
 ##' Solve the penalized linear least squares problem associated with a
