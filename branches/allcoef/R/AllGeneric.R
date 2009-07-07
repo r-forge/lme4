@@ -20,18 +20,19 @@ setGeneric("create_A", function(rCF, rho, ...) standardGeneric("create_A"),
            valueClass = "dgCMatrix")
 
 #' returns the parameter bounds
-setGeneric("getBounds", function(x, ...) standardGeneric("getBounds"))
+setGeneric("getBounds", function(x, ...) standardGeneric("getBounds"), valueClass = "list")
 
 #' returns Lambda as a square sparse matrix
 setGeneric("getLambda", function(rCF, ...) standardGeneric("getLambda"))
 
 #' returns the current parameter values
-setGeneric("getPars", function(x, ...) standardGeneric("getPars"))
+setGeneric("getPars", function(x, ...) standardGeneric("getPars"), valueClass = "numeric")
 
 #' sets the parameter values
-setGeneric("setPars", function(x, pars, ...) standardGeneric("setPars"))
+setGeneric("setPars", function(x, pars, ...) standardGeneric("setPars"), valueClass = "numeric")
 
-
+#' extract the environment associated with an object
+setGeneric("env", function(x, ...) standardGeneric("env"), valueClass = "environment")
 
 fixed.effects <- function(object, ...) {
     ## fixed.effects was an alternative name for fixef
