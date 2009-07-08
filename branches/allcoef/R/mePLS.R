@@ -67,7 +67,7 @@ lmer2 <-
     names(beta) <- colnames(X)
                                         # enforce modes on some vectors
     y <- unname(as.double(y))   # must be done after initialize
-    attr(frame, "terms") <- NULL
+    attr(fr, "terms") <- NULL
     ## mustart <- unname(as.double(mustart))
     ## etastart <- unname(as.double(etastart))    
     ## if (exists("n", envir = rho))
@@ -115,7 +115,7 @@ lmer2 <-
      {
          theta <<- as.numeric(x)
          stopifnot(length(theta) == length(flist))
-         S@x[] <- theta[Sind]           # update S
+         S@x[] <<- theta[Sind]           # update S
          Ut <<- crossprod(S, Zt)
          L <<- update(L, Ut, mult = 1)
          cu <- solve(L, solve(L, Ut %*% y, sys = "P"), sys = "L")
@@ -136,6 +136,27 @@ lmer2 <-
          )
 }
 
+setMethod("Cholesky", "merenv",
+          function (A, perm = TRUE, LDL = !super, super = FALSE, Imult = 0,  ...) env(A)$L
+          )
+
+setMethod("fixef", "merenv", function(object, ...) env(object)$beta)
+
+setMethod("ranef", "merenv", function(object, ...)
+          {
+              with(env(object), {
+                  ans <- split(S@x * u, Sind)
+                  names(ans) <- names(flist)
+                  ans
+              })
+          })
+
+devcomp <- function(x, theta, ...)
+{
+    stopifnot(is(x, "merenv"))
+    x@setPars(theta)
+    with(env(x), c(ldL2, prss, n, p))
+}
 ##' Return a function to evaluate the profiled deviance or REML
 ##' criterion for a linear mixed model with simple, scalar random
 ##' effects terms
