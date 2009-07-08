@@ -416,19 +416,6 @@ merFinalize <- function(rho)
     ans
 }    
 
-## for backward compatibility
-lmer2 <-
-    function(formula, data, family = gaussian, REML = TRUE,
-             control = list(), start = NULL, verbose = FALSE,
-             subset, weights, na.action, offset, contrasts = NULL,
-             model = TRUE, mustart, etastart, ...)
-{
-    .Deprecated("lmer")
-    mc <- match.call()
-    mc[[1]] <- as.name("lmer")
-    eval.parent(mc)
-}
-
 famNms <- c("binomial", "gaussian", "Gamma", "inverse.gaussian",
             "poisson", "quasibinomial", "quasipoisson", "quasi")
 linkNms <- c("logit", "probit", "cauchit", "cloglog", "identity",
