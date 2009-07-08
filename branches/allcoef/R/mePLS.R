@@ -7,6 +7,135 @@ isLDL <- function(x)
     as.logical(x@type[2])
 }
 
+
+lmer2 <-
+    function(formula, data, family = gaussian, REML = TRUE,
+             control = list(), start = NULL, verbose = FALSE,
+             subset, weights, na.action, offset, contrasts = NULL,
+             model = TRUE, mustart, etastart, ...)
+{
+    if (missing(data)) data <- environment(formula)
+    stopifnot(length(formula <- as.formula(formula)) == 3)
+                                        # evaluate and install the model frame
+    mf <- mc <- match.call()
+    m <- match(c("data", "subset", "weights", "na.action",
+                 "etastart", "mustart", "offset"),
+               names(mf), 0)
+    mf <- mf[c(1, m)]
+    mf$drop.unused.levels <- TRUE
+    mf[[1]] <- as.name("model.frame")
+    fr.form <- subbars(formula)
+    environment(fr.form) <- environment(formula)
+    mf$formula <- fr.form
+    fr <- eval(mf, parent.frame())
+    n <- nrow(fr)
+                                        # components of the model frame
+    y <- model.response(fr)
+    if(length(dim(y)) == 1) { # avoid problems with 1D arrays, but keep names
+        nm <- rownames(y)
+        dim(y) <- NULL
+        if(!is.null(nm)) names(y) <- nm
+    }
+    weights <- as.numeric(as.vector(model.weights(fr)))
+    if (length(weights) == 0)
+        weights <- rep.int(1, n)
+    if (any(weights < 0))
+        stop(gettext("negative weights not allowed", domain = "R-lme4"))
+    loff <- length(offset <- as.numeric(as.vector(model.offset(fr))))
+    if (loff) {
+        if (loff == 1) {
+            offset <- rep.int(offset, n)
+        } else if (loff != nobs) {
+            stop(gettextf("number of offsets is %d should equal %d (number of observations)",
+                          loff, n), domain = "R-lme4")
+        }
+    }
+    ##            # starting values expressed as mu or eta (glmer only)
+    ## mustart <- model.extract(mf, "mustart")
+    ## etastart <- model.extract(mf, "etastart")
+    
+    fe.form <- formula           # evaluate fixed-effects model matrix
+    nb <- nobars(formula[[3]])   # fixed-effects terms only
+    if (is.null(nb)) nb <- 1
+    fe.form[[3]] <- nb
+    X <- Matrix(model.matrix(fe.form, fr, contrasts))
+    rownames(X) <- NULL
+    
+    p <- ncol(X)
+    stopifnot((nmp <- n - p) > 0)
+    beta <- numeric(p)
+    names(beta) <- colnames(X)
+                                        # enforce modes on some vectors
+    y <- unname(as.double(y))   # must be done after initialize
+    attr(frame, "terms") <- NULL
+    ## mustart <- unname(as.double(mustart))
+    ## etastart <- unname(as.double(etastart))    
+    ## if (exists("n", envir = rho))
+    ##     n <- as.double(n)
+    ## if (family$family %in% c("binomial", "poisson"))
+    ##     dims["useSc"] <- 0L
+    
+    ## Check for method argument which is no longer used
+    if (!is.null(method <- list(...)$method)) {
+        msg <- paste("Argument", sQuote("method"),
+                     "is deprecated.\nUse", sQuote("nAGQ"),
+                     "to choose AGQ.  PQL is not available.")
+        if (match.arg(method, c("Laplace", "AGQ")) == "Laplace") {
+            warning(msg)
+        } else stop(msg)
+    }
+    
+    bars <- expandSlash(findbars(formula[[3]]))
+    if (!length(bars)) stop("No random effects terms specified in formula")
+    names(bars) <- unlist(lapply(bars, function(x) deparse(x[[3]])))
+
+    stopifnot(all(sapply(bars, "[[", 2) == 1)) # check for simple, scalar terms
+    flist <- lapply(bars,
+                    function(x)
+                    eval(substitute(factor(fac), list(fac = x[[3]])), fr))
+    rm(nb, mf, fe.form, loff, bars)
+    
+    RX <- chol(XtX <- crossprod(X))     # check for full column rank
+    Xty <- unname(as.vector(crossprod(X, y)))
+                  
+    Ut <- Zt <- do.call(rBind, lapply(flist, as, "sparseMatrix"))
+    RZX <- Ut %*% X
+    Sind <- rep.int(seq_along(flist),
+                    sapply(flist, function(x) length(levels(x))))
+    u <- numeric(nrow(Zt))
+    theta <- numeric(length(flist))
+    fitted <- y
+    prss <- 0
+    ldL2 <- 0
+    
+    L <- Cholesky(tcrossprod(Zt), LDL = FALSE, Imult = 1)
+    S <- Diagonal(x = theta[Sind])
+    new("merenv",
+        setPars = function(x)
+     {
+         theta <<- as.numeric(x)
+         stopifnot(length(theta) == length(flist))
+         S@x[] <- theta[Sind]           # update S
+         Ut <<- crossprod(S, Zt)
+         L <<- update(L, Ut, mult = 1)
+         cu <- solve(L, solve(L, Ut %*% y, sys = "P"), sys = "L")
+         RZX <<- solve(L, solve(L, Ut %*% X, sys = "P"), sys = "L")
+         RX <<- chol(XtX - crossprod(RZX))
+         cb <- solve(t(RX), Xty - crossprod(RZX, cu))
+         beta[] <<- as.vector(solve(RX, cb))
+         u[] <<- as.vector(solve(L, solve(L, cu - RZX %*% beta, sys = "Lt"), sys = "Pt"))
+         fitted[] <<- as.vector(crossprod(Ut, u) + X %*% beta)
+         prss <<- sum(c(y - fitted, as.vector(u))^2) # penalized residual sum of squares
+         ldL2 <<- as.vector(determinant(L)$mod)
+         if (REML) return(as.vector(ldL2 + 2*determinant(RX)$mod +
+                                    nmp * (1 + log(2 * pi * prss/nmp))))
+         ldL2 + n * (1 + log(2 * pi * prss/n))
+     },
+         getPars = function() theta,
+         getBounds = function() list(lower = rep.int(0, length(theta)), upper = rep.int(Inf, length(theta)))
+         )
+}
+
 ##' Return a function to evaluate the profiled deviance or REML
 ##' criterion for a linear mixed model with simple, scalar random
 ##' effects terms
@@ -60,7 +189,7 @@ simplemer <- function(flist, y, X, REML = TRUE, super = FALSE)
      {
          theta <<- as.numeric(x)
          stopifnot(length(theta) == length(flist))
-         S@x <- theta[Sind]              # update S
+         S@x[] <- theta[Sind]           # update S
          Ut <<- crossprod(S, Zt)
          L <<- update(L, Ut, mult = 1)
          cu <- solve(L, solve(L, Ut %*% y, sys = "P"), sys = "L")
