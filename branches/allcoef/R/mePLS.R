@@ -7,9 +7,8 @@ isLDL <- function(x)
     as.logical(x@type[2])
 }
 
-
 lmer2 <-
-    function(formula, data, family = gaussian, REML = TRUE,
+    function(formula, data, family = gaussian, REML = TRUE, sparseX = FALSE,
              control = list(), start = NULL, verbose = FALSE,
              subset, weights, na.action, offset, contrasts = NULL,
              model = TRUE, mustart, etastart, ...)
@@ -58,7 +57,9 @@ lmer2 <-
     nb <- nobars(formula[[3]])   # fixed-effects terms only
     if (is.null(nb)) nb <- 1
     fe.form[[3]] <- nb
-    X <- Matrix(model.matrix(fe.form, fr, contrasts))
+    X <- if (sparseX) {
+        sparse.model.matrix(fe.form, fr, contrasts)
+    } else Matrix(model.matrix(fe.form, fr, contrasts))
     rownames(X) <- NULL
     
     p <- ncol(X)
@@ -107,9 +108,13 @@ lmer2 <-
     fitted <- y
     prss <- 0
     ldL2 <- 0
+    ldRX2 <- 0
     
     L <- Cholesky(tcrossprod(Zt), LDL = FALSE, Imult = 1)
     S <- Diagonal(x = theta[Sind])
+    Zty <- Zt %*% y
+    ZtX <- Zt %*% X
+    
     new("merenv",
         setPars = function(x)
      {
@@ -118,15 +123,16 @@ lmer2 <-
          S@x[] <<- theta[Sind]           # update S
          Ut <<- crossprod(S, Zt)
          L <<- update(L, Ut, mult = 1)
-         cu <- solve(L, solve(L, Ut %*% y, sys = "P"), sys = "L")
-         RZX <<- solve(L, solve(L, Ut %*% X, sys = "P"), sys = "L")
+         cu <- solve(L, solve(L, crossprod(S, Zty), sys = "P"), sys = "L")
+         RZX <<- solve(L, solve(L, crossprod(S, ZtX), sys = "P"), sys = "L")
          RX <<- chol(XtX - crossprod(RZX))
          cb <- solve(t(RX), Xty - crossprod(RZX, cu))
-         beta[] <<- as.vector(solve(RX, cb))
-         u[] <<- as.vector(solve(L, solve(L, cu - RZX %*% beta, sys = "Lt"), sys = "Pt"))
-         fitted[] <<- as.vector(crossprod(Ut, u) + X %*% beta)
-         prss <<- sum(c(y - fitted, as.vector(u))^2) # penalized residual sum of squares
-         ldL2 <<- as.vector(determinant(L)$mod)
+         beta[] <<- solve(RX, cb)@x
+         u[] <<- solve(L, solve(L, cu - RZX %*% beta, sys = "Lt"), sys = "Pt")@x
+         fitted[] <<- (crossprod(Ut, u) + X %*% beta)@x
+         prss <<- sum(c(y - fitted, u)^2) # penalized residual sum of squares
+         ldL2[] <<- determinant(L)$mod
+         ldRX2[] <<- 2 * determinant(RX)$mod
          if (REML) return(as.vector(ldL2 + 2*determinant(RX)$mod +
                                     nmp * (1 + log(2 * pi * prss/nmp))))
          ldL2 + n * (1 + log(2 * pi * prss/n))
