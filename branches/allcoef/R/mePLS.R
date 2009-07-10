@@ -122,7 +122,7 @@ lmer2 <-
          stopifnot(length(theta) == length(flist))
          S@x[] <<- theta[Sind]           # update S
          Ut <<- crossprod(S, Zt)
-         L <<- update(L, Ut, mult = 1)
+         Matrix:::destructive_Chol_update(L, Ut, Imult = 1)
          cu <- solve(L, solve(L, crossprod(S, Zty), sys = "P"), sys = "L")
          RZX <<- solve(L, solve(L, crossprod(S, ZtX), sys = "P"), sys = "L")
          RX <<- chol(XtX - crossprod(RZX))
