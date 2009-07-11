@@ -98,7 +98,7 @@ lmer2 <-
     
     RX <- chol(XtX <- crossprod(X))     # check for full column rank
     Xty <- unname(as.vector(crossprod(X, y)))
-                  
+    
     Ut <- Zt <- do.call(rBind, lapply(flist, as, "sparseMatrix"))
     RZX <- Ut %*% X
     Sind <- rep.int(seq_along(flist),
@@ -117,29 +117,31 @@ lmer2 <-
     
     new("merenv",
         setPars = function(x)
-     {
-         theta <<- as.numeric(x)
-         stopifnot(length(theta) == length(flist))
-         S@x[] <<- theta[Sind]           # update S
-         Ut <<- crossprod(S, Zt)
-         Matrix:::destructive_Chol_update(L, Ut, Imult = 1)
-         cu <- solve(L, solve(L, crossprod(S, Zty), sys = "P"), sys = "L")
-         RZX <<- solve(L, solve(L, crossprod(S, ZtX), sys = "P"), sys = "L")
-         RX <<- chol(XtX - crossprod(RZX))
-         cb <- solve(t(RX), Xty - crossprod(RZX, cu))
-         beta[] <<- solve(RX, cb)@x
-         u[] <<- solve(L, solve(L, cu - RZX %*% beta, sys = "Lt"), sys = "Pt")@x
-         fitted[] <<- (crossprod(Ut, u) + X %*% beta)@x
-         prss <<- sum(c(y - fitted, u)^2) # penalized residual sum of squares
-         ldL2[] <<- determinant(L)$mod
-         ldRX2[] <<- 2 * determinant(RX)$mod
-         if (REML) return(as.vector(ldL2 + 2*determinant(RX)$mod +
-                                    nmp * (1 + log(2 * pi * prss/nmp))))
-         ldL2 + n * (1 + log(2 * pi * prss/n))
-     },
-         getPars = function() theta,
-         getBounds = function() list(lower = rep.int(0, length(theta)), upper = rep.int(Inf, length(theta)))
-         )
+    {
+        theta <<- as.numeric(x)
+        stopifnot(length(theta) == length(flist))
+        S@x[] <<- theta[Sind]           # update S
+        Ut <<- crossprod(S, Zt)
+        Matrix:::destructive_Chol_update(L, Ut, Imult = 1)
+        cu <- solve(L, solve(L, crossprod(S, Zty), sys = "P"), sys = "L")
+        RZX <<- solve(L, solve(L, crossprod(S, ZtX), sys = "P"), sys = "L")
+        RX <<- chol(XtX - crossprod(RZX))
+        cb <- solve(t(RX), Xty - crossprod(RZX, cu))
+        beta[] <<- solve(RX, cb)@x
+        u[] <<- solve(L, solve(L, cu - RZX %*% beta, sys = "Lt"), sys = "Pt")@x
+        fitted[] <<- (crossprod(Ut, u) + X %*% beta)@x
+        prss <<- sum(c(y - fitted, u)^2) # penalized residual sum of squares
+        ldL2[] <<- determinant(L)$mod
+        ldRX2[] <<- 2 * determinant(RX)$mod
+        if (REML) return(as.vector(ldL2 + 2*determinant(RX)$mod +
+                                   nmp * (1 + log(2 * pi * prss/nmp))))
+        ldL2 + n * (1 + log(2 * pi * prss/n))
+    },
+        getPars = function() theta,
+        getBounds = function()
+        cbind(lower = rep.int(0, length(theta)),
+              upper = rep.int(Inf, length(theta)))
+        )
 }
 
 setMethod("Cholesky", "merenv",

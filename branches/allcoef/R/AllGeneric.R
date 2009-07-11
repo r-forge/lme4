@@ -20,7 +20,8 @@ setGeneric("create_A", function(rCF, rho, ...) standardGeneric("create_A"),
            valueClass = "dgCMatrix")
 
 #' returns the parameter bounds
-setGeneric("getBounds", function(x, ...) standardGeneric("getBounds"), valueClass = "list")
+setGeneric("getBounds", function(x, ...) standardGeneric("getBounds"),
+           valueClass = "matrix")
 
 #' returns Lambda as a square sparse matrix
 setGeneric("getLambda", function(rCF, ...) standardGeneric("getLambda"))
