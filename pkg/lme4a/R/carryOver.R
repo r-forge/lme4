@@ -84,7 +84,7 @@ accum <- function(dgTlst, coef = rep(1, length(dgTlst)))
 
 initial_update <- function(rho, lagged, coef = rep(1, length(lagged[[1]])))
 {
-    updt <- lapply(lagged, lme4:::accum, coef = coef)
+    updt <- lapply(lagged, accum, coef = coef)
     fl <- rho$flist
     fnms <- names(fl)
     asgn <- attr(fl, "assign")
@@ -92,7 +92,7 @@ initial_update <- function(rho, lagged, coef = rep(1, length(lagged[[1]])))
     ## for (nm in names(updt)) {
     ##     trm <- which(asgn == match(nm, fnms))
     ##     stopifnot(length(trm) == 1)
-        
+
     ##     rho$trms[[trm]]$A <- rho$trms[[trm]]$Zt <- updt[[nm]]
     ## }
     trm <- which(asgn == match(names(updt), fnms))
@@ -121,14 +121,14 @@ carryOver <-
     lmerc[[1]] <- as.name("lmer")
     lf <- eval.parent(lmerc)
     lst <- as.list(lf)                  # Not sure if we need this
-    nolag <- lme4:::merFinalize(lf)
-    
+    nolag <- merFinalize(lf)
+
     ## create model matrices for the lagged factors
     stopifnot(all(factors %in% names(lf$flist)))
     lagged <- lagged_factor(lf$frame, idvar, timevar, factors)
 
     return(initial_update(rho, lagged))
-   
+
     ## default is undiscounted model
     dm <- mkZt(updateFL(lf$FL, lagged), nolag@ST)
     undisc <- nolag

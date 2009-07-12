@@ -11,7 +11,7 @@
 {formatcom={\vspace{-2.5ex}},fontfamily=courier,fontseries=b,%
   fontsize=\scriptsize}
 %%\VignetteIndexEntry{Implementation Details}
-%%\VignetteDepends{lme4, MEMSS, mlmRev}
+%%\VignetteDepends{lme4a, MEMSS, mlmRev}
 %%
 \newcommand{\trans}{\ensuremath{^\mathsf{T}}}
 \newcommand{\invtrans}{\ensuremath{^\mathsf{-T}}}
@@ -37,7 +37,7 @@ options(width=80, show.signif.stars = FALSE,
         lattice.theme = function() canonical.theme("pdf", color = FALSE))
 library(lattice)
 library(Matrix)
-library(lme4)
+library(lme4a)
 data("Rail", package = "MEMSS")
 data("ScotsSec", package = "mlmRev")
 @
