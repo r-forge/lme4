@@ -1,0 +1,26 @@
+                                                                     
+                                                                     
+                                                                     
+                                             
+     Assessing the precision of estimates of variance components
+
+			    Douglas Bates
+		       Department of Statistics
+		       University of Wisconsin
+
+Good statistical practice suggests that we should not only provide
+estimates of the parameters in a model but also provide a measure of
+the precision of these estimates, typically in the form of a standard
+error of the estimate.  Such a summary is meaningful if the estimator
+is on a scale where an interval that is symmetric about the estimate
+would be a suitable summary of the uncertainty.  A notable exception
+to this practice of providing symmetric intervals is the confidence
+interval on a population variance based on the $\chi^2$ distribution.
+This interval recognizes that the distribution of the estimator of a
+variance is quite asymmetric.  However, in much more complex models
+using variance components or, more generally, linear mixed-effects
+models most statistical software reverts to providing an estimate of a
+variance component and a standard error of this estimate.  We discuss
+why this is inappropriate and some alternatives based on profiling the
+log-likelihood or using Markov-chain Monte Carlo simulation.
+
