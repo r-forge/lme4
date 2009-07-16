@@ -52,7 +52,7 @@ cholmod_common c;
 #ifdef HAVE_VISIBILITY_ATTRIBUTE
 __attribute__ ((visibility ("default")))
 #endif
-void R_init_lme4(DllInfo *dll)
+void R_init_lme4a(DllInfo *dll)
 {
     R_registerRoutines(dll, NULL, CallEntries, NULL, NULL);
     R_useDynamicSymbols(dll, FALSE);
