@@ -64,8 +64,7 @@
 \setkeys{Gin}{width=\textwidth}
 <<preliminaries,echo=FALSE,results=hide>>=
 options(width=69,show.signif.stars=FALSE)
-library(lattice)
-lattice.options(default.theme = function() standard.theme())
+library(lattice)lattice.options(default.theme = function() standard.theme())
 #lattice.options(default.theme = function() standard.theme(color=FALSE))
 library(lme4a)
 fm1 <- lmer(Yield ~ 1 + (1|Batch), Dyestuff)
@@ -360,9 +359,9 @@ be printed.  Generally the results of assignments are not printed.)
     \Emph{relative covariance factor}, $\bm\Lambda_\theta$,
     defined so that
     \begin{displaymath}
-      \bm\Sigma_\theta=\sigma^2\bm\Lambda_\theta\bm\Lambda\tr_\theta
+      \bm\Sigma_\theta=\sigma^2\bm\Lambda_\theta\bm\Lambda\tr_\theta .
     \end{displaymath}
-    so $\theta=\frac{\sigma_b}{\sigma}$ and
+    In our example $\theta=\frac{\sigma_b}{\sigma}$ and
     $\bm\Lambda_\theta=\theta\bm I_6$.
   \end{itemize}
 \end{frame}
@@ -374,7 +373,7 @@ be printed.  Generally the results of assignments are not printed.)
     random-effects vector, $\bc U$, such that
     \begin{displaymath}
       \bc U\sim\mathcal{N}\left(\bm 0,\sigma^2\bm I_q\right),\:
-      \bc B=\bm\Lambda_\theta\bc U\Rightarrow
+      \bc B=\bm\Lambda_\theta\,\bc U\Rightarrow
       \text{Var}(\bc B)=\sigma^2\bm\Lambda_\theta\bm\Lambda_\theta\tr=\bm\Sigma_\theta .
     \end{displaymath}
   \item The linear predictor expression becomes
@@ -394,7 +393,7 @@ be printed.  Generally the results of assignments are not printed.)
     can be ignored in theoretical derivations).  The sparse,
     lower-triangular $\bm L_\theta$ can be evaluated and updated for
     new $\bm\theta$ even when $q$ is in the millions and the model
-    involves random effects for different factors.
+    involves random effects for several factors.
   \end{itemize}
 \end{frame}
 
@@ -471,9 +470,10 @@ be printed.  Generally the results of assignments are not printed.)
   \frametitle{Profiled deviance and its components}
   \begin{itemize}
   \item For this simple model we can evaluate and plot the deviance
-    for a range of $\theta$ values.  We also evaluate $\log(|\bm
-    L_\theta|^2)$ (\code{ldL2}) and $n\left[1+\log\left(\frac{2\pi
-          r^2(\bm\theta)}{n}\right)\right]$ (\code{lprss}).
+    for a range of $\theta$ values.  We also plot its components,
+    $\log(|\bm L_\theta|^2)$ (\code{ldL2}) and
+    $n\left[1+\log\left(\frac{2\pi r^2(\bm\theta)}{n}\right)\right]$
+    (\code{lprss}).
   \item \code{lprss} measures fidelity to the data.  It is bounded
     above and below.  $\log(|\bm L_\theta|^2)$ measures complexity of
     the model.  It is bounded below but not above.
@@ -504,8 +504,8 @@ print(xyplot(deviance + ldL2 + lprss ~ theta,
   \item For some model/data set combinations the estimate of
     $\sigma^2_b$ is zero.  This occurs when the decrease in
     \code{lprss} as $\theta\uparrow$ is not sufficient to counteract
-    the increase in the penalty.  The \code{Dyestuff2} data from Box
-    and Tiao (1973) show this.
+    the increase in the complexity, $\log(|\bm L_\theta|^2)$.  The
+    \code{Dyestuff2} data from Box and Tiao (1973) show this.
   \end{itemize}
   \begin{center}
 <<Dyestuff2dot,fig=TRUE,echo=FALSE,height=3.5>>=
@@ -537,7 +537,7 @@ print(xyplot(deviance + ldL2 + lprss ~ theta,
 	     aspect = 1, type = c("g","l"), layout = c(3,1)))
     
 @ 
-  \end{center}
+  \end{center}%$
   \begin{itemize}
   \item For this data set the difference in the upper and lower bounds
     on \code{lprss} is not sufficient to counteract the increase in
@@ -547,8 +547,8 @@ print(xyplot(deviance + ldL2 + lprss ~ theta,
     more generally, $\bm\Lambda_\theta$  being singular.  This is not
     done well in the commercial software.
   \item One of the big differences between inferences for $\sigma^2_b$
-    and those for $\sigma^2$ is considering what to do about values of
-    zero.
+    and those for $\sigma^2$ is the need to accomodate to do about
+    values of $\sigma^2_b$ that are zero or near zero.
   \end{itemize}
 \end{frame}
 
@@ -585,12 +585,20 @@ print(contourplot(deviance + REML ~ sigB * sigma, grd1,
                   ))
 @   
   \end{center}
+  \begin{itemize}
+  \item The contours correspond to 2-dimensional marginal confidence
+    regions derived from a likelihood-ratio test.
+  \item The dotted and dashed lines are the profile traces.
+    % of these
+    % parameters.  The dashed line is the conditional estimate of
+    % $\sigma$, given $\sigma_b$ (vice versa for the dotted line).
+  \end{itemize}
 \end{frame}
 
 \begin{frame}[fragile]
   \frametitle{Profiling with respect to each parameter separately}
   \begin{center}
-<<profileddevfm1,fig=TRUE,echo=FALSE>>=
+<<profileddevfm1,fig=TRUE,echo=FALSE,height=5>>=
 print(xyplot(dev ~ x|par,
              data.frame(dev = c(profsbd[,2], profsd[,2]),
                         x = c(sigmas, sigB),
@@ -602,6 +610,10 @@ print(xyplot(dev ~ x|par,
              scales = list(x = list(relation = "free", axs = 'i'))))
 @   
   \end{center}
+  \begin{itemize}
+  \item These curves show the minimal deviance achieveable for a value
+    of one of the parameters, optimizing over all the other parameters.
+  \end{itemize}
 \end{frame}
 
 \begin{frame}[fragile]
@@ -629,9 +641,9 @@ print(xyplot(dev ~ x|par,
 \begin{frame}
   \frametitle{Square root of change in the profiled deviance}
   \begin{itemize}
-  \item The difference of the profiled deviance at a value of $\sigma$
-    or $\sigma_b$ is the likelihood ratio test statistic for that
-    parameter value.
+  \item The difference of the profiled deviance at the optimum and at
+    a particular value of $\sigma$ or $\sigma_b$ is the likelihood
+    ratio test statistic for that parameter value.
   \item If the use of a standard error, and the implied symmetric
     intervals, is appropriate then this function should be quadratic
     in the parameter and its square root should be like an absolute
@@ -639,8 +651,9 @@ print(xyplot(dev ~ x|par,
   \item The assumption that the change in the deviance has a
     $\chi^2_1$ distribution is equivalent to saying that
     $\sqrt{\text{LRT}}$ is the absolute value of a standard normal.
-  \item If we use the \Emph{signed square root} transformation where
-    we assign a sign of $-$ to parameters to the left of the estimate,
+  \item If we use the \Emph{signed square root} transformation,
+    assigning $-\sqrt{\text{LRT}}$ to parameters to the left of the
+    estimate and $\sqrt{\text{LRT}}$ to parameter values to the right,
     we should get a straight line on a standard normal scale.
   \end{itemize}
 \end{frame}
@@ -648,7 +661,7 @@ print(xyplot(dev ~ x|par,
 \begin{frame}[frgaile]
   \frametitle{Plot of square root of LRT statistic}
   \begin{center}
-<<profzfm1,fig=TRUE,echo=FALSE>>=
+<<profzfm1,fig=TRUE,echo=FALSE,height=5>>=
 print(xyplot(profz ~ x|par,
              data.frame(profz = c(sqrts, sqrtsb),
                         x = c(sigmasq, sigBsq),
@@ -665,7 +678,7 @@ print(xyplot(profz ~ x|par,
 \begin{frame}[frgaile]
   \frametitle{Signed square root plot of LRT statistic}
   \begin{center}
-<<sprofzfm1,fig=TRUE,echo=FALSE>>=
+<<sprofzfm1,fig=TRUE,echo=FALSE,height=5>>=
 print(xyplot(profz ~ x|par,
              data.frame(profz = c(ssqrt, ssqrtb),
                         x = c(sigmasq, sigBsq),
