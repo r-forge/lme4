@@ -1,0 +1,424 @@
+\usepackage{SweaveSlides}
+\title[lme4]{Mixed models in R using the lme4 package\\Part 2: Lattice graphics}
+\subject{Lattice}
+\date[July 21, 2009]{Max Planck Institute for Ornithology\\Seewiesen\\July 21, 2009}
+\AtBeginSection[]
+{
+  \begin{frame}<beamer>
+    \frametitle{Outline}
+    \tableofcontents[currentsection]
+  \end{frame}
+}
+\begin{document}
+\frame{\titlepage}
+\begin{frame}
+  \frametitle{Outline}
+  \tableofcontents[pausesections,hideallsubsections]
+\end{frame}
+\SweaveOpts{engine=R,eps=FALSE,pdf=TRUE,width=10,height=6.5,strip.white=all}
+\SweaveOpts{prefix=TRUE,prefix.string=figs/Lattice,include=TRUE}
+\setkeys{Gin}{width=\textwidth}
+<<preliminaries,echo=FALSE,results=hide>>=
+options(width=69,show.signif.stars=FALSE)
+library(lattice)
+lattice.options(default.theme = function() standard.theme())
+#lattice.options(default.theme = function() standard.theme(color=FALSE))
+@ 
+
+\section{Presenting data}
+
+\begin{frame}
+  \frametitle{Exploring and presenting data}
+  \begin{itemize}
+  \item When possible, use graphical presentations of data.  Time
+    spend creating informative graphical displays is well invested.
+  \item Ron Snee, a friend who spent his career as a statistical
+    consultant for DuPont, once said,\emph{
+      ``Whenever I am writing a report, the most important conclusion I
+      want to communicate is always presented as a graphic and
+      shown early in the report.  On the other hand, if there is a
+      conclusion I feel obligated to include but would prefer people
+      not notice, I include it as a table.''}
+  \item One of the strengths of R is its graphics capabilities.
+  \item There are several styles of graphics in R.  The style in
+    Deepayan Sarkar's \Emph{lattice} package
+    is well-suited to the type of data we will be discussing.
+  \item Deepayan's book, \Emph{Lattice: Multivariate Data
+      Visualization with R} (Springer, 2008) provides in-depth
+    documentation and explanations of lattice graphics.
+  \end{itemize}
+\end{frame}
+\begin{frame}
+  \frametitle{The formula/data method of specifying graphics}
+  \begin{itemize}
+  \item The first two arguments to lattice graphics functions are
+    usually \code{formula} and \code{data}.
+  \item This specification is also used in model-fitting functions
+    (\code{lm}, \code{aov}, \code{lmer}, ...) and in other functions
+    such as \code{xtabs}.
+  \item The formula incorporates a tilde, ($\sim$), character.  A
+    one-sided formula specifies the value on the x-axis.  A two-sided
+    formula specifies the x and y axes.
+  \item The second argument, \code{data}, is usually the name of a data frame.
+  \item Many optional arguments are available. Ones that we will use
+    frequently allow for labeling axes (\code{xlab}, \code{ylab}), and
+    controlling the type of information displayed, \code{type}.
+  \item The \code{lattice} package is not attached by default.  You
+    must enter \code{library(lattice)} before you can use lattice functions.
+  \end{itemize}
+\end{frame}
+
+\section[xyplot]{Scatter plots}
+
+\begin{frame}[fragile]
+  \frametitle{A simple scatterplot in lattice}
+<<xyplotshow>>=
+xyplot(optden ~ carb, Formaldehyde)
+@ 
+  \begin{center}
+<<xyplot,echo=FALSE,fig=TRUE,height=5.5>>=
+print(xyplot(optden ~ carb, Formaldehyde, aspect = 1))
+@ 
+  \end{center}
+\end{frame}
+
+\begin{frame}\frametitle{Scatterplots in lattice}
+  \begin{itemize}
+  \item A scatter plot is the most versatile plot in applied
+    statistics.  It is simply a plot of a numeric response, \code{y},
+    versus a numeric covariate, \code{x}.
+  \item The lattice function \code{xyplot} produces scatter plots.  I
+    typically specify \code{type = c("g","p")} requesting a background grid
+    in addition to the plotted points.
+  \item The \code{type} argument takes a selection from
+    \begin{description}
+    \item["p"] points
+    \item["g"] background grid
+    \item["l"] lines
+    \item["b"] both points and lines
+    \item["r"] reference (or ``regression'') straight line
+    \item["smooth"] scatter-plot smoother lines
+    \end{description}
+  \item In evaluating a scatterplot the aspect ratio (ratio of vertical
+    size to horizontal size) can be important.  In
+    particular, differences in slopes are most apparent near $45^o$.
+  \end{itemize}
+\end{frame}
+
+\begin{frame}[fragile]
+  \frametitle{General principles of lattice graphics}
+  \begin{itemize}
+  \item The formula is of the form $\sim$\code{x} or \code{y}$\sim$\code{x} or
+    \code{y}$\sim$\code{x | f} where \code{x} is the variable on the x axis
+    (usually continuous), \code{y} is the variable on the y axis and
+    \code{f} is a factor that determines the panels.
+  \item Titles can be added with \code{xlab}, \code{ylab}, \code{main}
+    and \code{sub}.  Titles can be character strings or, more
+    generally, expressions that allow for special characters,
+    subscripts, superscripts, etc.  See \code{help(plotmath)} for
+    details.
+  \item The \code{groups} argument, if used, specifies different point
+    styles and different line styles for each level of the group.  If
+    lines are calculated, each group has separate lines.
+  \item If \code{groups} is used, we usually also use \code{auto.key}
+    to add a key relating the line or point styles to the groups.
+  \item The \code{layout} specifies the number of columns and rows of
+    panels.
+  \end{itemize}
+\end{frame}
+
+\begin{frame}[fragile]
+  \frametitle{An enhanced scatterplot of the Formaldehyde data}
+  \begin{center}
+<<xyplot1,echo=FALSE,fig=TRUE>>=
+print(xyplot(optden ~ carb, Formaldehyde, aspect = 1,
+             type = c("g","p","r"),
+             xlab = "Amount of carbohydrate (ml)",
+             ylab = "Optical density"))
+@ 
+  \end{center}
+\end{frame}
+
+\begin{frame}\frametitle{Saving plots}
+  \begin{itemize}
+  \item I recommend using the facilities in the R application to save
+    plots and transcripts.
+  \item To save a plot, ensure that the graphics window is active and use
+    the menu item \code{File}$\rightarrow$\code{Save To
+      Clipboard}$\rightarrow$\code{Windows Metafile}.  (On a Mac, save
+    as PDF.)  Then switch to a word processor and paste the figure.
+  \item Adjust the aspect ratio of the graphics window to suit the
+    pasted version of the plot before you copy the graphic.
+  \item Those who want more control (and less cutting and pasting)
+    could consider the Sweave system or the odfWeave package.
+  \end{itemize}
+\end{frame}
+
+\section[densityplot]{Histograms and density plots}
+
+
+\begin{frame}\frametitle{Histograms and density plots}
+  \begin{itemize}
+  \item A histogram is a type of bar plot created from dividing
+    numeric data into adjacent bins (typically having equal width).
+  \item The purpose of a histogram is to show the distribution or
+    density of the observations.  It is almost never a good way of
+    doing this.
+  \item A \code{densityplot} is a better way of showing the density
+    or, even better, comparing the densities of observations
+    associated with different groups.  Also, densityplots for
+    different groups can be overlaid.
+  \item If you have only a few observations you may want to use a
+    comparative box-and-whisker plot (\code{bwplot}) or a comparative
+    \code{dotplot} instead.  Density plots based on a small number of
+    observations tend to be rather ``lumpy''.
+  \item If the data are bounded, perhaps because the data must be
+    positive, a density plot can blur the boundary.  However, this may
+    indicate that the data are more meaningfully represented on
+    another scale.
+  \end{itemize}
+\end{frame}
+
+\begin{frame}[fragile]
+  \frametitle{Histogram of the InsectSprays data}
+<<histshow,eval=FALSE>>=
+histogram(~ count, InsectSprays)
+@   
+\begin{center}
+<<hist,fig=TRUE,echo=FALSE>>=
+print(histogram(~ count, InsectSprays))
+@   
+\end{center}
+\end{frame}
+
+\begin{frame}[fragile]
+  \frametitle{Density plot of the InsectSprays data}
+<<densshow,eval=FALSE>>=
+densityplot(~ count, InsectSprays)
+@   
+\begin{center}
+<<dens,fig=TRUE,echo=FALSE>>=
+print(densityplot(~ count, InsectSprays))
+@   
+\end{center}
+\end{frame}
+
+\begin{frame}[fragile]
+  \frametitle{Density plot of the square root of the count}
+<<denssqrtshow,eval=FALSE>>=
+densityplot(~ sqrt(count), InsectSprays,  xlab = "Square root of count")
+@   
+\begin{center}
+<<denssqrt,fig=TRUE,echo=FALSE>>=
+print(densityplot(~ sqrt(count), InsectSprays,
+                  xlab = "Square root of count"))
+@   
+\end{center}
+\end{frame}
+
+\begin{frame}[fragile]
+  \frametitle{Density plot of the square root with fancy label}
+<<denssqrtfancyshow,eval=FALSE>>=
+densityplot(~ sqrt(count), InsectSprays, xlab = expression(sqrt("count")))
+@   
+\begin{center}
+<<denssqrtfancy,fig=TRUE,echo=FALSE>>=
+print(densityplot(~ sqrt(count), InsectSprays,
+                  xlab = expression(sqrt("count"))))
+@   
+\end{center}
+\end{frame}
+
+\begin{frame}[fragile]
+  \frametitle{Comparative density plot of square root}
+<<comparedensshow,eval=FALSE>>=
+densityplot(~ sqrt(count), InsectSprays, groups = spray,
+            auto.key = list(columns = 6))
+@   
+\begin{center}
+<<comparedens,echo=FALSE,fig=TRUE,height=6.5>>=
+print(densityplot(~ sqrt(count), InsectSprays,
+                  groups = spray,
+                  auto.key = list(columns = 6),
+                  xlab = expression(sqrt("count"))))
+@   
+\end{center}
+\end{frame}
+
+\begin{frame}[fragile]
+  \frametitle{Comparative density plot, separate panels}
+<<comparedenspanelshow,eval=FALSE>>=
+densityplot(~ sqrt(count)|spray, InsectSprays, layout = c(1,6))
+@   
+\begin{center}
+<<comparedenspanel,echo=FALSE,fig=TRUE,height=6.5>>=
+print(densityplot(~ sqrt(count)|spray, InsectSprays,
+                  layout = c(1,6),
+                  xlab = expression(sqrt("count"))))
+@   
+\end{center}
+\end{frame}
+
+\begin{frame}[fragile]
+  \frametitle{Comparative density plot, separate panels, strip at left}
+<<comparedenspanelleftshow,eval=FALSE>>=
+densityplot(~ sqrt(count)|spray, InsectSprays, layout = c(1,6), strip=FALSE,
+            strip.left = TRUE)
+@   
+\begin{center}
+<<comparedenspanelleft,echo=FALSE,fig=TRUE,height=6.5>>=
+print(densityplot(~ sqrt(count)|spray, InsectSprays,
+                  layout = c(1,6), strip=FALSE, strip.left = TRUE,
+                  xlab = expression(sqrt("count"))))
+@   
+\end{center}
+\end{frame}
+
+\begin{frame}[fragile]
+  \frametitle{Comparative density plot, separate panels, reordered}
+<<comparedenspanelreordershow,eval=FALSE>>=
+densityplot(~ sqrt(count)|reorder(spray,count), InsectSprays)
+@   
+\begin{center}
+<<comparedensreorderpanel,echo=FALSE,fig=TRUE,height=6.5>>=
+print(densityplot(~ sqrt(count)|reorder(spray, count), InsectSprays,
+                  layout = c(1,6), strip=FALSE, strip.left = TRUE,
+                  xlab = expression(sqrt("count"))))
+@   
+\end{center}
+\end{frame}
+
+\section[dotplot]{Box-and-whisker plots and dotplots}
+
+\begin{frame}\frametitle{Box-and-whisker plot and dotplot}
+  \begin{itemize}
+  \item A box-and-whisker plot gives a rough summary (based on the
+    five-number summary - min, 1st quartile, median, 3rd quartile,
+    max) of the distribution.
+  \item A dotplot consists of points on a number line.  For a large
+    number of data values we jitter the y values to avoid
+    overplotting.  By default a density plot also shows a dotplot.
+  \item Box-and-whisker plots or dotplots are often used for
+    comparison of groups.
+  \item It is widely believed that a comparative boxplot should have
+    the response on the vertical axis. Most of the time it is more
+    effective to put the response on the horizontal axis.
+  \item If the default ordering of the groups is arbitrary reorder them
+    according to the level of the response (mean response, by default).
+  \item Reordering makes it easier to see if the variability increases
+    with the level of the response.
+  \end{itemize}
+\end{frame}
+
+\begin{frame}[fragile]
+  \frametitle{Vertical comparative box-and-whisker plot}
+<<verticalbwshow,eval=FALSE>>=
+bwplot(sqrt(count) ~ spray, InsectSprays)
+@   
+\begin{center}
+<<verticalbw,echo=FALSE,fig=TRUE,height=6.5>>=
+print(bwplot(sqrt(count) ~ spray, InsectSprays,
+             ylab = expression(sqrt("count"))))
+@   
+\end{center}
+\end{frame}
+
+\begin{frame}[fragile]
+  \frametitle{Horizontal comparative box-and-whisker plot}
+<<horbwshow,eval=FALSE>>=
+bwplot(spray ~ sqrt(count), InsectSprays)
+@   
+\begin{center}
+<<horbw,echo=FALSE,fig=TRUE,height=6.5>>=
+print(bwplot(spray ~ sqrt(count), InsectSprays,
+             xlab = expression(sqrt("count"))))
+@   
+\end{center}
+\end{frame}
+
+\begin{frame}[fragile]
+  \frametitle{Reordered horizontal comparative box-and-whisker plot}
+<<horbwreordshow,eval=FALSE>>=
+bwplot(reorder(spray,count) ~ sqrt(count), InsectSprays)
+@   
+\begin{center}
+<<horreordbw,echo=FALSE,fig=TRUE,height=6.5>>=
+print(bwplot(reorder(spray,count) ~ sqrt(count), InsectSprays,
+             xlab = expression(sqrt("count"))))
+@   
+\end{center}
+\end{frame}
+
+\begin{frame}[fragile]
+  \frametitle{Compressed horizontal comparative box-and-whisker plot}
+<<horbwcompshow,eval=FALSE>>=
+bwplot(reorder(spray,count) ~ sqrt(count), InsectSprays, aspect = 0.2)
+@   
+\begin{center}
+<<horbwcomp,echo=FALSE,fig=TRUE,height=3.5>>=
+print(bwplot(reorder(spray,count) ~ sqrt(count), InsectSprays, aspect = 0.2,
+             xlab = expression(sqrt("count"))))
+@   
+\end{center}
+\begin{itemize}
+\item You can extract much more information from this, compressed plot
+  than from the original vertical box-and-whisker plot.
+\item In Edward Tufte's phrase, this plot has a greater
+  ``information/ink ratio''.
+\end{itemize}
+\end{frame}
+
+\begin{frame}
+  \frametitle{Comparative dotplots}
+  \begin{itemize}
+  \item When the number of observations per group is small, a
+    box-and-whisker plot can obscure the structure of the data, rather
+    than illuminating it.
+  \item By default, the density plot provides a dotplot on the ``rug''.
+  \item A comparative dotplot displays all of the data.  The
+    principles described for a comparative boxplot (factor on vertical
+    axis, reorder levels if no natural order, choose an appropriate
+    scale) apply here too.
+  \item By default, the character in the dotplot is filled.  I often
+    use optional arguments \code{pch = 21} and \code{jitter.y = TRUE}
+    to avoid overplotting.
+  \item Setting \code{type = c("p","a")} provides a line joining the
+    group averages.
+  \item Interaction plots can be produced as a comparative dotplot
+    with \code{groups}
+  \end{itemize}
+\end{frame}
+
+\begin{frame}[fragile]
+  \frametitle{Comparative dotplot of InsectSprays}
+<<dotsprayshow,eval=FALSE>>=
+dotplot(reorder(spray,count) ~ sqrt(count), InsectSprays,
+        type = c("p","a"), pch = 21, jitter.y = TRUE)
+@   
+\begin{center}
+<<dotspray,echo=FALSE,fig=TRUE,height=5>>=
+print(dotplot(reorder(spray,count) ~ sqrt(count), InsectSprays,
+              aspect = 0.4, type = c("p","a"),
+              pch = 21, jitter.y = TRUE,
+              xlab = expression(sqrt("count"))))
+@   
+\end{center}
+\end{frame}
+
+\begin{frame}\frametitle{Summary}
+  \begin{itemize}
+  \item In order of importance the graphic displays I consider are
+    scatter plots, density plots, box-and-whisker plots, dot plots and
+    histograms.
+  \item Pay careful attention to layout and axis labels.  Include
+    units in the axis labels, if known.
+  \item For mixed models we always have at least one unordered
+    categorical covariate and often have a numeric response.
+    Comparative dot plots and box-and-whisker plots will be important
+    data presentation techniques for us.
+  \item Plots of a continuous response by levels of a categorical
+    variable work best with the category on the vertical axis.
+    Consider reordering the levels of the category if they do not have
+    a natural order.
+  \end{itemize}
+\end{frame}
