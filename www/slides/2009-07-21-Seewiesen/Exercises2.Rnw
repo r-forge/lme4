@@ -159,6 +159,7 @@ xtabs(~ classid, classroom, schoolid == 11, drop = TRUE)
   \begin{center}
 <<dotplot1,fig=TRUE,echo=FALSE,height=4.5,width=11>>=
 print(dotplot(classid ~ mathgain, classroom, subset = schoolid == 11,
+              pch = 21, jitter.y = TRUE,
               xlab = "Gain in mathematics score",
               ylab = "Grade 1 classroom (school 11 only)"))
 @     
@@ -169,6 +170,7 @@ print(dotplot(classid ~ mathgain, classroom, subset = schoolid == 11,
 <<dotplot2,fig=TRUE,echo=FALSE,height=4.5,width=11>>=
 print(dotplot(reorder(classid,mathgain) ~ mathgain, classroom,
               subset = schoolid == 11, type = c("p","a"),
+              pch = 21, jitter.y = TRUE,
               xlab = "Gain in mathematics score",
               ylab = "Grade 1 classroom (school 11 only)"))
 @     
