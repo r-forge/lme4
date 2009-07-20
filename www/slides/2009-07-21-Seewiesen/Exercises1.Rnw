@@ -1,0 +1,141 @@
+\documentclass[11pt,a4rpaper]{article}
+\usepackage[top=1.1in,bottom=1in,left=0.9in,headheight=14pt,right=0.9in]{geometry}
+\usepackage{paralist,mdwlist,Sweave,amsmath,amsbsy,graphicx,alltt,fancyhdr,url}
+\SweaveOpts{engine=R,eps=FALSE,width=10,height=6.5,strip.white=all}
+\SweaveOpts{prefix=TRUE,prefix.string=figs/hw9,include=TRUE}
+\setkeys{Gin}{width=\textwidth}
+\DefineVerbatimEnvironment{Sinput}{Verbatim}
+{formatcom={\vspace{-1.5ex}},fontshape=sl,
+  fontfamily=courier,fontseries=b, fontsize=\small}
+\DefineVerbatimEnvironment{Soutput}{Verbatim}
+{formatcom={\vspace{-2.5ex}},fontfamily=courier,fontseries=b,fontsize=\small}
+\usepackage{fancyhdr}
+\lhead{\sf Mixed-effects models workshop}\chead{\sf Exercises \#1}
+\rhead{\sf 2009-07-21 (p. \thepage)}
+\lfoot{\sf Loading data from a file and examining it}\cfoot{}\rfoot{}
+\pagestyle{fancy}
+\newcommand{\code}[1]{\texttt{\small #1}}
+\newcommand{\R}{\textsf{R}}
+<<initial,echo=FALSE,print=FALSE>>=
+options(width=80, show.signif.stars = FALSE)
+library(lattice)
+lattice.options(default.theme = standard.theme(color = FALSE))
+set.seed(123454321)
+@ 
+\begin{document}
+These exercises use data from a study of mathematics skill levels in
+students within classrooms within schools.   The data are available in
+a comma-separated value (csv) file as
+\begin{center}
+  \url{http://www-personal.umich.edu/~bwest/classroom.csv}
+\end{center}
+
+\begin{enumerate}
+\item Start \R{} and create a data frame called \code{classroom} using
+  the \code{read.csv} function with the (quoted) file name as the
+  first and only argument.  Notice that you can do this in two ways:
+  either read directly from the web site by giving the quoted URL as
+  the argument or first download the file then enter the file name.
+  Try it both ways.  Remember that \code{file.choose()} brings up a
+  chooser panel to help you navigate to the file name.
+<<echo=FALSE,results=hide>>=
+classroom <- read.csv("http://www-personal.umich.edu/~bwest/classroom.csv")
+@ 
+
+<<strclass1,echo=FALSE,results=hide>>=
+foo <- capture.output(str(classroom))
+@ 
+\item Check the structure of the data frame using
+  \code{str(classroom)}.  Are any of the variables in the data frame
+  stored as factors?  Should any of these variables be stored as
+  factors?  The first few lines should look like
+<<strclass,eval=FALSE>>=
+str(classroom)
+@   
+<<strclass2,echo=FALSE>>=
+cat(paste(foo[1:5],collapse="\n"),"\n")
+@ 
+<<sexchange,echo=FALSE>>=
+classroom <- within(classroom,
+                {
+                    sex <- factor(sex, labels = c("M","F"))
+                    minority <- factor(minority, labels = c("N","Y"))
+                    classid <- factor(classid)
+                    schoolid <- factor(schoolid)
+                    childid <- factor(childid)
+                })
+@ 
+\item Check the \code{summary} of this data frame.  Is the summary of
+  the \code{sex} variable meaningful?  It happens that the coding for
+  \code{sex} is
+  \begin{compactdesc}
+  \item[0] Male
+  \item[1] Female
+  \end{compactdesc}
+  Convert this variable to a \code{factor} with labels \code{"M"} and
+  \code{"F"}.  Check the summary for this variable after conversion.
+  You can either ask for a summary of the whole data frame again or
+  for a summary of this variable only using
+<<sexsummary>>=
+summary(classroom$sex)
+@ 
+
+\item Convert the \code{minority} variable to a factor with levels
+  \code{"N"} and \code{"Y"}.  Convert the \code{childid},
+  \code{classid} and \code{schoolid} variables to factors (it is
+  easiest to retain the numeric values for the levels).  Check
+  \code{str} and the \code{summary} again.  The summary of the factor
+  variables should be like
+<<subsetsummary>>=
+summary(subset(classroom, select = c(sex, minority, childid, classid, schoolid)))
+@
+
+\item Save the modified data frame as a file named
+  \code{"classroom.rda"}.  Remove the data frame.  Load the file and
+  check that the \code{classroom} data frame has the expected structure.
+<<saveload,echo=FALSE,results=hide>>=
+save(classroom, file = "classroom.rda")
+rm(classroom)
+exists("classroom")
+load("classroom.rda")
+@   
+<<checkstr>>=
+str(classroom)
+@ 
+\end{enumerate}
+
+If you finish early you could also consider these questions.
+\begin{enumerate}
+\item I claim that the \code{childid} variable serves no purpose
+  because it is the same as the row number.  Check this.
+<<checkchildid,echo=FALSE,results=hide>>=
+all(row.names(classroom) == classroom$childid)
+@   
+
+\item You can remove a variable from a data frame by assigning it the
+  special value \code{NULL}.  Try this
+<<childid>>=
+classroom$childid <- NULL
+names(classroom)
+@
+\item The variable \code{housepov} should be associated with the
+  \code{schoolid} factor. Check that there is only one value of
+  \code{housepov} for each school.
+\item The variables \code{yearstea}, \code{mathknow}, \code{mathprep}
+  and \code{schoolid} should be a property of the \code{classid}.
+  Check that they are.
+\item Create two new data frames, \code{school} and \code{class},
+  containing one row for each level of \code{schoolid} (resp. one row
+  for each level of \code{classid}) and the corresponding variable(s)
+  that are associated with the school or class.
+\item Look up the documentation of the \code{merge} function and see
+  if you can merge the two data frames you created in the previous
+  question into one frame that contains all the variables associated
+  with the class plus the \code{housepov} associated with the class.
+\end{enumerate}
+\end{document}
+
+%%% Local Variables: 
+%%% mode: latex
+%%% TeX-master: t
+%%% End: 
