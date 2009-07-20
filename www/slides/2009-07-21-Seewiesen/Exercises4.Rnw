@@ -1,0 +1,82 @@
+\documentclass[11pt,a4rpaper]{article}
+\usepackage[top=1.1in,bottom=1in,left=0.9in,headheight=14pt,right=0.9in]{geometry}
+\usepackage{paralist,mdwlist,Sweave,amsmath,amsbsy,graphicx,alltt,fancyhdr,url}
+\SweaveOpts{engine=R,eps=FALSE,width=10,height=6.5,strip.white=all}
+\SweaveOpts{prefix=TRUE,prefix.string=figs/ex2,include=TRUE}
+\setkeys{Gin}{width=\textwidth}
+\DefineVerbatimEnvironment{Sinput}{Verbatim}
+{formatcom={\vspace{-1.5ex}},fontshape=sl,
+  fontfamily=courier,fontseries=b, fontsize=\small}
+\DefineVerbatimEnvironment{Soutput}{Verbatim}
+{formatcom={\vspace{-2.5ex}},fontfamily=courier,fontseries=b,fontsize=\small}
+\usepackage{fancyhdr}
+\lhead{\sf Mixed-effects models workshop}\chead{\sf Exercises \#4}
+\rhead{\sf 2009-07-02 (p. \thepage)}
+\lfoot{\sf Longitudinal data}\cfoot{}\rfoot{}
+\pagestyle{fancy}
+\newcommand{\code}[1]{\texttt{\small #1}}
+\newcommand{\R}{\textsf{R}}
+<<initial,echo=FALSE,print=FALSE>>=
+options(width=80, show.signif.stars = FALSE)
+library(MEMSS)
+lattice.options(default.theme = standard.theme(color = FALSE))
+set.seed(123454321)
+@
+
+\begin{document}
+These exercises use data sets from the \code{MEMSS} package that you
+installed for the previous set of exercises.
+\begin{enumerate}
+\item  Check the structure of documentation, structure and a summary of
+  the \code{Orthodont} data set.
+  \begin{enumerate}
+  \item Create an \code{xyplot} of the \code{distance} versus
+    \code{age} by \code{Subject} for the female subjects
+    only.  You can use the optional argument \code{subset = Sex ==
+      "Female"} in the call to \code{xyplot} to achieve this.  Use
+    the optional argument \code{type = c("g","p","r")} to add
+    reference lines to each panel.
+  \item Enhance the plot by choosing an aspect ratio for which the
+    typical slope of the reference line is around 45$^o$.  You can set
+    it manually (something like \code{aspect = 4}) or with an
+    automatic specification (\code{aspect = "xy"}).  Change the layout
+    so the panels form one row (\code{layout = c(11,1)}).
+  \item Order the panels according to increasing response at age 8.
+    This is achieved with the optional argument \code{index.cond}
+    which is a function  of arguments \code{x} and \code{y}.  In this
+    case you could use \code{index.cond = function(x,y) y[x == 8]}.
+    Add meaningful axis labels.  Your final plot should be like
+    \begin{center}
+<<orthofem,echo=FALSE,fig=TRUE,height=4.5>>=
+print(xyplot(distance ~ age|Subject, Orthodont, subset = Sex == "Female",
+             index.cond = function(x,y) y[x == 8],
+             aspect = 'xy', layout = c(11,1), type = c("g","p","r"),
+             xlab = "Age (yr)",
+             ylab = "Distance from pituitary to pterygomaxillary fissure (mm)"))
+@     
+    \end{center}
+
+  \item Fit a linear mixed model to the data for the females only with
+    random effects for the intercept and for the slope by subject,
+    allowing for correlation of these random effects within subject.
+    Relate the fixed effects and the random effects' variances and
+    covariances to the variability shown in the figure.
+  \item Produce a ``caterpillar plot'' of the random effects for
+    intercept and slope.  Does the plot indicate correlated random effects?
+  \item Consider what the Intercept coefficient and random effects
+    represents.  What will happen if you center the ages by
+    subtracting 8 (the baseline year) or 11 (the middle of the age range)?
+  \item Repeat for the data from the male subjects.
+  \end{enumerate}
+
+\item Produce a model for both the female and the male subjects
+  allowing for differences by sex in the fixed-effects for intercept
+  (probably with respect to the centered age range) and slope.
+
+\end{enumerate}
+\end{document}
+
+%%% Local Variables: 
+%%% mode: latex
+%%% TeX-master: t
+%%% End: 
