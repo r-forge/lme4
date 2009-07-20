@@ -4,7 +4,6 @@
 \usepackage{SweaveSlides}
 \title[lme4]{Mixed models in R using the lme4 package\\Part 3: Linear mixed models with simple, scalar random effects}
 \subject{LMM}
-\date[July 1, 2009]{University of Lausanne\\July 1, 2009}
 \AtBeginSection[]
 {
   \begin{frame}<beamer>
@@ -27,18 +26,20 @@ options(width=69,show.signif.stars=FALSE)
 library(lattice)
 library(Matrix)
 library(lme4)
-#lattice.options(default.theme = function() standard.theme())
-lattice.options(default.theme = function() standard.theme(color=FALSE))
-if (exists("classroom.rda")) {
-    load("classroom.rda")
-} else {
-    classroom <- within(read.csv("http://www-personal.umich.edu/~bwest/classroom.csv"),
-                    {
-                        classid <- factor(classid)
-                        schoolid <- factor(schoolid)
-                        sex <- factor(sex, labels = c("M","F"))
-                        minority <- factor(minority, labels = c("N", "Y"))
-                    })
+lattice.options(default.theme = function() standard.theme())
+#lattice.options(default.theme = function() standard.theme(color=FALSE))
+if (!exists("classroom")) {
+    if (file.exists("classroom.rda")) {
+        load("classroom.rda")
+    } else {
+        classroom <- within(read.csv("http://www-personal.umich.edu/~bwest/classroom.csv"),
+                        {
+                            classid <- factor(classid)
+                            schoolid <- factor(schoolid)
+                            sex <- factor(sex, labels = c("M","F"))
+                            minority <- factor(minority, labels = c("N", "Y"))
+                        })
+    }
 }
 @ 
 
@@ -233,7 +234,7 @@ options(op)
     do not observe the value of $\bc{B}$.
   \item In the models we will consider, the random effects are modeled
     as a multivariate Gaussian (or ``normal'') random variable,
-    $\bc{B}\sim\mathcal{N}(\bm 0,\bm\Sigma(\bm\theta))$, where
+    $\bc{B}\sim\mathcal{N}(\bm 0,\bm\Sigma_\theta)$, where
     $\bm\theta$ is a vector of \Emph{variance-component parameters}.
   \end{itemize}
 \end{frame}
@@ -582,9 +583,9 @@ print(image(fm2@Zt, xlab = NULL, ylab = NULL, sub = "Z'"))
     crossed random effects can be somewhat slower.
   \item The crucial calculation in each \code{lmer} iteration is
     evaluation of a $q\times q$ sparse, lower triangular, Cholesky
-    factor, $\bm L(\bm\theta)$, derived from $\bm Z$ and
-    $\bm\Sigma(\bm\theta)$.  Crossing of grouping factors increases
-    the number of nonzeros in $\bm L(\bm\theta)$ and causes some
+    factor, $\bm L_\theta$, derived from $\bm Z$ and
+    $\bm\Sigma_\theta$.  Crossing of grouping factors increases
+    the number of nonzeros in $\bm L_\theta$ and causes some
     ``fill-in'' of $\bm L$ relative to $\bm Z\trans\bm Z$.
   \end{itemize}
 \end{frame}
@@ -692,10 +693,10 @@ Pastes <- within(Pastes, sample <- factor(batch:cask))
 \begin{frame}[fragile]
   \frametitle{Pastes data plot}
 <<Pastesplot,fig=TRUE,echo=FALSE,height=7.2>>=
-Pastes <- within(Pastes, bb <- reorder(batch, strength))
-Pastes <- within(Pastes, ss <- reorder(reorder(sample, strength),
-          as.numeric(batch)))
-print(dotplot(ss ~ strength | bb, Pastes,
+pp <- within(Pastes, bb <- reorder(batch, strength))
+pp <- within(pp, ss <- reorder(reorder(sample, strength),
+                               as.numeric(batch)))
+print(dotplot(ss ~ strength | bb, pp,
               strip = FALSE, strip.left = TRUE, layout = c(1, 10),
               scales = list(y = list(relation = "free")),
               ylab = "Sample within batch", type = c("p", "a"),
@@ -729,7 +730,7 @@ Batch-to-batch variability is low compared to sample-to-sample.
     $k=2$ simple, scalar random-effects terms ($q_1=q_2=1$) with
     grouping factors having $n_1=30$ and $n_2=10$ levels.
   \item Because both random-effects terms are simple, scalar terms,
-    $\bm\Sigma(\bm\theta)$ is block-diagonal in two diagonal blocks of
+    $\bm\Sigma_\theta$ is block-diagonal in two diagonal blocks of
     sizes $30$ and $10$, respectively. $\bm Z$ is generated from two
     sets of indicators.
   \end{itemize}
@@ -1045,7 +1046,6 @@ anova(fm9M, fm8M)
 \end{itemize}
 \end{frame}
 
-
 \begin{frame}[fragile]\frametitle{A large observational data set}
   \begin{itemize}
   \item A large U.S. university (not mine) provided data on the grade
@@ -1114,13 +1114,56 @@ Fixed effects:
     in mixed modeling can be formidable.
   \end{itemize}
 \end{frame}
+
 \section[Large]{A model fit to a large data set}
 
 \begin{frame}[fragile]
   \frametitle{A model fit to a large data set (by today's standards)}
   \begin{itemize}
-  \item Harold Doran of American Institutes for research recently fit a model with $n_1=1876788$ students and 
+  \item Harold Doran recently fit a linear mixed model to the annual
+    achievement test results for the last 4 years in one of the United
+    States.  There were $n=5212017$ observations on a total of
+    $n_1=1876788$ students and $n_2=47480$ teachers.
+  \item The models had simple, scalar random effects for student and
+    for teacher resulting in $q=1924268$ (i.e. nearly 2 million!)
+  \item There were a total of $p=29$ fixed-effects parameters.
+  \item At present Harold needed to fit the model to a subset and only
+    evaluate the conditional means for all the students and teachers
+    but we should be able to get around that limitation and actually
+    fit the model to all these responses and random effects.
+  \item I don't know of other software that can be used to fit a
+    model this large.
   \end{itemize}
+\end{frame}
+
+\begin{frame}[fragile]
+  \frametitle{Size of the decomposition for this large model}
+  \begin{itemize}
+  \item The limiting factor on the memory size in such a model is the
+    Cholesky factor $\bm L(\bm\theta)$.
+  \item In this case the \code{x} slot is itself over 1GB in size and
+    the \code{i} slot is over 0.5 GB.
+  \item These are close to an inherent limit on atomic R objects (the
+    range of an index into an atomic object cannot exceed $2^{31}$).
+  \end{itemize}
+  \begin{Schunk}
+    \begin{Sinput}
+> str(L)
+    \end{Sinput}
+    \begin{Soutput}
+Formal class 'dCHMsimpl' [package "Matrix"] with 10 slots
+  ..@ x       : num [1:174396181] 1.71 2.16 1.4 1.32 2.29 ...
+  ..@ p       : int [1:1924269] 0 2 4 5 7 9 10 12 14 15 ...
+  ..@ i       : int [1:174396181] 0 2 1 2 2 3 5 4 5 5 ...
+  ..@ nz      : int [1:1924268] 2 2 1 2 2 1 2 2 1 2 ...
+  ..@ nxt     : int [1:1924270] 1 2 3 4 5 6 7 8 9 10 ...
+  ..@ prv     : int [1:1924270] 1924269 0 1 2 3 4 5 6 7 8 ...
+  ..@ colcount: int [1:1924268] 2 2 1 2 2 1 2 2 1 2 ...
+  ..@ perm    : int [1:1924268] 1922843 1886519 134451 1921046 1893309 183471 1912388 1888309 196670 1922626 ...
+  ..@ type    : int [1:4] 2 1 0 1
+  ..@ Dim     : int [1:2] 1924268 192426
+    \end{Soutput}
+  \end{Schunk}
 \end{frame}
 
 \begin{frame}
