@@ -76,7 +76,7 @@ lattice.options(default.theme = function() standard.theme())
 xyplot(optden ~ carb, Formaldehyde)
 @ 
   \begin{center}
-<<xyplot,echo=FALSE,fig=TRUE,height=5.5>>=
+<<xyplot,echo=FALSE,fig=TRUE,height=6>>=
 print(xyplot(optden ~ carb, Formaldehyde, aspect = 1))
 @ 
   \end{center}
