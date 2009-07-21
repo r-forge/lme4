@@ -56,7 +56,7 @@
 options(width=69,show.signif.stars=FALSE)
 library(lattice)
 lattice.options(default.theme = function() standard.theme())
-#lattice.options(default.theme = function() standard.theme(color=FALSE))
+lattice.options(default.theme = function() standard.theme(color=FALSE))
 library(lme4a)
 fm1 <- lmer(Yield ~ 1 + (1|Batch), Dyestuff)
 fm1ML <- update(fm1, REML = FALSE)
