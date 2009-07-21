@@ -2,9 +2,8 @@
 % likely to be overwritten.
 
 \usepackage{SweaveSlides}
-\title[lme4]{Mixed models in R using the lme4 package\\Part 4: Longitudinal data}
+\title[lme4]{Mixed models in R using the lme4 package\\Part 5: Longitudinal data}
 \subject{Longitudinal}
-\date[July 2, 2009]{University of Lausanne\\July 2, 2009}
 \AtBeginSection[]
 {
   \begin{frame}<beamer>
@@ -27,7 +26,7 @@ options(width=65,show.signif.stars=FALSE)
 library(lattice)
 library(Matrix)
 library(lme4)
-#lattice.options(default.theme = function() standard.theme())
+lattice.options(default.theme = function() standard.theme())
 lattice.options(default.theme = function() standard.theme(color=FALSE))
 @ 
 
