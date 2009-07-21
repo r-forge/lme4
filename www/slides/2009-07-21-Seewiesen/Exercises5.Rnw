@@ -11,7 +11,7 @@
 {formatcom={\vspace{-2.5ex}},fontfamily=courier,fontseries=b,fontsize=\small}
 \usepackage{fancyhdr}
 \lhead{\sf Mixed-effects models workshop}\chead{\sf Exercises \#4}
-\rhead{\sf 2009-07-02 (p. \thepage)}
+\rhead{\sf 2009-07-22 (p. \thepage)}
 \lfoot{\sf Longitudinal data}\cfoot{}\rfoot{}
 \pagestyle{fancy}
 \newcommand{\code}[1]{\texttt{\small #1}}
