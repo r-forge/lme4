@@ -2,9 +2,8 @@
 % likely to be overwritten.
 
 \usepackage{SweaveSlides}
-\title[lme4]{Mixed models in R using the lme4 package\\Part 5: Interactions}
-\subject{Longitudinal}
-\date[July 2, 2009]{University of Lausanne\\July 2, 2009}
+\title[lme4]{Mixed models in R using the lme4 package\\Part 6: Interactions}
+\subject{Interactions}
 \AtBeginSection[]
 {
   \begin{frame}<beamer>
@@ -29,7 +28,7 @@ library(Matrix)
 library(lme4)
 data(Machines, package = "MEMSS")
 Machines <- Machines[with(Machines,order(Worker, Machine)),]
-#lattice.options(default.theme = function() standard.theme())
+lattice.options(default.theme = function() standard.theme())
 lattice.options(default.theme = function() standard.theme(color=FALSE))
 if (file.exists("ratbrain.rda")) {
     load("ratbrain.rda")
