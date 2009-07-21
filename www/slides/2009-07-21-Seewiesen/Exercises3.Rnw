@@ -11,7 +11,7 @@
 {formatcom={\vspace{-2.5ex}},fontfamily=courier,fontseries=b,fontsize=\small}
 \usepackage{fancyhdr}
 \lhead{\sf Mixed-effects models workshop}\chead{\sf Exercises \#3}
-\rhead{\sf 2009-07-02 (p. \thepage)}
+\rhead{\sf 2009-07-22 (p. \thepage)}
 \lfoot{\sf Models with simple, scalar random effects}\cfoot{}\rfoot{}
 \pagestyle{fancy}
 \newcommand{\code}[1]{\texttt{\small #1}}
@@ -58,12 +58,14 @@ Jos\'{e} Pinheiro.
     that of the \code{Penicillin} data shown on the slides.
   \item Fit a mixed-effects model to these data with fixed-effects for
     \code{Type} and a simple, scalar random effect for each level of
-    \code{Subject}.  A suitable formula could be
+    \code{Subject}.  A suitable formula could be\\[2ex]
+    
 <<formulaergo1,echo=FALSE>>=
 effort ~ 1 + Type + (1|Subject)
 @
 What does the \code{(Intercept)} coefficient represent?  What do the
-other fixed-effects terms represent?  Change the formula to
+other fixed-effects terms represent?  Change the formula to\\[2ex]
+
 <<formulaergo1,echo=FALSE>>=
 effort ~ 0 + Type + (1|Subject)
 @
@@ -98,7 +100,8 @@ which suppresses the intercept term.  What do the fixed-effects parameters repre
     Are there schools that seem clearly better or clearly worse than
     the typical school?
   \item Fit a model with the previous fixed-effects term plus a
-    Sex/Minority interaction term.  A suitable formula would be
+    Sex/Minority interaction term.  A suitable formula would be\\[2ex]
+    
 <<SexMform,echo=FALSE>>=
 MathAch ~ Sex * Minority + MEANSES + (1|School)
 @
