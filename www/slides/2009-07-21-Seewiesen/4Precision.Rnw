@@ -1,0 +1,617 @@
+%\documentclass[dvipsnames,pdflatex,beamer]{beamer}
+%\documentclass[dvipsnames,pdflatex,handout]{beamer}
+%                                   ^^^^^^^ << for handout - happens in Makefile
+%\usepackage[english]{babel}
+%\usepackage[utf8]{inputenc}
+%beamer breaks with\usepackage{paralist}%-> {compactenum}, ... (Aargh!)
+%\usepackage{mdwlist}% \suspend and \resume enumerate
+%\usepackage{relsize}% ``relative font sizes''
+%% part of {mmVignette} below: \usepackage{SweaveSlides}
+\usepackage{SweaveSlides}
+\title[Precision of Variance Estimates]{Assessing the precision of estimates of variance components}
+\author{Douglas Bates}
+\subject{Variance precision}
+\AtBeginSection[]
+{
+  \begin{frame}<beamer>
+    \frametitle{Outline}
+    \tableofcontents[currentsection]
+  \end{frame}
+}
+\newcounter{saveenum}
+\newcommand*{\Rp}{\textsf{R}$\;$}% R program
+%---- from texab.sty --- can not take all --------------
+%\newcommand{\norm}[1]   {\left\| #1 \right\|}
+% % the above sometimes give much too long  || -- then use the following:
+% \newcommand{\normb}[1]  {\bigl\|{#1}\bigr\|}
+% \newcommand{\normB}[1]  {\Bigl\|{#1}\Bigr\|}
+\newcommand{\fn}[1]{\kern-2pt\left(#1\right)}
+\newcommand{\Ew}[1]{\mathbf{E}\kern2pt\fn{#1}}
+%
+%
+\mode<handout>{\usetheme{default}}
+\mode<beamer>{%
+  %%> http://www.namsu.de/latex/themes/uebersicht_beamer.html
+  \usetheme{Boadilla}% somewhat similar to Singapore, but "nice" blocks
+  %\usetheme{Singapore}%  \usetheme{Madrid}%
+  \setbeamercovered{dynamic}% {transparent} {invisible} or {dynamic}
+  % Use ETH Logo
+%   \pgfdeclareimage[height=0.5cm]{ETH-logo}{../ethlogo_black}%
+%   \logo{\pgfuseimage{ETH-logo}}%
+  % \pgfdeclareimage[height=0.5cm]{R-logo}{Rlogo}%
+%  \pgfdeclareimage[height=0.5cm]{R-logo}{useR}%
+%  \logo{\pgfuseimage{R-logo}}%
+}
+\begin{document}
+\frame{\titlepage}
+\begin{frame}
+  \frametitle{Outline}
+  \tableofcontents[pausesections,hideallsubsections]
+\end{frame}
+
+\SweaveOpts{engine=R,eps=FALSE,pdf=TRUE,width=10,height=6.5,strip.white=all}
+\SweaveOpts{prefix=TRUE,prefix.string=figs/theory,include=TRUE}
+\setkeys{Gin}{width=\textwidth}
+<<preliminaries,echo=FALSE,results=hide>>=
+options(width=69,show.signif.stars=FALSE)
+library(lattice)
+lattice.options(default.theme = function() standard.theme())
+#lattice.options(default.theme = function() standard.theme(color=FALSE))
+library(lme4a)
+fm1 <- lmer(Yield ~ 1 + (1|Batch), Dyestuff)
+fm1ML <- update(fm1, REML = FALSE)
+VCREML <- VarCorr(fm1)
+VCML <- VarCorr(fm1ML)
+##' Return an interpolated minimum on a grid
+##'
+##' @param x numeric values of dimension being minimized.  Default is seq_along(y)
+##' @param y numeric response vector
+##' @return location (the x value) of the minimum and its value as
+##'         obtained by quadratic interpolation at three values
+##'         bracketing the minimum. 
+gmin <- function(x = seq_along(y), y)
+{
+    conv <- array(c(0,-1,1,2,0,-2,0,1,1), c(3,3))/2
+    mpos <- which.min(y)
+    if (mpos %in% c(1L, length(y))) return(c(x[mpos], y[mpos]))
+    ycoef <- conv %*% y[mpos + -1:1]
+    pos <- -ycoef[2]/(2*ycoef[3])
+    stopifnot(-1 < pos, pos < 1)
+    b <- c(1, pos, pos^2)
+    c(crossprod(conv %*% x[mpos + -1:1], b), crossprod(ycoef, b))
+}
+##' Deviance for a specified sigma (that is, without profiling on sigma)
+##'
+##' @param fenv  evaluation environment
+##' @param theta relative covariance parameters
+##' @param sigma common scale parameter
+##' @return vector of the deviance and the REML criterion
+sigmaDev <- function(fenv, theta, sigma)
+{
+    setPars(fenv, theta)
+    sigmasq <- sigma^2
+    dev <- fenv$deviance
+    n <- nrow(fenv$X)
+    nmp <- n - ncol(fenv$X)
+    base <- unname(dev["ldL2"] +  dev["pwrss"]/sigmasq)
+    l2ps <- log(2*pi*sigmasq)
+    base + unname(c(dev["ldRX2"],0)) + c(nmp,n) * l2ps
+}
+##' Deviance at a specified sigma, alternative argument list
+##'
+##' @param fenv  evaluation environment
+##' @param pars  concatenation of relative covariance parameters and sigma
+##' @return vector of the deviance and the REML criterion
+##' @comment FIXME, change this to be an option of sigmaDev
+sigmaDev1 <- function(fenv, pars)
+{
+    pars <- as.numeric(pars)
+    stopifnot((lp <- length(pars)) > 1)
+    sigmaDev(fenv, pars[-lp]/pars[lp], pars[lp])
+}
+
+if (file.exists("grd1.rda")) {
+    load("grd1.rda")
+    sigB <- sort(unique(grd1$sigB))
+    sigmas <- sort(unique(grd1$sigma))
+    deviance <- array(grd1$deviance + deviance(fm1ML),
+                      c(length(sigB), length(sigmas)))
+    REML <- array(grd1$REML + deviance(fm1),
+                  c(length(sigB), length(sigmas)))
+} else {
+    fm1env <- lmer(Yield ~ 1 + (1|Batch), Dyestuff, doFit = FALSE)
+    n <- nrow(fm1env$X)
+    nmp <- n - ncol(fm1env$X)
+    sigB <- seq(0, 225,len = 101)
+    sigmas <- seq(30, 100,len = 101)
+    grd1 <- expand.grid(sigB = sigB, sigma = sigmas)
+    attr(grd1, "out.attrs") <- NULL          # save a bit of space
+    vals <- apply(t(grd1[, 1:2]), 2, sigmaDev1, fenv = fm1env)
+    grd1$REML <- vals[1,] - deviance(fm1)
+    grd1$deviance <- vals[2,] - deviance(fm1ML)
+    deviance <- array(vals[2,], c(length(sigB), length(sigmas)))
+    REML <- array(vals[1,], c(length(sigB), length(sigmas)))
+    save(grd1, file = "grd1.rda")
+}
+sigmasq <- sigmas * sigmas
+sigBsq <- sigB * sigB
+parvec <- rep.int(c("sigma", "sigmaB"), c(length(sigmas), length(sigB)))
+profsd <- t(apply(deviance, 1, gmin, x = sigmas))
+profsbd <- t(apply(deviance, 2, gmin, x = sigB))
+profsR <- t(apply(REML, 1, gmin, x = sigmas))
+profsbR <- t(apply(REML, 2, gmin, x = sigB))
+sqrts <- sqrt(profsbd[,2] - deviance(fm1ML))
+sqrtsb <- sqrt(profsd[,2] - deviance(fm1ML))
+ssqrtb <- sqrtsb * ifelse(seq_along(sqrtsb) < which.min(sqrtsb), -1, 1)
+ssqrt <- sqrts * ifelse(seq_along(sqrts) < which.min(sqrts), -1, 1)
+@
+
+\section[Displaying estimates]{Estimates and  standard errors}
+
+\begin{frame}
+  \frametitle{Describing the precision of parameters estimates}
+  \begin{itemize}
+  \item In many ways the purpose of statistical analysis can be
+    considered as quantifying the variability in data and determining
+    how the variability affects the inferences that we draw from it.
+  \item Good statistical practice suggests, therefore, that we not
+    only provide our ``best guess'', the point estimate of a
+    parameter, but also describe its precision (e.g. interval estimation).
+  \item Some of the time (but not nearly as frequently as widely
+    believed) we also want to check whether a particular parameter
+    value is consistent with the data (i.e.. hypothesis tests and
+    p-values).
+  \item In olden days it was necessary to do some rather coarse
+    approximations such as summarizing precision by the standard error
+    of the estimate or calculating a test statistic and comparing it
+    to a tabulated value to derive a 0/1 response of ``significant (or
+    not) at the 5\% level''.
+  \end{itemize}
+\end{frame}
+
+\begin{frame}
+  \frametitle{Modern practice}
+  \begin{itemize}
+  \item Our ability to do statistical computing has changed from the
+    ``olden days''. Current hardware and software would have been
+    unimaginable when I began my career as a statistician.  We can
+    work with huge data sets having complex structure and fit
+    sophisticated models to them quite easily.
+  \item Regrettably, we still frequently quote the results of this
+    sophisticated modeling as point estimates, standard errors and
+    p-values.
+  \item Understandably, the client (and the referees reading the
+    client's paper) would like to have simple, easily understood
+    summaries so they can assess the analysis at a glance.  However,
+    the desire for simple summaries of complex analyses is not, by
+    itself, enough to these summaries meaningful.
+  \item We must not only provide sophisticated software for
+    statisticians and other researchers; we must also change their
+    thinking about summaries.
+  \end{itemize}
+\end{frame}
+
+\section[LMM summaries]{Summarizing mixed-effects model fits}
+
+\begin{frame}
+  \frametitle{Summaries of mixed-effects models}
+  \begin{itemize}
+  \item Commercial software for fitting mixed-effects models (SAS PROC
+    MIXED, SPSS, MLwin, HLM, Stata) provides estimates of
+    fixed-effects parameters, standard errors, degrees of freedom and
+    p-values.  They also provide estimates of variance components and
+    standard errors of these estimates.
+  \item The mixed-effects packages for \Rp{} that I have written
+    (\code{nlme} with Jos\'{e} Pinheiro and \code{lme4} with Martin
+    M\"{a}chler) do not provide standard errors of variance
+    components.  \code{lme4} doesn't even provide p-values for the
+    fixed effects.
+  \item This is a source of widespread anxiety.  Many view it as an
+    indication of incompetence on the part of the developers (``Why
+    can't lmer provide the p-values that I can easily get from SAS?'')
+  \item The 2007 book by West, Welch and Galecki shows how to use all
+    of these software packages to fit mixed-effects models on 5
+    different examples.  Every time they provide comparative tables
+    they must add a footnote that \code{lme} doesn't provide standard
+    errors of variance components.
+  \end{itemize}
+\end{frame}
+
+\begin{frame}
+  \frametitle{What does a standard error tell us?}
+  \begin{itemize}
+  \item Typically we use a standard error of a parameter estimate to
+    assess precision (e.g. a 95\% confidence interval on $\mu$ is
+    roughly $\bar{x}\pm 2 \frac{s}{\sqrt{n}}$) or to form a test
+    statistic (e.g. a test of $H_0:\mu=0$ versus $H_a:\mu\ne 0$ based
+    on the statistic $\frac{\bar{x}}{s/\sqrt{n}}$).
+  \item Such intervals or test statistics are meaningful when the
+    distribuion of the estimator is more-or-less symmetric.
+  \item We would not, for example, quote a standard error of
+    $\widehat{\sigma^2}$ because we know that the distribution of this
+    estimator, even in the simplest case (the mythical i.i.d. sample
+    from a Gaussian distribution), is not at all symmetric.  We use
+    quantiles of the $\chi^2$ distribution to create a confidence interval.
+  \item Why, then, should we believe that when we create a much more
+    complex model the distribution of estimators of variance
+    components will magically become sufficiently symmetric for
+    standard errors to be meaningful?
+  \end{itemize}
+\end{frame}
+
+\section[LMM theory]{A brief overview of the theory and computation for mixed models}
+
+\begin{frame}
+  \frametitle{Evaluating the deviance function}
+  \begin{itemize}
+  \item The \Emph{profiled deviance} function for such a model can be
+    expressed as a function of 1 parameter only, the ratio of the
+    random effects' standard deviation to the residual standard
+    deviation.
+  \item A very brief explanation is based on the $n$-dimensional
+    response random variation, $\bc Y$, whose value, $\bm y$, is
+    observed, and the $q$-dimensional, unobserved random effects
+    variable, $\bc B$, with distributions
+    \begin{displaymath}
+      \left(\bc Y|\bc B=\bm b\right)\sim
+      \mathcal{N}\left(\bm Z\bm b+\bm X\bm\beta,\sigma^2\bm I_n\right),\quad
+      \bc B\sim\mathcal{N}\left(\bm 0,\bm\Sigma_\theta\right) ,
+    \end{displaymath}
+  \item For our example, $n=30$, $q=6$, $\bm X$ is a $30\times 1$
+    matrix of $1$s, $\bm Z$ is the $30\times 6$ matrix of indicators
+    of the levels of \code{Batch} and $\bm\Sigma$ is $\sigma^2_b\bm I_6$.
+  \item We never really form $\bm\Sigma_\theta$; we always work with the
+    \Emph{relative covariance factor}, $\bm\Lambda_\theta$,
+    defined so that
+    \begin{displaymath}
+      \bm\Sigma_\theta=\sigma^2\bm\Lambda_\theta\bm\Lambda\tr_\theta .
+    \end{displaymath}
+    In our example $\theta=\frac{\sigma_b}{\sigma}$ and
+    $\bm\Lambda_\theta=\theta\bm I_6$.
+  \end{itemize}
+\end{frame}
+
+\begin{frame}
+  \frametitle{Orthogonal or ``unit'' random effects }
+  \begin{itemize}
+  \item We will define a $q$-dimensional ``spherical'' or ``unit''
+    random-effects vector, $\bc U$, such that
+    \begin{displaymath}
+      \bc U\sim\mathcal{N}\left(\bm 0,\sigma^2\bm I_q\right),\:
+      \bc B=\bm\Lambda_\theta\,\bc U\Rightarrow
+      \text{Var}(\bc B)=\sigma^2\bm\Lambda_\theta\bm\Lambda_\theta\tr=\bm\Sigma_\theta .
+    \end{displaymath}
+  \item The linear predictor expression becomes
+    \begin{displaymath}
+      \bm Z\bm b+\bm X\bm\beta=
+      \bm Z\bm\Lambda_\theta\,\bm u+\bm X\bm\beta=
+      \bm U_\theta\,\bm u+\bm X\bm\beta
+    \end{displaymath}
+    where $\bm U_\theta=\bm Z\bm\Lambda_\theta$.
+  \item The key to evaluating the log-likelihood is the Cholesky
+    factorization 
+    \begin{displaymath}
+      \bm L_\theta\bm L\tr_\theta=
+      \bm P\left(\bm U_\theta\tr\bm U_\theta+\bm I_q\right)\bm P\tr
+    \end{displaymath}
+    ($\bm P$ is a fixed permutation that has practical importance but
+    can be ignored in theoretical derivations).  The sparse,
+    lower-triangular $\bm L_\theta$ can be evaluated and updated for
+    new $\bm\theta$ even when $q$ is in the millions and the model
+    involves random effects for several factors.
+  \end{itemize}
+\end{frame}
+
+\begin{frame}
+  \frametitle{The profiled deviance}
+  \begin{itemize}
+  \item The Cholesky factor, $\bm L_\theta$, allows evaluation of the
+    conditional mode $\tilde{\bm u}_{\theta,\beta}$ (also the
+    conditional mean for linear mixed models) from
+    \begin{displaymath}
+      \left(\bm U_\theta\tr\bm U_\theta+\bm I_q\right)\tilde{\bm u}_{\theta,\beta}=
+      \bm P\tr\bm L_\theta\bm L\tr_\theta\bm P
+      \tilde{\bm u}_{\theta,\beta}=
+      \bm U\tr_\theta(\bm y-\bm X\bm\beta)
+    \end{displaymath}
+    Let $r^2(\bm\theta,\bm\beta)=\norm{\bm y-\bm X\bm\beta-\bm
+      U_\theta\,\tilde{\bm u}_{\theta,\beta}}^2 + \norm{\tilde{\bm
+        u}_{\theta,\beta}}^2$.
+  \item $\ell(\bm\theta,\bm\beta,\sigma|\bm y)=\log
+    L(\bm\theta,\bm\beta,\sigma|\bm y)$ can be written
+    \begin{displaymath}
+      -2\ell(\bm\theta,\bm\beta,\sigma|\bm y)=
+      n\log(2\pi\sigma^2)+\frac{r^2(\bm\theta,\bm\beta)}{\sigma^2}+
+      \log(|\bm L_\theta|^2)
+    \end{displaymath}
+  \item The conditional estimate of $\sigma^2$ is
+    \begin{displaymath}
+      \widehat{\sigma^2}(\bm\theta,\bm\beta)=\frac{r^2(\bm\theta,\bm\beta)}{n}
+    \end{displaymath}
+    producing the \Emph{profiled deviance}
+    \begin{displaymath}
+    -2\tilde{\ell}(\bm\theta,\bm\beta|\bm y)=\log(|\bm L_\theta|^2)+
+      n\left[1+\log\left(\frac{2\pi r^2(\bm\theta,\bm\beta)}{n}\right)\right]
+    \end{displaymath}
+  \end{itemize}
+\end{frame}
+
+\begin{frame}
+  \frametitle{Profiling the deviance with respect to $\bm\beta$}
+  \begin{itemize}
+  \item Because the deviance depends on $\bm\beta$ only through
+    $r^2(\bm\theta,\bm\beta)$ we can obtain the conditional estimate,
+    $\widehat{\bm\beta}_\theta$, by extending the PLS problem to
+    \begin{displaymath}
+      r^2(\bm\theta)=\min_{\bm u,\bm\beta}
+      \left[\left\|\bm y-\bm X\bm\beta-\bm U_\theta\,\bm u\right\|^2 +
+      \left\|\bm u\right\|^2\right]
+    \end{displaymath}
+    with the solution satisfying the equations
+    \begin{displaymath}
+      \begin{bmatrix}
+        \bm U_\theta\tr\bm U_\theta+\bm I_q & \bm
+        U_\theta\tr\bm X\\
+        \bm X\tr\bm U_\theta & \bm X\tr\bm X
+      \end{bmatrix}
+      \begin{bmatrix}
+        \tilde{\bm u}_\theta\\\widehat{\bm\beta}_\theta
+      \end{bmatrix}=
+      \begin{bmatrix}\bm U_\theta\tr\bm y\\\bm X\tr\bm y .
+      \end{bmatrix}
+    \end{displaymath}
+  \item The profiled deviance, which is a function of $\bm\theta$
+    only, is
+    \begin{displaymath}
+      -2\tilde{\ell}(\bm\theta)=\log(|\bm L_\theta|^2)+
+      n\left[1+\log\left(\frac{2\pi r^2(\bm\theta)}{n}\right)\right]
+    \end{displaymath}
+  \end{itemize}
+\end{frame}
+
+\section[Deviance plots]{Profiled deviance as a function of $\theta$}
+
+\begin{frame}[fragile]
+  \frametitle{Profiled deviance and its components}
+  \begin{itemize}
+  \item For this simple model we can evaluate and plot the deviance
+    for a range of $\theta$ values.  We also plot its components,
+    $\log(|\bm L_\theta|^2)$ (\code{ldL2}) and
+    $n\left[1+\log\left(\frac{2\pi r^2(\bm\theta)}{n}\right)\right]$
+    (\code{lprss}).
+  \item \code{lprss} measures fidelity to the data.  It is bounded
+    above and below.  $\log(|\bm L_\theta|^2)$ measures complexity of
+    the model.  It is bounded below but not above.
+  \end{itemize}
+  \begin{center}
+<<DyeML,fig=TRUE,echo=FALSE,results=hide,height=4>>=
+fm1env <- lmer(Yield ~ 1 + (1|Batch), Dyestuff, REML=FALSE, doFit = FALSE)
+n <- length(fm1env$y)
+theta <- seq(0,3,0.01)
+res <- cbind(as.data.frame(t(sapply(theta,
+                                  function(x) {
+                                      setPars(fm1env, x)
+                                      fm1env$deviance[c(1:7,9,10)]
+                                  }))), theta)
+names(res)[1] <- "deviance"
+res$lprss <- n * (1 + log(2 * pi * res$pwrss/n))
+print(xyplot(deviance + ldL2 + lprss ~ theta,
+             res, xlab = expression(theta), ylab = NULL, outer = TRUE,
+             scales = list(y = list(relation = "free", rot = 0),
+                           x = list(axs = 'i')),
+             aspect = 1, type = c("g","l"), layout = c(3,1)))
+@   
+  \end{center}
+\end{frame}
+\begin{frame}[fragile]
+  \frametitle{The MLE (or REML estimate) of $\sigma^2_b$ can be $0$}
+  \begin{itemize}
+  \item For some model/data set combinations the estimate of
+    $\sigma^2_b$ is zero.  This occurs when the decrease in
+    \code{lprss} as $\theta\uparrow$ is not sufficient to counteract
+    the increase in the complexity, $\log(|\bm L_\theta|^2)$.  The
+    \code{Dyestuff2} data from Box and Tiao (1973) show this.
+  \end{itemize}
+  \begin{center}
+<<Dyestuff2dot,fig=TRUE,echo=FALSE,height=3.5>>=
+print(dotplot(reorder(Batch, Yield) ~ Yield, Dyestuff2,
+              ylab = "Batch", jitter.y = TRUE, pch = 21,
+              xlab = "Simulated response (dimensionless)",
+              type = c("p", "a")))
+@   
+  \end{center}
+\end{frame}
+
+\begin{frame}[fragile]
+  \frametitle{Components of the profiled deviance for \code{Dyestuff2}}
+  \begin{center}
+<<Dye2ML,fig=TRUE,echo=FALSE,results=hide,height=3.5>>=
+fm2MLpart <- lmer(Yield ~ 1 + (1|Batch), Dyestuff2, REML=FALSE, doFit = FALSE)
+theta <- seq(0,3,0.01)
+res2 <- cbind(as.data.frame(t(sapply(theta,
+                                  function(x) {
+                                      setPars(fm2MLpart, x)
+                                      fm2MLpart$deviance[c(1:7,9,10)]
+                                  }))), theta)
+names(res2)[1] <- "deviance"
+res2$lprss <- n * (1 + log(2 * pi * res2$pwrss/n))
+print(xyplot(deviance + ldL2 + lprss ~ theta,
+             res2, xlab = expression(theta), ylab = NULL, outer = TRUE,
+             scales = list(y = list(relation = "free", rot = 0),
+                           x = list(axs = 'i')),
+	     aspect = 1, type = c("g","l"), layout = c(3,1)))
+    
+@ 
+  \end{center}%$
+  \begin{itemize}
+  \item For this data set the difference in the upper and lower bounds
+    on \code{lprss} is not sufficient to counteract the increase in
+    complexity of the model, as measured by $\log(|\bm L_\theta|^2)$.
+
+  \item Software should gracefully handle cases of $\sigma^2_b=0$ or,
+    more generally, $\bm\Lambda_\theta$  being singular.  This is not
+    done well in the commercial software.
+  \item One of the big differences between inferences for $\sigma^2_b$
+    and those for $\sigma^2$ is the need to accomodate to do about
+    values of $\sigma^2_b$ that are zero or near zero.
+  \end{itemize}
+\end{frame}
+
+\begin{frame}[fragile]
+  \frametitle{Profiled deviance and REML criterion for $\sigma_b$ and $\sigma$}
+  \begin{center}
+<<devcontoursfm1,fig=TRUE,echo=FALSE,height=5.3>>=
+print(contourplot(deviance + REML ~ sigB * sigma, grd1,
+                  xlab = expression(sigma[B]),
+                  ylab = expression(sigma),
+                  aspect = 1,
+                  at = 
+                  qchisq(c(0.5,0.8,0.9,0.95,0.99,0.999), df = 2),
+                  labels = list(labels = paste(c(50,80,90,95,99,99.9),
+                                "%", sep = "")),
+                  panel = function(...)
+              {
+                  if (panel.number() == 1) {
+                      VC <- VCML
+                      prs <- profsd
+                      prsb <- profsbd
+                  } else {
+                      VC <- VCREML
+                      prs <- profsR
+                      prsb <- profsbR
+                  }
+                  panel.points(attr(VC[[1]],"stddev"),
+                               attr(VC,"sc"), pch = 3)
+                  panel.grid(h = -1, v = -1)
+                  panel.lines(sigB, prs[,1], lty = 2)
+                  panel.lines(prsb[,1], sigmas, lty = 3)                  
+                  panel.contourplot(...)
+              }
+                  ))
+@   
+  \end{center}
+  \begin{itemize}
+  \item The contours correspond to 2-dimensional marginal confidence
+    regions derived from a likelihood-ratio test.
+  \item The dotted and dashed lines are the profile traces.
+    % of these
+    % parameters.  The dashed line is the conditional estimate of
+    % $\sigma$, given $\sigma_b$ (vice versa for the dotted line).
+  \end{itemize}
+\end{frame}
+
+\begin{frame}[fragile]
+  \frametitle{Profiling with respect to each parameter separately}
+  \begin{center}
+<<profileddevfm1,fig=TRUE,echo=FALSE,height=5>>=
+print(xyplot(dev ~ x|par,
+             data.frame(dev = c(profsbd[,2], profsd[,2]),
+                        x = c(sigmas, sigB),
+                        par = parvec),
+             strip = function(..., factor.levels)
+             strip.default(..., factor.levels = c(expression(sigma),
+                                expression(sigma[B]))),
+             ylab = "Deviance", xlab = NULL, type = c("g","l"),
+             scales = list(x = list(relation = "free", axs = 'i'))))
+@   
+  \end{center}
+  \begin{itemize}
+  \item These curves show the minimal deviance achieveable for a value
+    of one of the parameters, optimizing over all the other parameters.
+  \end{itemize}
+\end{frame}
+
+\begin{frame}[fragile]
+  \frametitle{Profiled deviance of the variance components}
+  \begin{itemize}
+  \item Recall that we have been working on the scale of the standard
+    deviations, $\sigma_b$ and $\sigma$.  On the scale of the
+    variance, things look worse.
+  \end{itemize}
+  \begin{center}
+<<profileddevsqfm1,fig=TRUE,echo=FALSE,height=5.5>>=
+print(xyplot(dev ~ x|par,
+             data.frame(dev = c(profsbd[,2], profsd[,2]),
+                        x = c(sigmas^2, sigB^2),
+                        par = gl(2, length(sigmas))),
+             strip = function(..., factor.levels)
+             strip.default(..., factor.levels = c(expression(sigma^2),
+                                expression(sigma[B]^2))),
+             ylab = "Deviance", xlab = NULL, type = c("g","l"),
+             scales = list(x = list(relation = "free", axs = 'i'))))
+@   
+  \end{center}
+\end{frame}
+
+\begin{frame}
+  \frametitle{Square root of change in the profiled deviance}
+  \begin{itemize}
+  \item The difference of the profiled deviance at the optimum and at
+    a particular value of $\sigma$ or $\sigma_b$ is the likelihood
+    ratio test statistic for that parameter value.
+  \item If the use of a standard error, and the implied symmetric
+    intervals, is appropriate then this function should be quadratic
+    in the parameter and its square root should be like an absolute
+    value function.
+  \item The assumption that the change in the deviance has a
+    $\chi^2_1$ distribution is equivalent to saying that
+    $\sqrt{\text{LRT}}$ is the absolute value of a standard normal.
+  \item If we use the \Emph{signed square root} transformation,
+    assigning $-\sqrt{\text{LRT}}$ to parameters to the left of the
+    estimate and $\sqrt{\text{LRT}}$ to parameter values to the right,
+    we should get a straight line on a standard normal scale.
+  \end{itemize}
+\end{frame}
+
+\begin{frame}[frgaile]
+  \frametitle{Plot of square root of LRT statistic}
+  \begin{center}
+<<profzfm1,fig=TRUE,echo=FALSE,height=5>>=
+print(xyplot(profz ~ x|par,
+             data.frame(profz = c(sqrts, sqrtsb),
+                        x = c(sigmasq, sigBsq),
+                        par = parvec),
+             strip = function(..., factor.levels)
+             strip.default(..., factor.levels = c(expression(sigma^2),
+                                expression(sigma[B]^2))),
+             ylab = "Profile z", xlab = NULL, type = c("g","l"),
+             scales = list(x = list(relation = "free", axs = 'i'))))
+@   
+\end{center}
+\end{frame}
+
+\begin{frame}[frgaile]
+  \frametitle{Signed square root plot of LRT statistic}
+  \begin{center}
+<<sprofzfm1,fig=TRUE,echo=FALSE,height=5>>=
+print(xyplot(profz ~ x|par,
+             data.frame(profz = c(ssqrt, ssqrtb),
+                        x = c(sigmasq, sigBsq),
+                        par = parvec),
+             strip = function(..., factor.levels)
+             strip.default(..., factor.levels = c(expression(sigma^2),
+                                expression(sigma[B]^2))),
+             ylab = "Profile z", xlab = NULL, type = c("g","l"),
+             scales = list(x = list(relation = "free", axs = 'i'))))
+@   
+  \end{center}
+\end{frame}
+
+\section{Summary}
+
+\begin{frame}
+  \frametitle{Summary}
+  \begin{itemize}
+  \item Summaries based on parameter estimates and standard errors are
+    appropriate when the distribution of the estimator can be assumed
+    to be reasonably symmetric.
+  \item Estimators of variances do not tend to have a symmetric
+    distribution.  If anything the scale of the log-variance (which is
+    a multiple of the log-standard deviation) would be the more
+    appropriate scale on which to assume symmetry.
+  \item Estimators of variance components are more problematic because
+    they can take on the value of zero.
+  \item Profiling the deviance and plotting the result can help to
+    visualize the precision of the estimates.
+  \end{itemize}
+\end{frame}
