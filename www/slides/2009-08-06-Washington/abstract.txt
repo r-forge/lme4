@@ -1,0 +1,13 @@
+Population pharmacokinetics data are often modeled using nonlinear
+mixed-effects models; nonlinear because the pharmacokinetic parameters
+- rate constants, clearance rates, etc. - occur nonlinearly in the
+model function and mixed-effects because the models involve both
+fixed-effects parameters, applying to the population or well-defined
+subsets of the population, and random effects associated with
+particular experimental or observational units under study. Many
+algorithms for estimating the parameters in such models have been
+proposed and implemented but often the estimation algorithm is
+confused with the parameter estimation criterion - maximum likelihood.
+I suggest we concentrate on evaluating or approximating the
+log-likelihood to be optimized and will describe how this is done in
+the nlmer function in the lme4 package for R.
