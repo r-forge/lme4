@@ -2,9 +2,8 @@
 % likely to be overwritten.
 
 \usepackage{SweaveSlides}
-\title[lme4]{Mixed models in R using the lme4 package\\Part 7: Generalized linear mixed models}
+\title[lme4]{Mixed models in R using the lme4 package\\Part 8: Generalized linear mixed models}
 \subject{GLMM}
-\date[July 3, 2009]{University of Lausanne\\July 3, 2009}
 \AtBeginSection[]
 {
   \begin{frame}<beamer>
