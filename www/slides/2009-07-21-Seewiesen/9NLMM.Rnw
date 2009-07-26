@@ -1,9 +1,8 @@
 % NOTE -- ONLY EDIT THE .Rnw FILE!!!  The .tex file is
 % likely to be overwritten.
 \usepackage{SweaveSlides}
-\title[lme4]{Mixed models in R using the lme4 package\\Part 8: Nonlinear mixed models}
+\title[lme4]{Mixed models in R using the lme4 package\\Part 9: Nonlinear mixed models}
 \subject{NLMM}
-\date[July 3, 2009]{University of Lausanne\\July 3, 2009}
 \AtBeginSection[]
 {
   \begin{frame}<beamer>
