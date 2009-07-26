@@ -1,5 +1,5 @@
 \usepackage{SweaveSlides}
-\title[Nonlinear mixed models]{Evaluating the log-likelihood in nonlinear mixed models}
+\title[Nonlinear mixed models]{Computational Methods for Nonlinear Mixed Models}
 \subject{NLMM}
 \AtBeginSection[]
 {
@@ -46,47 +46,98 @@
 options(width=69,show.signif.stars=FALSE)
 library(lattice)
 lattice.options(default.theme = function() standard.theme())
-lattice.options(default.theme = function() standard.theme(color=FALSE))
+#lattice.options(default.theme = function() standard.theme(color=FALSE))
 library(lme4a)
 @
+
+\section{Introduction}
 
 \begin{frame}
   \frametitle{Introduction}
   \begin{itemize}
-  \item Nonlinear mixed-effects models (NLMMs) are widely used in the
-    analysis of pharmacokinetic/pharmacodynamic data.
-  \item Over the years many algorithms for determining the parameter
-    estimates in these models have been proposed and several
-    implementations of algorithms have been developed.
-  \item Many of these algorithms concentrate on the details of
-    optimization of something like the log-likelihood.  It is not
-    always clear that such approaches should be expected to yield
-    estimates close to the maximum likelihood estimates.
-  \item Recent developments in computational methods for linear
-    mixed-effects models (LMMs) provide effective ways of evaluating
-    good approximations to the log-likelihood of an NLMM.
-  \item We begin by describing methods for LMMs.
+  \item Population pharmacokinetics data are often modeled using
+    \Emph{nonlinear mixed-effects models} (NLMMs).
+  \item These are \Emph{nonlinear} because pharmacokinetic parameters
+    - rate constants, clearance rates, etc. - occur nonlinearly in the
+    model function.
+  \item In statistical terms these are \Emph{mixed-effects models}
+    because they involve both \Emph{fixed-effects parameters},
+    applying to the entire population or well-defined subsets of the
+    population, and \Emph{random effects} associated with particular
+    experimental or observational units under study.
+  \item Many algorithms for obtaining parameter estimates, usually the
+    \Emph{maximum likelihood estimates} (MLEs), for such models have
+    been proposed and implemented.
+  \item Comparing different algorithms is not easy.  Even
+    understanding the definition of the model and the proposed
+    algorithm is not easy.  We begin by defining the model.
   \end{itemize}
 \end{frame}
 
-\section[LMM theory]{Computation for LMMs}
+\section[Model]{Model definition and an example}
+
+\begin{frame}[fragile]
+  \frametitle{Theophylline pharmacokinetics}
+<<Theophplot,fig=TRUE,echo=FALSE,height=5>>=  
+print(xyplot(conc ~ Time|Subject, Theoph, type = c("g","b"),
+             xlab = "Time since drug administration (hr)",
+             ylab = "Serum concentration (mg/l)"))
+@ 
+\begin{itemize}
+\item These are serum concentration profiles for 12 volunteers after
+  injestion of an oral dose of Theophylline, as described in Pinheiro
+  and Bates (2000).
+\end{itemize}
+\end{frame}
+\begin{frame}
+  \frametitle{Modeling pharmacokinetic data with a nonlinear model}
+  \begin{itemize}
+  \item These are longitudinal repeated measures data.
+  \item For such data the time pattern of an individual's response is
+    determined by pharmacokinetic parameters (e.g. rate constants)
+    that occur nonlinearly in the expression for the expected response.
+  \item The form of the nonlinear model is determined by the
+    pharmacokinetic theory, not derived from the data.
+    \begin{displaymath}
+      d\cdot k_e\cdot k_a\cdot C\frac{e^{-k_et}-e^{-k_at}}{k_a-k_e}
+    \end{displaymath}
+  \item These pharmacokinetic parameters vary over the population.  We
+    wish to characterize typical values in the population and the
+    extent of the variation.
+  \item Thus, we associate random effects with the parameters, $k_a$,
+    $k_e$ and $C$ in the nonlinear model.
+  \end{itemize}
+\end{frame}
 
 \begin{frame}
-  \frametitle{Evaluating the deviance function}
+  \frametitle{Linear and nonlinear mixed-effects models}
   \begin{itemize}
-  \item The \Emph{profiled deviance} function for a LMM can be
-    expressed as a function the variance-component parameters only.
-    We can profile out the residual variance and the fixed-effects
-    parameters.
-  \item We describe the probability model in terms of the $n$-dimensional
-    response random variation, $\bc Y$, whose value, $\bm y$, is
-    observed, and the $q$-dimensional, unobserved random effects
-    variable, $\bc B$, with distributions
+  \item For both linear and nonlinear mixed-effects models, we consider
+    the $n$-dimensional response random variable, $\bc Y$, whose
+    value, $\bm y$, is observed, and the $q$-dimensional, unobserved
+    random effects variable, $\bc B$.
+  \item In the models we will consider $\bc B\sim\mathcal{N}\left(\bm
+      0,\bm\Sigma_\theta\right)$.  The variance-covariance matrix
+    $\bm\Sigma_\theta$ can be huge but it is completely determined by
+    a small number of \Emph{variance-component parameters},
+    $\bm\theta$.
+  \item The conditional distribution of the response, $\bc Y$, is
     \begin{displaymath}
       \left(\bc Y|\bc B=\bm b\right)\sim
-      \mathcal{N}\left(\bm Z\bm b+\bm X\bm\beta,\sigma^2\bm I_n\right),\quad
-      \bc B\sim\mathcal{N}\left(\bm 0,\bm\Sigma_\theta\right) ,
+      \mathcal{N}\left(\bm\mu_{\bc Y|\bc B},\sigma^2\bm I_n\right)
     \end{displaymath}
+  \item The conditional mean, $\bm\mu_{\bc Y|\bc B}$, depends on $\bm
+    b$ and on the fixed-effects parameters, $\bm\beta$, through a
+    \Emph{linear predictor} expression, $\bm Z\bm b+\bm X\bm\beta$.
+  \item For a linear mixed model (LMM), $\bm\mu_{\bc Y|\bc B}$ is
+    exactly the linear predictor.  For an NLMM the linear predictor
+    determines the parameter values in the nonlinear model function
+    which then determines the mean.
+  \end{itemize}
+\end{frame}
+\begin{frame}
+  \frametitle{Transforming to orthogonal random effects}
+  \begin{itemize}
   \item We never really form $\bm\Sigma_\theta$; we always work with the
     \Emph{relative covariance factor}, $\bm\Lambda_\theta$,
     defined so that
@@ -94,57 +145,99 @@ library(lme4a)
       \bm\Sigma_\theta=\sigma^2\bm\Lambda_\theta\bm\Lambda\tr_\theta .
     \end{displaymath}
     Note that we must allow for $\bm\Lambda_\theta$ to be less that full rank.
-  \end{itemize}
-\end{frame}
-
-\begin{frame}
-  \frametitle{Orthogonal or ``unit'' random effects }
-  \begin{itemize}
-  \item We will define a $q$-dimensional ``spherical'' or ``unit''
+  \item We define a $q$-dimensional ``spherical'' or ``unit''
     random-effects vector, $\bc U$, such that
     \begin{displaymath}
       \bc U\sim\mathcal{N}\left(\bm 0,\sigma^2\bm I_q\right),\:
       \bc B=\bm\Lambda_\theta\,\bc U\Rightarrow
       \text{Var}(\bc B)=\sigma^2\bm\Lambda_\theta\bm\Lambda_\theta\tr=\bm\Sigma_\theta .
     \end{displaymath}
-  \item The linear predictor expression becomes
+  \item Setting $\bm U_\theta=\bm Z\bm\Lambda_\theta$, the linear
+    predictor expression becomes
     \begin{displaymath}
       \bm Z\bm b+\bm X\bm\beta=
       \bm Z\bm\Lambda_\theta\,\bm u+\bm X\bm\beta=
-      \bm U_\theta\,\bm u+\bm X\bm\beta
+      \bm U_\theta\,\bm u+\bm X\bm\beta .
     \end{displaymath}
-    where $\bm U_\theta=\bm Z\bm\Lambda_\theta$.
-  \item The key to evaluating the log-likelihood is the Cholesky
-    factorization 
+  \end{itemize}
+\end{frame}
+\begin{frame}
+  \frametitle{The conditional mode, $\tilde{\bm u}_{\theta,\beta}$}
+  \begin{itemize}
+  \item Although the probability model is defined from $(\bc Y|\bc
+    U=\bm u)$, we observe $\bm y$, not $\bm u$ (or $\bm b$) so we want
+    to work with the other conditional distribution, $(\bc U|\bc Y=\bm
+    y)$.
+  \item The joint distribution of $\bc Y$ and $\bc U$ is Gaussian
+    with density
     \begin{displaymath}
-      \bm L_\theta\bm L\tr_\theta=
-      \bm P\left(\bm U_\theta\tr\bm U_\theta+\bm I_q\right)\bm P\tr
+      \begin{aligned}
+        f_{\bc Y,\bc U}(\bm y,\bm u)&
+        =f_{\bc Y|\bc U}(\bm y|\bm u)\,f_{\bc U}(\bm u)\\
+        &=\frac{\exp(-\frac{1}{2\sigma^2}\|\bm y-\bm\mu_{\bc Y|\bc U}\|^2)}
+        {(2\pi\sigma^2)^{n/2}}\;
+        \frac{\exp(-\frac{1}{2\sigma^2}\|\bm u\|^2)}{(2\pi\sigma^2)^{q/2}}\\
+        &=\frac{\exp(-
+          \left[\|\bm y-\bm\mu_{\bc Y|\bc U}\|^2+\|\bm u\|^2\right]/(2\sigma^2))}
+        {(2\pi\sigma^2)^{(n+q)/2}}
+      \end{aligned}
     \end{displaymath}
-    ($\bm P$ is a fixed permutation that has practical importance but
-    can be ignored in theoretical derivations).  The sparse,
-    lower-triangular $\bm L_\theta$ can be evaluated and can be
-    updated when $\bm\theta$ is changed, even when $q$ is in the
-    millions and the model involves random effects for several
-    factors.
+  \item The mode, $\tilde{\bm u}_{\theta,\beta}$, of the conditional
+    distribution $(\bc U|\bc Y=\bm y)$ (also the mean in this case of an LMM) is
+    \begin{displaymath}
+      \tilde{\bm u}_{\theta,\beta}=\arg\min_{\bm u}
+      \left[\norm{\bm y-\bm\mu_{\bc Y|\bc U}}^2 +
+      \norm{\bm u}^2\right]
+    \end{displaymath}
+  \end{itemize}
+\end{frame}
+
+\section[PLS]{The penalized least squares problem}
+
+\begin{frame}
+  \frametitle{Minimizing a penalized sum of squared residuals}
+  \begin{itemize}
+  \item An expression like $\norm{\bm y-\bm\mu_{\bc Y|\bc U}}^2
+     + \norm{\bm u}^2$ is called a \Emph{penalized sum of squared
+      residuals} because $\norm{\bm y-\bm\mu_{\bc Y|\bc U}}^2$
+    is a sum of squared residuals and $\norm{\bm u}^2$ is a
+    penalty on the size of the vector $\bm u$.
+  \item Determining $\tilde{\bm u}_{\theta,\beta}$ as the minimizer of
+    this expression is a \Emph{penalized least squares} (PLS) problem.
+    For an LMM it is a \Emph{penalized linear least squares problem}
+    that can be solved directly (i.e. without iterating).  For an NLMM
+    it is a \Emph{penalized nonlinear least squares problem}.
+  \item One way to determine the solution in an LMM is to rephrase it as a
+    linear least squares problem for an extended residual vector
+    \begin{displaymath}
+      \tilde{\bm u}_{\theta,\beta}=\arg\min_{\bm u}\left\|
+        \begin{bmatrix}\bm y-\bm X\bm\beta\\\bm 0\end{bmatrix}-
+        \begin{bmatrix}\bm U_\theta\\\bm I_q\end{bmatrix}
+        \bm u\right\|^2
+    \end{displaymath}
+    This is sometimes called a \Emph{pseudo-data} approach because we
+    create the effect of the penalty term, $\|\bm u\|^2$, by adding
+    ``pseudo-observations'' to $\bm y$ and to the predictor.
   \end{itemize}
 \end{frame}
 
 \begin{frame}
-  \frametitle{The profiled deviance}
+  \frametitle{The profiled deviance for LMMs}
   \begin{itemize}
-  \item The Cholesky factor, $\bm L_\theta$, allows evaluation of the
-    conditional mode $\tilde{\bm u}_{\theta,\beta}$ (also the
-    conditional mean for linear mixed models) from
+  \item We can see that $\tilde{\bm u}_{\theta,\beta}$ satisfies
+    $\left(\bm U_\theta\tr\bm U_\theta+\bm I_q\right)\tilde{\bm
+      u}_{\theta,\beta}= \bm U\tr_\theta(\bm y-\bm X\bm\beta)$ which
+    we solve using the sparse Cholesky decomposition
     \begin{displaymath}
-      \left(\bm U_\theta\tr\bm U_\theta+\bm I_q\right)\tilde{\bm u}_{\theta,\beta}=
-      \bm P\tr\bm L_\theta\bm L\tr_\theta\bm P
-      \tilde{\bm u}_{\theta,\beta}=
-      \bm U\tr_\theta(\bm y-\bm X\bm\beta)
+      \bm L_\theta\bm L\tr_\theta=
+      \bm P\left(\bm U_\theta\tr\bm U_\theta+\bm I_q\right)\bm P\tr
     \end{displaymath}
-    Let $r^2(\bm\theta,\bm\beta)=\norm{\bm y-\bm X\bm\beta-\bm
-      U_\theta\,\tilde{\bm u}_{\theta,\beta}}^2 + \norm{\tilde{\bm
-        u}_{\theta,\beta}}^2$.
-  \item $\ell(\bm\theta,\bm\beta,\sigma|\bm y)=\log
+    $\bm P$ is a permutation matrix that has practical importance but
+    does not affect the theory.  The matrix $\bm L_\theta$ is the
+    sparse, lower-triangular factor.
+  \item Let $r^2(\bm\theta,\bm\beta)$ be the minimum penalized
+    residual sum of squares, then
+    $\ell(\bm\theta,\bm\beta,\sigma|\bm y)=\log
     L(\bm\theta,\bm\beta,\sigma|\bm y)$ can be written
     \begin{displaymath}
       -2\ell(\bm\theta,\bm\beta,\sigma|\bm y)=
@@ -164,9 +257,9 @@ library(lme4a)
 \end{frame}
 
 \begin{frame}
-  \frametitle{Profiling the deviance with respect to $\bm\beta$}
+  \frametitle{Profiling the deviance with respect to $\bm\beta$ for LMMs}
   \begin{itemize}
-  \item Because the deviance depends on $\bm\beta$ only through
+  \item In a LMM the deviance depends on $\bm\beta$ only through
     $r^2(\bm\theta,\bm\beta)$ we can obtain the conditional estimate,
     $\widehat{\bm\beta}_\theta$, by extending the PLS problem to
     \begin{displaymath}
