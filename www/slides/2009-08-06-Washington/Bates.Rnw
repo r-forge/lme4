@@ -1,0 +1,197 @@
+\usepackage{SweaveSlides}
+\title[Nonlinear mixed models]{Evaluating the log-likelihood in nonlinear mixed models}
+\subject{NLMM}
+\AtBeginSection[]
+{
+  \begin{frame}<beamer>
+    \frametitle{Outline}
+    \tableofcontents[currentsection]
+  \end{frame}
+}
+\newcounter{saveenum}
+\newcommand*{\Rp}{\textsf{R}$\;$}% R program
+%---- from texab.sty --- can not take all --------------
+%\newcommand{\norm}[1]   {\left\| #1 \right\|}
+% % the above sometimes give much too long  || -- then use the following:
+% \newcommand{\normb}[1]  {\bigl\|{#1}\bigr\|}
+% \newcommand{\normB}[1]  {\Bigl\|{#1}\Bigr\|}
+\newcommand{\fn}[1]{\kern-2pt\left(#1\right)}
+\newcommand{\Ew}[1]{\mathbf{E}\kern2pt\fn{#1}}
+%
+%
+\mode<handout>{\usetheme{default}}
+\mode<beamer>{%
+  %%> http://www.namsu.de/latex/themes/uebersicht_beamer.html
+  \usetheme{Boadilla}% somewhat similar to Singapore, but "nice" blocks
+  %\usetheme{Singapore}%  \usetheme{Madrid}%
+  \setbeamercovered{dynamic}% {transparent} {invisible} or {dynamic}
+  % Use ETH Logo
+%   \pgfdeclareimage[height=0.5cm]{ETH-logo}{../ethlogo_black}%
+%   \logo{\pgfuseimage{ETH-logo}}%
+  % \pgfdeclareimage[height=0.5cm]{R-logo}{Rlogo}%
+%  \pgfdeclareimage[height=0.5cm]{R-logo}{useR}%
+%  \logo{\pgfuseimage{R-logo}}%
+}
+\begin{document}
+\frame{\titlepage}
+\begin{frame}
+  \frametitle{Outline}
+  \tableofcontents[pausesections,hideallsubsections]
+\end{frame}
+
+\SweaveOpts{engine=R,eps=FALSE,pdf=TRUE,width=10,height=6.5,strip.white=all}
+\SweaveOpts{prefix=TRUE,prefix.string=figs/nlmm,include=TRUE}
+\setkeys{Gin}{width=\textwidth}
+<<preliminaries,echo=FALSE,results=hide>>=
+options(width=69,show.signif.stars=FALSE)
+library(lattice)
+lattice.options(default.theme = function() standard.theme())
+lattice.options(default.theme = function() standard.theme(color=FALSE))
+library(lme4a)
+@
+
+\begin{frame}
+  \frametitle{Introduction}
+  \begin{itemize}
+  \item Nonlinear mixed-effects models (NLMMs) are widely used in the
+    analysis of pharmacokinetic/pharmacodynamic data.
+  \item Over the years many algorithms for determining the parameter
+    estimates in these models have been proposed and several
+    implementations of algorithms have been developed.
+  \item Many of these algorithms concentrate on the details of
+    optimization of something like the log-likelihood.  It is not
+    always clear that such approaches should be expected to yield
+    estimates close to the maximum likelihood estimates.
+  \item Recent developments in computational methods for linear
+    mixed-effects models (LMMs) provide effective ways of evaluating
+    good approximations to the log-likelihood of an NLMM.
+  \item We begin by describing methods for LMMs.
+  \end{itemize}
+\end{frame}
+
+\section[LMM theory]{Computation for LMMs}
+
+\begin{frame}
+  \frametitle{Evaluating the deviance function}
+  \begin{itemize}
+  \item The \Emph{profiled deviance} function for a LMM can be
+    expressed as a function the variance-component parameters only.
+    We can profile out the residual variance and the fixed-effects
+    parameters.
+  \item We describe the probability model in terms of the $n$-dimensional
+    response random variation, $\bc Y$, whose value, $\bm y$, is
+    observed, and the $q$-dimensional, unobserved random effects
+    variable, $\bc B$, with distributions
+    \begin{displaymath}
+      \left(\bc Y|\bc B=\bm b\right)\sim
+      \mathcal{N}\left(\bm Z\bm b+\bm X\bm\beta,\sigma^2\bm I_n\right),\quad
+      \bc B\sim\mathcal{N}\left(\bm 0,\bm\Sigma_\theta\right) ,
+    \end{displaymath}
+  \item We never really form $\bm\Sigma_\theta$; we always work with the
+    \Emph{relative covariance factor}, $\bm\Lambda_\theta$,
+    defined so that
+    \begin{displaymath}
+      \bm\Sigma_\theta=\sigma^2\bm\Lambda_\theta\bm\Lambda\tr_\theta .
+    \end{displaymath}
+    Note that we must allow for $\bm\Lambda_\theta$ to be less that full rank.
+  \end{itemize}
+\end{frame}
+
+\begin{frame}
+  \frametitle{Orthogonal or ``unit'' random effects }
+  \begin{itemize}
+  \item We will define a $q$-dimensional ``spherical'' or ``unit''
+    random-effects vector, $\bc U$, such that
+    \begin{displaymath}
+      \bc U\sim\mathcal{N}\left(\bm 0,\sigma^2\bm I_q\right),\:
+      \bc B=\bm\Lambda_\theta\,\bc U\Rightarrow
+      \text{Var}(\bc B)=\sigma^2\bm\Lambda_\theta\bm\Lambda_\theta\tr=\bm\Sigma_\theta .
+    \end{displaymath}
+  \item The linear predictor expression becomes
+    \begin{displaymath}
+      \bm Z\bm b+\bm X\bm\beta=
+      \bm Z\bm\Lambda_\theta\,\bm u+\bm X\bm\beta=
+      \bm U_\theta\,\bm u+\bm X\bm\beta
+    \end{displaymath}
+    where $\bm U_\theta=\bm Z\bm\Lambda_\theta$.
+  \item The key to evaluating the log-likelihood is the Cholesky
+    factorization 
+    \begin{displaymath}
+      \bm L_\theta\bm L\tr_\theta=
+      \bm P\left(\bm U_\theta\tr\bm U_\theta+\bm I_q\right)\bm P\tr
+    \end{displaymath}
+    ($\bm P$ is a fixed permutation that has practical importance but
+    can be ignored in theoretical derivations).  The sparse,
+    lower-triangular $\bm L_\theta$ can be evaluated and can be
+    updated when $\bm\theta$ is changed, even when $q$ is in the
+    millions and the model involves random effects for several
+    factors.
+  \end{itemize}
+\end{frame}
+
+\begin{frame}
+  \frametitle{The profiled deviance}
+  \begin{itemize}
+  \item The Cholesky factor, $\bm L_\theta$, allows evaluation of the
+    conditional mode $\tilde{\bm u}_{\theta,\beta}$ (also the
+    conditional mean for linear mixed models) from
+    \begin{displaymath}
+      \left(\bm U_\theta\tr\bm U_\theta+\bm I_q\right)\tilde{\bm u}_{\theta,\beta}=
+      \bm P\tr\bm L_\theta\bm L\tr_\theta\bm P
+      \tilde{\bm u}_{\theta,\beta}=
+      \bm U\tr_\theta(\bm y-\bm X\bm\beta)
+    \end{displaymath}
+    Let $r^2(\bm\theta,\bm\beta)=\norm{\bm y-\bm X\bm\beta-\bm
+      U_\theta\,\tilde{\bm u}_{\theta,\beta}}^2 + \norm{\tilde{\bm
+        u}_{\theta,\beta}}^2$.
+  \item $\ell(\bm\theta,\bm\beta,\sigma|\bm y)=\log
+    L(\bm\theta,\bm\beta,\sigma|\bm y)$ can be written
+    \begin{displaymath}
+      -2\ell(\bm\theta,\bm\beta,\sigma|\bm y)=
+      n\log(2\pi\sigma^2)+\frac{r^2(\bm\theta,\bm\beta)}{\sigma^2}+
+      \log(|\bm L_\theta|^2)
+    \end{displaymath}
+  \item The conditional estimate of $\sigma^2$ is
+    \begin{displaymath}
+      \widehat{\sigma^2}(\bm\theta,\bm\beta)=\frac{r^2(\bm\theta,\bm\beta)}{n}
+    \end{displaymath}
+    producing the \Emph{profiled deviance}
+    \begin{displaymath}
+    -2\tilde{\ell}(\bm\theta,\bm\beta|\bm y)=\log(|\bm L_\theta|^2)+
+      n\left[1+\log\left(\frac{2\pi r^2(\bm\theta,\bm\beta)}{n}\right)\right]
+    \end{displaymath}
+  \end{itemize}
+\end{frame}
+
+\begin{frame}
+  \frametitle{Profiling the deviance with respect to $\bm\beta$}
+  \begin{itemize}
+  \item Because the deviance depends on $\bm\beta$ only through
+    $r^2(\bm\theta,\bm\beta)$ we can obtain the conditional estimate,
+    $\widehat{\bm\beta}_\theta$, by extending the PLS problem to
+    \begin{displaymath}
+      r^2(\bm\theta)=\min_{\bm u,\bm\beta}
+      \left[\left\|\bm y-\bm X\bm\beta-\bm U_\theta\,\bm u\right\|^2 +
+      \left\|\bm u\right\|^2\right]
+    \end{displaymath}
+    with the solution satisfying the equations
+    \begin{displaymath}
+      \begin{bmatrix}
+        \bm U_\theta\tr\bm U_\theta+\bm I_q & \bm
+        U_\theta\tr\bm X\\
+        \bm X\tr\bm U_\theta & \bm X\tr\bm X
+      \end{bmatrix}
+      \begin{bmatrix}
+        \tilde{\bm u}_\theta\\\widehat{\bm\beta}_\theta
+      \end{bmatrix}=
+      \begin{bmatrix}\bm U_\theta\tr\bm y\\\bm X\tr\bm y .
+      \end{bmatrix}
+    \end{displaymath}
+  \item The profiled deviance, which is a function of $\bm\theta$
+    only, is
+    \begin{displaymath}
+      -2\tilde{\ell}(\bm\theta)=\log(|\bm L_\theta|^2)+
+      n\left[1+\log\left(\frac{2\pi r^2(\bm\theta)}{n}\right)\right]
+    \end{displaymath}
+  \end{itemize}
+\end{frame}
