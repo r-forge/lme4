@@ -7,6 +7,8 @@
 %%\VignetteIndexEntry{Creating an R data set from STAR}
 %%\VignetteDepends{lme4}
 \begin{document}
+\SweaveOpts{engine=R,eps=FALSE,pdf=TRUE,width=5,height=3,strip.white=TRUE,keep.source=TRUE}
+\SweaveOpts{prefix=TRUE,prefix.string=figs/SoftRev,include=FALSE}%        ^^^^^^^^^^^^^^^^
 \maketitle
 \begin{abstract}
   A substantial portion of the data from Tennessee's Student Teacher
@@ -292,4 +294,11 @@ library(lme4)
 (mm1 <- lmer(math ~ gr + sx + eth + cltype + (1|id) + (1|sch), star))
 (rm1 <- lmer(read ~ gr + sx + eth + cltype + (1|id) + (1|sch), star))
 @ 
+
+\section{Session Info}
+
+<<sessionInfo, results=tex>>=
+toLatex(sessionInfo())
+@
+
 \end{document}

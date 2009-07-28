@@ -1032,5 +1032,11 @@ system.time(mS1 <- lmer(attain ~ sex + (1|primary) + (1|second), ScotsSec), gc=T
 summary(mS1)
 @
 
+\section{Session Info}
+
+<<sessionInfo, results=tex>>=
+toLatex(sessionInfo())
+@
+
 \bibliography{MlmSoftRev}
 \end{document}
