@@ -1,0 +1,52 @@
+
+R version 2.4.0 beta (2006-09-25 r39510)
+Copyright (C) 2006 The R Foundation for Statistical Computing
+ISBN 3-900051-07-0
+
+R is free software and comes with ABSOLUTELY NO WARRANTY.
+You are welcome to redistribute it under certain conditions.
+Type 'license()' or 'licence()' for distribution details.
+
+R is a collaborative project with many contributors.
+Type 'contributors()' for more information and
+'citation()' on how to cite R or R packages in publications.
+
+Type 'demo()' for some demos, 'help()' for on-line help, or
+'help.start()' for an HTML browser interface to help.
+Type 'q()' to quit R.
+
+> library(mlmRev)
+Loading required package: lme4
+Loading required package: Matrix
+Loading required package: lattice
+> options(show.signif.stars = FALSE)
+> Early$tos <- Early$age - 0.5
+> (fm1 <- lmer(cog ~ tos * trt + (tos|id), Early))
+Linear mixed-effects model fit by REML 
+Formula: cog ~ tos * trt + (tos | id) 
+   Data: Early 
+  AIC  BIC logLik MLdeviance REMLdeviance
+ 2378 2404  -1182       2375         2364
+Random effects:
+ Groups   Name        Variance   Std.Dev.   Corr  
+ id       (Intercept) 9.2307e+01 9.60764658       
+          tos         3.9029e-08 0.00019756 0.000 
+ Residual             7.8058e+01 8.83505762       
+number of obs: 309, groups: id, 103
+
+Fixed effects:
+            Estimate Std. Error t value
+(Intercept)  118.407      2.470   47.95
+tos          -21.133      1.863  -11.35
+trtY           4.219      3.291    1.28
+tos:trtY       5.271      2.482    2.12
+
+Correlation of Fixed Effects:
+         (Intr) tos    trtY  
+tos      -0.754              
+trtY     -0.750  0.566       
+tos:trtY  0.566 -0.750 -0.754
+Warning message:
+Estimated variance-covariance for factor 'id' is singular
+ in: `LMEoptimize<-`(`*tmp*`, value = list(maxIter = 200, tolerance = 1.49011611938477e-08,  
+> q("no")

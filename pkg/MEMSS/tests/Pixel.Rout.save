@@ -1,0 +1,102 @@
+
+R version 2.6.0 Under development (unstable) (2007-07-19 r42275)
+Copyright (C) 2007 The R Foundation for Statistical Computing
+ISBN 3-900051-07-0
+
+R is free software and comes with ABSOLUTELY NO WARRANTY.
+You are welcome to redistribute it under certain conditions.
+Type 'license()' or 'licence()' for distribution details.
+
+R is a collaborative project with many contributors.
+Type 'contributors()' for more information and
+'citation()' on how to cite R or R packages in publications.
+
+Type 'demo()' for some demos, 'help()' for on-line help, or
+'help.start()' for an HTML browser interface to help.
+Type 'q()' to quit R.
+
+> library(MEMSS)
+Loading required package: lme4
+Loading required package: Matrix
+Loading required package: lattice
+> options(show.signif.stars = FALSE)
+> m1 <- lmer(pixel ~ day + I(day^2) + (1|Dog:Side) + (day|Dog),
++            Pixel, verbose = TRUE)
+  0:     873.72159: 0.723102 0.511310 0.0568329  0.00000
+  1:     871.66481: 0.764370 0.554128 0.265180 0.0790741
+  2:     852.35724:  1.10288 0.845451 0.152962 0.106305
+  3:     847.00821:  1.16858 0.874801 0.156903 -0.0635955
+  4:     843.28240:  1.28977 0.977645 0.124671 0.0244869
+  5:     839.18593:  1.39641  1.09187 0.170487 -0.0623405
+  6:     835.37011:  1.50833  1.23109 0.141202 -0.0263486
+  7:     833.06758:  1.61653  1.57809 0.163323 -0.0866536
+  8:     830.85858:  1.65460  1.92406 0.257511 -0.00775361
+  9:     828.14956:  1.68643  2.06574 0.192606 -0.0156699
+ 10:     827.81893:  1.68848  2.06928 0.181346 -0.0513314
+ 11:     827.28190:  1.69472  2.10191 0.175224 -0.0347777
+ 12:     827.01770:  1.69385  2.17357 0.153136 -0.0409097
+ 13:     825.44540:  1.73982  2.84022 0.175245 -0.0377087
+ 14:     825.34915:  1.91603  2.84723 0.174516 -0.0391935
+ 15:     825.30257:  1.86960  3.13923 0.165970 -0.0300228
+ 16:     825.21131:  1.86805  3.15373 0.170702 -0.0367435
+ 17:     825.21020:  1.87145  3.15345 0.170711 -0.0360659
+ 18:     825.21019:  1.87143  3.15557 0.170648 -0.0360493
+ 19:     825.21019:  1.87151  3.15584 0.170647 -0.0360509
+ 20:     825.21019:  1.87152  3.15586 0.170649 -0.0360511
+> print(m1, corr = FALSE)
+Linear mixed-effects model fit by REML 
+Formula: pixel ~ day + I(day^2) + (1 | Dog:Side) + (day | Dog) 
+   Data: Pixel 
+   AIC   BIC logLik MLdeviance REMLdeviance
+ 839.2 857.6 -412.6      827.3        825.2
+Random effects:
+ Groups   Name Variance Std.Dev. Corr   
+ Dog:Side      283.0552 16.8242         
+ Dog           804.8533 28.3699         
+                 3.3999  1.8439  -0.555 
+ Residual       80.8131  8.9896         
+Number of obs: 102, groups: Dog:Side, 20; Dog, 10
+
+Fixed effects:
+              Estimate Std. Error t value
+(Intercept) 1073.33924   10.17169  105.52
+day            6.12959    0.87935    6.97
+I(day^2)      -0.36735    0.03395  -10.82
+> ranef(m1)
+$`Dog:Side`
+    (Intercept)
+A:L   -5.967401
+A:R  -11.773452
+B:L   -4.052808
+B:R   -9.803955
+C:L   -7.974109
+C:R    3.734074
+D:L    2.111162
+D:R    2.852360
+E:L    3.308487
+E:R    7.111341
+F:L   10.906578
+F:R   -9.905066
+G:L   -5.905193
+G:R   21.116140
+H:L    8.125800
+H:R   -7.414967
+I:L   11.172113
+I:R  -17.049247
+J:L   31.610151
+J:R  -22.202007
+
+$Dog
+  (Intercept)         day
+A  -24.713030 -1.19534746
+B  -23.581267 -0.43240454
+C  -27.080725  2.19479510
+D  -16.659732  3.09601389
+E   25.299326 -0.56128564
+F   10.823465 -1.03701003
+G   49.353931 -2.27452509
+H   -7.054529  0.99029781
+I   -5.753167 -0.68108686
+J   19.365728 -0.09944718
+
+> q("no")
