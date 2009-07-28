@@ -1,0 +1,79 @@
+
+R version 2.4.0 beta (2006-09-25 r39510)
+Copyright (C) 2006 The R Foundation for Statistical Computing
+ISBN 3-900051-07-0
+
+R is free software and comes with ABSOLUTELY NO WARRANTY.
+You are welcome to redistribute it under certain conditions.
+Type 'license()' or 'licence()' for distribution details.
+
+R is a collaborative project with many contributors.
+Type 'contributors()' for more information and
+'citation()' on how to cite R or R packages in publications.
+
+Type 'demo()' for some demos, 'help()' for on-line help, or
+'help.start()' for an HTML browser interface to help.
+Type 'q()' to quit R.
+
+> library(mlmRev)
+Loading required package: lme4
+Loading required package: Matrix
+Loading required package: lattice
+> options(show.signif.stars = FALSE)
+> cntr <- list()
+> #cntr <- list(EMverbose = TRUE, msVerbose = 1) # uncomment for verbose output
+> (fm1 <- lmer(attain ~ verbal * sex + (1|primary) + (1|second), ScotsSec,
++              control = cntr))
+Linear mixed-effects model fit by REML 
+Formula: attain ~ verbal * sex + (1 | primary) + (1 | second) 
+   Data: ScotsSec 
+   AIC   BIC logLik MLdeviance REMLdeviance
+ 14880 14917  -7434      14843        14868
+Random effects:
+ Groups   Name        Variance Std.Dev.
+ primary  (Intercept) 0.275457 0.52484 
+ second   (Intercept) 0.014747 0.12144 
+ Residual             4.253113 2.06231 
+number of obs: 3435, groups: primary, 148; second, 19
+
+Fixed effects:
+            Estimate Std. Error t value
+(Intercept) 5.914713   0.076795   77.02
+verbal      0.158356   0.003787   41.81
+sexF        0.121553   0.072413    1.68
+verbal:sexF 0.002593   0.005388    0.48
+
+Correlation of Fixed Effects:
+            (Intr) verbal sexF  
+verbal       0.177              
+sexF        -0.482 -0.178       
+verbal:sexF -0.122 -0.680  0.161
+> (fm2 <- lmer(attain ~ verbal * sex + (1|primary) + (1|second), ScotsSec,
++              control = c(cntr, list(niterEM = 40))))
+Linear mixed-effects model fit by REML 
+Formula: attain ~ verbal * sex + (1 | primary) + (1 | second) 
+   Data: ScotsSec 
+   AIC   BIC logLik MLdeviance REMLdeviance
+ 14880 14917  -7434      14843        14868
+Random effects:
+ Groups   Name        Variance Std.Dev.
+ primary  (Intercept) 0.275458 0.52484 
+ second   (Intercept) 0.014749 0.12144 
+ Residual             4.253112 2.06231 
+number of obs: 3435, groups: primary, 148; second, 19
+
+Fixed effects:
+            Estimate Std. Error t value
+(Intercept) 5.914713   0.076795   77.02
+verbal      0.158355   0.003787   41.81
+sexF        0.121553   0.072413    1.68
+verbal:sexF 0.002593   0.005388    0.48
+
+Correlation of Fixed Effects:
+            (Intr) verbal sexF  
+verbal       0.177              
+sexF        -0.482 -0.178       
+verbal:sexF -0.122 -0.680  0.161
+> ## fm1 and fm2 should be essentially identical when optimizing with nlminb
+> ## The fits are substantially different when optimizing with optim
+> q("no")

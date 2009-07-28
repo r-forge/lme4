@@ -1,0 +1,42 @@
+2008-06-19  Martin Maechler  <maechler@stat.math.ethz.ch>
+
+	* man/Mmmec.Rd: use "offset= ." instead of of offset(.) in formula.
+
+2008-05-21  Martin Maechler  <maechler@stat.math.ethz.ch>
+
+	* DESCRIPTION (License): use "correct" licence-syntax;
+	(Version): 0.99875-1: matching CRAN version of lme4.
+
+	* man/bdf.Rd and a few others:  use \docType{data} instead of
+	\non_function{}
+
+2006-09-08  Douglas Bates  <bates@stat.wisc.edu>
+
+	* DESCRIPTION (Depends): Update to current version of lme4
+
+2005-08-26  Douglas Bates  <bates@wisc.edu>
+
+	* man/Mmmec.Rd: Added example and then conditionalized the
+	example using AGQ.
+
+2005-07-12  Douglas Bates  <bates@wisc.edu>
+
+	* inst/doc/MlmSoftRev.Rnw: Expanded discussion considerably.
+
+2005-05-19  Douglas Bates  <bates@bates1-home>
+
+	* tests/lmerTest.R: Removed defunct tests and updated results of
+	current tests to lme_0.95-8
+
+2005-05-13  Douglas Bates  <bates@bates1-home>
+
+	* inst/doc/MlmSoftRev.Rnw (section{Two-level models for binary
+	data}): Added examples of generalized linear mixed model fits
+	using both PQL and the Laplacian approximation.
+
+2005-04-21  Douglas Bates  <bates@bates1-home>
+
+	* inst/doc/StarData.pdf: added
+
+	* DESCRIPTION: Updated dependencies
+
