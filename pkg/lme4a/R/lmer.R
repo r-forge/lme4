@@ -425,6 +425,9 @@ varNms <- c("constant", "mu(1-mu)", "mu", "mu^2", "mu^3")
 famType <- function(family)
 {
     if (is.null(family)) return(c(fTyp = 2L, lTyp = 5L, vTyp = 1L))
+    if(!is.list(family))
+	stop(gettextf("invalid GLM family: %s", format(family),
+		      domain = "R-lme4"))
     if (!(fTyp <- match(family$family, famNms, nomatch = 0)))
         stop(gettextf("unknown GLM family: %s",
                       sQuote(family$family), domain = "R-lme4"))
