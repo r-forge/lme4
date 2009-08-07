@@ -264,7 +264,7 @@ lmerControl <- function(trace = getOption("verbose"),
 lmer <-
     function(formula, data, family = gaussian, REML = TRUE,
              control = list(), start = NULL, verbose = FALSE,
-             doFit = TRUE, noPIRLS = FALSE,
+             doFit = TRUE,
              subset, weights, na.action, offset, contrasts = NULL,
              mustart, etastart, ...)
 {
@@ -370,11 +370,10 @@ lmer <-
     rho$mc <- mc                        # store the matched call
 
     rho$bds <- getBounds(rho)
-    if (!noPIRLS) {
-        setPars(rho, getPars(rho))          # one evaluation to check structure
-        rho$start[] <- rho$fixef            # ensure start is distinct from fixef
-        rho$mustart[] <- rho$mu
-    }
+    setPars(rho, getPars(rho))          # one evaluation to check structure
+    rho$start[] <- rho$fixef            # ensure start is distinct from fixef
+    rho$mustart[] <- rho$mu
+
 
     if (!doFit) return(rho)
     merFinalize(rho)
@@ -453,7 +452,7 @@ glmer <-
 function(formula, data, family = gaussian, start = NULL,
          verbose = FALSE, nAGQ = 1, doFit = TRUE, subset, weights,
          na.action, offset, contrasts = NULL,
-         control = list(), ...)
+         control = list(), mustart, etastart, ...)
 {
     mc <- match.call()
     mc[[1]] <- as.name("lmer")
@@ -895,6 +894,7 @@ setMethod("resid", signature(object = "mer"),
 	  function(object, ...)
           napredict(attr(object@frame, "na.action"), object@resid))
 
+### FIXME: This method must be rewritten
 setMethod("simulate", "mer",
           function(object, nsim = 1, seed = NULL, ...)
       {
@@ -1827,7 +1827,7 @@ simGLMM <- function(formula, data, family, theta,
     rho$start <- fixef                  # needed for family$initialize
     rho$fixef <- fixef
     names(rho$fixef) <- colnames(rho$X)
-    lmerFactorList(formula, rho$frame, rho, contrasts)
+    #lmerFactorList(formula, rho$frame, rho, contrasts)
     if (!missing(theta)) {
         theta <- as.double(theta)
         stopifnot(length(theta) == length(theta0 <- getPars(rho$rCF)))

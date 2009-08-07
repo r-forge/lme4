@@ -29,9 +29,11 @@ mcmcsamp(object, n, verbose, \dots)
   methods are defined.
 }
 \examples{
+\dontrun{
 (fm1 <- lmer(Reaction ~ Days + (1|Subject) + (0+Days|Subject), sleepstudy))
 set.seed(101); samp0 <- mcmcsamp(fm1, n = 1000)
 str(samp0)
+}
 }
 \keyword{methods}
 \keyword{datagen}

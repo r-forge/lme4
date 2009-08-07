@@ -15,16 +15,16 @@ lmer(formula, data, family = gaussian, REML = TRUE,
      control = list(), start = NULL, verbose = FALSE,
      doFit = TRUE, subset, weights, na.action, offset,
      contrasts = NULL, mustart, etastart, \dots)
-lmer2(formula, data, family = gaussian, REML = TRUE,
+lmer2(formula, data, family = gaussian, REML = TRUE, sparseX = FALSE,
       control = list(), start = NULL, verbose = FALSE,
       subset, weights, na.action, offset,
-      contrasts = NULL, mustart, etastart, \dots)
+      contrasts = NULL, \dots)
 glmer(formula, data, family = gaussian, start = NULL,
       verbose = FALSE, nAGQ = 1, doFit = TRUE, subset, weights,
       na.action, offset, contrasts = NULL,
-      control = list(), \dots)
-nlmer(formula, data, start = NULL, verbose = FALSE, nAGQ = 1,
-      doFit = TRUE, subset, weights, na.action,
+      control = list(), mustart, etastart, \dots)
+nlmer(formula, data, family = gaussian, start = NULL, verbose = FALSE, nAGQ = 1,
+      doFit = TRUE, subset, weights, na.action, mustart, etastart,
       contrasts = NULL, control = list(), \dots)
 }
 \arguments{
@@ -70,6 +70,8 @@ nlmer(formula, data, start = NULL, verbose = FALSE, nAGQ = 1,
   \item{subset, weights, na.action, offset, contrasts}{further model
     specification arguments as in \code{\link[stats]{lm}}; see there for
     details.}
+  \item{sparseX}{logical scalar.  If \code{TRUE} the model matrix for
+    the fixed-effects parameters is stored as a sparse matrix.}
   \item{mustart, etastart}{optional starting values on the scale of the
     conditional mean or the unbounded predictor as in
     \code{\link[stats]{glm}}; see there for details.}

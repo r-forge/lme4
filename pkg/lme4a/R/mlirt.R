@@ -38,7 +38,7 @@ mlirt <-
     mf$.subj <- gl(nr, 1, nr*nc)
     form <- substitute(Y ~ base + (1|.subj), list(base = formula[[3]]))
     ## establish factor list and Ztl
-    FL <- lmerFactorList(form, mf, 0L, 0L, contrasts)
+    FL <- lmerFactorList(form, mf)
     fl <- FL$fl
     ## initial fit of a glm to the fixed-effects only.
     glmFit <- glm.fit(X, Y, weights = fl$weights[ind],

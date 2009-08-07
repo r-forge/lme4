@@ -4,6 +4,8 @@
 \alias{ranef}
 \alias{ranef-methods}
 \alias{ranef,mer-method}
+\alias{ranef,merenv-method}
+\alias{ranef,environment-method}
 \title{Extract the modes of the random effects}
 \description{
   A generic function to extract the conditional modes of the random

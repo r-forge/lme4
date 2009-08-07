@@ -4,6 +4,7 @@
 \alias{fixed.effects}
 \alias{fixef,ANY-method}
 \alias{fixef,mer-method}
+\alias{fixef,merenv-method}
 \title{Extract the fixed-effects estimates}
 \description{
   Extract the estimates of the fixed-effects parameters from a fitted model.

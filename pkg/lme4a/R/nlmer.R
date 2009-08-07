@@ -122,7 +122,7 @@ nlmer <- function(formula, data, family = gaussian, start = NULL, verbose = FALS
     rho$start <- numeric(p)             # must be careful that these are distinct
     rho$start[] <- rho$fixef <- qr.coef(qrX, unlist(lapply(pnames, get, envir = rho$nlenv)))
     rho$RX <- qr.R(qrX)
-    eb <- evalbars(formula, rho$frame, rho, contrasts, TRUE) # flist, trms, nest
+    eb <- evalbars(formula, fr, contrasts, TRUE) # flist, trms, nest
     rho$dims["nest"] <- eb$nest
     rho$flist <- eb$flist
     lmerFactorList(eb$trms, rho)

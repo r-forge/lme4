@@ -39,6 +39,7 @@ refit(object, newresp, \dots)
 %\note{}
 %\seealso{}
 \examples{
+\dontrun{
 fm1 <- lmer(Reaction ~ Days + (Days|Subject), sleepstudy)
 set.seed(54321)
 system.time(simfe <-
@@ -50,6 +51,7 @@ qqmath(~ `(Intercept)` + Days, simfe, outer = TRUE,
        layout = c(1,2), aspect = 1, type = c("g", "p"))
 sapply(simfe, mean)
 sapply(simfe, sd)
+}
 }
 \keyword{models}
 \keyword{methods}

@@ -356,11 +356,12 @@ str(model.frame(fm2))
 str(resid(fm2))
 
 VarCorr(fm2)
+\dontrun{
 ee <- expand(fm2)
 op <- options(digits = 3)
 tcrossprod(ee$sigma * ee$P \%*\% ee$T \%*\% ee$S)
 options(op)
-
+}
 \dontrun{
 ## Simulate 'Reaction' according to the fitted model:
 dim(ss <- simulate(fm2, nsim = 200, seed = 101)) ## -> 180 x 200
