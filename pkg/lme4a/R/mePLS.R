@@ -10,15 +10,18 @@ isLDL <- function(x)
 lmer2 <-
     function(formula, data, family = gaussian, REML = TRUE, sparseX = FALSE,
              control = list(), start = NULL, verbose = FALSE,
-             subset, weights, na.action, offset, contrasts = NULL,
-             model = TRUE, mustart, etastart, ...)
+             subset, weights, na.action, offset, contrasts = NULL, ...)
 {
-    if (missing(data)) data <- environment(formula)
-    stopifnot(length(formula <- as.formula(formula)) == 3)
-                                        # evaluate and install the model frame
     mf <- mc <- match.call()
-    m <- match(c("data", "subset", "weights", "na.action",
-                 "etastart", "mustart", "offset"),
+    if (!missing(family)) {      # call glmer if family is not missing
+        mc[[1]] <- "glmer"
+        eval(mc, parent.frame())
+    }
+
+    stopifnot(length(formula <- as.formula(formula)) == 3)
+    if (missing(data)) data <- environment(formula)
+    ## evaluate and install the model frame
+    m <- match(c("data", "subset", "weights", "na.action", "offset"),
                names(mf), 0)
     mf <- mf[c(1, m)]
     mf$drop.unused.levels <- TRUE
@@ -44,14 +47,11 @@ lmer2 <-
     if (loff) {
         if (loff == 1) {
             offset <- rep.int(offset, n)
-        } else if (loff != nobs) {
+        } else if (loff != n) {
             stop(gettextf("number of offsets is %d should equal %d (number of observations)",
                           loff, n), domain = "R-lme4")
         }
     }
-    ##            # starting values expressed as mu or eta (glmer only)
-    ## mustart <- model.extract(mf, "mustart")
-    ## etastart <- model.extract(mf, "etastart")
     
     fe.form <- formula           # evaluate fixed-effects model matrix
     nb <- nobars(formula[[3]])   # fixed-effects terms only
@@ -69,12 +69,6 @@ lmer2 <-
                                         # enforce modes on some vectors
     y <- unname(as.double(y))   # must be done after initialize
     attr(fr, "terms") <- NULL
-    ## mustart <- unname(as.double(mustart))
-    ## etastart <- unname(as.double(etastart))    
-    ## if (exists("n", envir = rho))
-    ##     n <- as.double(n)
-    ## if (family$family %in% c("binomial", "poisson"))
-    ##     dims["useSc"] <- 0L
     
     ## Check for method argument which is no longer used
     if (!is.null(method <- list(...)$method)) {
@@ -94,7 +88,7 @@ lmer2 <-
     flist <- lapply(bars,
                     function(x)
                     eval(substitute(factor(fac), list(fac = x[[3]])), fr))
-    rm(nb, mf, fe.form, loff, bars)
+    rm(nb, mf, fe.form, loff, bars, data, family, fr, fr.form)
     
     RX <- chol(XtX <- crossprod(X))     # check for full column rank
     Xty <- unname(as.vector(crossprod(X, y)))
