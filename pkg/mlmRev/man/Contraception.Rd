@@ -34,10 +34,6 @@
 str(Contraception)
 summary(Contraception)
 (fm1 <- lmer(use ~ urban+age+livch+(1|district), Contraception, binomial))
-(fm2 <- lmer(use ~ urban+age+livch+(1|district), Contraception, binomial,
-             method = "Laplace")) ## change to "AGQ" when available
-(fm3 <- lmer(use ~ urban+age+livch+(urban|district), Contraception, binomial))
-(fm4 <- lmer(use ~ urban+age+livch+(urban|district), Contraception,
-             binomial, method = "Laplace"))
+(fm2 <- lmer(use ~ urban+age+livch+(urban|district), Contraception, binomial))
 }
 \keyword{datasets}
