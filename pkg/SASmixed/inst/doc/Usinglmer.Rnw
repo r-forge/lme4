@@ -36,7 +36,7 @@ library(lme4)
 \section{Introduction}
 \label{sec:intro}
 
-The \code{lmer} function from the \code{Matrix} library for \textsf{R} is used
+The \code{lmer} function from the \code{lme4} package for \textsf{R} is used
 to fit linear mixed-effects models.  It is similar in scope to the
 \textsf{SAS} procedure \code{PROC MIXED} described in
 \citet{litt:mill:stro:wolf:1996}.
@@ -266,7 +266,7 @@ options(contrasts = c(factor = "contr.SAS", ordered = "contr.poly"))
 @ 
 at the beginning of your session.
 
-\bibliography{Usinglme}
+\bibliography{Usinglmer}
 \appendix
 
 \section{AvgDailyGain}
