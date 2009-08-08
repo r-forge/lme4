@@ -81,8 +81,6 @@
 	}
     }
 }
-\details{
-}
 \source{
     Pinheiro, J. C. and Bates, D. M. (2000), \emph{Mixed-Effects Models in S
 	and S-PLUS}, Springer, New York.

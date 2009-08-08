@@ -35,8 +35,6 @@
 \details{
   Each row in this data frame contains the data for one student.
 }
-\source{
-}
 \examples{
 str(MathAchieve)
 }

@@ -56,11 +56,11 @@
 xyplot(conc ~ Time | Subject, Theoph, aspect = 'xy',
      xlab = "Time since drug administration (hr)",
      ylab = "Theophylline concentration (mg/L)")
-Theoph.4 <- subset(Theoph, Subject == 4)
+Theoph.D <- subset(Theoph, Subject == "D")
 fm1 <- nls(conc ~ SSfol(Dose, Time, lKe, lKa, lCl),
-           data = Theoph.4)
+           data = Theoph.D)
 summary(fm1)
-plot(conc ~ Time, data = Theoph.4,
+plot(conc ~ Time, data = Theoph.D,
      xlab = "Time since drug administration (hr)",
      ylab = "Theophylline concentration (mg/L)",
      main = "Observed concentrations and fitted model",
