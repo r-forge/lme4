@@ -1,3 +1,28 @@
+2009-08-08  Douglas Bates <bates@stat.wisc.edu>
+
+	* [r401] DESCRIPTION, inst/doc/Usinglmer.Rnw, inst/doc/Usinglmer.pdf:
+	  New release on R-forge
+	* [r400] inst/doc/Usinglme.Rnw, inst/doc/Usinglme.bib,
+	  inst/doc/Usinglmer.Rnw, inst/doc/Usinglmer.bib: Update to AFS version
+
+2009-08-08  Martin Maechler  <maechler@stat.math.ethz.ch>mmaechler
+
+	* DESCRIPTION, man/Animal.Rd, man/AvgDailyGain.Rd, man/BIB.Rd,
+	  man/Bond.Rd, man/Cultivation.Rd, man/Demand.Rd, man/Genetics.Rd,
+	  man/HR.Rd, man/IncBlk.Rd, man/Mississippi.Rd, man/Multilocation.Rd,
+	  man/PBIB.Rd, man/SIMS.Rd, man/Semi2.Rd, man/Semiconductor.Rd,
+	  man/TeachingI.Rd, man/TeachingII.Rd, man/WWheat.Rd, man/WaferTypes.Rd,
+	  man/Weights.Rd: update to CRAN`s version 0.4-4 (from 2008-06 !)
+
+2009-07-28  Martin Maechler  <maechler@stat.math.ethz.ch>
+
+	* .: move mlmRev, MEMSS (and SASmixed) from
+	  "svn.r-project.org/R-packages/trunk/"
+
+2006-10-23  Douglas Bates <bates@stat.wisc.edu>
+
+	* [r384] Remove poorly defined example
+
 2006-09-09  Douglas Bates  <bates@R-project.org>
 
 	* man/BIB.Rd: Update this and all other examples for lmer back in
