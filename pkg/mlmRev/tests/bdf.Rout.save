@@ -1,6 +1,6 @@
 
-R version 2.4.0 beta (2006-09-25 r39510)
-Copyright (C) 2006 The R Foundation for Statistical Computing
+R version 2.8.0 Under development (unstable) (2008-05-24 r45774)
+Copyright (C) 2008 The R Foundation for Statistical Computing
 ISBN 3-900051-07-0
 
 R is free software and comes with ABSOLUTELY NO WARRANTY.
@@ -19,26 +19,43 @@ Type 'q()' to quit R.
 Loading required package: lme4
 Loading required package: Matrix
 Loading required package: lattice
+
+Attaching package: 'Matrix'
+
+
+	The following object(s) are masked from package:stats :
+
+	 xtabs 
+
+
+	The following object(s) are masked from package:base :
+
+	 colMeans,
+	 colSums,
+	 rcond,
+	 rowMeans,
+	 rowSums 
+
 > options(show.signif.stars = FALSE)
 > (fm1 <- lmer(langPOST ~ IQ.ver.cen+avg.IQ.ver.cen+(IQ.ver.cen|schoolNR),
 +              bdf))
-Linear mixed-effects model fit by REML 
+Linear mixed model fit by REML 
 Formula: langPOST ~ IQ.ver.cen + avg.IQ.ver.cen + (IQ.ver.cen | schoolNR) 
    Data: bdf 
-   AIC   BIC logLik MLdeviance REMLdeviance
- 15230 15264  -7609      15214        15218
+   AIC   BIC logLik deviance REMLdev
+ 15232 15272  -7609    15214   15218
 Random effects:
  Groups   Name        Variance Std.Dev. Corr   
- schoolNR (Intercept)  8.07566 2.84177         
-          IQ.ver.cen   0.20801 0.45608  -0.642 
- Residual             41.34967 6.43037         
-number of obs: 2287, groups: schoolNR, 131
+ schoolNR (Intercept)  8.07647 2.84191         
+          IQ.ver.cen   0.20806 0.45614  -0.642 
+ Residual             41.34942 6.43035         
+Number of obs: 2287, groups: schoolNR, 131
 
 Fixed effects:
                Estimate Std. Error t value
-(Intercept)    40.74958    0.28808  141.45
+(Intercept)    40.74958    0.28809  141.45
 IQ.ver.cen      2.45983    0.08364   29.41
-avg.IQ.ver.cen  1.40893    0.32374    4.35
+avg.IQ.ver.cen  1.40890    0.32375    4.35
 
 Correlation of Fixed Effects:
             (Intr) IQ.vr.

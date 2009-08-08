@@ -43,6 +43,6 @@
 \examples{
 str(egsingle)
 (fm1 <- lmer(math~year*size+female+(1|childid)+(1|schoolid), egsingle,
-           control = list(EMv = 1, msV = 1)))
+             verbose = 1))
 }
 \keyword{datasets}

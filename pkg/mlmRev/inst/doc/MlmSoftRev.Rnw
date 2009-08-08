@@ -35,7 +35,7 @@ library(Matrix)
 library(lattice)
 library(lme4)
 library(mlmRev)
-library(coda)
+#library(coda)
 set.seed(1234321)
 @
 
@@ -658,7 +658,7 @@ technique called Markov Chain Monte Carlo sampling. The
 generates such a sample.
 
 <<Es4>>=
-Es4 <- mcmcsamp(Em4, 10000, trans = FALSE)
+#Es4 <- mcmcsamp(Em4, 10000, trans = FALSE)
 @
 
 The parameter estimates in this sample are the fixed effects, the
@@ -667,12 +667,12 @@ of the intercept random effect, the variance of the slope random
 effect and their covariance.  A plot of the estimated posterior
 densities of each of the parameters (Figure~\ref{fig:Examplot7})
 <<Examplot7,fig=TRUE,echo=FALSE,width=8,height=5,include=FALSE>>=
-print(densityplot(Es4, plot.points = FALSE, ylab = "",
-                  scales = list(x = list(axs = "i"))))
+#print(densityplot(Es4, plot.points = FALSE, ylab = "",
+#                  scales = list(x = list(axs = "i"))))
 @
 \begin{figure}[tbp]
   \centering
-  \includegraphics[width=\textwidth]{figs/SoftRev-Examplot7}
+%  \includegraphics[width=\textwidth]{figs/SoftRev-Examplot7}
   \caption{Plots of the estimated posterior probability densities from
     a Markov Chain Monte Carlo sample of the parameters in the model
     \code{Em4}.}
@@ -974,16 +974,16 @@ so we produce a sample from the posterior distribution of the
 parameters in model \code{Cm11}
 <<Cm11,keep.source=FALSE>>=
 ##(Cm11 <- lmer(use ~ age + I(age^2) + urban + children + (1|district), Contraception, binomial, method = "Laplace"))
-Cs11 <- mcmcsamp(Em4, 10000, trans = FALSE) # mcmcsamp for GLMMs in supernodal representation not yet implemented
+#Cs11 <- mcmcsamp(Em4, 10000, trans = FALSE) # mcmcsamp for GLMMs in supernodal representation not yet implemented
 @
 Density plots (Figure~\ref{fig:Contra2})
 <<Contra2,fig=TRUE,echo=FALSE,width=8,height=5,include=FALSE>>=
-print(densityplot(Cs11, plot.points = FALSE, ylab = "",
-                  scales = list(x = list(axs = "i"))))
+#print(densityplot(Cs11, plot.points = FALSE, ylab = "",
+#                  scales = list(x = list(axs = "i"))))
 @
 \begin{figure}[tbp]
   \centering
-  \includegraphics[width=\textwidth]{figs/SoftRev-Contra2}
+%  \includegraphics[width=\textwidth]{figs/SoftRev-Contra2}
   \caption{Plots of the estimated posterior probability densities from
     a Markov Chain Monte Carlo sample of the parameters in the model
     \code{Cm11} fit to the \code{Contraception} data.}
@@ -991,16 +991,16 @@ print(densityplot(Cs11, plot.points = FALSE, ylab = "",
 \end{figure}
 and normal probability plots (Figure~\ref{fig:Contra3})
 <<Contra3,fig=TRUE,echo=FALSE,width=8,height=5,include=FALSE>>=
-print(qqmath(Cs11,
-             ylab = "",
-             xlab = "Quantiles of a standard normal distribution",
-             scales = list(y = list(relation = "free"),
-             x = list(axs = "i")), type = c("g", "p"),
-             pch = ".", cex = 1.5))
+#print(qqmath(Cs11,
+#             ylab = "",
+#             xlab = "Quantiles of a standard normal distribution",
+#             scales = list(y = list(relation = "free"),
+#             x = list(axs = "i")), type = c("g", "p"),
+#             pch = ".", cex = 1.5))
 @
 \begin{figure}[tbp]
   \centering
-  \includegraphics[width=\textwidth]{figs/SoftRev-Contra3}
+%  \includegraphics[width=\textwidth]{figs/SoftRev-Contra3}
   \caption{Normal probability plots of the Markov Chain Monte Carlo
     samples from the posterior densities of the parameters in the
     model \code{Cm11} fit to the \code{Contraception} data.}

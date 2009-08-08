@@ -34,11 +34,7 @@
 \examples{
 str(Mmmec)
 summary(Mmmec)
-
-if(FALSE) ## offset(.) in formula is not yet implemented
-(fm1 <- lmer(deaths ~ offset(log(expected)) + uvb + (1|region),
-             Mmmec, poisson))
-(fm2 <- lmer(deaths ~ uvb + (1|region), offset= log(expected),
-             data=Mmmec, poisson))
+(fm1 <- lmer(deaths ~ uvb + (1|region), Mmmec, poisson,
+             verbose = 1, offset = log(expected)))
 }
 \keyword{datasets}

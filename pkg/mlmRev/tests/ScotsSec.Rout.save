@@ -1,6 +1,6 @@
 
-R version 2.4.0 beta (2006-09-25 r39510)
-Copyright (C) 2006 The R Foundation for Statistical Computing
+R version 2.8.0 Under development (unstable) (2008-05-24 r45774)
+Copyright (C) 2008 The R Foundation for Statistical Computing
 ISBN 3-900051-07-0
 
 R is free software and comes with ABSOLUTELY NO WARRANTY.
@@ -19,28 +19,57 @@ Type 'q()' to quit R.
 Loading required package: lme4
 Loading required package: Matrix
 Loading required package: lattice
+
+Attaching package: 'Matrix'
+
+
+	The following object(s) are masked from package:stats :
+
+	 xtabs 
+
+
+	The following object(s) are masked from package:base :
+
+	 colMeans,
+	 colSums,
+	 rcond,
+	 rowMeans,
+	 rowSums 
+
 > options(show.signif.stars = FALSE)
 > cntr <- list()
-> #cntr <- list(EMverbose = TRUE, msVerbose = 1) # uncomment for verbose output
 > (fm1 <- lmer(attain ~ verbal * sex + (1|primary) + (1|second), ScotsSec,
-+              control = cntr))
-Linear mixed-effects model fit by REML 
++              verbose = 1))
+  0:     14876.878: 0.338963 0.121450
+  1:     14869.350: 0.271130 0.0962178
+  2:     14869.120: 0.234541 0.0337752
+  3:     14868.448: 0.257104 0.0405373
+  4:     14868.361: 0.249361 0.0627829
+  5:     14868.329: 0.253833 0.0616933
+  6:     14868.328: 0.255792 0.0575286
+  7:     14868.326: 0.254891 0.0578339
+  8:     14868.325: 0.254282 0.0585646
+  9:     14868.325: 0.254614 0.0587515
+ 10:     14868.325: 0.254463 0.0591014
+ 11:     14868.325: 0.254509 0.0589166
+ 12:     14868.325: 0.254490 0.0588844
+Linear mixed model fit by REML 
 Formula: attain ~ verbal * sex + (1 | primary) + (1 | second) 
    Data: ScotsSec 
-   AIC   BIC logLik MLdeviance REMLdeviance
- 14880 14917  -7434      14843        14868
+   AIC   BIC logLik deviance REMLdev
+ 14882 14925  -7434    14843   14868
 Random effects:
  Groups   Name        Variance Std.Dev.
- primary  (Intercept) 0.275457 0.52484 
- second   (Intercept) 0.014747 0.12144 
- Residual             4.253113 2.06231 
-number of obs: 3435, groups: primary, 148; second, 19
+ primary  (Intercept) 0.275454 0.52484 
+ second   (Intercept) 0.014717 0.12131 
+ Residual             4.253124 2.06231 
+Number of obs: 3435, groups: primary, 148; second, 19
 
 Fixed effects:
             Estimate Std. Error t value
-(Intercept) 5.914713   0.076795   77.02
+(Intercept) 5.914728   0.076783   77.03
 verbal      0.158356   0.003787   41.81
-sexF        0.121553   0.072413    1.68
+sexF        0.121552   0.072413    1.68
 verbal:sexF 0.002593   0.005388    0.48
 
 Correlation of Fixed Effects:
@@ -48,32 +77,8 @@ Correlation of Fixed Effects:
 verbal       0.177              
 sexF        -0.482 -0.178       
 verbal:sexF -0.122 -0.680  0.161
-> (fm2 <- lmer(attain ~ verbal * sex + (1|primary) + (1|second), ScotsSec,
-+              control = c(cntr, list(niterEM = 40))))
-Linear mixed-effects model fit by REML 
-Formula: attain ~ verbal * sex + (1 | primary) + (1 | second) 
-   Data: ScotsSec 
-   AIC   BIC logLik MLdeviance REMLdeviance
- 14880 14917  -7434      14843        14868
-Random effects:
- Groups   Name        Variance Std.Dev.
- primary  (Intercept) 0.275458 0.52484 
- second   (Intercept) 0.014749 0.12144 
- Residual             4.253112 2.06231 
-number of obs: 3435, groups: primary, 148; second, 19
-
-Fixed effects:
-            Estimate Std. Error t value
-(Intercept) 5.914713   0.076795   77.02
-verbal      0.158355   0.003787   41.81
-sexF        0.121553   0.072413    1.68
-verbal:sexF 0.002593   0.005388    0.48
-
-Correlation of Fixed Effects:
-            (Intr) verbal sexF  
-verbal       0.177              
-sexF        -0.482 -0.178       
-verbal:sexF -0.122 -0.680  0.161
+> #(fm2 <- lmer(attain ~ verbal * sex + (1|primary) + (1|second), ScotsSec,
+> #             control = c(cntr, list(niterEM = 40))))
 > ## fm1 and fm2 should be essentially identical when optimizing with nlminb
 > ## The fits are substantially different when optimizing with optim
 > q("no")

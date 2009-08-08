@@ -1,6 +1,5 @@
 library(mlmRev)
 options(show.signif.stars = FALSE)
-cntr <- list()
 (fm01 <- lmer(langPOST ~ IQ.ver.cen+avg.IQ.ver.cen+(1|schoolNR), bdf))
 (fm02 <- lmer(langPOST ~ IQ.ver.cen+avg.IQ.ver.cen+(IQ.ver.cen|schoolNR), bdf))
 (fm03 <- lmer(math ~ year+(1|childid)+(1|schoolid), egsingle))
