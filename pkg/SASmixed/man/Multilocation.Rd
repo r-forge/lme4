@@ -1,6 +1,5 @@
 \name{Multilocation}
 \alias{Multilocation}
-\non_function{}
 \title{A multilocation trial}
 \description{
   The \code{Multilocation} data frame has 108 rows and 7 columns.

@@ -1,6 +1,5 @@
 \name{Semiconductor}
 \alias{Semiconductor}
-\non_function{}
 \title{Semiconductor split-plot experiment}
 \description{
     The \code{Semiconductor} data frame has 48 rows and 5 columns.
@@ -26,8 +25,7 @@
 	}
     }
 }
-\details{
-}
+%\details{}
 \source{
     Littel, R. C., Milliken, G. A., Stroup, W. W., and Wolfinger,
     R. D. (1996), \emph{SAS System for Mixed Models}, SAS Institute

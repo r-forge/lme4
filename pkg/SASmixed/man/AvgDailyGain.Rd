@@ -1,6 +1,5 @@
 \name{AvgDailyGain}
 \alias{AvgDailyGain}
-\non_function{}
 \title{Average daily weight gain of steers on different diets}
 \description{
     The \code{AvgDailyGain} data frame has 32 rows and 6 columns.

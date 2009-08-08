@@ -1,6 +1,5 @@
 \name{HR}
 \alias{HR}
-\non_function{}
 \title{Heart rates of patients on different drug treatments}
 \description{
     The \code{HR} data frame has 120 rows and 5 columns of the heart

@@ -1,6 +1,5 @@
 \name{IncBlk}
 \alias{IncBlk}
-\non_function{}
 \title{An unbalanced incomplete block experiment}
 \description{
     The \code{IncBlk} data frame has 24 rows and 4 columns.

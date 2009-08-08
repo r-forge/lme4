@@ -1,6 +1,5 @@
 \name{Genetics}
 \alias{Genetics}
-\non_function{}
 \title{Heritability data}
 \description{
 The \code{Genetics} data frame has 60 rows and 4 columns.

@@ -1,6 +1,5 @@
 \name{WaferTypes}
 \alias{WaferTypes}
-\non_function{}
 \title{Data on different types of silicon wafers}
 \description{
     The \code{WaferTypes} data frame has 144 rows and 8 columns.

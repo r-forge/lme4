@@ -1,6 +1,5 @@
 \name{TeachingI}
 \alias{TeachingI}
-\non_function{}
 \title{Teaching Methods I}
 \description{
     The \code{TeachingI} data frame has 96 rows and 7 columns.

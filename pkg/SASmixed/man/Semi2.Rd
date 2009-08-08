@@ -1,6 +1,5 @@
 \name{Semi2}
 \alias{Semi2}
-\non_function{}
 \title{Oxide layer thicknesses on semiconductors}
 \description{
     The \code{Semi2} data frame has 72 rows and 5 columns.

@@ -1,6 +1,5 @@
 \name{Animal}
 \alias{Animal}
-\non_function{}
 \title{Animal breeding experiment}
 \description{
     The \code{Animal} data frame has 20 rows and 3 columns giving the

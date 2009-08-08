@@ -1,6 +1,5 @@
 \name{Bond}
 \alias{Bond}
-\non_function{}
 \title{Strengths of metal bonds}
 \description{
     The \code{Bond} data frame has 21 rows and 3 columns of data on the

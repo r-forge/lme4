@@ -1,6 +1,5 @@
 \name{Demand}
 \alias{Demand}
-\non_function{}
 \title{Per-capita demand deposits by state and year}
 \description{
     The \code{Demand} data frame has 77 rows and 8 columns of data on
