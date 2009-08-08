@@ -45,7 +45,7 @@ A file on the SAS Institute web site (\textsf{http://www.sas.com})
 contains all the data sets in the book and all the SAS programs used
 in \citet{litt:mill:stro:wolf:1996}.  We have converted the data
 sets from the tabular representation used for SAS to the
-\code{groupedData} objects used by \code{lmer}.  To help users familiar
+\code{data.frame} objects used by \code{lmer}.  To help users familiar
 with \code{SAS PROC MIXED} get up to speed with \code{lmer} more quickly,
 we provide transcripts of some \code{lmer} analyses paralleling the
 \code{SAS PROC MIXED} analyses in \citet{litt:mill:stro:wolf:1996}.
@@ -79,16 +79,17 @@ The basic specification of the model requires a linear model
 expression for the fixed effects and a linear model expression for the 
 random effects.  In \code{SAS PROC MIXED} the fixed-effects part is
 specified in the \code{model} statement and the random-effects
-part in the \code{random} statement.  In \code{lmer} the
-arguments are called \code{fixed} and \code{random}.
+part in the \code{random} statement.  In \code{lmer} the fixed effects
+and the random effects are both specified as terms in the
+\code{formula} argument to \code{lmer}.
 
 Both \code{SAS PROC MIXED} and \code{lmer} allow a mixed-effects model
 to be fit by maximum likelihood (\code{method = ml} in SAS) or by
 maximum residual likelihood, sometimes also called restricted maximum
 likelihood or \textsf{REML}.  This is the default criterion in
 \code{SAS PROC MIXED} and in \code{lmer}.  To get \textsf{ML}
-estimates in \code{lmer}, set the optional argument
-\code{method="REML"}.
+estimates use the optional argument \code{REML=FALSE} in the call to
+\code{lmer}.
 
 \section{Important differences}
 \label{sec:differences}
@@ -96,12 +97,14 @@ estimates in \code{lmer}, set the optional argument
 The output from \code{PROC MIXED} typically includes values of the
 Akaike Information Criterion (\textsf{AIC}) and Schwartz's Bayesian
 Criterion (\textsf{SBC}).  These are used to compare different models
-fit to the same data.  The output of the \code{summary} function applied
-to the object created by \code{lmer} also produces values of \textsf{AIC}
-and \textsf{BIC} but the definitions used in \code{PROC MIXED} and in
-\code{lmer} are different.  In \code{lmer} the definitions are such that
-``smaller is better''.  In \code{PROC MIXED} the definitions are such
-that ``bigger is better''.
+fit to the same data.  The output of the \code{summary} function
+applied to the object created by \code{lmer} also produces values of
+\textsf{AIC} and \textsf{BIC} but the definitions used in older
+versions of \code{PROC MIXED} are different from those used in more
+recent versions of \code{PROC MIXED} and in \code{lmer}.  In
+\code{lmer} the definitions are such that ``smaller is better''.  In
+some older versions of \code{PROC MIXED} the definitions are such that
+``bigger is better''.
 
 When models are fit by \textsf{REML}, the values of \textsf{AIC},
 \textsf{SBC} (or \textsf{BIC}) and the log-likelihood can only be
@@ -111,15 +114,15 @@ compared between any models fit to the same data.  That is, these
 quality-of-fit criteria can be used to evaluate different
 fixed-effects specifications or different random-effects
 specifications or different specifications of both fixed effects and
-random effects.  The greater flexibility of model comparisons when
-using maximum likelihood is the reason that this is the default
-criterion in \code{lmer}.
+random effects.  
 
 We encourage developing and testing the model using likelihood ratio
 tests or the \textsf{AIC} and \textsf{BIC} criteria.  Once a form
 for both the random effects and the fixed effects has been determined,
 the model can be refit with \code{REML = TRUE} if the restricted
-estimates of the variance components are desired.
+estimates of the variance components are desired.  Note that the
+\code{update} function provides a convenient way of refitting a model
+with changes to one or more arguments.
 
 \section{Data manipulation}
 \label{sec:data}
@@ -152,13 +155,15 @@ data animal;
 would require that the \code{trait} and \code{animal} variables be
 specified in a class statement in any model that is fit.
 
-In \s{} these data could be read from a file, say \texttt{animal.dat},
+In \R{} these data could be read from a file, say \texttt{animal.dat},
 and converted to factors by
 \begin{Schunk}
 \begin{Sinput}
-animal <- read.table("animal.dat", header = TRUE)
-animal$trait <- as.factor(animal$trait)
-animal$animal <- as.factor(animal$animal)
+animal <- within(read.table("animal.dat", header = TRUE),
+             {
+                 trait <- factor(trait)
+                 animal <- factor(animal)
+             })
 \end{Sinput}
 \end{Schunk}
 In general it is a good idea to check the types of variables in a data 
@@ -169,14 +174,6 @@ the function \textsf{data.class} to each variable in turn using the
 sapply(Animal, data.class)
 str(Animal)
 @
-
-To make specification of models in \code{lmer} easier and to make graphic
-presentations more informative, we recommend converting from a
-\code{data.frame} object to a \code{groupedData} object.  This class of
-objects contains a formula specifying the response, the primary
-covariate (if there is one) and the grouping factor or factors.  The
-data sets from \citet{litt:mill:stro:wolf:1996} have been
-converted to \code{groupedData} objects in this directory.
 
 \subsection{Unique levels of factors}
 \label{sec:nested}
@@ -197,14 +194,14 @@ In \code{SAS} this nesting of factors is denoted by \code{wafer(et)}.  In
 within ET''.  If both levels of nested factors are to be associated
 with random effects then this is all you need to know.  You would use
 an expression with a \code{"/"} in the grouping factor part of the
-formula for the \code{groupedData} object.  Then the random effects
-could be specified as
+formula in the call to \code{lmer} object.  The random effects term
+would be either
 \begin{Example}
-  random = list( ET = ~ 1, Wafer = ~ 1 )
+  (1 | ET/Wafer)
 \end{Example}
 or, equivalently
 \begin{Example}
-  random = ~ 1 | ET/Wafer
+  (1 | ET:Wafer) + (1 | ET)
 \end{Example}
 
 In this case, however, there would not usually be any random effects
@@ -213,33 +210,31 @@ only random effects are at the \code{Wafer} level.  It is necessary to
 create a factor that will have unique levels for each \code{Wafer}
 within each level of \code{ET}.  One way to do this is to assign
 <<semiconductorGrp>>=
-Semiconductor$Grp <- with(Semiconductor, ET:Wafer)
+Semiconductor <- within(Semiconductor, Grp <- factor(ET:Wafer))
 @ 
-%$
-after which we could specify a random effects term of \code{(1 | Grp)}.
+after which we could specify a random effects term of \code{(1 |
+  Grp)}.  Alternatively, we can use the explicit term
+\begin{Example}
+  (1 | ET:Wafer)  
+\end{Example}
 
 \subsection{General approach}
 \label{sec:generalApproach}
 
-As a general approach to importing data into \s{} for mixed-effects
+As a general approach to importing data into \R{} for mixed-effects
 analysis you should:
 \begin{itemize}
 \item Create a \code{data.frame} with one row per observation and one
   column per variable.
-\item Use \code{ordered} or \code{as.ordered} to explicitly convert any
+\item Use \code{factor} or \code{as.factor} to explicitly convert any
   ordered factors to class \code{ordered}.
 \item Use \code{ordered} or \code{as.ordered} to explicitly convert any
   ordered factors to class \code{ordered}.
-\item If necessary, use \code{getGroups} to create a factor with unique
+\item If necessary, use interaction terms to create a factor with unique
   levels from inner nested factors.
-\item Specify the formula for the response, the primary covariate and
-  the grouping structure to create a \code{groupedData} object from the
-  data frame.  Labels and units for the response and the primary
-  covariate can also be specified at this time as can \code{outer} and
-  \code{inner} factor expressions.
-\item Plot the data.  Plot it several ways.  The use of trellis
-  graphics is closely integrated with the \code{nlme} library.  The
-  trellis plots can provide invaluable insight into the structure of
+\item Plot the data.  Plot it several ways.  The use of lattice
+  graphics is closely integrated with the \code{lme4} library.
+  Lattice plots can provide invaluable insight into the structure of
   the data.  Use them.
 \end{itemize}
 
