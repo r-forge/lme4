@@ -39,8 +39,6 @@
   These variables give the school-level demographic data to accompany
   the \code{MathAchieve} data.
 }
-\source{
-}
 \examples{
 str(MathAchSchool)
 }
