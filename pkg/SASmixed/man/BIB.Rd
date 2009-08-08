@@ -1,6 +1,5 @@
 \name{BIB}
 \alias{BIB}
-\non_function{}
 \title{Data from a balanced incomplete block design}
 \description{
     The \code{BIB} data frame has 24 rows and 5 columns.

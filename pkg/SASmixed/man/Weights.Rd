@@ -1,6 +1,5 @@
 \name{Weights}
 \alias{Weights}
-\non_function{}
 \title{Data from a weight-lifting program}
 \description{
     The \code{Weights} data frame has 399 rows and 5 columns.

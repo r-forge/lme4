@@ -1,6 +1,5 @@
 \name{Cultivation}
 \alias{Cultivation}
-\non_function{}
 \title{Bacterial innoculation applied to grass cultivars}
 \description{
     The \code{Cultivation} data frame has 24 rows and 4 columns of data

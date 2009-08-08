@@ -1,6 +1,5 @@
 \name{Mississippi}
 \alias{Mississippi}
-\non_function{}
 \title{Nitrogen concentrations in the Mississippi River}
 \description{
 The \code{Mississippi} data frame has 37 rows and 3 columns.

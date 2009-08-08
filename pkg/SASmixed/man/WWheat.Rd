@@ -1,6 +1,5 @@
 \name{WWheat}
 \alias{WWheat}
-\non_function{}
 \title{Winter wheat}
 \description{
     The \code{WWheat} data frame has 60 rows and 3 columns.
@@ -19,7 +18,6 @@
 	}
     }
 }
-%\details{}
 \source{
     Littel, R. C., Milliken, G. A., Stroup, W. W., and Wolfinger,
     R. D. (1996), \emph{SAS System for Mixed Models}, SAS Institute

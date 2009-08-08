@@ -1,6 +1,5 @@
 \name{PBIB}
 \alias{PBIB}
-\non_function{}
 \title{A partially balanced incomplete block experiment}
 \description{
     The \code{PBIB} data frame has 60 rows and 3 columns.
