@@ -19,8 +19,10 @@
 \end{abstract}
 <<preliminaries,echo=FALSE,results=hide>>=
 options(show.signif.stars = FALSE,width=68)
+library(lattice)
 library(Matrix)
 library(lme4)
+library(mlmRev)
 @ 
 
 \section{Introduction}
@@ -29,10 +31,10 @@ library(lme4)
 The data from the STAR project are available in several different
 forms from the web site \url{http://www.heros-inc.org/data.htm}.  The
 most convenient form for creation of an R data set is the
-tab-delimited text file.  Download and unzip the archive file
-\url{http://www.heros-inc.org/text-star.zip} producing two files:
+tab-delimited text file.  Download the archive file
+\url{http://www.heros-inc.org/text-star.zip} containing two files:
 \texttt{readme.txt}, a description of the data, and
-\texttt{webstar.txt}, the data themselves.
+\texttt{webstar.txt}, the data themselves. 
 
 
 \section{Reading the data}
@@ -43,17 +45,16 @@ the data set and most of these columns are coded values.  Such columns
 should be represented as factors in R but many of these columns will
 need to be combined before we can work with them.  We will convert the
 first 5 columns to factors and leave the remaining 48 columns as integers.
-\begin{Schunk}
-\begin{Sinput}
-orig <- read.table("webstar.txt", header = TRUE, 
-                   colCl = rep(c("factor", "integer"), c(5, 48)))
-\end{Sinput}
-\end{Schunk}
-In the call to \code{read.table} we used an explicit file name for the
-data file.  In practice it is often more convenient to use the
+<<datainput>>=
+str(orig <- read.delim(unz(system.file("original/text-star.zip", package = "mlmRev"),
+                           "webstar.txt"), colCl = rep(c("factor", "integer"), c(5, 48))))
+@ 
+In the call to \code{read.delim} we read directly from the zip archive
+and avoided expanding the much larger text file.  The call to
+\code{system.file} determines the name of a file that is part of a
+package.  In practice it is often more convenient to use the
 \code{file.choose} function which brings up a file chooser panel.
-<<datainput,echo=FALSE,results=hide>>=
-load("orig.rda")
+load(system.file("original/orig.rda", package = "mlmRev"))
 @
 
 We can check the form of the original data with

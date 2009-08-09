@@ -31,11 +31,9 @@
 options(width=80, show.signif.stars = FALSE,
         lattice.theme = function() canonical.theme("pdf", color = FALSE))
 library(Matrix)
-#library(MASS)
 library(lattice)
 library(lme4)
 library(mlmRev)
-#library(coda)
 set.seed(1234321)
 @
 
@@ -217,7 +215,7 @@ show this we create a factor that is the interaction of school and
 student then drop unused levels.
 
 <<ExamIds>>=
-Exam$ids <- with(Exam, school:student)[, drop = TRUE]
+Exam <- within(Exam, ids <- factor(school:student))
 str(Exam)
 @
 
@@ -260,15 +258,13 @@ school will be unreliable.
 
 A mosaic plot (Figure~\ref{fig:ExamMosaic}) produced with
 <<ExamMosaicshow, eval = FALSE>>=
-ExamMxd <- subset(Exam, type == "Mxd")
-ExamMxd$school <- ExamMxd$school[,drop = TRUE]
+ExamMxd <- within(subset(Exam, type == "Mxd"), school <- factor(school))
 mosaicplot(~ school + sex, ExamMxd)
 @
 helps to detect mixed-sex schools with unusually large or unusually small ratios
 of females to males taking the exam.
 <<ExamMosaic,fig=TRUE,echo=FALSE,width=8,height=8,include=FALSE>>=
-ExamMxd <- subset(Exam, type == "Mxd")
-ExamMxd$school <- ExamMxd$school[,drop = TRUE]
+ExamMxd <- within(subset(Exam, type == "Mxd"), school <- factor(school))
 mosaicplot(~ school + sex, ExamMxd)
 @
 \begin{figure}[tbp]
@@ -688,15 +684,15 @@ A better way of assessing possible asymmetry is to use normal
 probability plots of the samples from each of the parameters, as in
 Figure~\ref{fig:Examplot8}.
 <<Examplot8,fig=TRUE,echo=FALSE,width=8,height=4.5,include=FALSE>>=
-print(qqmath(Es4, ylab = "",
-             xlab = "Quantiles of a standard normal distribution",
-             scales = list(y = list(relation = "free"),
-             x = list(axs = "i")), type = c("g", "p"),
-             pch = ".", cex = 1.5))
+#print(qqmath(Es4, ylab = "",
+#             xlab = "Quantiles of a standard normal distribution",
+#             scales = list(y = list(relation = "free"),
+#             x = list(axs = "i")), type = c("g", "p"),
+#             pch = ".", cex = 1.5))
 @
 \begin{figure}[tbp]
   \centering
-  \includegraphics[width=\textwidth]{figs/SoftRev-Examplot8}
+%  \includegraphics[width=\textwidth]{figs/SoftRev-Examplot8}
   \caption{Normal probability plots of the Markov Chain Monte Carlo
     samples from the posterior densities of the parameters in the
     model \code{Em4}.}
@@ -731,15 +727,15 @@ probability plots of these transformed parameters are shown in
 Figures~\ref{fig:Examplot9} and \ref{fig:Examplot10}.
 
 <<Examplot9,fig=TRUE,echo=FALSE,width=8,height=5,include=FALSE>>=
-Es4a <- Es4[,5:8]
-Es4a[,4] <- atanh(Es4a[,4]/sqrt(Es4a[,2]*Es4a[,3]))
-for (i in 1:3) Es4a[,i] <- log(Es4a[,i])
-print(densityplot(Es4a, plot.points = FALSE, ylab = "",
-                  scales = list(x = list(axs = "i"))))
+#Es4a <- Es4[,5:8]
+#Es4a[,4] <- atanh(Es4a[,4]/sqrt(Es4a[,2]*Es4a[,3]))
+#for (i in 1:3) Es4a[,i] <- log(Es4a[,i])
+#print(densityplot(Es4a, plot.points = FALSE, ylab = "",
+#                  scales = list(x = list(axs = "i"))))
 @
 \begin{figure}[tbp]
   \centering
-  \includegraphics[width=\textwidth]{figs/SoftRev-Examplot9}
+%  \includegraphics[width=\textwidth]{figs/SoftRev-Examplot9}
   \caption{Estimated density plots of the Markov Chain Monte Carlo
     samples from the posterior densities of the variance and
     covariance parameters in model \code{Em4}.  The variance
@@ -749,17 +745,17 @@ print(densityplot(Es4a, plot.points = FALSE, ylab = "",
 \end{figure}
 
 <<Examplot10,fig=TRUE,echo=FALSE,width=8,height=8,include=FALSE>>=
-print(qqmath(Es4a,
-             ylab = "",
-             xlab = "Quantiles of a standard normal distribution",
-             layout = c(2,2),
-             scales = list(y = list(relation = "free"),
-             x = list(axs = "i")), type = c("g", "p"), pch = ".",
-             cex = 1.5))
+#print(qqmath(Es4a,
+#             ylab = "",
+#             xlab = "Quantiles of a standard normal distribution",
+#             layout = c(2,2),
+#             scales = list(y = list(relation = "free"),
+#             x = list(axs = "i")), type = c("g", "p"), pch = ".",
+#             cex = 1.5))
 @
 \begin{figure}[tbp]
   \centering
-  \includegraphics[width=\textwidth]{figs/SoftRev-Examplot10}
+%  \includegraphics[width=\textwidth]{figs/SoftRev-Examplot10}
   \caption{Normal probability plots of the Markov Chain Monte Carlo
     samples from the posterior densities of the variance and
     covariance parameters in model \code{Em4}.  The variance
@@ -767,7 +763,6 @@ print(qqmath(Es4a,
     Fisher's z transformation of the correlation.}
   \label{fig:Examplot10}
 \end{figure}
-
 
 
 \section{Three-level Normal Models}
@@ -799,8 +794,7 @@ Data from the 1997 A-level Chemistry exam are available as \code{Chem97}.
 str(Chem97)
 system.time(mC1 <- lmer(score ~ 1+(1|lea:school) + (1|lea), Chem97))
 summary(mC1)
-system.time(mC2 <- lmer(score ~ gcsecnt + (1|school) + (1|lea), Chem97,
-                        control = list(niterEM = 40)), gc = TRUE)
+system.time(mC2 <- lmer(score ~ gcsecnt + (1|school) + (1|lea), Chem97))
 summary(mC2)
 @
 
@@ -843,7 +837,7 @@ str(Contraception)
 \subsection{Fitting the model used in the review}
 \label{sec:Reviewmodel}
 <<Contraceptionprep, results=hide,echo=FALSE>>=
-lmer(use ~ urban+age+livch+(1|district), Contraception, binomial)
+glmer(use ~ urban+age+livch+(1|district), Contraception, binomial)
 @
 
 The ``Software reviews of multilevel modeling packages'' fit a simple
@@ -855,21 +849,12 @@ reproduce this fit as
 system.time(Cm1 <- lmer(use ~ age+urban+livch+(1|district),
                         Contraception, binomial))
 Cm1
-system.time(Cm2 <- lmer(use ~ age+urban+livch+(1|district),
-                        Contraception, binomial,
-                        method = "Laplace"))
-Cm2
-## system.time(Cm3 <- lmer(use ~ age+urban+livch+(1|district),
-##                         Contraception, binomial,
-##                         method = "AGQ"))
-## Cm3
+system.time(Cm3 <- lmer(use ~ age+urban+livch+(1|district),
+                         Contraception, binomial, nAGQ = 5))
+Cm3
 system.time(Cm4 <- lmer(use ~ age+urban+livch+(urban|district),
                         Contraception, binomial))
 Cm4
-system.time(Cm5 <- lmer(use ~ age+urban+livch+(urban|district),
-                        Contraception, binomial,
-                        method = "Laplace"))
-Cm5
 @
 
 
@@ -921,7 +906,7 @@ live children and those who don't.
 We include a quadratic term in \code{age}
 <<Cm6>>=
 (Cm6 <- lmer(use ~ age + I(age^2) + urban + livch + (1|district),
-             Contraception, binomial, method = "Laplace"))
+             Contraception, binomial))
 anova(Cm1, Cm6)
 @
 and we see that, as indicated by the plots, the quadratic term is highly significant.
@@ -931,17 +916,17 @@ primarily the difference between no children and any children by
 fitting a model with the indicator of any children as one of the
 terms in the fixed effects.
 <<children>>=
-Contraception$children <- factor(ifelse(Contraception$livch == 0, "N", "Y"))
-(Cm7 <- lmer(use ~ age + I(age^2) + urban + children + (1|district),
-             Contraception, binomial, method = "Laplace"))
+Contraception <- within(Contraception, ch <- factor(ifelse(livch == 0, "N", "Y")))
+(Cm7 <- lmer(use ~ age + I(age^2) + urban + ch + (1|district),
+             Contraception, binomial))
 anova(Cm6, Cm7)
 @
 
 Based on the change in the log-likelihood the simpler model is
 adequate.  We check for an interaction with the \code{urban} factor.
 <<Cm8>>=
-(Cm8 <- lmer(use ~ age + I(age^2) + urban * children + (1|district),
-             Contraception, binomial, method = "Laplace"))
+(Cm8 <- lmer(use ~ age + I(age^2) + urban * ch + (1|district),
+             Contraception, binomial))
 @
 The interaction is not significant.
 
@@ -949,11 +934,11 @@ We can check if there is significant variation by district in the
 effect of urban versus rural or in the effect of any children versus
 no children by fitting further models
 <<Cm9>>=
-(Cm9 <- lmer(use ~ age + I(age^2) + urban + children + (urban|district),
-             Contraception, binomial, method = "Laplace"))
+(Cm9 <- lmer(use ~ age + I(age^2) + urban + ch + (urban|district),
+             Contraception, binomial))
 anova(Cm7, Cm9)
-(Cm10 <- lmer(use ~ age + I(age^2) + urban + children + (children|district),
-             Contraception, binomial, method = "Laplace"))
+(Cm10 <- lmer(use ~ age + I(age^2) + urban + ch + (ch|district),
+             Contraception, binomial))
 anova(Cm7, Cm10)
 @
 
@@ -973,7 +958,7 @@ model does not allow for random effects of dimension greater than one
 so we produce a sample from the posterior distribution of the
 parameters in model \code{Cm11}
 <<Cm11,keep.source=FALSE>>=
-##(Cm11 <- lmer(use ~ age + I(age^2) + urban + children + (1|district), Contraception, binomial, method = "Laplace"))
+(Cm11 <- lmer(use ~ age + I(age^2) + urban + ch + (1|district), Contraception, binomial))
 #Cs11 <- mcmcsamp(Em4, 10000, trans = FALSE) # mcmcsamp for GLMMs in supernodal representation not yet implemented
 @
 Density plots (Figure~\ref{fig:Contra2})
@@ -1028,7 +1013,7 @@ summary(mX2)
 
 <<ScotsSec>>=
 str(ScotsSec)
-system.time(mS1 <- lmer(attain ~ sex + (1|primary) + (1|second), ScotsSec), gc=TRUE)
+system.time(mS1 <- lmer(attain ~ sex + (1|primary) + (1|second), ScotsSec))
 summary(mS1)
 @
 
