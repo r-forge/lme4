@@ -9,6 +9,5 @@ Description: Data and examples from a multilevel modelling software review
   as well as other well-known data sets from the multilevel modelling
   literature.
 Depends: lme4
-Suggests: MASS
 LazyData: yes
 License: GPL (>= 2)
