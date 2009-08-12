@@ -19,8 +19,9 @@ setClass("reCovFac",                    # random-effects covariance factor
 setClass("ST",  # Scale/unit Triangular representation of relative covariance
          representation(ST = "list", # list of TSST' rep of rel. cov. mats
                         Gp = "integer"), # pointers to r.e. term groups
-         contains = "reCovFac",
-         validity = function(object) .Call(ST_validate, object))
+         contains = "reCovFac"
+         ## , validity = function(object) .Call(ST_validate, object)
+         )
 
 setClass("mer",
 	 representation(                       # original data
@@ -71,9 +72,9 @@ setClass("merMCMC",
                         sigma = "matrix"  # sigma samples (may have 0 columns)
                         ),
          validity = function(object) .Call(merMCMC_validate, object))
-                        
+
 setClass("summary.mer",                 # Additional slots in a summary object
-         representation(           
+         representation(
 			methTitle = "character",
 			logLik= "logLik",
 			ngrps = "integer",
@@ -98,7 +99,7 @@ setClass("sparseRasch", representation =
               fixef = "numeric",
               mu = "numeric",
               muEta = "numeric",
-              pWt = "numeric",              
+              pWt = "numeric",
               resid = "numeric",
               sqrtrWt = "numeric",
               var = "numeric"),
@@ -116,7 +117,9 @@ setClass("lmerStratVar",
          representation(sfac = "factor"),
          contains = "merExt")
 
-setClass("optenv", representation(setPars = "function", getPars = "function", getBounds = "function"))
+setClass("optenv", representation(setPars = "function",
+                                  getPars = "function",
+                                  getBounds = "function"))
 
 setClass("merenv", contains = "optenv",
          validity = function(object)
@@ -124,7 +127,8 @@ setClass("merenv", contains = "optenv",
          rho <- env(object)
          if (!(is.numeric(y <- rho$y) && (n <- length(y)) > 0))
              return("environment must contain a non-trivial numeric response y")
-         if (!(is(X <- rho$X, "Matrix") && is(Zt <- rho$Zt, "Matrix") && nrow(X) == ncol(Zt)))
+         if (!(is(X <- rho$X, "Matrix") && is(Zt <- rho$Zt, "Matrix") &&
+               nrow(X) == ncol(Zt)))
              return("environment must contain Matrix objects X and Zt with nrow(X) == ncol(Zt)")
          if (!(is.numeric(beta <- rho$beta) && length(beta) == ncol(X)))
              return(sprintf("environment must contain a numeric vector beta of length %d", ncol(X)))
