@@ -293,7 +293,7 @@ lmer <-
         if(!is.null(nm)) names(rho$y) <- nm
     }
     rho$frame <- fr                  # may contain redundant variables
-    attr(rho$frame, "terms") <- NULL
+    ## No! needed, e.g. in  (log(Days+1) | . ) ex.:  attr(rho$frame, "terms") <- NULL
     rho$nobs <- nrow(fr)
     rho$weights <- as.numeric(as.vector(model.weights(fr)))
     if (length(rho$weights) == 0)
