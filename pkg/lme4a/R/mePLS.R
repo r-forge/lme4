@@ -1,3 +1,6 @@
+.f <- if(package_version(packageDescription("Matrix")$Version) >=
+         "0.999375-30") 2 else 1
+
 ##' Determine if a CHMfactor object is LDL or LL
 ##' @param x - a CHMfactor object
 ##' @return TRUE if x is LDL, otherwise FALSE
@@ -125,7 +128,7 @@ lmer2 <-
         u[] <<- solve(L, solve(L, cu - RZX %*% beta, sys = "Lt"), sys = "Pt")@x
         fitted[] <<- (crossprod(Ut, u) + X %*% beta)@x
         prss <<- sum(c(y - fitted, u)^2) # penalized residual sum of squares
-        ldL2[] <<- determinant(L)$mod
+        ldL2[] <<- .f * determinant(L)$mod
         ldRX2[] <<- 2 * determinant(RX)$mod
         if (REML) return(as.vector(ldL2 + 2*determinant(RX)$mod +
                                    nmp * (1 + log(2 * pi * prss/nmp))))
@@ -223,7 +226,7 @@ simplemer <- function(flist, y, X, REML = TRUE, super = FALSE)
          u <<- solve(L, solve(L, cu - RZX %*% beta, sys = "Lt"), sys = "Pt")
          fitted <<- as.vector(crossprod(Ut, u) + X %*% beta)
          prss <<- sum(c(y - fitted, as.vector(u))^2) # penalized residual sum of squares
-         ldL2 <<- as.vector(determinant(L)$mod)
+         ldL2 <<- as.vector(.f * determinant(L)$mod)
          if (REML) return(as.vector(ldL2 + 2*determinant(RX)$mod +
                                     nmp * (1 + log(2 * pi * prss/nmp))))
          ldL2 + n * (1 + log(2 * pi * prss/n))
