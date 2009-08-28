@@ -1,13 +1,58 @@
 .f <- if(package_version(packageDescription("Matrix")$Version) >=
-         "0.999375-30") 2 else 1
+         "0.999375-31") 2 else 1
 
-##' Determine if a CHMfactor object is LDL or LL
-##' @param x - a CHMfactor object
-##' @return TRUE if x is LDL, otherwise FALSE
-isLDL <- function(x)
+##' Return an identity matrix of size n as a dtTMatrix object with unit diagonal
+identT <- function(n, uplo = "L")
 {
-    stopifnot(is(x, "CHMfactor"))
-    as.logical(x@type[2])
+    stopifnot((n <- as.integer(n)[1]) > 0)
+    new("dtTMatrix", i = integer(0), j = integer(0), x = numeric(0),
+        uplo = uplo, diag = "U", Dim = rep.int(n, 2))
+}
+
+##' Return a unit lower triangular matrix from a list
+##' @param a list of lists, each with components i, j and n
+ultri <- function(lst)
+{
+    i <- as.integer(unlist(lapply(lst, "[[", "i")))
+    j <- as.integer(unlist(lapply(lst, "[[", "j")))
+    N <- sum(as.integer(sapply(lst, "[[", "n")))
+    stopifnot(all(i > j), all(j > 0), all(i <= N))
+    new("dtTMatrix", i = i - 1L, j = j - 1L, x = rep.int(2, length(i)),
+        uplo = "L", diag = "U", Dim = rep.int(N, 2L))
+}
+    
+createTS <- function(blist)
+{
+    nt <- length(blist)                 # no. of r.e. terms
+    snt <- seq_along(blist)
+    nl <- sapply(blist, "[[", "nl")     # no. of levels per term
+    nc <- sapply(blist, "[[", "nc")     # no. of columns per term
+    q <- sum(nb <- nc * nl)             # total number of random effects
+    if (all(nc == 1))
+        return(list(T = as(identT(q), "dtCMatrix"),
+                    Tind = integer(0),
+                    S = Diagonal(n = q),
+                    Sind = rep(snt, nl)))
+    nb <- nc * nl                       # no. of r.e.'s per term
+    boff <- cumsum(c(0L, nb))           # offsets into b vector
+    nth <- as.integer((nb * (nb + 1))/2) # no. of parameters per term
+    thoff <- cumsum(c(0L, nth))          # offsets into theta
+    lst <- lapply(snt, function(i)
+              {
+                  n <- nc[i] * nl[i]
+                  mm <- matrix(seq_len(n), nc = nc[i])
+                  dd <- diag(nc[i])
+                  list(i = as.vector(mm[, row(dd)[lower.tri(dd)]]) + boff[i],
+                       j = as.vector(mm[, col(dd)[lower.tri(dd)]]) + boff[i],
+                       n = n)
+              })
+    list(T = as(ultri(lst), "dtCMatrix"),
+### FIXME: This is for a specific example.  Generalize.  Use T to
+### generate Tind.
+         Tind = rep.int(3L, nl[1]),
+         S = Diagonal(n = q),
+         Sind = unlist(lapply(snt, function(i)
+         rep.int(seq_len(nc[i]), rep.int(nl[i], nc[i])) + boff[i])))
 }
 
 lmer2 <-
@@ -15,12 +60,14 @@ lmer2 <-
              control = list(), start = NULL, verbose = FALSE,
              subset, weights, na.action, offset, contrasts = NULL, ...)
 {
+### FIXME: Establish an environment rho for the functions rather than
+### the function evaluation environment.
     mf <- mc <- match.call()
     if (!missing(family)) {      # call glmer if family is not missing
         mc[[1]] <- "glmer"
         eval(mc, parent.frame())
     }
-
+    
     stopifnot(length(formula <- as.formula(formula)) == 3)
     if (missing(data)) data <- environment(formula)
     ## evaluate and install the model frame
@@ -70,7 +117,7 @@ lmer2 <-
     beta <- numeric(p)
     names(beta) <- colnames(X)
                                         # enforce modes on some vectors
-    y <- unname(as.double(y))   # must be done after initialize
+    y <- unname(as.double(y))          # must be done after initialize
     attr(fr, "terms") <- NULL
     
     ## Check for method argument which is no longer used
@@ -86,22 +133,34 @@ lmer2 <-
     bars <- expandSlash(findbars(formula[[3]]))
     if (!length(bars)) stop("No random effects terms specified in formula")
     names(bars) <- unlist(lapply(bars, function(x) deparse(x[[3]])))
-
-    stopifnot(all(sapply(bars, "[[", 2) == 1)) # check for simple, scalar terms
-    flist <- lapply(bars,
+    blist <- lapply(bars,
                     function(x)
-                    eval(substitute(factor(fac), list(fac = x[[3]])), fr))
-    rm(nb, mf, fe.form, loff, bars, data, family, fr, fr.form)
+                {
+                    ff <- eval(substitute(factor(fac), list(fac = x[[3]])), fr)
+                    nl <- length(levels(ff))
+                    mm <- model.matrix(eval(substitute( ~ foo,
+                                                       list(foo = x[[2]]))), fr)
+                    nc <- ncol(mm)
+                    nseq <- seq_len(nc)
+                    sm <- as(ff, "sparseMatrix")
+                    if (nc  > 1) 
+                        sm <- do.call(rBind, lapply(nseq, function(i) sm))
+                    sm@x[] <- t(mm[])
+                    list(ff = ff, sm = sm, nc = nc, nl = nl)
+                })
+    flist <- lapply(blist, "[[", "ff")
+    Ut <- Zt <- do.call(rBind, lapply(blist, "[[", "sm"))
+    STl <- createTS(blist)
+    for (nm in names(STl)) assign(nm, STl[[nm]])
+
+    rm(STl, m, mf, fe.form, loff, bars, data, family, blist, fr.form, method)
     
     RX <- chol(XtX <- crossprod(X))     # check for full column rank
     Xty <- unname(as.vector(crossprod(X, y)))
     
-    Ut <- Zt <- do.call(rBind, lapply(flist, as, "sparseMatrix"))
     RZX <- Ut %*% X
-    Sind <- rep.int(seq_along(flist),
-                    sapply(flist, function(x) length(levels(x))))
     u <- numeric(nrow(Zt))
-    theta <- numeric(length(flist))
+    theta <- numeric(max(Sind, Tind))
     fitted <- y
     prss <- 0
     ldL2 <- 0
@@ -115,13 +174,16 @@ lmer2 <-
     new("merenv",
         setPars = function(x)
     {
+        stopifnot(length(x) == length(theta))
         theta <<- as.numeric(x)
-        stopifnot(length(theta) == length(flist))
         S@x[] <<- theta[Sind]           # update S
-        Ut <<- crossprod(S, Zt)
+        T@x[] <- theta[Tind]
+        Ut <<- crossprod(S, crossprod(T, Zt))
         Matrix:::destructive_Chol_update(L, Ut, Imult = 1)
-        cu <- solve(L, solve(L, crossprod(S, Zty), sys = "P"), sys = "L")
-        RZX <<- solve(L, solve(L, crossprod(S, ZtX), sys = "P"), sys = "L")
+        cu <- solve(L, solve(L, crossprod(S, crossprod(T, Zty)),
+                             sys = "P"), sys = "L")
+        RZX <<- solve(L, solve(L, crossprod(S, crossprod(T, ZtX)),
+                               sys = "P"), sys = "L")
         RX <<- chol(XtX - crossprod(RZX))
         cb <- solve(t(RX), Xty - crossprod(RZX, cu))
         beta[] <<- solve(RX, cb)@x
@@ -130,8 +192,7 @@ lmer2 <-
         prss <<- sum(c(y - fitted, u)^2) # penalized residual sum of squares
         ldL2[] <<- .f * determinant(L)$mod
         ldRX2[] <<- 2 * determinant(RX)$mod
-        if (REML) return(as.vector(ldL2 + 2*determinant(RX)$mod +
-                                   nmp * (1 + log(2 * pi * prss/nmp))))
+        if (REML) return(ldL2 + ldRX2 + nmp * (1 + log(2 * pi * prss/nmp)))
         ldL2 + n * (1 + log(2 * pi * prss/n))
     },
         getPars = function() theta,
@@ -159,9 +220,15 @@ setMethod("ranef", "merenv", function(object, ...)
 devcomp <- function(x, theta, ...)
 {
     stopifnot(is(x, "merenv"))
-    x@setPars(theta)
-    with(env(x), c(ldL2, prss, n, p))
+    if (!missing(theta)) x@setPars(theta)
+    with(env(x),
+         list(cmp = c(ldL2 = ldL2, ldRX2 = ldRX2, prss = prss,
+              deviance = ldL2 + n * (1 + log(2 * pi * prss/n)),
+              REML = ldL2 + ldRX2 + nmp * (1 + log(2 * pi * prss/nmp))),
+              dims = c(n = n, p = p, nmp = nmp, q = nrow(Zt))))
 }
+
+if (FALSE) {
 ##' Return a function to evaluate the profiled deviance or REML
 ##' criterion for a linear mixed model with simple, scalar random
 ##' effects terms
@@ -350,3 +417,4 @@ simpleDev <- function(Zt, y, X)
 ## except that doesn't seem to give the expected answers.  The
 # deviance calculations match those in the book at zero and at one but
 # not in between 0 and 1.
+}
