@@ -31,8 +31,25 @@ makeZt <- function(bars, fr, rho)
                     sm@x[] <- t(mm[])
                     list(ff = ff, sm = sm, nc = nc, nl = nl)
                 })
-    rho$flist <- lapply(blist, "[[", "ff")
-### FIXME: reorder the factor list here.
+    ## number of random effects for each term
+    nlev <- sapply(blist, function(el) length(levels(el$ff)))
+    ## order terms stably by decreasing number of levels in the factor
+    if (any(diff(nlev)) > 0) blist <- blist[rev(order(nlev))]
+                                        # massage the factor list
+    fl <- lapply(blist, "[[", "ff")
+    asgn <- seq_along(fl)
+                                        # check for repeated factors
+    fnms <- names(fl)
+    if (length(fnms) > length(ufn <- unique(fnms))) {
+### FIXME: check that the lengths of the number of levels coincide
+        fl <- fl[match(ufn, fnms)]
+        asgn <- match(fnms, ufn)
+    }
+    names(fl) <- ufn
+    fl <- do.call(data.frame, c(fl, check.names = FALSE))
+    attr(fl, "assign") <- asgn
+    
+    rho$flist <- fl
     rho$Zt <- do.call(rBind, lapply(blist, "[[", "sm"))
     rho$Ut <- rho$Zt
     nt <- length(blist)                 # no. of r.e. terms
@@ -44,14 +61,6 @@ makeZt <- function(bars, fr, rho)
     rho$u <- numeric(q)
     rho$S <- Diagonal(x = numeric(q))
     rho$theta <- numeric(sum(nth))
-    if (all(nc == 1)) {
-        rho$T <- as(new("dtTMatrix", i = integer(0), j = integer(0),
-                        x = numeric(0), uplo = "L", diag = "U",
-                        Dim = rep.int(q, 2)), "dtCMatrix")
-        rho$Tind <- integer(0)
-        rho$Sind <- rep(snt, nl)
-        return()
-    }
     boff <- cumsum(c(0L, nb))           # offsets into b
     thoff <- cumsum(c(0L, nth))         # offsets into theta
     lst <- lapply(snt, function(i)
@@ -59,21 +68,22 @@ makeZt <- function(bars, fr, rho)
                   n <- nc[i] * nl[i]
                   mm <- matrix(seq_len(n), nc = nc[i])
                   dd <- diag(nc[i])
-                  list(i = as.vector(mm[, row(dd)[lower.tri(dd)]]) + boff[i],
-                       j = as.vector(mm[, col(dd)[lower.tri(dd)]]) + boff[i],
-                       n = n)
+                  ltri <- lower.tri(dd, diag = TRUE)
+                  ii <- row(dd)[ltri]
+                  jj <- col(dd)[ltri]
+                  dd[cbind(ii, jj)] <- seq_along(ii)
+                  list(i = as.vector(mm[, ii]) + boff[i],
+                       j = as.vector(mm[, jj]) + boff[i],
+                       x = rep.int(seq_along(ii), rep.int(nl[i], length(ii))) +
+                       thoff[i])
               })
-    i <- as.integer(unlist(lapply(lst, "[[", "i")))
-    j <- as.integer(unlist(lapply(lst, "[[", "j")))
-    stopifnot(all(i > j), all(j > 0), all(i <= q))
-    rho$T <- as(new("dtTMatrix", i = i - 1L, j = j - 1L,
-                    x = rep.int(2, length(i)), uplo = "L", diag = "U",
-                    Dim = rep.int(q, 2L)), "dtCMatrix")
-### FIXME: This is for a specific example.  Create Tind properly.
-    rho$Tind <- rep.int(3L, nl[1])
-    rho$Sind <- unlist(lapply(snt, function(i)
-                              rep.int(seq_len(nc[i]),
-                                      rep.int(nl[i], nc[i])) + thoff[i]))
+    rho$Lambda <-sparseMatrix(i = unlist(lapply(lst, "[[", "i")),
+                          j = unlist(lapply(lst, "[[", "j")),
+                          x = unlist(lapply(lst, "[[", "x")))
+    rho$Lind <- as.integer(rho$Lambda@x)
+    lower <- -Inf * rho$theta
+    lower[unique(diag(rho$Lambda))] <- 0
+    rho$lower <- lower
 }
 
 lmer2 <-
