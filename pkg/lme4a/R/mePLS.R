@@ -35,21 +35,7 @@ makeZt <- function(bars, fr, rho)
     nlev <- sapply(blist, function(el) length(levels(el$ff)))
     ## order terms stably by decreasing number of levels in the factor
     if (any(diff(nlev)) > 0) blist <- blist[rev(order(nlev))]
-                                        # massage the factor list
-    fl <- lapply(blist, "[[", "ff")
-    asgn <- seq_along(fl)
-                                        # check for repeated factors
-    fnms <- names(fl)
-    if (length(fnms) > length(ufn <- unique(fnms))) {
-### FIXME: check that the lengths of the number of levels coincide
-        fl <- fl[match(ufn, fnms)]
-        asgn <- match(fnms, ufn)
-    }
-    names(fl) <- ufn
-    fl <- do.call(data.frame, c(fl, check.names = FALSE))
-    attr(fl, "assign") <- asgn
-    
-    rho$flist <- fl
+
     rho$Zt <- do.call(rBind, lapply(blist, "[[", "sm"))
     rho$Ut <- rho$Zt
     nt <- length(blist)                 # no. of r.e. terms
@@ -63,6 +49,8 @@ makeZt <- function(bars, fr, rho)
     thoff <- cumsum(c(0L, nth))         # offsets into theta
     lst <- lapply(seq_along(blist), function(i)
               {
+### FIXME: Much of this can be done in the earlier lapply.  Only need
+### boff and thoff at the end.
                   n <- nc[i] * nl[i]
                   mm <- matrix(seq_len(n), nc = nc[i])
                   dd <- diag(nc[i])
@@ -87,6 +75,21 @@ makeZt <- function(bars, fr, rho)
     lower <- -Inf * (rho$theta + 1)
     lower[unique(diag(rho$Lambda))] <- 0
     rho$lower <- lower
+                                        # massage the factor list
+    fl <- lapply(blist, "[[", "ff")
+    asgn <- seq_along(fl)
+                                        # check for repeated factors
+    fnms <- names(fl)
+    if (length(fnms) > length(ufn <- unique(fnms))) {
+### FIXME: check that the lengths of the number of levels coincide
+        fl <- fl[match(ufn, fnms)]
+        asgn <- match(fnms, ufn)
+    }
+    names(fl) <- ufn
+    fl <- do.call(data.frame, c(fl, check.names = FALSE))
+    attr(fl, "assign") <- asgn
+    rho$flist <- fl
+    NULL
 }
 
 lmer2 <-
@@ -208,7 +211,7 @@ lmer2 <-
         ldL2 + ldRX2 + nmp * (1 + log(2 * pi * prss/nmp))
     }
     gP <- function() theta
-    gB <- function() cbind(lower = rep.int(0, length(theta)),
+    gB <- function() cbind(lower = lower,
                            upper = rep.int(Inf, length(theta)))
     environment(sP) <- environment(gP) <- environment(gB) <- rho
     new("merenv", setPars = sP, getPars = gP, getBounds = gB)
