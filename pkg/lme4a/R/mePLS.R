@@ -3,7 +3,7 @@
 ## Also suppress the warning
 assign("det_CHMfactor.warn", TRUE, envir = Matrix:::.MatrixEnv)
 
-##' Install various objects, especially S, T, Sind, Tind, Zt and Ut in
+##' Install various objects, especially Lambda, Lind, Zt and Ut in
 ##' environment rho based on the list bars of random effects terms and
 ##' model frame fr.
 ##' @param bars a list of parsed random-effects terms
@@ -53,17 +53,15 @@ makeZt <- function(bars, fr, rho)
     rho$Zt <- do.call(rBind, lapply(blist, "[[", "sm"))
     rho$Ut <- rho$Zt
     nt <- length(blist)                 # no. of r.e. terms
-    snt <- seq_along(blist)
     nl <- sapply(blist, "[[", "nl")     # no. of levels per term
     nc <- sapply(blist, "[[", "nc")     # no. of columns per term
     nth <- as.integer((nc * (nc+1))/2)  # no. of parameters per term
-    rho$q <- q <- sum(nb <- nc * nl)  # total number of random effects
+    rho$q <- q <- sum(nb <- nc * nl)    # total no. of random effects
     rho$u <- numeric(q)
-    rho$S <- Diagonal(x = numeric(q))
     rho$theta <- numeric(sum(nth))
     boff <- cumsum(c(0L, nb))           # offsets into b
     thoff <- cumsum(c(0L, nth))         # offsets into theta
-    lst <- lapply(snt, function(i)
+    lst <- lapply(seq_along(blist), function(i)
               {
                   n <- nc[i] * nl[i]
                   mm <- matrix(seq_len(n), nc = nc[i])
@@ -77,11 +75,16 @@ makeZt <- function(bars, fr, rho)
                        x = rep.int(seq_along(ii), rep.int(nl[i], length(ii))) +
                        thoff[i])
               })
-    rho$Lambda <-sparseMatrix(i = unlist(lapply(lst, "[[", "i")),
-                          j = unlist(lapply(lst, "[[", "j")),
-                          x = unlist(lapply(lst, "[[", "x")))
+    x <- unlist(lapply(lst, "[[", "x"))
+    if (all(nc == 1L)) {
+        rho$Lambda <- Diagonal(x = x)
+    } else {
+        rho$Lambda <-sparseMatrix(i = unlist(lapply(lst, "[[", "i")),
+                                  j = unlist(lapply(lst, "[[", "j")),
+                                  x = x)
+    }
     rho$Lind <- as.integer(rho$Lambda@x)
-    lower <- -Inf * rho$theta
+    lower <- -Inf * (rho$theta + 1)
     lower[unique(diag(rho$Lambda))] <- 0
     rho$lower <- lower
 }
@@ -184,12 +187,7 @@ lmer2 <-
 ### FIXME: weights are not yet incorporated
         stopifnot(length(x) == length(theta))
         theta <<- as.numeric(x)
-        S@x[] <<- theta[Sind]           # update S
-        Lambda <- S
-        if (length(Tind)) {
-            T@x[] <<- theta[Tind]
-            Lambda <- T %*% S
-        }
+        Lambda@x[] <<- theta[Lind]           # update S
         Ut <<- crossprod(Lambda, Zt)
         Matrix:::destructive_Chol_update(L, Ut, Imult = 1)
         cu <- solve(L, solve(L, crossprod(Lambda, Zty), sys = "P"),
