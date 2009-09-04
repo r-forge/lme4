@@ -1,5 +1,3 @@
-.f <- if(package_version(packageDescription("Matrix")$Version) >=
-         "0.999375-31") 2 else 1
 ## Also suppress the warning
 assign("det_CHMfactor.warn", TRUE, envir = Matrix:::.MatrixEnv)
 
@@ -33,15 +31,13 @@ makeZt <- function(bars, fr, rho)
                     sm@x[] <- t(mm[])
                     list(ff = ff, sm = sm, nc = nc, nl = nl)
                 })
-    ## number of random effects for each term
-    nlev <- sapply(blist, function(el) length(levels(el$ff)))
+    nl <- sapply(blist, "[[", "nl")     # no. of levels per term
     ## order terms stably by decreasing number of levels in the factor
-    if (any(diff(nlev)) > 0) blist <- blist[rev(order(nlev))]
+    if (any(diff(nl)) > 0) blist <- blist[rev(order(nl))]
+    rho$Zt <- do.call(rBind, lapply(blist, "[[", "sm"))
 
-    rho$Ut <- rho$Zt <- do.call(rBind, lapply(blist, "[[", "sm"))
     ## Create and install Lambda, Lind, etc.  This must be done after
     ## any potential reordering of the terms.
-    nl <- sapply(blist, "[[", "nl")     # no. of levels per term
     nc <- sapply(blist, "[[", "nc")     # no. of columns per term
     nth <- as.integer((nc * (nc+1))/2)  # no. of parameters per term
     rho$q <- q <- sum(nb <- nc * nl)    # total no. of random effects
@@ -49,27 +45,28 @@ makeZt <- function(bars, fr, rho)
     rho$theta <- numeric(sum(nth))
     boff <- cumsum(c(0L, nb))           # offsets into b
     thoff <- cumsum(c(0L, nth))         # offsets into theta
-    lst <- lapply(seq_along(blist), function(i)
-              {
-                  mm <- matrix(seq_len(nb[i]), nc = nc[i])
-                  dd <- diag(nc[i])
-                  ltri <- lower.tri(dd, diag = TRUE)
-                  ii <- row(dd)[ltri]
-                  jj <- col(dd)[ltri]
-                  dd[cbind(ii, jj)] <- seq_along(ii)
-                  list(i = as.vector(mm[, ii]) + boff[i],
-                       j = as.vector(mm[, jj]) + boff[i],
-                       ind = rep.int(seq_along(ii),
-                                     rep.int(nl[i], length(ii))) + thoff[i])
-              })
-    rho$Lind <- unlist(lapply(lst, "[[", "ind"))
-    if (all(nc == 1)) {
-        rho$Lambda <- Diagonal(x = as.double(rho$Lind))
-    } else {
-        rho$Lambda <-sparseMatrix(i = unlist(lapply(lst, "[[", "i")),
-                                  j = unlist(lapply(lst, "[[", "j")),
-                                  x = as.double(rho$Lind))
-    }
+    rho$Lambda <-
+        do.call(sparseMatrix,
+                do.call(rBind,
+                        lapply(seq_along(blist), function(i)
+                           {
+                               mm <- matrix(seq_len(nb[i]), nc = nc[i])
+                               dd <- diag(nc[i])
+                               ltri <- lower.tri(dd, diag = TRUE)
+                               ii <- row(dd)[ltri]
+                               jj <- col(dd)[ltri]
+                               dd[cbind(ii, jj)] <- seq_along(ii)
+                               data.frame(i = as.vector(mm[, ii]) + boff[i],
+                                          j = as.vector(mm[, jj]) + boff[i],
+                                          x = as.double(rep.int(seq_along(ii),
+                                          rep.int(nl[i], length(ii))) +
+                                          thoff[i]))
+                           })))
+    rho$Lind <- as.integer(rho$Lambda@x)
+    if (rho$diagonalLambda <- all(nc == 1))
+        rho$Lambda <- Diagonal(x = rho$Lambda@x)
+    rho$Ut <- crossprod(rho$Lambda, rho$Zt)
+    
     lower <- -Inf * (rho$theta + 1)
     lower[unique(diag(rho$Lambda))] <- 0
     rho$lower <- lower
@@ -86,6 +83,7 @@ makeZt <- function(bars, fr, rho)
     fl <- do.call(data.frame, c(fl, check.names = FALSE))
     attr(fl, "assign") <- asgn
     rho$flist <- fl
+
     ## Need .f during transition of determinant(L) definition
     rho$.f <- if(package_version(packageDescription("Matrix")$Version) >=
                  "0.999375-31") 2 else 1
@@ -94,7 +92,7 @@ makeZt <- function(bars, fr, rho)
 
 lmer2 <-
     function(formula, data, family = gaussian, REML = TRUE, sparseX = FALSE,
-             control = list(), start = NULL, verbose = FALSE,
+             control = list(), start = NULL, verbose = FALSE, doFit = TRUE,
              subset, weights, na.action, offset, contrasts = NULL, ...)
 {
     mf <- mc <- match.call()
@@ -188,7 +186,7 @@ lmer2 <-
 ### FIXME: weights are not yet incorporated
         stopifnot(length(x) == length(theta))
         theta <<- as.numeric(x)
-        Lambda@x[] <<- theta[Lind]           # update S
+        Lambda@x[] <<- theta[Lind]           # update Lambda
         Ut <<- crossprod(Lambda, Zt)
         Matrix:::destructive_Chol_update(L, Ut, Imult = 1)
         cu <- solve(L, solve(L, crossprod(Lambda, Zty), sys = "P"),
@@ -212,7 +210,15 @@ lmer2 <-
     gB <- function() cbind(lower = lower,
                            upper = rep.int(Inf, length(theta)))
     environment(sP) <- environment(gP) <- environment(gB) <- rho
-    new("merenv", setPars = sP, getPars = gP, getBounds = gB)
+    me <- new("merenv", setPars = sP, getPars = gP, getBounds = gB)
+    if (doFit) {                        # perform the optimization
+### FIXME: Allow for selecting an optimizer.  Use optimize for scalar
+### problems 
+        if (verbose) control$trace <- 1
+        nlminb(is.finite(rho$lower), me@setPars, lower = rho$lower,
+               control = control)
+    }
+    me
 }
 
 setMethod("fixef", "merenv", function(object, ...) env(object)$beta)
@@ -220,10 +226,7 @@ setMethod("fixef", "merenv", function(object, ...) env(object)$beta)
 setMethod("ranef", "merenv", function(object, ...)
           {
               with(env(object), {
-                  ans <- S@x * u
-                  if (length(Tind)) ans <- (T %*% ans)@x
-                  ans <- split(ans, Sind)
-                  names(ans) <- names(flist)
+                  ans <- Lambda %*% u
                   ans
               })
           })
