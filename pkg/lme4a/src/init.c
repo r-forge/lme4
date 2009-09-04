@@ -65,11 +65,15 @@ void R_init_lme4a(DllInfo *dll)
     lme4_DimSym = install("Dim");
     lme4_GpSym = install("Gp");
     lme4_LSym = install("L");
+    lme4_LambdaSym = install("Lambda");
+    lme4_LindSym = install("Lind");
     lme4_RXSym = install("RX");
     lme4_RZXSym = install("RZX");
     lme4_STSym = install("ST");
+    lme4_UtSym = install("Ut");
     lme4_XSym = install("X");
     lme4_ZtSym = install("Zt");
+    lme4_betaSym = install("beta");
     lme4_devianceSym = install("deviance");
     lme4_dimsSym = install("dims");
     lme4_etaGammaSym = install("etaGamma");
