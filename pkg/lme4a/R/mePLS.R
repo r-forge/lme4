@@ -3,12 +3,14 @@
 ## Also suppress the warning
 assign("det_CHMfactor.warn", TRUE, envir = Matrix:::.MatrixEnv)
 
-##' Install various objects, especially Lambda, Lind, Zt and Ut in
+##' Install various objects, including Lambda, Lind, Zt and Ut in
 ##' environment rho based on the list bars of random effects terms and
 ##' model frame fr.
+##'
 ##' @param bars a list of parsed random-effects terms
 ##' @param fr a model frame in which to evaluate these terms
 ##' @rho an environment that is modified by this function
+##' @return NULL - the side effect of the function is to modify rho
 makeZt <- function(bars, fr, rho)
 {
     stopifnot(is.list(bars), all(sapply(bars, is.language)),
@@ -36,9 +38,9 @@ makeZt <- function(bars, fr, rho)
     ## order terms stably by decreasing number of levels in the factor
     if (any(diff(nlev)) > 0) blist <- blist[rev(order(nlev))]
 
-    rho$Zt <- do.call(rBind, lapply(blist, "[[", "sm"))
-    rho$Ut <- rho$Zt
-    nt <- length(blist)                 # no. of r.e. terms
+    rho$Ut <- rho$Zt <- do.call(rBind, lapply(blist, "[[", "sm"))
+    ## Create and install Lambda, Lind, etc.  This must be done after
+    ## any potential reordering of the terms.
     nl <- sapply(blist, "[[", "nl")     # no. of levels per term
     nc <- sapply(blist, "[[", "nc")     # no. of columns per term
     nth <- as.integer((nc * (nc+1))/2)  # no. of parameters per term
@@ -49,10 +51,7 @@ makeZt <- function(bars, fr, rho)
     thoff <- cumsum(c(0L, nth))         # offsets into theta
     lst <- lapply(seq_along(blist), function(i)
               {
-### FIXME: Much of this can be done in the earlier lapply.  Only need
-### boff and thoff at the end.
-                  n <- nc[i] * nl[i]
-                  mm <- matrix(seq_len(n), nc = nc[i])
+                  mm <- matrix(seq_len(nb[i]), nc = nc[i])
                   dd <- diag(nc[i])
                   ltri <- lower.tri(dd, diag = TRUE)
                   ii <- row(dd)[ltri]
@@ -60,18 +59,17 @@ makeZt <- function(bars, fr, rho)
                   dd[cbind(ii, jj)] <- seq_along(ii)
                   list(i = as.vector(mm[, ii]) + boff[i],
                        j = as.vector(mm[, jj]) + boff[i],
-                       x = rep.int(seq_along(ii), rep.int(nl[i], length(ii))) +
-                       thoff[i])
+                       ind = rep.int(seq_along(ii),
+                                     rep.int(nl[i], length(ii))) + thoff[i])
               })
-    x <- unlist(lapply(lst, "[[", "x"))
-    if (all(nc == 1L)) {
-        rho$Lambda <- Diagonal(x = x)
+    rho$Lind <- unlist(lapply(lst, "[[", "ind"))
+    if (all(nc == 1)) {
+        rho$Lambda <- Diagonal(x = as.double(rho$Lind))
     } else {
         rho$Lambda <-sparseMatrix(i = unlist(lapply(lst, "[[", "i")),
                                   j = unlist(lapply(lst, "[[", "j")),
-                                  x = x)
+                                  x = as.double(rho$Lind))
     }
-    rho$Lind <- as.integer(rho$Lambda@x)
     lower <- -Inf * (rho$theta + 1)
     lower[unique(diag(rho$Lambda))] <- 0
     rho$lower <- lower
@@ -81,7 +79,6 @@ makeZt <- function(bars, fr, rho)
                                         # check for repeated factors
     fnms <- names(fl)
     if (length(fnms) > length(ufn <- unique(fnms))) {
-### FIXME: check that the lengths of the number of levels coincide
         fl <- fl[match(ufn, fnms)]
         asgn <- match(fnms, ufn)
     }
@@ -89,6 +86,9 @@ makeZt <- function(bars, fr, rho)
     fl <- do.call(data.frame, c(fl, check.names = FALSE))
     attr(fl, "assign") <- asgn
     rho$flist <- fl
+    ## Need .f during transition of determinant(L) definition
+    rho$.f <- if(package_version(packageDescription("Matrix")$Version) >=
+                 "0.999375-31") 2 else 1
     NULL
 }
 
@@ -127,12 +127,10 @@ lmer2 <-
     }
     rho$y <- y <- unname(as.double(y))
 
-    weights <- as.numeric(as.vector(model.weights(fr)))
-    if (any(weights < 0))
+    rho$weights <- as.numeric(model.weights(fr))
+    if (any(rho$weights < 0))
         stop(gettext("negative weights not allowed", domain = "R-lme4"))
-    rho$weights <- weights
-
-    loff <- length(offset <- as.numeric((model.offset(fr))))
+    loff <- length(offset <- as.numeric(model.offset(fr)))
     if (loff) {
         if (loff == 1) {
             offset <- rep.int(offset, n)
