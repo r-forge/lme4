@@ -1,3 +1,4 @@
+#include "merenv.h"
 #include "mer.h"
 #include "ST.h"
 #include <R_ext/Rdynload.h>
@@ -23,19 +24,15 @@ static R_CallMethodDef CallEntries[] = {
 
     CALLDEF(lme4_ghq, 1),
 
-/*    CALLDEF(merMCMC_VarCorr, 2), */
-/*    CALLDEF(merMCMC_validate, 1), */
+    CALLDEF(lmerenv_validate, 1),
+    CALLDEF(lmerenv_deviance, 2),
     
     CALLDEF(mer_A_to_U, 1),
     CALLDEF(mer_MCMCsamp, 2),
     CALLDEF(mer_PIRLS, 1),
-/*     CALLDEF(mer_postVar, 2), */
     CALLDEF(mer_update_dev, 1),
     CALLDEF(mer_update_mu, 1),
     CALLDEF(mer_validate, 1),
-    
-/*    CALLDEF(spR_optimize, 2), */
-/*    CALLDEF(spR_update_mu, 1), */
 
   {NULL, NULL, 0}
 };

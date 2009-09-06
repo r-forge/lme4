@@ -35,12 +35,15 @@ makeZt <- function(bars, fr, rho)
     ## order terms stably by decreasing number of levels in the factor
     if (any(diff(nl)) > 0) blist <- blist[rev(order(nl))]
     rho$Zt <- do.call(rBind, lapply(blist, "[[", "sm"))
+    q <- nrow(rho$Zt)
 
     ## Create and install Lambda, Lind, etc.  This must be done after
     ## any potential reordering of the terms.
     nc <- sapply(blist, "[[", "nc")     # no. of columns per term
     nth <- as.integer((nc * (nc+1))/2)  # no. of parameters per term
-    rho$q <- q <- sum(nb <- nc * nl)    # total no. of random effects
+    nb <- nc * nl                     # no. of random effects per term
+    stopifnot(sum(nb) == q)
+
     rho$u <- numeric(q)
     rho$theta <- numeric(sum(nth))
     boff <- cumsum(c(0L, nb))           # offsets into b
@@ -145,11 +148,12 @@ lmer2 <-
     fe.form[[3]] <- nb
     X <- if (sparseX) {
         sparse.model.matrix(fe.form, fr, contrasts)
-    } else Matrix(model.matrix(fe.form, fr, contrasts))
+    } else as(model.matrix(fe.form, fr, contrasts), "dgeMatrix")
     rownames(X) <- NULL
     rho$X <- X
+    rho$sparseX <- sparseX
     
-    rho$p <- p <- ncol(X)
+    p <- ncol(X)
     stopifnot((rho$nmp <- n - p) > 0)
     beta <- numeric(p)
     names(beta) <- colnames(X)
@@ -179,11 +183,12 @@ lmer2 <-
     rho$ldRX2 <- 0
     
     rho$L <- Cholesky(tcrossprod(rho$Zt), LDL = FALSE, Imult = 1)
-    rho$Zty <- rho$Zt %*% y
+    ## Zty is stored as a Matrix, not a vector because of a
+    ## peculiarity in crossprod(Lambda, Zty) if Lambda is zero
+    rho$Zty <- rho$Zt %*% y            
     rho$ZtX <- rho$Zt %*% X
-    sP <- function(x)
-    {
-### FIXME: weights are not yet incorporated
+    sP <- function(x) {
+### FIXME: weights are not yet incorporated (needed here?)
         stopifnot(length(x) == length(theta))
         theta <<- as.numeric(x)
         Lambda@x[] <<- theta[Lind]           # update Lambda
