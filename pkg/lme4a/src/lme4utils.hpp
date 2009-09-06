@@ -86,3 +86,8 @@ ALLOC_SLOT(SEXP obj, SEXP nm, SEXPTYPE type, int length)
 SEXP CHM_SP2SEXP(CHM_SP A, const char *cls);
 SEXP CHM_SP2SEXP(CHM_SP A, const char *cls, const char *uplo);
 SEXP CHM_SP2SEXP(CHM_SP A, const char *cls, const char *uplo, const char *diag);
+
+double *VAR_REAL_NULL(SEXP rho, SEXP nm, int len, int nullOK,
+		      int absentOK);
+double *VAR_REAL_NULL(SEXP rho, SEXP nm, int len, int nullOK);
+double *VAR_REAL_NULL(SEXP rho, SEXP nm, int len);
