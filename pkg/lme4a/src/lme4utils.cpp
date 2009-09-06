@@ -30,3 +30,37 @@ SEXP CHM_SP2SEXP(CHM_SP A, const char *cls, const char *uplo, const char *diag)
     UNPROTECT(1);
     return ans;
 }
+
+double *VAR_REAL_NULL(SEXP rho, SEXP nm, int len, int nullOK, int absentOK)
+{
+    const char *pn = CHAR(PRINTNAME(nm));
+    SEXP var = findVarInFrame(rho, nm);
+    if (var == R_UnboundValue) {
+	if (absentOK) {
+	    defineVar(nm, allocVector(REALSXP, len), rho);
+	    return(REAL(findVarInFrame(rho, nm)));
+	} else error(_("object named '%s' not found in environment"), pn);
+    }
+    int ll = 0;			// -Wall
+    
+    if (var == R_NilValue || !(ll  = LENGTH(var))) {
+	if (nullOK) return (double*) NULL;
+	error(_("numeric object '%s' may not have length 0"), pn);
+    }
+    if (len && ll != len)
+	error(_("Expected numeric object '%s' to be length %d, got %d"),
+	      pn, len, ll);
+    if (!isReal(var))
+	error(_("numeric object '%s' not found in env"), pn);
+    return REAL(var);
+}
+
+double *VAR_REAL_NULL(SEXP rho, SEXP nm, int len, int nullOK)
+{
+    return VAR_REAL_NULL(rho, nm, len, nullOK, FALSE);
+}
+
+double *VAR_REAL_NULL(SEXP rho, SEXP nm, int len)
+{
+    return VAR_REAL_NULL(rho, nm, len, FALSE, FALSE);
+}
