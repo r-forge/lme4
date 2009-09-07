@@ -291,6 +291,9 @@ double merenv::update_dev(SEXP thnew) {
     *ldL2 = M_chm_factor_ldetL2(L);
     if (sparseX) {
 	error(_("code not yet written"));
+// Structures that are of different class with a sparseX are
+// X (dgCMatrix), XtX (dpoMatrix), ZtX (dgCMatrix), RX (dtCMatrix),
+// RZX (dgCMatrix) 
     } else {
 	CHM_DN cZtX = N_AS_CHM_DN(ZtX, q, p), cu, tmp1, tmp2;
 				// create cu and RZX
