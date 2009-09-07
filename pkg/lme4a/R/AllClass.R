@@ -134,5 +134,8 @@ setClass("merenv", contains = "optenv",
              return(sprintf("environment must contain a numeric vector beta of length %d", ncol(X)))
          if (!(is.numeric(u <- rho$u) && (q <- length(u)) == nrow(Zt)))
              return(sprintf("environment must contain a numeric vector u of length %d", nrow(Zt)))
+         if (!is(Lambda <- rho$Lambda, "Matrix") && all(dim(Lambda) == q))
+             return(sprintf("environment must contain a %d by %d Matrix Lambda",
+                            q, q))
          TRUE
      })
