@@ -1,10 +1,9 @@
-# lmer, glmer and nlmer plus methods and utilities
+#### lmer, glmer and nlmer plus methods and utilities
 
-### This environment must have a parent to allow for evaluation of the family initializer
-
+## This environment must have a parent to allow for evaluation of the family initializer
 default_rho <- function(parent)
 {
-    rho <- new.env(parent = parent)
+    rho <- new.env(parent = parent, hash = TRUE)
     rho$nlmodel <- (~I(x))[[2]]
     rho$muEta <- numeric(0)
     rho$pWt <- numeric(0)
@@ -16,32 +15,32 @@ default_rho <- function(parent)
     rho$etaGamma <- array(0, c(0L,1L), list(NULL, "x"))
     rho$nlenv <- new.env(parent = emptyenv())
     rho$deviance <-
-        c(ML = NA,                  # deviance (for ML estimation)
-          REML = NA,                # REML criterion
-          ldL2 = NA,                # 2 * log(det(L))
-          ldRX2 = NA,               # 2 * log(det(RX))
-          sigmaML = 1,              # ML estimate of common scale
-          sigmaREML = NA,           # REML estimate of common scale
-          pwrss = -1,               # penalized, weighted RSS
-          disc = NA,                # discrepancy
-          usqr = -1,                # squared length of u
-          wrss = -1,                # weighted residual sum of squares
-          dev = NA,                 # deviance
-          llik = NA,                # log-likelihood
-          NULLdev = 0)              # null deviance
+	c(ML = NA,	# deviance (for ML estimation)
+	  REML = NA,	# REML criterion
+	  ldL2 = NA,	# 2 * log(det(L))
+	  ldRX2 = NA,	# 2 * log(det(RX))
+	  sigmaML = 1,	# ML estimate of common scale
+	  sigmaREML = NA,# REML estimate of common scale
+	  pwrss = -1,	# penalized, weighted RSS
+	  disc = NA,	# discrepancy
+	  usqr = -1,	# squared length of u
+	  wrss = -1,	# weighted residual sum of squares
+	  dev = NA,	# deviance
+	  llik = NA,	# log-likelihood
+	  NULLdev = 0)	# null deviance
     rho$dims <-
-        c(LMM= 0L,           # not a linear mixed model
-          REML= 0L,          # not REML
-          fTyp= 2L,          # default family is "gaussian"
-          lTyp= 5L,          # default link is "identity"
-          vTyp= 1L,          # default variance function is "constant"
-          nest = 0L,         # not nested
-          useSc= 1L,         # default is to use the scale parameter
-          nAGQ= 1L,          # default is Laplace
-          verb= 0L,          # no verbose output
-          mxit= 300L,        # maximum number of iterations
-          mxfn= 900L,        # max. no. funct. eval.
-          cvg = 0L)          # no optimization yet attempted
+	c(LMM  = 0L,	# not a linear mixed model
+	  REML = 0L,	# not REML
+	  fTyp = 2L,	# default family is "gaussian"
+	  lTyp = 5L,	# default link is "identity"
+	  vTyp = 1L,	# default variance function is "constant"
+	  nest = 0L,	# not nested
+	  useSc= 1L,	# default is to use the scale parameter
+	  nAGQ = 1L,	# default is Laplace
+	  verb = 0L,	# no verbose output
+	  mxit = 300L,	# maximum number of iterations
+	  mxfn = 900L,	# max. no. funct. eval.
+	  cvg  = 0L)	# no optimization yet attempted
     rho
 }
 
@@ -340,15 +339,20 @@ lmer <-
     if (family$family %in% c("binomial", "poisson"))
         rho$dims["useSc"] <- 0L
 
+    largs <- list(...)
     ## Check for method argument which is no longer used
-    if (!is.null(method <- list(...)$method)) {
+    if (!is.null(method <- largs$method)) {
         msg <- paste("Argument", sQuote("method"),
                      "is deprecated.\nUse", sQuote("nAGQ"),
                      "to choose AGQ.  PQL is not available.")
         if (match.arg(method, c("Laplace", "AGQ")) == "Laplace") {
             warning(msg)
         } else stop(msg)
+        largs <- largs[names(largs) != "method"]
     }
+    if(length(largs))
+	warning("the following '...' arguments have  *not* been used: ",
+		sub("^list", "", deparse(largs, control=NULL)))
 
     eb <- evalbars(formula, rho$frame, contrasts) # flist, trms, nest
     rho$dims["nest"] <- eb$nest
