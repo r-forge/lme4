@@ -180,13 +180,65 @@ setClass("merenv", representation("VIRTUAL"), contains = "optenv",
          TRUE
      })
 
+##' Mixed-effects model representation based on random-effects terms
+##'
+##' The general merenv class does not associate components of the
+##' random-effects vector, b, with particular terms in a formula.
+##' In this class the random effects are associated with a set of
+##' terms with grouping factors in the list flist.  The number of
+##' columns in each term is available in the nc vector.
+##' 
+##'
+setClass("merenvtrms", representation("VIRTUAL"), contains = "merenv", 
+         validity = function(object)
+     {
+         rho <- env(object)
+         if (!(is.list(flist <- rho$flist) &&
+               all(sapply(flist, is.factor))))
+             return("environment must contain a list of factors, flist")
+         flseq <- seq_along(flist)
+         if (!(is.integer(asgn <- attr(flist, "assign")) &&
+               all(flseq %in% asgn) &&
+               all(asgn %in% flseq)))
+             return("asgn attribute of flist missing or malformed")
+         nl <- sapply(flist, function(x) length(levels(x)))[asgn]
+         if (!(is.list(cnms <- rho$cnms) &&
+               all(sapply(cnms, is.character)) &&
+               all(sapply(cnms, length) > 0) &&
+               length(cnms) == length(asgn)))
+             return("list of column names, cnms, must match asgn attribute in length")
+     })
+
 ##' Linear mixed-effects model representation.
 ##'
 ##' 
 ##' 
 ##'
-setClass("lmerenv", contains = "merenv", 
+setClass("lmerenv", contains = "merenvtrms", 
          validity = function(object)
      {
+         rho <- env(object)
+         p <- length(rho$beta)
+         q <- length(rho$u)
+         if (!(is(Zty <- rho$Zty, "dMatrix") &&
+               nrow(Zty) == q))
+             return("environment must contain a column Matrix Zty")
+         if (!(is(ZtX <- rho$ZtX, "dMatrix") &&
+               all(dim(ZtX) == c(q, p))))
+             return("environment must contain a q by p Matrix ZtX")
+         if (!(is(RZX <- rho$RZX, "dMatrix") &&
+               all(dim(RZX) == c(q, p))))
+             return("environment must contain a q by p Matrix RZX")
+         if (!(is(RX <- rho$RX, "dMatrix") &&
+               all(dim(RX) == c(p, p))))
+             return("environment must contain a p by p Matrix RX")
+         if (!(is.numeric(Xty <- rho$Xty) &&
+               length(Xty == p)))
+             return("environment must contain a numeric p-vector Xty")
+         if (!(is(XtX <- rho$XtX, "dMatrix") &&
+               is(XtX, "symmetricMatrix") &&
+               all(dim(RZX) == c(q, p))))
+             return("environment must contain a symmetric Matrix XtX")
          TRUE
      })
+
