@@ -29,7 +29,8 @@ makeZt <- function(bars, fr, rho)
                     if (nc  > 1) 
                         sm <- do.call(rBind, lapply(nseq, function(i) sm))
                     sm@x[] <- t(mm[])
-                    list(ff = ff, sm = sm, nc = nc, nl = nl)
+                    list(ff = ff, sm = sm, nc = nc, nl = nl,
+                         cnms = colnames(mm))
                 })
     nl <- sapply(blist, "[[", "nl")     # no. of levels per term
     ## order terms stably by decreasing number of levels in the factor
@@ -39,6 +40,7 @@ makeZt <- function(bars, fr, rho)
 
     ## Create and install Lambda, Lind, etc.  This must be done after
     ## any potential reordering of the terms.
+    rho$cnms <- lapply(blist, "[[", "cnms")
     nc <- sapply(blist, "[[", "nc")     # no. of columns per term
     nth <- as.integer((nc * (nc+1))/2)  # no. of parameters per term
     nb <- nc * nl                     # no. of random effects per term
@@ -230,11 +232,69 @@ setMethod("fixef", "merenv", function(object, ...) env(object)$beta)
 
 setMethod("ranef", "merenv", function(object, ...)
           {
-              with(env(object), {
-                  ans <- Lambda %*% u
-                  ans
-              })
+              with(env(object), (Lambda %*% u)@x)
           })
+
+##' Extract the random effects.
+##'
+##' Extract the conditional modes, which for a linear mixed model are
+##' also the conditional means, of the random effects, given the
+##' observed responses.  These also depend on the model parameters.
+##'
+##' @param object an object that inherits from the \code{\linkS4class{mer}} class
+##' @param postVar logical scalar - should the posterior variance be returned
+##' @param drop logical scalar - drop dimensions of single extent
+##' @param whichel - vector of names of factors for which to return results
+
+##' @return a named list of arrays or vectors, aligned to the factor list
+
+setMethod("ranef", signature(object = "merenvtrms"),
+          function(object, postVar = FALSE, drop = FALSE, whichel = names(ans), ...)
+      {
+          rho <- env(object)
+          ## evaluate the list of matrices
+          levs <- lapply(fl <- rho$flist, levels)
+          asgn <- attr(fl, "assign")
+          nc <- sapply(cnms <- rho$cnms, length)
+          nb <- nc * (nl <- unname(sapply(levs, length))[asgn])
+          ml <- split(as.vector(rho$Lambda %*% rho$u),
+                      rep.int(seq_along(nb), nb))
+          for (i in seq_along(ml))
+              ml[[i]] <- matrix(ml[[i]], nc = nc[i],
+                                dimnames = list(NULL, cnms[[i]]))
+          ## produce a list of data frames corresponding to
+          ## factors, not terms
+          ans <- lapply(seq_along(fl),
+                        function(i)
+                        data.frame(do.call(cbind, ml[asgn == i]),
+                                   row.names = levs[[i]],
+                                   check.names = FALSE))
+          names(ans) <- names(fl)
+
+          ## Process whichel
+          stopifnot(is(whichel, "character"))
+          whchL <- names(ans) %in% whichel
+          ans <- ans[whchL]
+
+          if (postVar) {
+              stop("code not yet written")
+### the desired calculation is a diagonal block of
+### sigma^2 Lambda(theta)P'L^{-T}L^{-1} P Lambda(theta)
+### rewrite this in a general form
+          }
+          if (drop)
+              ans <- lapply(ans, function(el)
+                        {
+                            if (ncol(el) > 1) return(el)
+###                            pv <- drop(attr(el, "postVar"))
+                            el <- drop(as.matrix(el))
+###                            if (!is.null(pv))
+###                                attr(el, "postVar") <- pv
+                            el
+                        })
+          class(ans) <- "ranef.mer"
+          ans
+      })
 
 devcomp <- function(x, theta, ...)
 {
