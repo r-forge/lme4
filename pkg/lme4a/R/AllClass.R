@@ -117,25 +117,76 @@ setClass("lmerStratVar",
          representation(sfac = "factor"),
          contains = "merExt")
 
-setClass("optenv", representation(setPars = "function",
+### Environment-based classes.  These will eventually replace the
+### previous classes
+
+##' Optimization environment class.
+
+setClass("optenv", representation(setPars = "function", 
                                   getPars = "function",
                                   getBounds = "function"))
 
-setClass("merenv", contains = "optenv",
+
+##' Basic properties of a mixed-effects representation.
+##'
+##' The shared environment should contain objects y, X, Zt, Ut, beta,
+##' u, Lambda, Lind, theta, L and ldL2.
+##'
+setClass("merenv", representation("VIRTUAL"), contains = "optenv", 
          validity = function(object)
      {
          rho <- env(object)
-         if (!(is.numeric(y <- rho$y) && (n <- length(y)) > 0))
+         if (!(is.numeric(y <- rho$y) &&
+               (n <- length(y)) > 0))
              return("environment must contain a non-trivial numeric response y")
-         if (!(is(X <- rho$X, "Matrix") && is(Zt <- rho$Zt, "Matrix") &&
-               nrow(X) == ncol(Zt)))
+         if (!(is(X <- rho$X, "dMatrix") &&
+               is(Zt <- rho$Zt, "dMatrix") &&
+               ((N <- nrow(X)) == ncol(Zt))))
              return("environment must contain Matrix objects X and Zt with nrow(X) == ncol(Zt)")
-         if (!(is.numeric(beta <- rho$beta) && length(beta) == ncol(X)))
-             return(sprintf("environment must contain a numeric vector beta of length %d", ncol(X)))
-         if (!(is.numeric(u <- rho$u) && (q <- length(u)) == nrow(Zt)))
-             return(sprintf("environment must contain a numeric vector u of length %d", nrow(Zt)))
-         if (!is(Lambda <- rho$Lambda, "Matrix") && all(dim(Lambda) == q))
+         if (N %% n || N <= 0)
+             return(sprintf("nrow(X) = %d must be a positive multiple of length(y) = %d",
+                            N, n))
+         p <- ncol(X)
+         q <- nrow(Zt)
+         if (!(is(Ut <- rho$Ut, "dMatrix") &&
+               all(dim(Ut) == dim(Zt))))
+             return("environment must contain Ut of same dimensions as Zt")
+         if (!(is.numeric(beta <- rho$beta) && length(beta) == p))
+             return(sprintf("environment must contain a numeric vector beta of length %d",
+                            ncol(X)))
+         if (!(is.numeric(u <- rho$u) &&
+               length(u) == q))
+             return(sprintf("environment must contain a numeric vector u of length %d",
+                            q))
+         if (!(is(Lambda <- rho$Lambda, "dMatrix") &&
+               all(dim(Lambda) == q)))
              return(sprintf("environment must contain a %d by %d Matrix Lambda",
                             q, q))
+         if (!(is.integer(Lind <- rho$Lind) &&
+               length(Lind) == length(Lambda@x) &&
+               min(Lind) == 1L))
+             return(sprintf("environment must contain an integer vector Lind of length %d with minimum 1",
+                            length(Lambda@x)))
+         nth <- max(Lind)
+         if (!(is.numeric(theta <- rho$theta) &&
+               length(theta) == nth))
+             return(sprintf("environment must contain a numeric vector theta of length %d",
+                            nth))
+         if (!(all(seq_along(theta) %in% Lind)))
+             return("not all indices of theta occur in Lind")
+         if (!(is(L <- rho$L, "CHMfactor") &&
+               all(dim(L) == q)))
+             return("environment must contain a CHMfactor L")
+         TRUE
+     })
+
+##' Linear mixed-effects model representation.
+##'
+##' 
+##' 
+##'
+setClass("lmerenv", contains = "merenv", 
+         validity = function(object)
+     {
          TRUE
      })

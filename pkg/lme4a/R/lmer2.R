@@ -215,7 +215,7 @@ lmer2 <-
     gB <- function() cbind(lower = lower,
                            upper = rep.int(Inf, length(theta)))
     environment(sP) <- environment(gP) <- environment(gB) <- rho
-    me <- new("merenv", setPars = sP, getPars = gP, getBounds = gB)
+    me <- new("lmerenv", setPars = sP, getPars = gP, getBounds = gB)
     if (doFit) {                        # perform the optimization
 ### FIXME: Allow for selecting an optimizer.  Use optimize for scalar
 ### problems 
@@ -238,7 +238,7 @@ setMethod("ranef", "merenv", function(object, ...)
 
 devcomp <- function(x, theta, ...)
 {
-    stopifnot(is(x, "merenv"))
+    stopifnot(is(x, "lmerenv"))
     if (!missing(theta)) x@setPars(theta)
     with(env(x),
          list(cmp = c(ldL2 = ldL2, ldRX2 = ldRX2, prss = prss,
