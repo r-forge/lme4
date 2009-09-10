@@ -64,3 +64,35 @@ double *VAR_REAL_NULL(SEXP rho, SEXP nm, int len)
 {
     return VAR_REAL_NULL(rho, nm, len, FALSE, FALSE);
 }
+
+/**
+ * Return object with name nm in environment rho in a freshly
+ * allocated CHM_SP structure checking on the number of rows and
+ * columns.  Values of 0 for nrow or ncol skip the check.
+ */
+CHM_SP VAR_CHM_SP(SEXP rho, SEXP nm, int nrow, int ncol)
+{
+    CHM_SP ans = new cholmod_sparse;
+    M_as_cholmod_sparse(ans, findVarBound(rho, nm),
+			(Rboolean)TRUE, (Rboolean)FALSE);
+    if (nrow && ((int)(ans->nrow)) != nrow)
+	error(_("Number of rows of %s is %d, should be %d"),
+	      CHAR(PRINTNAME(nm)), ans->nrow, nrow);
+    if (ncol && ((int)(ans->ncol)) != ncol)
+	error(_("Number of columns of %s is %d, should be %d"),
+	      CHAR(PRINTNAME(nm)), ans->ncol, ncol);
+    return ans;
+}
+
+double *VAR_dMatrix_x(SEXP rho, SEXP nm, int nrow, int ncol)
+{    
+    SEXP var = findVarBound(rho, nm);
+
+    // FIXME: Should check here to ensure that the object "is" a dMatrix
+    int *dims = INTEGER(GET_SLOT(var, lme4_DimSym));
+    if (dims[0] != nrow || dims[1] != ncol)
+	error(_("object named '%s' should be %d by %d"),
+	      CHAR(PRINTNAME(nm)), nrow, ncol);
+    return REAL(GET_SLOT(var, lme4_xSym));
+}
+

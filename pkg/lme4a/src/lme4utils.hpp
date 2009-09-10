@@ -75,6 +75,77 @@ enum dimP {
     cvg_POS			/**<convergence indictor from port optimization  */
 };
 
+// Inlined utilties
+
+/**
+ * Copy the first nn elements of src to dest
+ *
+ * @param src source vector
+ * @param dest destination vector
+ * @param nn number of elements in src and dest
+ *
+ * @return dest
+ */
+static inline double *dble_cpy(double *dest, const double *src, int nn)
+{
+    for (int i = 0; i < nn; i++)
+	dest[i] = src[i];
+    return dest;
+}
+
+/**
+ * Zero the first nn elements of double pointer dest
+ *
+ * @param dest vector
+ * @param nn number of elements in dest
+ *
+ * @return dest
+ */
+static inline double *dble_zero(double *dest, int nn)
+{
+    for (int i = 0; i < nn; i++)
+	dest[i] = 0.;
+    return dest;
+}
+
+/**
+ * Zero the first nn elements of int pointer dest
+ *
+ * @param dest vector
+ * @param nn number of elements in dest
+ *
+ * @return dest
+ */
+static inline int *int_zero(int *dest, int nn)
+{
+    for (int i = 0; i < nn; i++)
+	dest[i] = 0;
+    return dest;
+}
+
+/**
+ * Evaluate the squared length of the first nn elements of x
+ *
+ * @param x vector
+ * @param nn number of elements in x
+ *
+ * @return the squared length of x
+ */
+static inline double sqr_length(const double *x, int nn) {
+    double ans = 0;
+    for (int i = 0; i < nn; i++)
+	ans += x[i] * x[i];
+    return ans;
+}
+
+static inline SEXP findVarBound(SEXP rho, SEXP nm) {
+    SEXP var = findVarInFrame(rho, nm);
+    if (var == R_UnboundValue)
+	error(_("object named '%s' not found in environment"),
+	      CHAR(PRINTNAME(nm)));
+    return var;
+}
+
 static inline SEXP
 ALLOC_SLOT(SEXP obj, SEXP nm, SEXPTYPE type, int length)
 {
@@ -91,3 +162,13 @@ double *VAR_REAL_NULL(SEXP rho, SEXP nm, int len, int nullOK,
 		      int absentOK);
 double *VAR_REAL_NULL(SEXP rho, SEXP nm, int len, int nullOK);
 double *VAR_REAL_NULL(SEXP rho, SEXP nm, int len);
+
+    
+/** Non-inlined utilities
+ */
+
+CHM_SP VAR_CHM_SP(SEXP rho, SEXP nm, int nrow, int ncol);
+
+double *VAR_dMatrix_x(SEXP rho, SEXP nm, int nrow, int ncol);
+
+
