@@ -48,68 +48,6 @@ const double mer::MLTHRESH = -30;
 const double mer::MPTHRESH = qnorm5(DOUBLE_EPS, 0, 1, 1, 0);
 const double mer::PTHRESH = -MPTHRESH;
 const double mer::INVEPS = 1/DOUBLE_EPS;
-    
-/**
- * Copy the first nn elements of src to dest
- *
- * @param src source vector
- * @param dest destination vector
- * @param nn number of elements in src and dest
- *
- * @return dest
- */
-inline double *dble_cpy(double *dest, const double *src, int nn)
-{
-    for (int i = 0; i < nn; i++)
-	dest[i] = src[i];
-    return dest;
-}
-
-/**
- * Zero the first nn elements of double pointer dest
- *
- * @param dest vector
- * @param nn number of elements in dest
- *
- * @return dest
- */
-inline double *dble_zero(double *dest, int nn)
-{
-    for (int i = 0; i < nn; i++)
-	dest[i] = 0.;
-    return dest;
-}
-
-/**
- * Zero the first nn elements of int pointer dest
- *
- * @param dest vector
- * @param nn number of elements in dest
- *
- * @return dest
- */
-inline int *int_zero(int *dest, int nn)
-{
-    for (int i = 0; i < nn; i++)
-	dest[i] = 0;
-    return dest;
-}
-
-/**
- * Evaluate the squared length of the first nn elements of x
- *
- * @param x vector
- * @param nn number of elements in x
- *
- * @return the squared length of x
- */
-inline double sqr_length(const double *x, int nn)
-{
-    double ans = 0;
-    for (int i = 0; i < nn; i++)
-	ans += x[i] * x[i];
-    return ans;
-}
 
 /**
  * Evaluate y * log(y/mu) with the correct limiting value at y = 0.
