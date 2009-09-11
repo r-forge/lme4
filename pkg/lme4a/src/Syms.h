@@ -13,7 +13,6 @@ SEXP attribute_hidden
     lme4_XSym,
     lme4_XstSym,
     lme4_ZtSym,
-    lme4_betaSym,
     lme4_devianceSym,
     lme4_dimsSym,
     lme4_nlenvSym,

@@ -157,9 +157,9 @@ lmer2 <-
     
     p <- ncol(X)
     stopifnot((rho$nmp <- n - p) > 0)
-    beta <- numeric(p)
-    names(beta) <- colnames(X)
-    rho$beta <- beta
+    fixef <- numeric(p)
+    names(fixef) <- colnames(X)
+    rho$fixef <- fixef
     
     attr(fr, "terms") <- NULL
     
@@ -202,11 +202,11 @@ lmer2 <-
                       sys = "L")
         RX <<- chol(XtX - crossprod(RZX))
         cb <- solve(t(RX), Xty - crossprod(RZX, cu))
-        beta[] <<- solve(RX, cb)@x
-        u[] <<- solve(L, solve(L, cu - RZX %*% beta, sys = "Lt"),
+        fixef[] <<- solve(RX, cb)@x
+        u[] <<- solve(L, solve(L, cu - RZX %*% fixef, sys = "Lt"),
                       sys = "Pt")@x
         fitted[] <<- (if(length(offset)) offset else 0) +
-            (crossprod(Ut, u) + X %*% beta)@x
+            (crossprod(Ut, u) + X %*% fixef)@x
         prss <<- sum(c(y - fitted, u)^2) # penalized residual sum of squares
         ldL2[] <<- .f * determinant(L)$mod
         ldRX2[] <<- 2 * determinant(RX)$mod
@@ -228,7 +228,7 @@ lmer2 <-
     me
 }
 
-setMethod("fixef", "merenv", function(object, ...) env(object)$beta)
+setMethod("fixef", "merenv", function(object, ...) env(object)$fixef)
 
 setMethod("ranef", "merenv", function(object, ...)
           {

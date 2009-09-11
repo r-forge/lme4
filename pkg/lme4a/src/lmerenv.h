@@ -12,18 +12,18 @@
 #include <cmath>
 #include <cstring>
 #include "merenv.h"
+#include "Matrix.h"
 
 class lmerenv : public merenv {
 public:
     lmerenv(SEXP rho);		//< instantiate from an environment
-    ~lmerenv(){
-	delete sX;
-    }
-    void update_dev(SEXP thnew);
+//    ~lmerenv(){}
+    double update_dev(SEXP thnew);
     int validate();
 
 private:
-    double *RX, *RZX, *XtX, *Xty, *ZtX, *Zty;
+    int REML;
+    double *RX, *RZX, *XtX, *Xty, *ZtX, *Zty, *ldRX2;
 };
 #endif /* __cplusplus */
 

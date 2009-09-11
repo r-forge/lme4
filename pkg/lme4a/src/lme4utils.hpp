@@ -33,7 +33,6 @@
 
 /** alloca n elements of type t */
 #define Alloca(n, t)   (t *) alloca( (size_t) ( (n) * sizeof(t) ) )
-
 extern
 #include "Syms.h"
 extern	       /** cholmod_common struct initialized in R_init_lme4 */
@@ -74,6 +73,8 @@ enum dimP {
     mxfn_POS,			/**<maximum # of function evaluations in mer_optimize */
     cvg_POS			/**<convergence indictor from port optimization  */
 };
+
+#include "Matrix.h"
 
 // Inlined utilties
 
