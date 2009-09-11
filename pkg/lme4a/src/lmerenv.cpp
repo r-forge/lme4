@@ -7,6 +7,7 @@ lmerenv::lmerenv(SEXP rho) : merenv(rho)
     if (N != n)
 	error(_("nrow(X) = %d must match length(y) = %d for lmer"),
 	      N, n);
+    Xty = VAR_REAL_NULL(rho, install("Xty"), p);
     Zty = VAR_dMatrix_x(rho, install("Zty"), q, 1);
     ldRX2 = VAR_REAL_NULL(rho, install("ldRX2"), 1, TRUE);
     if (X) {			// dense X
@@ -14,9 +15,11 @@ lmerenv::lmerenv(SEXP rho) : merenv(rho)
 	RZX = VAR_dMatrix_x(rho, lme4_RZXSym, q, p);
 	XtX = VAR_dMatrix_x(rho, install("XtX"), p, p);
 	ZtX = VAR_dMatrix_x(rho, install("ZtX"), q, p);
-	Xty = VAR_REAL_NULL(rho, install("Xty"), p);
     } else {
-	error(_("code not yet written"));
+	sRX = VAR_CHM_SP(rho, lme4_RXSym, p, p);
+	sRZX = VAR_CHM_SP(rho, lme4_RZXSym, p, p);
+	sXtX = VAR_CHM_SP(rho, install("XtX"), p, p);
+	sZtX = VAR_CHM_SP(rho, install("ZtX"), p, p);
     }
 }
 
@@ -30,30 +33,30 @@ lmerenv::lmerenv(SEXP rho) : merenv(rho)
  */
 double lmerenv::update_dev(SEXP thnew) {
     double mone[2] = {-1,0}, one[2] = {1,0};
-    CHM_DN cZty = N_AS_CHM_DN(Zty, q, 1);
+    CHM_DN cZty = N_AS_CHM_DN(Zty, q, 1), cu, Dtmp1, Dtmp2;
     int info;
 
     update_Lambda_Ut(thnew);
     M_cholmod_factorize_p(Ut, one, (int*)NULL, (size_t)0, L, &c);
     *ldL2 = M_chm_factor_ldetL2(L);
-    if (X) {
-	CHM_DN cZtX = N_AS_CHM_DN(ZtX, q, p), cu, tmp1, tmp2;
-				// create cu and RZX
-	tmp1 = M_cholmod_copy_dense(cZty, &c);
-	crossprod_Lambda(cZty, tmp1);
-	tmp2 = M_cholmod_solve(CHOLMOD_P, L, tmp1, &c);
-	M_cholmod_free_dense(&tmp1, &c);
-	cu = M_cholmod_solve(CHOLMOD_L, L, tmp2, &c);
-	M_cholmod_free_dense(&tmp2, &c);
-	tmp1 = M_cholmod_copy_dense(cZtX, &c);
-	crossprod_Lambda(cZtX, tmp1);
-	tmp2 = M_cholmod_solve(CHOLMOD_P, L, tmp1, &c);
-	M_cholmod_free_dense(&tmp1, &c);
-	tmp1 = M_cholmod_solve(CHOLMOD_L, L, tmp2, &c);
-	M_cholmod_free_dense(&tmp2, &c);
-	dble_cpy(RZX, (double*)(tmp1->x), q * p);
-	M_cholmod_free_dense(&tmp1, &c);
-				// downdate and factor XtX, solve for fixef
+				// create cu 
+    Dtmp1 = M_cholmod_copy_dense(cZty, &c);
+    crossprod_Lambda(cZty, Dtmp1);
+    Dtmp2 = M_cholmod_solve(CHOLMOD_P, L, Dtmp1, &c);
+    M_cholmod_free_dense(&Dtmp1, &c);
+    cu = M_cholmod_solve(CHOLMOD_L, L, Dtmp2, &c);
+    M_cholmod_free_dense(&Dtmp2, &c);
+    if (X) {			// update dense RZX
+	CHM_DN cZtX = N_AS_CHM_DN(ZtX, q, p);
+	Dtmp1 = M_cholmod_copy_dense(cZtX, &c);
+	crossprod_Lambda(cZtX, Dtmp1);
+	Dtmp2 = M_cholmod_solve(CHOLMOD_P, L, Dtmp1, &c);
+	M_cholmod_free_dense(&Dtmp1, &c);
+	Dtmp1 = M_cholmod_solve(CHOLMOD_L, L, Dtmp2, &c);
+	M_cholmod_free_dense(&Dtmp2, &c);
+	dble_cpy(RZX, (double*)(Dtmp1->x), q * p);
+	M_cholmod_free_dense(&Dtmp1, &c);
+    				// downdate and factor XtX, solve for fixef
 	dble_cpy(RX, XtX, p * p);
 	F77_CALL(dsyrk)("U", "T", &p, &q, mone, RZX, &q, one, RX, &p);
 	dble_cpy(fixef, Xty, p);
@@ -68,18 +71,23 @@ double lmerenv::update_dev(SEXP thnew) {
 				// solve for u
 	F77_CALL(dgemv)("N", &q, &p, mone, RZX, &q, fixef, &i1, one,
 			(double*)(cu->x), &i1);
-	tmp1 = M_cholmod_solve(CHOLMOD_Lt, L, cu, &c);
-	M_cholmod_free_dense(&cu, &c);
-	tmp2 = M_cholmod_solve(CHOLMOD_Pt, L, tmp1, &c);
-	M_cholmod_free_dense(&tmp1, &c);
-	dble_cpy(u, (double*)(tmp2->x), q);
-	M_cholmod_free_dense(&tmp2, &c);
+	Dtmp1 = M_cholmod_solve(CHOLMOD_Lt, L, cu, &c);
+	Dtmp2 = M_cholmod_solve(CHOLMOD_Pt, L, Dtmp1, &c);
+	M_cholmod_free_dense(&Dtmp1, &c);
+	dble_cpy(u, (double*)(Dtmp2->x), q);
+	M_cholmod_free_dense(&Dtmp2, &c);
     } else {
+	CHM_SP Stmp1, Stmp2;
 	error(_("code not yet written"));
 // Structures that are of different class with a sparseX are
 // X (dgCMatrix), XtX (dpoMatrix), ZtX (dgCMatrix), RX (dtCMatrix),
 // RZX (dgCMatrix) 
+
+// Need a crossprod_Lambda for sparse matrices.  Should have a safe
+// copy of the contents of a sparse matrix to another (safe in the
+// sense that it first checks for consistency).
     }
+    M_cholmod_free_dense(&cu, &c);
     *prss = sqr_length(u, q);
     update_eta();
     for (int i = 0; i < n; i++) {
