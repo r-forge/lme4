@@ -24,10 +24,12 @@ SEXP lmerenv_validate(SEXP rho);
 
 class lmerenv : public merenv {
 public:
-    lmerenv(SEXP rho);	//< instantiate from an environment
+    lmerenv(SEXP rho);	//< construct from an environment
 //    ~lmerenv(){}
     double update_dev(SEXP thnew);
-    int validate();
+    int validate(){		// validation occurs in constructor
+	return 1;
+    }
 
 private:
     int REML;

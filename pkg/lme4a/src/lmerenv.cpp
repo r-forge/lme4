@@ -7,13 +7,14 @@ lmerenv::lmerenv(SEXP rho) : merenv(rho)
     if (N != n)
 	error(_("nrow(X) = %d must match length(y) = %d for lmer"),
 	      N, n);
+    Zty = VAR_dMatrix_x(rho, install("Zty"), q, 1);
+    ldRX2 = VAR_REAL_NULL(rho, install("ldRX2"), 1, TRUE);
     if (X) {			// dense X
 	RX = VAR_dMatrix_x(rho, lme4_RXSym, p, p);
 	RZX = VAR_dMatrix_x(rho, lme4_RZXSym, q, p);
 	XtX = VAR_dMatrix_x(rho, install("XtX"), p, p);
 	ZtX = VAR_dMatrix_x(rho, install("ZtX"), q, p);
-	Xty = VAR_REAL_NULL(rho, install("Xty"), p, TRUE);
-	Zty = VAR_REAL_NULL(rho, install("Xty"), p, TRUE);
+	Xty = VAR_REAL_NULL(rho, install("Xty"), p);
     } else {
 	error(_("code not yet written"));
     }
