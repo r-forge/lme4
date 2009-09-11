@@ -1,10 +1,9 @@
 #include "lmerenv.h"
-
-#include "Matrix.h"
 #include "lme4utils.hpp"
 
 lmerenv::lmerenv(SEXP rho)
 {
+    REML = asLogical(findVarBound(rho, install("REML")));
     if (N != n)
 	error(_("nrow(X) = %d must match length(y) = %d for lmer"),
 	      N, n);
@@ -34,12 +33,7 @@ double lmerenv::update_dev(SEXP thnew) {
     update_Lambda_Ut(thnew);
     M_cholmod_factorize_p(Ut, one, (int*)NULL, (size_t)0, L, &c);
     *ldL2 = M_chm_factor_ldetL2(L);
-    if (sparseX) {
-	error(_("code not yet written"));
-// Structures that are of different class with a sparseX are
-// X (dgCMatrix), XtX (dpoMatrix), ZtX (dgCMatrix), RX (dtCMatrix),
-// RZX (dgCMatrix) 
-    } else {
+    if (X) {
 	CHM_DN cZtX = N_AS_CHM_DN(ZtX, q, p), cu, tmp1, tmp2;
 				// create cu and RZX
 	tmp1 = M_cholmod_copy_dense(cZty, &c);
@@ -56,20 +50,20 @@ double lmerenv::update_dev(SEXP thnew) {
 	M_cholmod_free_dense(&tmp2, &c);
 	dble_cpy(RZX, (double*)(tmp1->x), q * p);
 	M_cholmod_free_dense(&tmp1, &c);
-				// downdate and factor XtX, solve for beta
+				// downdate and factor XtX, solve for fixef
 	dble_cpy(RX, XtX, p * p);
 	F77_CALL(dsyrk)("U", "T", &p, &q, mone, RZX, &q, one, RX, &p);
-	dble_cpy(beta, Xty, p);
+	dble_cpy(fixef, Xty, p);
 	F77_CALL(dgemv)("T", &q, &p, mone, RZX, &q, (double*)(cu->x),
-			&i1, one, beta, &i1);
-	F77_CALL(dposv)("U", &p, &i1, RX, &p, beta, &p, &info);
+			&i1, one, fixef, &i1);
+	F77_CALL(dposv)("U", &p, &i1, RX, &p, fixef, &p, &info);
 	if (info)
 	    error(_("Downdated X'X is not positive definite, %d."), info);
 				// evaluate ldRX2
 	*ldRX2 = 0;
 	for (int i = 0; i < p; i++) *ldRX2 += 2 * log(RX[i * (p + 1)]);
 				// solve for u
-	F77_CALL(dgemv)("N", &q, &p, mone, RZX, &q, beta, &i1, one,
+	F77_CALL(dgemv)("N", &q, &p, mone, RZX, &q, fixef, &i1, one,
 			(double*)(cu->x), &i1);
 	tmp1 = M_cholmod_solve(CHOLMOD_Lt, L, cu, &c);
 	M_cholmod_free_dense(&cu, &c);
@@ -77,6 +71,11 @@ double lmerenv::update_dev(SEXP thnew) {
 	M_cholmod_free_dense(&tmp1, &c);
 	dble_cpy(u, (double*)(tmp2->x), q);
 	M_cholmod_free_dense(&tmp2, &c);
+    } else {
+	error(_("code not yet written"));
+// Structures that are of different class with a sparseX are
+// X (dgCMatrix), XtX (dpoMatrix), ZtX (dgCMatrix), RX (dtCMatrix),
+// RZX (dgCMatrix) 
     }
     *prss = sqr_length(u, q);
     update_eta();

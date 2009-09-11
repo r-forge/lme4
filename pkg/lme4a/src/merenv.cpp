@@ -15,10 +15,10 @@ merenv::merenv(SEXP rho)
 	error(_("Response vector y must be numeric (double)"));
     y = REAL(sl);
 
-    sl = findVarBound(rho, lme4_betaSym);
-    if (!(p = LENGTH(sl)) || !isReal(sl)) // p = length of beta
-	error(_("beta vector must be numeric (double)"));
-    beta = REAL(sl);
+    sl = findVarBound(rho, lme4_fixefSym);
+    if (!(p = LENGTH(sl)) || !isReal(sl)) // p = length of fixef
+	error(_("fixef vector must be numeric (double)"));
+    fixef = REAL(sl);
 
     sl = findVarBound(rho, lme4_uSym);
     if (!(q = LENGTH(sl)) || !isReal(sl)) // q = length of u
@@ -112,10 +112,11 @@ void merenv::update_eta() {
 	dble_cpy(eta, offset, N);
     else dble_zero(eta, N);	// otherwise to zero
     if (sX) {
-	CHM_DN cbeta = N_AS_CHM_DN(beta, p, 1);
-	M_cholmod_sdmult(sX, 0/*no transpose*/, one, one, cbeta, ceta, &c);
+	CHM_DN cfixef = N_AS_CHM_DN(fixef, p, 1);
+	M_cholmod_sdmult(sX, 0/*no transpose*/, one, one, cfixef, ceta, &c);
     } else
-	F77_CALL(dgemv)("N", &n, &p, one, X, &n, beta, &i1, one, eta, &i1);
+	F77_CALL(dgemv)("N", &n, &p, one, X, &n, fixef,
+			&i1, one, eta, &i1);
     M_cholmod_sdmult(Ut, 1/*transpose*/, one, one, cu, ceta, &c);
 }
 

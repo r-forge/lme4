@@ -70,7 +70,6 @@ void R_init_lme4a(DllInfo *dll)
     lme4_UtSym = install("Ut");
     lme4_XSym = install("X");
     lme4_ZtSym = install("Zt");
-    lme4_betaSym = install("beta");
     lme4_devianceSym = install("deviance");
     lme4_dimsSym = install("dims");
     lme4_etaGammaSym = install("etaGamma");

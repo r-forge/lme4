@@ -35,17 +35,18 @@ public:
 	delete sX;
     }
     void update_Lambda_Ut(SEXP thnew);
-    int validate();
-
-private:
     static int i1;
-    int *Lind, N, n, nLind, nth, p, q;
-    double *Lambdax, *X, *beta, *eta, *ldL2, *offset,
-	*prss, *theta, *u, *weights, *y;
+    int validate();
+    CHM_DN crossprod_Lambda(CHM_DN rhs, CHM_DN ans);
+    void update_eta();
+    int N, n, p, q;
+    double *X, *eta, *fixef, *ldL2, *prss, *theta, *u, *weights, *y;
     CHM_FR L;
     CHM_SP Lambda, Ut, Zt, sX;
-    void update_eta();
-    CHM_DN crossprod_Lambda(CHM_DN rhs, CHM_DN ans);
+
+private:
+    int *Lind, nLind, nth;
+    double *Lambdax, *offset;
 };
 #endif /* __cplusplus */
 
