@@ -15,14 +15,6 @@
 #include "Matrix.h"
 
 #ifdef	__cplusplus
-extern "C" {
-#endif
-
-    SEXP lmerenv_deviance(SEXP rho, SEXP thnew);
-    SEXP lmerenv_validate(SEXP rho);
-
-#ifdef	__cplusplus
-}
 
 class merenv {
 public:

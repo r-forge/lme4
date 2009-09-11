@@ -7,6 +7,14 @@
 #include <Rdefines.h>
 
 #ifdef	__cplusplus
+extern "C" {
+#endif
+
+SEXP lmerenv_deviance(SEXP rho, SEXP thnew);
+SEXP lmerenv_validate(SEXP rho);
+
+#ifdef	__cplusplus
+}
 #define NO_C_HEADERS
 #include <cstdio>
 #include <cmath>
@@ -16,7 +24,7 @@
 
 class lmerenv : public merenv {
 public:
-    lmerenv(SEXP rho);		//< instantiate from an environment
+    lmerenv(SEXP rho);	//< instantiate from an environment
 //    ~lmerenv(){}
     double update_dev(SEXP thnew);
     int validate();

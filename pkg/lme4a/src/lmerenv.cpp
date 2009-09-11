@@ -1,7 +1,7 @@
 #include "lmerenv.h"
 #include "lme4utils.hpp"
 
-lmerenv::lmerenv(SEXP rho)
+lmerenv::lmerenv(SEXP rho) : merenv(rho)
 {
     REML = asLogical(findVarBound(rho, install("REML")));
     if (N != n)
@@ -14,6 +14,8 @@ lmerenv::lmerenv(SEXP rho)
 	ZtX = VAR_dMatrix_x(rho, install("ZtX"), q, p);
 	Xty = VAR_REAL_NULL(rho, install("Xty"), p, TRUE);
 	Zty = VAR_REAL_NULL(rho, install("Xty"), p, TRUE);
+    } else {
+	error(_("code not yet written"));
     }
 }
 
@@ -90,3 +92,25 @@ double lmerenv::update_dev(SEXP thnew) {
     return *ldL2 + n * (1 + log(2 * PI * (*prss)/((double)n)));
 }
 
+/* Externally callable functions */
+
+/**
+ * Evaluate the deviance or REML criterion
+ *
+ * @param rho pointer to an merenv environment
+ * @param thnew pointer to an numeric vector theta
+ *
+ * @return deviance value
+ */
+SEXP lmerenv_deviance(SEXP rho, SEXP thnew) {
+    return ScalarReal(lmerenv(rho).update_dev(thnew));
+}
+
+/**
+ * Check validity of an merenv environment
+ *
+ * @param x pointer to an merenv environment
+ */
+SEXP lmerenv_validate(SEXP rho) {
+    return ScalarLogical(lmerenv(rho).validate());
+}
