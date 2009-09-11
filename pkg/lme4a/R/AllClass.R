@@ -129,7 +129,7 @@ setClass("optenv", representation(setPars = "function",
 
 ##' Basic properties of a mixed-effects representation.
 ##'
-##' The shared environment should contain objects y, X, Zt, Ut, beta,
+##' The shared environment should contain objects y, X, Zt, Ut, fixef,
 ##' u, Lambda, Lind, theta, L and ldL2.
 ##'
 setClass("merenv", representation("VIRTUAL"), contains = "optenv", 
@@ -151,8 +151,8 @@ setClass("merenv", representation("VIRTUAL"), contains = "optenv",
          if (!(is(Ut <- rho$Ut, "dMatrix") &&
                all(dim(Ut) == dim(Zt))))
              return("environment must contain Ut of same dimensions as Zt")
-         if (!(is.numeric(beta <- rho$beta) && length(beta) == p))
-             return(sprintf("environment must contain a numeric vector beta of length %d",
+         if (!(is.numeric(fixef <- rho$fixef) && length(fixef) == p))
+             return(sprintf("environment must contain a numeric vector fixef of length %d",
                             ncol(X)))
          if (!(is.numeric(u <- rho$u) &&
                length(u) == q))
@@ -218,7 +218,7 @@ setClass("lmerenv", contains = "merenvtrms",
          validity = function(object)
      {
          rho <- env(object)
-         p <- length(rho$beta)
+         p <- length(rho$fixef)
          q <- length(rho$u)
          if (!(is(Zty <- rho$Zty, "dMatrix") &&
                nrow(Zty) == q))

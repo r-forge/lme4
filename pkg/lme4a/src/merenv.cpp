@@ -135,8 +135,4 @@ CHM_DN merenv::crossprod_Lambda(CHM_DN rhs, CHM_DN ans) {
     return ans;
 }
 
-int merenv::validate() {
-    return 1;			// checking is done in constructor
-}
-
     

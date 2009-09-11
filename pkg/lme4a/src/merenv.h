@@ -28,7 +28,9 @@ public:
     }
     void update_Lambda_Ut(SEXP thnew);
     static int i1;
-    int validate();
+    int validate() {		// validation occurs in constructor
+	return 1;
+    }
     CHM_DN crossprod_Lambda(CHM_DN rhs, CHM_DN ans);
     void update_eta();
     int N, n, p, q;

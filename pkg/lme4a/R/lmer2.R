@@ -304,6 +304,6 @@ devcomp <- function(x, theta, ...)
          list(cmp = c(ldL2 = ldL2, ldRX2 = ldRX2, prss = prss,
               deviance = ldL2 + n * (1 + log(2 * pi * prss/n)),
               REML = ldL2 + ldRX2 + nmp * (1 + log(2 * pi * prss/nmp))),
-              dims = c(n = n, p = p, nmp = nmp, q = nrow(Zt))))
+              dims = c(n = n, p = length(fixef), nmp = nmp, q = nrow(Zt))))
 }
 
