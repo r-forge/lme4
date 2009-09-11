@@ -139,26 +139,4 @@ int merenv::validate() {
     return 1;			// checking is done in constructor
 }
 
-/* Externally callable functions */
-
-/**
- * Evaluate the deviance or REML criterion
- *
- * @param rho pointer to an merenv environment
- * @param thnew pointer to an numeric vector theta
- *
- * @return deviance value
- */
-SEXP lmerenv_deviance(SEXP rho, SEXP thnew) {
-    return ScalarReal(merenv(rho).update_dev(thnew));
-}
-
-/**
- * Check validity of an merenv environment
- *
- * @param x pointer to an merenv environment
- */
-SEXP lmerenv_validate(SEXP rho) {
-    return ScalarLogical(merenv(rho).validate());
-}
     
