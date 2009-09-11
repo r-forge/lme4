@@ -25,7 +25,14 @@ SEXP lmerenv_validate(SEXP rho);
 class lmerenv : public merenv {
 public:
     lmerenv(SEXP rho);	//< construct from an environment
-//    ~lmerenv(){}
+    ~lmerenv(){
+	if (!X) {
+	    delete sRX;
+	    delete sRZX;
+	    delete sXtX;
+	    delete sZtX;
+	}
+    }
     double update_dev(SEXP thnew);
     int validate(){		// validation occurs in constructor
 	return 1;
@@ -34,6 +41,7 @@ public:
 private:
     int REML;
     double *RX, *RZX, *XtX, *Xty, *ZtX, *Zty, *ldRX2;
+    CHM_SP sRX, sRZX, sXtX, sZtX;
 };
 #endif /* __cplusplus */
 

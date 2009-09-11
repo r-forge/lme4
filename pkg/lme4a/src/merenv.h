@@ -24,7 +24,7 @@ public:
 	delete Lambda;
 	delete Ut;
 	delete Zt;
-	delete sX;
+	if (!X) delete sX;
     }
     void update_Lambda_Ut(SEXP thnew);
     static int i1;
