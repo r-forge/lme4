@@ -85,14 +85,13 @@ void merenv::update_Lambda_Ut(SEXP thnew) {
 	// Should we store t(Lambda), instead of Lambda?
 	int *it = (int*)(tmp->i), *iu = (int*)(Ut->i),
 	    *pt = (int*)(tmp->p), *pu = (int*)(Ut->p);
-	int nnz = pu[n];
 	double *xt = (double*)(tmp->x), *xu = (double*)(Ut->x); 
 
 	M_cholmod_free_sparse(&Lamtr, &c);
 	for (int j = 0; j <= n; j++)
 	    if (pt[j] != pu[j])
 		error(_("Ut is not consistent with Lambda %*% Zt"));
-	for (int j = 0; j < nnz; j++) {
+	for (int j = 0; j < pu[n]; j++) {
 	    if (it[j] != iu[j])
 		error(_("Ut is not consistent with Lambda %*% Zt"));
 	    xu[j] = xt[j];
