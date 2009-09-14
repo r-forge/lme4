@@ -98,7 +98,8 @@ makeZt <- function(bars, fr, rho)
 lmer2 <-
     function(formula, data, family = gaussian, REML = TRUE, sparseX = FALSE,
              control = list(), start = NULL, verbose = FALSE, doFit = TRUE,
-             subset, weights, na.action, offset, contrasts = NULL, ...)
+             compDev = TRUE, subset, weights, na.action, offset,
+             contrasts = NULL, ...)
 {
     mf <- mc <- match.call()
     if (!missing(family)) {      # call glmer if family is not missing
@@ -179,7 +180,7 @@ lmer2 <-
     rho$Xty <- unname(as.vector(crossprod(X, y)))
     
     rho$RZX <- rho$Ut %*% X
-    rho$fitted <- y
+    rho$fitted <- numeric(n)
     rho$prss <- 0
     rho$ldL2 <- 0
     rho$ldRX2 <- 0
@@ -189,29 +190,34 @@ lmer2 <-
     ## peculiarity in crossprod(Lambda, Zty) if Lambda is zero
     rho$Zty <- rho$Zt %*% y            
     rho$ZtX <- rho$Zt %*% X
+    rho$compDev <- compDev
     sP <- function(x) {
 ### FIXME: weights are not yet incorporated (needed here?)
-        stopifnot(length(x) == length(theta))
-        theta <<- as.numeric(x)
-        Lambda@x[] <<- theta[Lind]           # update Lambda
-        Ut <<- crossprod(Lambda, Zt)
-        Matrix:::destructive_Chol_update(L, Ut, Imult = 1)
-        cu <- solve(L, solve(L, crossprod(Lambda, Zty), sys = "P"),
-                    sys = "L")
-        RZX <<- solve(L, solve(L, crossprod(Lambda, ZtX), sys = "P"),
-                      sys = "L")
-        RX <<- chol(XtX - crossprod(RZX))
-        cb <- solve(t(RX), Xty - crossprod(RZX, cu))
-        fixef[] <<- solve(RX, cb)@x
-        u[] <<- solve(L, solve(L, cu - RZX %*% fixef, sys = "Lt"),
-                      sys = "Pt")@x
-        fitted[] <<- (if(length(offset)) offset else 0) +
-            (crossprod(Ut, u) + X %*% fixef)@x
-        prss <<- sum(c(y - fitted, u)^2) # penalized residual sum of squares
-        ldL2[] <<- .f * determinant(L)$mod
-        ldRX2[] <<- 2 * determinant(RX)$mod
-        if (!REML) return(ldL2 + n * (1 + log(2 * pi * prss/n)))
-        ldL2 + ldRX2 + nmp * (1 + log(2 * pi * prss/nmp))
+        if (compDev) {
+            .Call(lme4a:::lmerenv_deviance, parent.env(environment()), x)
+        } else {
+            stopifnot(length(x) == length(theta))
+            theta <<- as.numeric(x)
+            Lambda@x[] <<- theta[Lind]           # update Lambda
+            Ut <<- crossprod(Lambda, Zt)
+            Matrix:::destructive_Chol_update(L, Ut, Imult = 1)
+            cu <- solve(L, solve(L, crossprod(Lambda, Zty), sys = "P"),
+                        sys = "L")
+            RZX <<- solve(L, solve(L, crossprod(Lambda, ZtX), sys = "P"),
+                          sys = "L")
+            RX <<- chol(XtX - crossprod(RZX))
+            cb <- solve(t(RX), Xty - crossprod(RZX, cu))
+            fixef[] <<- solve(RX, cb)@x
+            u[] <<- solve(L, solve(L, cu - RZX %*% fixef, sys = "Lt"),
+                          sys = "Pt")@x
+            fitted[] <<- (if(length(offset)) offset else 0) +
+                (crossprod(Ut, u) + X %*% fixef)@x
+            prss <<- sum(c(y - fitted, u)^2) # penalized residual sum of squares
+            ldL2[] <<- .f * determinant(L)$mod
+            ldRX2[] <<- 2 * determinant(RX)$mod
+            if (!REML) return(ldL2 + n * (1 + log(2 * pi * prss/n)))
+            ldL2 + ldRX2 + nmp * (1 + log(2 * pi * prss/nmp))
+        }
     }
     gP <- function() theta
     gB <- function() cbind(lower = lower,
