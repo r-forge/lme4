@@ -98,8 +98,8 @@ makeZt <- function(bars, fr, rho)
 lmer2 <-
     function(formula, data, family = gaussian, REML = TRUE, sparseX = FALSE,
              control = list(), start = NULL, verbose = FALSE, doFit = TRUE,
-             compDev = TRUE, subset, weights, na.action, offset,
-             contrasts = NULL, ...)
+             compDev = if (sparseX) FALSE else TRUE, subset, weights,
+             na.action, offset, contrasts = NULL, ...)
 {
     mf <- mc <- match.call()
     if (!missing(family)) {      # call glmer if family is not missing
