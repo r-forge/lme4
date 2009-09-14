@@ -6,6 +6,7 @@
 #include <cstdio>
 #include <cmath>
 #include <cstring>
+extern "C" {
 #endif 
 
 #include <R.h>
@@ -14,7 +15,11 @@
 #include <Rdefines.h>
 #include "Matrix.h"
 
+SEXP lmerenv_deviance(SEXP rho, SEXP newth);
+SEXP lmerenv_validate(SEXP rho);
+
 #ifdef	__cplusplus
+}
 
 class merenv {
 public:
@@ -26,6 +31,9 @@ public:
 	delete Zt;
     }
     static int i1;
+    void update_eta_Ut();
+    void update_Lambda_Ut(SEXP thnew);
+    CHM_DN crossprod_Lambda(CHM_DN rhs, CHM_DN ans);
     int N, n, p, q;
     double *Lambdax, *eta, *fixef, *ldL2, *prss, *theta, *u, *weights, *y;
     CHM_FR L;
@@ -58,9 +66,10 @@ public:
 
 class lmer {			// components common to LMMs
 public:
-    lmer(SEXP rho);
+    void initLMM(SEXP rho, int N, int n, int p, int q);
     int REML;
     double *Xty, *Zty, *ldRX2;
+    CHM_DN cu;
 };
 
 class lmerdense : public merdense, public lmer {
