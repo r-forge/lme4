@@ -97,7 +97,7 @@ void merenv::update_Lambda_Ut(SEXP thnew) {
     }
 }
 
-void merenv::update_eta() {    
+void merenv::update_eta_Ut() {    
     if (offset)			// initialize to offset if used
 	dble_cpy(eta, offset, N);
     else dble_zero(eta, N);	// otherwise to zero
@@ -107,14 +107,14 @@ void merenv::update_eta() {
 }
 
 void mersparse::update_eta() {
-// call method for base class
+    update_eta_Ut();
     double one[2] = {1,0};
-    CHM_DN cfixef = N_AS_CHM_DN(fixef, p, 1);
-    M_cholmod_sdmult(sX, 0/*no transpose*/, one, one, cfixef, ceta, &c);
+    CHM_DN ceta = N_AS_CHM_DN(eta, N, 1), cfixef = N_AS_CHM_DN(fixef, p, 1);
+    M_cholmod_sdmult(X, 0/*no transpose*/, one, one, cfixef, ceta, &c);
 }
 
 void merdense::update_eta() {
-// call method for base class
+    update_eta_Ut();
     double one[2] = {1,0};
     F77_CALL(dgemv)("N", &n, &p, one, X, &n, fixef, &i1, one, eta, &i1);
 }
@@ -146,23 +146,24 @@ mersparse::mersparse(SEXP rho) : merenv(rho) {
     RZX = VAR_CHM_SP(rho, lme4_RZXSym, q, p);
 }
 
-lmer::lmer(SEXP rho)
-{
+void lmer::initLMM(SEXP rho, int N, int n, int p, int q) {
     REML = asLogical(findVarBound(rho, install("REML")));
+    ldRX2 = VAR_REAL_NULL(rho, install("ldRX2"), 1, TRUE);
     if (N != n)
 	error(_("nrow(X) = %d must match length(y) = %d for lmer"),
 	      N, n);
     Xty = VAR_REAL_NULL(rho, install("Xty"), p);
     Zty = VAR_dMatrix_x(rho, install("Zty"), q, 1);
-    ldRX2 = VAR_REAL_NULL(rho, install("ldRX2"), 1, TRUE);
 }
 
-lmerdense::lmerdense(SEXP rho) : merdense(rho) : lmer(rho) {
+lmerdense::lmerdense(SEXP rho) : merdense(rho) {
+    initLMM(rho, N, n, p, q);
     ZtX = VAR_dMatrix_x(rho, install("ZtX"), q, p);
     XtX = VAR_dMatrix_x(rho, install("XtX"), p, p);
 }
 
-lmersparse::lmersparse(SEXP rho) : mersparse(rho) : lmer(rho) {
+lmersparse::lmersparse(SEXP rho) : mersparse(rho) {
+    initLMM(rho, N, n, p, q);
     ZtX = VAR_CHM_SP(rho, install("ZtX"), q, p);
     XtX = VAR_CHM_SP(rho, install("XtX"), p, p);
 }
@@ -190,47 +191,37 @@ double lmerdense::update_dev(SEXP thnew) {
     M_cholmod_free_dense(&Dtmp1, &c);
     cu = M_cholmod_solve(CHOLMOD_L, L, Dtmp2, &c);
     M_cholmod_free_dense(&Dtmp2, &c);
-    if (X) {			// update dense RZX
-	CHM_DN cZtX = N_AS_CHM_DN(ZtX, q, p);
-	Dtmp1 = M_cholmod_copy_dense(cZtX, &c);
-	crossprod_Lambda(cZtX, Dtmp1);
-	Dtmp2 = M_cholmod_solve(CHOLMOD_P, L, Dtmp1, &c);
-	M_cholmod_free_dense(&Dtmp1, &c);
-	Dtmp1 = M_cholmod_solve(CHOLMOD_L, L, Dtmp2, &c);
-	M_cholmod_free_dense(&Dtmp2, &c);
-	dble_cpy(RZX, (double*)(Dtmp1->x), q * p);
-	M_cholmod_free_dense(&Dtmp1, &c);
-    				// downdate and factor XtX, solve for fixef
-	dble_cpy(RX, XtX, p * p);
-	F77_CALL(dsyrk)("U", "T", &p, &q, mone, RZX, &q, one, RX, &p);
-	dble_cpy(fixef, Xty, p);
-	F77_CALL(dgemv)("T", &q, &p, mone, RZX, &q, (double*)(cu->x),
-			&i1, one, fixef, &i1);
-	F77_CALL(dposv)("U", &p, &i1, RX, &p, fixef, &p, &info);
-	if (info)
-	    error(_("Downdated X'X is not positive definite, %d."), info);
+// beginning of part that is not common to sparse
+    CHM_DN cZtX = N_AS_CHM_DN(ZtX, q, p);
+    Dtmp1 = M_cholmod_copy_dense(cZtX, &c);
+    crossprod_Lambda(cZtX, Dtmp1);
+    Dtmp2 = M_cholmod_solve(CHOLMOD_P, L, Dtmp1, &c);
+    M_cholmod_free_dense(&Dtmp1, &c);
+    Dtmp1 = M_cholmod_solve(CHOLMOD_L, L, Dtmp2, &c);
+    M_cholmod_free_dense(&Dtmp2, &c);
+    dble_cpy(RZX, (double*)(Dtmp1->x), q * p);
+    M_cholmod_free_dense(&Dtmp1, &c);
+    // downdate and factor XtX, solve for fixef
+    dble_cpy(RX, XtX, p * p);
+    F77_CALL(dsyrk)("U", "T", &p, &q, mone, RZX, &q, one, RX, &p);
+    dble_cpy(fixef, Xty, p);
+    F77_CALL(dgemv)("T", &q, &p, mone, RZX, &q, (double*)(cu->x),
+		    &i1, one, fixef, &i1);
+    F77_CALL(dposv)("U", &p, &i1, RX, &p, fixef, &p, &info);
+    if (info)
+	error(_("Downdated X'X is not positive definite, %d."), info);
 				// evaluate ldRX2
-	*ldRX2 = 0;
-	for (int i = 0; i < p; i++) *ldRX2 += 2 * log(RX[i * (p + 1)]);
+    *ldRX2 = 0;
+    for (int i = 0; i < p; i++) *ldRX2 += 2 * log(RX[i * (p + 1)]);
+// end of part that is not common
 				// solve for u
-	F77_CALL(dgemv)("N", &q, &p, mone, RZX, &q, fixef, &i1, one,
-			(double*)(cu->x), &i1);
-	Dtmp1 = M_cholmod_solve(CHOLMOD_Lt, L, cu, &c);
-	Dtmp2 = M_cholmod_solve(CHOLMOD_Pt, L, Dtmp1, &c);
-	M_cholmod_free_dense(&Dtmp1, &c);
-	dble_cpy(u, (double*)(Dtmp2->x), q);
-	M_cholmod_free_dense(&Dtmp2, &c);
-    } else {
-	CHM_SP Stmp1, Stmp2;
-	error(_("code not yet written"));
-// Structures that are of different class with a sparseX are
-// X (dgCMatrix), XtX (dpoMatrix), ZtX (dgCMatrix), RX (dtCMatrix),
-// RZX (dgCMatrix) 
-
-// Need a crossprod_Lambda for sparse matrices.  Should have a safe
-// copy of the contents of a sparse matrix to another (safe in the
-// sense that it first checks for consistency).
-    }
+    F77_CALL(dgemv)("N", &q, &p, mone, RZX, &q, fixef, &i1, one,
+		    (double*)(cu->x), &i1);
+    Dtmp1 = M_cholmod_solve(CHOLMOD_Lt, L, cu, &c);
+    Dtmp2 = M_cholmod_solve(CHOLMOD_Pt, L, Dtmp1, &c);
+    M_cholmod_free_dense(&Dtmp1, &c);
+    dble_cpy(u, (double*)(Dtmp2->x), q);
+    M_cholmod_free_dense(&Dtmp2, &c);
     M_cholmod_free_dense(&cu, &c);
     *prss = sqr_length(u, q);
     update_eta();
@@ -245,25 +236,40 @@ double lmerdense::update_dev(SEXP thnew) {
     return *ldL2 + n * (1 + log(2 * PI * (*prss)/((double)n)));
 }
 
+double lmersparse::update_dev(SEXP thnew) {
+    error(_("Code not yet written"));
+    return NA_REAL;		// --Wall
+}
+
 /* Externally callable functions */
+
+extern "C" {
 
 /**
  * Evaluate the deviance or REML criterion
  *
- * @param rho pointer to an merenv environment
+ * @param rho pointer to an lmerenv environment
  * @param thnew pointer to an numeric vector theta
  *
  * @return deviance value
  */
-SEXP lmerenv_deviance(SEXP rho, SEXP thnew) {
-    return ScalarReal(lmerenv(rho).update_dev(thnew));
-}
+    SEXP lmerenv_deviance(SEXP rho, SEXP thnew) {
+	if (asLogical(findVarBound(rho, install("sparseX"))))
+	    return ScalarReal(lmersparse(rho).update_dev(thnew));
+	else
+	    return ScalarReal(lmerdense(rho).update_dev(thnew));
+    }
 
 /**
  * Check validity of an merenv environment
  *
  * @param x pointer to an merenv environment
  */
-SEXP lmerenv_validate(SEXP rho) {
-    return ScalarLogical(lmerenv(rho).validate());
+    SEXP lmerenv_validate(SEXP rho) {
+	if (asLogical(findVarBound(rho, install("sparseX"))))
+	    return ScalarLogical(lmersparse(rho).validate());
+	else
+	    return ScalarReal(lmerdense(rho).validate());
+    }
+
 }
