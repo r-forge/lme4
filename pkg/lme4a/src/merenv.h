@@ -21,19 +21,25 @@ SEXP lmerenv_validate(SEXP rho);
 #ifdef	__cplusplus
 }
 
+static int i1 = 1;
+static double one = 1, mone = -1, zero = 0;
+
 class merenv {
 public:
-    merenv(SEXP rho);		//< construct from an environment
     ~merenv(){
 	delete L;
 	delete Lambda;
 	delete Ut;
 	delete Zt;
     }
-    static int i1;
+    void initMer(SEXP rho);
     void update_eta_Ut();
     void update_Lambda_Ut(SEXP thnew);
-    CHM_DN crossprod_Lambda(CHM_DN rhs, CHM_DN ans);
+    double update_prss();
+    CHM_DN crossprod_Lambda(CHM_DN src, CHM_DN ans);
+    CHM_SP spcrossprod_Lambda(CHM_SP src);
+    CHM_DN solvePL(CHM_DN src);
+    CHM_SP solvePL(CHM_SP src);
     int N, n, p, q;
     double *Lambdax, *eta, *fixef, *ldL2, *prss, *theta, *u, *weights, *y;
     CHM_FR L;
@@ -45,28 +51,31 @@ private:
     double *offset;
 };
 
-class mersparse : public merenv { // merenv with sparse X
+class mersparse : virtual public merenv { // merenv with sparse X
 public:
-    mersparse(SEXP rho);	//< construct from an environment
     ~mersparse() {
 	delete X;
 	delete RX;
 	delete RZX;
     }
+    void initMersd(SEXP rho);
     void update_eta();
     CHM_SP X, RX, RZX;
 };
 
-class merdense : public merenv { // merenv with dense X
+class merdense : virtual public merenv { // merenv with dense X
 public:
-    merdense(SEXP rho);		//< construct from an environment
+    void initMersd(SEXP rho);
     void update_eta();
     double *X, *RX, *RZX;
 };
 
-class lmer {			// components common to LMMs
+class lmer : virtual public merenv { // components common to LMMs
 public:
-    void initLMM(SEXP rho, int N, int n, int p, int q);
+    void initLMM(SEXP rho);
+    void LMMdev1();
+    void LMMdev2();
+    double LMMdev3();
     int REML;
     double *Xty, *Zty, *ldRX2;
     CHM_DN cu;

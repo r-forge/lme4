@@ -2,11 +2,9 @@
 
 #include "lme4utils.hpp"
 
-int merenv::i1 = 1;
-
 // Definition of methods for the mer class
 
-merenv::merenv(SEXP rho)
+void merenv::initMer(SEXP rho)
 {
     // Extract slots that must have positive length.
     // Get dimensions of the problem
@@ -42,7 +40,7 @@ merenv::merenv(SEXP rho)
     L = new cholmod_factor;
     M_as_cholmod_factor(L, findVarInFrame(rho, lme4_LSym));
 				// versions of Lambda
-//FIXME: Use S4 class to determine sparseX and diagonalLambda
+//FIXME: Use S4 class to determine diagonalLambda
     if (asLogical(findVarBound(rho, install("diagonalLambda")))) {
 	Lambdax = VAR_dMatrix_x(rho, lme4_LambdaSym, q, q);
 	if (nLind != q)
@@ -75,12 +73,12 @@ void merenv::update_Lambda_Ut(SEXP thnew) {
 	CHM_SP Lamtr = M_cholmod_transpose(Lambda, TRUE/*values*/, &c),
 	    tmp = M_cholmod_ssmult(Lamtr, Zt, 0/*stype*/,
 				   TRUE/*values*/, TRUE/*sorted*/, &c);
+	M_cholmod_free_sparse(&Lamtr, &c);
 	// Should we store t(Lambda), instead of Lambda?
 	int *it = (int*)(tmp->i), *iu = (int*)(Ut->i),
 	    *pt = (int*)(tmp->p), *pu = (int*)(Ut->p);
 	double *xt = (double*)(tmp->x), *xu = (double*)(Ut->x); 
 
-	M_cholmod_free_sparse(&Lamtr, &c);
 	for (int j = 0; j <= n; j++)
 	    if (pt[j] != pu[j])
 		error(_("Ut is not consistent with Lambda %*% Zt"));
@@ -97,26 +95,36 @@ void merenv::update_Lambda_Ut(SEXP thnew) {
     }
 }
 
+double merenv::update_prss() {
+    *prss = sqr_length(u, q);
+    for (int i = 0; i < n; i++) {
+	double resi = y[i] - eta[i];
+	*prss += resi * resi;
+    }
+    return *prss;
+}
+
 void merenv::update_eta_Ut() {    
+    CHM_DN cu = N_AS_CHM_DN(u, q, 1),
+	ceta = N_AS_CHM_DN(eta, N, 1);
     if (offset)			// initialize to offset if used
 	dble_cpy(eta, offset, N);
-    else dble_zero(eta, N);	// otherwise to zero
-    CHM_DN ceta = N_AS_CHM_DN(eta, N, 1), cu = N_AS_CHM_DN(u, q, 1);
-    double one[2] = {1,0};
-    M_cholmod_sdmult(Ut, 1/*transpose*/, one, one, cu, ceta, &c);
+    else			// otherwise initialize to zero
+	dble_zero(eta, N);
+    M_cholmod_sdmult(Ut, 1/*transpose*/, &one, &one, cu, ceta, &c);
 }
 
 void mersparse::update_eta() {
     update_eta_Ut();
-    double one[2] = {1,0};
-    CHM_DN ceta = N_AS_CHM_DN(eta, N, 1), cfixef = N_AS_CHM_DN(fixef, p, 1);
-    M_cholmod_sdmult(X, 0/*no transpose*/, one, one, cfixef, ceta, &c);
+    M_cholmod_sdmult(X, 0/*no transpose*/, &one, &one,
+		     N_AS_CHM_DN(fixef, p, 1),
+		     N_AS_CHM_DN(eta, N, 1), &c);
 }
 
 void merdense::update_eta() {
     update_eta_Ut();
-    double one[2] = {1,0};
-    F77_CALL(dgemv)("N", &n, &p, one, X, &n, fixef, &i1, one, eta, &i1);
+    F77_CALL(dgemv)("N", &n, &p, &one, X, &n, fixef,
+		    &i1, &one, eta, &i1);
 }
 
 CHM_DN merenv::crossprod_Lambda(CHM_DN rhs, CHM_DN ans) {
@@ -124,8 +132,8 @@ CHM_DN merenv::crossprod_Lambda(CHM_DN rhs, CHM_DN ans) {
 	error(_("in crossprod_Lambda, rhs->nrow = %d, should be %d"),
 	      rhs->nrow, q);
     if (Lambda) {
-	double one[2] = {1,0}, zero[2] = {0,0};
-	M_cholmod_sdmult(Lambda, 1/*transpose*/, one, zero, rhs, ans, &c);
+	M_cholmod_sdmult(Lambda, 1/*transpose*/, &one, &zero,
+			 rhs, ans, &c);
     } else {
 	double *ax = (double*)(ans->x), *rx = (double*)(rhs->x);
 	int nc = rhs->ncol;
@@ -134,38 +142,110 @@ CHM_DN merenv::crossprod_Lambda(CHM_DN rhs, CHM_DN ans) {
     return ans;
 }
 
-merdense::merdense(SEXP rho) : merenv(rho) {
+void merdense::initMersd(SEXP rho) {
     X = VAR_dMatrix_x(rho, lme4_XSym, N, p);
     RX = VAR_dMatrix_x(rho, lme4_RXSym, p, p);
     RZX = VAR_dMatrix_x(rho, lme4_RZXSym, q, p);
 }
 
-mersparse::mersparse(SEXP rho) : merenv(rho) {
+void mersparse::initMersd(SEXP rho) {
     X = VAR_CHM_SP(rho, lme4_XSym, N, p);
     RX = VAR_CHM_SP(rho, lme4_RXSym, p, p);
     RZX = VAR_CHM_SP(rho, lme4_RZXSym, q, p);
 }
 
-void lmer::initLMM(SEXP rho, int N, int n, int p, int q) {
-    REML = asLogical(findVarBound(rho, install("REML")));
-    ldRX2 = VAR_REAL_NULL(rho, install("ldRX2"), 1, TRUE);
+void lmer::initLMM(SEXP rho) {
     if (N != n)
 	error(_("nrow(X) = %d must match length(y) = %d for lmer"),
 	      N, n);
+    REML = asLogical(findVarBound(rho, install("REML")));
+    ldRX2 = VAR_REAL_NULL(rho, install("ldRX2"), 1, TRUE);
     Xty = VAR_REAL_NULL(rho, install("Xty"), p);
     Zty = VAR_dMatrix_x(rho, install("Zty"), q, 1);
 }
 
-lmerdense::lmerdense(SEXP rho) : merdense(rho) {
-    initLMM(rho, N, n, p, q);
+lmerdense::lmerdense(SEXP rho) {
+    initMer(rho);
+    initMersd(rho);
+    initLMM(rho);
     ZtX = VAR_dMatrix_x(rho, install("ZtX"), q, p);
     XtX = VAR_dMatrix_x(rho, install("XtX"), p, p);
 }
 
-lmersparse::lmersparse(SEXP rho) : mersparse(rho) {
-    initLMM(rho, N, n, p, q);
+lmersparse::lmersparse(SEXP rho) {
+    initMer(rho);
+    initMersd(rho);
+    initLMM(rho);
     ZtX = VAR_CHM_SP(rho, install("ZtX"), q, p);
     XtX = VAR_CHM_SP(rho, install("XtX"), p, p);
+}
+
+CHM_DN merenv::solvePL(CHM_DN src) {
+    CHM_DN tmp1, tmp2;
+
+    tmp1 = M_cholmod_copy_dense(src, &c);
+    crossprod_Lambda(src, tmp1);
+    tmp2 = M_cholmod_solve(CHOLMOD_P, L, tmp1, &c);
+    M_cholmod_free_dense(&tmp1, &c);
+    tmp1 = M_cholmod_solve(CHOLMOD_L, L, tmp2, &c);
+    M_cholmod_free_dense(&tmp2, &c);
+    return tmp1;
+}
+
+CHM_SP merenv::spcrossprod_Lambda(CHM_SP src) {
+    if (((int)(src->nrow)) != q)
+	error(_("in spcrossprod_Lambda, src->nrow = %d, should be %d"),
+	      src->nrow, q);
+    if (Lambda) {
+	CHM_SP Lamtr = M_cholmod_transpose(Lambda, TRUE/*values*/, &c),
+	    tmp = M_cholmod_ssmult(Lamtr, Zt, 0/*stype*/,
+				   TRUE/*values*/, TRUE/*sorted*/, &c);
+	M_cholmod_free_sparse(&Lamtr, &c);
+	return tmp;
+    }
+				// special case for diagonal Lambda
+    CHM_SP ans = M_cholmod_copy_sparse(src, &c);
+    CHM_DN lambda = N_AS_CHM_DN(Lambdax, q, 1);
+    if (!M_cholmod_scale(lambda, CHOLMOD_ROW, ans, &c))
+	error(_("Error return from cholmod_scale"));
+    return ans;
+}
+
+CHM_SP merenv::solvePL(CHM_SP src) {
+    CHM_SP tmp1, tmp2;
+
+    tmp1 = spcrossprod_Lambda(src);
+    tmp2 = M_cholmod_spsolve(CHOLMOD_P, L, tmp1, &c);
+    M_cholmod_free_sparse(&tmp1, &c);
+    tmp1 = M_cholmod_spsolve(CHOLMOD_L, L, tmp2, &c);
+    M_cholmod_free_sparse(&tmp2, &c);
+    return tmp1;
+}
+
+void lmer::LMMdev1() {		// update L, create cu
+    CHM_DN cZty = N_AS_CHM_DN(Zty, q, 1);
+    M_cholmod_factorize_p(Ut, &one, (int*)NULL, (size_t)0, L, &c);
+    *ldL2 = M_chm_factor_ldetL2(L);
+    cu = solvePL(cZty);
+}
+
+void lmer::LMMdev2() {		// solve for u
+    CHM_DN tmp1, tmp2;
+    tmp1 = M_cholmod_solve(CHOLMOD_Lt, L, cu, &c);
+    M_cholmod_free_dense(&cu, &c);
+    tmp2 = M_cholmod_solve(CHOLMOD_Pt, L, tmp1, &c);
+    M_cholmod_free_dense(&tmp1, &c);
+    dble_cpy(u, (double*)(tmp2->x), q);
+    M_cholmod_free_dense(&tmp2, &c);
+}    
+
+double lmer::LMMdev3() {
+    update_prss();
+    if (REML) {
+	double nmp = (double)(n - p);
+	return *ldL2 + *ldRX2 + nmp * (1 + log(2 * PI * (*prss)/nmp));
+    }				       
+    return *ldL2 + n * (1 + log(2 * PI * (*prss)/((double)n)));
 }
 
 /**
@@ -177,68 +257,39 @@ lmersparse::lmersparse(SEXP rho) : mersparse(rho) {
  * @return deviance or REML criterion according to the value of REML
  */
 double lmerdense::update_dev(SEXP thnew) {
-    double mone[2] = {-1,0}, one[2] = {1,0};
-    CHM_DN cZty = N_AS_CHM_DN(Zty, q, 1), cu, Dtmp1, Dtmp2;
-    int info;
-
     update_Lambda_Ut(thnew);
-    M_cholmod_factorize_p(Ut, one, (int*)NULL, (size_t)0, L, &c);
-    *ldL2 = M_chm_factor_ldetL2(L);
-				// create cu 
-    Dtmp1 = M_cholmod_copy_dense(cZty, &c);
-    crossprod_Lambda(cZty, Dtmp1);
-    Dtmp2 = M_cholmod_solve(CHOLMOD_P, L, Dtmp1, &c);
-    M_cholmod_free_dense(&Dtmp1, &c);
-    cu = M_cholmod_solve(CHOLMOD_L, L, Dtmp2, &c);
-    M_cholmod_free_dense(&Dtmp2, &c);
-// beginning of part that is not common to sparse
-    CHM_DN cZtX = N_AS_CHM_DN(ZtX, q, p);
-    Dtmp1 = M_cholmod_copy_dense(cZtX, &c);
-    crossprod_Lambda(cZtX, Dtmp1);
-    Dtmp2 = M_cholmod_solve(CHOLMOD_P, L, Dtmp1, &c);
-    M_cholmod_free_dense(&Dtmp1, &c);
-    Dtmp1 = M_cholmod_solve(CHOLMOD_L, L, Dtmp2, &c);
-    M_cholmod_free_dense(&Dtmp2, &c);
-    dble_cpy(RZX, (double*)(Dtmp1->x), q * p);
-    M_cholmod_free_dense(&Dtmp1, &c);
+    LMMdev1();
+    
+    CHM_DN PLZtX = solvePL(N_AS_CHM_DN(ZtX, q, p));
+    dble_cpy(RZX, (double*)(PLZtX->x), q * p);
+    M_cholmod_free_dense(&PLZtX, &c);
     // downdate and factor XtX, solve for fixef
     dble_cpy(RX, XtX, p * p);
-    F77_CALL(dsyrk)("U", "T", &p, &q, mone, RZX, &q, one, RX, &p);
+    F77_CALL(dsyrk)("U", "T", &p, &q, &mone, RZX, &q, &one, RX, &p);
     dble_cpy(fixef, Xty, p);
-    F77_CALL(dgemv)("T", &q, &p, mone, RZX, &q, (double*)(cu->x),
-		    &i1, one, fixef, &i1);
+    F77_CALL(dgemv)("T", &q, &p, &mone, RZX, &q, (double*)(cu->x),
+		    &i1, &one, fixef, &i1);
+    int info;
     F77_CALL(dposv)("U", &p, &i1, RX, &p, fixef, &p, &info);
     if (info)
 	error(_("Downdated X'X is not positive definite, %d."), info);
 				// evaluate ldRX2
     *ldRX2 = 0;
     for (int i = 0; i < p; i++) *ldRX2 += 2 * log(RX[i * (p + 1)]);
-// end of part that is not common
-				// solve for u
-    F77_CALL(dgemv)("N", &q, &p, mone, RZX, &q, fixef, &i1, one,
+    F77_CALL(dgemv)("N", &q, &p, &mone, RZX, &q, fixef, &i1, &one,
 		    (double*)(cu->x), &i1);
-    Dtmp1 = M_cholmod_solve(CHOLMOD_Lt, L, cu, &c);
-    Dtmp2 = M_cholmod_solve(CHOLMOD_Pt, L, Dtmp1, &c);
-    M_cholmod_free_dense(&Dtmp1, &c);
-    dble_cpy(u, (double*)(Dtmp2->x), q);
-    M_cholmod_free_dense(&Dtmp2, &c);
-    M_cholmod_free_dense(&cu, &c);
-    *prss = sqr_length(u, q);
+    LMMdev2();
     update_eta();
-    for (int i = 0; i < n; i++) {
-	double resi = y[i] - eta[i];
-	*prss += resi * resi;
-    }
-    if (REML) {
-	double nmp = (double)(n - p);
-	return *ldL2 + *ldRX2 + nmp * (1 + log(2 * PI * (*prss)/nmp));
-    }				       
-    return *ldL2 + n * (1 + log(2 * PI * (*prss)/((double)n)));
+    return LMMdev3();
 }
 
 double lmersparse::update_dev(SEXP thnew) {
+    update_Lambda_Ut(thnew);
+    LMMdev1();
     error(_("Code not yet written"));
-    return NA_REAL;		// --Wall
+    LMMdev2();
+    update_eta();
+    return LMMdev3();
 }
 
 /* Externally callable functions */
