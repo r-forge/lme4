@@ -18,30 +18,75 @@
 
 class merenv {
 public:
-    merenv(SEXP rho);		//< instantiate from an environment
+    merenv(SEXP rho);		//< construct from an environment
     ~merenv(){
 	delete L;
 	delete Lambda;
 	delete Ut;
 	delete Zt;
-	if (!X) delete sX;
     }
-    void update_Lambda_Ut(SEXP thnew);
     static int i1;
-    int validate() {		// validation occurs in constructor
-	return 1;
-    }
-    CHM_DN crossprod_Lambda(CHM_DN rhs, CHM_DN ans);
-    void update_eta();
     int N, n, p, q;
-    double *X, *eta, *fixef, *ldL2, *prss, *theta, *u, *weights, *y;
+    double *Lambdax, *eta, *fixef, *ldL2, *prss, *theta, *u, *weights, *y;
     CHM_FR L;
-    CHM_SP Lambda, Ut, Zt, sX;
+    CHM_SP Lambda, Ut, Zt;
+    int *Lind, nLind;
 
 private:
-    int *Lind, nLind, nth;
-    double *Lambdax, *offset;
+    int nth;
+    double *offset;
 };
+
+class mersparse : public merenv { // merenv with sparse X
+public:
+    mersparse(SEXP rho);	//< construct from an environment
+    ~mersparse() {
+	delete X;
+	delete RX;
+	delete RZX;
+    }
+    void update_eta();
+    CHM_SP X, RX, RZX;
+};
+
+class merdense : public merenv { // merenv with dense X
+public:
+    merdense(SEXP rho);		//< construct from an environment
+    void update_eta();
+    double *X, *RX, *RZX;
+};
+
+class lmer {			// components common to LMMs
+public:
+    lmer(SEXP rho);
+    int REML;
+    double *Xty, *Zty, *ldRX2;
+};
+
+class lmerdense : public merdense, public lmer {
+public:
+    lmerdense(SEXP rho);	//< construct from an environment
+    double update_dev(SEXP thnew);
+    int validate() {
+	return 1; 
+    }
+    double *XtX, *ZtX;
+};
+
+class lmersparse : public mersparse, public lmer {
+public:
+    lmersparse(SEXP rho);	//< construct from an environment
+    ~lmersparse(){
+	delete XtX;
+	delete ZtX;
+    }
+    double update_dev(SEXP thnew);
+    int validate() {
+	return 1;
+    }
+    CHM_SP XtX, ZtX;
+};
+
 #endif /* __cplusplus */
 
 #endif /* LME4_MERENV_H */
