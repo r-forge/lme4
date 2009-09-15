@@ -313,3 +313,26 @@ devcomp <- function(x, theta, ...)
               dims = c(n = n, p = length(fixef), nmp = nmp, q = nrow(Zt))))
 }
 
+setMethod("sigma", signature(object = "lmerenv"),
+          function (object, ...) {
+              dc <- devcomp(object)
+              dc$cmp["prss"]/
+                  (if (env(object)$REML) dc$dims["nmp"] else dc$dims["n"])
+          })
+
+##' Extract the conditional variance-covariance matrix of the fixed
+##' effects 
+setMethod("vcov", signature(object = "lmerenv"),
+	  function(object, ...)
+      {
+          en <- env(object)
+          rr <- as(sigma(object)^2 * chol2inv(as(en$RX, "matrix")),
+                   "dpoMatrix")
+          nms <- colnames(en$X)
+          dimnames(rr) <- list(nms, nms)
+          rr@factors$correlation <- as(rr, "corMatrix")
+          rr
+      })
+
+
+
