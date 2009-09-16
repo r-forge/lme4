@@ -43,7 +43,8 @@ export(
        "mcmcsamp",
        "nlmer",
        "refit",
-       "setPars"
+       "setPars",
+       "sigma"
        )
 
 exportClasses("ST", "lmList", "mer", "merMCMC", "summary.mer", "optenv")
@@ -80,6 +81,7 @@ exportMethods(
               "resid", "residuals",
               "setPars",
               "show",
+              "sigma",
               "simulate",
               "summary",
               "tail",

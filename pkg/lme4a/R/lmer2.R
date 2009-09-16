@@ -316,8 +316,8 @@ devcomp <- function(x, theta, ...)
 setMethod("sigma", signature(object = "lmerenv"),
           function (object, ...) {
               dc <- devcomp(object)
-              dc$cmp["prss"]/
-                  (if (env(object)$REML) dc$dims["nmp"] else dc$dims["n"])
+              sqrt(dc$cmp["prss"]/
+                   (if (env(object)$REML) dc$dims["nmp"] else dc$dims["n"]))
           })
 
 ##' Extract the conditional variance-covariance matrix of the fixed
@@ -334,5 +334,189 @@ setMethod("vcov", signature(object = "lmerenv"),
           rr
       })
 
+setMethod("VarCorr", signature(x = "lmerenv"),
+	  function(x, ...)
+### Create the VarCorr object of variances and covariances
+      {
+          sc <- sigma(x)
+          rho <- env(x)
+          nc <- sapply(cnms <- rho$cnms, length)
+          ncseq <- seq_along(nc)
+          thl <- split(rho$theta, rep.int(ncseq, (nc * (nc + 1))/2))
+          ans <- lapply(ncseq, function(i)
+                    {
+                        mm <- diag(nrow = nc[i])
+                        mm[lower.tri(mm, diag = TRUE)] <- thl[[i]]
+                        rownames(mm) <- cnms[[i]]
+                        val <- tcrossprod(sc * mm) # variance-covariance
+                        stddev <- sqrt(diag(val))
+                        correl <- t(val / stddev)/stddev
+                        diag(correl) <- 1
+                        attr(val, "stddev") <- stddev
+                        attr(val, "correlation") <- correl
+                        val
+                    })
+          fl <- rho$flist
+          names(ans) <- names(fl)[attr(fl, "assign")]
+          attr(ans, "sc") <- sc
+          ans
+      })
 
+## This is modeled a bit after  print.summary.lm :
+printMerenv <- function(x, digits = max(3, getOption("digits") - 3),
+                        correlation = TRUE, symbolic.cor = FALSE,
+                        signif.stars = getOption("show.signif.stars"), ...)
+{
+    so <- summary(x)
+    dc <- devcomp(x)
+    rho <- env(x)
+    REML <- rho$REML
+    llik <- so@logLik
+    dev <- so@deviance
+    dims <- x@dims
+
+    cat(so@methTitle, "\n")
+    if (!is.null(x@call$formula))
+        cat("Formula:", deparse(x@call$formula),"\n")
+    if (!is.null(x@call$data))
+        cat("   Data:", deparse(x@call$data), "\n")
+    if (!is.null(x@call$subset))
+        cat(" Subset:",
+            deparse(asOneSidedFormula(x@call$subset)[[2]]),"\n")
+    print(so@AICtab, digits = digits)
+
+    cat("Random effects:\n")
+    print(so@REmat, quote = FALSE, digits = digits, ...)
+
+    ngrps <- so@ngrps
+    n <- length(x@y)
+    cat(sprintf("Number of obs: %d, groups: ", n))
+    cat(paste(paste(names(ngrps), ngrps, sep = ", "), collapse = "; "))
+    cat("\n")
+    if (is.na(so@sigma))
+	cat("\nEstimated scale (compare to 1):",
+            sqrt(exp(so@deviance["lr2"])/n), "\n")
+    if (nrow(so@coefs) > 0) {
+	cat("\nFixed effects:\n")
+	printCoefmat(so@coefs, zap.ind = 3, #, tst.ind = 4
+		     digits = digits, signif.stars = signif.stars)
+	if(correlation) {
+	    corF <- so@vcov@factors$correlation
+	    if (!is.null(corF)) {
+		p <- ncol(corF)
+		if (p > 1) {
+		    rn <- rownames(so@coefs)
+		    rns <- abbreviate(rn, minlen=11)
+		    cat("\nCorrelation of Fixed Effects:\n")
+		    if (is.logical(symbolic.cor) && symbolic.cor) {
+			corf <- as(corF, "matrix")
+			dimnames(corf) <- list(rns,
+					       if(getRversion() >= "2.8.0")
+					       abbreviate(rn, minlength=1, strict=TRUE)
+					       else ## for now
+					       .Internal(abbreviate(rn, 1, TRUE))
+					       )
+			print(symnum(corf))
+		    }
+		    else {
+			corf <- matrix(format(round(corF@x, 3), nsmall = 3),
+				       nc = p,
+                                       dimnames = list(rns, abbreviate(rn, minlen=6)))
+			corf[!lower.tri(corf)] <- ""
+			print(corf[-1, -p, drop=FALSE], quote = FALSE)
+		    }
+		}
+	    }
+	}
+    }
+    invisible(x)
+}
+
+setMethod("summary", signature(object = "lmerenv"),
+	  function(object, ...)
+      {
+          dc <- devcomp(object)
+          rho <- env(object)
+          REML <- rho$REML
+          fcoef <- fixef(object)
+          vcov <- vcov(object)
+          corF <- vcov@factors$correlation
+          dims <- object@dims
+          coefs <- cbind("Estimate" = fcoef, "Std. Error" = corF@sd) #, DF = DF)
+          llik <- logLik(object, REML)
+#          dev <- object@deviance
+          mType <- "LMM"
+          mName <- switch(mType, LMM = "Linear", NMM = "Nonlinear",
+                          GLMM = "Generalized linear",
+                          GNMM = "Generalized nonlinear")
+          method <- if(REML) "REML" else "maximum likelihood"
+
+          AICframe <- data.frame(AIC = AIC(llik), BIC = BIC(llik),
+                                 logLik = c(llik),
+                                 deviance = dev["ML"],
+                                 REMLdev = dev["REML"],
+                                 row.names = "")
+          if (is.na(AICframe$REMLdev)) AICframe$REMLdev <- NULL
+          varcor <- VarCorr(object)
+          REmat <- formatVC(varcor)
+          if (is.na(attr(varcor, "sc")))
+              REmat <- REmat[-nrow(REmat), , drop = FALSE]
+
+          if (nrow(coefs) > 0) {
+              if (!dims["useSc"]) {
+                  coefs <- coefs[, 1:2, drop = FALSE]
+                  stat <- coefs[,1]/coefs[,2]
+                  pval <- 2*pnorm(abs(stat), lower = FALSE)
+                  coefs <- cbind(coefs, "z value" = stat, "Pr(>|z|)" = pval)
+              } else {
+                  stat <- coefs[,1]/coefs[,2]
+                  ##pval <- 2*pt(abs(stat), coefs[,3], lower = FALSE)
+                  coefs <- cbind(coefs, "t value" = stat) #, "Pr(>|t|)" = pval)
+              }
+          } ## else : append columns to 0-row matrix ...
+          new("summary.mer",
+              object,
+              methTitle = paste(mName, "mixed model fit by", method),
+              logLik = llik,
+              ngrps = sapply(object@flist, function(x) length(levels(x))),
+              sigma = sigma(object),
+              coefs = coefs,
+              vcov = vcov,
+              REmat = REmat,
+              AICtab= AICframe
+              )
+      })## summary()
+
+setMethod("model.frame", signature(formula = "lmerenv"),
+	  function(formula, ...) env(formula)$frame)
+
+setMethod("model.matrix", signature(object = "lmerenv"),
+	  function(object, ...) env(object)$X)
+
+setMethod("terms", signature(x = "lmerenv"),
+	  function(x, ...) attr(env(x)$frame, "terms"))
+
+setMethod("deviance", signature(object="lmerenv"),
+	  function(object, REML = NULL, ...)
+      {
+          if (missing(REML) || is.null(REML) || is.na(REML[1]))
+              REML <- env(object)$REML
+          devcomp(object)$cmp[if(REML) "REML" else "deviance"]
+      })
+
+##' Extract the log-likelihood or restricted log-likelihood
+setMethod("logLik", signature(object="lmerenv"),
+	  function(object, REML = NULL, ...)
+      {
+          rho <- env(object)
+          if (is.null(REML) || is.na(REML[1]))
+              REML <- rho$REML
+          val <- -deviance(object, REML = REML)/2
+          attr(val, "nall") <- attr(val, "nobs") <- length(rho$y)
+          attr(val, "df") <- length(rho$fixef) +
+              length(rho$theta) + 1L
+          attr(val, "REML") <-  as.logical(REML)
+          class(val) <- "logLik"
+          val
+      })
 
