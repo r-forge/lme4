@@ -84,8 +84,7 @@ CHM_SP VAR_CHM_SP(SEXP rho, SEXP nm, int nrow, int ncol)
     return ans;
 }
 
-double *VAR_dMatrix_x(SEXP rho, SEXP nm, int nrow, int ncol)
-{    
+double *VAR_dMatrix_x(SEXP rho, SEXP nm, int nrow, int ncol) {    
     SEXP var = findVarBound(rho, nm);
 
     // FIXME: Should check here to ensure that the object "is" a dMatrix
@@ -96,3 +95,18 @@ double *VAR_dMatrix_x(SEXP rho, SEXP nm, int nrow, int ncol)
     return REAL(GET_SLOT(var, lme4_xSym));
 }
 
+CHM_SP CHM_SP_copy_in_place(CHM_SP dest, CHM_SP src) {
+    size_t m = dest->nrow, n = dest->ncol;
+    int nnzd = M_cholmod_nnz(dest, &c);
+    if (m != src->nrow ||
+	n != src->ncol ||
+	dest->xtype != src->xtype ||
+	dest->stype != src->stype ||
+	!dest->packed || !src->packed ||
+	nnzd != M_cholmod_nnz(src, &c) ||
+	!compare_int_vecs((int*)dest->p, (int*)src->p, n+1) ||
+	!compare_int_vecs((int*)dest->i, (int*)src->i, nnzd))
+	error(_("incompatible CHM_SP objects for copy"));
+    dble_cpy((double*)dest->x, (double*)src->x, nnzd);
+    return dest;
+}

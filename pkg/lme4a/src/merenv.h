@@ -25,6 +25,7 @@ static int i1 = 1;
 static double one = 1, mone = -1, zero = 0;
 
 class merenv {
+    /// Basic class for mixed-effects.
 public:
     ~merenv(){
 	delete L;
@@ -33,13 +34,30 @@ public:
 	delete Zt;
     }
     void initMer(SEXP rho);
+    /// Initialize from an environment.
+
+    /// @param rho pointer to an environment
     void update_eta_Ut();
+    /// Update the linear predictor.
+
+    /// Update the linear predictor using the offset, if present, and
+    /// the random-effects.  Updates from the fixed-effects are done
+    /// in the derived classes.
     void update_Lambda_Ut(SEXP thnew);
+    /// Update Lambda and Ut from theta.
+
+    /// @param thnew pointer to a numeric vector with the new value of
+    /// theta
     double update_prss();
+    /// Update the penalized residual sum-of-squares.
     CHM_DN crossprod_Lambda(CHM_DN src, CHM_DN ans);
+    /// Create the crossproduct of Lambda and src in ans.
     CHM_SP spcrossprod_Lambda(CHM_SP src);
+    /// Return the crossproduct of Lambda and src.
     CHM_DN solvePL(CHM_DN src);
+    /// Solve L ans = P src (dense case)
     CHM_SP solvePL(CHM_SP src);
+    /// Solve L ans = P src (sparse case)
     int N, n, p, q;
     double *Lambdax, *eta, *fixef, *ldL2, *prss, *theta, *u, *weights, *y;
     CHM_FR L;

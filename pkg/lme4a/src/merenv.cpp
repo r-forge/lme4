@@ -2,7 +2,7 @@
 
 #include "lme4utils.hpp"
 
-// Definition of methods for the mer class
+// Definition of methods for the merenv class
 
 void merenv::initMer(SEXP rho)
 {
@@ -286,6 +286,11 @@ double lmerdense::update_dev(SEXP thnew) {
 double lmersparse::update_dev(SEXP thnew) {
     update_Lambda_Ut(thnew);
     LMMdev1();
+				// update RZX
+    CHM_SP PLZtX = solvePL(ZtX);
+    CHM_SP_copy_in_place(RZX, PLZtX);
+    M_cholmod_free_sparse(&PLZtX, &c);
+				// downdate and factor XtX
     error(_("Code not yet written"));
     LMMdev2();
     update_eta();
