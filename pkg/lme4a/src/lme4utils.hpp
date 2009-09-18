@@ -155,21 +155,24 @@ ALLOC_SLOT(SEXP obj, SEXP nm, SEXPTYPE type, int length)
     return val;
 }
 
+static inline int compare_int_vecs(int *dest, int *src, int n) {
+    for (int i = 0; i < n; i++)
+	if (dest[i] != src[i]) return 0;
+    return 1;
+}
+
+/** Non-inlined utilities
+ */
+
 SEXP CHM_SP2SEXP(CHM_SP A, const char *cls);
 SEXP CHM_SP2SEXP(CHM_SP A, const char *cls, const char *uplo);
 SEXP CHM_SP2SEXP(CHM_SP A, const char *cls, const char *uplo, const char *diag);
-
 double *VAR_REAL_NULL(SEXP rho, SEXP nm, int len, int nullOK,
 		      int absentOK);
 double *VAR_REAL_NULL(SEXP rho, SEXP nm, int len, int nullOK);
 double *VAR_REAL_NULL(SEXP rho, SEXP nm, int len);
-
-    
-/** Non-inlined utilities
- */
-
 CHM_SP VAR_CHM_SP(SEXP rho, SEXP nm, int nrow, int ncol);
-
 double *VAR_dMatrix_x(SEXP rho, SEXP nm, int nrow, int ncol);
 
+CHM_SP CHM_SP_copy_in_place(CHM_SP dest, CHM_SP src);
 
