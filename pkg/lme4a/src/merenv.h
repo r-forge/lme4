@@ -33,31 +33,67 @@ public:
 	delete Ut;
 	delete Zt;
     }
-    void initMer(SEXP rho);
-    /// Initialize from an environment.
-
-    /// @param rho pointer to an environment
+/** 
+ * Initialize from an environment.
+ * 
+ * @param rho pointer to an environment
+ */
+    void initMer(SEXP rho);	
+/** 
+ * Update the linear predictor.
+ * 
+ * Update the linear predictor using the offset, if present, and the
+ * random-effects.  Updates from the fixed-effects are done in the
+ * derived classes. 
+ */
     void update_eta_Ut();
-    /// Update the linear predictor.
 
-    /// Update the linear predictor using the offset, if present, and
-    /// the random-effects.  Updates from the fixed-effects are done
-    /// in the derived classes.
+/** 
+ *  Update Lambda and Ut from theta.
+ * 
+ * @param thnew pointer to a numeric vector or new values for theta
+ */
     void update_Lambda_Ut(SEXP thnew);
-    /// Update Lambda and Ut from theta.
-
-    /// @param thnew pointer to a numeric vector with the new value of
-    /// theta
+/** 
+ * Update the penalized residual sum-of-squares.
+ *
+ * @return updated penalized residual sum-of-squares.
+ */
     double update_prss();
-    /// Update the penalized residual sum-of-squares.
+/** 
+ * Create the crossproduct of Lambda and src in ans.
+ * 
+ * @param src dense matrix with q rows
+ * @param ans matrix of same size as src to be overwritten
+ * 
+ * @return ans, overwritten with the product
+ */
     CHM_DN crossprod_Lambda(CHM_DN src, CHM_DN ans);
-    /// Create the crossproduct of Lambda and src in ans.
+/** 
+ * Return the crossproduct of Lambda and src
+ * 
+ * @param src sparse matrix with q rows
+ * 
+ * @return crossprod(Lambda, src)
+ */
     CHM_SP spcrossprod_Lambda(CHM_SP src);
-    /// Return the crossproduct of Lambda and src.
+/** 
+ * Solve L ans = P src (dense case)
+ * 
+ * @param src dense matrix of values on the right hand side
+ * 
+ * @return a dense matrix of the same size as src
+ */
     CHM_DN solvePL(CHM_DN src);
-    /// Solve L ans = P src (dense case)
+/** 
+ * Solve L ans = P src (sparse case)
+ * 
+ * @param src sparse matrix of values on the right hand side
+ * 
+ * @return a sparse matrix of the same size as src
+ */
     CHM_SP solvePL(CHM_SP src);
-    /// Solve L ans = P src (sparse case)
+
     int
 	N,		/**< length of eta (can be a multiple of n) */
 	n,		/**< number of observations */
