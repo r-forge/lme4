@@ -114,19 +114,6 @@ void merenv::update_eta_Ut() {
     M_cholmod_sdmult(Ut, 1/*transpose*/, &one, &one, cu, ceta, &c);
 }
 
-void mersparse::update_eta() {
-    update_eta_Ut();
-    M_cholmod_sdmult(X, 0/*no transpose*/, &one, &one,
-		     N_AS_CHM_DN(fixef, p, 1),
-		     N_AS_CHM_DN(eta, N, 1), &c);
-}
-
-void merdense::update_eta() {
-    update_eta_Ut();
-    F77_CALL(dgemv)("N", &n, &p, &one, X, &n, fixef,
-		    &i1, &one, eta, &i1);
-}
-
 CHM_DN merenv::crossprod_Lambda(CHM_DN rhs, CHM_DN ans) {
     if (((int)(rhs->nrow)) != q)
 	error(_("in crossprod_Lambda, rhs->nrow = %d, should be %d"),
@@ -140,6 +127,61 @@ CHM_DN merenv::crossprod_Lambda(CHM_DN rhs, CHM_DN ans) {
     	for (int j = 0; j < nc * q; j++) ax[j] = rx[j] * Lambdax[j % q];
     }
     return ans;
+}
+
+CHM_SP merenv::spcrossprod_Lambda(CHM_SP src) {
+    if (((int)(src->nrow)) != q)
+	error(_("in spcrossprod_Lambda, src->nrow = %d, should be %d"),
+	      src->nrow, q);
+    if (Lambda) {
+	CHM_SP Lamtr = M_cholmod_transpose(Lambda, TRUE/*values*/, &c),
+	    tmp = M_cholmod_ssmult(Lamtr, Zt, 0/*stype*/,
+				   TRUE/*values*/, TRUE/*sorted*/, &c);
+	M_cholmod_free_sparse(&Lamtr, &c);
+	return tmp;
+    }
+				// special case for diagonal Lambda
+    CHM_SP ans = M_cholmod_copy_sparse(src, &c);
+    CHM_DN lambda = N_AS_CHM_DN(Lambdax, q, 1);
+    if (!M_cholmod_scale(lambda, CHOLMOD_ROW, ans, &c))
+	error(_("Error return from cholmod_scale"));
+    return ans;
+}
+
+CHM_DN merenv::solvePL(CHM_DN src) {
+    CHM_DN tmp1, tmp2;
+
+    tmp1 = M_cholmod_copy_dense(src, &c);
+    crossprod_Lambda(src, tmp1);
+    tmp2 = M_cholmod_solve(CHOLMOD_P, L, tmp1, &c);
+    M_cholmod_free_dense(&tmp1, &c);
+    tmp1 = M_cholmod_solve(CHOLMOD_L, L, tmp2, &c);
+    M_cholmod_free_dense(&tmp2, &c);
+    return tmp1;
+}
+
+CHM_SP merenv::solvePL(CHM_SP src) {
+    CHM_SP tmp1, tmp2;
+
+    tmp1 = spcrossprod_Lambda(src);
+    tmp2 = M_cholmod_spsolve(CHOLMOD_P, L, tmp1, &c);
+    M_cholmod_free_sparse(&tmp1, &c);
+    tmp1 = M_cholmod_spsolve(CHOLMOD_L, L, tmp2, &c);
+    M_cholmod_free_sparse(&tmp2, &c);
+    return tmp1;
+}
+
+void mersparse::update_eta() {
+    update_eta_Ut();
+    M_cholmod_sdmult(X, 0/*no transpose*/, &one, &one,
+		     N_AS_CHM_DN(fixef, p, 1),
+		     N_AS_CHM_DN(eta, N, 1), &c);
+}
+
+void merdense::update_eta() {
+    update_eta_Ut();
+    F77_CALL(dgemv)("N", &n, &p, &one, X, &n, fixef,
+		    &i1, &one, eta, &i1);
 }
 
 void merdense::initMersd(SEXP rho) {
@@ -180,47 +222,6 @@ lmersparse::lmersparse(SEXP rho) {
     XtX = VAR_CHM_SP(rho, install("XtX"), p, p);
 }
 
-CHM_DN merenv::solvePL(CHM_DN src) {
-    CHM_DN tmp1, tmp2;
-
-    tmp1 = M_cholmod_copy_dense(src, &c);
-    crossprod_Lambda(src, tmp1);
-    tmp2 = M_cholmod_solve(CHOLMOD_P, L, tmp1, &c);
-    M_cholmod_free_dense(&tmp1, &c);
-    tmp1 = M_cholmod_solve(CHOLMOD_L, L, tmp2, &c);
-    M_cholmod_free_dense(&tmp2, &c);
-    return tmp1;
-}
-
-CHM_SP merenv::spcrossprod_Lambda(CHM_SP src) {
-    if (((int)(src->nrow)) != q)
-	error(_("in spcrossprod_Lambda, src->nrow = %d, should be %d"),
-	      src->nrow, q);
-    if (Lambda) {
-	CHM_SP Lamtr = M_cholmod_transpose(Lambda, TRUE/*values*/, &c),
-	    tmp = M_cholmod_ssmult(Lamtr, Zt, 0/*stype*/,
-				   TRUE/*values*/, TRUE/*sorted*/, &c);
-	M_cholmod_free_sparse(&Lamtr, &c);
-	return tmp;
-    }
-				// special case for diagonal Lambda
-    CHM_SP ans = M_cholmod_copy_sparse(src, &c);
-    CHM_DN lambda = N_AS_CHM_DN(Lambdax, q, 1);
-    if (!M_cholmod_scale(lambda, CHOLMOD_ROW, ans, &c))
-	error(_("Error return from cholmod_scale"));
-    return ans;
-}
-
-CHM_SP merenv::solvePL(CHM_SP src) {
-    CHM_SP tmp1, tmp2;
-
-    tmp1 = spcrossprod_Lambda(src);
-    tmp2 = M_cholmod_spsolve(CHOLMOD_P, L, tmp1, &c);
-    M_cholmod_free_sparse(&tmp1, &c);
-    tmp1 = M_cholmod_spsolve(CHOLMOD_L, L, tmp2, &c);
-    M_cholmod_free_sparse(&tmp2, &c);
-    return tmp1;
-}
 
 void lmer::LMMdev1() {		// update L, create cu
     CHM_DN cZty = N_AS_CHM_DN(Zty, q, 1);
