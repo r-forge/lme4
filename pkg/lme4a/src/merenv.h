@@ -58,15 +58,33 @@ public:
     /// Solve L ans = P src (dense case)
     CHM_SP solvePL(CHM_SP src);
     /// Solve L ans = P src (sparse case)
-    int N, n, p, q;
-    double *Lambdax, *eta, *fixef, *ldL2, *prss, *theta, *u, *weights, *y;
-    CHM_FR L;
-    CHM_SP Lambda, Ut, Zt;
-    int *Lind, nLind;
+    int
+	N,		/**< length of eta (can be a multiple of n) */
+	n,		/**< number of observations */
+	p,		/**< number of fixed effects */
+	q;		/**< number of random effects */
+    double
+	*Lambdax,	     /**< x slot of Lambda */
+	*eta,		     /**< linear predictor values */
+	*fixef,		     /**< fixed-effects parameters */
+	*ldL2,		     /**< log-determinant of L squared */
+	*prss,		     /**< penalized residual sum-of-squares */
+	*theta,		     /**< parameters that determine Lambda */
+	*u,		     /**< unit random-effects vector */
+	*weights,	     /**< prior weights (may be NULL) */
+	*y;		     /**< response vector */
+    CHM_FR
+	L;			/**< sparse Cholesky factor */
+    CHM_SP
+	Lambda,	     /**< relative covariance factor */
+	Ut,	     /**< model matrix for unit random effects */
+	Zt;	     /**< model matrix for random effects */
+    int *Lind,	     /**< Lambdax index vector into theta (1-based) */
+	nLind;	     /**< length of Lind */
 
 private:
-    int nth;
-    double *offset;
+    int nth;	      /**< number of elements of theta */
+    double *offset;   /**< offset of linear predictor (may be NULL) */
 };
 
 class mersparse : virtual public merenv { // merenv with sparse X
@@ -76,27 +94,37 @@ public:
 	delete RX;
 	delete RZX;
     }
-    void initMersd(SEXP rho);
-    void update_eta();
-    CHM_SP X, RX, RZX;
+    void initMersd(SEXP rho);	/**< initialize from environment */
+    void update_eta();		/**< update linear predictor */
+    CHM_SP X,			/**< model matrix for fixed effects */
+	RX,		     /**< Cholesky factor for fixed-effects */
+	RZX;		     /**< cross-product in Cholesky factor */
 };
 
 class merdense : virtual public merenv { // merenv with dense X
 public:
-    void initMersd(SEXP rho);
-    void update_eta();
-    double *X, *RX, *RZX;
+    void initMersd(SEXP rho);	/**< initialize from environment */
+    void update_eta();		/**< update linear predictor */
+    double 
+	*RX,	       /**< upper Cholesky factor for fixed-effects */
+	*RZX,	       /**< cross-product in Cholesky factor */
+	*X;	       /**< model matrix for fixed effects */
 };
 
 class lmer : virtual public merenv { // components common to LMMs
 public:
-    void initLMM(SEXP rho);
-    void LMMdev1();
-    void LMMdev2();
-    double LMMdev3();
-    int REML;
-    double *Xty, *Zty, *ldRX2;
-    CHM_DN cu;
+    void initLMM(SEXP rho);	/**< initialize from environment */
+    void LMMdev1();   /**< initial shared part of deviance update */
+    void LMMdev2();   /**< secondary shared part of deviance update */
+    double LMMdev3(); /**< tertiary shared part of deviance update */
+    int
+	REML;			/**< logical - use REML? */
+    double
+	*Xty,			/**< cross product of X and y */
+	*Zty,			/**< cross product of Z and y */
+	*ldRX2;			/**< log-determinant of RX squared */
+    CHM_DN
+	cu;		  /**< Intermediate value in solution for u */
 };
 
 class lmerdense : public merdense, public lmer {
