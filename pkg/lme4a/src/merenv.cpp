@@ -291,6 +291,14 @@ double lmersparse::update_dev(SEXP thnew) {
     CHM_SP_copy_in_place(RZX, PLZtX);
     M_cholmod_free_sparse(&PLZtX, &c);
 				// downdate and factor XtX
+    CHM_SP RZXt = M_cholmod_transpose(RZX, 1/*values*/, &c);
+    CHM_SP RZXtRZX = M_cholmod_aat(RZXt, (int*)NULL/*fset*/,
+				   (size_t)0/*fsize*/,
+				   1/*mode = numerical*/, &c);
+    M_cholmod_free_sparse(&RZXt, &c);
+    CHM_SP DD = M_cholmod_add(XtX, RZXtRZX, &one, &mone, 1/*values*/,
+			      1/*sorted*/, &c);
+    M_cholmod_free_sparse(&RZXtRZX, &c);
     error(_("Code not yet written"));
     LMMdev2();
     update_eta();
