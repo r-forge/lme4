@@ -1,6 +1,36 @@
 ## Also suppress the warning
 assign("det_CHMfactor.warn", TRUE, envir = Matrix:::.MatrixEnv)
 
+##' Check and install various objects, including frame, y, weights
+##' from the model frame in the environment rho.
+check_y_weights <- function(fr, rho) {
+    rho$frame <- fr
+    attr(rho$frame, "terms") <- NULL
+    rho$n <- n <- nrow(fr)
+                                        # components of the model frame
+    y <- model.response(fr)
+    if(length(dim(y)) == 1) { # avoid problems with 1D arrays, but keep names
+        nm <- rownames(y)
+        dim(y) <- NULL
+        if(!is.null(nm)) names(y) <- nm
+    }
+    rho$y <- y <- unname(as.double(y))
+
+    rho$weights <- as.numeric(model.weights(fr))
+    if (any(rho$weights < 0))
+        stop(gettext("negative weights not allowed", domain = "R-lme4"))
+    loff <- length(offset <- as.numeric(model.offset(fr)))
+    if (loff) {
+        if (loff == 1) {
+            offset <- rep.int(offset, n)
+        } else if (loff != n) {
+            stop(gettextf("number of offsets is %d should equal %d (number of observations)",
+                          loff, n), domain = "R-lme4")
+        }
+    }
+    rho$offset <- offset
+}
+    
 ##' Install various objects, including Lambda, Lind, Zt and Ut in
 ##' environment rho based on the list bars of random effects terms and
 ##' model frame fr.
@@ -9,8 +39,7 @@ assign("det_CHMfactor.warn", TRUE, envir = Matrix:::.MatrixEnv)
 ##' @param fr a model frame in which to evaluate these terms
 ##' @rho an environment that is modified by this function
 ##' @return NULL - the side effect of the function is to modify rho
-makeZt <- function(bars, fr, rho)
-{
+makeZt <- function(bars, fr, rho) {
     stopifnot(is.list(bars), all(sapply(bars, is.language)),
               inherits(fr, "data.frame"), is.environment(rho))
     if (!length(bars))
@@ -120,31 +149,8 @@ lmer2 <-
     fr.form <- subbars(formula)
     environment(fr.form) <- environment(formula)
     mf$formula <- fr.form
-    rho$frame <- fr <- eval(mf, parent.frame())
-    rho$n <- n <- nrow(fr)
-                                        # components of the model frame
-    y <- model.response(fr)
-    if(length(dim(y)) == 1) { # avoid problems with 1D arrays, but keep names
-        nm <- rownames(y)
-        dim(y) <- NULL
-        if(!is.null(nm)) names(y) <- nm
-    }
-    rho$y <- y <- unname(as.double(y))
+    check_y_weights(fr <- eval(mf, parent.frame()), rho)
 
-    rho$weights <- as.numeric(model.weights(fr))
-    if (any(rho$weights < 0))
-        stop(gettext("negative weights not allowed", domain = "R-lme4"))
-    loff <- length(offset <- as.numeric(model.offset(fr)))
-    if (loff) {
-        if (loff == 1) {
-            offset <- rep.int(offset, n)
-        } else if (loff != n) {
-            stop(gettextf("number of offsets is %d should equal %d (number of observations)",
-                          loff, n), domain = "R-lme4")
-        }
-    }
-    rho$offset <- offset
-    
     fe.form <- formula           # evaluate fixed-effects model matrix
     nb <- nobars(formula[[3]])   # fixed-effects terms only
     if (is.null(nb)) nb <- 1
@@ -157,12 +163,10 @@ lmer2 <-
     rho$sparseX <- sparseX
     
     p <- ncol(X)
-    stopifnot((rho$nmp <- n - p) > 0)
+    stopifnot((rho$nmp <- rho$n - p) > 0)
     fixef <- numeric(p)
     names(fixef) <- colnames(X)
     rho$fixef <- fixef
-    
-    attr(fr, "terms") <- NULL
     
     ## Check for method argument which is no longer used
     if (!is.null(method <- list(...)$method)) {
@@ -177,10 +181,10 @@ lmer2 <-
     makeZt(expandSlash(findbars(formula[[3]])), fr, rho)
     
     rho$RX <- chol(rho$XtX <- crossprod(X)) # check for full column rank
-    rho$Xty <- unname(as.vector(crossprod(X, y)))
+    rho$Xty <- unname(as.vector(crossprod(X, rho$y)))
     
     rho$RZX <- rho$Ut %*% X
-    rho$fitted <- numeric(n)
+    rho$fitted <- numeric(rho$n)
     rho$prss <- 0
     rho$ldL2 <- 0
     rho$ldRX2 <- 0
@@ -188,7 +192,7 @@ lmer2 <-
     rho$L <- Cholesky(tcrossprod(rho$Zt), LDL = FALSE, Imult = 1)
     ## Zty is stored as a Matrix, not a vector because of a
     ## peculiarity in crossprod(Lambda, Zty) if Lambda is zero
-    rho$Zty <- rho$Zt %*% y            
+    rho$Zty <- rho$Zt %*% rho$y            
     rho$ZtX <- rho$Zt %*% X
     rho$compDev <- compDev
     sP <- function(x) {
@@ -520,3 +524,144 @@ setMethod("logLik", signature(object="lmerenv"),
           val
       })
 
+##' Fit a nonlinear mixed-effects model
+##'
+##' @param formula a nonlinear mixed model formula (see detailed documentation)
+##' @param data an optional data frame containing the variables named in
+##'    \code{formula}.  By default the variables are taken from the
+##'    environment from which \code{nlmer} is called.
+##' @param start starting estimates for the nonlinear model
+##'    parameters, as a named numeric vector 
+##' @param verbose integer scalar passed to nlminb.  If negative then
+##'    diagnostic output from the PIRLS (penalized iteratively
+##'    reweighted least squares) step is also provided.
+##' @param nAGQ number of adaptive Gauss-Hermite quadrature points to use
+##' @param doFit logical scalar.  If FALSE the optimization
+##'    environment is returned. Otherwise the parameters are estimated
+##'    and an object of S4 class "mer" is returned.
+##' @param subset further model specifications as in
+##'    \code{\link[stats]{lm}}; see there for details.
+##' @param weights  further model specifications as in
+##'    \code{\link[stats]{lm}}; see there for details.
+##' @param na.action  further model specifications as in
+##'    \code{\link[stats]{lm}}; see there for details.
+##' @param contrasts  further model specifications as in
+##'    \code{\link[stats]{lm}}; see there for details.
+##' @param control a list of control parameters passed to nlminb.  The
+##'    defaults are given in the (hidden) function \code{lmerControl}.
+
+##' @return if doFit is FALSE an environment, otherwise an object of S4 class "mer"
+nlmer2 <- function(formula, data, family = gaussian, start = NULL,
+                   verbose = FALSE, nAGQ = 1, doFit = TRUE, subset,
+                   weights, na.action, mustart, etastart,
+                   contrasts = NULL, control = list(), ...)
+{
+    if (!missing(family)) stop("code not yet written")
+    mf <- mc <- match.call()
+    m <- match(c("data", "subset", "weights", "na.action",
+                 "offset", "etastart", "mustart"),
+               names(mf), 0)
+    mf <- mf[c(1, m)]
+    mf$drop.unused.levels <- TRUE
+    mf[[1]] <- as.name("model.frame")
+                                        # Really do need to check twice
+    formula <- as.formula(formula)
+    if (length(formula) < 3) stop("formula must be a 3-part formula")
+    nlform <- as.formula(formula[[2]])
+    if (length(nlform) < 3)
+        stop("formula must be a 3-part formula")
+    nlmod <- as.call(nlform[[3]])
+                                        # check for parameter names in start 
+    if (is.numeric(start)) start <- list(nlpars = start)
+    stopifnot((s <- length(pnames <- names(start$nlpars))) > 0,
+              is.numeric(start$nlpars))
+    if (!all(pnames %in% (anms <- all.vars(nlmod))))
+        stop("not all parameter names are used in the nonlinear model expression")
+    fr.form <- nlform
+## FIXME: This should be changed to use subbars
+    fr.form[[3]] <-         # the frame formula includes all variables
+        parse(text = paste(setdiff(all.vars(formula), pnames),
+                         collapse = ' + '))[[1]]
+    environment(fr.form) <- environment(formula)
+    mf$formula <- fr.form
+    rho <- new.env(parent = environment(formula))
+    fr <- eval(mf, parent.frame())
+    check_y_weights(fr, rho)
+    attr(rho$frame, "terms") <- NULL
+    for (nm in pnames) fr[[nm]] <- start$nlpars[[nm]]
+    n <- nrow(fr)
+
+    ## create nlenv and check the evaluation of the nonlinear model function
+    rho$nlenv <- new.env()  # want it to inherit from this environment (or formula env)
+    lapply(all.vars(nlmod), function(nm) assign(nm, fr[[nm]], envir = rho$nlenv))
+    rho$nlmodel <- nlmod
+                                        # evaluate and check the family
+    if(is.character(family))
+        family <- get(family, mode = "function", envir = parent.frame(2))
+    if(is.function(family)) family <- family()
+    ft <- famType(family)
+    rho$dims[names(ft)] <- ft
+    rho$family <- family
+
+    ## these allow starting values to be expressed in terms of other vars.
+    rho$mustart <- model.extract(mf, "mustart")
+    rho$etastart <- model.extract(mf, "etastart")
+
+    eval(family$initialize, rho)
+
+                                        # enforce modes on some vectors
+    rho$y <- unname(as.double(rho$y))
+    rho$mustart <- unname(as.double(rho$mustart))
+    rho$etastart <- unname(as.double(rho$etastart))    
+    if (exists("n", envir = rho))
+        rho$n <- as.double(rho$n)
+
+    eta <- eval(rho$nlmodel, rho$nlenv)
+    if (is.null(rho$etaGamma <- attr(eta, "gradient")))
+        stop("The nonlinear model in nlmer must return a gradient attribute")
+    rho$eta <- numeric(length(eta))
+    rho$eta[] <- eta
+
+    ## build the extended frame for evaluation of X and Zt
+    fr <- do.call(rbind, lapply(1:s, function(i) fr)) # rbind s copies of the frame
+    for (nm in pnames) # convert these variables in fr to indicators
+        fr[[nm]] <- as.numeric(rep(nm == pnames, each = n))
+    fe.form <- nlform # modify formula to suppress intercept (Is this a good idea?)
+    fe.form[[3]] <- substitute(0 + bar, list(bar = nobars(formula[[3]])))
+    rho$X <- model.matrix(fe.form, fr, contrasts)
+    rownames(rho$X) <- NULL
+    p <- ncol(rho$X)
+    if ((qrX <- qr(rho$X))$rank < p)
+        stop(gettextf("rank of X = %d < ncol(X) = %d", qrX$rank, p))
+    rho$start <- numeric(p)             # must be careful that these are distinct
+    rho$start[] <- rho$fixef <- qr.coef(qrX, unlist(lapply(pnames, get, envir = rho$nlenv)))
+    rho$RX <- qr.R(qrX)
+    eb <- evalbars(formula, fr, contrasts, TRUE) # flist, trms, nest
+    rho$dims["nest"] <- eb$nest
+    rho$flist <- eb$flist
+    lmerFactorList(eb$trms, rho)
+
+    q <- length(rho$u)
+    rho$u0 <- numeric(q)
+                                        # evaluate the control argument
+    control <- do.call(lmerControl, as.list(control))
+    if (!missing(verbose)) control$trace <- as.integer(verbose[1])
+    rho$dims["verb"] <- control$trace
+    control$trace <- abs(control$trace) # negative values give PIRLS output
+    rho$control <- control
+    rho$mc <- mc                        # store the matched call
+
+    rho$bds <- getBounds(rho)
+    theta0 <- getPars(rho)
+    if (!is.null(start$theta)) {
+        stopifnot(length(st <- as.double(start$theta)) == length(theta0))
+        setPars(rho, st)
+    } else { 
+        setPars(rho, theta0) # one evaluation to check structure
+    }
+    rho$beta0[] <- rho$fixef
+    rho$u0[] <- rho$u
+    if (!doFit) return(rho)
+    
+    merFinalize(rho)
+}
