@@ -300,7 +300,28 @@ double lmersparse::update_dev(SEXP thnew) {
     CHM_SP DD = M_cholmod_add(XtX, RZXtRZX, &one, &mone, 1/*values*/,
 			      1/*sorted*/, &c);
     M_cholmod_free_sparse(&RZXtRZX, &c);
-    error(_("Code not yet written"));
+    int *Perm = new int[p];
+    for (int i = 0; i < p; i++) Perm[i] = i;
+    CHM_FR LL = M_cholmod_analyze_p(DD, Perm, (int*)NULL, (size_t) 0, &c);
+    if (!M_cholmod_factorize(DD, LL, &c))
+	error(_("Downdated X'X is not positive definite"));
+    M_cholmod_free_sparse(&DD, &c);
+    *ldRX2 = M_chm_factor_ldetL2(LL);
+				// evaluate fixef
+    CHM_DN XtymRZXtu = M_cholmod_copy_dense(N_AS_CHM_DN(Xty, p, 1), &c);
+    M_cholmod_sdmult(RZX, 1/*transpose*/, &mone, &one, cu, XtymRZXtu, &c);
+    CHM_DN cfixef = M_cholmod_solve(CHOLMOD_A, LL, XtymRZXtu, &c);
+    M_cholmod_free_dense(&XtymRZXtu, &c);
+    dble_cpy(fixef, (double*)cfixef->x, p);
+    M_cholmod_sdmult(RZX, 0/*no transpose*/, &mone, &one, cfixef, cu, &c);
+    M_cholmod_free_dense(&cfixef, &c);
+				// evaluate and store sparse RX
+    CHM_SP Lsp = M_cholmod_factor_to_sparse(LL, &c);
+    M_cholmod_free_factor(&LL, &c);
+    CHM_SP Lspt = M_cholmod_transpose(Lsp, 1/*values*/, &c);
+    M_cholmod_free_sparse(&Lsp, &c);
+    CHM_SP_copy_in_place(RX, Lspt);
+    M_cholmod_free_sparse(&Lspt, &c);
     LMMdev2();
     update_eta();
     return LMMdev3();
