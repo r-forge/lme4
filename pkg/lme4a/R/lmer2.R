@@ -3,19 +3,22 @@ assign("det_CHMfactor.warn", TRUE, envir = Matrix:::.MatrixEnv)
 
 ##' Check and install various objects, including frame, y, weights
 ##' from the model frame in the environment rho.
+##'
+##' @param fr a model frame
+##' @param rho an environment
 check_y_weights <- function(fr, rho) {
     rho$frame <- fr
     attr(rho$frame, "terms") <- NULL
     rho$n <- n <- nrow(fr)
                                         # components of the model frame
     y <- model.response(fr)
-    if(length(dim(y)) == 1) { # avoid problems with 1D arrays, but keep names
+    # avoid problems with 1D arrays, but keep names
+    if(length(dim(y)) == 1) { 
         nm <- rownames(y)
         dim(y) <- NULL
         if(!is.null(nm)) names(y) <- nm
     }
-    rho$y <- y <- unname(as.double(y))
-
+    rho$y <- unname(as.double(y))
     rho$weights <- as.numeric(model.weights(fr))
     if (any(rho$weights < 0))
         stop(gettext("negative weights not allowed", domain = "R-lme4"))
@@ -29,6 +32,10 @@ check_y_weights <- function(fr, rho) {
         }
     }
     rho$offset <- offset
+###     if (!is.null(etastart <- model.extract("etastart")))
+###         rho$etastart <- etastart
+###     if (!is.null(mustart <- model.extract("mustart")))
+###         rho$mustart <- mustart
 }
     
 ##' Install various objects, including Lambda, Lind, Zt and Ut in
@@ -58,6 +65,12 @@ makeZt <- function(bars, fr, rho) {
                     if (nc  > 1) 
                         sm <- do.call(rBind, lapply(nseq, function(i) sm))
                     sm@x[] <- t(mm[])
+                    ## When nc > 1 switch the order of the rows of sm
+                    ## so the random effects for the same level of the
+                    ## grouping factor are adjacent.
+                    if (nc > 1)
+                        sm <- sm[as.vector(matrix(seq_len(nc * nl),
+                                                  nc = nc, byrow = TRUE)),]
                     list(ff = ff, sm = sm, nc = nc, nl = nl,
                          cnms = colnames(mm))
                 })
@@ -195,10 +208,12 @@ lmer2 <-
     rho$Zty <- rho$Zt %*% rho$y            
     rho$ZtX <- rho$Zt %*% X
     rho$compDev <- compDev
+    rho$call <- mc
     sP <- function(x) {
 ### FIXME: weights are not yet incorporated (needed here?)
         if (compDev) {
-            .Call(lme4a:::lmerenv_deviance, parent.env(environment()), x)
+            .Call("lmerenv_deviance", parent.env(environment()), x,
+                  PACKAGE = "lme4a")
         } else {
             stopifnot(length(x) == length(theta))
             theta <<- as.numeric(x)
@@ -372,54 +387,38 @@ printMerenv <- function(x, digits = max(3, getOption("digits") - 3),
                         signif.stars = getOption("show.signif.stars"), ...)
 {
     so <- summary(x)
-    dc <- devcomp(x)
-    rho <- env(x)
-    REML <- rho$REML
-    llik <- so@logLik
-    dev <- so@deviance
-    dims <- x@dims
-
-    cat(so@methTitle, "\n")
-    if (!is.null(x@call$formula))
-        cat("Formula:", deparse(x@call$formula),"\n")
-    if (!is.null(x@call$data))
-        cat("   Data:", deparse(x@call$data), "\n")
-    if (!is.null(x@call$subset))
+    cat(so$methTitle, "\n")
+    if (!is.null(so$call$formula))
+        cat("Formula:", deparse(so$call$formula),"\n")
+    if (!is.null(so$call$data))
+        cat("   Data:", deparse(so$call$data), "\n")
+    if (!is.null(so$call$subset))
         cat(" Subset:",
-            deparse(asOneSidedFormula(x@call$subset)[[2]]),"\n")
-    print(so@AICtab, digits = digits)
+            deparse(asOneSidedFormula(x$call$subset)[[2]]),"\n")
+    print(so$AICtab, digits = digits)
+    cat("\nRandom effects:\n")
+    print(so$REmat, quote = FALSE, digits = digits, ...)
 
-    cat("Random effects:\n")
-    print(so@REmat, quote = FALSE, digits = digits, ...)
-
-    ngrps <- so@ngrps
-    n <- length(x@y)
-    cat(sprintf("Number of obs: %d, groups: ", n))
+    ngrps <- so$ngrps
+    cat(sprintf("Number of obs: %d, groups: ", so$devcomp$dims["n"]))
     cat(paste(paste(names(ngrps), ngrps, sep = ", "), collapse = "; "))
     cat("\n")
-    if (is.na(so@sigma))
-	cat("\nEstimated scale (compare to 1):",
-            sqrt(exp(so@deviance["lr2"])/n), "\n")
-    if (nrow(so@coefs) > 0) {
+    if (nrow(so$coefs) > 0) {
 	cat("\nFixed effects:\n")
-	printCoefmat(so@coefs, zap.ind = 3, #, tst.ind = 4
+	printCoefmat(so$coefs, zap.ind = 3, #, tst.ind = 4
 		     digits = digits, signif.stars = signif.stars)
 	if(correlation) {
-	    corF <- so@vcov@factors$correlation
+	    corF <- so$vcov@factors$correlation
 	    if (!is.null(corF)) {
 		p <- ncol(corF)
 		if (p > 1) {
-		    rn <- rownames(so@coefs)
+		    rn <- rownames(so$coefs)
 		    rns <- abbreviate(rn, minlen=11)
 		    cat("\nCorrelation of Fixed Effects:\n")
 		    if (is.logical(symbolic.cor) && symbolic.cor) {
 			corf <- as(corF, "matrix")
 			dimnames(corf) <- list(rns,
-					       if(getRversion() >= "2.8.0")
-					       abbreviate(rn, minlength=1, strict=TRUE)
-					       else ## for now
-					       .Internal(abbreviate(rn, 1, TRUE))
-					       )
+					       abbreviate(rn, minlength=1, strict=TRUE))
 			print(symnum(corf))
 		    }
 		    else {
@@ -445,50 +444,31 @@ setMethod("summary", signature(object = "lmerenv"),
           fcoef <- fixef(object)
           vcov <- vcov(object)
           corF <- vcov@factors$correlation
-          dims <- object@dims
-          coefs <- cbind("Estimate" = fcoef, "Std. Error" = corF@sd) #, DF = DF)
+          coefs <- cbind("Estimate" = fcoef, "Std. Error" = corF@sd)
           llik <- logLik(object, REML)
-#          dev <- object@deviance
-          mType <- "LMM"
-          mName <- switch(mType, LMM = "Linear", NMM = "Nonlinear",
-                          GLMM = "Generalized linear",
-                          GNMM = "Generalized nonlinear")
-          method <- if(REML) "REML" else "maximum likelihood"
-
-          AICframe <- data.frame(AIC = AIC(llik), BIC = BIC(llik),
-                                 logLik = c(llik),
-                                 deviance = dev["ML"],
-                                 REMLdev = dev["REML"],
-                                 row.names = "")
-          if (is.na(AICframe$REMLdev)) AICframe$REMLdev <- NULL
+          mName <- paste("Linear mixed model fit by",
+                         if (REML) "REML" else "maximum likelihood")
+          AICframe <- if (REML) dc$cmp["REML"] else
+          data.frame(AIC = AIC(llik), BIC = BIC(llik),
+                     logLik = c(llik),
+                     deviance = unname(dc$cmp["deviance"]), row.names = "")
           varcor <- VarCorr(object)
           REmat <- formatVC(varcor)
-          if (is.na(attr(varcor, "sc")))
-              REmat <- REmat[-nrow(REmat), , drop = FALSE]
-
-          if (nrow(coefs) > 0) {
-              if (!dims["useSc"]) {
-                  coefs <- coefs[, 1:2, drop = FALSE]
-                  stat <- coefs[,1]/coefs[,2]
-                  pval <- 2*pnorm(abs(stat), lower = FALSE)
-                  coefs <- cbind(coefs, "z value" = stat, "Pr(>|z|)" = pval)
-              } else {
-                  stat <- coefs[,1]/coefs[,2]
-                  ##pval <- 2*pt(abs(stat), coefs[,3], lower = FALSE)
-                  coefs <- cbind(coefs, "t value" = stat) #, "Pr(>|t|)" = pval)
-              }
-          } ## else : append columns to 0-row matrix ...
-          new("summary.mer",
-              object,
-              methTitle = paste(mName, "mixed model fit by", method),
-              logLik = llik,
-              ngrps = sapply(object@flist, function(x) length(levels(x))),
-              sigma = sigma(object),
-              coefs = coefs,
-              vcov = vcov,
-              REmat = REmat,
-              AICtab= AICframe
-              )
+          if (nrow(coefs) > 0)
+              coefs <- cbind(coefs, "t value" = coefs[,1]/coefs[,2])
+          ans <- list(methTitle = mName, 
+                      devcomp = dc,
+                      logLik = llik,
+                      ngrps = sapply(rho$flist, function(x) length(levels(x))),
+                      sigma = sigma(object),
+                      coefs = coefs,
+                      vcov = vcov,
+                      REmat = REmat,
+                      AICtab= AICframe,
+                      call = rho$call
+                      )
+          class(ans) <- "summary.lmer2" # use S3 class for now
+          ans
       })## summary()
 
 setMethod("model.frame", signature(formula = "lmerenv"),
@@ -523,6 +503,32 @@ setMethod("logLik", signature(object="lmerenv"),
           class(val) <- "logLik"
           val
       })
+
+setMethod("update", signature(object = "mer"),
+	  function(object, formula., ..., evaluate = TRUE)
+      {
+	  call <- env(object)$call
+	  if (is.null(call))
+	      stop("env(object) should contain a call object")
+	  extras <- match.call(expand.dots = FALSE)$...
+	  if (!missing(formula.))
+	      call$formula <- update.formula(formula(object), formula.)
+	  if (length(extras) > 0) {
+	      existing <- !is.na(match(names(extras), names(call)))
+	      for (a in names(extras)[existing]) call[[a]] <- extras[[a]]
+	      if (any(!existing)) {
+		  call <- c(as.list(call), extras[!existing])
+		  call <- as.call(call)
+	      }
+	  }
+	  if (evaluate)
+	      eval(call, parent.frame())
+	  else call
+      })
+
+setMethod("print", "lmerenv", printMerenv)
+setMethod("show", "lmerenv", function(object) printMerenv(object))
+
 
 ##' Fit a nonlinear mixed-effects model
 ##'
@@ -633,7 +639,7 @@ nlmer2 <- function(formula, data, family = gaussian, start = NULL,
     p <- ncol(rho$X)
     if ((qrX <- qr(rho$X))$rank < p)
         stop(gettextf("rank of X = %d < ncol(X) = %d", qrX$rank, p))
-    rho$start <- numeric(p)             # must be careful that these are distinct
+    rho$start <- numeric(p)  # must be careful that these are distinct
     rho$start[] <- rho$fixef <- qr.coef(qrX, unlist(lapply(pnames, get, envir = rho$nlenv)))
     rho$RX <- qr.R(qrX)
     eb <- evalbars(formula, fr, contrasts, TRUE) # flist, trms, nest
