@@ -7,7 +7,7 @@ options(width=65, show.signif.stars = FALSE,
         lattice.theme = function() canonical.theme("pdf", color = FALSE))
 library(lattice)
 library(Matrix)
-library(lme4)
+library(lme4a)
 fm1 <- lmer(Yield ~ 1 + (1|Batch), Dyestuff)
 fm1ML <- update(fm1, REML = FALSE)
 VCREML <- VarCorr(fm1)
@@ -36,14 +36,13 @@ if (file.exists("grd1.rda")) {
 } else {
     sigmaDev <- function(fenv, theta, sigma)
     {
-        setPars(fenv, theta)
+        fenv@setPars(theta)
         sigmasq <- sigma^2
-        dev <- fenv$deviance
-        n <- nrow(fenv$X)
-        nmp <- n - ncol(fenv$X)
-        base <- unname(dev["ldL2"] +  dev["pwrss"]/sigmasq)
+        dc <- devcomp(fenv)
+        dev <- dc$cmp
+        base <- unname(dev["ldL2"] +  dev["prss"]/sigmasq)
         l2ps <- log(2*pi*sigmasq)
-        base + unname(c(dev["ldRX2"],0)) + c(nmp,n) * l2ps
+        base + unname(c(dev["ldRX2"],0)) + dc$dims[c("nmp","n")] * l2ps
     }
     sigmaDev1 <- function(fenv, pars)
     {
@@ -52,8 +51,6 @@ if (file.exists("grd1.rda")) {
         sigmaDev(fenv, pars[-lp]/pars[lp], pars[lp])
     }
     fm1env <- lmer(Yield ~ 1 + (1|Batch), Dyestuff, doFit = FALSE)
-    n <- nrow(fm1env$X)
-    nmp <- n - ncol(fm1env$X)
     sigB <- seq(0, 225,len = 101)
     sigmas <- seq(30, 100,len = 101)
     grd1 <- expand.grid(sigB = sigB, sigma = sigmas)
@@ -201,7 +198,7 @@ edition of the book mentioned above, as coming from
 To access these data within \R{} we must first attach the \code{lme4}
 package to our session using
 <<lme4>>=
-library(lme4)
+library(lme4a)
 @
 Note that the \code{"$>$"} symbol in the line shown is the prompt in
 \R{} and not part of what the user types. The \package{lme4} package
@@ -252,7 +249,7 @@ summary(Dyestuff)
 <<Dyestuffdot,fig=TRUE,echo=FALSE,height=3.5>>=
 set.seed(1234543)
 print(dotplot(reorder(Batch, Yield) ~ Yield, Dyestuff,
-              ylab = "Batch", jitter.y = TRUE,
+              ylab = "Batch", jitter.y = TRUE, pch = 21,
               xlab = "Yield of dyestuff (grams of standard color)",
               type = c("p", "a")))
 @   
@@ -328,7 +325,7 @@ seen in Figure~\ref{fig:Dyestuff2dot}
   \centering
 <<Dyestuff2dot,fig=TRUE,echo=FALSE,height=3.5>>=
 print(dotplot(reorder(Batch, Yield) ~ Yield, Dyestuff2,
-              ylab = "Batch", jitter.y = TRUE,
+              ylab = "Batch", jitter.y = TRUE, pch = 21,
               xlab = "Simulated response (dimensionless)",
               type = c("p", "a")))
 @   
@@ -520,8 +517,8 @@ For both the REML and the ML estimation criterion the estimate of this
 parameter is \Sexpr{round(fixef(fm1)[1], 2)} gm. (equality is again a
 consequence of the simple model and balanced data set).  The standard
 error of the intercept estimate is
-\Sexpr{round(summary(fm1)@coefs[1,2], 2)} gm. for the REML fit and
-\Sexpr{round(summary(fm1ML)@coefs[,2], 2)} gm. for the ML fit.
+\Sexpr{round(coef(summary(fm1))[1,2], 2)} gm. for the REML fit and
+\Sexpr{round(coef(summary(fm1ML))[,2], 2)} gm. for the ML fit.
 
 \subsubsection{Degrees of freedom and p-values
   for the fixed-effects parameters}
@@ -616,7 +613,7 @@ In all the forms of mixed models that we will consider, the random effects
 vector has a multivariate normal (also called Gaussian) distribution
 with mean vector $\bm 0$ and with a parameterized, $q\times q$,
 symmetric, variance-covariance matrix that we will write as
-$\bm\Sigma(\bm\theta)$.  The notation indicates that this symmetric
+$\bm\Sigma_\theta$.  The notation indicates that this symmetric
 $q\times q$ matrix $\bm\Sigma$ depends on a parameter vector that is
 written as $\bm\theta$.  Even though some of the elements of
 $\bm\theta$ may determine covariances and not variances, we shall
@@ -626,7 +623,7 @@ refer to them collectively as the \emph{variance-component
 We write this distribution as
 \begin{equation}
   \label{eq:unconditionalB}
-  \bc{B}\sim\mathcal{N}(\bm 0,\bm\Sigma(\bm\theta)) .
+  \bc{B}\sim\mathcal{N}(\bm 0,\bm\Sigma_\theta) .
 \end{equation}
 Because this distribution does not depend on the value, $\bm y$, of
 the random variable, $\bc Y$, we say it is the \emph{unconditional}
@@ -708,16 +705,11 @@ scalar term, the model matrix $\bm Z$ for this model is the indicator
 matrix for the levels of \code{Batch}.
 
 The transpose of this matrix, of dimension $6\times 30$, is stored as
-a sparse matrix in the fitted model object in a ``slot'' called
+a sparse matrix in the environment of fitted model object as
 \code{Zt}.
-<<fm1Zt,eval=FALSE>>=
-fm1@Zt
+<<fm1Zt>>=
+env(fm1)$Zt
 @ 
-<<fm1Ztreal,echo=FALSE>>=
-tt <- fm1@Zt
-rownames(tt) <- LETTERS[1:nrow(tt)]
-tt
-@
 A sparse matrix is one in which most of the elements are known to be
 zero.  These elements are represented by a \code{"."} in this display.
 The nature of an indicator matrix is such that only one element in
@@ -734,7 +726,7 @@ Figure~\ref{fig:fm1Ztimage}.
 \begin{figure}[tbp]
   \centering
 <<fm1Ztimage,fig=TRUE,echo=FALSE,height=2.5>>=
-print(image(tt, sub=NULL))
+print(image(env(fm1)$Zt, sub=NULL))
 @   
   \caption[Image of the random-effects model matrix for
   \texttt{fm1}]{Image of the transpose of the random-effects model
@@ -748,11 +740,11 @@ its structure more compactly than does the printed representation.
 
 When the model contains only one random-effects term and that term is
 a simple, scalar term, then the variance-covariance matrix
-$\bm\Sigma(\bm\theta)$ is a non-negative multiple of $\bm I_q$, the
+$\bm\Sigma_\theta$ is a non-negative multiple of $\bm I_q$, the
 $q\times q$ identity matrix.  Although we will defer until later the
-discussion of the exact form of $\bm\Sigma(\bm\theta)$ for other
+discussion of the exact form of $\bm\Sigma_\theta$ for other
 models, we will now introduce a transformation of
-$\bm\Sigma(\bm\theta)$ that we will use throughout.
+$\bm\Sigma_\theta$ that we will use throughout.
 
 \subsubsection{The relative covariance factor}
 \label{sec:relcovfac}
@@ -764,44 +756,44 @@ means, in effect, that $\bm\Sigma$ has the matrix equivalent of a
 (\ref{eq:LMMconddist}), must be non-negative and that the standard
 deviation, $\sigma\ge0$, is the square root of the variance.  A
 variance-covariance matrix has a similar property.  There must be a
-matrix, say $\bm\Lambda(\bm\theta)$, such that when it is multiplied
+matrix, say $\bm\Lambda_\theta$, such that when it is multiplied
 by its transpose it produces the original matrix,
-$\bm\Sigma(\bm\theta)$.  This is not quite like ``squaring'' the
-matrix because the factor, $\bm\Lambda(\bm\theta)$, is multiplied by
+$\bm\Sigma_\theta$.  This is not quite like ``squaring'' the
+matrix because the factor, $\bm\Lambda_\theta$, is multiplied by
 its transpose, so as to create a product that is symmetric, as
-$\bm\Sigma(\bm\theta)$ must be.
+$\bm\Sigma_\theta$ must be.
 
 It turns out that we can simplify many subsequent formulas if we
-define $\bm\Lambda(\bm\theta)$ to be a multiple of the square-root
+define $\bm\Lambda_\theta$ to be a multiple of the square-root
 factor, which we call the \emph{relative covariance factor}, defined
 to satisfy
 \begin{equation}
   \label{eq:relcovfac}
-  \bm\Sigma(\bm\theta)=\sigma^2\bm\Lambda(\bm\theta)
-  \bm\Lambda(\bm\theta)\trans .
+  \bm\Sigma_\theta=\sigma^2\bm\Lambda_\theta
+  \bm\Lambda_\theta\trans .
 \end{equation}
 The symbol $\trans$ denotes the transpose of a matrix and $\sigma^2$
 is the common scale parameter defined in (\ref{eq:LMMconddist}).
 
-The term ``relative'' indicates that $\bm\Lambda(\bm\theta)$ is the
+The term ``relative'' indicates that $\bm\Lambda_\theta$ is the
 factor of the variance, $\bm\Sigma$, of $\bc B$ relative to the
 variance, $\sigma^2$, in the conditional distribution $(\bc Y|\bc
 B=\bm b)$.  It happens that the way that we generate
-$\bm\Lambda(\bm\theta)$ it ends up being lower triangular and
+$\bm\Lambda_\theta$ it ends up being lower triangular and
 corresponds to the left Cholesky factor of
-$\bm\Sigma(\bm\theta)/\sigma^2$.  A left Cholesky factor is often
+$\bm\Sigma_\theta/\sigma^2$.  A left Cholesky factor is often
 written $\bm L$; because the matrix being considered here is composed
 of variance and covariance parameters we denote it with the
 corresponding Greek letter, $\bm\Lambda$.
 
 For the \code{Dyestuff} model, which has only one simple, scalar
-random-effects term, $\bm\Sigma(\bm\theta)$ and
-$\bm\Lambda(\bm\theta)$ are both multiples of $\bm I_6$, the identity
+random-effects term, $\bm\Sigma_\theta$ and
+$\bm\Lambda_\theta$ are both multiples of $\bm I_6$, the identity
 matrix of size six.  Furthermore, $\bm\theta$ is one-dimensional so we
 will write it as $\theta$.  We set
 \begin{equation}
   \label{eq:lambdatheta}
-  \bm\Lambda(\theta) = \theta\bm I_6
+  \bm\Lambda_\theta = \theta\bm I_6
 \end{equation}
 subject to the constraint that $\theta\ge0$.
 
@@ -819,11 +811,11 @@ $\bm\theta$.
 Given a value of $\bm\theta$, we create
 \begin{equation}
   \label{eq:Umat}
-  \bm U(\bm\theta)=\bm Z\bm\Lambda(\bm\theta),
+  \bm U_\theta=\bm Z\bm\Lambda_\theta,
 \end{equation}
 which will be an $n\times q$ sparse matrix like $\bm Z$, and evaluate
 the $q\times q$ lower triangular sparse Cholesky factor, $\bm
-L(\bm\theta)$ that satisfies
+L_\theta$ that satisfies
 \begin{equation}
   \label{eq:Lmat}
   \bm L\bm L\trans=\bm U\trans\bm U+\bm I_q .
@@ -843,7 +835,7 @@ matrix.  The ability to compute this factorization reasonably quickly
 for many different values of $\bm\theta$ in cases like this is what
 makes the methods in the \package{lme4} package feasible.
 
-Because $\bm L(\bm\theta)$ is square and lower triangular, its
+Because $\bm L_\theta$ is square and lower triangular, its
 determinant, written $|\bm L|$, is simply the product of its diagonal
 elements.  The determinant is the measure of the size of
 the matrix that is used in evaluating probability densities of random
@@ -852,14 +844,14 @@ variables after transformation.
 After evaluating the minimum penalized residual sum of squares
 \begin{equation}
   \label{eq:PLRSS}
-  r^2(\bm\theta) = \min_{\bm u,\bm\beta}\|\bm y-\bm U\bm u-\bm
+  r^2_\theta = \min_{\bm u,\bm\beta}\|\bm y-\bm U\bm u-\bm
   X\bm\beta\|^2+\|\bm u\|^2
 \end{equation}
 (details given below) we can express the \emph{profiled deviance},
 which is negative twice the logarithm of the profiled likelihood, as
 \begin{equation}
   \label{eq:profDev}
-  -2\tilde{\ell}(\bm\theta)=\log(|\bm L|^2)+n\left[1+
+  -2\tilde{\ell}_\theta=\log(|\bm L|^2)+n\left[1+
     \log\left(\frac{2\pi r^2}{n}\right)\right] .
 \end{equation}
 We minimize the profiled deviance with respect to $\bm\theta$,
@@ -867,7 +859,7 @@ producing the ML estimate, $\widehat{\bm\theta}$, from which we derive
 the ML estimates of the other parameters, $\widehat{\bm\beta}$ and
 $\widehat{\sigma^2}$.
 
-Before describing the details of the calculation of $r^2(\bm\theta)$
+Before describing the details of the calculation of $r^2_\theta$
 and the calculation of the other parameter estimates, let us consider
 the form of the profiled deviance, (\ref{eq:profDev}), as it relates
 to our model for the \code{Dyestuff} data set and to a similar model
@@ -879,32 +871,28 @@ We can follow the progress of the iterations in optimizing the
 profiled deviance for the model fit to the \code{Dyestuff} data by
 including the optional argument \code{verbose = 1} in the call to \code{lmer}
 <<fm1MLverb>>=
-fm1ML <- lmer(Yield ~ 1 + (1 |Batch), Dyestuff, verbose = 1, REML = FALSE, control=list(algorithm="nlminb"))
+fm1ML <- lmer(Yield ~ 1 + (1 |Batch), Dyestuff, verbose = 1, REML = FALSE)
 @ 
 Each line of the ``verbose'' output consists of the iteration number,
 the current value of the profiled deviance and the current values of
 the parameter vector $\bm\theta$, which, for this model, is a scalar,
 $\theta$.  It can be seen that the optimization converges very quickly
 to an minimum deviance of \Sexpr{round(unname(deviance(fm1ML)), 3)} at
-$\hat{\theta}=\Sexpr{round(getPars(fm1ML@rCF), 3)}$.
+$\hat{\theta}=\Sexpr{round(env(fm1ML)[["theta"]], 3)}$.
 
-Some of the components of the deviance are available in the
-\code{deviance} slot of the fitted model.
+Some of the components of the deviance can be obtained with the
+\code{devcomp} extractor.
 <<fm1MLdev>>=
-round(fm1ML@deviance[c(1,3,7,9,10)],2)
-@ 
-The elements named \code{"ldL2"}, \code{"usqr"} and \code{"wrss"} are
-$\log(|\bm L|^2)$, $\|\bm u\|^2$ and $\|\bm y-\bm U\bm u-\bm
-X\bm\beta\|^2$, respectively.  (The name \code{"wrss"} stands for
-``weighted residual sum of squares''.  In some mixed models weights
-are applied to the residuals before they are squared and summed.)  The
-element named \code{"pwrss"} is $r^2(\bm\theta)$, the minimum penalized
-weighted residual sum of squares.  We can evaluate the deviance as
+round(devcomp(fm1ML)$cmp,2)
+@
+The elements named \code{"ldL2"} and \code{"prss"} are $\log(|\bm
+L|^2)$ and $r^2_\theta$, the minimum penalized weighted residual sum
+of squares, respectively.  We can evaluate the deviance as
 <<fm1MLdev2>>=
-dev <- fm1ML@deviance[c(1,3,7,9,10)]
+dev <- devcomp(fm1ML)$cmp
 n <- nrow(model.frame(fm1ML))
-(calc <- dev["ldL2"] + n * (1 + log(2 * pi * dev["pwrss"]/n)))
-all.equal(unname(calc), unname(dev["ML"]))
+(calc <- dev["ldL2"] + n * (1 + log(2 * pi * dev["prss"]/n)))
+all.equal(unname(calc), unname(dev["deviance"]))
 @ 
 
 Because $\theta$ is one-dimensional in this model we can examine each
@@ -914,13 +902,18 @@ of the components as they depend on $\theta$.  In Figure~\ref{fig:DyeML}
 <<DyeML,fig=TRUE,echo=FALSE,results=hide,height=5>>=
 fm1env <- lmer(Yield ~ 1 + (1|Batch), Dyestuff, REML=FALSE, doFit = FALSE)
 theta <- seq(0,3,0.01)
-res <- cbind(as.data.frame(t(sapply(theta,
-                                  function(x) {
-                                      setPars(fm1env, x)
-                                      fm1env$deviance[c(1:7,9,10)]
-                                  }))), theta)
-names(res)[1] <- "deviance"
-res$lprss <- n * (1 + log(2 * pi * res$pwrss/n))
+res <-
+    as.data.frame(t(sapply(theta,
+                           function(x) {
+                               fm1env@setPars(x)
+                               rho <- env(fm1env)
+                               dc <- devcomp(fm1env)
+                               sigma <- sqrt(dc$cmp["prss"]/dc$dims[c("n","nmp")])
+                               c(theta = x, dc$cmp, sigma,
+                                 with(rho, c(usqr = crossprod(u),
+                                             rss = crossprod(y-fitted))))
+                           })))
+res$lprss <- n * (1 + log(2 * pi * res$prss/n))
 print(xyplot(deviance + ldL2 + lprss ~ theta,
              res, xlab = expression(theta), ylab = NULL, outer = TRUE,
              scales = list(y = list(relation = "free", rot = 0),
@@ -955,11 +948,11 @@ $\log(\theta)$ for large values of $\theta$.
 
 The other term, $n[1+\log(2\pi r^2(\theta)/n)]$, depends on $\theta$
 only through the minimum penalized residual sum of squares,
-$r^2(\theta)$.  In Figure~\ref{fig:pwrssCom}
+$r^2(\theta)$.  In Figure~\ref{fig:prssCom}
 \begin{figure}[tbp]
   \centering
-<<pwrssCom,fig=TRUE,echo=FALSE,>>=
-print(xyplot(pwrss + usqr + wrss ~ theta,
+<<prssCom,fig=TRUE,echo=FALSE,>>=
+print(xyplot(prss + usqr + rss ~ theta,
              res, xlab = expression(theta), ylab = NULL, outer = TRUE,
              scales = list(y = list(relation = "free", rot = 0),
                            x = list(axs = 'i')),
@@ -1057,7 +1050,7 @@ We can, however, have $\hat{\theta}=0$, which is exactly what occurs
 for the same model fit to the \code{Dyestuff2} data.
 <<fm2ML>>=
 (fm2ML <- lmer(Yield ~ 1 + (1 |Batch), Dyestuff2, verbose = 1,
-               REML = FALSE, control = list(algorithm = "nlminb")))
+               REML = FALSE))
 @ 
 Figure~\ref{fig:Dye2ML}
 \begin{figure}[tbp]
@@ -1065,14 +1058,17 @@ Figure~\ref{fig:Dye2ML}
 <<Dye2ML,fig=TRUE,echo=FALSE,results=hide,height=9>>=
 fm2MLpart <- lmer(Yield ~ 1 + (1|Batch), Dyestuff2, REML=FALSE, doFit = FALSE)
 theta <- seq(0,3,0.01)
-res2 <- cbind(as.data.frame(t(sapply(theta,
-                                  function(x) {
-                                      setPars(fm2MLpart, x)
-                                      fm2MLpart$deviance[c(1:7,9,10)]
-                                  }))), theta)
-names(res2)[1] <- "deviance"
-res2$lprss <- n * (1 + log(2 * pi * res2$pwrss/n))
-print(xyplot(deviance + ldL2 + lprss + pwrss + usqr + wrss ~ theta,
+res2 <-
+    as.data.frame(t(sapply(theta,
+                           function(x) {
+                               fm2MLpart@setPars(x)
+                               rho <- env(fm2MLpart)
+                               c(devcomp(fm2MLpart)$cmp, theta = x,
+                                 with(rho, c(usqr = crossprod(u),
+                                             rss = crossprod(y-fitted))))
+                           })))
+res2$lprss <- n * (1 + log(2 * pi * res2$prss/n))
+print(xyplot(deviance + ldL2 + lprss + prss + usqr + rss ~ theta,
              res2, xlab = expression(theta), ylab = NULL, outer = TRUE,
              scales = list(y = list(relation = "free", rot = 0),
                            x = list(axs = 'i')),
@@ -1084,8 +1080,8 @@ model]{The profiled deviance and its components as a function of
   $\theta$ in the simple model fit to the \code{Dyestuff2} data.  The
   panel labeled \code{ldL2} is $\log(|\bm L(\theta)|^2)$ and the panel
   labeled \code{lprss} is $n[1+\log(2\pi r^2(\theta))/n)]$.  The
-  panel labeled \code{pwrss} is $r^2(\theta)$, with components
-  \code{usqr} and \code{wrss}.}
+  panel labeled \code{prss} is $r^2(\theta)$, with components
+  \code{usqr} and \code{rss}.}
   \label{fig:Dye2ML}
 \end{figure}
 shows the deviance for this model, and its components, as a function
@@ -1204,7 +1200,7 @@ $\widehat{\sigma^2}(\widehat{\bm\theta})$.
 To explain how the profiled REML criterion is evaluated we must
 provide a bit more detail regarding the solution of the penalized
 least squares problem, (\ref{eq:PLSjointSol}). Recall that $\tilde{\bm
-  u}(\bm\theta)$ and $\widehat{\bm\beta}(\bm\theta)$ are the solutions
+  u}_\theta$ and $\widehat{\bm\beta}_\theta$ are the solutions
 to
 \begin{displaymath}
   \begin{bmatrix}
@@ -1212,19 +1208,19 @@ to
     \bm X\trans\bm U         & \bm X\trans\bm X
   \end{bmatrix}
   \begin{bmatrix}
-    \tilde{\bm u}(\bm\theta)\\
-    \widehat{\bm\beta}(\bm\theta)
+    \tilde{\bm u}_\theta\\
+    \widehat{\bm\beta}_\theta
   \end{bmatrix} =
   \begin{bmatrix}\bm U\trans\bm y\\\bm X\trans\bm y\end{bmatrix} .
 \end{displaymath}
 where
 \begin{displaymath}
-  \bm U(\bm\theta)=\bm Z\bm\Lambda(\bm\theta) .
+  \bm U_\theta=\bm Z\bm\Lambda_\theta .
 \end{displaymath}
-Furthermore, the Cholesky factor, $\bm L(\bm\theta)$, is the sparse,
+Furthermore, the Cholesky factor, $\bm L_\theta$, is the sparse,
 lower-triangular matrix that satisfies (\ref{eq:Lmat}),
 \begin{displaymath}
-  \bm L(\bm\theta)\bm L\trans(\bm\theta)=\bm U\trans(\bm\theta)\bm U(\bm\theta)+\bm I_q .
+  \bm L_\theta\bm L\trans_\theta=\bm U\trans_\theta\bm U_\theta+\bm I_q .
 \end{displaymath}
 
 We can extend the Cholesky factor of $\bm U\trans\bm U+\bm I_q$ to
@@ -1269,12 +1265,12 @@ return the right factor.)
 The profiled REML criterion, expressed on the deviance scale, is 
 \begin{equation}
   \label{eq:REMLdev}
-  -2\tilde{\ell}_R(\bm\theta)=\log(|\bm L|^2|\bm R_X|^2)+(n-p)\left[1+
+  -2\tilde{\ell}_R(\theta)=\log(|\bm L|^2|\bm R_X|^2)+(n-p)\left[1+
     \log\left(\frac{2\pi r^2}{n-p}\right)\right] .
 \end{equation}
 Let $\widehat{\bm\theta_R}$ be the value of $\bm\theta$ that minimizes
 this criterion. The REML estimates of the fixed-effects parameters are
-the conditional estimates, $\widehat{\bm\beta}(\bm\theta)$, satisfying
+the conditional estimates, $\widehat{\bm\beta}_\theta$, satisfying
 (\ref{eq:PLSjointSol}), evaluated at $\widehat{\bm\theta_R}$.  The
 REML estimate of $\sigma^2$, the common scale parameter, is
 \begin{equation}
@@ -1363,7 +1359,7 @@ Figure~\ref{fig:Dye1REMLcomp}
 <<Dye1REMLcomp,fig=TRUE,echo=FALSE,height=6.5>>=
 res <- within(res,
           {
-              lprssRE <- (n - 1) * (1 + log(2 * pi * pwrss/(n - 1)))
+              lprssRE <- (n - 1) * (1 + log(2 * pi * prss/(n - 1)))
               ldSum <- ldL2 + ldRX2
           })
 print(xyplot(REML + ldL2 + ldRX2 + ldSum + lprssRE ~ theta,
@@ -1404,8 +1400,8 @@ $\log(|\bm R_X|^2)$, results in
 \begin{equation}
   \label{eq:thetacomp}
   \widehat{\theta_R}=
-  \Sexpr{sprintf("%.4f", getPars(fm1@rCF))} >
-    \Sexpr{sprintf("%.4f", getPars(fm1ML@rCF))}
+  \Sexpr{sprintf("%.4f", fm1@getPars())} >
+    \Sexpr{sprintf("%.4f", fm1ML@getPars())}
       =\widehat{\theta_{\mathit{ML}}}
 \end{equation}
 
@@ -1415,7 +1411,7 @@ Figure~\ref{fig:Dye2REMLcomp}
 <<Dye2REMLcomp,fig=TRUE,echo=FALSE,height=6.5>>=
 res2 <- within(res2,
            {
-               lprssRE <- (n - 1) * (1 + log(2 * pi * pwrss/(n - 1)))
+               lprssRE <- (n - 1) * (1 + log(2 * pi * prss/(n - 1)))
                ldSum <- ldL2 + ldRX2
            })
 print(xyplot(REML + ldL2 + ldRX2 + ldSum + lprssRE ~ theta,
@@ -1461,7 +1457,7 @@ probability model described in the last section.  In that model, the
 random effects, $\bc B$, are unobserved random variables.  
 
 From the unconditional distribution, $\bc B\sim\mathcal{N}(\bm0,
-\sigma^2\bm\Lambda(\bm\theta)\bm\Lambda\trans(\bm\theta))$ and the
+\sigma^2\bm\Lambda_\theta\bm\Lambda\trans_\theta)$ and the
 conditional distribution, $(\bc Y|\bc B=\bm b)\sim\mathcal{N}(\bm Z\bm
 b+\bm X\bm\beta,\sigma^2\bm I_n)$ we can determine the conditional
 distribution of the random effects given the observed data, written
@@ -1501,27 +1497,27 @@ random effects.
 The relationship between $\bc U$ and $\bc B$,
 \begin{equation}
   \label{eq:BLambdaU}
-  \bc B=\bm\Lambda(\bm\theta)\bc U,
+  \bc B=\bm\Lambda_\theta\bc U,
 \end{equation}
 provides the required distribution $\bc B\sim\mathcal{N}(\bm
-0,\sigma^2\bm\Lambda(\bm\theta)\bm\Lambda\trans(\bm\theta)$.
+0,\sigma^2\bm\Lambda_\theta\bm\Lambda\trans_\theta$.
 
 If we knew the values of the parameters $\bm\theta$ and $\bm\beta$
 then we could evaluate the conditional mean of the spherical random
 effects, $\bm\mu_{\bc U|\bc Y=\bm y}$, as
 \begin{equation}
   \label{eq:condmeanU}
-  (\bm U\trans(\bm\theta)\bm U+\bm I_q)\bm\mu_{\bc U|\bc Y=\bm y} =
-  \bm L(\bm\theta)\bm L\trans(\bm\theta)\bm\mu_{\bc U|\bc Y=\bm y}=
-  \bm U\trans(\bm\theta)\left(\bm y - \bm X\bm\beta\right) .
+  (\bm U\trans_\theta\bm U+\bm I_q)\bm\mu_{\bc U|\bc Y=\bm y} =
+  \bm L_\theta\bm L\trans_\theta\bm\mu_{\bc U|\bc Y=\bm y}=
+  \bm U\trans_\theta\left(\bm y - \bm X\bm\beta\right) .
 \end{equation}
 
 At the estimated parameter values the conditional mean is $\bm\mu_{\bc
   U|\bc Y=\bm y}=\tilde{\bm u}(\widehat{\bm\theta})$.  That is, the
 solution of the penalized least squares problem (\ref{eq:jointmin})
 provides both the conditional estimate of the fixed effects
-parameters, $\widehat{\bm\beta}(\bm\theta)$, and the conditional mean
-of the spherical random effects, $\tilde{\bm u}(\bm\theta)$, for a
+parameters, $\widehat{\bm\beta}_\theta$, and the conditional mean
+of the spherical random effects, $\tilde{\bm u}_\theta$, for a
 given value of $\bm\theta$.
 
 The conditional mean of $\bc B$, evaluated at the parameter estimates,
@@ -1535,22 +1531,22 @@ The conditional variance of the spherical random effects is
 \begin{equation}
   \label{eq:condVarU}
   \text{Var}(\bc U|\bc Y=\bm y)=\sigma^2
-  \left(\bm L(\bm\theta)\bm L\trans(\bm\theta)\right)^{-1},
+  \left(\bm L_\theta\bm L\trans_\theta\right)^{-1},
 \end{equation}
 hence 
 \begin{equation}
   \label{eq:condVarB}
   \text{Var}(\bc B|\bc Y=\bm y)=\sigma^2
-  \bm\Lambda(\bm\theta)
-  \left(\bm L(\bm\theta)\bm L\trans(\bm\theta)\right)^{-1}
-  \bm\Lambda\trans(\bm\theta) .
+  \bm\Lambda_\theta
+  \left(\bm L_\theta\bm L\trans_\theta\right)^{-1}
+  \bm\Lambda\trans_\theta .
 \end{equation}
 
 In the simple model for the \code{Dyestuff} data that we have been
 considering the matrices $\bm\Lambda(\theta)$ and $\bm L(\theta)$ are
 both diagonal --- in fact, they are multiples of the identity matrix
 --- so it is easy to compute $\left(\bm L(\theta)\bm
-  L\trans(\bm\theta)\right)^{-1}$.  In general, though, it is not easy
+  L\trans_\theta\right)^{-1}$.  In general, though, it is not easy
 to compute the inverse of a large, sparse matrix and we do not attempt
 to do so.  Instead we evaluate the diagonal elements of
 (\ref{eq:condVarB}) at the parameter estimates and use those to form
@@ -1567,7 +1563,8 @@ Figure~\ref{fig:fm1ranef}
 \begin{figure}[tbp]
   \centering
 <<fm1ranef,fig=TRUE,echo=FALSE,height=2.5>>=  
-print(dotplot(ranef(fm1, postVar = TRUE), strip = FALSE)[[1]])
+#print(dotplot(ranef(fm1, postVar = TRUE), strip = FALSE)[[1]])
+print(dotplot(ranef(fm1), strip = FALSE)[[1]])
 @ 
 \caption{95\% prediction intervals on the random effects for
   \code{Batch} in model \code{fm1} fit to the \code{Dyestuff} data.}
@@ -1593,7 +1590,7 @@ $\sigma^2$ in the model
 \begin{equation}
   \label{eq:LMM}
   \bc B\sim\mathcal{N}\left(\bm 0,
-    \sigma^2\bm\Lambda(\bm\theta)\bm\Lambda\trans(\bm\theta)\right),\:
+    \sigma^2\bm\Lambda_\theta\bm\Lambda\trans_\theta\right),\:
   (\bc Y|\bc B=\bm b)\sim\mathcal{N}\left(\bm Z\bm b+\bm X\bm\beta,
     \sigma^2\bm I\right)
 \end{equation}
@@ -1601,19 +1598,19 @@ is the variance of the residual or per-observation noise.  The
 conditional maximum likelihood estimate of $\sigma^2$ is
 \begin{equation}
   \label{eq:LMMsigmaML}
-  \widehat{\sigma^2}_{\mathit{ML}}=\frac{r^2(\bm\theta)}{n}
+  \widehat{\sigma^2}_{\mathit{ML}}=\frac{r^2_\theta}{n}
 \end{equation}
 and the conditional REML estimate is
 \begin{equation}
   \label{eq:LMMsigmaREML}
-  \widehat{\sigma^2}_{\mathit{R}}=\frac{r^2(\bm\theta)}{n-p} .
+  \widehat{\sigma^2}_{\mathit{R}}=\frac{r^2_\theta}{n-p} .
 \end{equation}
 
 In Figure~\ref{fig:sigmavtheta}
 \begin{figure}[tbp]
   \centering
 <<sigmavtheta,fig=TRUE,echo=FALSE,height=3.5>>=
-print(xyplot(sigmaML + sigmaREML ~ theta, res,
+print(xyplot(n + nmp ~ theta, res,
              outer = FALSE,
              xlab = expression(theta),
              ylab = expression(hat(sigma)(theta)),
@@ -1845,7 +1842,7 @@ the model and the observed data, with respect to all of these
 parameters simultaneously.  However, for this particular model we can
 simplify the optimization problem because, for any value of
 $\bm\theta$, we can determine the conditional estimates,
-$\widehat{\bm\beta}(\bm\theta)$ and $\widehat{\sigma^2}(\bm\theta)$,
+$\widehat{\bm\beta}_\theta$ and $\widehat{\sigma^2}_\theta$,
 of the other parameters in a direct computation.
 
 Furthermore, this computation, determining the solution of the penalized
@@ -1856,29 +1853,29 @@ linear least squares problem
   \left\|
     \begin{bmatrix}\bm y\\\bm 0\end{bmatrix} -
     \begin{bmatrix}
-      \bm Z\bm\Lambda(\bm\theta) & \bm X\\
+      \bm Z\bm\Lambda_\theta & \bm X\\
       \bm I_q & \bm 0
     \end{bmatrix}
     \begin{bmatrix}\bm u\\\bm\beta\end{bmatrix}
   \right\|^2 =
   \min_{\bm u,\bm\beta}\left(
-    \left\|\bm y - \bm Z\bm\Lambda(\bm\theta)\bm u -
+    \left\|\bm y - \bm Z\bm\Lambda_\theta\bm u -
       \bm X\bm\beta\right\|^2 + \|\bm u\|^2\right)
 \end{equation}
-as the vectors, $\widehat{\bm\beta}(\bm\theta)$ and $\tilde{\bm u}$,
+as the vectors, $\widehat{\bm\beta}_\theta$ and $\tilde{\bm u}$,
 that satisfy
 \begin{equation}
   \label{eq:plsSol}
   \begin{bmatrix}
-    \bm\Lambda(\bm\theta)\trans\bm Z\trans\bm
-    Z\bm\Lambda(\bm\theta)+\bm I_q&\bm\Lambda(\bm\theta)\trans\bm
+    \bm\Lambda_\theta\trans\bm Z\trans\bm
+    Z\bm\Lambda_\theta+\bm I_q&\bm\Lambda_\theta\trans\bm
     Z\trans\bm X\\
-    \bm X\trans\bm Z\bm\Lambda(\bm\theta)&\bm X\trans\bm X
+    \bm X\trans\bm Z\bm\Lambda_\theta&\bm X\trans\bm X
   \end{bmatrix}
-  \begin{bmatrix}\tilde{\bm u}\\\widehat{\bm\beta}(\bm\theta)\end{bmatrix}
+  \begin{bmatrix}\tilde{\bm u}\\\widehat{\bm\beta}_\theta\end{bmatrix}
   =
   \begin{bmatrix}
-    \bm\Lambda(\bm\theta)\trans\bm Z\trans\bm y\\\bm X\trans\bm y
+    \bm\Lambda_\theta\trans\bm Z\trans\bm y\\\bm X\trans\bm y
   \end{bmatrix} ,
 \end{equation}
 provides, as we shall see, the conditional mean, $\bm\mu_{\bc B|\bm
@@ -1897,8 +1894,8 @@ Dealing with matrices of this size requires considerable care in
 deciding how to structure the computation.  The key to fitting mixed
 models with a complex structure to very large data sets using the
 \package{lme4} package is the ability to determine the sparse Cholesky
-factor of $\bm\Lambda(\bm\theta)\trans\bm Z\trans\bm
-Z\bm\Lambda(\bm\theta)+\bm I_q$ for many different values of
+factor of $\bm\Lambda_\theta\trans\bm Z\trans\bm
+Z\bm\Lambda_\theta+\bm I_q$ for many different values of
 $\bm\theta$.
 
 The Cholesky decomposition of large, sparse matrices like this has an
@@ -1937,7 +1934,7 @@ the decomposition as
 where
 \begin{equation}
   \label{eq:UV}
-  \bm U(\bm\theta)=\bm Z\bm\Lambda(\bm\theta)\bm P\trans\text{ and }
+  \bm U_\theta=\bm Z\bm\Lambda_\theta\bm P\trans\text{ and }
   \bm V=\bm X .
 \end{equation}
 The solution to (\ref{eq:plsSol}), which would now be written as,
@@ -1951,32 +1948,32 @@ The solution to (\ref{eq:plsSol}), which would now be written as,
     \bm L\trans   & \bm R_{ZX}\\
     \bm 0         & \bm R_X
   \end{bmatrix} =
-  \begin{bmatrix}\tilde{\bm u}\\\widehat{\bm\beta}(\bm\theta)\end{bmatrix}
+  \begin{bmatrix}\tilde{\bm u}\\\widehat{\bm\beta}_\theta\end{bmatrix}
   =
   \begin{bmatrix}
     \bm U\trans\bm y\\\bm V\trans\bm y
   \end{bmatrix} ,
 \end{equation}
 produces both the conditional estimate,
-$\widehat{\bm\beta}(\bm\theta)$, of the fixed-effects parameters and
-the conditional mean $\bm\mu_{\bc B|\bc Y=\bm y}=\bm\Lambda(\bm\theta)\tilde{\bm
+$\widehat{\bm\beta}_\theta$, of the fixed-effects parameters and
+the conditional mean $\bm\mu_{\bc B|\bc Y=\bm y}=\bm\Lambda_\theta\tilde{\bm
   u}$, of the random effects.  If $r^2$ is the minimum penalized
 residual sum of squares,
 \begin{equation}
   \label{eq:minpls}
-  r^2(\bm\theta)=\|\bm y-\bm U\tilde{\bm u}(\bm\theta)-
-  \bm V\widehat{\bm\beta}(\bm\theta)\|^2+\|\tilde{\bm u}(\bm\theta)\|^2
+  r^2_\theta=\|\bm y-\bm U\tilde{\bm u}_\theta-
+  \bm V\widehat{\bm\beta}_\theta\|^2+\|\tilde{\bm u}_\theta\|^2
 \end{equation}
 then the conditional maximum likelihood estimate of $\sigma^2$ is
-$\widehat{\sigma^2}(\bm\theta)=\frac{r^2}{n}$ and the conditional REML
+$\widehat{\sigma^2}_\theta=\frac{r^2}{n}$ and the conditional REML
 estimate of $\sigma^2$ is
-$\widehat{\sigma^2}_R(\bm\theta)=\frac{r^2}{n-p}$.
+$\widehat{\sigma^2}_R(\theta)=\frac{r^2}{n-p}$.
 
 Although we have not written this explicitly, the matrices $\bm L$,
 $\bm R_{ZX}$ and $\bm R_X$ all depend on the value of $\bm\theta$.
-Both the $q\times q$ matrix $\bm L(\bm\theta)$ and the $p\times p$
-matrix $\bm R_X(\bm\theta)$ are triangular: $\bm L(\bm\theta)$ is
-lower triangular and $\bm R_x(\bm\theta)$ is upper triangular.
+Both the $q\times q$ matrix $\bm L_\theta$ and the $p\times p$
+matrix $\bm R_X(\theta)$ are triangular: $\bm L_\theta$ is
+lower triangular and $\bm R_x(\theta)$ is upper triangular.
 Because these matrices are square and triangular their determinants,
 written $|\bm L|$ and $|\bm R_X|$, are easily evaluated as the product
 of the diagonal elements in the matrix.  The determinant of a matrix
