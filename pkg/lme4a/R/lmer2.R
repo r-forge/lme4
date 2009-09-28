@@ -70,9 +70,8 @@ makeZt <- function(bars, fr, rho) {
                     ## grouping factor are adjacent.
                     if (nc > 1)
                         sm <- sm[as.vector(matrix(seq_len(nc * nl),
-                                                  nc = nc, byrow = TRUE)),]
-                    list(ff = ff, sm = sm, nc = nc, nl = nl,
-                         cnms = colnames(mm))
+                                                  nc = nl, byrow = TRUE)),]
+                    list(ff = ff, sm = sm, nl = nl, cnms = colnames(mm))
                 })
     nl <- sapply(blist, "[[", "nl")     # no. of levels per term
     ## order terms stably by decreasing number of levels in the factor
@@ -83,7 +82,7 @@ makeZt <- function(bars, fr, rho) {
     ## Create and install Lambda, Lind, etc.  This must be done after
     ## any potential reordering of the terms.
     rho$cnms <- lapply(blist, "[[", "cnms")
-    nc <- sapply(blist, "[[", "nc")     # no. of columns per term
+    nc <- sapply(rho$cnms, length)      # no. of columns per term
     nth <- as.integer((nc * (nc+1))/2)  # no. of parameters per term
     nb <- nc * nl                     # no. of random effects per term
     stopifnot(sum(nb) == q)
@@ -97,7 +96,8 @@ makeZt <- function(bars, fr, rho) {
                 do.call(rBind,
                         lapply(seq_along(blist), function(i)
                            {
-                               mm <- matrix(seq_len(nb[i]), nc = nc[i])
+                               mm <- matrix(seq_len(nb[i]), nc = nc[i],
+                                            byrow = TRUE)
                                dd <- diag(nc[i])
                                ltri <- lower.tri(dd, diag = TRUE)
                                ii <- row(dd)[ltri]
