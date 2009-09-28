@@ -1,10 +1,8 @@
 R_PROG = R-devel
 #R_PROG = R
 FRONT = DMBmacros.tex dedication.tex preface.tex
-CHAPTERS = ChIntro ChMultiple 
-OLDCHAPTERS = ChLongitudinal ChGLMM ChLarge ChTheory ChArgs ChData ChExample ChData ChWithin ChLMM ChOrganizational
+CHAPTERS = ChIntro #ChMultiple 
 APPENDICES = 
-OLDAPPENDICES = AppObtaining AppLinAlg
 
 all:  $(CHAPTERS:=.tex) $(CHAPTERS:=.R) $(APPENDICES:=.tex) $(APPENDICES:=.R) lMMwR.pdf lrgprt.pdf
 	${RM} *.out Rplots.ps figs/*.eps \
