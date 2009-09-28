@@ -285,7 +285,7 @@ setMethod("ranef", signature(object = "merenvtrms"),
           ml <- split(as.vector(rho$Lambda %*% rho$u),
                       rep.int(seq_along(nb), nb))
           for (i in seq_along(ml))
-              ml[[i]] <- matrix(ml[[i]], nc = nc[i],
+              ml[[i]] <- matrix(ml[[i]], nc = nc[i], byrow = TRUE,
                                 dimnames = list(NULL, cnms[[i]]))
           ## produce a list of data frames corresponding to
           ## factors, not terms
