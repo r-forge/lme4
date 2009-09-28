@@ -1,0 +1,563 @@
+\SweaveOpts{engine=R,eps=FALSE,pdf=TRUE,width=8,strip.white=TRUE}
+\SweaveOpts{prefix=TRUE,prefix.string=figs/Multiple,include=TRUE}
+\setkeys{Gin}{width=\textwidth}
+
+<<preliminaries,echo=FALSE,print=FALSE,results=hide>>=
+options(width=65, show.signif.stars = FALSE,
+        lattice.theme = function() canonical.theme("pdf", color = FALSE))
+library(lattice)
+library(Matrix)
+library(lme4)
+if (exists("classroom.rda")) {
+    load("classroom.rda")
+} else {
+    classroom <- within(read.csv("http://www-personal.umich.edu/~bwest/classroom.csv"),
+                    {
+                        classid <- factor(classid)
+                        schoolid <- factor(schoolid)
+                        sex <- factor(sex, labels = c("M","F"))
+                        minority <- factor(minority, labels = c("N", "Y"))
+                    })
+    classroom$childid <- NULL
+    save(classroom, file = "classroom.rda")
+}
+ratbrain <- read.delim("http://www-personal.umich.edu/~bwest/rat_brain.dat")
+ratbrain$treatment <- factor(ratbrain$treatment,
+                             labels = c("Basal", "Carbachol"))
+ratbrain$region <- factor(ratbrain$region,
+                          labels = c("BST", "LS", "VDB"))
+@
+
+\chapter{Models with multiple random-effects terms}
+\label{chap:Multiple}
+
+The mixed models considered in the previous chapter had only one
+random-effects term and that sole term was a simple, scalar
+random-effects term.  Although such models can be useful, it is with
+the facility to use multiple random-effects terms and to use
+random-effects terms beyond a simple, scalar term that we can begin to
+realize the flexibility and versatility of mixed models.  In this
+chapter we consider models with multiple simple, scalar random-effects
+terms.  In the next chapter we consider models with random-effects
+terms that are more complex than a simple, scalar term.
+
+\section{Data with crossed grouping factors}
+\label{sec:crossedgrouping}
+
+One of the areas in which the methods in the \package{lme4} package
+for \R{} are particularly effective is in fitting models to
+cross-classified data where several factors have random effects
+associated with them.  For example, in many experiments in Psychology
+the reaction of each of a set of subjects to each of a group of
+stimuli or items is measured.  If the subjects are considered to be a
+sample from a particular population and the items are a sample from a
+population then it would make sense to associate random effects with
+both these factors.
+
+In the past it was difficult to fit mixed models with multiple,
+crossed grouping factors to large, possibly unbalanced, data sets.
+The methods in the \package{lme4} package are able to do this.  Let us
+first consider a small, balanced data set with crossed grouping factors.
+
+\subsection{The \texttt{Penicillin} data}
+\label{sec:Penicillin}
+
+The \code{Penicillin} data are derived from Table~6.6, p.~144 of
+\citet{davies72:_statis_method_in_resear_and_produc} where they are
+described as coming from an investigation to
+\begin{quote}
+  assess the variability between samples of penicillin by the
+  \emph{B. subtilis} method.  In this test method a bulk-innoculated
+  nutrient agar medium is poured into a Petri dish of approximately 90
+  mm. diameter, known as a plate.  When the medium has set, six small
+  hollow cylinders or pots (about 4 mm. in diameter) are cemented onto
+  the surface at equally spaced intervals.  A few drops of the
+  penicillin solutions to be compared are placed in the respective
+  cylinders, and the whole plate is placed in an incubator for a given
+  time.  Penicillin diffuses from the pots into the agar, and this
+  produces a clear circular zone of inhibition of growth of the
+  organisms, which can be readily measured.  The diameter of the zone
+  is related in a known way to the concentration of penicillin in the
+  solution.
+\end{quote}
+
+
+\begin{figure}[tbp]
+  \centering
+<<Penicillindot,fig=TRUE,echo=FALSE,height=7>>=
+print(dotplot(reorder(plate, diameter) ~ diameter, Penicillin, groups = sample,
+              ylab = "Plate", xlab = "Diameter of growth inhibition zone (mm)",
+              type = c("p", "a"), auto.key = list(columns = 3, lines = TRUE)))
+@   
+\caption[Diameter of growth inhibition zone for 6 samples of
+penicillin]{Diameter of the growth inhibition zone (mm) in the
+  \emph{B. subtilis} method of assessing the concentration of
+  penicillin.  Each of 6 samples was applied to each of the 24 agar
+  plates.  The lines join observations on the same sample.}
+  \label{fig:Penicillindot}
+\end{figure}
+As with the \code{Dyestuff} data, we examine the structure
+<<strPen>>=
+str(Penicillin)
+@ 
+and a summary
+<<sumPen>>=
+summary(Penicillin)
+@ 
+of the \code{Penicillin} data, then plot it
+(Figure~\ref{fig:Penicillindot}).
+
+The variation in the diameter is associated with the plates and with
+the samples.  Because each plate is used for only the six
+samples shown here we will use random effects for the plate.  As in
+the dyestuff example, we are more interested in the sample-to-sample
+variability in the penicillin samples than in the potency of a
+particular sample.  Hence we will use random effects for the sample
+too. 
+
+In this experiment each sample is used on each plate.  We say that the
+\code{sample} and \code{plate} factors are \emph{crossed}, as opposed
+to \emph{nested} factors, which we will describe in the next section.
+By itself, the designation ``crossed'' just means that the factors are
+not nested.  If we wish to be more specific, we could describe these
+factors as being \emph{completely crossed}, which means that we have at
+least one observation for each combination of a level of \code{sample}
+and a level of \code{plate}.  We can see this in
+Figure~\ref{fig:Penicillindot} and, because there are a moderate
+number of levels in these factors, we can check it in a
+cross-tabulation
+<<xtabsPenicillin>>=
+xtabs(~ sample + plate, Penicillin)
+@ 
+
+Like the \code{Dyestuff} data, the factors in the \code{Penicillin}
+data are balanced.  That is, there are exactly the same number of
+observations on each plate and for each sample and, furthermore, there
+is the same number of observations on each combination of levels.  In
+this case there is exactly one observation for each combination of
+sample and plate.  We would describe the configuration of these two
+factors as an unreplicated, completely balanced, crossed design.
+
+In general, balance is a desirable but precarious property of a data
+set.  We may be able to impose balance in a designed experiment but we
+typically cannot expect that data from an observation study will be
+balanced.  Also, as anyone who analyzes real data soon finds out,
+expecting that balance in the design of an experiment will produce a
+balanced data set is contrary to ``Murphy's Law''.  That's why
+statisticians allow for missing data.  Even when we apply each of the
+six samples to each of the 24 plates, something could go wrong for one
+of the samples on one of the plates, leaving us without a measurement
+for that combination of levels and thus an unbalanced data set.
+
+\subsection{A model for the \texttt{Penicillin} data}
+\label{sec:PenicillinModel}
+
+A model incorporating random effects for both the \code{plate} and the
+\code{sample} is straightforward to specify --- we include simple,
+scalar random effects terms for both these factors.
+<<fm2>>=
+(fm2 <- lmer(diameter ~ 1 + (1|plate) + (1|sample), Penicillin))
+@ This model display indicates that the sample-to-sample variability
+has the greatest contribution, then plate-to-plate variability and
+finally the ``residual'' variability that cannot be attributed to
+either the sample or the plate.  These conclusions are consistent with
+what we see in the \code{Penicillin} data plot
+(Figure~\ref{fig:Penicillindot}).
+
+The prediction intervals on the random effects
+(Figure~\ref{fig:fm2ranef})
+\begin{figure}[tbp]
+  \centering
+<<fm2ranef,fig=TRUE,echo=FALSE,height=5.5>>=  
+qrr2 <- dotplot(ranef(fm2, postVar = TRUE), strip = FALSE)
+print(qrr2[[1]], pos = c(0,0,1,0.75), more = TRUE)
+print(qrr2[[2]], pos = c(0,0.65,1,1))
+@ 
+\caption{95\% prediction intervals on the random effects for model
+  \code{fm2} fit to the \code{Penicillin} data.}
+  \label{fig:fm2ranef}
+\end{figure}
+show that the conditional distribution of the random effects for
+\code{sample} has much less variability than does the conditional
+distribution of the random effects for \code{sample}.
+
+In chapter~\ref{chap:ExamLMM} we saw that a model with a single,
+simple, scalar random-effects term generated a random-effects model
+matrix, $\bm Z$, that is the matrix of indicators of the levels of the
+grouping factor.  When we have multiple, simple, scalar random-effects
+terms, as in model \code{fm2}, each term generates a matrix of
+indicator columns and all the sets of indicator columns are
+concatenated to for the model matrix $\bm Z$.  The transpose of this
+matrix contains rows of indicators for each factor, as shown in
+Figure~\ref{fig:fm2Ztimage}.
+\begin{figure}[tbp]
+  \centering
+<<fm2Ztimage,fig=TRUE,echo=FALSE,height=2>>=
+print(image(fm2@Zt, sub=NULL))
+@   
+  \caption[Image of the random-effects model matrix for
+  \texttt{fm1}]{Image of the transpose of the random-effects model
+    matrix, $\bm Z$, for model \code{fm1}.  The non-zero elements,
+    which are all unity, are shown as darkened squares.  The zero
+    elements are blank.}
+  \label{fig:fm2Ztimage}
+\end{figure}
+
+The parameter $\bm\theta$ for this model is two-dimensional.
+<<fm2verb>>=
+getPars(fm2@rCF)
+@ 
+The first parameter is the relative standard deviation of the random
+effects for \code{plate}, which has the value (0.84671/0.54992) at
+convergence, and the second is the relative standard deviation of the
+random effects for \code{sample} (1.93157/0.54992).
+
+Contours of the profiled REML criterion are shown in
+Figure~\ref{fig:fm2profREMLcontours}.
+\begin{figure}[tbp]
+  \centering
+<<fm2profREMLcontours,fig=TRUE,echo=FALSE,height=5>>=
+fm2env <- lmer(diameter ~ 1 + (1|plate) + (1|sample),
+               Penicillin, doFit = FALSE)
+grd <- expand.grid(th1 = seq(0.9,2.9,len = 101),
+                   th2 = seq(1.5,15,len = 101))
+attr(grd, "out.attrs") <- NULL          # save a bit of space
+REML <- apply(t(grd), 2, setPars, x = fm2env)
+thetahat <- getPars(fm2@rCF)
+print(contourplot(REML ~ th1 + th2, grd,
+                  xlab = expression(theta[1]),
+                  ylab = expression(theta[2]),                  
+                  at = deviance(fm2) +
+                  qchisq(c(0.5,0.8,0.9,0.95,0.99), df = 2),
+                  labels = list(labels = paste(c(50,80,90,95,99),
+                                "%", sep = "")),
+                  panel = function(...)
+              {
+                  panel.grid(h = -1, v = -1)
+                  panel.points(thetahat[1], thetahat[2], pch = 3)
+                  panel.contourplot(...)
+              }
+                  ))
+@   
+  \caption{Contours of the profiled REML criterion for model \code{fm2}.}
+  \label{fig:fm2profREMLcontours}
+\end{figure}
+These contours correspond to joint confidence regions with confidence
+levels 50\%, 80\%, 90\%, 95\% and 99\% for these parameters, based on
+the REML criterion.
+
+\subsection{The \texttt{Pastes} data}
+\label{sec:PastesData}
+
+The third example from 
+\citet[Table~6.5, p.~138]{davies72:_statis_method_in_resear_and_produc} is described as coming from
+\begin{quote}
+  deliveries of a chemical paste product contained in casks where, in
+  addition to sampling and testing errors, there are variations in
+  quality between deliveries \dots As a routine, three casks selected
+  at random from each delivery were sampled and the samples were kept
+  for reference. \dots Ten of the delivery batches were sampled at
+  random and two analytical tests carried out on each of the 30
+  samples.
+\end{quote}
+
+The structure and summary of the \code{Pastes} data object are
+<<strsumPastes>>=
+str(Pastes)
+summary(Pastes)
+@ 
+
+\begin{figure}[tbp]
+  \centering
+<<imagextabsPastes,fig=TRUE,echo=FALSE,height=3>>=
+print(image(xtabs(~ batch + sample, Pastes, sparse = TRUE),
+            sub = NULL, xlab = "sample", ylab = "batch"))
+@   
+\caption{Image of the cross-tabulation of the \code{batch} and
+  \code{sample} factors in the \code{Pastes} data.}
+  \label{fig:imagextabsPastes}
+\end{figure}
+As stated in the description in
+\citet{davies72:_statis_method_in_resear_and_produc}, there are 30
+samples, three from each of the 10 delivery batches. We have labelled
+the levels of the \code{sample} factor with the label of the
+\code{batch} factor followed by `a', `b' or `c' to distinguish the
+three samples taken from that batch.  The cross-tabulation produced by
+the \code{xtabs} function, using the optional argument \code{sparse =
+  TRUE}, provides a concise display of the relationship.
+<<xtabsPastes>>=
+xtabs(~ batch + sample, Pastes, drop = TRUE, sparse = TRUE)
+@
+Alternatively, we can use an image (Figure~\ref{fig:imagextabsPastes})
+of this cross-tabulation to visualize the structure.  Images like this
+are often an effective way of visualizing the structure of large,
+sparse matrices.
+
+When plotting the \code{strength} versus \code{batch} and
+\code{sample} in the \code{Pastes} data we should remember that we
+have two strength measurements on each of the 30 samples.  It is
+tempting to use the cask designation (`a', `b' and `c') to determine,
+say, the plotting symbol within a \code{batch}.  It would be fine
+to do this within a batch but the plot would be misleading if we used
+the same symbol for cask `a' in different batches.  There is no
+relationship between cask `a' in batch `A' and cask `a' in batch `B'.
+The labels `a', `b' and `c' are used only to distinguish the three
+samples within a batch; they do not have a meaning across batches.
+
+\begin{figure}[tbp]
+  \centering
+<<Pastesplot,fig=TRUE,echo=FALSE,height=7.2>>=
+pp <- Pastes
+pp <- within(pp, bb <- reorder(batch, strength))
+pp <- within(pp, ss <- reorder(reorder(sample, strength),
+          as.numeric(batch)))
+print(dotplot(ss ~ strength | bb, pp,
+              strip = FALSE, strip.left = TRUE, layout = c(1, 10),
+              scales = list(y = list(relation = "free")),
+              ylab = "Sample within batch", type = c("p", "a"),
+              xlab = "Paste strength", jitter.y = TRUE))
+@ 
+\caption[Strength of paste preparations by batch and sample]{Strength
+  of paste preparations according to the \code{batch} and the
+  \code{sample} within the batch.  There were two strength
+  measurements on each of the 30 samples; three samples each from 10
+  batches.}
+  \label{fig:Pastesplot}
+\end{figure}
+In Figure~\ref{fig:Pastesplot} we plot the two strength measurements
+on each of the samples within each of the batches and join up the
+average strength for each sample.  The perceptive reader will have
+noticed that the levels of the factors on the vertical axis in this
+figure, and in Figures~\ref{fig:Dyestuffdot} and
+\ref{fig:Penicillindot}, have been reordered according to increasing
+average response.  In all these cases there is no inherent ordering of
+the levels of the covariate such as \code{batch} or \code{plate}.
+Rather than confuse our interpretation of the plot by determining the
+vertical displacement of points according to a random ordering, we
+impose an ordering according to increasing mean response.  This allows
+us to more easily check for structure in the data, including
+undesirable characteristics like increasing variability of the
+response with increasing mean level of the response.
+
+In Figure~\ref{fig:Pastesplot} we order the samples within each batch
+separately then order the batches according to increasing mean
+strength.  
+
+Figure~\ref{fig:Pastesplot} shows considerable variability in strength
+between samples relative to the variability within samples.  There is
+some indication of variability between batches, in addition to the
+variability induced by the samples, but not a strong indication of a
+batch effect.  For example, each of batches I and D, with
+low mean strength relative to the other batches, contained one sample (I:b and
+D:c, respectively) that had high mean strength relative to the
+other samples.  Also, batches H and C, with comparatively high mean
+batch strength. contain samples H:a and C:a with comparatively low
+mean sample strength.  In section \ref{sec:PastesModel} we will
+examine the need for incorporating batch-to-batch variability in a
+statistical model in addition to sample-to-sample variability.
+
+\subsubsection{Nested  factors}
+\label{sec:nestedcrossed}
+
+Because each level of \code{sample} occurs with one and only one level
+of \code{batch} we say that \code{sample} is \emph{nested within}
+\code{batch}.  Some presentations of mixed-effects models, especially
+those related to \emph{multilevel modeling}~\citep{MLwiNUser:2000} or
+\emph{hierarchical linear models}~\citep{Rauden:Bryk:2002}, leave the
+impression that one can only define random effects with respect to
+factors that are nested.  This is the origin of the terms
+``multilevel'', referring to multiple, nested levels of variability,
+and ``hierarchical'', also invoking the concept of a hierarchy of
+levels.  To be fair, both those references do describe the use of
+models with random effects associated with non-nested
+factors, but such models tend to be treated as a special case.  
+
+The blurring of mixed-effects models with the concept of multiple,
+hierarchical levels of variation results in an unwarranted emphasis on
+``levels'' when defining a model and leads to considerable confusion.
+It is perfectly legitimate to define models having random effects
+associated with non-nested factors.  The reasons for the emphasis on
+defining random effects with respect to nested factors only are that
+such cases do occur frequently in practice and that some of the
+computational methods for estimating the parameters in the models can
+only be easily applied to nested factors.  
+
+This is not the case for the methods used in the \package{lme4}
+package.  Indeed there is nothing special done for models with random
+effects for nested factors.  When random effects are associated with
+multiple factors exactly the same computational methods are used
+whether the factors form a nested sequence or are partially crossed or
+are completely crossed.  A case of a nested sequence of ``grouping
+factors'' for the random effects (including the trivial case of only
+one such factor) is detected but this information does not change the
+course of the computation.  It is available to be used as a diagnostic
+check.  When the user knows that the grouping factors should be
+nested, she can check if indeed they are nested.
+
+There is, however, one aspect of nested grouping factors that we
+should emphasize, which is the possibility of a factor that is
+\emph{implicitly nested} within another factor.  Suppose, for example,
+that the \code{sample} factor was defined as having three levels
+instead of 30 with the implicit assumption that \code{sample} is
+nested within \code{batch}.  It may seem silly to try to distinguish
+30 different batches with only three levels of a factor but,
+unfortunately, data are frequently organized and presented like this,
+especially in text books.  The \code{cask} factor in the \code{Pastes}
+data is exactly such an implicitly nested factor.  If we
+cross-tabulate \code{batch} and \code{cask}
+<<Pastesxtab>>=
+xtabs(~ cask + batch, Pastes)
+@
+we get the impression that the \code{cask} and \code{batch} factors
+are crossed, not nested.  If we know that the cask should be
+considered as nested within the batch then we should create a new
+categorical variable giving the batch-cask combination, which is
+exactly what the \code{sample} factor is.  A simple way to create such
+a factor is to use the interaction operator, `\code{:}', on the
+factors.  It is advisable, but not necessary, to drop unused levels of
+the interaction factor in the process of creating it.  (An ``unused
+level'' is a combination that did not occur in the data.)  A
+convenient code idiom is
+<<nested1>>=
+Pastes$sample <- with(Pastes, (batch:cask)[drop = TRUE])
+@ %$
+or
+<<nested2>>=
+Pastes <- within(Pastes, sample <- (batch:cask)[drop = TRUE])
+@ 
+
+In a small data set like \code{Pastes} we can quickly detect a factor
+being implicitly nested within another factor and take appropriate
+action.  In a large data set, perhaps hundreds of thousands of test
+scores for students in thousands of schools from hundreds of school
+districts, it is not always obvious if school identifiers are unique
+across the entire data set or just within a district.  If you are not
+sure, the safest thing to do is to create the interaction factor, as
+shown above, so you can be confident that levels of the
+district:school interaction do indeed correspond to unique schools.
+
+\subsection{Fitting a model with random-effects for nested factors}
+\label{sec:fitting}
+
+<<fm3>>=
+(fm3 <- lmer(strength ~ 1 + (1|sample) + (1|batch), Pastes))
+@ 
+
+Contours of the profiled REML criterion are shown in
+Figure~\ref{fig:fm3profREMLcontours}.
+\begin{figure}[tbp]
+  \centering
+<<fm3profREMLcontours,fig=TRUE,echo=FALSE,height=5>>=
+fm3env <- lmer(strength ~ 1 + (1|sample) + (1|batch),
+               Pastes, doFit = FALSE)
+grd <- expand.grid(th1 = seq(1.5,7,len = 101),
+                   th2 = seq(0,7,len = 101))
+attr(grd, "out.attrs") <- NULL          # save a bit of space
+REML <- apply(t(grd[c("th1","th2")]), 2, setPars, x = fm3env)
+thetahat <- getPars(fm3@rCF)
+print(contourplot(REML ~ th1 + th2, grd,
+                  xlab = expression(theta[1]),
+                  ylab = expression(theta[2]),                  
+                  at = deviance(fm3) +
+                  qchisq(c(0.5,0.8,0.9,0.95,0.99), df = 2),
+                  labels = list(labels = paste(c(50,80,90,95,99),
+                                "%", sep = "")),
+                  panel = function(...)
+              {
+                  panel.grid(h = -1, v = -1)
+                  panel.points(thetahat[1], thetahat[2], pch = 3)
+                  panel.contourplot(...)
+              }
+                  ))
+@   
+  \caption{Contours of the profiled REML criterion for model \code{fm3}.}
+  \label{fig:fm3profREMLcontours}
+\end{figure}
+
+\section{Models incorporating covariates}
+\label{sec:covariates}
+
+<<cm3>>=
+(cm3 <- lmer(mathgain ~ I(mathkind-450) + sex + minority + ses + housepov + (1|classid) + (1|schoolid), classroom))
+@ 
+
+Contours of the profiled REML criterion are shown in
+Figure~\ref{fig:cm3profREMLcontours}.
+\begin{figure}[tbp]
+  \centering
+<<cm3profREMLcontours,fig=TRUE,echo=FALSE,height=5>>=
+cm3env <- lmer(mathgain ~ I(mathkind-450) + sex + minority + ses + housepov +
+               (1|classid) + (1|schoolid),
+               classroom, doFit = FALSE)
+grd <- expand.grid(th1 = seq(0.09,0.55,len = 101),
+                   th2 = seq(0.1,0.55,len = 101))
+attr(grd, "out.attrs") <- NULL          # save a bit of space
+REML <- apply(t(grd[c("th1","th2")]), 2, setPars, x = cm3env)
+thetahat <- getPars(cm3@rCF)
+print(contourplot(REML ~ th1 + th2, grd,
+                  xlab = expression(theta[1]),
+                  ylab = expression(theta[2]),                  
+                  at = deviance(cm3) +
+                  qchisq(c(0.5,0.8,0.9,0.95,0.99), df = 2),
+                  labels = list(labels = paste(c(50,80,90,95,99),
+                                "%", sep = "")),
+                  panel = function(...)
+              {
+                  panel.grid(h = -1, v = -1)
+                  panel.points(thetahat[1], thetahat[2], pch = 3)
+                  panel.contourplot(...)
+              }
+                  ))
+@   
+  \caption{Contours of the profiled REML criterion for model \code{fm2}.}
+  \label{fig:fm2profREMLcontours}
+\end{figure}
+
+\section{Rat Brain example}
+\label{sec:RatBrain}
+
+<<ratbraindat>>=
+ftable(xtabs(activate ~ animal + treatment + region, ratbrain))
+@ 
+
+\begin{figure}[tbp]
+  \centering
+<<Ratbraindot,fig=TRUE,echo=FALSE,height=4>>=
+print(dotplot(region ~ activate | treatment, groups = animal,
+              ratbrain, type = c("p","a"), layout = c(1,2),
+              strip=FALSE, strip.left = TRUE,
+              auto.key = list(space = "right", lines = TRUE)))
+@   
+\caption[Activation of brain regions in rats]{Activation of brain
+  regions in rats}
+  \label{fig:Ratbraindot}
+\end{figure}
+
+\subsection{Structure of the formula used in \texttt{lmer}}
+\label{sec:lmerformula}
+
+At this point all that we need to know about the formula is that it
+consists of two expressions separated by a tilde ($\sim$), which is
+read as ``is modeled by''.  The expression on the left of the tilde is the
+response --- typically just the name of a variable in the data set but
+more complicated expressions are possible.  The expression on the
+right consists of one or more \emph{terms}, separated by plus ($+$)
+operators.  A random-effects term consists of two expressions
+separated by the vertical bar ($|$) operator, read as ``given'' or
+``by''.  The expression on the right of the vertical bar is evaluated
+as a factor, called the \emph{grouping factor} for the random effects.
+The random effects are associated with the levels of this factor.  In
+this section all the models we will fit have with \emph{simple, scalar
+  random effects}, meaning that there is exactly one random effect
+associated with each level of the grouping factor and it is an
+additive random effect.  In these cases the expression on the left of
+the vertical bar is ``\code{1}'', which denotes a constant.
+
+\section{Fitting linear mixed models with multiple random-effects terms}
+\label{sec:multipleRE}
+
+
+We use more than one random-effects term in the formula when
+specifying models with multiple grouping factors for the random
+effects.  Interestingly, the model specifications are quite similar
+for data with crossed random effects

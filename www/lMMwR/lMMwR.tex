@@ -1,0 +1,60 @@
+\documentclass[footinfo,envcountsame,envcountchap]{svmono}
+\usepackage[authoryear,round]{natbib}
+\bibliographystyle{plainnat}
+\usepackage{makeidx}         % allows index generation
+\usepackage{multicol}        % used for the two-column index
+\usepackage[bottom]{footmisc}% places footnotes at page bottom
+\usepackage{graphicx,amsmath,amsbsy,bm,url}
+\usepackage{url}
+\usepackage{Sweave}
+\input{DMBmacros}
+\makeindex 
+\DefineVerbatimEnvironment{Sinput}{Verbatim}%
+{%formatcom={\vspace{-2.5ex}},
+  fontfamily=courier,%
+  fontseries=b,%
+  fontshape=sl,%
+  fontsize=\small}
+\DefineVerbatimEnvironment{Soutput}{Verbatim}
+{%formatcom={\vspace{-2.5ex}},
+  fontfamily=courier,%
+  fontseries=b,%
+  fontsize=\small}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\begin{document}
+\author{Douglas M. Bates}
+\title{lme4: Mixed-effects modeling with R}
+%{\small SPIN Springer's internal project number, if known}}
+%\subtitle{-- Monograph --}
+\maketitle
+\frontmatter%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%\include{dedication}
+%\include{preface}
+\tableofcontents
+\listoffigures{}
+\listoftables{}
+\mainmatter%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\include{ChIntro}
+\include{ChMultiple}
+%\include{ChOrganizational}
+%\include{ChGLMM}
+%\include{ChLarge}
+%\include{ChExample}
+%\include{ChTheory}
+%\include{ChArgs}
+%\include{ChData}
+%\include{ChWithin}
+%\include{ChLMM}
+\appendix
+%\include{AppObtaining}
+%\include{AppLinAlg}
+\backmatter%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%\include{solutions}
+\bibliography{MMiR}
+\printindex
+\end{document}
+
+
+
+
+
