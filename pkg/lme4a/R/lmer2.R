@@ -137,7 +137,7 @@ makeZt <- function(bars, fr, rho) {
     NULL
 }
 
-lmer2 <-
+lmer <-
     function(formula, data, family = gaussian, REML = TRUE, sparseX = FALSE,
              control = list(), start = NULL, verbose = FALSE, doFit = TRUE,
              compDev = if (sparseX) FALSE else TRUE, subset, weights,
@@ -403,16 +403,16 @@ printMerenv <- function(x, digits = max(3, getOption("digits") - 3),
     cat(sprintf("Number of obs: %d, groups: ", so$devcomp$dims["n"]))
     cat(paste(paste(names(ngrps), ngrps, sep = ", "), collapse = "; "))
     cat("\n")
-    if (nrow(so$coefs) > 0) {
+    if (nrow(so$coefficients) > 0) {
 	cat("\nFixed effects:\n")
-	printCoefmat(so$coefs, zap.ind = 3, #, tst.ind = 4
+	printCoefmat(so$coefficients, zap.ind = 3, #, tst.ind = 4
 		     digits = digits, signif.stars = signif.stars)
 	if(correlation) {
 	    corF <- so$vcov@factors$correlation
 	    if (!is.null(corF)) {
 		p <- ncol(corF)
 		if (p > 1) {
-		    rn <- rownames(so$coefs)
+		    rn <- rownames(so$coefficients)
 		    rns <- abbreviate(rn, minlen=11)
 		    cat("\nCorrelation of Fixed Effects:\n")
 		    if (is.logical(symbolic.cor) && symbolic.cor) {
@@ -461,7 +461,7 @@ setMethod("summary", signature(object = "lmerenv"),
                       logLik = llik,
                       ngrps = sapply(rho$flist, function(x) length(levels(x))),
                       sigma = sigma(object),
-                      coefs = coefs,
+                      coefficients = coefs,
                       vcov = vcov,
                       REmat = REmat,
                       AICtab= AICframe,
@@ -504,7 +504,7 @@ setMethod("logLik", signature(object="lmerenv"),
           val
       })
 
-setMethod("update", signature(object = "mer"),
+setMethod("update", signature(object = "merenv"),
 	  function(object, formula., ..., evaluate = TRUE)
       {
 	  call <- env(object)$call

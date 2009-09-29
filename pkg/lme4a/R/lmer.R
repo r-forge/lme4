@@ -260,7 +260,7 @@ lmerControl <- function(trace = getOption("verbose"),
 	 trace = as.integer(trace),
          algorithm = match.arg(algorithm))
 
-lmer <-
+lmer2 <-
     function(formula, data, family = gaussian, REML = TRUE,
              control = list(), start = NULL, verbose = FALSE,
              doFit = TRUE,
@@ -459,7 +459,7 @@ function(formula, data, family = gaussian, start = NULL,
          control = list(), mustart, etastart, ...)
 {
     mc <- match.call()
-    mc[[1]] <- as.name("lmer")
+    mc[[1]] <- as.name("lmer2")
     eval(mc, parent.frame())
 }
 
