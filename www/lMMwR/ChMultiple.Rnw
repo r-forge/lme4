@@ -7,7 +7,7 @@ options(width=65, show.signif.stars = FALSE,
         lattice.theme = function() canonical.theme("pdf", color = FALSE))
 library(lattice)
 library(Matrix)
-library(lme4)
+library(lme4a)
 if (exists("classroom.rda")) {
     load("classroom.rda")
 } else {
