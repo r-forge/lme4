@@ -274,7 +274,8 @@ setMethod("ranef", "merenv", function(object, ...)
 ##' @return a named list of arrays or vectors, aligned to the factor list
 
 setMethod("ranef", signature(object = "merenvtrms"),
-          function(object, postVar = FALSE, drop = FALSE, whichel = names(ans), ...)
+          function(object, postVar = FALSE, drop = FALSE,
+                   whichel = names(ans), ...)
       {
           rho <- env(object)
           ## evaluate the list of matrices
@@ -282,8 +283,8 @@ setMethod("ranef", signature(object = "merenvtrms"),
           asgn <- attr(fl, "assign")
           nc <- sapply(cnms <- rho$cnms, length)
           nb <- nc * (nl <- unname(sapply(levs, length))[asgn])
-          ml <- split(as.vector(rho$Lambda %*% rho$u),
-                      rep.int(seq_along(nb), nb))
+          nbseq <- rep.int(seq_along(nb), nb)
+          ml <- split(as.vector(rho$Lambda %*% rho$u), nbseq)
           for (i in seq_along(ml))
               ml[[i]] <- matrix(ml[[i]], nc = nc[i], byrow = TRUE,
                                 dimnames = list(NULL, cnms[[i]]))
@@ -302,10 +303,17 @@ setMethod("ranef", signature(object = "merenvtrms"),
           ans <- ans[whchL]
 
           if (postVar) {
-              stop("code not yet written")
-### the desired calculation is a diagonal block of
-### sigma^2 Lambda(theta)P'L^{-T}L^{-1} P Lambda(theta)
-### rewrite this in a general form
+              ## for the time being allow only simple scalar terms
+              ## without repeated grouping factors
+              stopifnot(all(nc == 1), length(nc) == length(ans))
+              ## evaluate the diagonal of
+              ## sigma^2 Lambda(theta)P'L^{-T}L^{-1} P Lambda(theta)
+              vv <- sigma(object)^2 * diag(rho$Lambda) *
+                  diag(solve(rho$L, as(rho$Lambda, "CsparseMatrix"),
+                             system = "A"))
+              for (i in seq_along(ans))
+                  attr(ans[[i]], "postVar") <-
+                      array(vv[nbseq == i], c(1, 1, nb[i]))
           }
           if (drop)
               ans <- lapply(ans, function(el)
