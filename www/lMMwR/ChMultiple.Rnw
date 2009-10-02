@@ -157,11 +157,12 @@ A model incorporating random effects for both the \code{plate} and the
 scalar random effects terms for both these factors.
 <<fm2>>=
 (fm2 <- lmer(diameter ~ 1 + (1|plate) + (1|sample), Penicillin))
-@ This model display indicates that the sample-to-sample variability
-has the greatest contribution, then plate-to-plate variability and
-finally the ``residual'' variability that cannot be attributed to
-either the sample or the plate.  These conclusions are consistent with
-what we see in the \code{Penicillin} data plot
+@
+This model display indicates that the sample-to-sample variability has
+the greatest contribution, then plate-to-plate variability and finally
+the ``residual'' variability that cannot be attributed to either the
+sample or the plate.  These conclusions are consistent with what we
+see in the \code{Penicillin} data plot
 (Figure~\ref{fig:Penicillindot}).
 
 The prediction intervals on the random effects
@@ -193,7 +194,7 @@ Figure~\ref{fig:fm2Ztimage}.
 \begin{figure}[tbp]
   \centering
 <<fm2Ztimage,fig=TRUE,echo=FALSE,height=2>>=
-print(image(fm2@Zt, sub=NULL))
+print(image(env(fm2)$Zt, sub=NULL))
 @   
   \caption[Image of the random-effects model matrix for
   \texttt{fm1}]{Image of the transpose of the random-effects model
@@ -205,7 +206,7 @@ print(image(fm2@Zt, sub=NULL))
 
 The parameter $\bm\theta$ for this model is two-dimensional.
 <<fm2verb>>=
-getPars(fm2@rCF)
+fm2@getPars()
 @ 
 The first parameter is the relative standard deviation of the random
 effects for \code{plate}, which has the value (0.84671/0.54992) at
@@ -223,7 +224,7 @@ grd <- expand.grid(th1 = seq(0.9,2.9,len = 101),
                    th2 = seq(1.5,15,len = 101))
 attr(grd, "out.attrs") <- NULL          # save a bit of space
 REML <- apply(t(grd), 2, setPars, x = fm2env)
-thetahat <- getPars(fm2@rCF)
+thetahat <- fm2@getPars()
 print(contourplot(REML ~ th1 + th2, grd,
                   xlab = expression(theta[1]),
                   ylab = expression(theta[2]),                  
@@ -454,7 +455,7 @@ grd <- expand.grid(th1 = seq(1.5,7,len = 101),
                    th2 = seq(0,7,len = 101))
 attr(grd, "out.attrs") <- NULL          # save a bit of space
 REML <- apply(t(grd[c("th1","th2")]), 2, setPars, x = fm3env)
-thetahat <- getPars(fm3@rCF)
+thetahat <- fm3@getPars()
 print(contourplot(REML ~ th1 + th2, grd,
                   xlab = expression(theta[1]),
                   ylab = expression(theta[2]),                  
@@ -493,7 +494,7 @@ grd <- expand.grid(th1 = seq(0.09,0.55,len = 101),
                    th2 = seq(0.1,0.55,len = 101))
 attr(grd, "out.attrs") <- NULL          # save a bit of space
 REML <- apply(t(grd[c("th1","th2")]), 2, setPars, x = cm3env)
-thetahat <- getPars(cm3@rCF)
+thetahat <- cm3@getPars()
 print(contourplot(REML ~ th1 + th2, grd,
                   xlab = expression(theta[1]),
                   ylab = expression(theta[2]),                  

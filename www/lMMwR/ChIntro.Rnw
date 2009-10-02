@@ -12,13 +12,13 @@ fm1 <- lmer(Yield ~ 1 + (1|Batch), Dyestuff)
 fm1ML <- update(fm1, REML = FALSE)
 VCREML <- VarCorr(fm1)
 VCML <- VarCorr(fm1ML)
-conv <- array(c(0,-1,1,2,0,-2,0,1,1), c(3,3))/2
 gmin <- function(x, y)
 {
     if (missing(x))
         x <- seq_along(y)
     mpos <- which.min(y)
     if (mpos %in% c(1L, length(y))) return(c(x[mpos], y[mpos]))
+    conv <- array(c(0,-1,1,2,0,-2,0,1,1), c(3,3))/2
     ycoef <- conv %*% y[mpos + -1:1]
     pos <- -ycoef[2]/(2*ycoef[3])
     stopifnot(-1 < pos, pos < 1)
@@ -1563,8 +1563,7 @@ Figure~\ref{fig:fm1ranef}
 \begin{figure}[tbp]
   \centering
 <<fm1ranef,fig=TRUE,echo=FALSE,height=2.5>>=  
-#print(dotplot(ranef(fm1, postVar = TRUE), strip = FALSE)[[1]])
-print(dotplot(ranef(fm1), strip = FALSE)[[1]])
+print(dotplot(ranef(fm1, postVar = TRUE), strip = FALSE)[[1]])
 @ 
 \caption{95\% prediction intervals on the random effects for
   \code{Batch} in model \code{fm1} fit to the \code{Dyestuff} data.}
@@ -1776,7 +1775,7 @@ print(xyplot(dev ~ x|par,
              ylab = "Deviance", xlab = NULL, type = c("g","l"),
              scales = list(x = list(relation = "free", axs = 'i'))))
 @   
-  \caption{Profiled deviance in model \code{fm1} for $\sigma$ and $\sigma_B$.}
+  \caption{Profiled deviance in model \code{fm1} for $\sigma^2$ and $\sigma_B^2$.}
   \label{fig:profileddevsqfm1}
 \end{figure}
 the profiled deviance is even further from quadratic behavior.
@@ -1806,6 +1805,7 @@ because it comes from a likelihood ratio test, not an F test.
 
 \begin{figure}[tbp]
   \centering
+%% FIXME: This figure is wrong, currently.  
 <<profzfm1,fig=TRUE,echo=FALSE,height=4>>=
 print(xyplot(profz ~ x|par,
              data.frame(profz = sqrt(c(profsbd[,2], profsd[,2])-
@@ -1979,5 +1979,3 @@ written $|\bm L|$ and $|\bm R_X|$, are easily evaluated as the product
 of the diagonal elements in the matrix.  The determinant of a matrix
 is the measure of the size of the matrix that is used in evaluating
 probability densities of random variables after transformation.
-
-
