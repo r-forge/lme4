@@ -329,8 +329,7 @@ setMethod("ranef", signature(object = "merenvtrms"),
           ans
       })
 
-devcomp <- function(x, theta, ...)
-{
+devcomp <- function(x, theta, ...) {
     stopifnot(is(x, "lmerenv"))
     if (!missing(theta)) x@setPars(theta)
     with(env(x),
@@ -340,11 +339,26 @@ devcomp <- function(x, theta, ...)
               dims = c(n = n, p = length(fixef), nmp = nmp, q = nrow(Zt))))
 }
 
+deveval <- function(x, theta, sigma, beta = NULL, ...) {
+    oldtheta <- x@getPars()
+    dc <- devcomp(x)
+    x@setPars(oldtheta)
+    ldL2 <- dc$cmp["ldL2"]
+    prss <- dc$cmp["prss"]
+    n <- dc$dims["n"]
+    t(sapply(as.numeric(sigma),
+             function(x) {
+                 xsq <- x^2
+                 c(sigma = x, sdcomp = theta * x,
+                   deviance = unname(ldL2 + n * log(2*pi*xsq) + prss/xsq))
+             }))
+}                                
+   
 setMethod("sigma", signature(object = "lmerenv"),
           function (object, ...) {
               dc <- devcomp(object)
-              sqrt(dc$cmp["prss"]/
-                   (if (env(object)$REML) dc$dims["nmp"] else dc$dims["n"]))
+              unname(sqrt(dc$cmp["prss"]/
+                          dc$dims[if (env(object)$REML) "nmp" else "n"]))
           })
 
 ##' Extract the conditional variance-covariance matrix of the fixed
@@ -353,8 +367,7 @@ setMethod("vcov", signature(object = "lmerenv"),
 	  function(object, ...)
       {
           en <- env(object)
-          rr <- as(sigma(object)^2 * chol2inv(as(en$RX, "matrix")),
-                   "dpoMatrix")
+          rr <- as(sigma(object)^2 * chol2inv(en$RX), "dpoMatrix")
           nms <- colnames(en$X)
           dimnames(rr) <- list(nms, nms)
           rr@factors$correlation <- as(rr, "corMatrix")
