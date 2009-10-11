@@ -11,21 +11,30 @@ library(lme4a)
 if (exists("classroom.rda")) {
     load("classroom.rda")
 } else {
-    classroom <- within(read.csv("http://www-personal.umich.edu/~bwest/classroom.csv"),
-                    {
-                        classid <- factor(classid)
-                        schoolid <- factor(schoolid)
-                        sex <- factor(sex, labels = c("M","F"))
-                        minority <- factor(minority, labels = c("N", "Y"))
-                    })
+    classroom <-
+        within(read.csv("http://www-personal.umich.edu/~bwest/classroom.csv"),
+           {
+               classid <- factor(classid)
+               schoolid <- factor(schoolid)
+               sex <- factor(sex, labels = c("M","F"))
+               minority <- factor(minority, labels = c("N", "Y"))
+           })
     classroom$childid <- NULL
     save(classroom, file = "classroom.rda")
 }
-ratbrain <- read.delim("http://www-personal.umich.edu/~bwest/rat_brain.dat")
-ratbrain$treatment <- factor(ratbrain$treatment,
-                             labels = c("Basal", "Carbachol"))
-ratbrain$region <- factor(ratbrain$region,
-                          labels = c("BST", "LS", "VDB"))
+if (exists("ratbrain.rda")) {
+    load("ratbrain.rda")
+} else {
+    ratbrain <-
+        within(read.delim("http://www-personal.umich.edu/~bwest/rat_brain.dat"),
+           {
+               treatment <- factor(treatment,
+                                   labels = c("Basal", "Carbachol"))
+               region <- factor(region,
+                                labels = c("BST", "LS", "VDB"))
+           })
+    save(ratbrain, file = "ratbrain.rda")
+}
 @
 
 \chapter{Models with multiple random-effects terms}
