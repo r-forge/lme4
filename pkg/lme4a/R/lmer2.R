@@ -692,3 +692,35 @@ nlmer2 <- function(formula, data, family = gaussian, start = NULL,
     
     merFinalize(rho)
 }
+
+copylmer <- function(x) {
+    stopifnot(is(x, "lmerenv"))
+    gb <- x@getBounds
+    gp <- x@getPars
+    sp <- x@setPars
+    rho <- env(x)
+    en <- new.env(parent = parent.env(rho))
+    for (nm in setdiff(ls(rho), "call"))
+        assign(nm, get(nm, env = rho), env = en)
+    environment(gb) <- environment(gp) <- environment(sp) <- en
+    new("lmerenv", setPars = sp, getPars = gp, getBounds = gb)
+}
+
+dropX <- function(x, which) {
+    w <- as.integer(which)[1]
+    ans <- copylmer(x)
+    rho <- env(ans)
+    p <- length(rho$fixef)
+    stopifnot(0 < w, w <= p)
+    rho$fixef <- rho$fixef[-w]
+    ## matrices from which to drop a row and a column
+    for (nm in c("XtX", "RX"))
+        assign(nm, get(nm, envir = rho)[-w, -w], envir = rho)
+    ## matrices from which to drop a column only
+    for (nm in c("X", "ZtX", "RZX"))
+        assign(nm, get(nm, envir = rho)[, -w], envir = rho)
+    ## matrices from which to drop a row only
+    for (nm in c("Xty"))
+        assign(nm, get(nm, envir = rho)[-w, ], envir = rho)
+    ans
+}
