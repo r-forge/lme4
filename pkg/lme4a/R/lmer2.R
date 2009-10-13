@@ -1,6 +1,3 @@
-## Also suppress the warning
-assign("det_CHMfactor.warn", TRUE, envir = Matrix:::.MatrixEnv)
-
 ##' Check and install various objects, including frame, y, weights
 ##' from the model frame in the environment rho.
 ##'
@@ -702,25 +699,31 @@ copylmer <- function(x) {
     en <- new.env(parent = parent.env(rho))
     for (nm in setdiff(ls(rho), "call"))
         assign(nm, get(nm, env = rho), env = en)
+    en$.f <- rho$.f
     environment(gb) <- environment(gp) <- environment(sp) <- en
     new("lmerenv", setPars = sp, getPars = gp, getBounds = gb)
 }
 
-dropX <- function(x, which) {
+dropX <- function(x, which, fw) {
     w <- as.integer(which)[1]
+    fw <- as.numeric(fw)[1]
     ans <- copylmer(x)
     rho <- env(ans)
     p <- length(rho$fixef)
     stopifnot(0 < w, w <= p)
     rho$fixef <- rho$fixef[-w]
-    ## matrices from which to drop a row and a column
-    for (nm in c("XtX", "RX"))
-        assign(nm, get(nm, envir = rho)[-w, -w], envir = rho)
-    ## matrices from which to drop a column only
-    for (nm in c("X", "ZtX", "RZX"))
-        assign(nm, get(nm, envir = rho)[, -w], envir = rho)
-    ## matrices from which to drop a row only
-    for (nm in c("Xty"))
-        assign(nm, get(nm, envir = rho)[-w, ], envir = rho)
+    Xw <- rho$X[, w, drop = TRUE]
+    rho$X <- X <- rho$X[, -w, drop = FALSE]
+    rho$Xty <- rho$Xty[-w]
+    rho$XtX <- crossprod(X)
+    if (p == 1)
+        rho$RX <- new("Cholesky", Dim = c(0L,0L), uplo = "U", diag = "N")
+    else rho$RX <- chol(rho$XtX)
+    rho$ZtX <- rho$ZtX[, -w, drop = FALSE]
+    rho$RZX <- rho$RZX[, -w, drop = FALSE]
+    ## expand a zero length offset
+    if (!length(rho$offset))
+        rho$offset <- numeric(nrow(X))
+    rho$offset <- Xw * fw + rho$offset
     ans
 }
