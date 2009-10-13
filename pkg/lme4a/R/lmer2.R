@@ -696,10 +696,10 @@ copylmer <- function(x) {
     gp <- x@getPars
     sp <- x@setPars
     rho <- env(x)
-    en <- new.env(parent = parent.env(rho))
-    for (nm in setdiff(ls(rho), "call"))
-        assign(nm, get(nm, env = rho), env = en)
-    en$.f <- rho$.f
+    en <- .Call(lme4_dup_env_contents,
+                new.env(parent = parent.env(rho)),
+                rho,
+                ls(envir = rho, all.names = TRUE))
     environment(gb) <- environment(gp) <- environment(sp) <- en
     new("lmerenv", setPars = sp, getPars = gp, getBounds = gb)
 }
@@ -709,21 +709,29 @@ dropX <- function(x, which, fw) {
     fw <- as.numeric(fw)[1]
     ans <- copylmer(x)
     rho <- env(ans)
+    rho$fw <- fw
     p <- length(rho$fixef)
     stopifnot(0 < w, w <= p)
     rho$fixef <- rho$fixef[-w]
     Xw <- rho$X[, w, drop = TRUE]
     rho$X <- X <- rho$X[, -w, drop = FALSE]
-    rho$Xty <- rho$Xty[-w]
-    rho$XtX <- crossprod(X)
-    if (p == 1)
-        rho$RX <- new("Cholesky", Dim = c(0L,0L), uplo = "U", diag = "N")
-    else rho$RX <- chol(rho$XtX)
-    rho$ZtX <- rho$ZtX[, -w, drop = FALSE]
-    rho$RZX <- rho$RZX[, -w, drop = FALSE]
     ## expand a zero length offset
     if (!length(rho$offset))
         rho$offset <- numeric(nrow(X))
+    ## store the original offset
+    rho$offset.orig <- rho$offset
+    ## offset calculated from fixed parameter value
     rho$offset <- Xw * fw + rho$offset
+    ymoff <- rho$y - rho$offset
+    rho$Xty <- crossprod(X, ymoff)@x
+    rho$Zty <- rho$Zt %*% ymoff
+    rho$XtX <- crossprod(X)
+    rho$RX <-
+        if (p == 1)
+            new("Cholesky", Dim = c(0L,0L), uplo = "U", diag = "N")
+        else
+            chol(rho$XtX)
+    rho$ZtX <- rho$ZtX[, -w, drop = FALSE]
+    rho$RZX <- rho$RZX[, -w, drop = FALSE]
     ans
 }

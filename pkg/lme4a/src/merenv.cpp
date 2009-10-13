@@ -358,4 +358,18 @@ extern "C" {
 	    return ScalarReal(lmerdense(rho).validate());
     }
 
+    SEXP lme4_dup_env_contents(SEXP dest, SEXP src, SEXP nms) {
+	if (!isEnvironment(dest))
+	    error(_("dest must be an environment"));
+	if (!isEnvironment(src))
+	    error(_("src must be an environment"));
+	if (!isString(nms))
+	    error(_("nms must be a character variable"));
+	for (int i = 0; i < LENGTH(nms); i++) {
+	    SEXP nmsym = install(CHAR(STRING_ELT(nms, i)));
+	    defineVar(nmsym, duplicate(findVarBound(src, nmsym)), dest);
+	}
+	return dest;
+    }
+    
 }

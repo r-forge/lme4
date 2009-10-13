@@ -23,6 +23,7 @@ static R_CallMethodDef CallEntries[] = {
     CALLDEF(ST_validate, 1),
 
     CALLDEF(lme4_ghq, 1),
+    CALLDEF(lme4_dup_env_contents, 3),
 
     CALLDEF(lmerenv_validate, 1),
     CALLDEF(lmerenv_deviance, 2),
