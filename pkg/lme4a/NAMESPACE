@@ -1,95 +1,95 @@
 useDynLib(lme4a, .registration=TRUE)
 
-import("Matrix")# including update()
-import("lattice")
+import(Matrix)# including update()
+import(lattice)
 
-## Generics for which we define new methods:
-importFrom("graphics", plot)
-importFrom("stats",
-           anova,
+## Generics defined in stats4
+importFrom(stats4,
+           AIC,
+           BIC,
            coef,
            confint,
+           logLik,
+           plot,
+           profile,
+           ## update, -- already from 'Matrix'
+           vcov
+           )
+importFrom(stats,
+           anova,
            deviance,
            fitted,
            formula,
-           logLik,
            model.frame,
            model.matrix,
            predict,
            residuals, resid, # 'resid' needed too, unfortunately..
            simulate,
-           terms,
-           ## update, -- already from 'Matrix'
-           vcov
-           )
-## More imports: functions we use and don't want to be clobbered:
-importFrom("stats",
-           AIC)# ..., rnorm, pnorm, qnorm, ... ... where does it end?
-## but  import("stats") is not ok, because Matrix exports "better" versions of
+           terms)
+## import("stats") is not ok, because Matrix exports "better" versions of
 ## update(), xtabs() and cov2cor()
 
-
 export(
-       "HPDinterval",
-       "VarCorr",
-       "devcomp",
-       "env",
-       "getBounds",
-       "getPars",
-       "glmer",
-       "lmList",
-       "lmer",
-       "lmer2",
-       "mcmcsamp",
-       "nlmer",
-       "refit",
-       "setPars",
-       "sigma"
+       HPDinterval,
+       VarCorr,
+       devcomp,
+       env,
+       getBounds,
+       getPars,
+       glmer,
+       lmList,
+       lmer,
+       lmer2,
+       mcmcsamp,
+       nlmer,
+       refit,
+       setPars,
+       sigma
        )
 
-exportClasses("ST", "lmList", "mer", "merMCMC", "summary.mer", "optenv")
+exportClasses(ST, lmList, mer, merMCMC, summary.mer, optenv)
 
 exportMethods(
-              "BIC",
-              "HPDinterval",
-              "VarCorr",
-              "anova",
-              "as.matrix",
-              "as.data.frame",
-              "chol",
-              "coef",
-              "coerce",
-              "confint",
-              "densityplot",
-              "deviance",
-              "expand",
-              "fitted",
-              "fixef",
-              "formula",
-              "getBounds",
-              "getPars",
-              "head",
-              "logLik",
-              "mcmcsamp",
-              "model.frame",
-              "model.matrix",
-              "plot",
-              "print",
-              "qqmath",
-              "ranef",
-              "refit",
-              "resid", "residuals",
-              "setPars",
-              "show",
-              "sigma",
-              "simulate",
-              "summary",
-              "tail",
-              "terms",
-              "update",
-              "vcov",
-              "with",
-              "xyplot"
+              BIC,
+              HPDinterval,
+              VarCorr,
+              anova,
+              as.matrix,
+              as.data.frame,
+              chol,
+              coef,
+              coerce,
+              confint,
+              densityplot,
+              deviance,
+              expand,
+              fitted,
+              fixef,
+              formula,
+              getBounds,
+              getPars,
+              head,
+              logLik,
+              mcmcsamp,
+              model.frame,
+              model.matrix,
+              plot,
+              print,
+              qqmath,
+              ranef,
+              refit,
+              resid, residuals,
+              setPars,
+              show,
+              sigma,
+              simulate,
+              summary,
+              tail,
+              terms,
+              update,
+              vcov,
+              with,
+              xyplot
               )
 
 S3method(plot, coef.mer)
