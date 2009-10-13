@@ -17,6 +17,7 @@ extern "C" {
 
 SEXP lmerenv_deviance(SEXP rho, SEXP newth);
 SEXP lmerenv_validate(SEXP rho);
+SEXP lme4_dup_env_contents(SEXP dest, SEXP src, SEXP nms);
 
 #ifdef	__cplusplus
 }
