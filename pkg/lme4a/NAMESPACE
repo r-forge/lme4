@@ -75,6 +75,7 @@ exportMethods(
               model.matrix,
               plot,
               print,
+              profile,
               qqmath,
               ranef,
               refit,
