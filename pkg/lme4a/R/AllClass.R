@@ -232,8 +232,7 @@ setClass("lmerenv", contains = "merenvtrms",
          if (!(is(RX <- rho$RX, "dMatrix") &&
                all(dim(RX) == c(p, p))))
              return("environment must contain a p by p Matrix RX")
-         if (!(is.numeric(Xty <- rho$Xty) &&
-               length(Xty == p)))
+         if (!(is.numeric(Xty <- rho$Xty) && length(Xty) == p))
              return("environment must contain a numeric p-vector Xty")
          if (!(is(XtX <- rho$XtX, "dMatrix") &&
                is(XtX, "symmetricMatrix") &&
