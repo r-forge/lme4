@@ -34,6 +34,39 @@ check_y_weights <- function(fr, rho) {
 ###     if (!is.null(mustart <- model.extract("mustart")))
 ###         rho$mustart <- mustart
 }
+
+##' Install derived matrices in the environment.  The y vector is
+##' passed separately so that it can incorporate an offset.
+##'
+##' @param rho an lmer environment
+derived_mats <- function(rho) {
+    stopifnot(is.environment(rho),
+              is(X <- rho$X, "Matrix"),
+              is(Zt <- rho$Zt, "Matrix"))
+    n <- nrow(X)
+    p <- ncol(X)
+    off <- rho$offset
+    yy <- rho$y - if (length(off)) off else 0
+    stopifnot(ncol(Zt) == n, length(yy) == n)
+    
+    ## Zty is stored as a Matrix, not a vector because of a
+    ## peculiarity in crossprod(Lambda, Zty) if Lambda is zero
+    rho$Zty = Zt %*% yy
+    if (p == 0) {
+        zz <- c(0L,0L)
+        qz <- c(nrow(Zt), 0L)
+        rho$Xty <- numeric(0)
+        rho$XtX <- new("dpoMatrix", Dim = zz, uplo = "U")
+        rho$RX <- new("Cholesky", Dim = zz, uplo = "U", diag = "N")
+        rho$ZtX <- new("dgeMatrix", Dim = qz, Dimnames = Zt@Dimnames)
+        rho$RZX <- new("dgeMatrix", Dim = qz, Dimnames = Zt@Dimnames)
+    } else {
+        rho$RX <- chol(rho$XtX <- crossprod(X)) # check for full column rank
+        rho$Xty <- unname(as.vector(crossprod(X, yy)))
+        rho$RZX <- rho$Ut %*% X
+        rho$ZtX <- Zt %*% X        
+    }
+}
     
 ##' Install various objects, including Lambda, Lind, Zt and Ut in
 ##' environment rho based on the list bars of random effects terms and
@@ -189,21 +222,15 @@ lmer <-
     }
     
     makeZt(expandSlash(findbars(formula[[3]])), fr, rho)
-    
-    rho$RX <- chol(rho$XtX <- crossprod(X)) # check for full column rank
-    rho$Xty <- unname(as.vector(crossprod(X, rho$y)))
-    
-    rho$RZX <- rho$Ut %*% X
+
+    derived_mats(rho)
+
     rho$fitted <- numeric(rho$n)
     rho$prss <- 0
     rho$ldL2 <- 0
     rho$ldRX2 <- 0
     
     rho$L <- Cholesky(tcrossprod(rho$Zt), LDL = FALSE, Imult = 1)
-    ## Zty is stored as a Matrix, not a vector because of a
-    ## peculiarity in crossprod(Lambda, Zty) if Lambda is zero
-    rho$Zty <- rho$Zt %*% rho$y            
-    rho$ZtX <- rho$Zt %*% X
     rho$compDev <- compDev
     rho$call <- mc
     sP <- function(x) {
@@ -721,17 +748,57 @@ dropX <- function(x, which, fw) {
     ## store the original offset
     rho$offset.orig <- rho$offset
     ## offset calculated from fixed parameter value
-    rho$offset <- Xw * fw + rho$offset
-    ymoff <- rho$y - rho$offset
-    rho$Xty <- crossprod(X, ymoff)@x
-    rho$Zty <- rho$Zt %*% ymoff
-    rho$XtX <- crossprod(X)
-    rho$RX <-
-        if (p == 1)
-            new("Cholesky", Dim = c(0L,0L), uplo = "U", diag = "N")
-        else
-            chol(rho$XtX)
-    rho$ZtX <- rho$ZtX[, -w, drop = FALSE]
-    rho$RZX <- rho$RZX[, -w, drop = FALSE]
+    rho$offset <- Xw * fw + rho$offset.orig
+    derived_mats(rho)
     ans
 }
+
+update_dr <- function(x, fw) {
+    rho <- env(x)
+    rho$offset <- rho$Xw * fw + rho$offset.orig
+    derived_mats(rho)
+    x
+}
+
+setMethod("profile", "lmerenv",
+          function(fitted, ...)
+      {
+          if (env(fitted)$REML) {         # refit for deviance
+              fitted <- copylmer(fitted)
+              env(fitted)$REML <- FALSE
+              if ((res <- 
+                   nlminb(fitted@getPars(), fitted@setPars,
+                          lower = env(fitted)$lower))$convergence)
+                  stop("failure to refit model for ML estimates")
+          }
+          basedev <- res$objective
+
+          rho <- env(fitted)
+          template <- c(0, 0, rho$fixef[-1], sigma(fitted), rho$theta)
+          ans <- lapply(rho$fixef,
+                        function(el)
+                        matrix(template, nc = length(template),
+                               nr = 61, byrow = TRUE))
+          p <- length(ans)
+          coefmat <- coef(summary(fitted))
+          for (j in seq_len(p)) {
+              est <- coefmat[j,1]
+              std <- coefmat[j,2]
+              dr <- dropX(fitted, j, est)
+              rho <- env(dr)
+              low <- rho$lower
+              mm <- ans[[j]]
+              for (i in seq_along(ans[,1])) {
+                  fw <- est + (i-30) * std/10
+                  update_dr(dr, fw)
+                  nlminb(dr@getPars(), dr@setPars, lower = low)
+                  mm[i,] <-
+                      c(sqrt(deviance(dr) - basedev), fw,
+                        rho$fixef, sigma(dr), rho$theta)
+              }
+              ans[[j]] <- mm
+          }
+          ans
+      })
+
+              
