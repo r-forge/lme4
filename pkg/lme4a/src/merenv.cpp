@@ -10,12 +10,13 @@ void merenv::initMer(SEXP rho)
     // Get dimensions of the problem
     SEXP sl = findVarBound(rho, lme4_ySym);
     if (!(n = LENGTH(sl)) || !isReal(sl)) // n = length of response
-	error(_("Response vector y must be numeric (double)"));
+	error(_("Response vector y must be numeric (double) and non-empty"));
     y = REAL(sl);
 
     sl = findVarBound(rho, lme4_fixefSym);
-    if (!(p = LENGTH(sl)) || !isReal(sl)) // p = length of fixef
+    if (!isReal(sl))		// p = length of fixef
 	error(_("fixef vector must be numeric (double)"));
+    p = LENGTH(sl);
     fixef = REAL(sl);
 
     sl = findVarBound(rho, lme4_uSym);
@@ -180,8 +181,9 @@ void mersparse::update_eta() {
 
 void merdense::update_eta() {
     update_eta_Ut();
-    F77_CALL(dgemv)("N", &n, &p, &one, X, &n, fixef,
-		    &i1, &one, eta, &i1);
+    if (p) 
+	F77_CALL(dgemv)("N", &n, &p, &one, X, &n, fixef,
+			&i1, &one, eta, &i1);
 }
 
 void merdense::initMersd(SEXP rho) {
@@ -258,27 +260,29 @@ double lmer::LMMdev3() {
  * @return deviance or REML criterion according to the value of REML
  */
 double lmerdense::update_dev(SEXP thnew) {
+    int info;
     update_Lambda_Ut(thnew);
     LMMdev1();
     
     CHM_DN PLZtX = solvePL(N_AS_CHM_DN(ZtX, q, p));
     dble_cpy(RZX, (double*)(PLZtX->x), q * p);
     M_cholmod_free_dense(&PLZtX, &c);
-    // downdate and factor XtX, solve for fixef
-    dble_cpy(RX, XtX, p * p);
-    F77_CALL(dsyrk)("U", "T", &p, &q, &mone, RZX, &q, &one, RX, &p);
-    dble_cpy(fixef, Xty, p);
-    F77_CALL(dgemv)("T", &q, &p, &mone, RZX, &q, (double*)(cu->x),
-		    &i1, &one, fixef, &i1);
-    int info;
-    F77_CALL(dposv)("U", &p, &i1, RX, &p, fixef, &p, &info);
-    if (info)
-	error(_("Downdated X'X is not positive definite, %d."), info);
-				// evaluate ldRX2
     *ldRX2 = 0;
-    for (int i = 0; i < p; i++) *ldRX2 += 2 * log(RX[i * (p + 1)]);
-    F77_CALL(dgemv)("N", &q, &p, &mone, RZX, &q, fixef, &i1, &one,
-		    (double*)(cu->x), &i1);
+				// downdate and factor XtX, solve for fixef
+    if (p) {
+	dble_cpy(RX, XtX, p * p);
+	F77_CALL(dsyrk)("U", "T", &p, &q, &mone, RZX, &q, &one, RX, &p);
+	dble_cpy(fixef, Xty, p);
+	F77_CALL(dgemv)("T", &q, &p, &mone, RZX, &q, (double*)(cu->x),
+			&i1, &one, fixef, &i1);
+	F77_CALL(dposv)("U", &p, &i1, RX, &p, fixef, &p, &info);
+	if (info)
+	    error(_("Downdated X'X is not positive definite, %d."), info);
+				// evaluate ldRX2
+	for (int i = 0; i < p; i++) *ldRX2 += 2 * log(RX[i * (p + 1)]);
+	F77_CALL(dgemv)("N", &q, &p, &mone, RZX, &q, fixef, &i1, &one,
+			(double*)(cu->x), &i1);
+    }
     LMMdev2();
     update_eta();
     return LMMdev3();
