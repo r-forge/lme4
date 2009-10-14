@@ -42,9 +42,9 @@ double *VAR_REAL_NULL(SEXP rho, SEXP nm, int len, int nullOK, int absentOK)
 	} else error(_("object named '%s' not found in environment"), pn);
     }
     int ll = 0;			// -Wall
-    
+
     if (var == R_NilValue || !(ll  = LENGTH(var))) {
-	if (nullOK) return (double*) NULL;
+	if (nullOK || !len) return (double*) NULL;
 	error(_("numeric object '%s' may not have length 0"), pn);
     }
     if (len && ll != len)
