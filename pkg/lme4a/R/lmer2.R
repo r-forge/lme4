@@ -226,9 +226,9 @@ lmer <-
     derived_mats(rho)
 
     rho$fitted <- numeric(rho$n)
-    rho$prss <- 0
-    rho$ldL2 <- 0
-    rho$ldRX2 <- 0
+    rho$prss <- numeric(1)
+    rho$ldL2 <- numeric(1)
+    rho$ldRX2 <- numeric(1)
     
     rho$L <- Cholesky(tcrossprod(rho$Zt), LDL = FALSE, Imult = 1)
     rho$compDev <- compDev
@@ -353,9 +353,8 @@ setMethod("ranef", signature(object = "merenvtrms"),
           ans
       })
 
-devcomp <- function(x, theta, ...) {
+devcomp <- function(x, ...) {
     stopifnot(is(x, "lmerenv"))
-    if (!missing(theta)) x@setPars(theta)
     with(env(x),
          list(cmp = c(ldL2 = ldL2, ldRX2 = ldRX2, prss = prss,
               deviance = ldL2 + n * (1 + log(2 * pi * prss/n)),
