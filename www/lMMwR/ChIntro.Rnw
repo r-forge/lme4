@@ -40,9 +40,9 @@ if (file.exists("grd1.rda")) {
         sigmasq <- sigma^2
         dc <- devcomp(fenv)
         dev <- dc$cmp
-        base <- unname(dev["ldL2"] +  dev["prss"]/sigmasq)
-        l2ps <- log(2*pi*sigmasq)
-        base + unname(c(dev["ldRX2"],0)) + dc$dims[c("nmp","n")] * l2ps
+        unname(dev["ldL2"] +  dev["prss"]/sigmasq +
+               c(dev["ldRX2"],0) +
+               dc$dims[c("nmp","n")] * log(2*pi*sigmasq))
     }
     sigmaDev1 <- function(fenv, pars)
     {
