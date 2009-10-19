@@ -123,8 +123,9 @@ and their rate of increase in reaction time with days of sleep
 deprivation. 
 
 <<Sl1,fig=TRUE,echo=FALSE,height=3.2,width=7>>=
-print(plot(confint(lmList(Reaction ~ Days | Subject, sleepstudy),
-                   pooled = TRUE), order = 1))
+#print(plot(confint(lmList(Reaction ~ Days | Subject, sleepstudy),
+### FIXME: Create the necessary confint plot.
+#                   pooled = TRUE), order = 1))
 @ 
 \begin{figure}[tbp]
   \centerline{\includegraphics[width=\textwidth]{figs/Long-Sl1}}
@@ -408,7 +409,7 @@ parameters in model \code{sm2}.
 set.seed(123454321)
 @ 
 <<ss2>>=
-ss2 <- mcmcsamp(sm2,10000)
+#ss2 <- mcmcsamp(sm2,10000)
 @ 
 
 The \code{HPDinterval} function creates HPD intervals on each of the
@@ -416,7 +417,7 @@ parameters in the sample.  By default it returns intervals whose
 empirical probability content is 95\% (this can be changed, if
 desired).
 <<ss2HPD>>=
-HPDinterval(ss2[,-6])
+#HPDinterval(ss2[,-6])
 @ 
 
 Notice that in the intervals all the variance parameters are reported
@@ -424,35 +425,35 @@ on the logarithm scale.  The reason for taking this transformation is
 because the logarithm of a variance tends to be symmetrically
 distributed as shown by the density plots in Figure~\ref{fig:ss2density}
 <<ss2density,fig=TRUE,echo=FALSE,height=2.9,width=7>>=
-print(densityplot(ss2[,-6],plot.points=FALSE,aspect='xy',
-                  type=c("g","l"),layout=c(3,2)))
+#print(densityplot(ss2[,-6],plot.points=FALSE,aspect='xy',
+#                  type=c("g","l"),layout=c(3,2)))
 @ 
-\begin{figure}[tbp]
-  \centerline{\includegraphics[width=\textwidth]{figs/Long-ss2density}}
-    \caption{Empirical density estimates of a Markov Chain Monte Carlo
-      sample from the posterior distribution of the parameters in
-      model \code{Sm2}.  The variance parameters are shown on the
-      logarithm scale.}
-  \label{fig:ss2density}
-\end{figure}
+% \begin{figure}[tbp]
+%   \centerline{\includegraphics[width=\textwidth]{figs/Long-ss2density}}
+%     \caption{Empirical density estimates of a Markov Chain Monte Carlo
+%       sample from the posterior distribution of the parameters in
+%       model \code{Sm2}.  The variance parameters are shown on the
+%       logarithm scale.}
+%   \label{fig:ss2density}
+% \end{figure}
 
 Not only are the posterior distributions on this scale symmetric, they
 are very close to normal distributions as shown by their normal
 probability plots (Figure~\ref{fig:ss2qqmath})
 <<ss2qqmath,fig=TRUE,echo=FALSE,height=2.5,width=7>>=
-print(qqmath(window(ss2[,-6],thin=10), pch = ".", cex = 1.8,
-             type = c("g", "p"), layout = c(5,1),
-             xlab = "Quantiles of a standard normal distribution"))
+#print(qqmath(window(ss2[,-6],thin=10), pch = ".", cex = 1.8,
+#             type = c("g", "p"), layout = c(5,1),
+#             xlab = "Quantiles of a standard normal distribution"))
 @ 
-\begin{figure}[tbp]
-  \centerline{\includegraphics[width=\textwidth]{figs/Long-ss2qqmath}}
-  \caption{Normal probability plots of the Markov Chain Monte Carlo
-    sample from the posterior distribution of the parameters in model
-    \code{sm2}.  The variance and covariance parameters have been
-    transformed to the logarithms of the variances and Fisher's z
-    transformation of the correlations, respectively.}
-  \label{fig:ss2qqmath}
-\end{figure}
+% \begin{figure}[tbp]
+%   \centerline{\includegraphics[width=\textwidth]{figs/Long-ss2qqmath}}
+%   \caption{Normal probability plots of the Markov Chain Monte Carlo
+%     sample from the posterior distribution of the parameters in model
+%     \code{sm2}.  The variance and covariance parameters have been
+%     transformed to the logarithms of the variances and Fisher's z
+%     transformation of the correlations, respectively.}
+%   \label{fig:ss2qqmath}
+% \end{figure}
 
 \section{Examining the random effects}
 
@@ -510,6 +511,7 @@ print(plot(rr1, aspect = 1, type = c("g", "p")))
 
 <<shrinkage,echo=FALSE,fig=TRUE,height=7,width=7>>=
 df <- coef(lmList(Reaction ~ Days | Subject, sleepstudy))
+### FIXME: Need a coef method
 cc1 <- as.data.frame(coef(sm1)$Subject)
 names(cc1) <- c("A", "B")
 df <- cbind(df, cc1)
