@@ -1,7 +1,6 @@
 \SweaveOpts{engine=R,eps=FALSE,pdf=TRUE,width=8,strip.white=TRUE}
 \SweaveOpts{prefix=TRUE,prefix.string=figs/Multiple,include=TRUE}
 \setkeys{Gin}{width=\textwidth}
-
 <<preliminaries,echo=FALSE,print=FALSE,results=hide>>=
 options(width=65, show.signif.stars = FALSE,
         lattice.theme = function() canonical.theme("pdf", color = FALSE))
@@ -202,8 +201,8 @@ matrix contains rows of indicators for each factor, as shown in
 Figure~\ref{fig:fm2Ztimage}.
 \begin{figure}[tbp]
   \centering
-<<fm2Ztimage,fig=TRUE,echo=FALSE,height=2>>=
-print(image(env(fm2)$Zt, sub=NULL))
+<<fm2Ztimage,fig=TRUE,echo=FALSE,height=2.4>>=
+print(image(env(fm2)$Zt, sub=NULL,xlab=NULL,ylab=NULL))
 @   
   \caption[Image of the random-effects model matrix for
   \texttt{fm1}]{Image of the transpose of the random-effects model
@@ -562,12 +561,3 @@ this section all the models we will fit have with \emph{simple, scalar
 associated with each level of the grouping factor and it is an
 additive random effect.  In these cases the expression on the left of
 the vertical bar is ``\code{1}'', which denotes a constant.
-
-\section{Fitting linear mixed models with multiple random-effects terms}
-\label{sec:multipleRE}
-
-
-We use more than one random-effects term in the formula when
-specifying models with multiple grouping factors for the random
-effects.  Interestingly, the model specifications are quite similar
-for data with crossed random effects
