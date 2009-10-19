@@ -762,17 +762,17 @@ update_dr <- function(x, fw) {
 setMethod("profile", "lmerenv",
           function(fitted, ...)
       {
-          if (env(fitted)$REML) {         # refit for deviance
+          rho <- env(fitted)
+          if (rho$REML) {         # refit for deviance
               fitted <- copylmer(fitted)
-              env(fitted)$REML <- FALSE
-              if ((res <- 
-                   nlminb(fitted@getPars(), fitted@setPars,
+              rho <- env(fitted)
+              rho$REML <- FALSE
+              if ((nlminb(fitted@getPars(), fitted@setPars,
                           lower = env(fitted)$lower))$convergence)
                   stop("failure to refit model for ML estimates")
           }
-          basedev <- res$objective
+          basedev <- deviance(fitted)
 
-          rho <- env(fitted)
           template <- c(0, 0, rho$fixef[-1], sigma(fitted), rho$theta)
           ans <- lapply(rho$fixef,
                         function(el)
@@ -799,5 +799,3 @@ setMethod("profile", "lmerenv",
           }
           ans
       })
-
-              
