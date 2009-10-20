@@ -739,7 +739,7 @@ dropX <- function(x, which, fw) {
     p <- length(rho$fixef)
     stopifnot(0 < w, w <= p)
     rho$fixef <- rho$fixef[-w]
-    Xw <- rho$X[, w, drop = TRUE]
+    rho$Xw <- rho$X[, w, drop = TRUE]
     rho$X <- X <- rho$X[, -w, drop = FALSE]
     ## expand a zero length offset
     if (!length(rho$offset))
@@ -747,16 +747,16 @@ dropX <- function(x, which, fw) {
     ## store the original offset
     rho$offset.orig <- rho$offset
     ## offset calculated from fixed parameter value
-    rho$offset <- Xw * fw + rho$offset.orig
+    rho$offset <- rho$Xw * fw + rho$offset.orig
     derived_mats(rho)
     ans
 }
 
-update_dr <- function(x, fw) {
-    rho <- env(x)
+update_dr_env <- function(rho, fw) {
+    rho$fw <- fw
     rho$offset <- rho$Xw * fw + rho$offset.orig
     derived_mats(rho)
-    x
+    NULL
 }
 
 setMethod("profile", "lmerenv",
@@ -772,30 +772,68 @@ setMethod("profile", "lmerenv",
                   stop("failure to refit model for ML estimates")
           }
           basedev <- deviance(fitted)
-
-          template <- c(0, 0, rho$fixef[-1], sigma(fitted), rho$theta)
-          ans <- lapply(rho$fixef,
-                        function(el)
-                        matrix(template, nc = length(template),
-                               nr = 61, byrow = TRUE))
-          p <- length(ans)
           coefmat <- coef(summary(fitted))
+          kk <- length(rho$theta)
+          p <- nrow(coefmat)
+
+          template <- data.frame(z = numeric(41))
+          template$par.vals <- array(0, c(41, p + kk + 1L),
+                                     list(NULL, c(rownames(coefmat),
+                                                  sprintf("Th%02d", seq_len(kk)),
+                                                  "sigma")))
+          ans <- lapply(rho$fixef, function(el) template)
           for (j in seq_len(p)) {
               est <- coefmat[j,1]
               std <- coefmat[j,2]
               dr <- dropX(fitted, j, est)
               rho <- env(dr)
               low <- rho$lower
-              mm <- ans[[j]]
-              for (i in seq_along(ans[,1])) {
-                  fw <- est + (i-30) * std/10
-                  update_dr(dr, fw)
+              for (i in seq_len(41)) {
+                  ans[[j]]$par.vals[i,j] <- fw <- est + (i-20) * std/5
+                  update_dr_env(env(dr), fw)
                   nlminb(dr@getPars(), dr@setPars, lower = low)
-                  mm[i,] <-
-                      c(sqrt(deviance(dr) - basedev), fw,
-                        rho$fixef, sigma(dr), rho$theta)
+                  ans[[j]]$z[i] <- sqrt(deviance(dr) - basedev) * ifelse(fw < est, -1, 1)
+                  ans[[j]]$par.vals[i,-j] <- c(rho$fixef, rho$theta, sigma(dr))
               }
-              ans[[j]] <- mm
           }
           ans
       })
+
+## A lattice-based plot method for profile objects
+prplot <-
+    function (x, levels = sqrt(qchisq(pmax.int(0, pmin.int(1, conf)), 1)),
+              conf = c(50, 80, 90, 95, 99)/100, 
+              absVal = TRUE, ...) 
+{
+    levels <- sort(levels[is.finite(levels) && levels > 0])
+    spl <- lapply(seq_along(x), function(i)
+                  splines::interpSpline(x[[i]]$par.vals[, i], x[[i]]$z))
+    bspl <- lapply(spl, splines::backSpline)
+    zeta <- c(-rev(levels), 0, levels)
+    fr <- data.frame(zeta = rep.int(zeta, length(x)),
+                     pval = unlist(lapply(bspl, predy, zeta)),
+                     pnm = gl(length(x), length(zeta), labels = names(x)))
+    ylab <- expression(zeta)
+    if (absVal) {
+        fr$zeta <- abs(fr$zeta)
+        ylab <- expression("|" * zeta * "|")
+    }
+    xyplot(zeta ~ pval | pnm, fr,
+           scales = list(x = list(relation = 'free')),
+           ylab = ylab, xlab = "", panel = function(x, y, ...)
+       {
+           pfun <- function(x) predy(spl[[panel.number()]], x)
+           panel.grid(h = -1, v = -1)
+           lsegments(x, y, x, 0, ...)
+           if (absVal) {
+               lsegments(x, y, rev(x), y)
+               pfun <- function(x) abs(predy(spl[[panel.number()]], x))
+           } else {
+               panel.abline(h = 0, ...)
+           }
+           panel.curve(pfun, ...)
+       }, ...)
+}
+
+## extract only the y component from a prediction
+predy <- function(sp, vv) predict(sp, vv)$y
