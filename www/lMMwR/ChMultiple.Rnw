@@ -40,14 +40,14 @@ if (exists("ratbrain.rda")) {
 \label{chap:Multiple}
 
 The mixed models considered in the previous chapter had only one
-random-effects term and that sole term was a simple, scalar
-random-effects term.  Although such models can be useful, it is with
-the facility to use multiple random-effects terms and to use
-random-effects terms beyond a simple, scalar term that we can begin to
-realize the flexibility and versatility of mixed models.  In this
-chapter we consider models with multiple simple, scalar random-effects
-terms.  In the next chapter we consider models with random-effects
-terms that are more complex than a simple, scalar term.
+random-effects term, which was a simple, scalar random-effects term.
+Although such models can be useful, it is with the facility to use
+multiple random-effects terms and to use random-effects terms beyond a
+simple, scalar term that we can begin to realize the flexibility and
+versatility of mixed models.  In this chapter we consider models with
+multiple simple, scalar random-effects terms.  In the next chapter we
+consider models with random-effects terms that are more complex than a
+simple, scalar term.
 
 \section{Data with crossed grouping factors}
 \label{sec:crossedgrouping}
@@ -64,8 +64,9 @@ both these factors.
 
 In the past it was difficult to fit mixed models with multiple,
 crossed grouping factors to large, possibly unbalanced, data sets.
-The methods in the \package{lme4} package are able to do this.  Let us
-first consider a small, balanced data set with crossed grouping factors.
+The methods in the \package{lme4} package are able to do this.  To
+introduce the methods let us first consider a small, balanced data set
+with crossed grouping factors.
 
 \subsection{The \texttt{Penicillin} data}
 \label{sec:Penicillin}
@@ -401,7 +402,7 @@ factors'' for the random effects (including the trivial case of only
 one such factor) is detected but this information does not change the
 course of the computation.  It is available to be used as a diagnostic
 check.  When the user knows that the grouping factors should be
-nested, she can check if indeed they are nested.
+nested, she can check if they are indeed nested.
 
 There is, however, one aspect of nested grouping factors that we
 should emphasize, which is the possibility of a factor that is
