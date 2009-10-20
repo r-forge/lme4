@@ -72,7 +72,7 @@ if (file.exists("grd1.rda")) {
 In this book we describe the theory behind a type of statistical model
 called \emph{mixed-effects} models and the practice of fitting and
 analyzing such models using the \package{lme4} package for \R{}.
-These models are used extensively in many subject areas.  Because the
+These models are used in many different disciplines.  Because the
 descriptions of the models can vary markedly between disciplines, we
 begin by describing what mixed-effects models are and by exploring a
 very simple example of one type of mixed model, the \emph{linear mixed
@@ -80,9 +80,9 @@ very simple example of one type of mixed model, the \emph{linear mixed
 
 %% FIXME: Review this paragraph once the chapter is complete
 This simple example allows us to illustrate the use of the \code{lmer}
-function to fit such models.  Building from the example we describe
-the general form of linear mixed models that can be fit using
-\code{lmer}.
+function in the \package{lme4} package for fitting such models and
+analyzing the fitted model.  Building from the example we describe the
+general form of linear mixed models that can be fit using \code{lmer}.
 
 \section{Mixed-effects models}
 \label{sec:memod}
@@ -320,9 +320,9 @@ The structure and summary
 <<strDye2>>=
 str(Dyestuff2)
 summary(Dyestuff2)
-@ 
+@
 are intentionally similar to those of the \code{Dyestuff} data.  As
-seen in Figure~\ref{fig:Dyestuff2dot}
+can be seen in Figure~\ref{fig:Dyestuff2dot}
 \begin{figure}[tbp]
   \centering
 <<Dyestuff2dot,fig=TRUE,echo=FALSE,height=3.5>>=
@@ -381,10 +381,10 @@ print(fm1)
 In the first line we call the \code{lmer} function to fit a model with formula
 <<fm1formula,echo=FALSE>>=
 Yield ~ 1 + (1|Batch)
-@ 
-applied to the \code{Dyestuff} data and
-assign the result to the name \code{fm1}.  (The name is arbitrary.  I
-happen to use names that start with \code{fm}, meaning ``fitted model''.)
+@
+applied to the \code{Dyestuff} data and assign the result to the
+name \code{fm1}.  (The name is arbitrary.  I happen to use names that
+start with \code{fm}, indicating ``fitted model''.)
 
 As is customary in \R{}, there is no output shown after this
 assignment.  We have simply saved the fitted model as an object named
@@ -413,11 +413,10 @@ reference.  If other, optional arguments affecting the fit, such as a
 \code{subset} specification, were used, they too will be displayed
 here.
 
-%% FIXME: This paragraph needs revision
 For models fit by the REML criterion the only statistic describing the
-model fit is the value of the REML criterion itself.  To obtain the
-maximum likelihood estimates instead we provide the optional argument
-\code{REML = FALSE} estimate the parameters by maximum likelihood,
+model fit is the value of the REML criterion itself.  An alternative
+set of parameter estimates, the maximum likelihood estimates, are
+obtained by specifying the optional argument \code{REML = FALSE}.
 <<fm1ML>>=
 (fm1ML <- lmer(Yield ~ 1 + (1|Batch), Dyestuff, REML = FALSE))
 @ 
@@ -437,16 +436,15 @@ other model-fit statistics such as Akaike's Information Criterion
 Information Criterion (\code{BIC})~\citep{schw:1978}, the
 log-likelihood (\code{logLik}) at the parameter estimates, and the
 deviance (negative twice the log-likelihood) at the parameter
-estimates.  These are all statistics related to the model fit and they
-are primarily used to compare different models fit to the same data.
-We discuss them in more detail in section~\ref{sec:logLik}.
+estimates.  These are all statistics related to the model fit and
+are used to compare different models fit to the same data.
 
 At this point the important thing to note is that the default
 estimation criterion is the REML criterion.  Generally the REML
 estimates of variance components are preferred to the ML estimates.
 However, when comparing models it is safest to refit all the models
 using the maximum likelihood criterion.  We will discuss comparisons
-of model fits later.
+of model fits later in section~\ref{sec:compmod}.
 
 The third section is the table of estimates of parameters associated
 with the random effects.  There are two sources of variability in the
@@ -474,8 +472,8 @@ is estimated as \Sexpr{sprintf("%.2f", unlist(VarCorr(fm1)))} gm.$^2$
 in the REML fit and as
 \Sexpr{sprintf("%.2f", unlist(VarCorr(fm1ML)))} gm.$^2$
 in the ML fit.  The corresponding standard deviations
-are \Sexpr{round(sqrt(VarCorr(fm1)[["Batch"]][1,1]), 2)} gm. for the
-REML fit and \Sexpr{round(sqrt(VarCorr(fm1ML)[["Batch"]][1,1]), 2)}
+are \Sexpr{sprintf("%.2f", sqrt(VarCorr(fm1)[["Batch"]][1,1]))} gm. for the
+REML fit and \Sexpr{sprintf("%.2f", sqrt(VarCorr(fm1ML)[["Batch"]][1,1]))}
 gm. for the ML fit.
 
 Note that the last column in the random effects summary table is the
@@ -681,8 +679,8 @@ fixed-effects model matrix, $\bm X$.  For the model being considered
 here, this column of ones is the only column in $\bm X$.
 
 The form of the random-effects model matrix, $\bm Z$, and the form of
-the variance-covariance matrix, $\bm\Sigma$, and the method by which
-$\bm\Sigma$ is determined from the value of $\bm\theta$ are all based
+the variance-covariance matrix, $\bm\Sigma_\theta$, and the method by which
+$\bm\Sigma_\theta$ is determined from the value of $\bm\theta$ are all based
 on the random-effects terms in the model formula.  As stated earlier,
 there is one random effects term, \code{(1 | Batch)}, in the formula
 for this model.  Random-effects terms are those that contain the
@@ -744,9 +742,9 @@ $\bm\Sigma_\theta$ that we will use throughout.
 \subsubsection{The relative covariance factor}
 \label{sec:relcovfac}
 
-A variance-covariance matrix like $\bm\Sigma$ is required to be
+A variance-covariance matrix like $\bm\Sigma_\theta$ is required to be
 symmetric and, in addition, to be \emph{positive semi-definite}, which
-means, in effect, that $\bm\Sigma$ has the matrix equivalent of a
+means, in effect, that $\bm\Sigma_\theta$ has the matrix equivalent of a
 ``square root''.  Recall that a scalar variance, such as $\sigma^2$ in
 (\ref{eq:LMMconddist}), must be non-negative and that the standard
 deviation, $\sigma\ge0$, is the square root of the variance.  A
@@ -771,16 +769,15 @@ The symbol $\trans$ denotes the transpose of a matrix. The scalar
 $\sigma^2$ is the square of the common scale parameter introduced in
 (\ref{eq:LMMconddist}).
 
-The term ``relative'' indicates that $\bm\Lambda_\theta$ is the
-factor of the variance, $\bm\Sigma_\theta$, of $\bc B$ relative to the
+The term ``relative'' indicates that $\bm\Lambda_\theta$ is the factor
+of the variance, $\bm\Sigma_\theta$, of $\bc B$ relative to the
 variance, $\sigma^2$, in the conditional distribution $(\bc Y|\bc
 B=\bm b)$.  It happens that the way that we generate
-$\bm\Lambda_\theta$ it ends up being lower triangular and
-corresponds to the left Cholesky factor of
-$\bm\Sigma_\theta/\sigma^2$.  A left Cholesky factor is often
-written $\bm L$; because the matrix being considered here is composed
-of variance and covariance parameters we denote it with the
-corresponding Greek letter, $\bm\Lambda$.
+$\bm\Lambda_\theta$ it ends up being lower triangular and corresponds
+to the left Cholesky factor of $\bm\Sigma_\theta/\sigma^2$.  A left
+Cholesky factor is often written $\bm L$; because this matrix contains
+parameter values we denote it with the corresponding Greek letter,
+$\bm\Lambda$.
 
 For the \code{Dyestuff} model, which has only one simple, scalar
 random-effects term, $\bm\Sigma_\theta$ and
@@ -820,16 +817,17 @@ L_\theta$ that satisfies
 It is this step that is the key to the methods in the \package{lme4}
 package for fitting mixed models.  For the simple example we are
 considering this is trivial because $\bm U_\theta=\bm Z(\theta\bm
-I_6)=\theta\bm Z$ and $\bm U_\theta\trans\bm U_\theta+\bm I_6=(1 + 5\theta^2)\bm
-I_6$ so a suitable $\bm L_\theta=\sqrt{1 + 5\theta^2}\bm I_6$.  The
-calculations are straightforward in this case.  However, the
-\code{lmer} function has been used to fit linear mixed models for
-which the number of rows and the number of columns in $\bm U$ were
-both more than one million and the structure of $\bm U\trans\bm U+\bm
-I_q$ was much more complex than a simple multiple of an identity
-matrix.  The ability to compute this factorization reasonably quickly
-for many different values of $\bm\theta$ in cases like this is what
-makes the methods in the \package{lme4} package feasible.
+I_6)=\theta\bm Z$ and $\bm U_\theta\trans\bm U_\theta+\bm I_6=(1 +
+5\theta^2)\bm I_6$ so a suitable $\bm L_\theta=\sqrt{1 + 5\theta^2}\bm
+I_6$.  The calculations are straightforward in this case.  However,
+the \code{lmer} function has been used to fit linear mixed models for
+which the number of rows and the number of columns in $\bm U_\theta$
+were both more than one million and the structure of $\bm
+U_\theta\trans\bm U_\theta+\bm I_q$ was much more complex than a
+simple multiple of an identity matrix.  The ability to compute this
+factorization reasonably quickly for many different values of
+$\bm\theta$ in cases like this is what makes the methods in the
+\package{lme4} package feasible.
 
 Because $\bm L_\theta$ is square and lower triangular, its
 determinant, written $|\bm L|$, is simply the product of its diagonal
@@ -840,15 +838,15 @@ variables after transformation.
 After evaluating the minimum penalized residual sum of squares
 \begin{equation}
   \label{eq:PLRSS}
-  r^2_\theta = \min_{\bm u,\bm\beta}\|\bm y-\bm U_\theta\bm u-\bm
-  X\bm\beta\|^2+\|\bm u\|^2
+  r^2_\theta = \min_{\bm u,\bm\beta}\left[\|\bm y-\bm U_\theta\bm u-\bm
+  X\bm\beta\|^2+\|\bm u\|^2\right]
 \end{equation}
 (details given below) we can express the \emph{profiled deviance},
 which is negative twice the logarithm of the profiled likelihood, as
 \begin{equation}
   \label{eq:profDev}
-  -2\tilde{\ell}(\bm\theta)=\log(|\bm L|^2)+n\left[1+
-    \log\left(\frac{2\pi r^2}{n}\right)\right] .
+  -2\tilde{\ell}(\bm\theta)=\log(|\bm L_\theta|^2)+n\left[1+
+    \log\left(\frac{2\pi r_\theta^2}{n}\right)\right] .
 \end{equation}
 We minimize the profiled deviance with respect to $\bm\theta$,
 producing the ML estimate, $\widehat{\bm\theta}$, from which we derive
@@ -874,7 +872,7 @@ the current value of the profiled deviance and the current values of
 the parameter vector $\bm\theta$, which, for this model, is a scalar,
 $\theta$.  It can be seen that the optimization converges very quickly
 to an minimum deviance of \Sexpr{round(unname(deviance(fm1ML)), 3)} at
-$\hat{\theta}=\Sexpr{round(env(fm1ML)[["theta"]], 3)}$.
+$\widehat{\theta}=\Sexpr{round(env(fm1ML)[["theta"]], 3)}$.
 
 Some of the components of the deviance can be obtained with the
 \code{devcomp} extractor.
@@ -910,6 +908,7 @@ res <-
                                              rss = crossprod(y-fitted))))
                            })))
 res$lprss <- n * (1 + log(2 * pi * res$prss/n))
+res$lprssRE <- (n - 1) * (1 + log(2 * pi * res$prss/(n - 1)))
 print(xyplot(deviance + ldL2 + lprss ~ theta,
              res, xlab = expression(theta), ylab = NULL, outer = TRUE,
              scales = list(y = list(relation = "free", rot = 0),
@@ -920,7 +919,7 @@ print(xyplot(deviance + ldL2 + lprss ~ theta,
 \caption[Profiled deviance and its components for the \code{Dyestuff}
 model]{The profiled deviance and its components as a function of
   $\theta$ in the simple model fit to the \code{Dyestuff} data.  The
-  panel labeled \code{ldL2} is $\log(|\bm L(\theta)|^2)$ and the
+  panel labeled \code{ldL2} is $\log(|\bm L_\theta|^2)$ and the
   panel labeled \code{lprss} is $n[1+\log(2\pi r^2_\theta/n)]$.}
   \label{fig:DyeML}
 \end{figure}
@@ -932,7 +931,7 @@ increases.  For this particular model and data set we can write the
 log-determinant as
 \begin{equation}
   \label{eq:ldL2Dye}
-  \log(|\bm L(\theta)|^2) =
+  \log(|\bm L_\theta|^2) =
   \log\left(\left(1+5\theta^2\right)^6\right),\quad\theta\ge 0 .
 \end{equation}
 It is easy to establish that $\log(|\bm L(0)|^2)=\log(1)=0$ and that
@@ -958,15 +957,15 @@ print(xyplot(prss + usqr + rss ~ theta,
   \caption[Components of $r_\theta^2$]{Components of the penalized
     sum of square residuals, $r_\theta^2$ (labeled \code{prss}).
     The residual sum of squares, $\|\bm y-\bm U(\theta)\tilde{\bm
-      u}(\theta) - \bm X\widehat{\bm\beta}(\theta)\|^2$, where
-    $\tilde{\bm u}$ and $\widehat{\bm\beta}(\theta)$ jointly minimize the
+      u}_\theta - \bm X\widehat{\bm\beta}_\theta\|^2$, where
+    $\tilde{\bm u}$ and $\widehat{\bm\beta}_\theta$ jointly minimize the
     penalized least squares criterion, is labeled \code{wrss}.  The
     penalty term, $\|\tilde{\bm u}\|^2$, is labeled \code{usqr}.}
   \label{fig:prssCom}
 \end{figure}
 we plot $r_\theta^2$ (labeled \code{prss}) and its two components
-$\|\tilde{\bm u}(\theta)\|^2$ (labeled \code{usqr}) and $\|\bm y-\bm
-U_\theta\tilde{\bm u}(\theta)-\bm X\widehat{\bm\beta}_\theta\|^2$
+$\|\tilde{\bm u}_\theta\|^2$ (labeled \code{usqr}) and $\|\bm y-\bm
+U_\theta\tilde{\bm u}_\theta-\bm X\widehat{\bm\beta}_\theta\|^2$
 (labeled \code{wrss}), where
 \begin{equation}
   \label{eq:jointmin}
@@ -1028,8 +1027,8 @@ Figure~\ref{fig:prssCom}. We can either reason that
   \le \min_{\bm\beta}\|\bm y-\bm X\bm\beta\|^2 .
 \end{equation}
 or check the pattern in the plot of $\|\tilde{\bm u}_\theta\|^2$,
-labeled \code{usqr} in  Figure~\ref{fig:prssCom}.  It is zero when
-$\theta=0$ and, as $\theta\rightarrow\infty$, this term tends to
+labeled \code{usqr} in  Figure~\ref{fig:prssCom}.  This term is zero when
+$\theta=0$ and, as $\theta\rightarrow\infty$, it returns to
 zero.
 
 Returning to the deviance for the mixed model and its components, as
@@ -1040,9 +1039,9 @@ itself has finite upper and lower bounds.  The term labeled
 \code{ldL2} is bounded below at zero but is unbounded above and
 monotone increasing.  The minimum deviance, which is the sum of these
 two terms, must occur at a finite $\theta$.  In other words we can't
-have $\hat{\theta}=\infty$.
+have $\widehat{\theta}=\infty$.
 
-We can, however, have $\hat{\theta}=0$, which is exactly what occurs
+We can, however, have $\widehat{\theta}=0$, which is exactly what occurs
 for the same model fit to the \code{Dyestuff2} data.
 <<fm2ML>>=
 (fm2ML <- lmer(Yield ~ 1 + (1 |Batch), Dyestuff2, verbose = 1,
@@ -1140,7 +1139,7 @@ In this case the bounds on the deviance component are
   \le n\left[1+\log\left(\frac{2\pi r_\theta^2}{n}\right)\right] \le
   \Sexpr{round(devcomp2up, 3)} .
 \end{equation}
-and this range is too narrow to produce an estimate $\hat{\theta}$
+and this range is too narrow to produce an estimate $\widehat{\theta}$
 that is greater than zero.
 
 \subsection{Interpretation of the deviance components}
@@ -1160,7 +1159,7 @@ the data.
 
 In the models for the \code{Dyestuff} and \code{Dyestuff2} data, the
 parameter $\theta$ controls the complexity as measured by $\log(|\bm
-L(\theta)|^2)$.  The simplest model, corresponding to $\theta = 0$,
+L_\theta|^2)$.  The simplest model, corresponding to $\theta = 0$,
 ignores the \code{Batch} factor and formulates the same prediction for
 all the samples from all the batches.  The most complex model,
 corresponding to $\theta=\infty$, formulates a separate prediction for
@@ -1179,7 +1178,10 @@ increasing the value of $\theta$ cannot produce sufficiently greater
 fidelity to the observed data to compensate for the increase in model
 complexity, according to the ML criterion.
 
-In the case of the \code{Dyestuff2} data the fidelity component does not change sufficiently with increasing $\theta$ to compensate for the increased model complexity and the optimal value of $\theta$ is at the boundary, $\hat{\theta}=0$.
+In the case of the \code{Dyestuff2} data the fidelity component does
+not change sufficiently with increasing $\theta$ to compensate for the
+increased model complexity and the optimal value of $\theta$ is at the
+boundary, $\widehat{\theta}=0$.
 
 \subsection{The REML criterion}
 \label{sec:REML}
@@ -1324,7 +1326,7 @@ the linear model.  The estimate of the $1$-dimensional fixed-effects
 vector, $\beta$, and its standard error also coincide in these two
 fitted models.
 
-Another consideration that many consider to be important is that the
+Another characteristic that many consider to be important is that the
 REML estimates coincide with estimates of variance components that are
 formulated by equating ``expected mean squares'' with ``observed mean
 squares'' in certain simple cases.  We won't go into detail regarding
@@ -1352,11 +1354,7 @@ Figure~\ref{fig:Dye1REMLcomp}
 \begin{figure}[tbp]
   \centering
 <<Dye1REMLcomp,fig=TRUE,echo=FALSE,height=6.5>>=
-res <- within(res,
-          {
-              lprssRE <- (n - 1) * (1 + log(2 * pi * prss/(n - 1)))
-              ldSum <- ldL2 + ldRX2
-          })
+res <- within(res, ldSum <- ldL2 + ldRX2)
 print(xyplot(REML + ldL2 + ldRX2 + ldSum + lprssRE ~ theta,
              res, xlab = expression(theta), ylab = NULL, outer = TRUE,
              scales = list(y = list(relation = "free", rot = 0),
@@ -1371,7 +1369,7 @@ model]{Components of the REML criterion for the model fit to the
   $\log(|\bm L_\theta|^2)$, as before, and the component labeled \code{ldRX2}
   is $\log(|\bm R_X|^2)$.  Their sum is the component labeled
   \code{ldSum}. The component labeled \code{lprssRE} is $(n-1)[1 +
-  \log(2\pi r^2/(n-p))]$.  The REML criterion, labeled \code{REML}, is
+  \log(2\pi r_\theta^2/(n-p))]$.  The REML criterion, labeled \code{REML}, is
   the sum of \code{ldSum} and \code{lprssRE}.}
   \label{fig:Dye1REMLcomp}
 \end{figure}
@@ -1379,7 +1377,7 @@ shows the REML criterion for the simple model fit to the
 \code{Dyestuff} data and the components of this criterion.  As we
 noted previously, the component $\log(|\bm L_\theta|^2)$ increases with
 increasing $\theta$.  The other two additive components, $\log(|\bm
-R_X|^2)$ and $(n-1)[1 + \log(2\pi r^2/(n-p))]$ decrease with
+R_X|^2)$ and $(n-1)[1 + \log(2\pi r_\theta^2/(n-p))]$ decrease with
 increasing $\theta$.  The range of the fidelity component
 \begin{equation}
   \label{eq:devcomp3range}
@@ -1422,7 +1420,7 @@ model]{Components of the REML criterion for the model fit to the
   $\log(|\bm L|^2)$, as before, and the component labeled \code{ldRX2}
   is $\log(|\bm R_X|^2)$.  Their sum is the component labeled
   \code{ldSum}. The component labeled \code{lprssRE} is $(n-1)[1 +
-  \log(2\pi r^2/(n-p))]$.  The REML criterion, labeled \code{REML}, is
+  \log(2\pi r_\theta^2/(n-p))]$.  The REML criterion, labeled \code{REML}, is
   the sum of \code{ldSum} and \code{lprssRE}.}
   \label{fig:Dye2REMLcomp}
 \end{figure}
@@ -1435,7 +1433,7 @@ characterizing model complexity, depend only on the values of the
 covariates and the form of the model, which are the same in these two
 models.
 
-The fidelity component, $(n-1)[1 + \log(2\pi r^2/(n-p))]$, labeled
+The fidelity component, $(n-1)[1 + \log(2\pi r_\theta^2/(n-p))]$, labeled
 \code{lprssRE}, decreases as $\theta$ increases but its range is too
 narrow to move $\widehat{\theta_R}$ away from zero.
 
@@ -1461,7 +1459,7 @@ $(\bc B|\bc Y=\bm y)$.
 Like the distributions of $\bc B$ and $(\bc Y|\bc B=\bm b)$, the
 conditional distribution $(\bc B|\bc Y=\bm y)$ is a multivariate
 Gaussian (or ``normal'') distribution that depends on the (unknown)
-values of the parameters in the model and on the observed data vector
+values of the parameters in the model and on the observed data vector,
 $\bm y$. We can characterize such a multivariate Gaussian distribution
 by providing the conditional mean, $\bm\mu_{\bc B|\bc Y=\bm y}$, and
 the conditional variance-covariance matrix, $\text{Var}(\bc B|\bc
@@ -1519,8 +1517,8 @@ The conditional mean of $\bc B$, evaluated at the parameter estimates,
 is 
 \begin{equation}
   \label{eq:condmeanB}
-  \bm\mu_{\bc B|\bc Y=\bm y} = \bm\Lambda(\widehat{\bm\theta})
-  \tilde{\bm u}(\widehat{\bm\theta}) .
+  \bm\mu_{\bc B|\bc Y=\bm y} = \bm\Lambda_{\hat\theta}
+  \tilde{\bm u}_{\hat\theta} .
 \end{equation}
 The conditional variance of the spherical random effects is
 \begin{equation}
@@ -1538,9 +1536,9 @@ hence
 \end{equation}
 
 In the simple model for the \code{Dyestuff} data that we have been
-considering the matrices $\bm\Lambda(\theta)$ and $\bm L(\theta)$ are
+considering the matrices $\bm\Lambda_\theta$ and $\bm L_\theta$ are
 both diagonal --- in fact, they are multiples of the identity matrix
---- so it is easy to compute $\left(\bm L(\theta)\bm
+--- so it is easy to compute $\left(\bm L_\theta\bm
   L_\theta\trans\right)^{-1}$.  In general, though, it is not easy
 to compute the inverse of a large, sparse matrix and we do not attempt
 to do so.  Instead we evaluate the diagonal elements of
@@ -1578,7 +1576,7 @@ in the data plot based on increasing mean response.
 
 Although prediction intervals on the random effects are often useful
 in allowing us to visualize the model, we are usually more interested
-in estimating the level of the variability in the response induced by
+in estimating the amount of variability in the response induced by
 the selection of experimental or observational units.  The parameter
 $\sigma^2$ in the model
 \begin{equation}
@@ -1755,9 +1753,9 @@ exactly this summary of the variance components.
 Implicit in such a summary is the assumption that the profiled
 deviance for a parameter should be approximately quadratic over the
 region of interest.  In Figure~\ref{fig:profileddevfm1} we can see
-that the profiled deviance is not close to being a quadratic function
-of $\sigma$ or $\sigma_B$.  Expressed as a function of $\sigma^2$ and
-$\sigma_B^2$ (Figure~\ref{fig:profileddevsqfm1}),
+that the profiled deviance is not at all close to being a quadratic
+function of $\sigma$ or $\sigma_B$.  Expressed as a function of
+$\sigma^2$ and $\sigma_B^2$ (Figure~\ref{fig:profileddevsqfm1}),
 \begin{figure}[tbp]
   \centering
 <<profileddevsqfm1,fig=TRUE,echo=FALSE,height=4>>=
@@ -1856,7 +1854,7 @@ linear least squares problem
     \left\|\bm y - \bm Z\bm\Lambda_\theta\bm u -
       \bm X\bm\beta\right\|^2 + \|\bm u\|^2\right)
 \end{equation}
-as the vectors, $\widehat{\bm\beta}_\theta$ and $\tilde{\bm u}$,
+as the vectors, $\widehat{\bm\beta}_\theta$ and $\tilde{\bm u}_\theta$,
 that satisfy
 \begin{equation}
   \label{eq:plsSol}
@@ -1872,7 +1870,7 @@ that satisfy
     \bm\Lambda_\theta\trans\bm Z\trans\bm y\\\bm X\trans\bm y
   \end{bmatrix} ,
 \end{equation}
-provides, as we shall see, the conditional mean, $\bm\mu_{\bc B|\bm
+provides, as we have seen, the conditional mean, $\bm\mu_{\bc B|\bm
   Y=\bm y}$, and conditional variance of the random effects, $\bc B$,
 given the observed data, $\bc Y=\bm y$, plus a concise expression for
 the log-likelihood and the REML criterion.
@@ -1928,21 +1926,21 @@ the decomposition as
 where
 \begin{equation}
   \label{eq:UV}
-  \bm U_\theta=\bm Z\bm\Lambda_\theta\bm P\trans\text{ and }
+  \bm U_\theta=\bm Z\bm\Lambda_\theta\text{ and }
   \bm V=\bm X .
 \end{equation}
 The solution to (\ref{eq:plsSol}), which would now be written as,
 \begin{equation}
   \label{eq:UVplsSol}
   \begin{bmatrix}
-    \bm L_\theta      & \bm 0\\
+    \bm P\trans\bm L_\theta      & \bm 0\\
     \bm R_{ZX}\trans  & \bm R_X\trans
   \end{bmatrix}
   \begin{bmatrix}
-    \bm L_\theta\trans   & \bm R_{ZX}\\
+    \bm L_\theta\trans\bm P   & \bm R_{ZX}\\
     \bm 0         & \bm R_X
   \end{bmatrix} =
-  \begin{bmatrix}\tilde{\bm u}\\\widehat{\bm\beta}_\theta\end{bmatrix}
+  \begin{bmatrix}\tilde{\bm u}_\theta\\\widehat{\bm\beta}_\theta\end{bmatrix}
   =
   \begin{bmatrix}
     \bm U_\theta\trans\bm y\\\bm V\trans\bm y
@@ -1963,7 +1961,7 @@ $\widehat{\sigma^2}_\theta=\frac{r^2}{n}$ and the conditional REML
 estimate of $\sigma^2$ is
 $\widehat{\sigma^2}_R(\theta)=\frac{r^2}{n-p}$.
 
-Although we have not written this explicitly, the matrices $\bm L$,
+Although we have not written this explicitly, the matrices $\bm L_\theta$,
 $\bm R_{ZX}$ and $\bm R_X$ all depend on the value of $\bm\theta$.
 Both the $q\times q$ matrix $\bm L_\theta$ and the $p\times p$
 matrix $\bm R_X(\theta)$ are triangular: $\bm L_\theta$ is
