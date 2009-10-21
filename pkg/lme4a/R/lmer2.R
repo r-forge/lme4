@@ -799,6 +799,9 @@ setMethod("profile", "lmerenv",
           ans
       })
 
+## extract only the y component from a prediction
+predy <- function(sp, vv) predict(sp, vv)$y
+
 ## A lattice-based plot method for profile objects
 prplot <-
     function (x, levels = sqrt(qchisq(pmax.int(0, pmin.int(1, conf)), 1)),
@@ -835,5 +838,72 @@ prplot <-
        }, ...)
 }
 
-## extract only the y component from a prediction
-predy <- function(sp, vv) predict(sp, vv)$y
+## profiled deviance from standard deviations, including sigma
+stddevdev <- function(fm, sigs, sigma)
+{
+    stopifnot(is(fm, "lmerenv"),
+              is.numeric(sigs),
+              is.numeric(sigma),
+              length(sigs) == length(env(fm)$theta),
+              length(sigma) == 1L,
+              sigma > 0,
+              all(sigs >= 0))
+    fm@setPars(sigs/sigma)
+    sigsq <- sigma^2
+    dc <- devcomp(fm)
+    unname(dc$cmp["ldL2"] + dc$cmp["prss"]/sigsq +
+           dc$dims["n"] * log(2 * pi * sigsq))
+}
+
+## profile the deviance with respect to the standard deviations
+thpr <- function(fm, pars, w)
+{
+    w <- as.integer(w)[1]
+    rho <- env(fm)
+    np <- length(pars <- as.numeric(pars))
+    stopifnot(0 < w, w <= np,
+              all(pars >= 0),
+              length(rho$theta) == (np - 1L))
+    fp <- pars[w]                       # the fixed parameter
+
+    ## evaluate deviance with respect to the restricted set of
+    ## parameters
+    fun <- function(rp) {
+        pars[-w] <- rp
+        sigma <- pars[np]
+        fm@setPars(pars[-np]/sigma)
+        sigsq <- sigma^2
+        dc <- devcomp(fm)
+        unname(dc$cmp["ldL2"] + dc$cmp["prss"]/sigsq +
+               dc$dims["n"] * log(2 * pi * sigsq))
+    }
+    opt <- nlminb(pars[-w], fun, lower = numeric(np - 1L))
+    if (opt$convergence)
+        warning(sprintf("Profiling convergence failure at value %g for parameter %d\n  Message:%s",
+                    pars[w], w, opt$message))
+    opt$objective
+}
+    
+devfun <- function(fm)
+{
+    stopifnot(is(fm, "lmerenv"))
+    fm1 <- lme4a:::copylmer(fm)
+    rm(fm)
+    rho <- env(fm1)
+    np <- length(rho$theta) + 1L
+    ans <- function(pars)
+    {
+        stopifnot(is.numeric(pars),
+                  length(pars) == np,
+                  all(pars >= c(rho$lower, 0)))
+        sigma <- pars[np]
+        fm1@setPars(pars[-np]/sigma)
+        sigsq <- sigma^2
+        dc <- devcomp(fm1)
+        unname(dc$cmp["ldL2"] + dc$cmp["prss"]/sigsq +
+               dc$dims["n"] * log(2 * pi * sigsq))
+    }
+    sig <- unname(sigma(fm1))
+    attr(ans, "optimum") <- c(sig*rho$theta, sig)
+    ans
+}
