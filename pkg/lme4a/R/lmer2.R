@@ -856,7 +856,7 @@ stddevdev <- function(fm, sigs, sigma)
 }
 
 ## profile the deviance with respect to the standard deviations
-thpr <- function(fm, pars, w)
+thpr <- function(dd)
 {
     w <- as.integer(w)[1]
     rho <- env(fm)
@@ -890,20 +890,95 @@ devfun <- function(fm)
     fm1 <- lme4a:::copylmer(fm)
     rm(fm)
     rho <- env(fm1)
+    if (rho$REML) rho$REML <- FALSE
+    nlminb(fm1@getPars(), fm1@setPars, lower = rho$lower)
+
+    basedev <- unname(deviance(fm1))
+    sig <- unname(sigma(fm1))
+    lsig <- log(sig)
     np <- length(rho$theta) + 1L
     ans <- function(pars)
     {
         stopifnot(is.numeric(pars),
                   length(pars) == np,
-                  all(pars >= c(rho$lower, 0)))
-        sigma <- pars[np]
+                  all(pars >= c(rho$lower, -Inf)))
+        sigma <- exp(pars[np])
         fm1@setPars(pars[-np]/sigma)
         sigsq <- sigma^2
         dc <- devcomp(fm1)
         unname(dc$cmp["ldL2"] + dc$cmp["prss"]/sigsq +
                dc$dims["n"] * log(2 * pi * sigsq))
     }
-    sig <- unname(sigma(fm1))
-    attr(ans, "optimum") <- c(sig*rho$theta, sig)
+    attr(ans, "optimum") <- c(sig * rho$theta, lsig)
+    attr(ans, "basedev") <- basedev
+    class(ans) <- "devfun"
     ans
+}
+
+sdpr <- function(dd)
+{
+    stopifnot(is(dd, "devfun"))
+    opt <- attr(dd, "optimum")
+    rr <- environment(dd)$rho
+    np <- length(opt)
+    base <- attr(dd, "basedev")
+    start <- opt[-np]
+    lsig <- opt[np]
+    res <- c(0, lsig, rr$theta, rr$fixef)
+    res <- matrix(res, nr = 10, nc = length(res), byrow = TRUE)
+    colnames(res) <-
+        c("zeta", "lsig", sprintf("Th%02d", seq_along(rr$theta)),
+          names(rr$fixef))
+
+    zeta <- function(xx) {
+        zz <- ifelse(xx < lsig, -1, 1) *
+            sqrt(nlminb(start,
+                        function(x) dd(c(x, xx)))$obj - base)
+        c(zz, xx, rr$theta, rr$fixef)
+    }
+    
+    res[2, ] <- zeta(lsig * 1.01)
+
+    slope <- diff(res[1:2, "zeta"])/diff(res[1:2, "lsig"])
+    ll <- lsig + seq(-4, 4, len = 8)/slope 
+    for (i in 1:8)
+        res[2L + i, ] <- zeta(ll[i])
+    res[order(res[,"lsig"]),]
+}
+
+thpr <- function(dd)
+{
+    stopifnot(is(dd, "devfun"))
+    opt <- attr(dd, "optimum")
+    np <- length(opt)
+    ans <- vector("list", np)
+    base <- attr(dd, "basedev")
+    oseq <- seq_along(opt)
+    rr <- environment(dd)$rho
+    ln <- log(length(rr$y))
+    res <- c(0, opt, rr$fixef)
+    res <- matrix(res, nr = 10, nc = length(res), byrow = TRUE)
+    names(ans) <- c(sprintf("Th%02d", seq_along(rr$theta)), "lsig")
+    colnames(res) <- c("zeta", names(ans), names(rr$fixef))
+    
+    for (w in seq_along(opt)) {
+        start <- opt[-w]
+        pw <- opt[w]
+        zeta <- function(xx) {
+            zz <- ifelse(xx < opt[w], -1, 1) *
+                sqrt(nlminb(start,
+                            function(x) {
+                                par <- numeric(np)
+                                par[-w] <- x
+                                par[w] <- xx
+                                dd(par)
+                            })$obj - base)
+            c(zz, rr$theta, log(rr$prss) - ln, rr$fixef)
+        }
+        res[2, ] <- zeta(pw * 1.01)
+        slope <- diff(res[1:2, "zeta"])/diff(res[1:2, w + 1])
+        ll <- lsig + seq(-4, 4, len = 8)/slope 
+        for (i in 1:8) res[2L + i, ] <- zeta(ll[i])
+        ans[[w]] <- res[order(res[,w + 1]),]
+    }
 }
