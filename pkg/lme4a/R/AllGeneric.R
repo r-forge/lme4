@@ -33,7 +33,8 @@ setGeneric("getPars", function(x, ...) standardGeneric("getPars"), valueClass = 
 setGeneric("setPars", function(x, pars, ...) standardGeneric("setPars"), valueClass = "numeric")
 
 #' extract the environment associated with an object
-setGeneric("env", function(x, ...) standardGeneric("env"), valueClass = "environment")
+setGeneric("env", function(x, ...) standardGeneric("env"),
+           valueClass = "environment")
 
 fixed.effects <- function(object, ...) {
     ## fixed.effects was an alternative name for fixef
