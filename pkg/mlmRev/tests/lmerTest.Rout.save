@@ -1,5 +1,5 @@
 
-R version 2.9.1 Patched (2009-08-09 r49148)
+R version 2.10.0 RC (2009-10-25 r50206)
 Copyright (C) 2009 The R Foundation for Statistical Computing
 ISBN 3-900051-07-0
 
@@ -20,23 +20,6 @@ Type 'q()' to quit R.
 Loading required package: lme4
 Loading required package: Matrix
 Loading required package: lattice
-
-Attaching package: 'Matrix'
-
-
-	The following object(s) are masked from package:stats :
-
-	 contr.helmert,
-	 contr.poly,
-	 contr.SAS,
-	 contr.sum,
-	 contr.treatment,
-	 xtabs 
-
-
-	The following object(s) are masked from package:base :
-
-	 rcond 
 
 > options(digits=6, show.signif.stars = FALSE)
 > 
@@ -96,7 +79,7 @@ fm02: langPOST ~ IQ.ver.cen + avg.IQ.ver.cen + (IQ.ver.cen | schoolNR)
 fm01  5 15238 15266  -7614                        
 fm02  7 15228 15268  -7607 14.01      2   0.000908
 > cat('Time elapsed: ', (.pt <- proc.time()),'\n') # "stats"
-Time elapsed:  9.086 0.279 14.718 0 0 
+Time elapsed:  7.259 0.141 7.552 0 0 
 > 
 > ## egsingle ----------- Data ---------------------
 > (fm1 <- lmer(math ~ year +    (1|childid) +    (1|schoolid), egsingle))
@@ -201,7 +184,7 @@ fm2  7 16486 16534  -8236 275.2      2     <2e-16
 fm3  7 16519 16567  -8253   0.0      0     <2e-16
 fm4  9 16344 16406  -8163 179.0      2     <2e-16
 > cat('Time elapsed: ', {.ot <- .pt; (.pt <- proc.time()) - .ot},'\n') # "stats"
-Time elapsed:  9.539 0.239 15.604 0 0 
+Time elapsed:  7.913 0.039 7.954 0 0 
 > 
 > ## Early -------------- Data ---------------------
 > Early$tos <- Early$age - 0.5
@@ -246,7 +229,7 @@ Number of obs: 4059, groups: school, 65
 
 Fixed effects:
              Estimate Std. Error t value
-(Intercept)  -0.00105    0.05556  -0.019
+(Intercept)  -0.00105    0.05556     0.0
 standLRT      0.55976    0.01245    45.0
 sexM         -0.16739    0.03410    -4.9
 schgendboys   0.17769    0.11346     1.6
@@ -283,7 +266,7 @@ Correlation of Fixed Effects:
 gcsecnt 0.058 
 > 
 > cat('Time elapsed: ', {.ot <- .pt; (.pt <- proc.time()) - .ot},'\n') # "stats"
-Time elapsed:  3.048 0.143 5.518 0 0 
+Time elapsed:  2.508 0.051 2.559 0 0 
 > 
 > ## Hsb82 -------------- Data ---------------------
 > lmer(mAch ~ meanses*cses + sector*cses + (cses|school), Hsb82)
@@ -381,13 +364,13 @@ Models:
 fm07: height ~ age + I(age^2) + I(age^3) + I(age^4) + (age + I(age^2) | 
 fm07:     Subject)
 fm08: height ~ poly(age, 4) + (age + I(age^2) | Subject)
-     Df    AIC    BIC logLik    Chisq Chi Df Pr(>Chisq)
-fm07 12  649.4  690.8 -312.7                           
-fm08 12  649.4  690.8 -312.7 1.98e-06      0     <2e-16
+     Df   AIC   BIC logLik    Chisq Chi Df Pr(>Chisq)
+fm07 12 649.4 690.8 -312.7                           
+fm08 12 649.4 690.8 -312.7 1.68e-06      0     <2e-16
 > stopifnot(all.equal(logLik(fm07, REML=FALSE),
 +                     logLik(fm08, REML=FALSE)))
 > cat('Time elapsed: ', {.ot <- .pt; (.pt <- proc.time()) - .ot},'\n') # "stats"
-Time elapsed:  1.577 0.037 2.685 0 0 
+Time elapsed:  1.259 0 1.259 0 0 
 > 
 > ## ScotsSec ----------- Data ---------------------
 > cntr <- list()
@@ -495,5 +478,5 @@ fmS1  7 14857 14900  -7421  0.23      1    0.63171
 fmS4  8 14848 14897  -7416 10.46      1    0.00122
 > 
 > cat('Time elapsed: ', {.ot <- .pt; (.pt <- proc.time()) - .ot},'\n') # "stats"
-Time elapsed:  1.632 0.024 2.765 0 0 
+Time elapsed:  1.241 0.005 1.247 0 0 
 > 
