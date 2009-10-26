@@ -1,6 +1,6 @@
 Package: SASmixed
-Version: 0.5-0
-Date: 2009-08-08
+Version: 0.5-1
+Date: 2009-10-21
 Title: Data sets from "SAS System for Mixed Models"
 Maintainer: Douglas Bates <bates@stat.wisc.edu>
 Author: Original by Littel, Milliken, Stroup, and Wolfinger
