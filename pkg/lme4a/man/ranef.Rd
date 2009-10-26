@@ -69,9 +69,11 @@ fm1 <- lmer(Reaction ~ Days + (Days|Subject), sleepstudy)
 fm2 <- lmer(Reaction ~ Days + (1|Subject) + (0+Days|Subject), sleepstudy)
 fm3 <- lmer(diameter ~ (1|plate) + (1|sample), Penicillin)
 ranef(fm1)
+if(FALSE) { ## code not yet written -- FIXME
 str(rr1 <- ranef(fm1, postVar = TRUE))
 dotplot(rr1,scales = list(x = list(relation = 'free')))[["Subject"]]
-##str(ranef(fm2, postVar = TRUE)) ## code not yet written
+str(ranef(fm2, postVar = TRUE))
+}
 op <- options(digits = 4)
 ranef(fm3, drop = TRUE)
 options(op)

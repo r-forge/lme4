@@ -10,7 +10,7 @@ check_y_weights <- function(fr, rho) {
                                         # components of the model frame
     y <- model.response(fr)
     # avoid problems with 1D arrays, but keep names
-    if(length(dim(y)) == 1) { 
+    if(length(dim(y)) == 1) {
         nm <- rownames(y)
         dim(y) <- NULL
         if(!is.null(nm)) names(y) <- nm
@@ -48,7 +48,7 @@ derived_mats <- function(rho) {
     off <- rho$offset
     yy <- rho$y - if (length(off)) off else 0
     stopifnot(ncol(Zt) == n, length(yy) == n)
-    
+
     ## Zty is stored as a Matrix, not a vector because of a
     ## peculiarity in crossprod(Lambda, Zty) if Lambda is zero
     rho$Zty = Zt %*% yy
@@ -64,10 +64,10 @@ derived_mats <- function(rho) {
         rho$RX <- chol(rho$XtX <- crossprod(X)) # check for full column rank
         rho$Xty <- unname(as.vector(crossprod(X, yy)))
         rho$RZX <- rho$Ut %*% X
-        rho$ZtX <- Zt %*% X        
+        rho$ZtX <- Zt %*% X
     }
 }
-    
+
 ##' Install various objects, including Lambda, Lind, Zt and Ut in
 ##' environment rho based on the list bars of random effects terms and
 ##' model frame fr.
@@ -92,7 +92,7 @@ makeZt <- function(bars, fr, rho) {
                     nc <- ncol(mm)
                     nseq <- seq_len(nc)
                     sm <- as(ff, "sparseMatrix")
-                    if (nc  > 1) 
+                    if (nc  > 1)
                         sm <- do.call(rBind, lapply(nseq, function(i) sm))
                     sm@x[] <- t(mm[])
                     ## When nc > 1 switch the order of the rows of sm
@@ -143,7 +143,7 @@ makeZt <- function(bars, fr, rho) {
     if (rho$diagonalLambda <- all(nc == 1))
         rho$Lambda <- Diagonal(x = rho$Lambda@x)
     rho$Ut <- crossprod(rho$Lambda, rho$Zt)
-    
+
     lower <- -Inf * (rho$theta + 1)
     lower[unique(diag(rho$Lambda))] <- 0
     rho$lower <- lower
@@ -204,13 +204,13 @@ lmer <-
     rownames(X) <- NULL
     rho$X <- X
     rho$sparseX <- sparseX
-    
+
     p <- ncol(X)
     stopifnot((rho$nmp <- rho$n - p) > 0)
     fixef <- numeric(p)
     names(fixef) <- colnames(X)
     rho$fixef <- fixef
-    
+
     ## Check for method argument which is no longer used
     if (!is.null(method <- list(...)$method)) {
         msg <- paste("Argument", sQuote("method"),
@@ -220,7 +220,7 @@ lmer <-
             warning(msg)
         } else stop(msg)
     }
-    
+
     makeZt(expandSlash(findbars(formula[[3]])), fr, rho)
 
     derived_mats(rho)
@@ -229,7 +229,7 @@ lmer <-
     rho$prss <- numeric(1)
     rho$ldL2 <- numeric(1)
     rho$ldRX2 <- numeric(1)
-    
+
     rho$L <- Cholesky(tcrossprod(rho$Zt), LDL = FALSE, Imult = 1)
     rho$compDev <- compDev
     rho$call <- mc
@@ -269,7 +269,7 @@ lmer <-
     me <- new("lmerenv", setPars = sP, getPars = gP, getBounds = gB)
     if (doFit) {                        # perform the optimization
 ### FIXME: Allow for selecting an optimizer.  Use optimize for scalar
-### problems 
+### problems
         if (verbose) control$trace <- 1
         nlminb(is.finite(rho$lower), me@setPars, lower = rho$lower,
                control = control)
@@ -329,7 +329,8 @@ setMethod("ranef", signature(object = "merenvtrms"),
           if (postVar) {
               ## for the time being allow only simple scalar terms
               ## without repeated grouping factors
-              stopifnot(all(nc == 1), length(nc) == length(ans))
+              if(!(all(nc == 1) && length(nc) == length(ans)))
+  stop("postVar=TRUE currently only implemented for case of simple scalar term")
               ## evaluate the diagonal of
               ## sigma^2 Lambda(theta)P'L^{-T}L^{-1} P Lambda(theta)
               vv <- sigma(object)^2 * diag(rho$Lambda) *
@@ -375,8 +376,8 @@ deveval <- function(x, theta, sigma, beta = NULL, ...) {
                  c(sigma = x, sdcomp = theta * x,
                    deviance = unname(ldL2 + n * log(2*pi*xsq) + prss/xsq))
              }))
-}                                
-   
+}
+
 setMethod("sigma", signature(object = "lmerenv"),
           function (object, ...) {
               dc <- devcomp(object)
@@ -385,7 +386,7 @@ setMethod("sigma", signature(object = "lmerenv"),
           })
 
 ##' Extract the conditional variance-covariance matrix of the fixed
-##' effects 
+##' effects
 setMethod("vcov", signature(object = "lmerenv"),
 	  function(object, ...)
       {
@@ -500,7 +501,7 @@ setMethod("summary", signature(object = "lmerenv"),
           REmat <- formatVC(varcor)
           if (nrow(coefs) > 0)
               coefs <- cbind(coefs, "t value" = coefs[,1]/coefs[,2])
-          ans <- list(methTitle = mName, 
+          ans <- list(methTitle = mName,
                       devcomp = dc,
                       logLik = llik,
                       ngrps = sapply(rho$flist, function(x) length(levels(x))),
@@ -581,7 +582,7 @@ setMethod("show", "lmerenv", function(object) printMerenv(object))
 ##'    \code{formula}.  By default the variables are taken from the
 ##'    environment from which \code{nlmer} is called.
 ##' @param start starting estimates for the nonlinear model
-##'    parameters, as a named numeric vector 
+##'    parameters, as a named numeric vector
 ##' @param verbose integer scalar passed to nlminb.  If negative then
 ##'    diagnostic output from the PIRLS (penalized iteratively
 ##'    reweighted least squares) step is also provided.
@@ -621,7 +622,7 @@ nlmer2 <- function(formula, data, family = gaussian, start = NULL,
     if (length(nlform) < 3)
         stop("formula must be a 3-part formula")
     nlmod <- as.call(nlform[[3]])
-                                        # check for parameter names in start 
+                                        # check for parameter names in start
     if (is.numeric(start)) start <- list(nlpars = start)
     stopifnot((s <- length(pnames <- names(start$nlpars))) > 0,
               is.numeric(start$nlpars))
@@ -662,7 +663,7 @@ nlmer2 <- function(formula, data, family = gaussian, start = NULL,
                                         # enforce modes on some vectors
     rho$y <- unname(as.double(rho$y))
     rho$mustart <- unname(as.double(rho$mustart))
-    rho$etastart <- unname(as.double(rho$etastart))    
+    rho$etastart <- unname(as.double(rho$etastart))
     if (exists("n", envir = rho))
         rho$n <- as.double(rho$n)
 
@@ -706,13 +707,13 @@ nlmer2 <- function(formula, data, family = gaussian, start = NULL,
     if (!is.null(start$theta)) {
         stopifnot(length(st <- as.double(start$theta)) == length(theta0))
         setPars(rho, st)
-    } else { 
+    } else {
         setPars(rho, theta0) # one evaluation to check structure
     }
     rho$beta0[] <- rho$fixef
     rho$u0[] <- rho$u
     if (!doFit) return(rho)
-    
+
     merFinalize(rho)
 }
 
@@ -805,8 +806,8 @@ predy <- function(sp, vv) predict(sp, vv)$y
 ## A lattice-based plot method for profile objects
 prplot <-
     function (x, levels = sqrt(qchisq(pmax.int(0, pmin.int(1, conf)), 1)),
-              conf = c(50, 80, 90, 95, 99)/100, 
-              absVal = TRUE, ...) 
+              conf = c(50, 80, 90, 95, 99)/100,
+              absVal = TRUE, ...)
 {
     levels <- sort(levels[is.finite(levels) && levels > 0])
     spl <- lapply(seq_along(x), function(i)
@@ -883,7 +884,7 @@ thpr <- function(dd)
                     pars[w], w, opt$message))
     opt$objective
 }
-    
+
 devfun <- function(fm)
 {
     stopifnot(is(fm, "lmerenv"))
@@ -936,11 +937,11 @@ sdpr <- function(dd)
                         function(x) dd(c(x, xx)))$obj - base)
         c(zz, xx, rr$theta, rr$fixef)
     }
-    
+
     res[2, ] <- zeta(lsig * 1.01)
 
     slope <- diff(res[1:2, "zeta"])/diff(res[1:2, "lsig"])
-    ll <- lsig + seq(-4, 4, len = 8)/slope 
+    ll <- lsig + seq(-4, 4, len = 8)/slope
     for (i in 1:8)
         res[2L + i, ] <- zeta(ll[i])
     res[order(res[,"lsig"]),]
@@ -960,7 +961,7 @@ thpr <- function(dd)
     res <- matrix(res, nr = 10, nc = length(res), byrow = TRUE)
     names(ans) <- c(sprintf("Th%02d", seq_along(rr$theta)), "lsig")
     colnames(res) <- c("zeta", names(ans), names(rr$fixef))
-    
+
     for (w in seq_along(opt)) {
         start <- opt[-w]
         pw <- opt[w]
@@ -981,7 +982,7 @@ thpr <- function(dd)
         }
         res[2, ] <- zeta(pw * 1.01)
         slope <- diff(res[1:2, "zeta"])/diff(res[1:2, w + 1])
-        ll <- pw + seq(-4, 4, len = 8)/slope 
+        ll <- pw + seq(-4, 4, len = 8)/slope
         for (i in 1:8) res[2L + i, ] <- zeta(ll[i])
         ans[[w]] <- res[order(res[,w + 1]),]
     }

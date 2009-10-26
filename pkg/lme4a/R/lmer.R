@@ -1112,11 +1112,7 @@ printMer <- function(x, digits = max(3, getOption("digits") - 3),
 		    if (is.logical(symbolic.cor) && symbolic.cor) {
 			corf <- as(corF, "matrix")
 			dimnames(corf) <- list(rns,
-					       if(getRversion() >= "2.8.0")
-					       abbreviate(rn, minlength=1, strict=TRUE)
-					       else ## for now
-					       .Internal(abbreviate(rn, 1, TRUE))
-					       )
+					       abbreviate(rn, minlength=1, strict=TRUE))
 			print(symnum(corf))
 		    }
 		    else {
@@ -1173,6 +1169,7 @@ setMethod("refit", signature(object = "mer", newresp = "numeric"),
          # mer_finalize(object)
       })
 
+## cheap (and faster?) version of Matrix::bdiag() or Matrix:::.bdiag() :
 BlockDiagonal <- function(lst)
 {
     stopifnot(is(lst, "list"))
@@ -1374,6 +1371,7 @@ setMethod("mcmcsamp", signature(object = "mer"),
 ### Generate a Markov chain Monte Carlo sample from the posterior distribution
 ### of the parameters in a linear mixed model
       {
+          ## in lme4: object@fixef <- fixef(object) # force a copy
           n <- max(1, as.integer(n)[1])
           dd <- object@dims
           q <- length(object@u)
