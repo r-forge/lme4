@@ -965,7 +965,7 @@ thpr <- function(dd)
         start <- opt[-w]
         pw <- opt[w]
         zeta <- function(xx) {
-            zz <- ifelse(xx < opt[w], -1, 1) *
+            zz <- ifelse(xx < pw, -1, 1) *
                 sqrt(nlminb(start,
                             function(x) {
                                 par <- numeric(np)
@@ -973,11 +973,15 @@ thpr <- function(dd)
                                 par[w] <- xx
                                 dd(par)
                             })$obj - base)
+### FIXME: This should not be rr$theta.  It should be sigs and lsig.
+### Write a general parameter transformation and inverse
+### transformation routine.  It will need the environment to be able
+### to work out some of the details of the transformation.
             c(zz, rr$theta, log(rr$prss) - ln, rr$fixef)
         }
         res[2, ] <- zeta(pw * 1.01)
         slope <- diff(res[1:2, "zeta"])/diff(res[1:2, w + 1])
-        ll <- lsig + seq(-4, 4, len = 8)/slope 
+        ll <- pw + seq(-4, 4, len = 8)/slope 
         for (i in 1:8) res[2L + i, ] <- zeta(ll[i])
         ans[[w]] <- res[order(res[,w + 1]),]
     }
