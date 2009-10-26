@@ -185,7 +185,7 @@
   The \code{"summary.mer"} class \emph{contains} the \code{"mer"},
   class and has additional slots,
   \describe{
-    
+
     \item{\code{methTitle}:}{character string specifying a method title}
     \item{\code{logLik}:}{the same as \code{\link{logLik}(object)}.}
     \item{\code{ngrps}:}{the number of levels per grouping factor in the
@@ -276,7 +276,7 @@
 
       returns the estimates of the fixed-effects parameters.  See
       \code{\link{fixef}}.
-    
+
     }
     \item{formula}{\code{signature(x = "mer")}:
 
@@ -302,7 +302,7 @@
       model frame (the \code{frame} slot).}
     \item{model.matrix}{\code{signature(object = "mer")}: returns the
       model matrix for the fixed-effects parameters (the \code{X}
-      slot).} 
+      slot).}
     \item{print}{\code{signature(x = "mer")}: print information about
       the fitted model.  See the arguments section above for a description
       of optional arguments.}
@@ -324,7 +324,7 @@
       distribution corresponding to the fitted model.  The \code{refit}
       method is particularly useful in combination with this method.
       See also \code{\link{simulate}}.}
-    \item{terms}{\code{signature(x = "mer")}: Extract the 
+    \item{terms}{\code{signature(x = "mer")}: Extract the
       \code{\link{terms}} object for the fixed-effects terms in the
       model formula.}
     \item{update}{\code{signature(object = "mer")}: see
@@ -350,14 +350,14 @@ print(fm2, digits = 10, corr = FALSE) # more precision; no corr.matrix
 
 logLik(fm2)
 (V2 <- vcov(fm2))
-terms(fm2)
+terms(fm2) ## currently empty -- FIXME?
 str(model.matrix(fm2))
 str(model.frame(fm2))
-str(resid(fm2))
+try(str(resid(fm2)))## FIXME %__ FIXME __
 
 VarCorr(fm2)
 \dontrun{
-ee <- expand(fm2)
+ee <- expand(fm2) # FIXME
 op <- options(digits = 3)
 tcrossprod(ee$sigma * ee$P \%*\% ee$T \%*\% ee$S)
 options(op)

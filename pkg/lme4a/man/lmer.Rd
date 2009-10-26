@@ -140,7 +140,7 @@ nlmer(formula, data, family = gaussian, start = NULL, verbose = FALSE, nAGQ = 1,
 ## linear mixed models
 (fm1 <- lmer(Reaction ~ Days + (Days|Subject), sleepstudy))
 (fm2 <- lmer(Reaction ~ Days + (1|Subject) + (0+Days|Subject), sleepstudy))
-anova(fm1, fm2)
+try( anova(fm1, fm2) )## FIXME %__ FIXME __
 ## generalized linear mixed model
 \dontrun{
 (gm1 <- glmer(cbind(incidence, size - incidence) ~ period + (1 | herd),
@@ -149,7 +149,7 @@ anova(fm1, fm2)
 ## nonlinear mixed models
 (nm1 <- nlmer(circumference ~ SSlogis(age, Asym, xmid, scal) ~
               Asym + xmid + scal + (Asym|Tree),
-              Orange, 
+              Orange,
               start = c(Asym = 200, xmid = 725, scal = 350)))
 }
 \keyword{models}

@@ -2,13 +2,13 @@
 \alias{cake}
 \docType{data}
 \title{Breakage angle of chocolate cakes}
-\description{  
+\description{
   Data on the breakage angle of chocolate cakes made with three different
   recipes and baked at six different temperatures.  This is a split-plot
   design with the recipes being whole-units and the different
   temperatures being applied to sub-units (within replicates). The
   experimental notes suggest that the replicate numbering represents
-  temporal ordering.   
+  temporal ordering.
 }
 \usage{data(cake)}
 \format{
@@ -50,6 +50,6 @@ print(fm2 <- lmer(angle ~ recipe + temperature + (1|recipe:replicate), cake,
                   REML = FALSE), corr = FALSE)
 print(fm3 <- lmer(angle ~ recipe + temp + (1|recipe:replicate), cake,
                   REML = FALSE), corr = FALSE)
-anova(fm3, fm2, fm1)
+try(anova(fm3, fm2, fm1))## FIXME %__ FIXME __
 }
 \keyword{datasets}
