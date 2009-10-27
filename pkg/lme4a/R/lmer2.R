@@ -839,52 +839,6 @@ prplot <-
        }, ...)
 }
 
-## profiled deviance from standard deviations, including sigma
-stddevdev <- function(fm, sigs, sigma)
-{
-    stopifnot(is(fm, "lmerenv"),
-              is.numeric(sigs),
-              is.numeric(sigma),
-              length(sigs) == length(env(fm)$theta),
-              length(sigma) == 1L,
-              sigma > 0,
-              all(sigs >= 0))
-    fm@setPars(sigs/sigma)
-    sigsq <- sigma^2
-    dc <- devcomp(fm)
-    unname(dc$cmp["ldL2"] + dc$cmp["prss"]/sigsq +
-           dc$dims["n"] * log(2 * pi * sigsq))
-}
-
-## profile the deviance with respect to the standard deviations
-thpr <- function(dd)
-{
-    w <- as.integer(w)[1]
-    rho <- env(fm)
-    np <- length(pars <- as.numeric(pars))
-    stopifnot(0 < w, w <= np,
-              all(pars >= 0),
-              length(rho$theta) == (np - 1L))
-    fp <- pars[w]                       # the fixed parameter
-
-    ## evaluate deviance with respect to the restricted set of
-    ## parameters
-    fun <- function(rp) {
-        pars[-w] <- rp
-        sigma <- pars[np]
-        fm@setPars(pars[-np]/sigma)
-        sigsq <- sigma^2
-        dc <- devcomp(fm)
-        unname(dc$cmp["ldL2"] + dc$cmp["prss"]/sigsq +
-               dc$dims["n"] * log(2 * pi * sigsq))
-    }
-    opt <- nlminb(pars[-w], fun, lower = numeric(np - 1L))
-    if (opt$convergence)
-        warning(sprintf("Profiling convergence failure at value %g for parameter %d\n  Message:%s",
-                    pars[w], w, opt$message))
-    opt$objective
-}
-
 devfun <- function(fm)
 {
     stopifnot(is(fm, "lmerenv"))
@@ -947,43 +901,91 @@ sdpr <- function(dd)
     res[order(res[,"lsig"]),]
 }
 
-thpr <- function(dd)
+mkpar <- function(np, w, pw, pmw) {
+    par <- numeric(np)
+    par[w] <- pw
+    par[-w] <- pmw
+    par
+}
+    
+thpr <- function(dd, alphamax = 0.01, maxpts = 100, delta = cutoff/5,
+                 tr = 0, ...)
 {
     stopifnot(is(dd, "devfun"))
+    base <- attr(dd, "basedev")
+    rr <- environment(dd)$rho
+    n <- length(rr$y)
+
     opt <- attr(dd, "optimum")
     np <- length(opt)
-    ans <- vector("list", np)
-    base <- attr(dd, "basedev")
-    oseq <- seq_along(opt)
-    rr <- environment(dd)$rho
-    ln <- log(length(rr$y))
-    res <- c(0, opt, rr$fixef)
-    res <- matrix(res, nr = 10, nc = length(res), byrow = TRUE)
-    names(ans) <- c(sprintf("Th%02d", seq_along(rr$theta)), "lsig")
-    colnames(res) <- c("zeta", names(ans), names(rr$fixef))
+### FIXME: These names are wrong.  The initial elements are 
+###        theta * sigma, not theta 
+### FIXME: Assign these names in devfun, not here
+    names(opt) <- c(sprintf("Th%02d", seq_along(rr$theta)), "lsig")
+    res <- c(.zeta = 0, opt, rr$fixef)
+    res <- matrix(res, nr = maxpts, nc = length(res),
+                  dimnames = list(NULL, names(res)), byrow = TRUE)
+    ans <- vector("list", length(opt))
+    names(ans) <- names(opt)
+    lower <- c(rr$lower, -Inf)
+
+    cutoff <- sqrt(qchisq(1 - alphamax, np + length(rr$fixef)))
 
     for (w in seq_along(opt)) {
+        wp1 <- w + 1L
         start <- opt[-w]
         pw <- opt[w]
+        lowcut <- lower[w]
         zeta <- function(xx) {
-            zz <- ifelse(xx < pw, -1, 1) *
-                sqrt(nlminb(start,
-                            function(x) {
-                                par <- numeric(np)
-                                par[-w] <- x
-                                par[w] <- xx
-                                dd(par)
-                            })$obj - base)
-### FIXME: This should not be rr$theta.  It should be sigs and lsig.
-### Write a general parameter transformation and inverse
-### transformation routine.  It will need the environment to be able
-### to work out some of the details of the transformation.
-            c(zz, rr$theta, log(rr$prss) - ln, rr$fixef)
+            res <- nlminb(start,
+                          function(x) dd(mkpar(np, w, xx, x)),
+                          lower = lower[-w],
+                          control = list(trace = tr))
+### FIXME: check res for convergence 
+            zz <- ifelse(xx < pw, -1, 1) * sqrt(res$objective - base)
+            c(zz, mkthlsig(np, w, xx, res$par), rr$fixef)
         }
-        res[2, ] <- zeta(pw * 1.01)
-        slope <- diff(res[1:2, "zeta"])/diff(res[1:2, w + 1])
-        ll <- pw + seq(-4, 4, len = 8)/slope
-        for (i in 1:8) res[2L + i, ] <- zeta(ll[i])
-        ans[[w]] <- res[order(res[,w + 1]),]
+### FIXME: Things to change: this will repeat code for the positive
+### and negative deviations from the optimum.  Furthermore, it will
+### probably break when pw is negative, as it can be for a
+### correlation-generating parameter.  The starting values for the
+### conditional optimization should be determined from recent starting
+### values, not always the global optimum values.        
+        pres <- res
+        pres[2, ] <- zeta(pw * 1.01)
+        slope <- function(mat, r) {
+            rows <- r - (1:0)
+            diff(mat[rows, ".zeta"])/diff(mat[rows, wp1])
+        }
+        nextpar <- function(last, absstep, sgn) {
+            proposed <- last + sgn * absstep
+            if (proposed < lowcut) return(lowcut)
+            proposed
+        }
+        for (i in 3:maxpts) {
+            im1 <- i - 1L
+            last <- pres[im1, ]
+            if (abs(last[".zeta"]) > cutoff || last[wp1] <= lowcut) break
+            pres[i, ] <- zeta(nextpar(last[wp1], delta/slope(pres, im1), 1))
+        }
+        pres <- as.data.frame(unique(pres))
+        mres <- res
+        mres[2, ] <-
+            zeta(nextpar(pw, delta *
+                         predict(backSpline(interpSpline(pres[,wp1],
+                                                         pres$.zeta)),
+                                 0, deriv = 1), -1))
+        for (i in 3:maxpts) {
+            im1 <- i - 1L
+            last <- mres[im1, ]
+            if (abs(last[".zeta"]) > cutoff || last[wp1] <= lowcut) break
+            mres[i, 1] <-
+                zeta(nextpar(last[wp1], delta/slope(mres, im1), -1))
+        }
+        bres <- rbind2(pres, as.data.frame(unique(mres)))
+        ans[[w]] <- bres[order(bres[, wp1]), ]
     }
+    dd(opt)                             # reset internal structures
+    ans
 }
+
