@@ -759,86 +759,6 @@ update_dr_env <- function(rho, fw) {
     derived_mats(rho)
     NULL
 }
-
-setMethod("profile", "lmerenv",
-          function(fitted, ...)
-      {
-          rho <- env(fitted)
-          if (rho$REML) {         # refit for deviance
-              fitted <- copylmer(fitted)
-              rho <- env(fitted)
-              rho$REML <- FALSE
-              if ((nlminb(fitted@getPars(), fitted@setPars,
-                          lower = env(fitted)$lower))$convergence)
-                  stop("failure to refit model for ML estimates")
-          }
-          basedev <- deviance(fitted)
-          coefmat <- coef(summary(fitted))
-          kk <- length(rho$theta)
-          p <- nrow(coefmat)
-
-          template <- data.frame(z = numeric(41))
-          template$par.vals <- array(0, c(41, p + kk + 1L),
-                                     list(NULL, c(rownames(coefmat),
-                                                  sprintf("Th%02d", seq_len(kk)),
-                                                  "sigma")))
-          ans <- lapply(rho$fixef, function(el) template)
-          for (j in seq_len(p)) {
-              est <- coefmat[j,1]
-              std <- coefmat[j,2]
-              dr <- dropX(fitted, j, est)
-              rho <- env(dr)
-              low <- rho$lower
-              for (i in seq_len(41)) {
-                  ans[[j]]$par.vals[i,j] <- fw <- est + (i-20) * std/5
-                  update_dr_env(env(dr), fw)
-                  nlminb(dr@getPars(), dr@setPars, lower = low)
-                  ans[[j]]$z[i] <- sqrt(deviance(dr) - basedev) * ifelse(fw < est, -1, 1)
-                  ans[[j]]$par.vals[i,-j] <- c(rho$fixef, rho$theta, sigma(dr))
-              }
-          }
-          ans
-      })
-
-## extract only the y component from a prediction
-predy <- function(sp, vv) predict(sp, vv)$y
-
-## A lattice-based plot method for profile objects
-prplot <-
-    function (x, levels = sqrt(qchisq(pmax.int(0, pmin.int(1, conf)), 1)),
-              conf = c(50, 80, 90, 95, 99)/100,
-              absVal = TRUE, ...)
-{
-    levels <- sort(levels[is.finite(levels) && levels > 0])
-    spl <- lapply(seq_along(x), function(i)
-                  interpSpline(x[[i]]$par.vals[, i], x[[i]]$z))
-    bspl <- lapply(spl, backSpline)
-    zeta <- c(-rev(levels), 0, levels)
-    fr <- data.frame(zeta = rep.int(zeta, length(x)),
-                     pval = unlist(lapply(bspl, predy, zeta)),
-                     pnm = gl(length(x), length(zeta), labels = names(x)))
-    ylab <- expression(zeta)
-    if (absVal) {
-        fr$zeta <- abs(fr$zeta)
-        ylab <- expression("|" * zeta * "|")
-    }
-    xyplot(zeta ~ pval | pnm, fr,
-           scales = list(x = list(relation = 'free')),
-           ylab = ylab, xlab = "", panel = function(x, y, ...)
-       {
-           pfun <- function(x) predy(spl[[panel.number()]], x)
-           panel.grid(h = -1, v = -1)
-           lsegments(x, y, x, 0, ...)
-           if (absVal) {
-               lsegments(x, y, rev(x), y)
-               pfun <- function(x) abs(predy(spl[[panel.number()]], x))
-           } else {
-               panel.abline(h = 0, ...)
-           }
-           panel.curve(pfun, ...)
-       }, ...)
-}
-
 ### FIXME: devfun should return a function that allows for lsig to be
 ### profiled if it is not the fixed parameter
 
@@ -880,87 +800,167 @@ devfun <- function(fm)
     ans
 }
 
-thpr <- function(dd, alphamax = 0.01, maxpts = 100, delta = cutoff/5,
-                 tr = 0, ...)
-{
-    stopifnot(is(dd, "devfun"))
-    base <- attr(dd, "basedev")
-    rr <- environment(dd)$rho
-    n <- length(rr$y)
+setMethod("profile", "lmerenv",
+          thpr <- function(fitted, alphamax = 0.01, maxpts = 100, delta = cutoff/5,
+                           tr = 0, ...)
+      {
+          dd <- devfun(fitted)
+          base <- attr(dd, "basedev")
+          rr <- environment(dd)$rho
+          n <- length(rr$y)
 
-    ans <- lapply(opt <- attr(dd, "optimum"), function(el) NULL)
-    np <- length(opt)
-    res <- c(.zeta = 0, opt, rr$fixef)
-    res <- matrix(res, nr = maxpts, nc = length(res),
-                  dimnames = list(NULL, names(res)), byrow = TRUE)
-    ans <- vector("list", length(opt))
-    names(ans) <- names(opt)
-    bakspl <- forspl <- ans    
-    lower <- c(rr$lower, -Inf)
-    form <- .zeta ~ foo
+          ans <- lapply(opt <- attr(dd, "optimum"), function(el) NULL)
+          np <- length(opt)
+          res <- c(.zeta = 0, opt, rr$fixef)
+          res <- matrix(res, nr = maxpts, nc = length(res),
+                        dimnames = list(NULL, names(res)), byrow = TRUE)
+          cutoff <- sqrt(qchisq(1 - alphamax, np + length(rr$fixef)))
 
-    cutoff <- sqrt(qchisq(1 - alphamax, np + length(rr$fixef)))
-    mkpar <- function(np, w, pw, pmw) {
-        par <- numeric(np)
-        par[w] <- pw
-        par[-w] <- pmw
-        par
-    }
+          ## helper functions
 
-    for (w in seq_along(opt)) {
-        wp1 <- w + 1L
-        start <- opt[-w]
-        pw <- opt[w]
-        lowcut <- lower[w]
-        zeta <- function(xx) {
-            res <- nlminb(start,
-                          function(x) dd(mkpar(np, w, xx, x)),
-                          lower = lower[-w],
-                          control = list(trace = tr))
+          ## nextpar calculates the next value of the parameter being
+          ## profiled based on the desired step in the profile zeta
+          ## (absstep) and the values of zeta and column cc for rows
+          ## r-1 and r
+          nextpar <- function(mat, cc, r, absstep, lowcut = -Inf) {
+              rows <- r - (1:0)         # previous two row numbers
+              pvals <- mat[rows, cc]
+              zeta <- mat[rows, ".zeta"]
+              if (!(denom <- diff(zeta)))
+                  stop("Last two rows have identical .zeta values")
+              num <- diff(pvals)
+              newth <- pvals[2] + sign(num) * absstep * diff(pvals) / denom
+              ifelse(newth < lowcut, lowcut, newth)
+          }
+          ## mkpar generates the parameter vector of theta and
+          ## log(sigma) from the values being profiled in position w
+          mkpar <- function(np, w, pw, pmw) {
+              par <- numeric(np)
+              par[w] <- pw
+              par[-w] <- pmw
+              par
+          }
+          ## fillmat fills the third and subsequent rows of the matrix
+          ## using nextpar and zeta
+          fillmat <- function(mat, lowcut, zetafun, cc) {
+              nr <- nrow(mat)
+              i <- 2L
+              while (i < nr && abs(mat[i, ".zeta"]) <= cutoff &&
+                     mat[i, cc] > lowcut) {
+                  mat[i + 1L, ] <- zetafun(nextpar(mat, cc, i, delta, lowcut))
+                  i <- i + 1L
+              }
+              mat
+          }
+
+          ans <- vector("list", length(opt))
+          names(ans) <- names(opt)
+          bakspl <- forspl <- ans    
+          lower <- c(rr$lower, -Inf)
+          form <- .zeta ~ foo
+
+          
+          for (w in seq_along(opt)) {
+              wp1 <- w + 1L
+              start <- opt[-w]
+              pw <- opt[w]
+              lowcut <- lower[w]
+              zeta <- function(xx) {
+                  res <- nlminb(start,
+                                function(x) dd(mkpar(np, w, xx, x)),
+                                lower = lower[-w],
+                                control = list(trace = tr))
 ### FIXME: check res for convergence 
-            zz <- sign(xx - pw) * sqrt(res$objective - base)
-            c(zz, mkpar(np, w, xx, res$par), rr$fixef)
-        }
-
+                  zz <- sign(xx - pw) * sqrt(res$objective - base)
+                  c(zz, mkpar(np, w, xx, res$par), rr$fixef)
+              }
+              
 ### FIXME: The starting values for the conditional optimization should
 ### be determined from recent starting values, not always the global
 ### optimum values.
+              
+              pres <- nres <- res # intermediate results for pos. and neg. increments
+              nres[1, ] <- pres[2, ] <- zeta(pw * 1.01)
+              bres <-
+                  as.data.frame(unique(rbind2(fillmat(pres,lowcut, zeta, wp1),
+                                              fillmat(nres,lowcut, zeta, wp1))))
+              bres$.par <- names(opt)[w]
+              ans[[w]] <- bres[order(bres[, wp1]), ]
+              form[[3]] <- as.name(names(opt)[w])
+              bakspl[[w]] <- backSpline(forspl[[w]] <- interpSpline(form, bres))
+          }
+          dd(opt)                             # reset internal structures
+          ans <- do.call(rbind, ans)
+          attr(ans, "forward") <- forspl
+          attr(ans, "backward") <- bakspl
+          row.names(ans) <- NULL
+          class(ans) <- c("thpr", "data.frame")
 
-        pres <- nres <- res # intermediate results for pos. and neg. increments
-        nres[1, ] <- pres[2, ] <- zeta(pw * 1.01)
-        nextpar <- function(mat, r, absstep) {
-            rows <- r - (1:0)           # previous two row numbers
-            theta <- mat[rows, wp1]
-            zeta <- mat[rows, ".zeta"]
-            if (!(denom <- diff(zeta)))
-                stop("Last two rows have identical .zeta values")
-            num <- diff(theta)
-            newth <- theta[2] + sign(num) * absstep * diff(theta) / denom
-            ifelse(newth < lowcut, lowcut, newth)
-        }
-        fillmat <- function(mat) {
-            i <- 2L
-            while (i < maxpts &&
-                   abs(mat[i, ".zeta"]) <= cutoff &&
-                   mat[i, wp1] > lowcut) {
-                mat[i + 1L, ] <- zeta(nextpar(mat, i, delta))
-                i <- i + 1L
-            }
-            mat
-        }
-        bres <- as.data.frame(unique(rbind2(fillmat(pres), fillmat(nres))))
-        bres$.par <- names(opt)[w]
-        ans[[w]] <- bres[order(bres[, wp1]), ]
-        form[[3]] <- as.name(names(opt)[w])
-        bakspl[[w]] <- backSpline(forspl[[w]] <- interpSpline(form, bres))
+          return(ans)
+
+          basedev <- deviance(fitted)
+          coefmat <- coef(summary(fitted))
+          kk <- length(rho$theta)
+          p <- nrow(coefmat)
+
+          template <- data.frame(z = numeric(41))
+          template$par.vals <- array(0, c(41, p + kk + 1L),
+                                     list(NULL, c(rownames(coefmat),
+                                                  sprintf("Th%02d", seq_len(kk)),
+                                                  "sigma")))
+          ans <- lapply(rho$fixef, function(el) template)
+          for (j in seq_len(p)) {
+              est <- coefmat[j,1]
+              std <- coefmat[j,2]
+              dr <- dropX(fitted, j, est)
+              rho <- env(dr)
+              low <- rho$lower
+              for (i in seq_len(41)) {
+                  ans[[j]]$par.vals[i,j] <- fw <- est + (i-20) * std/5
+                  update_dr_env(env(dr), fw)
+                  nlminb(dr@getPars(), dr@setPars, lower = low)
+                  ans[[j]]$z[i] <- sqrt(deviance(dr) - basedev) * ifelse(fw < est, -1, 1)
+                  ans[[j]]$par.vals[i,-j] <- c(rho$fixef, rho$theta, sigma(dr))
+              }
+          }
+          ans
+      })
+
+
+## A lattice-based plot method for profile objects
+xyplot.thpr <-
+    function (x, data = NULL, levels = sqrt(qchisq(pmax.int(0, pmin.int(1, conf)), 1)),
+              conf = c(50, 80, 90, 95, 99)/100,
+              absVal = TRUE, ...)
+{
+    ## extract only the y component from a prediction
+    predy <- function(sp, vv) predict(sp, vv)$y
+
+    levels <- sort(levels[is.finite(levels) && levels > 0])
+    spl <- attr(x, "forward")
+    bspl <- attr(x, "backward")
+    zeta <- c(-rev(levels), 0, levels)
+    fr <- data.frame(zeta = rep.int(zeta, length(spl)),
+                     pval = unlist(lapply(bspl, predy, zeta)),
+                     pnm = gl(length(spl), length(zeta), labels = names(spl)))
+    ylab <- expression(zeta)
+    if (absVal) {
+        fr$zeta <- abs(fr$zeta)
+        ylab <- expression("|" * zeta * "|")
     }
-    dd(opt)                             # reset internal structures
-    ans <- do.call(rbind, ans)
-    attr(ans, "forward") <- forspl
-    attr(ans, "backward") <- bakspl
-    row.names(ans) <- NULL
-    class(ans) <- "thpr"
-    ans
+    xyplot(zeta ~ pval | pnm, fr,
+           scales = list(x = list(relation = 'free')),
+           ylab = ylab, xlab = "", panel = function(x, y, ...)
+       {
+           pfun <- function(x) predy(spl[[panel.number()]], x)
+           panel.grid(h = -1, v = -1)
+           lsegments(x, y, x, 0, ...)
+           if (absVal) {
+               lsegments(x, y, rev(x), y)
+               pfun <- function(x) abs(predy(spl[[panel.number()]], x))
+           } else {
+               panel.abline(h = 0, ...)
+           }
+           panel.curve(pfun, ...)
+       }, ...)
 }
-
-
