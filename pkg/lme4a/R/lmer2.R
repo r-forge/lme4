@@ -811,8 +811,8 @@ prplot <-
 {
     levels <- sort(levels[is.finite(levels) && levels > 0])
     spl <- lapply(seq_along(x), function(i)
-                  splines::interpSpline(x[[i]]$par.vals[, i], x[[i]]$z))
-    bspl <- lapply(spl, splines::backSpline)
+                  interpSpline(x[[i]]$par.vals[, i], x[[i]]$z))
+    bspl <- lapply(spl, backSpline)
     zeta <- c(-rev(levels), 0, levels)
     fr <- data.frame(zeta = rep.int(zeta, length(x)),
                      pval = unlist(lapply(bspl, predy, zeta)),
@@ -839,6 +839,14 @@ prplot <-
        }, ...)
 }
 
+### FIXME: devfun should return a function that allows for lsig to be
+### profiled if it is not the fixed parameter
+
+##' Return a function for evaluation of the deviance.  The deviance is
+##' profiled with respect to the fixed-effects parameters but not with
+##' respect to sigma, which is expressed on the logarithmic scale,
+##' lsigma. The other parameters are on the standard deviation scale,
+##' not the theta scale.
 devfun <- function(fm)
 {
     stopifnot(is(fm, "lmerenv"))
@@ -864,50 +872,14 @@ devfun <- function(fm)
         unname(dc$cmp["ldL2"] + dc$cmp["prss"]/sigsq +
                dc$dims["n"] * log(2 * pi * sigsq))
     }
-    attr(ans, "optimum") <- c(sig * rho$theta, lsig)
+    opt <- c(sig * rho$theta, lsig)
+    names(opt) <- c(sprintf(".sig%02d", seq_along(rho$theta)), ".lsig")
+    attr(ans, "optimum") <- opt
     attr(ans, "basedev") <- basedev
     class(ans) <- "devfun"
     ans
 }
 
-sdpr <- function(dd)
-{
-    stopifnot(is(dd, "devfun"))
-    opt <- attr(dd, "optimum")
-    rr <- environment(dd)$rho
-    np <- length(opt)
-    base <- attr(dd, "basedev")
-    start <- opt[-np]
-    lsig <- opt[np]
-    res <- c(0, lsig, rr$theta, rr$fixef)
-    res <- matrix(res, nr = 10, nc = length(res), byrow = TRUE)
-    colnames(res) <-
-        c("zeta", "lsig", sprintf("Th%02d", seq_along(rr$theta)),
-          names(rr$fixef))
-
-    zeta <- function(xx) {
-        zz <- ifelse(xx < lsig, -1, 1) *
-            sqrt(nlminb(start,
-                        function(x) dd(c(x, xx)))$obj - base)
-        c(zz, xx, rr$theta, rr$fixef)
-    }
-
-    res[2, ] <- zeta(lsig * 1.01)
-
-    slope <- diff(res[1:2, "zeta"])/diff(res[1:2, "lsig"])
-    ll <- lsig + seq(-4, 4, len = 8)/slope
-    for (i in 1:8)
-        res[2L + i, ] <- zeta(ll[i])
-    res[order(res[,"lsig"]),]
-}
-
-mkpar <- function(np, w, pw, pmw) {
-    par <- numeric(np)
-    par[w] <- pw
-    par[-w] <- pmw
-    par
-}
-    
 thpr <- function(dd, alphamax = 0.01, maxpts = 100, delta = cutoff/5,
                  tr = 0, ...)
 {
@@ -916,20 +888,24 @@ thpr <- function(dd, alphamax = 0.01, maxpts = 100, delta = cutoff/5,
     rr <- environment(dd)$rho
     n <- length(rr$y)
 
-    opt <- attr(dd, "optimum")
+    ans <- lapply(opt <- attr(dd, "optimum"), function(el) NULL)
     np <- length(opt)
-### FIXME: These names are wrong.  The initial elements are 
-###        theta * sigma, not theta 
-### FIXME: Assign these names in devfun, not here
-    names(opt) <- c(sprintf("Th%02d", seq_along(rr$theta)), "lsig")
     res <- c(.zeta = 0, opt, rr$fixef)
     res <- matrix(res, nr = maxpts, nc = length(res),
                   dimnames = list(NULL, names(res)), byrow = TRUE)
     ans <- vector("list", length(opt))
     names(ans) <- names(opt)
+    bakspl <- forspl <- ans    
     lower <- c(rr$lower, -Inf)
+    form <- .zeta ~ foo
 
     cutoff <- sqrt(qchisq(1 - alphamax, np + length(rr$fixef)))
+    mkpar <- function(np, w, pw, pmw) {
+        par <- numeric(np)
+        par[w] <- pw
+        par[-w] <- pmw
+        par
+    }
 
     for (w in seq_along(opt)) {
         wp1 <- w + 1L
@@ -942,50 +918,49 @@ thpr <- function(dd, alphamax = 0.01, maxpts = 100, delta = cutoff/5,
                           lower = lower[-w],
                           control = list(trace = tr))
 ### FIXME: check res for convergence 
-            zz <- ifelse(xx < pw, -1, 1) * sqrt(res$objective - base)
-            c(zz, mkthlsig(np, w, xx, res$par), rr$fixef)
+            zz <- sign(xx - pw) * sqrt(res$objective - base)
+            c(zz, mkpar(np, w, xx, res$par), rr$fixef)
         }
-### FIXME: Things to change: this will repeat code for the positive
-### and negative deviations from the optimum.  Furthermore, it will
-### probably break when pw is negative, as it can be for a
-### correlation-generating parameter.  The starting values for the
-### conditional optimization should be determined from recent starting
-### values, not always the global optimum values.        
-        pres <- res
-        pres[2, ] <- zeta(pw * 1.01)
-        slope <- function(mat, r) {
-            rows <- r - (1:0)
-            diff(mat[rows, ".zeta"])/diff(mat[rows, wp1])
+
+### FIXME: The starting values for the conditional optimization should
+### be determined from recent starting values, not always the global
+### optimum values.
+
+        pres <- nres <- res # intermediate results for pos. and neg. increments
+        nres[1, ] <- pres[2, ] <- zeta(pw * 1.01)
+        nextpar <- function(mat, r, absstep) {
+            rows <- r - (1:0)           # previous two row numbers
+            theta <- mat[rows, wp1]
+            zeta <- mat[rows, ".zeta"]
+            if (!(denom <- diff(zeta)))
+                stop("Last two rows have identical .zeta values")
+            num <- diff(theta)
+            newth <- theta[2] + sign(num) * absstep * diff(theta) / denom
+            ifelse(newth < lowcut, lowcut, newth)
         }
-        nextpar <- function(last, absstep, sgn) {
-            proposed <- last + sgn * absstep
-            if (proposed < lowcut) return(lowcut)
-            proposed
+        fillmat <- function(mat) {
+            i <- 2L
+            while (i < maxpts &&
+                   abs(mat[i, ".zeta"]) <= cutoff &&
+                   mat[i, wp1] > lowcut) {
+                mat[i + 1L, ] <- zeta(nextpar(mat, i, delta))
+                i <- i + 1L
+            }
+            mat
         }
-        for (i in 3:maxpts) {
-            im1 <- i - 1L
-            last <- pres[im1, ]
-            if (abs(last[".zeta"]) > cutoff || last[wp1] <= lowcut) break
-            pres[i, ] <- zeta(nextpar(last[wp1], delta/slope(pres, im1), 1))
-        }
-        pres <- as.data.frame(unique(pres))
-        mres <- res
-        mres[2, ] <-
-            zeta(nextpar(pw, delta *
-                         predict(backSpline(interpSpline(pres[,wp1],
-                                                         pres$.zeta)),
-                                 0, deriv = 1), -1))
-        for (i in 3:maxpts) {
-            im1 <- i - 1L
-            last <- mres[im1, ]
-            if (abs(last[".zeta"]) > cutoff || last[wp1] <= lowcut) break
-            mres[i, 1] <-
-                zeta(nextpar(last[wp1], delta/slope(mres, im1), -1))
-        }
-        bres <- rbind2(pres, as.data.frame(unique(mres)))
+        bres <- as.data.frame(unique(rbind2(fillmat(pres), fillmat(nres))))
+        bres$.par <- names(opt)[w]
         ans[[w]] <- bres[order(bres[, wp1]), ]
+        form[[3]] <- as.name(names(opt)[w])
+        bakspl[[w]] <- backSpline(forspl[[w]] <- interpSpline(form, bres))
     }
     dd(opt)                             # reset internal structures
+    ans <- do.call(rbind, ans)
+    attr(ans, "forward") <- forspl
+    attr(ans, "backward") <- bakspl
+    row.names(ans) <- NULL
+    class(ans) <- "thpr"
     ans
 }
+
 
