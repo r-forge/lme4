@@ -794,7 +794,7 @@ devfun <- function(fm)
     }
     opt <- c(sig * rho$theta, lsig)
     names(opt) <- c(sprintf(".sig%02d", seq_along(rho$theta)), ".lsig")
-    attr(ans, "optimum") <- opt
+    attr(ans, "optimum") <- c(opt, rho$fixef)
     attr(ans, "basedev") <- basedev
     class(ans) <- "devfun"
     ans
@@ -808,10 +808,11 @@ setMethod("profile", "lmerenv",
           base <- attr(dd, "basedev")
           rr <- environment(dd)$rho
           n <- length(rr$y)
+          p <- length(rr$fixef)
 
           ans <- lapply(opt <- attr(dd, "optimum"), function(el) NULL)
-          np <- length(opt)
-          res <- c(.zeta = 0, opt, rr$fixef)
+          np <- length(opt) - p    # number of variance-covariance pars
+          res <- c(.zeta = 0, opt)
           res <- matrix(res, nr = maxpts, nc = length(res),
                         dimnames = list(NULL, names(res)), byrow = TRUE)
           cutoff <- sqrt(qchisq(1 - alphamax, np + length(rr$fixef)))
@@ -821,16 +822,15 @@ setMethod("profile", "lmerenv",
           ## nextpar calculates the next value of the parameter being
           ## profiled based on the desired step in the profile zeta
           ## (absstep) and the values of zeta and column cc for rows
-          ## r-1 and r
-          nextpar <- function(mat, cc, r, absstep, lowcut = -Inf) {
+          ## r-1 and r.  The parameter may not be below lower
+          nextpar <- function(mat, cc, r, absstep, lower = -Inf) {
               rows <- r - (1:0)         # previous two row numbers
               pvals <- mat[rows, cc]
               zeta <- mat[rows, ".zeta"]
               if (!(denom <- diff(zeta)))
                   stop("Last two rows have identical .zeta values")
               num <- diff(pvals)
-              newth <- pvals[2] + sign(num) * absstep * diff(pvals) / denom
-              ifelse(newth < lowcut, lowcut, newth)
+              max(lower, pvals[2] + sign(num) * absstep * num / denom)
           }
           ## mkpar generates the parameter vector of theta and
           ## log(sigma) from the values being profiled in position w
@@ -856,11 +856,11 @@ setMethod("profile", "lmerenv",
           ans <- vector("list", length(opt))
           names(ans) <- names(opt)
           bakspl <- forspl <- ans    
-          lower <- c(rr$lower, -Inf)
+          lower <- c(rr$lower, rep.int(-Inf, p + 1L ))
           form <- .zeta ~ foo
 
           
-          for (w in seq_along(opt)) {
+          for (w in seq_len(np)) {
               wp1 <- w + 1L
               start <- opt[-w]
               pw <- opt[w]
