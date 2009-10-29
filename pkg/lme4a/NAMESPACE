@@ -2,7 +2,7 @@ useDynLib(lme4a, .registration=TRUE)
 
 import(Matrix)# including update()
 import(lattice)
-
+import(splines)
 ## Generics defined in stats4
 importFrom(stats4,
            AIC,
