@@ -731,11 +731,9 @@ copylmer <- function(x) {
     new("lmerenv", setPars = sp, getPars = gp, getBounds = gb)
 }
 
-dropX <- function(x, which, fw) {
+dropX <- function(rho, which, fw) {
     w <- as.integer(which)[1]
     fw <- as.numeric(fw)[1]
-    ans <- copylmer(x)
-    rho <- env(ans)
     rho$fw <- fw
     p <- length(rho$fixef)
     stopifnot(0 < w, w <= p)
@@ -750,7 +748,6 @@ dropX <- function(x, which, fw) {
     ## offset calculated from fixed parameter value
     rho$offset <- rho$Xw * fw + rho$offset.orig
     derived_mats(rho)
-    ans
 }
 
 update_dr_env <- function(rho, fw) {
@@ -759,6 +756,7 @@ update_dr_env <- function(rho, fw) {
     derived_mats(rho)
     NULL
 }
+
 ### FIXME: devfun should return a function that allows for lsig to be
 ### profiled if it is not the fixed parameter
 
@@ -804,18 +802,25 @@ setMethod("profile", "lmerenv",
           thpr <- function(fitted, alphamax = 0.01, maxpts = 100, delta = cutoff/5,
                            tr = 0, ...)
       {
-          dd <- devfun(fitted)
+          dd <- lme4a:::devfun(fitted)  # checks class too
+          X.orig <- env(fitted)$X
+          fe.orig <- env(fitted)$fixef
+          coefmat <- coef(summary(fitted))
+
           base <- attr(dd, "basedev")
           rr <- environment(dd)$rho
           n <- length(rr$y)
           p <- length(rr$fixef)
 
           ans <- lapply(opt <- attr(dd, "optimum"), function(el) NULL)
-          np <- length(opt) - p    # number of variance-covariance pars
+          bakspl <- forspl <- ans    
+
+          nptot <- length(opt)
+          nvp <- nptot - p    # number of variance-covariance pars
           res <- c(.zeta = 0, opt)
           res <- matrix(res, nr = maxpts, nc = length(res),
                         dimnames = list(NULL, names(res)), byrow = TRUE)
-          cutoff <- sqrt(qchisq(1 - alphamax, np + length(rr$fixef)))
+          cutoff <- sqrt(qchisq(1 - alphamax, nptot))
 
           ## helper functions
 
@@ -832,6 +837,7 @@ setMethod("profile", "lmerenv",
               num <- diff(pvals)
               max(lower, pvals[2] + sign(num) * absstep * num / denom)
           }
+          
           ## mkpar generates the parameter vector of theta and
           ## log(sigma) from the values being profiled in position w
           mkpar <- function(np, w, pw, pmw) {
@@ -840,6 +846,7 @@ setMethod("profile", "lmerenv",
               par[-w] <- pmw
               par
           }
+
           ## fillmat fills the third and subsequent rows of the matrix
           ## using nextpar and zeta
           fillmat <- function(mat, lowcut, zetafun, cc) {
@@ -853,26 +860,24 @@ setMethod("profile", "lmerenv",
               mat
           }
 
-          ans <- vector("list", length(opt))
-          names(ans) <- names(opt)
-          bakspl <- forspl <- ans    
           lower <- c(rr$lower, rep.int(-Inf, p + 1L ))
-          form <- .zeta ~ foo
-
+          seqnvp <- seq_len(nvp)
+          lowvp <- lower[seqnvp]
+          form <- .zeta ~ foo           # pattern for interpSpline formula
           
-          for (w in seq_len(np)) {
+          for (w in seqnvp) {
               wp1 <- w + 1L
-              start <- opt[-w]
+              start <- opt[seqnvp][-w]
               pw <- opt[w]
               lowcut <- lower[w]
               zeta <- function(xx) {
                   res <- nlminb(start,
-                                function(x) dd(mkpar(np, w, xx, x)),
-                                lower = lower[-w],
+                                function(x) dd(mkpar(nvp, w, xx, x)),
+                                lower = lowvp[-w],
                                 control = list(trace = tr))
 ### FIXME: check res for convergence 
                   zz <- sign(xx - pw) * sqrt(res$objective - base)
-                  c(zz, mkpar(np, w, xx, res$par), rr$fixef)
+                  c(zz, mkpar(nvp, w, xx, res$par), rr$fixef)
               }
               
 ### FIXME: The starting values for the conditional optimization should
@@ -889,40 +894,44 @@ setMethod("profile", "lmerenv",
               form[[3]] <- as.name(names(opt)[w])
               bakspl[[w]] <- backSpline(forspl[[w]] <- interpSpline(form, bres))
           }
-          dd(opt)                             # reset internal structures
+
+          for (j in seq_len(p)) {
+              pres <-            # intermediate results for pos. incr.
+                  nres <- res    # and negative increments
+              est <- coefmat[j,1]
+              std <- coefmat[j,2]
+              rr$X <- X.orig
+              rr$fixef <- fe.orig
+              dr <- dropX(rr, j, est)
+              low <- rr$lower
+              start <- opt[seqnvp]
+### FIXME: This is sub-optimal (or is it?).  You can always profile
+### out log(sigma).
+              fe.zeta <- function(fw) {
+                  update_dr_env(rr, fw)
+                  res <- nlminb(start, dd, lower = rr$lower,
+                                control = list(trace = tr))
+### FIXME: check res for convergence
+                  c(sign(fw - est) * sqrt(res$objective - base),
+                    res$par, mkpar(p, j, fw, rr$fixef))
+              }
+              nres[1, ] <- pres[2, ] <- fe.zeta(est + delta * std)
+              pp <- nvp + 1L + j
+              bres <-
+                  as.data.frame(unique(rbind2(fillmat(pres,-Inf, fe.zeta, pp),
+                                              fillmat(nres,-Inf, fe.zeta, pp))))
+              thisnm <- names(fe.orig)[j]
+              bres$.par <- thisnm
+              ans[[thisnm]] <- bres[order(bres[, pp]), ]
+              form[[3]] <- as.name(thisnm)
+              bakspl[[thisnm]] <-
+                  backSpline(forspl[[thisnm]] <- interpSpline(form, bres))
+          }
           ans <- do.call(rbind, ans)
           attr(ans, "forward") <- forspl
           attr(ans, "backward") <- bakspl
           row.names(ans) <- NULL
           class(ans) <- c("thpr", "data.frame")
-
-          return(ans)
-
-          basedev <- deviance(fitted)
-          coefmat <- coef(summary(fitted))
-          kk <- length(rho$theta)
-          p <- nrow(coefmat)
-
-          template <- data.frame(z = numeric(41))
-          template$par.vals <- array(0, c(41, p + kk + 1L),
-                                     list(NULL, c(rownames(coefmat),
-                                                  sprintf("Th%02d", seq_len(kk)),
-                                                  "sigma")))
-          ans <- lapply(rho$fixef, function(el) template)
-          for (j in seq_len(p)) {
-              est <- coefmat[j,1]
-              std <- coefmat[j,2]
-              dr <- dropX(fitted, j, est)
-              rho <- env(dr)
-              low <- rho$lower
-              for (i in seq_len(41)) {
-                  ans[[j]]$par.vals[i,j] <- fw <- est + (i-20) * std/5
-                  update_dr_env(env(dr), fw)
-                  nlminb(dr@getPars(), dr@setPars, lower = low)
-                  ans[[j]]$z[i] <- sqrt(deviance(dr) - basedev) * ifelse(fw < est, -1, 1)
-                  ans[[j]]$par.vals[i,-j] <- c(rho$fixef, rho$theta, sigma(dr))
-              }
-          }
           ans
       })
 
