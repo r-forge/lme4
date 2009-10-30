@@ -10,7 +10,7 @@ fm2l <- lmer(log(Reaction) ~ log(Days+1) + (log(Days+1)|Subject),
              data = sleepstudy, REML = FALSE)
 if(FALSE)# not yet
 xfm2 <- expand(fm2l)
-stopifnot(is(fm1, "mer"), is(fm2l, "mer"),
+stopifnot(is(fm1, "merenv"), is(fm2l, "merenv"),
           dim(ranef(fm2l)[[1]]) == c(18, 2),
           TRUE) # not yet: is(xfm2$P, "sparseMatrix"))
 
@@ -18,7 +18,7 @@ stopifnot(is(fm1, "mer"), is(fm2l, "mer"),
 (m1 <- lmer(cbind(incidence, size - incidence) ~ period + (1 | herd),
             family = binomial, data = cbpp))
 warnings() ## << FIXME
-stopifnot(is(m1,"mer"), is((cm1 <- coef(m1)), "coef.mer"),
+stopifnot(is(m1,"merenv"), is((cm1 <- coef(m1)), "coef.mer"),
 	  dim(cm1$herd) == c(15,4),
           TRUE ## FIXME -- not at all :
 	  ## all.equal(fixef(m1),
