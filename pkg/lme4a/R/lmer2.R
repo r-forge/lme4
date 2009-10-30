@@ -363,27 +363,96 @@ devcomp <- function(x, ...) {
               dims = c(n = n, p = length(fixef), nmp = nmp, q = nrow(Zt))))
 }
 
-deveval <- function(x, theta, sigma, beta = NULL, ...) {
-    oldtheta <- x@getPars()
-    dc <- devcomp(x)
-    x@setPars(oldtheta)
-    ldL2 <- dc$cmp["ldL2"]
-    prss <- dc$cmp["prss"]
-    n <- dc$dims["n"]
-    t(sapply(as.numeric(sigma),
-             function(x) {
-                 xsq <- x^2
-                 c(sigma = x, sdcomp = theta * x,
-                   deviance = unname(ldL2 + n * log(2*pi*xsq) + prss/xsq))
-             }))
-}
-
 setMethod("sigma", signature(object = "lmerenv"),
           function (object, ...) {
               dc <- devcomp(object)
               unname(sqrt(dc$cmp["prss"]/
                           dc$dims[if (env(object)$REML) "nmp" else "n"]))
           })
+
+setMethod("anova", signature(object = "lmerenv"),
+	  function(object, ...)
+      {
+	  mCall <- match.call(expand.dots = TRUE)
+	  dots <- list(...)
+	  modp <- as.logical(sapply(dots, is,
+                                    "lmerenv")) | as.logical(sapply(dots,
+                                                                    is, "lm"))
+	  if (any(modp)) {		# multiple models - form table
+	      opts <- dots[!modp]
+	      mods <- c(list(object), dots[modp])
+	      names(mods) <- sapply(as.list(mCall)[c(FALSE, TRUE, modp)],
+				    as.character)
+              mods <- lapply(mods, function(x) ## get ML estimates if necessary
+                         {
+                             if (!env(x)$REML) return(x)
+                             update(x, REML = FALSE)
+                         })
+	      mods <- mods[order(sapply(lapply(mods, logLik), attr, "df"))]
+	      llks <- lapply(mods, logLik)
+	      Df <- sapply(llks, attr, "df")
+	      calls <- lapply(mods, slot, "call")
+	      data <- lapply(calls, "[[", "data")
+	      if (any(data != data[[1]]))
+		  stop("all models must be fit to the same data object")
+	      header <- paste("Data:", data[[1]])
+	      subset <- lapply(calls, "[[", "subset")
+	      if (any(subset != subset[[1]]))
+		  stop("all models must use the same subset")
+	      if (!is.null(subset[[1]]))
+		  header <-
+		      c(header, paste("Subset", deparse(subset[[1]]),
+                                      sep = ": "))
+	      llk <- unlist(llks)
+	      chisq <- 2 * pmax(0, c(NA, diff(llk)))
+	      dfChisq <- c(NA, diff(Df))
+	      val <- data.frame(Df = Df,
+				AIC = sapply(llks, AIC),
+				BIC = sapply(llks, BIC),
+				logLik = llk,
+				"Chisq" = chisq,
+				"Chi Df" = dfChisq,
+				"Pr(>Chisq)" = pchisq(chisq, dfChisq, lower = FALSE),
+				row.names = names(mods), check.names = FALSE)
+	      class(val) <- c("anova", class(val))
+              attr(val, "heading") <-
+                  c(header, "Models:",
+                    paste(rep(names(mods), times = unlist(lapply(lapply(lapply(calls,
+                                           "[[", "formula"), deparse), length))),
+                         unlist(lapply(lapply(calls, "[[", "formula"), deparse)),
+                         sep = ": "))
+	      return(val)
+	  }
+	  else { ## ------ single model ---------------------
+              dc <- devcomp(object)
+              p <- dc$dims["p"]
+              ss <- fixef(object)
+              stop("assign attribute not currently available")
+              asgn <- attr(object@X, "assign")
+            terms <- terms(object)
+            nmeffects <- attr(terms, "term.labels")
+            if ("(Intercept)" %in% names(ss))
+              nmeffects <- c("(Intercept)", nmeffects)
+            ss <- unlist(lapply(split(ss, asgn), sum))
+            df <- unlist(lapply(split(asgn,  asgn), length))
+            ## dfr <- unlist(lapply(split(dfr, asgn), function(x) x[1]))
+            ms <- ss/df
+            f <- ms/(sigma(object)^2)
+            ## P <- pf(f, df, dfr, lower.tail = FALSE)
+            ## table <- data.frame(df, ss, ms, dfr, f, P)
+            table <- data.frame(df, ss, ms, f)
+            dimnames(table) <-
+              list(nmeffects,
+                                        #			c("Df", "Sum Sq", "Mean Sq", "Denom", "F value", "Pr(>F)"))
+                   c("Df", "Sum Sq", "Mean Sq", "F value"))
+            if ("(Intercept)" %in% nmeffects)
+              table <- table[-match("(Intercept)", nmeffects), ]
+            attr(table, "heading") <- "Analysis of Variance Table"
+            class(table) <- c("anova", "data.frame")
+            table
+	  }
+      })
+
 
 ##' Extract the conditional variance-covariance matrix of the fixed
 ##' effects

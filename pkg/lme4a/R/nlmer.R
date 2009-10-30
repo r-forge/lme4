@@ -29,7 +29,7 @@ nlmer <- function(formula, data, family = gaussian, start = NULL, verbose = FALS
                   nAGQ = 1, doFit = TRUE, subset, weights, na.action, mustart, etastart,
                   contrasts = NULL, control = list(), ...)
 {
-    rho <- default_rho(environment(formula))
+    rho <- new.env(parent = environment(formula))
     mf <- mc <- match.call()
     m <- match(c("data", "subset", "weights", "na.action",
                  "offset", "etastart", "mustart"),
@@ -39,31 +39,35 @@ nlmer <- function(formula, data, family = gaussian, start = NULL, verbose = FALS
     mf[[1]] <- as.name("model.frame")
 
     formula <- as.formula(formula)
+    ## this check looks weird but you need to check both the original
+    ## formula and the nlform for a length of 3 to ensure a 3-part
+    ## formula
     if (length(formula) < 3) stop("formula must be a 3-part formula")
     nlform <- as.formula(formula[[2]])
     if (length(nlform) < 3)
         stop("formula must be a 3-part formula")
     nlmod <- as.call(nlform[[3]])
-                                        # check for parameter names in start 
+    ## check for parameter names in start 
     if (is.numeric(start)) start <- list(nlpars = start)
     stopifnot((s <- length(pnames <- names(start$nlpars))) > 0,
               is.numeric(start$nlpars))
     if (!all(pnames %in% (anms <- all.vars(nlmod))))
         stop("not all parameter names are used in the nonlinear model expression")
     fr.form <- nlform
-## FIXME: This should be changed to use subbars
+### FIXME: This should be changed to use subbars
     fr.form[[3]] <-         # the frame formula includes all variables
         parse(text = paste(setdiff(all.vars(formula), pnames),
                          collapse = ' + '))[[1]]
     environment(fr.form) <- environment(formula)
     mf$formula <- fr.form
     fr <- eval(mf, parent.frame())
+### FIXME: This repeats code from lmer2.  Move to a helper function.    
     rho$y <- model.response(fr, "double")
-    rho$nobs <- length(rho$y)
-    rho$weights <- as.numeric(as.vector(model.weights(fr)))
+    n <- rho$n <- length(rho$y)
+    rho$weights <- as.numeric(model.weights(fr))
     if (length(rho$weights) && any(rho$weights) < 0)
         stop(gettext("negative weights not allowed", domain = "R-lme4"))
-    loff <- length(rho$offset <- as.numeric(as.vector(model.offset(fr))))
+    loff <- length(rho$offset <- as.numeric(model.offset(fr)))
     if (loff) {
         if (loff == 1) {
             rho$offset <- rep.int(rho$offset, rho$nobs)
@@ -74,10 +78,8 @@ nlmer <- function(formula, data, family = gaussian, start = NULL, verbose = FALS
     }
     rho$frame <- fr
     attr(rho$frame, "terms") <- NULL
+    ## set up the evaluation environment for the nonlinear model
     for (nm in pnames) fr[[nm]] <- start$nlpars[[nm]]
-    n <- nrow(fr)
-
-    ## create nlenv and check the evaluation of the nonlinear model function
     rho$nlenv <- new.env()  # want it to inherit from this environment (or formula env)
     lapply(all.vars(nlmod), function(nm) assign(nm, fr[[nm]], envir = rho$nlenv))
     rho$nlmodel <- nlmod

@@ -260,6 +260,7 @@ lmerControl <- function(trace = getOption("verbose"),
 	 trace = as.integer(trace),
          algorithm = match.arg(algorithm))
 
+## Old version of lmer
 lmer2 <-
     function(formula, data, family = gaussian, REML = TRUE,
              control = list(), start = NULL, verbose = FALSE,
