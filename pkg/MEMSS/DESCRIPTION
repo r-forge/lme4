@@ -1,6 +1,6 @@
 Package: MEMSS
-Version: 0.3-5
-Date: 2009-02-10
+Version: 0.3-6
+Date: 2009-11-03
 Title: Data sets from Mixed-effects Models in S
 Author: Douglas Bates <bates@stat.wisc.edu>
 Maintainer: Douglas Bates <bates@stat.wisc.edu>
