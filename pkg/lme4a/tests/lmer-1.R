@@ -15,7 +15,7 @@ stopifnot(is(fm1, "merenv"), is(fm2l, "merenv"),
           TRUE) # not yet: is(xfm2$P, "sparseMatrix"))
 
 ## generalized linear mixed model
-(m1 <- lmer(cbind(incidence, size - incidence) ~ period + (1 | herd),
+(m1 <- glmer(cbind(incidence, size - incidence) ~ period + (1 | herd),
             family = binomial, data = cbpp))
 warnings() ## << FIXME
 stopifnot(is(m1,"merenv"), is((cm1 <- coef(m1)), "coef.mer"),
