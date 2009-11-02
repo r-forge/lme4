@@ -11,14 +11,15 @@
   nonlinear mixed model.
 }
 \usage{
-lmer(formula, data, family = gaussian, REML = TRUE,
+lmer(formula, data, REML = TRUE, sparseX = FALSE,
+      control = list(), start = NULL, verbose = FALSE,
+      doFit = TRUE, compDev = if (sparseX) FALSE else TRUE,
+      subset, weights, na.action, offset, contrasts = NULL,
+      \dots)
+lmer2(formula, data, family = gaussian, REML = TRUE,
      control = list(), start = NULL, verbose = FALSE,
      doFit = TRUE, subset, weights, na.action, offset,
      contrasts = NULL, mustart, etastart, \dots)
-lmer2(formula, data, family = gaussian, REML = TRUE, sparseX = FALSE,
-      control = list(), start = NULL, verbose = FALSE,
-      subset, weights, na.action, offset,
-      contrasts = NULL, \dots)
 glmer(formula, data, family = gaussian, start = NULL,
       verbose = FALSE, nAGQ = 1, doFit = TRUE, subset, weights,
       na.action, offset, contrasts = NULL,
@@ -36,12 +37,11 @@ nlmer(formula, data, family = gaussian, start = NULL, verbose = FALSE, nAGQ = 1,
   \item{data}{an optional data frame containing the variables named in
     \code{formula}.  By default the variables are taken from the
     environment from which \code{lmer} is called.}
-  \item{family}{
-    a GLM family, see \code{\link[stats]{glm}} and
-    \code{\link[stats]{family}}. If \code{family} is missing then a
-    linear mixed model is fit; otherwise a generalized linear mixed
-    model is fit.}
-  \item{REML}{logical argument to \code{lmer} only. Should the estimates
+  \item{sparseX}{logical - should a sparse model matrix be used for the
+    fixed-effects terms?  Defaults to \code{FALSE}.}
+  \item{family}{a GLM family, see \code{\link[stats]{glm}} and
+    \code{\link[stats]{family}}.}
+  \item{REML}{logical - Should the estimates
     be chosen to optimize the REML criterion (as opposed to the
     log-likelihood)?  Defaults to \code{TRUE}.}
   \item{nAGQ}{a positive integer - the number of points per axis for
@@ -67,11 +67,11 @@ nlmer(formula, data, family = gaussian, start = NULL, verbose = FALSE, nAGQ = 1,
     random-effects terms is returned, so they can be modified for
     special model forms. When \code{doFit = TRUE}, the default, the
     model is fit immediately.}
+  \item{compDev}{logical - should compiled code be used for the deviance
+    evaluation during the optimization of the parameters estimates?}
   \item{subset, weights, na.action, offset, contrasts}{further model
     specification arguments as in \code{\link[stats]{lm}}; see there for
     details.}
-  \item{sparseX}{logical scalar.  If \code{TRUE} the model matrix for
-    the fixed-effects parameters is stored as a sparse matrix.}
   \item{mustart, etastart}{optional starting values on the scale of the
     conditional mean or the unbounded predictor as in
     \code{\link[stats]{glm}}; see there for details.}
@@ -140,17 +140,19 @@ nlmer(formula, data, family = gaussian, start = NULL, verbose = FALSE, nAGQ = 1,
 ## linear mixed models
 (fm1 <- lmer(Reaction ~ Days + (Days|Subject), sleepstudy))
 (fm2 <- lmer(Reaction ~ Days + (1|Subject) + (0+Days|Subject), sleepstudy))
-try( anova(fm1, fm2) )## FIXME %__ FIXME __
+anova(fm1, fm2)
 ## generalized linear mixed model
 \dontrun{
 (gm1 <- glmer(cbind(incidence, size - incidence) ~ period + (1 | herd),
               family = binomial, data = cbpp))
 }
 ## nonlinear mixed models
+\dontrun{
 (nm1 <- nlmer(circumference ~ SSlogis(age, Asym, xmid, scal) ~
               Asym + xmid + scal + (Asym|Tree),
               Orange,
               start = c(Asym = 200, xmid = 725, scal = 350)))
+}
 }
 \keyword{models}
 \keyword{methods}
