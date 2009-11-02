@@ -2,6 +2,7 @@
 \Rdversion{1.1}
 \docType{class}
 \alias{optenv-class}
+\alias{lmerenv-class}
 %\alias{getBounds,optenv-method}
 %\alias{getPars,optenv-method}
 %\alias{setPars,optenv,numeric-method}
@@ -10,7 +11,9 @@
 \description{An S4 class of functions used for optimization of a
   objective function.  The functions, which are the slots of the class,
   share a common environment in which the state of the system being
-  optimized is stored.}
+  optimized is stored.  The S4 class "lmerenv" inherits from "optenv"
+  and has objects in the environment representing a linear mixed-effects
+  model.}
 \section{Objects from the Class}{
 Objects can be created by calls of the form \code{new("optenv", ...)}.
 Generally it is objects of subclasses, such as
