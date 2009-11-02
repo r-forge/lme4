@@ -5,6 +5,7 @@
 \alias{ranef-methods}
 \alias{ranef,mer-method}
 \alias{ranef,merenv-method}
+\alias{ranef,merenvtrms-method}
 \alias{ranef,environment-method}
 \title{Extract the modes of the random effects}
 \description{
@@ -15,7 +16,11 @@
 }
 \usage{
 ranef(object, \dots)
-\S4method{ranef}{mer}(object, postVar, drop, \dots)
+\S4method{ranef}{mer}(object, postVar = FALSE, drop = FALSE,
+   whichel = names(ans), \dots)
+\S4method{ranef}{merenv}(object, \dots)
+\S4method{ranef}{merenvtrms}(object, postVar = FALSE, drop = FALSE,
+   whichel = names(ans), \dots)
 }
 \arguments{
   \item{object}{an object of a class of fitted models with random
@@ -28,6 +33,9 @@ ranef(object, \dots)
     return value that would be data frames with a single column, usually
     a column called \sQuote{\code{(Intercept)}}, should be returned as
     named vectors.}
+  \item{whichel}{an optional character vector of names of grouping
+    factors for which the random effects should be returned.  Defaults
+    to all the grouping factors.}
   \item{\dots}{some methods for this generic function require additional
     arguments.}
 }
