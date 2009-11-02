@@ -175,7 +175,7 @@ lmer <-
 {
     mf <- mc <- match.call()
     if (!is.null(list(...)$family)) {      # call glmer if family specified
-        mc[[1]] <- "glmer"
+        mc[[1]] <- as.name("glmer")
         eval(mc, parent.frame())
     }
     stopifnot(length(formula <- as.formula(formula)) == 3)
@@ -842,6 +842,7 @@ devfun <- function(fm)
     rho <- env(fm1)
     if (rho$REML) rho$REML <- FALSE
     nlminb(fm1@getPars(), fm1@setPars, lower = rho$lower)
+### FIXME: check for convergence
 
     basedev <- unname(deviance(fm1))
     sig <- unname(sigma(fm1))
@@ -863,6 +864,8 @@ devfun <- function(fm)
     names(opt) <- c(sprintf(".sig%02d", seq_along(rho$theta)), ".lsig")
     attr(ans, "optimum") <- c(opt, rho$fixef)
     attr(ans, "basedev") <- basedev
+    attr(ans, "thopt") <- rho$theta
+    attr(ans, "stderr") <- vcov(fm1)@factors$correlation@sd
     class(ans) <- "devfun"
     ans
 }
@@ -873,10 +876,11 @@ setMethod("profile", "lmerenv",
       {
           dd <- lme4a:::devfun(fitted)  # checks class too
           X.orig <- env(fitted)$X
-          fe.orig <- env(fitted)$fixef
-          coefmat <- coef(summary(fitted))
 
           base <- attr(dd, "basedev")
+          thopt <- attr(dd, "thopt")
+          stderr <- attr(dd, "stderr")
+          fm1 <- environment(dd)$fm1
           rr <- environment(dd)$rho
           n <- length(rr$y)
           p <- length(rr$fixef)
@@ -886,6 +890,7 @@ setMethod("profile", "lmerenv",
 
           nptot <- length(opt)
           nvp <- nptot - p    # number of variance-covariance pars
+          fe.orig <- opt[-seq_len(nvp)]
           res <- c(.zeta = 0, opt)
           res <- matrix(res, nr = maxpts, nc = length(res),
                         dimnames = list(NULL, names(res)), byrow = TRUE)
@@ -940,13 +945,13 @@ setMethod("profile", "lmerenv",
               pw <- opt[w]
               lowcut <- lower[w]
               zeta <- function(xx) {
-                  res <- nlminb(start,
-                                function(x) dd(mkpar(nvp, w, xx, x)),
-                                lower = lowvp[-w],
-                                control = list(trace = tr))
+                  ores <- nlminb(start,
+                                 function(x) dd(mkpar(nvp, w, xx, x)),
+                                 lower = lowvp[-w],
+                                 control = list(trace = tr))
 ### FIXME: check res for convergence 
-                  zz <- sign(xx - pw) * sqrt(res$objective - base)
-                  c(zz, mkpar(nvp, w, xx, res$par), rr$fixef)
+                  zz <- sign(xx - pw) * sqrt(ores$objective - base)
+                  c(zz, mkpar(nvp, w, xx, ores$par), rr$fixef)
               }
               
 ### FIXME: The starting values for the conditional optimization should
@@ -967,22 +972,19 @@ setMethod("profile", "lmerenv",
           for (j in seq_len(p)) {
               pres <-            # intermediate results for pos. incr.
                   nres <- res    # and negative increments
-              est <- coefmat[j,1]
-              std <- coefmat[j,2]
+              est <- opt[nvp + j]
+              std <- stderr[j]
               rr$X <- X.orig
               rr$fixef <- fe.orig
-              dr <- dropX(rr, j, est)
-              low <- rr$lower
-              start <- opt[seqnvp]
-### FIXME: This is sub-optimal (or is it?).  You can always profile
-### out log(sigma).
+              dropX(rr, j, est)
               fe.zeta <- function(fw) {
                   update_dr_env(rr, fw)
-                  res <- nlminb(start, dd, lower = rr$lower,
-                                control = list(trace = tr))
-### FIXME: check res for convergence
-                  c(sign(fw - est) * sqrt(res$objective - base),
-                    res$par, mkpar(p, j, fw, rr$fixef))
+                  ores <- nlminb(thopt, fm1@setPars, lower = rr$lower,
+                                 control = list(trace = tr))
+### FIXME: check ores for convergence
+                  sig <- sqrt(rr$prss / n)
+                  c(sign(fw - est) * sqrt(ores$objective - base),
+                    rr$theta * sig, log(sig), mkpar(p, j, fw, rr$fixef))
               }
               nres[1, ] <- pres[2, ] <- fe.zeta(est + delta * std)
               pp <- nvp + 1L + j
@@ -1007,7 +1009,8 @@ setMethod("profile", "lmerenv",
 
 ## A lattice-based plot method for profile objects
 xyplot.thpr <-
-    function (x, data = NULL, levels = sqrt(qchisq(pmax.int(0, pmin.int(1, conf)), 1)),
+    function (x, data = NULL,
+              levels = sqrt(qchisq(pmax.int(0, pmin.int(1, conf)), 1)),
               conf = c(50, 80, 90, 95, 99)/100,
               absVal = TRUE, ...)
 {
@@ -1041,4 +1044,166 @@ xyplot.thpr <-
            }
            panel.curve(pfun, ...)
        }, ...)
+}
+
+## define a confint method for the thpr class.
+## create a splom method for the thpr class
+
+splom.thpr <-
+    function (x, data, ## unused - only for compatibility with generic
+              levels = sqrt(qchisq(pmax.int(0, pmin.int(1, conf)), 1)),
+              conf = c(50, 80, 90, 95, 99)/100, ...)
+{
+    ## extract only the y component from a prediction
+    predy <- function(sp, vv) predict(sp, vv)$y
+
+    mlev <- max(levels)
+    spl <- attr(x, "forward")
+    bsp <- attr(x, "backward")
+    pfr <- do.call(cbind, lapply(bsp, predy, c(-mlev, mlev)))
+    fr <- x
+    nms <- names(spl)
+    for (nm in nms) fr[[nm]] <- predy(spl[[nm]], fr[[nm]])
+    np <- length(nms)
+    ## create a list of lists with the names of the parameters
+    traces <- lapply(x, function(el) lapply(x, function(el1) list()))
+    for (j in seq_along(nms)[-1]) {
+        for (i in seq_len(j - 1)) {
+            fri <- subset(fr, .pnm == nms[i])
+            sij <- interpSpline(fri[ , i], fri[ , j])
+            frj <- subset(fr, .pnm == nms[j])
+            sji <- interpSpline(frj[ , j], frj[ , i])
+            ll <- cont(sij, sji, levels)
+            traces[[j]][[i]] <- list(sij = sij, sji = sji, ll = ll)
+        }
+    }
+    ## panel function for lower triangle
+    lp <- function(x, y, groups, subscripts, ...) {
+        tr <- traces[[eval.parent(expression(j))]][[
+            eval.parent(expression(i))]]
+        pushViewport(viewport(xscale = c(-1.07, 1.07) * mlev,
+                              yscale = c(-1.07, 1.07) * mlev))
+        dd <- sapply(current.panel.limits(), diff)/50
+        psij <- predict(tr$sij)
+        ll <- tr$ll
+        ## now do the actual plotting
+        panel.grid(h = -1, v = -1)
+        llines(psij$y, psij$x, ...)
+        llines(predict(tr$sji), ...)
+        with(ll$tki, lsegments(y - dd[1], x, y + dd[1], x, ...))
+        with(ll$tkj, lsegments(x, y - dd[2], x, y + dd[2], ...))
+        for (k in seq_along(levels)) llines(ll$pts[k, , ], ...)
+        popViewport(1)
+    }
+    ## panel function for upper triangle
+    up <- function(x, y, groups, subscripts, ...) {
+        ## panels are transposed so reverse i and j
+        i <- eval.parent(expression(j))
+        j <- eval.parent(expression(i))
+        tr <- traces[[j]][[i]]
+        ll <- tr$ll
+        pts <- ll$pts
+        limits <- current.panel.limits()
+        psij <- predict(tr$sij)
+        psji <- predict(tr$sji)        
+        ## do the actual plotting
+        panel.grid(h = -1, v = -1)
+        llines(predy(bsp[[i]], psij$y), predy(bsp[[j]], psij$x), ...)
+        llines(predy(bsp[[i]], psji$x), predy(bsp[[j]], psji$y), ...)
+        for (k in seq_along(levels))
+            llines(predy(bsp[[i]], pts[k, , 1]),
+                   predy(bsp[[j]], pts[k, , 2]), ...)
+    }        
+    dp <- function(x = NULL,            # diagonal panel
+                   varname = NULL, limits, at = NULL, lab = NULL,
+                   draw = TRUE,
+
+                   varname.col = add.text$col,
+                   varname.cex = add.text$cex,
+                   varname.lineheight = add.text$lineheight,
+                   varname.font = add.text$font,
+                   varname.fontfamily = add.text$fontfamily,
+                   varname.fontface = add.text$fontface,
+                   
+                   axis.text.col = axis.text$col,
+                   axis.text.alpha = axis.text$alpha,
+                   axis.text.cex = axis.text$cex,
+                   axis.text.font = axis.text$font,
+                   axis.text.fontfamily = axis.text$fontfamily,
+                   axis.text.fontface = axis.text$fontface,
+                   
+                   axis.line.col = axis.line$col,
+                   axis.line.alpha = axis.line$alpha,
+                   axis.line.lty = axis.line$lty,
+                   axis.line.lwd = axis.line$lwd,
+                   ...)
+    {
+        j <- eval.parent(expression(j))
+        n.var <- eval.parent(expression(n.var))
+        add.text <- trellis.par.get("add.text")
+        axis.line <- trellis.par.get("axis.line")
+        axis.text <- trellis.par.get("axis.text")
+        
+        if (!is.null(varname))
+            grid.text(varname,
+                      gp =
+                      gpar(col = varname.col,
+                           cex = varname.cex,
+                           lineheight = varname.lineheight,
+                           fontface = lattice:::chooseFace(varname.fontface,
+                           varname.font),
+                           fontfamily = varname.fontfamily))
+        
+        if (draw)    
+        {
+            at <- pretty(limits)
+            sides <- c("left", "top")
+            if (j == 1) sides <- "top"
+            if (j == n.var) sides <- "left"
+            for (side in sides)
+                panel.axis(side = side,
+                           at = at,
+                           labels = format(at, trim = TRUE),
+                           tick = TRUE,
+                           check.overlap = TRUE,
+                           half = side == "top" && j > 1,
+                           
+                           tck = 1, rot = 0, 
+                           
+                           text.col = axis.text.col,
+                           text.alpha = axis.text.alpha,
+                           text.cex = axis.text.cex,
+                           text.font = axis.text.font,
+                           text.fontfamily = axis.text.fontfamily,
+                           text.fontface = axis.text.fontface,
+                           
+                           line.col = axis.line.col,
+                           line.alpha = axis.line.alpha,
+                           line.lty = axis.line.lty,
+                           line.lwd = axis.line.lwd)
+            lims <- c(-1.07, 1.07) * mlev
+            pushViewport(viewport(xscale = lims, yscale = lims))
+            side <- ifelse(j == 1, "right", "bottom")
+            which.half <- ifelse(j == 1, "lower", "upper")
+            at <- pretty(lims)
+            panel.axis(side = side, at = at, labels = format(at, trim = TRUE),
+                       tick = TRUE, half = TRUE, which.half = which.half,
+                       tck = 1, rot = 0,
+
+                       text.col = axis.text.col,
+                       text.alpha = axis.text.alpha,
+                       text.cex = axis.text.cex,
+                       text.font = axis.text.font,
+                       text.fontfamily = axis.text.fontfamily,
+                       text.fontface = axis.text.fontface,
+                           
+                       line.col = axis.line.col,
+                       line.alpha = axis.line.alpha,
+                       line.lty = axis.line.lty,
+                       line.lwd = axis.line.lwd)
+            popViewport(1)
+        }
+    }
+
+    splom(~ pfr, lower.panel = lp, upper.panel = up, diag.panel = dp, ...)
 }
