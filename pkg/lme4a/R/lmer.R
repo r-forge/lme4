@@ -168,13 +168,13 @@ makeZt <- function(bars, fr, rho) {
 }
 
 lmer <-
-    function(formula, data, family = gaussian, REML = TRUE, sparseX = FALSE,
+    function(formula, data, REML = TRUE, sparseX = FALSE,
              control = list(), start = NULL, verbose = FALSE, doFit = TRUE,
              compDev = if (sparseX) FALSE else TRUE, subset, weights,
              na.action, offset, contrasts = NULL, ...)
 {
     mf <- mc <- match.call()
-    if (!missing(family)) {      # call glmer if family is not missing
+    if (!is.null(list(...)$family)) {      # call glmer if family specified
         mc[[1]] <- "glmer"
         eval(mc, parent.frame())
     }
@@ -391,7 +391,7 @@ setMethod("anova", signature(object = "lmerenv"),
 	      mods <- mods[order(sapply(lapply(mods, logLik), attr, "df"))]
 	      llks <- lapply(mods, logLik)
 	      Df <- sapply(llks, attr, "df")
-	      calls <- lapply(mods, slot, "call")
+	      calls <- lapply(mods, function(mod) env(mod)$call)
 	      data <- lapply(calls, "[[", "data")
 	      if (any(data != data[[1]]))
 		  stop("all models must be fit to the same data object")
@@ -429,27 +429,27 @@ setMethod("anova", signature(object = "lmerenv"),
               ss <- fixef(object)
               stop("assign attribute not currently available")
               asgn <- attr(object@X, "assign")
-            terms <- terms(object)
-            nmeffects <- attr(terms, "term.labels")
-            if ("(Intercept)" %in% names(ss))
-              nmeffects <- c("(Intercept)", nmeffects)
-            ss <- unlist(lapply(split(ss, asgn), sum))
-            df <- unlist(lapply(split(asgn,  asgn), length))
-            ## dfr <- unlist(lapply(split(dfr, asgn), function(x) x[1]))
-            ms <- ss/df
-            f <- ms/(sigma(object)^2)
-            ## P <- pf(f, df, dfr, lower.tail = FALSE)
-            ## table <- data.frame(df, ss, ms, dfr, f, P)
-            table <- data.frame(df, ss, ms, f)
-            dimnames(table) <-
-              list(nmeffects,
+              terms <- terms(object)
+              nmeffects <- attr(terms, "term.labels")
+              if ("(Intercept)" %in% names(ss))
+                  nmeffects <- c("(Intercept)", nmeffects)
+              ss <- unlist(lapply(split(ss, asgn), sum))
+              df <- unlist(lapply(split(asgn,  asgn), length))
+              ## dfr <- unlist(lapply(split(dfr, asgn), function(x) x[1]))
+              ms <- ss/df
+              f <- ms/(sigma(object)^2)
+              ## P <- pf(f, df, dfr, lower.tail = FALSE)
+              ## table <- data.frame(df, ss, ms, dfr, f, P)
+              table <- data.frame(df, ss, ms, f)
+              dimnames(table) <-
+                  list(nmeffects,
                                         #			c("Df", "Sum Sq", "Mean Sq", "Denom", "F value", "Pr(>F)"))
-                   c("Df", "Sum Sq", "Mean Sq", "F value"))
-            if ("(Intercept)" %in% nmeffects)
-              table <- table[-match("(Intercept)", nmeffects), ]
-            attr(table, "heading") <- "Analysis of Variance Table"
-            class(table) <- c("anova", "data.frame")
-            table
+                       c("Df", "Sum Sq", "Mean Sq", "F value"))
+              if ("(Intercept)" %in% nmeffects)
+                  table <- table[-match("(Intercept)", nmeffects), ]
+              attr(table, "heading") <- "Analysis of Variance Table"
+              class(table) <- c("anova", "data.frame")
+              table
 	  }
       })
 
