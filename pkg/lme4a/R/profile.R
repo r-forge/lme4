@@ -1,4 +1,3 @@
-
 copylmer <- function(x) {
     stopifnot(is(x, "lmerenv"))
     gb <- x@getBounds
@@ -219,6 +218,8 @@ setMethod("profile", "lmerenv",
           ans
       })
 
+##' extract only the y component from a prediction
+predy <- function(sp, vv) predict(sp, vv)$y
 
 ## A lattice-based plot method for profile objects
 xyplot.thpr <-
@@ -227,9 +228,6 @@ xyplot.thpr <-
               conf = c(50, 80, 90, 95, 99)/100,
               absVal = TRUE, ...)
 {
-    ## extract only the y component from a prediction
-    predy <- function(sp, vv) predict(sp, vv)$y
-
     levels <- sort(levels[is.finite(levels) && levels > 0])
     spl <- attr(x, "forward")
     bspl <- attr(x, "backward")
@@ -259,32 +257,74 @@ xyplot.thpr <-
        }, ...)
 }
 
-## define a confint method for the thpr class.
-## create a splom method for the thpr class
+confint.thpr <- function(object, parm, level = 0.95, ...)
+{
+    bak <- attr(object, "backward")
+    bnms <- names(bak)
+    if (missing(parm)) parm <- bnms
+    else if (is.numeric(parm)) parm <- bnms[parm]
+    parm <- intersect(as.character(parm), bnms)
+    a <- (1 - level)/2
+    a <- c(a, 1 - a)
+    ci <- t(sapply(parm, function(nm) predy(bak[[nm]], qnorm(a))))
+    colnames(ci) <- stats:::format.perc(a, 3)
+    ci
+}
+
+##' Convert x-cosine and y-cosine to average and difference.
+
+##' Convert the x-cosine and the y-cosine to an average and difference
+##' ensuring that the difference is positive by flipping signs if
+##' necessary
+ad <- function(xc, yc)
+{
+    a <- (xc + yc)/2
+    d <- (xc - yc)
+    cbind(ifelse(d > 0, a, -a), abs(d))
+}
+
+##' convert d versus a (as an xyVector) and level to a matrix of taui and tauj
+tauij <- function(xy, lev) lev * cos(xy$x + outer(xy$y/2, c(-1, 1)))
+
+## safe arc-cosine
+sacos <- function(x) acos(pmax.int(-0.999, pmin.int(0.999, x)))
+
+cont <- function(sij, sji, levels, nseg = 101)
+{
+    ada <- array(0, c(length(levels), 2, 4))
+    ada[, , 1] <- ad(0, sacos(predy(sij,  levels)/levels))
+    ada[, , 2] <- ad(sacos(predy(sji, levels)/levels), 0)
+    ada[, , 3] <- ad(pi, sacos(predy(sij, -levels)/levels))
+    ada[, , 4] <- ad(sacos(predy(sji, -levels)/levels), pi)
+    pts <- array(0, c(length(levels), nseg + 1, 2))
+    for (i in seq_along(levels))
+        pts[i, ,] <- tauij(predict(periodicSpline(ada[i, 1, ], ada[i, 2, ]),
+                                   nseg = nseg), levels[i])
+    levs <- c(-rev(levels), 0, levels)
+    list(tki = predict(sij, levs), tkj = predict(sji, levs), pts = pts)
+}
 
 splom.thpr <-
     function (x, data, ## unused - only for compatibility with generic
               levels = sqrt(qchisq(pmax.int(0, pmin.int(1, conf)), 1)),
               conf = c(50, 80, 90, 95, 99)/100, ...)
 {
-    ## extract only the y component from a prediction
-    predy <- function(sp, vv) predict(sp, vv)$y
-
     mlev <- max(levels)
     spl <- attr(x, "forward")
     bsp <- attr(x, "backward")
     pfr <- do.call(cbind, lapply(bsp, predy, c(-mlev, mlev)))
-    fr <- x
     nms <- names(spl)
+    ## Create data frame fr of par. vals in zeta coordinates
+    fr <- x[, -1]
     for (nm in nms) fr[[nm]] <- predy(spl[[nm]], fr[[nm]])
-    np <- length(nms)
+    fr1 <- fr[1, nms]
     ## create a list of lists with the names of the parameters
-    traces <- lapply(x, function(el) lapply(x, function(el1) list()))
+    traces <- lapply(fr1, function(el) lapply(fr1, function(el1) list()))
     for (j in seq_along(nms)[-1]) {
         for (i in seq_len(j - 1)) {
-            fri <- subset(fr, .pnm == nms[i])
+            fri <- subset(fr, .par == nms[i])
             sij <- interpSpline(fri[ , i], fri[ , j])
-            frj <- subset(fr, .pnm == nms[j])
+            frj <- subset(fr, .par == nms[j])
             sji <- interpSpline(frj[ , j], frj[ , i])
             ll <- cont(sij, sji, levels)
             traces[[j]][[i]] <- list(sij = sij, sji = sji, ll = ll)
@@ -294,7 +334,7 @@ splom.thpr <-
     lp <- function(x, y, groups, subscripts, ...) {
         tr <- traces[[eval.parent(expression(j))]][[
             eval.parent(expression(i))]]
-        pushViewport(viewport(xscale = c(-1.07, 1.07) * mlev,
+        grid::pushViewport(viewport(xscale = c(-1.07, 1.07) * mlev,
                               yscale = c(-1.07, 1.07) * mlev))
         dd <- sapply(current.panel.limits(), diff)/50
         psij <- predict(tr$sij)
@@ -356,9 +396,8 @@ splom.thpr <-
         add.text <- trellis.par.get("add.text")
         axis.line <- trellis.par.get("axis.line")
         axis.text <- trellis.par.get("axis.text")
-        
         if (!is.null(varname))
-            grid.text(varname,
+            grid::grid.text(varname,
                       gp =
                       gpar(col = varname.col,
                            cex = varname.cex,
@@ -366,7 +405,6 @@ splom.thpr <-
                            fontface = lattice:::chooseFace(varname.fontface,
                            varname.font),
                            fontfamily = varname.fontfamily))
-        
         if (draw)    
         {
             at <- pretty(limits)
@@ -395,7 +433,7 @@ splom.thpr <-
                            line.lty = axis.line.lty,
                            line.lwd = axis.line.lwd)
             lims <- c(-1.07, 1.07) * mlev
-            pushViewport(viewport(xscale = lims, yscale = lims))
+            grid::pushViewport(viewport(xscale = lims, yscale = lims))
             side <- ifelse(j == 1, "right", "bottom")
             which.half <- ifelse(j == 1, "lower", "upper")
             at <- pretty(lims)
