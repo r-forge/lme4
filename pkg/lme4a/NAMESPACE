@@ -1,6 +1,7 @@
 useDynLib(lme4a, .registration=TRUE)
 
 import(Matrix)# including update()
+import(grid)
 import(lattice)
 import(splines)
 ## Generics defined in stats4
@@ -100,3 +101,5 @@ S3method(print, ranef.mer)
 S3method(qqmath, ranef.mer)
 S3method(dotplot, ranef.mer)
 S3method(xyplot, thpr)
+S3method(confint, thpr)
+S3method(splom, thpr)
