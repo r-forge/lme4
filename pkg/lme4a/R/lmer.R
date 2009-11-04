@@ -105,7 +105,16 @@ makeZt <- function(bars, fr, rho) {
                 })
     nl <- sapply(blist, "[[", "nl")     # no. of levels per term
     ## order terms stably by decreasing number of levels in the factor
-    if (any(diff(nl)) > 0) blist <- blist[rev(order(nl))]
+    
+### FIXME: There's a bug in the logic here. If we do reorder the terms
+### then Lambda and Lint do not end up consistent with Zt.  Check with
+#(fm3 <- lmer(strength ~ (1|batch) + (1|sample), Pastes, doFit = FALSE))
+    
+    if (any(diff(nl)) > 0) {
+        ord <- rev(order(nl))
+        blist <- blist[ord]
+        nl <- nl[ord]
+    }
     rho$Zt <- do.call(rBind, lapply(blist, "[[", "sm"))
     q <- nrow(rho$Zt)
 
