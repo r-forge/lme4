@@ -525,7 +525,8 @@ void mer::eval_muEta()
 		tmp = (etai < MLTHRESH) ? DOUBLE_EPS : ((etai > LTHRESH) ?
 							INVEPS : exp(etai));
 		t2 = -expm1(-tmp);
-		mu[i] = (t2 < DOUBLE_EPS) ? DOUBLE_EPS : t2;
+		mu[i] = (t2 < DOUBLE_EPS) ? DOUBLE_EPS :
+		    (t2 > 1 - DOUBLE_EPS ? 1 - DOUBLE_EPS : t2);
 		muEta[i] = tmp * exp(-tmp);
 		break;
 	    case 5:		// identity
