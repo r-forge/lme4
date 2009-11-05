@@ -167,6 +167,8 @@ setMethod("profile", "lmerenv",
 
           ## fillmat fills the third and subsequent rows of the matrix
           ## using nextpar and zeta
+### FIXME:  add code to evaluate more rows near the minimum if that
+###        constraint was active.          
           fillmat <- function(mat, lowcut, zetafun, cc) {
               nr <- nrow(mat)
               i <- 2L
@@ -202,8 +204,14 @@ setMethod("profile", "lmerenv",
 ### be determined from recent starting values, not always the global
 ### optimum values.
               
-              pres <- nres <- res # intermediate results for pos. and neg. increments
+### Can do this by taking the change in the other parameter values at
+### the two last points and extrapolating.
+              
+              ## intermediate storage for pos. and neg. increments
+              pres <- nres <- res
+              ## assign one row, determined by inc. sign, from a small shift
               nres[1, ] <- pres[2, ] <- zeta(pw * 1.01)
+              ## fill in the rest of the arrays and collapse them
               bres <-
                   as.data.frame(unique(rbind2(fillmat(pres,lowcut, zeta, wp1),
                                               fillmat(nres,lowcut, zeta, wp1))))
