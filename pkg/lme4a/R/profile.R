@@ -289,7 +289,7 @@ xyplot.thpr <-
     }
     xyplot(zeta ~ pval | pnm, fr,
            scales = list(x = list(relation = 'free')),
-           ylab = ylab, xlab = "", panel = function(x, y, ...)
+           ylab = ylab, xlab = NULL, panel = function(x, y, ...)
        {
            panel.grid(h = -1, v = -1)
            lsegments(x, y, x, 0, ...)
