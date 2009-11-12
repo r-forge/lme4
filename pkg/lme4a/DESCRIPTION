@@ -6,7 +6,7 @@ Author: Douglas Bates <bates@stat.wisc.edu> and
         Martin Maechler <maechler@R-project.org>
 Maintainer: Douglas Bates <bates@stat.wisc.edu>
 Description: Fit linear and generalized linear mixed-effects models.
-Depends: methods, R(>= 2.9.0), Matrix(>= 0.999375-31), lattice, splines, stats, stats4
+Depends: methods, R(>= 2.9.0), Matrix(>= 0.999375-32), lattice, splines, stats
 LinkingTo: Matrix
 Imports: graphics, grid
 Suggests: mlmRev, MEMSS
