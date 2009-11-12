@@ -1,11 +1,11 @@
 useDynLib(lme4a, .registration=TRUE)
 
-import(Matrix)# including update()
+import(Matrix)
 import(grid)
 import(lattice)
 import(splines)
-## Generics defined in stats4
-importFrom(stats4,
+
+importFrom(stats4,                     # S4 generics already defined
            AIC,
            BIC,
            coef,
@@ -13,7 +13,7 @@ importFrom(stats4,
            logLik,
            plot,
            profile,
-           ## update, -- already from 'Matrix'
+#           update,
            vcov
            )
 importFrom(stats,
@@ -27,8 +27,6 @@ importFrom(stats,
            residuals, resid, # 'resid' needed too, unfortunately..
            simulate,
            terms)
-## import("stats") is not ok, because Matrix exports "better" versions of
-## update(), xtabs() and cov2cor()
 
 export(
        HPDinterval,
