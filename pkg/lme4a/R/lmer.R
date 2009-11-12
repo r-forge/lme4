@@ -241,7 +241,7 @@ lmer <-
 
     rho$L <- Cholesky(tcrossprod(rho$Zt), LDL = FALSE, Imult = 1)
     rho$compDev <- compDev
-    rho$call <- mc
+    rho$call <- mc # does this force evaluation? (It couldn't or there would be an infinite loop)
     sP <- function(x) {
 ### FIXME: weights are not yet incorporated (needed here?)
         if (compDev) {
@@ -379,6 +379,13 @@ setMethod("sigma", signature(object = "lmerenv"),
                           dc$dims[if (env(object)$REML) "nmp" else "n"]))
           })
 
+## Obtain the ML fit of the model parameters
+MLfit <- function(x) {
+    stopifnot(is(x, "lmerenv"))
+    if (!env(x)$REML) return(x)
+    update(x, REML = FALSE)
+}
+    
 setMethod("anova", signature(object = "lmerenv"),
 	  function(object, ...)
       {
