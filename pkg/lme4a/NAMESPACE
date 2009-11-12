@@ -5,92 +5,23 @@ import(grid)
 import(lattice)
 import(splines)
 
-importFrom(stats4,                     # S4 generics already defined
-           AIC,
-           BIC,
-           coef,
-           confint,
-           logLik,
-           plot,
-           profile,
-#           update,
-           vcov
-           )
-importFrom(stats,
-           anova,
-           deviance,
-           fitted,
-           formula,
-           model.frame,
-           model.matrix,
-           predict,
-           residuals, resid, # 'resid' needed too, unfortunately..
-           simulate,
-           terms)
+importFrom(graphics, plot)
+importFrom(stats4, BIC)
+importFrom(stats, AIC, anova, coef, confint, deviance, fitted, formula,
+           logLik, model.frame, model.matrix, predict, profile,
+           resid, residuals, simulate, terms, vcov)
 
-export(
-       HPDinterval,
-       VarCorr,
-       devcomp,
-       env,
-       getBounds,
-       getPars,
-       glmer,
-       lmList,
-       lmer,
-       lmer2,
-       mcmcsamp,
-       nlmer,
-       refit,
-       setPars,
-       sigma
-       )
+export(HPDinterval, VarCorr, devcomp, env, getBounds, getPars, glmer,
+       lmList, lmer, lmer2, mcmcsamp, nlmer, refit, setPars, sigma)
 
 exportClasses(ST, lmList, mer, merMCMC, summary.mer, optenv)
 
-exportMethods(
-              BIC,
-              HPDinterval,
-              VarCorr,
-              anova,
-              as.matrix,
-              as.data.frame,
-              chol,
-              coef,
-              coerce,
-              confint,
-              densityplot,
-              deviance,
-              expand,
-              fitted,
-              fixef,
-              formula,
-              getBounds,
-              getPars,
-              head,
-              logLik,
-              mcmcsamp,
-              model.frame,
-              model.matrix,
-              plot,
-              print,
-              profile,
-              qqmath,
-              ranef,
-              refit,
-              resid, residuals,
-              setPars,
-              show,
-              sigma,
-              simulate,
-              summary,
-              tail,
-              terms,
-              update,
-              vcov,
-              with,
-              xyplot
-              )
+exportMethods(BIC, HPDinterval, VarCorr, anova, as.matrix, as.data.frame,
+              chol, coef, coerce, confint, densityplot, deviance, expand,
+              fitted, fixef, formula, getBounds, getPars, head, logLik,
+              mcmcsamp, model.frame, model.matrix, plot, print, profile,
+              qqmath, ranef, refit, resid, residuals, setPars, show, sigma,
+              simulate, summary, tail, terms, update, vcov, with, xyplot)
 
 S3method(plot, coef.mer)
 S3method(print, coef.mer)
