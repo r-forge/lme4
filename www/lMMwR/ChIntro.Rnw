@@ -5,6 +5,8 @@
 <<preliminaries,echo=FALSE,print=FALSE,results=hide>>=
 options(width=65, show.signif.stars = FALSE,
         lattice.theme = function() canonical.theme("pdf", color = FALSE))
+library(splines)
+library(stats4)
 library(lattice)
 library(Matrix)
 library(lme4a)
@@ -304,8 +306,8 @@ process we want to predict the yield from future batches, taking into
 account the batch-to-batch variability and the within-batch
 variability.  Being able to estimate the extent to which a particular
 batch in the past increased or decreased the yield is not usually an
-important goal for us.  We will model the effect of the batch through
-random effects instead of fixed-effects parameters.
+important goal for us.  We will model the effects of the batches as
+random effects rather than as fixed-effects parameters.
 
 \subsection{The \texttt{Dyestuff2} data}
 \label{sec:dyestuff2}
@@ -514,73 +516,284 @@ error of the intercept estimate is
 \Sexpr{round(coef(summary(fm1))[1,2], 2)} gm. for the REML fit and
 \Sexpr{round(coef(summary(fm1ML))[,2], 2)} gm. for the ML fit.
 
-\subsubsection{Degrees of freedom and p-values
-  for the fixed-effects parameters}
-\label{sec:DFpval}
+\subsection{Assessing variability of the parameter estimates}
+\label{sec:variability}
 
-In general, a ``standard error'' is the estimated standard deviation
-of the estimator of a parameter.  Frequently these are used to create
-confidence intervals on the underlying parameter value or to perform
-hypothesis tests related to the parameter.  The fixed-effects
-parameters in a linear model are often expressed in such a way that a
-value of zero for a parameter is of interest because, if the parameter
-could reasonably be zero, then the term could be eliminated from the
-model.
+The mixed-effects model fit as \code{fm1} or \code{fm1ML} has three
+parameters for which we obtained estimates.  These parameters are
+$\sigma_1$, the standard deviation of the random effects, $\sigma$,
+the standard deviation of the residual or ``per-observation'' noise
+term and $\beta_0$ the fixed-effects parameter that is labelled as the
+intercept.  A standard error for the estimate $\widehat{\beta_0}$ is
+provided but no standard errors are given for the estimates
+$\widehat{\sigma_1}$ and $\widehat{\sigma}$.
 
-If the model involves only fixed-effects parameters then the ratio of
-the parameter estimate to its standard error has, under the null
-hypothesis that the true parameter value is zero, a Student's T
-distribution with a known number of degrees of freedom.  This
-distribution can be used to perform hypothesis tests and to create
-confidence intervals on the parameter.
+The reason that we do not simply quote standard errors for the
+estimated standard deviations is because they are misleading.  Even
+more misleading is the common practice of quoting a standard error for
+an estimated variance.  Quoting a parameter estimate and a standard
+error for the estimator gives the impression that we can summarize the
+precision of the estimate with a series of confidence intervals that
+are symmetric about the estimate.  In other words we are assuming that
+decreasing a parameter from its estimate by an amount $\delta$ has the
+same effect on the quality of the model fit as does increasing the
+parameter by $\delta$.  It is not realistic to expect that this is
+true of measures of variability, such as standard deviations and variances.
 
-This approach can be carried over to some special cases, notably those
-with simple, balanced data sets, of mixed-effects models.  However,
-for the general case of mixed models this test statistic does not have
-a Student's T distribution.  There have been many attempts to
-approximate the distribution of this statistic by a Student's T
-distribution with the degrees of freedom and possibly a multiplier
-calculated according to some formula.  None of these are wholly
-satisfactory, in my opinion, and rather than incorporate results from
-a technique that I cannot justify and do not trust, I have chosen to
-state the value of this ratio but not associate degrees of freedom or
-a p-value with the value.
+Instead of making the unrealistic assumption that the precision of
+these parameter estimates can be summarized by standard errors we
+evaluate the quality of the fit for nearby values of the parameter and
+form confidence intervals based on the change in the deviance.  This
+is called \emph{profiling} the deviance with respect to a parameter.
+We plot the profiles, obtained by applying the function \code{profile}
+to the fitted model, on the scale of the square root of the change in
+the deviance, as shown in Figure~\ref{fig:fm1absprof}.
+\begin{figure}[tb]
+  \centering
+<<fm1absprof,fig=TRUE,echo=FALSE,height=2.5>>=
+pr1 <- profile(fm1ML, delta = 0.2)
+print(xyplot(pr1, aspect = 0.7, strip=FALSE, strip.left = TRUE))
+@   
+\caption{Profiled deviance, on the scale $|\zeta|$, the square root of
+  the change in the deviance, for each of the parameters in model
+  \code{fm1ML}.  The intervals shown are 50\%, 80\%, 90\%, 95\% and
+  99\% confidence intervals based on the profile likelihood.}
+  \label{fig:fm1absprof}
+\end{figure}
 
-Many users find the omission of p-values for the fixed-effects
-parameters to be alarming and more than a little vexing --- to the
-extent that one of the questions in the R Frequently Asked Questions
-(FAQ) list is ``Why are p-values not displayed when using lmer()?''.
-The short answer is that I don't know how to evaluate such p-values in
-a reliable and mathematically justifiable way for the general case and
-have chosen not to do it, rather than doing it poorly.
+Because we will use such plots of the profiled deviance extensively
+for assessing the uncertainty in parameter estimates, we will describe
+this particular plot qualitatively, but in some detail, here.  Formal
+definitions and equations will be given in the next section.
 
-Another part of the answer is that I feel statisticians have been too
-successful in promoting the use of hypothesis testing and of p-values
-to express the result of the tests --- to the extent that p-values are
-sometimes used as the only summary quoted from an analysis.  I prefer
-to consider the parameters in the context of the model and the
-available data and only look at the results of a particular hypothesis
-test when it makes sense to consider it.
+Recall that one of the measures of the quality of a model fit is the
+\emph{deviance}, which is negative twice the log-likelihood evaluated
+at the parameter estimates.  The maximum likelihood estimates are the
+parameter values that minimize the deviance,
+$d(\sigma_1,\sigma,\beta_0)$, over all feasible values of the
+parameters.
 
-For this model applied to these data we are not interested in whether
-the mean yield across all batches of the intermediate product would be
-zero, or even negative.  To get a mean yield close to zero we would
-need to have at least some of the samples from some of the batches
-providing a negative yield, which is physically impossible.
-Performing a hypothesis test for such a nonsensical value of a
-parameter is, well, nonsense but if the p-value for the test were
-stated in the summary it would inevitably end up being quoted in some
-reports somewhere.
+To perform a hypothesis test of the form $H_0:\sigma_1=80$ versus
+$H_a:\sigma_1\ne 80$ we could consider the minimum deviance achieved
+when $\sigma_1=80$ minus the global minimum deviance.  This difference,
+\begin{displaymath}
+  \min_{\sigma,\beta_0}d(80,\sigma,\beta_0)-
+  d(\widehat{\sigma}_1, \widehat{\sigma}, \widehat{\beta}_0),
+\end{displaymath}
+is the likelihood ratio test statistic. (The deviance is a multiple of
+the logarithm of the likelihood so ratios of likelihoods correspond to
+differences in the deviance.)  This test statistic explicitly compares
+how well we can fit the model for this specific value of one of the
+parameters to the best possible fit of the model.  Note that this
+quantity is based on two model fits: the unconstrained fit and a
+second fit subject to the constraint $\sigma_1=80$.   We are not
+basing our test on how well we think we should be able to fit the
+constrained model --- based on the global parameter estimates and
+approximate standard errors --- we are actually re-fitting the model
+subject to the constraint.
 
-A more sensible approach in this case would be to form a confidence
-interval on the mean yield across batches or to form a prediction
-interval on the mean yield of a future batch.  For these purposes it
-would be helpful if we could summarize the distribution of the
-estimator as a Student's T distribution with known degrees of freedom
-or as another known distribution.  Regrettably, we can't do that in
-general.  We do, however, provide another approach to
-obtaining interval estimates of parameters using Markov chain Monte
-Carlo (MCMC) techniques in section~\ref{sec:MCMC}.
+The theory of likelihood ratio tests states that the test statistic
+would be compared to the quantiles of the $\chi_k^2$ distribution
+where $k$ is the number of constraints, which is 1 in this case.  But
+a $\chi_1^2$ distribution is simply the square of the standard
+normal distribution, $\mathcal{N}(0,1)$, so we plot its square root,
+which we denote as
+\begin{equation}
+  \label{eq:abszetadef}
+  |\zeta(\sigma_1)|=\sqrt{
+  \min_{\sigma,\beta_0}d(\sigma_1,\sigma,\beta_0)-
+  d(\widehat{\sigma}_1, \widehat{\sigma}, \widehat{\beta}_0)},
+\end{equation}
+with similar definitions for the other parameters.  (The perceptive
+reader will have notice that the second profile plot is on the scale
+of $\log(\sigma)$, not $\sigma$.  We will discuss this choice of scale
+later.)
+
+The intervals shown on the plots are 50\%, 80\%, 90\%, 95\% and 99\%
+confidence intervals based on this likelihood ratio test.  That is,
+the bounds on the 95\% confidence intervals are the points where
+$|\zeta|=1.960$.  We use the \R{} function \code{profile} to create the
+profiled deviance object and \code{xyplot} to display the plot.
+<<pr1,eval=FALSE>>=
+pr1 <- profile(fm1ML)
+@ 
+The
+\code{confint} extractor is used to obtain the endpoints of a
+particular confidence interval.
+<<confint1>>=
+confint(pr1)
+@ 
+
+Often the \emph{signed square root} provides a more meaningful scale
+on which to plot the likelihood ratio test statistic, as in
+Figure~\ref{fig:fm1prof}.
+\begin{figure}[tb]
+  \centering
+<<fm1prof,fig=TRUE,echo=FALSE,height=3.5>>=
+print(xyplot(pr1, aspect = 1.3, absVal = FALSE))
+@   
+  \caption{Signed square root, $\zeta$, of the likelihood ratio test
+    statistic for each of the parameters in model \code{fm1ML}.  The
+    vertical lines are the endpoints of 50\%, 80\%, 90\%, 95\% and 99\%
+    confidence intervals derived from this test statistic.}
+  \label{fig:fm1prof}
+\end{figure}
+The signed square root assigns a negative sign to $\zeta$ for
+parameter values less than the estimate and a positive sign for
+parameter values greater than the estimate providing a curve whose
+interpretation is similar to that of a normal probability plot of data
+or residuals.
+
+\subsubsection{Interpretation of the shape of the $\zeta$ plot}
+
+We will use $\phi$ to represent a parameter or a transformation of a
+parameter in the model.  For the model we are considering $\phi$ can
+be $\sigma_1$ or $\sigma_1^2$ or $\log(\sigma)$ or $\sigma$ or
+$\sigma^2$ or $\beta_0$ or one of many other possibilities.  In a plot
+of $\zeta(\phi)$ versus $\phi$ the estimate, $\widehat{\phi}$, is the
+point where $\zeta = 0$ and the slope of the curve at $\widehat{\phi}$
+is the inverse of the standard error of $\phi$.  There is more than
+one way of calculating a standard error of a parameter estimate and in
+chapter~\ref{cha:Theory} we will clarify that this standard error is
+based on a quantity called ``the observed information matrix''.  That
+level of detail is not necessary here.  All we need to know is that
+the inverse slope, written $s_\phi$, is that standard error of the
+parameter estimate, which is a measure of its precision.
+
+If the plot of $\zeta$ versus $\phi$ is close to a straight line over
+the region of interest then our $(1-\alpha)$ confidence interval on
+$\phi$ will be close to
+\begin{equation}
+  \label{eq:confint}
+  \widehat{\phi}\pm z_{\alpha/2}s_{\phi} 
+\end{equation}
+where $z_{\alpha/2}$ is the $\alpha/2$ upper quantile of the standard
+normal (also called Gaussian) distribution.  For example,
+$z_{0.025}=1.960$ so a 95\% confidence interval on the parameter
+$\phi$ would be calculated as
+\begin{equation}
+  \label{eq:confint95}
+  \widehat{\phi}\pm 1.960 s_{\phi} 
+\end{equation}
+or, effectively, the estimate plus-or-minus two standard errors of the
+estimate.
+
+We should realize that confidence intervals of the form
+(\ref{eq:confint}) are based on an approximation.  Similarly,
+performing a hypothesis test of the form $H_0:\phi = \phi_0$
+\textrm{vs.} $H_a:\phi\ne\phi_0$ by calculating the observed
+``z-statistic''
+\begin{equation}
+  \label{eq:zobs}
+  z_{\text{obs}}=\frac{\widehat{\phi} - \phi_0}{s_\phi}
+\end{equation}
+and evaluating a p-value as
+$2\mdot\mathrm{P}[\mathcal{Z}>|z_{\text{obs}}|]$ is also an
+approximation.
+
+Of course, we don't need to perform hypothesis tests of the form
+$H_0:\phi=\phi_0$ \emph{vs.} $H_a:\phi\ne\phi_0$ in this way
+because can fit the model without any constraints on the parameters
+then fit the model subject to the constraint $\phi=\phi_0$ and compare
+the two model fits using the likelihood ratio.  Furthermore the
+confidence intervals we obtain are based on ``inverting'' such
+hypothesis tests.  Because we are fitting the model under both
+conditions and comparing the quality of the fits we obtain more
+realistic information regarding whether the parameter value $\phi_0$
+is reasonable.  We do not need to resort to fitting the model once
+only and keeping our fingers crossed while using approximations to
+perform statistical inference.
+
+This situation is unfortunately characteristic of modern statistics.
+The well-known statistical methods shown in many texts are often based
+on unnecessary approximations.  We have the ability to fit models many
+times subject to different constraints on the parameters so we can
+actually examine the effective variability in the parameter estimates
+rather than resorting to approximations.
+
+Returning to consideration of confidence intervals of the form
+(\ref{eq:confint}) and hypothesis tests based on (\ref{eq:zobs}),
+these will be suitable methods when the profile plot (the plot of
+$\zeta$ versus $\phi$) is reasonably straight. In those cases, of
+course, the methods based on $\zeta$ will produce confidence intervals
+or p-values for hypothesis tests of the expected form.  The important
+cases are when the profile plot is not reasonably straight over the
+region of interest.  In those cases the confidence intervals are not
+symmetric or not determined from quantiles of the standard normal nor
+are p-values based on the standard normal distribution.
+
+As shown above, we can create confidence intervals on parameters or
+transformed parameter values using the profile and the \code{confint}
+extractor function so we don't really need to examine the profile
+plot.  However, the profile plots do provide us with a valuable visual
+evaluation of the precision of the parameter estimates and we will
+use them frequently.
+
+We can read a profile plot similar to the way that we read a
+quantile-quantile plot, such as a normal probability plot, of observed
+data or of residuals from a fitted model.  That is, we evaluate a
+profile plot for skewness and for over-dispersion.  We will
+speak of these properties as applying to the distribution of the
+parameter estimator.  Technically that is not quite correct (the
+profile plot indicates the sensitivity of the model fit to the
+parameter values) but I find it a convenient way of discussing
+patterns in the profile plots.
+
+With this in mind we can examine the patterns in
+Figure~\ref{fig:fm1prof}.  The profile plot for $\log(\sigma)$ is
+quite straight indicating that the local approximation based on a
+standard error is quite good.  Notice, however, that this pattern is
+with respect to $\log(\sigma)$, not $\sigma$ or, even worse, $\sigma^2$
+see that the sigmoidal (i.e. like an
+elongated ``S'' curve) pattern for the profile plot of $\beta_0$ in Figure~\ref{fig:fm1prof} the
+parameter $\beta_0$ is very close to symmetric about the estimate
+$\widehat{\beta_0}$ but over-dispersed relative to a normal distribution.
+
+\subsubsection{Precision of the variance components}
+\label{sec:precvarcomp}
+
+When we summarize our knowledge of a parameter in a fitted model by
+giving its estimate and a standard error of this estimate we are
+assuming that the quality of fit for different values of this
+parameter, as measured by the signed square root, $\eta$, say, will be
+symmetric about the estimate.  Furthermore, if we are to use a z
+test'' or confidence intervals based on quantiles of the standard
+normal, then we are assuming that the plot of $\zeta$ will be
+reasonably close to a straight line.  In that case the standard error
+of the parameter corresponds to the inverse of the slope of the line.
+
+We can see that the only panel in Figure~\ref{fig:fm1prof} that is at
+all close to a straight line is the middle panel, which shows $\zeta$
+versus $\log(\sigma)$, not $\zeta$ versus $\sigma$ or, even worse,
+$\zeta$ versus $\sigma^2$, as shown in Figure~\ref{fig:sigmaprof}.
+\begin{figure}[tb]
+  \centering
+<<sigmaprof,fig=TRUE,echo=FALSE>>=
+zeta <- sqrt(qchisq(c(0.5,0.8,0.9,0.95,0.99), 1))
+zeta <- c(-rev(zeta), 0, zeta)
+spl <- attr(pr1, "forward")[[2]]
+endpts <- predict(attr(pr1, "backward")[[2]], zeta)$y
+
+fr <- data.frame(zeta = rep.int(zeta, 2),
+                 endpts = c(exp(endpts), exp(2*endpts)),
+                 pnm = gl(2, length(zeta)))
+levels(fr$pnm) <- c(expression(sigma), expression(sigma^2))
+print(xyplot(zeta ~ endpts|pnm, fr, type = "h",
+             scales = list(x = list(relation = "free")),
+             xlab = NULL, ylab = expression(zeta), aspect = 1.3,
+             strip = strip.custom(
+             factor.levels = expression(sigma, sigma^2)),
+             panel = function(...) {
+                 panel.grid(h = -1, v = -1)
+                 panel.xyplot(...)
+                 lims <- log(current.panel.limits()$xlim)
+                 if (panel.number() == 2) lims <- lims/2
+                 pr <- predict(spl, seq(lims[1], lims[2], len = 101))
+                 panel.lines(exp(pr$x * panel.number()), pr$y)
+             }))
+@   
+  \caption{Signed square root, $\zeta$, of the likelihood ratio test statistic as a function of $\sigma$ and as a function of $\sigma^2$.   The vertical lines are the endpoints of 50\%, 80\%, 90\%, 95\% and 99\% confidence intervals.}
+\end{figure}
 
 \section{The linear mixed-effects probability model}
 \label{sec:Probability}
@@ -789,1031 +1002,6 @@ will write it as $\theta$.  We set
   \bm\Lambda_\theta = \theta\bm I_6
 \end{equation}
 subject to the constraint that $\theta\ge0$.
-
-\subsection{The profiled ML criteria}
-\label{sec:log-likelihood}
-
-At this point we will simply describe how the profiled ML and REML
-criteria can be evaluated, leaving the detailed derivations until
-later.  These criteria are ``profiled'' in the sense that they are
-functions of the parameter $\bm\theta$ only.  Dependence on the other
-parameters, $\bm\beta$ and $\sigma^2$, has been removed by
-determining their optimal values, given a particular value of
-$\bm\theta$.  
-
-Given a value of $\bm\theta$, we create
-\begin{equation}
-  \label{eq:Umat}
-  \bm U_\theta=\bm Z\bm\Lambda_\theta,
-\end{equation}
-which will be an $n\times q$ sparse matrix like $\bm Z$, and evaluate
-the $q\times q$ lower triangular sparse Cholesky factor, $\bm
-L_\theta$ that satisfies
-\begin{equation}
-  \label{eq:Lmat}
-  \bm L_\theta\bm L_\theta\trans=\bm U_\theta\trans\bm U_\theta+\bm I_q .
-\end{equation}
-
-It is this step that is the key to the methods in the \package{lme4}
-package for fitting mixed models.  For the simple example we are
-considering this is trivial because $\bm U_\theta=\bm Z(\theta\bm
-I_6)=\theta\bm Z$ and $\bm U_\theta\trans\bm U_\theta+\bm I_6=(1 +
-5\theta^2)\bm I_6$ so a suitable $\bm L_\theta=\sqrt{1 + 5\theta^2}\bm
-I_6$.  The calculations are straightforward in this case.  However,
-the \code{lmer} function has been used to fit linear mixed models for
-which the number of rows and the number of columns in $\bm U_\theta$
-were both more than one million and the structure of $\bm
-U_\theta\trans\bm U_\theta+\bm I_q$ was much more complex than a
-simple multiple of an identity matrix.  The ability to compute this
-factorization reasonably quickly for many different values of
-$\bm\theta$ in cases like this is what makes the methods in the
-\package{lme4} package feasible.
-
-Because $\bm L_\theta$ is square and lower triangular, its
-determinant, written $|\bm L|$, is simply the product of its diagonal
-elements.  The determinant is the measure of the size of
-the matrix that is used in evaluating probability densities of random
-variables after transformation.
-
-After evaluating the minimum penalized residual sum of squares
-\begin{equation}
-  \label{eq:PLRSS}
-  r^2_\theta = \min_{\bm u,\bm\beta}\left[\|\bm y-\bm U_\theta\bm u-\bm
-  X\bm\beta\|^2+\|\bm u\|^2\right]
-\end{equation}
-(details given below) we can express the \emph{profiled deviance},
-which is negative twice the logarithm of the profiled likelihood, as
-\begin{equation}
-  \label{eq:profDev}
-  -2\tilde{\ell}(\bm\theta)=\log(|\bm L_\theta|^2)+n\left[1+
-    \log\left(\frac{2\pi r_\theta^2}{n}\right)\right] .
-\end{equation}
-We minimize the profiled deviance with respect to $\bm\theta$,
-producing the ML estimate, $\widehat{\bm\theta}$, from which we derive
-the ML estimates of the other parameters, $\widehat{\bm\beta}$ and
-$\widehat{\sigma^2}$.
-
-Before describing the details of the calculation of $r^2_\theta$
-and the calculation of the other parameter estimates, let us consider
-the form of the profiled deviance, (\ref{eq:profDev}), as it relates
-to our model for the \code{Dyestuff} data set and to a similar model
-fit to the \code{Dyestuff2} data.
-
-\subsubsection{Profiled deviance for the \texttt{Dyestuff} model}
-
-We can follow the progress of the iterations in optimizing the
-profiled deviance for the model fit to the \code{Dyestuff} data by
-including the optional argument \code{verbose = 1} in the call to \code{lmer}
-<<fm1MLverb>>=
-fm1ML <- lmer(Yield ~ 1 + (1 |Batch), Dyestuff, verbose = 1, REML = FALSE)
-@ 
-Each line of the ``verbose'' output consists of the iteration number,
-the current value of the profiled deviance and the current values of
-the parameter vector $\bm\theta$, which, for this model, is a scalar,
-$\theta$.  It can be seen that the optimization converges very quickly
-to an minimum deviance of \Sexpr{round(unname(deviance(fm1ML)), 3)} at
-$\widehat{\theta}=\Sexpr{round(env(fm1ML)[["theta"]], 3)}$.
-
-Some of the components of the deviance can be obtained with the
-\code{devcomp} extractor.
-<<fm1MLdev>>=
-round(devcomp(fm1ML)$cmp,2)
-@
-The elements named \code{"ldL2"} and \code{"prss"} are $\log(|\bm
-L_\theta|^2)$ and $r^2_\theta$, the minimum penalized residual sum
-of squares, respectively.  We can evaluate the deviance as
-<<fm1MLdev2>>=
-dev <- devcomp(fm1ML)$cmp
-n <- nrow(model.frame(fm1ML))
-(calc <- dev["ldL2"] + n * (1 + log(2 * pi * dev["prss"]/n)))
-all.equal(unname(calc), unname(dev["deviance"]))
-@ 
-
-Because $\theta$ is one-dimensional in this model we can examine each
-of the components as they depend on $\theta$.  In Figure~\ref{fig:DyeML}
-\begin{figure}[tbp]
-  \centering
-<<DyeML,fig=TRUE,echo=FALSE,results=hide,height=5>>=
-fm1env <- lmer(Yield ~ 1 + (1|Batch), Dyestuff, REML=FALSE, doFit = FALSE)
-theta <- seq(0,3,0.01)
-res <-
-    as.data.frame(t(sapply(theta,
-                           function(x) {
-                               fm1env@setPars(x)
-                               rho <- env(fm1env)
-                               dc <- devcomp(fm1env)
-                               sigma <- sqrt(dc$cmp["prss"]/dc$dims[c("n","nmp")])
-                               c(theta = x, dc$cmp, sigma,
-                                 with(rho, c(usqr = crossprod(u),
-                                             rss = crossprod(y-fitted))))
-                           })))
-res$lprss <- n * (1 + log(2 * pi * res$prss/n))
-res$lprssRE <- (n - 1) * (1 + log(2 * pi * res$prss/(n - 1)))
-print(xyplot(deviance + ldL2 + lprss ~ theta,
-             res, xlab = expression(theta), ylab = NULL, outer = TRUE,
-             scales = list(y = list(relation = "free", rot = 0),
-                           x = list(axs = 'i')),
-	     strip = FALSE, strip.left = TRUE,
-	     type = c("g","l"), layout = c(1,3)))
-@   
-\caption[Profiled deviance and its components for the \code{Dyestuff}
-model]{The profiled deviance and its components as a function of
-  $\theta$ in the simple model fit to the \code{Dyestuff} data.  The
-  panel labeled \code{ldL2} is $\log(|\bm L_\theta|^2)$ and the
-  panel labeled \code{lprss} is $n[1+\log(2\pi r^2_\theta/n)]$.}
-  \label{fig:DyeML}
-\end{figure}
-we show the deviance as a function of $\theta$ (bottom panel) and the
-two additive terms, $\log(|\bm L(\theta)|^2)$ and $n[1+\log(2\pi
-r_\theta^2/n)]$ that occur in (\ref{eq:profDev}).  In this figure we can see
-that the logarithm of the determinant of $\bm L$ increases as $\theta$
-increases.  For this particular model and data set we can write the
-log-determinant as
-\begin{equation}
-  \label{eq:ldL2Dye}
-  \log(|\bm L_\theta|^2) =
-  \log\left(\left(1+5\theta^2\right)^6\right),\quad\theta\ge 0 .
-\end{equation}
-It is easy to establish that $\log(|\bm L(0)|^2)=\log(1)=0$ and that
-this log-determinant is monotone increasing.  For large values of
-$\theta$ the log-determinant approaches $6\log(5)+12\log(\theta)$.
-The important thing to note is that it continues to increase as
-$\theta$ increases and that it behaves like a multiple of
-$\log(\theta)$ for large values of $\theta$.
-
-The other term, $n[1+\log(2\pi r_\theta^2/n)]$, depends on $\theta$
-only through the minimum penalized residual sum of squares,
-$r_\theta^2$.  In Figure~\ref{fig:prssCom}
-\begin{figure}[tbp]
-  \centering
-<<prssCom,fig=TRUE,echo=FALSE,>>=
-print(xyplot(prss + usqr + rss ~ theta,
-             res, xlab = expression(theta), ylab = NULL, outer = TRUE,
-             scales = list(y = list(relation = "free", rot = 0),
-                           x = list(axs = 'i')),
-	     strip = FALSE, strip.left = TRUE,
-	     type = c("g","l"), layout = c(1,3)))
-@   
-  \caption[Components of $r_\theta^2$]{Components of the penalized
-    sum of square residuals, $r_\theta^2$ (labeled \code{prss}).
-    The residual sum of squares, $\|\bm y-\bm U(\theta)\tilde{\bm
-      u}_\theta - \bm X\widehat{\bm\beta}_\theta\|^2$, where
-    $\tilde{\bm u}$ and $\widehat{\bm\beta}_\theta$ jointly minimize the
-    penalized least squares criterion, is labeled \code{wrss}.  The
-    penalty term, $\|\tilde{\bm u}\|^2$, is labeled \code{usqr}.}
-  \label{fig:prssCom}
-\end{figure}
-we plot $r_\theta^2$ (labeled \code{prss}) and its two components
-$\|\tilde{\bm u}_\theta\|^2$ (labeled \code{usqr}) and $\|\bm y-\bm
-U_\theta\tilde{\bm u}_\theta-\bm X\widehat{\bm\beta}_\theta\|^2$
-(labeled \code{wrss}), where
-\begin{equation}
-  \label{eq:jointmin}
-  \begin{bmatrix}
-    \tilde{\bm u}_\theta\\
-    \widehat{\bm\beta}_\theta
-  \end{bmatrix} =
-  \arg\min_{\bm u,\bm\beta}\left[
-  \|\bm y-\bm U_\theta\bm u-\bm X\bm\beta\|^2+\|\bm u\|^2\right] .
-\end{equation}
-The notation ``$\arg\min$'' indicates that $\tilde{\bm u}$ and
-$\widehat{\bm\beta}$ are the values of $\bm u$ and $\bm\beta$ that
-jointly minimize the penalized sum of squared residuals.  They satisfy
-the equation
-\begin{equation}
-  \label{eq:PLSjointSol}
-  \begin{bmatrix}
-    \bm U_\theta\trans\bm U_\theta + \bm I & \bm U_\theta\trans\bm X\\
-    \bm X\trans\bm U_\theta         & \bm X\trans\bm X
-  \end{bmatrix}
-  \begin{bmatrix}
-    \tilde{\bm u}_\theta\\
-    \widehat{\bm\beta}_\theta
-  \end{bmatrix} =
-  \begin{bmatrix}\bm U_\theta\trans\bm y\\\bm X\trans\bm y\end{bmatrix} .
-\end{equation}
-
-In Figure~\ref{fig:prssCom} the plot of the sum of squared residuals,
-$\|\bm y-\bm U_\theta\tilde{\bm u}_\theta-\bm
-X\widehat{\bm\beta}_\theta\|^2$, labeled \code{wrss}, versus $\theta$
-has its maximum at $\theta = 0$.  This component quickly decreases
-then levels out as $\theta$ increases.  This sum of squared residuals
-is bounded above and below.  The upper bound is
-<<wrssup>>=
-deviance(lm(Yield ~ 1, Dyestuff))
-@
-which is the sum of squared residuals from a linear model with only
-the fixed-effects term.  The lower bound is
-<<wrsslow>>=
-deviance(lm(Yield ~ 1 + Batch, Dyestuff))
-@ 
-which is the sum of squared residuals for a linear model with
-both the fixed-effects and the random-effects terms from the mixed
-model appearing as fixed-effects terms.  Symbolically
-\begin{equation}
-  \label{eq:wrssbounds}
-  \min_{\bm u,\bm\beta}\|\bm y-\bm U_\theta\bm u-\bm X\bm\beta\|^2\le
-  \|\bm y-\bm U_\theta\tilde{\bm u}_\theta-\bm X\widehat{\bm\beta}\|^2
-  \le \min_{\bm\beta}\|\bm y-\bm X\bm\beta\|^2 .
-\end{equation}
-
-It turns out that these bounds also apply to the penalized residual
-sum of squares, labeled \code{prss} in
-Figure~\ref{fig:prssCom}. We can either reason that
-\begin{equation}
-  \label{eq:pwrssbounds}
-  \min_{\bm u,\bm\beta}\|\bm y-\bm U\bm u-\bm X\bm\beta\|^2\le
-  \min_{\bm u,\bm\beta}\|\bm y-\bm U\bm u-\bm X\bm\beta\|^2+\|\bm u\|^2
-  \le \min_{\bm\beta}\|\bm y-\bm X\bm\beta\|^2 .
-\end{equation}
-or check the pattern in the plot of $\|\tilde{\bm u}_\theta\|^2$,
-labeled \code{usqr} in  Figure~\ref{fig:prssCom}.  This term is zero when
-$\theta=0$ and, as $\theta\rightarrow\infty$, it returns to
-zero.
-
-Returning to the deviance for the mixed model and its components, as
-plotted in Figure~\ref{fig:DyeML}, we can see that the term labeled
-\code{lprss} will be monotone decreasing with finite upper and lower
-bounds, because it is an increasing function of $r_\theta^2$, which
-itself has finite upper and lower bounds.  The term labeled
-\code{ldL2} is bounded below at zero but is unbounded above and
-monotone increasing.  The minimum deviance, which is the sum of these
-two terms, must occur at a finite $\theta$.  In other words we can't
-have $\widehat{\theta}=\infty$.
-
-We can, however, have $\widehat{\theta}=0$, which is exactly what occurs
-for the same model fit to the \code{Dyestuff2} data.
-<<fm2ML>>=
-(fm2ML <- lmer(Yield ~ 1 + (1 |Batch), Dyestuff2, verbose = 1,
-               REML = FALSE))
-@ 
-Figure~\ref{fig:Dye2ML}
-\begin{figure}[tbp]
-  \centering
-<<Dye2ML,fig=TRUE,echo=FALSE,results=hide,height=9>>=
-fm2MLpart <- lmer(Yield ~ 1 + (1|Batch), Dyestuff2, REML=FALSE, doFit = FALSE)
-theta <- seq(0,3,0.01)
-res2 <-
-    as.data.frame(t(sapply(theta,
-                           function(x) {
-                               fm2MLpart@setPars(x)
-                               rho <- env(fm2MLpart)
-                               c(devcomp(fm2MLpart)$cmp, theta = x,
-                                 with(rho, c(usqr = crossprod(u),
-                                             rss = crossprod(y-fitted))))
-                           })))
-res2$lprss <- n * (1 + log(2 * pi * res2$prss/n))
-print(xyplot(deviance + ldL2 + lprss + prss + usqr + rss ~ theta,
-             res2, xlab = expression(theta), ylab = NULL, outer = TRUE,
-             scales = list(y = list(relation = "free", rot = 0),
-                           x = list(axs = 'i')),
-	     strip = FALSE, strip.left = TRUE,
-	     type = c("g","l"), layout = c(1,6)))
-@   
-\caption[Profiled deviance and its components for the \code{Dyestuff2}
-model]{The profiled deviance and its components as a function of
-  $\theta$ in the simple model fit to the \code{Dyestuff2} data.  The
-  panel labeled \code{ldL2} is $\log(|\bm L_\theta|^2)$ and the panel
-  labeled \code{lprss} is $n[1+\log(2\pi r_\theta^2)/n)]$.  The
-  panel labeled \code{prss} is $r_\theta^2$, with components
-  \code{usqr} and \code{rss}.}
-  \label{fig:Dye2ML}
-\end{figure}
-shows the deviance for this model, and its components, as a function
-of $\theta$, from which we can see that the deviance is indeed
-minimized at $\theta=0$.
-
-<<rsqrvals,echo=FALSE,results=hide>>=
-rsqr1up <- deviance(lm(Yield ~ 1, Dyestuff))
-devcomp1up <- n * (1 + log(2 * pi * rsqr1up/n))
-devcomp1REup <- (n - 1) * (1 + log(2 * pi * rsqr1up/(n - 1)))
-rsqr1low <- deviance(lm(Yield ~ 1 + Batch, Dyestuff))
-devcomp1low <- n * (1 + log(2 * pi * rsqr1low/n))
-devcomp1RElow <- (n - 1) * (1 + log(2 * pi * rsqr1low/(n - 1)))
-@
-
-Comparing Figure~\ref{fig:Dye2ML} to Figure~\ref{fig:DyeML} we can see
-that the relationships between the components of the deviance,
-$\log(|\bm L_\theta|^2)$ (\code{ldL2}) and $n[1+\log(2\pi r^2/n)]$
-(\code{lprss}), and $\theta$ are similar for the two models.  In fact,
-$\log(|\bm L_\theta|^2)$ versus $\theta$ is exactly the same for the
-two models.  Although the shape of the relationship between
-$n[1+\log(2\pi r^2/n)]$ and $\theta$ in Figure~\ref{fig:Dye2ML} is
-similar to that in Figure~\ref{fig:DyeML}, the range on the vertical
-axis is very different.  Recall that for the \code{Dyestuff} model,
-the range of the penalized residual sum of squares, $r_\theta^2$, was
-\begin{equation}
-  \label{eq:rsqrrange}
-  \Sexpr{sprintf("%.1f",rsqr1low)}
-  \le r_\theta^2 \le
-  \Sexpr{sprintf("%.1f",rsqr1up)}
-\end{equation}
-producing the bounds
-\begin{equation}
-  \label{eq:devcomprange}
-  \Sexpr{sprintf("%.3f", devcomp1low)}
-  \le n\left[1+\log\left(\frac{2\pi r_\theta^2}{n}\right)\right] \le
-  \Sexpr{sprintf("%.3f", devcomp1up)} .
-\end{equation}
-
-<<rsqrvals2,echo=FALSE,results=hide>>=
-rsqr2up <- deviance(lm(Yield ~ 1, Dyestuff2))
-devcomp2up <- n * (1 + log(2 * pi * rsqr2up/n))
-rsqr2low <- deviance(lm(Yield ~ 1 + Batch, Dyestuff2))
-devcomp2low <- n * (1 + log(2 * pi * rsqr2low/n))
-@
-
-On the other hand, the range of the penalized residual sum of squares
-for the \code{Dyestuff2} model is much narrower because
-<<wrss2up>>=
-deviance(lm(Yield ~ 1, Dyestuff2))
-@
-and
-<<wrss2low>>=
-deviance(lm(Yield ~ 1 + Batch, Dyestuff2))
-@
-In this case the bounds on the deviance component are
-\begin{equation}
-  \label{eq:devcomp2range}
-  \Sexpr{round(devcomp2low, 3)}
-  \le n\left[1+\log\left(\frac{2\pi r_\theta^2}{n}\right)\right] \le
-  \Sexpr{round(devcomp2up, 3)} .
-\end{equation}
-and this range is too narrow to produce an estimate $\widehat{\theta}$
-that is greater than zero.
-
-\subsection{Interpretation of the deviance components}
-\label{sec:devcompinterp}
-
-The two components of the profiled deviance, $\log(|\bm L_\theta|^2)$
-and $n[1 + \log(2\pi r_\theta^2/n)]$, can be considered as measuring
-the complexity of the model and the fidelity of the fitted model to
-the data, respectively.  With these interpretations, maximum
-likelihood estimation of the parameters in a mixed-effects model can
-be considered as falling into the class of statistical techniques
-known as ``smoothing'' techniques.  In these techniques a family of
-models, controlled by one or more ``smoothing parameters'', is
-proposed and the smoothing parameter(s) are chosen according to some
-criterion that balances complexity of the model against fidelity to
-the data.
-
-In the models for the \code{Dyestuff} and \code{Dyestuff2} data, the
-parameter $\theta$ controls the complexity as measured by $\log(|\bm
-L_\theta|^2)$.  The simplest model, corresponding to $\theta = 0$,
-ignores the \code{Batch} factor and formulates the same prediction for
-all the samples from all the batches.  The most complex model,
-corresponding to $\theta=\infty$, formulates a separate prediction for
-each batch and ignores any commonality between the batches.
-
-Fidelity to the data, measured either by the residual sum of squares
-or by the penalized residual sum of squares, $r_\theta^2$, increases
-as $\theta$ increases.  (A lower residual sum of squares corresponds
-to greater fidelity of the model's predictions to the observed data
-values.)
-
-In the case of the \code{Dyestuff} data, increasing $\theta$ in the
-range $[0, 0.753]$ produces an increase in fidelity that more than
-compensates for the increase in complexity.  After $\theta=0.753$
-increasing the value of $\theta$ cannot produce sufficiently greater
-fidelity to the observed data to compensate for the increase in model
-complexity, according to the ML criterion.
-
-In the case of the \code{Dyestuff2} data the fidelity component does
-not change sufficiently with increasing $\theta$ to compensate for the
-increased model complexity and the optimal value of $\theta$ is at the
-boundary, $\widehat{\theta}=0$.
-
-\subsection{The REML criterion}
-\label{sec:REML}
-
-To obtain the maximum likelihood (ML) estimates we minimize the
-profiled deviance (\ref{eq:profDev}) as a function of $\bm\theta$. The
-criterion that is labeled \code{REML} in the display of a fitted
-model is on the same scale as the deviance, which is negative twice
-the log-likelihood.  To obtain the REML estimates of the parameters we
-minimize this criterion with respect to $\bm\theta$ then determine the
-conditional estimates, $\widehat{\bm\beta}(\widehat{\bm\theta})$ and
-$\widehat{\sigma^2}(\widehat{\bm\theta})$.
-
-To explain how the profiled REML criterion is evaluated we must
-provide a bit more detail regarding the solution of the penalized
-least squares problem, (\ref{eq:PLSjointSol}). Recall that $\tilde{\bm
-  u}_\theta$ and $\widehat{\bm\beta}_\theta$ are the solutions
-to
-\begin{displaymath}
-  \begin{bmatrix}
-    \bm U_\theta\trans\bm U + \bm I & \bm U_\theta\trans\bm X\\
-    \bm X\trans\bm U         & \bm X\trans\bm X
-  \end{bmatrix}
-  \begin{bmatrix}
-    \tilde{\bm u}_\theta\\
-    \widehat{\bm\beta}_\theta
-  \end{bmatrix} =
-  \begin{bmatrix}\bm U_\theta\trans\bm y\\\bm X\trans\bm y\end{bmatrix} .
-\end{displaymath}
-where
-\begin{displaymath}
-  \bm U_\theta=\bm Z\bm\Lambda_\theta .
-\end{displaymath}
-Furthermore, the Cholesky factor, $\bm L_\theta$, is the sparse,
-lower-triangular matrix that satisfies (\ref{eq:Lmat}),
-\begin{displaymath}
-  \bm L_\theta\bm L_\theta\trans=\bm U_\theta\trans\bm U_\theta+\bm I_q .
-\end{displaymath}
-
-We can extend the Cholesky factor of $\bm U_\theta\trans\bm U+\bm I_q$ to
-create the factorization
-\begin{equation}
-  \label{eq:bigChol}
-  \begin{bmatrix}
-    \bm L_\theta            & \bm 0\\
-    \bm R_{ZX}\trans  & \bm R_X\trans
-  \end{bmatrix}
-  \begin{bmatrix}
-    \bm L_\theta\trans   & \bm R_{ZX}\\
-    \bm 0         & \bm R_X
-  \end{bmatrix} =
-  \begin{bmatrix}
-    \bm U_\theta\trans\bm U_\theta+\bm I_q & \bm U_\theta\trans\bm X\\
-    \bm X\trans\bm U_\theta         & \bm X\trans\bm X
-  \end{bmatrix}
-\end{equation}
-of the matrix defining the system of equations (\ref{eq:PLSjointSol}).
-In (\ref{eq:bigChol}) $\bm R_X$ is a $p\times p$ upper triangular
-matrix.  The $q\times p$ matrix $\bm R_{ZX}$ is the solution to the
-triangular system
-\begin{equation}
-  \label{eq:RZX}
-  \bm L_\theta\bm R_{ZX}=\bm U_\theta\trans\bm X
-\end{equation}
-and $\bm R_X$ is the upper (or ``right'', as opposed to left) Cholesky
-factor satisfying
-\begin{equation}
-  \label{eq:RX}
-  \bm R_X\trans\bm R_X=\bm X\trans\bm X-\bm R_{ZX}\trans\bm R_{ZX} .
-\end{equation}
-(The inconsistency of notation, using the left Cholesky factor, $\bm L$, of the
-sparse matrix and the right Cholesky factor, $\bm R_X$, of the dense
-matrix, reflects the differences in treatment of sparse and dense
-matrices in \R{}.  The methods for determining the Cholesky factor of
-sparse matrices return the left factor and those for dense matrices
-return the right factor.)
-
-The profiled REML criterion, expressed on the deviance scale, is 
-\begin{equation}
-  \label{eq:REMLdev}
-  -2\tilde{\ell}_R(\theta)=\log(|\bm L_\theta|^2|\bm R_X|^2)+(n-p)\left[1+
-    \log\left(\frac{2\pi r_\theta^2}{n-p}\right)\right] .
-\end{equation}
-Let $\widehat{\bm\theta_R}$ be the value of $\bm\theta$ that minimizes
-this criterion. The REML estimates of the fixed-effects parameters are
-the conditional estimates, $\widehat{\bm\beta}_\theta$, satisfying
-(\ref{eq:PLSjointSol}), evaluated at $\widehat{\bm\theta_R}$.  The
-REML estimate of $\sigma^2$, the common scale parameter, is
-\begin{equation}
-  \label{eq:REMLsigma}
-  \widehat{\sigma^2_R}=\frac{r^2(\widehat{\bm\theta_R})}{n-p} .
-\end{equation}
-
-This last expression provides a hint of the motivation for the REML
-criterion. For a linear model without any random effects, which could
-be expressed as
-\begin{equation}
-  \label{eq:LinearNoRE}
-  \bc Y\sim\mathcal{N}(\bm X\bm\beta, \sigma^2\bm I_n) ,
-\end{equation}
-the maximimum likelihood estimate of $\sigma^2$ is
-\begin{equation}
-  \label{eq:lmsigmaML}
-  \widehat{\sigma^2_{\mathit{ML}}}=\frac{\|\bm y-\bm X\widehat{\bm\beta}\|^2}{n}
-\end{equation}
-but the unbiased estimate, 
-\begin{equation}
-  \label{eq:lmsigmaR}
-  \widehat{\sigma^2_R}=\frac{\|\bm y-\bm X\widehat{\bm\beta}\|^2}{n-p},
-\end{equation}
-is usually preferred.  The estimate $\widehat{\sigma^2_R}$ from
-(\ref{eq:lmsigmaR}) accounts for the fact that the residual vector at
-the parameter estimates, $\bm y-\bm X\widehat{\bm\beta}$, must be
-orthogonal to the $p$ columns of the model matrix, $\bm X$, and hence
-lies in an $(n-p)$-dimensional subspace of the sample space.  This
-dimension, $n-p$, is the number of degrees of freedom associated with
-the residual vector.  The name ``degrees of freedom'' reflects that
-fact that, if we knew $n-p$ of the components of the residual vector,
-then we could determine what the other $p$ components must be from the
-orthogonality conditions, the so-called ``normal equations'', that
-the residual vector must satisfy.
-
-The REML estimation criterion for linear mixed models is an attempt to
-generalize the concept of estimating variance components from the
-residual space.  (The term REML is understood to stand for either
-``residual maximum likelihood'' or ``restricted maximum likelihood''.)
-In some ways this attempt is successful.  For example, the REML
-estimate of $\sigma^2$ does reduce to the usual estimate for the
-variance in linear models when the random effects are eliminated from
-the mixed model.  In the case of the \code{Dyestuff2} data the summary
-of model fit by REML
-<<Dye2REML>>=
-lmer(Yield ~ 1 + (1 | Batch), Dyestuff2)
-@ 
-coincides with the summary of a linear model
-<<Dye2lm>>=
-summary(lm(Yield ~ 1, Dyestuff2))
-@
-in the sense that the estimated residual standard deviation in the
-linear mixed model corresponds to the ``Residual standard error'' in
-the linear model.  The estimate of the $1$-dimensional fixed-effects
-vector, $\beta$, and its standard error also coincide in these two
-fitted models.
-
-Another characteristic that many consider to be important is that the
-REML estimates coincide with estimates of variance components that are
-formulated by equating ``expected mean squares'' with ``observed mean
-squares'' in certain simple cases.  We won't go into detail regarding
-these estimation methods because they apply, for the most part, to
-data that are completely balanced.  One may perhaps obtain such data
-from a designed experiment --- although expecting that a balanced
-experimental design will always produce a balanced data set is
-contrary to ``Murphy's Law'' --- but data in an observational study
-are almost never balanced.  It is not worthwhile considering
-approximate methods that apply primarily to balanced data when more
-mathematically justifiable methods like maximum likelihood or REML
-estimation with wide applicability are available.
-
-In other ways the attempt to generalize the unbiased estimator of a
-variance in linear models to the REML estimates of variance components
-in linear mixed models is unsuccessful.  For one thing these
-estimators are not necessarily unbiased.  Also, despite the ``ML''
-part of the name REML, these estimators are not maximum likelihood
-estimators, even in a ``restricted'' sense, and they do not share all
-the properties of maximum likelihood estimators.  This is why it is
-advisable to refit models using \code{REML = FALSE} before attempting
-to compare models.
-
-Figure~\ref{fig:Dye1REMLcomp}
-\begin{figure}[tbp]
-  \centering
-<<Dye1REMLcomp,fig=TRUE,echo=FALSE,height=6.5>>=
-res <- within(res, ldSum <- ldL2 + ldRX2)
-print(xyplot(REML + ldL2 + ldRX2 + ldSum + lprssRE ~ theta,
-             res, xlab = expression(theta), ylab = NULL, outer = TRUE,
-             scales = list(y = list(relation = "free", rot = 0),
-                           x = list(axs = 'i')),
-	     strip = FALSE, strip.left = TRUE,
-	     type = c("g","l"), layout = c(1,5)))
-
-@   
-\caption[Components of the REML criterion for the \code{Dyestuff}
-model]{Components of the REML criterion for the model fit to the
-  \code{Dyestuff} data.  The component labeled \code{ldL2} is
-  $\log(|\bm L_\theta|^2)$, as before, and the component labeled \code{ldRX2}
-  is $\log(|\bm R_X|^2)$.  Their sum is the component labeled
-  \code{ldSum}. The component labeled \code{lprssRE} is $(n-1)[1 +
-  \log(2\pi r_\theta^2/(n-p))]$.  The REML criterion, labeled \code{REML}, is
-  the sum of \code{ldSum} and \code{lprssRE}.}
-  \label{fig:Dye1REMLcomp}
-\end{figure}
-shows the REML criterion for the simple model fit to the
-\code{Dyestuff} data and the components of this criterion.  As we
-noted previously, the component $\log(|\bm L_\theta|^2)$ increases with
-increasing $\theta$.  The other two additive components, $\log(|\bm
-R_X|^2)$ and $(n-1)[1 + \log(2\pi r_\theta^2/(n-p))]$ decrease with
-increasing $\theta$.  The range of the fidelity component
-\begin{equation}
-  \label{eq:devcomp3range}
-  \Sexpr{sprintf("%.3f", devcomp1RElow)}
-  \le (n - 1)\left[1+\log\left(\frac{2\pi r_\theta^2}{n-1}\right)\right] \le
-  \Sexpr{sprintf("%.3f", devcomp1REup)} .
-\end{equation}
-is wider than the range of the fidelity component in the deviance
-(\ref{eq:devcomprange}).  This wider range, which emphasizes the
-fidelity component relative to the complexity component, $\log(|\bm
-L_\theta|^2)$, combined with the contribution of the decreasing component,
-$\log(|\bm R_X|^2)$, results in 
-\begin{equation}
-  \label{eq:thetacomp}
-  \widehat{\theta_R}=
-  \Sexpr{sprintf("%.4f", fm1@getPars())} >
-    \Sexpr{sprintf("%.4f", fm1ML@getPars())}
-      =\widehat{\theta_{\mathit{ML}}}
-\end{equation}
-
-Figure~\ref{fig:Dye2REMLcomp}
-\begin{figure}[tbp]
-  \centering
-<<Dye2REMLcomp,fig=TRUE,echo=FALSE,height=6.5>>=
-res2 <- within(res2,
-           {
-               lprssRE <- (n - 1) * (1 + log(2 * pi * prss/(n - 1)))
-               ldSum <- ldL2 + ldRX2
-           })
-print(xyplot(REML + ldL2 + ldRX2 + ldSum + lprssRE ~ theta,
-             res2, xlab = expression(theta), ylab = NULL, outer = TRUE,
-             scales = list(y = list(relation = "free", rot = 0),
-             x = list(axs = 'i')),
-	     strip = FALSE, strip.left = TRUE,
-	     type = c("g","l"), layout = c(1,5)))
-@   
-\caption[Components of the REML criterion for the \code{Dyestuff2}
-model]{Components of the REML criterion for the model fit to the
-  \code{Dyestuff2} data.  The component labeled \code{ldL2} is
-  $\log(|\bm L|^2)$, as before, and the component labeled \code{ldRX2}
-  is $\log(|\bm R_X|^2)$.  Their sum is the component labeled
-  \code{ldSum}. The component labeled \code{lprssRE} is $(n-1)[1 +
-  \log(2\pi r_\theta^2/(n-p))]$.  The REML criterion, labeled \code{REML}, is
-  the sum of \code{ldSum} and \code{lprssRE}.}
-  \label{fig:Dye2REMLcomp}
-\end{figure}
-shows the components of the REML criterion for the simple mixed model
-fit to the \code{Dyestuff2} data.  The components $\log(|\bm L|^2)$
-(labeled \code{ldL2}) and $\log(|\bm R_X|^2)$ (labeled \code{ldRX2})
-are the same as those shown in Figure~\ref{fig:Dye1REMLcomp} for the
-model fit to the \code{Dyestuff} data.  These components,
-characterizing model complexity, depend only on the values of the
-covariates and the form of the model, which are the same in these two
-models.
-
-The fidelity component, $(n-1)[1 + \log(2\pi r_\theta^2/(n-p))]$, labeled
-\code{lprssRE}, decreases as $\theta$ increases but its range is too
-narrow to move $\widehat{\theta_R}$ away from zero.
-
-\section{Conditional means and variances
-  of the random effects}
-\label{sec:condmean}
-
-We have discussed estimates of the variance components and of the
-fixed-effects parameters in a linear mixed model but we have not yet
-considered ``estimates'' of the random effects themselves.  As
-mentioned in section~\ref{sec:memod}, it is inaccurate to speak of
-estimating the random effects because they are not parameters of the
-probability model described in the last section.  In that model, the
-random effects, $\bc B$, are unobserved random variables.  
-
-From the unconditional distribution, $\bc B\sim\mathcal{N}(\bm0,
-\sigma^2\bm\Lambda_\theta\bm\Lambda_\theta\trans)$ and the
-conditional distribution, $(\bc Y|\bc B=\bm b)\sim\mathcal{N}(\bm Z\bm
-b+\bm X\bm\beta,\sigma^2\bm I_n)$ we can determine the conditional
-distribution of the random effects given the observed data, written
-$(\bc B|\bc Y=\bm y)$.
-
-Like the distributions of $\bc B$ and $(\bc Y|\bc B=\bm b)$, the
-conditional distribution $(\bc B|\bc Y=\bm y)$ is a multivariate
-Gaussian (or ``normal'') distribution that depends on the (unknown)
-values of the parameters in the model and on the observed data vector,
-$\bm y$. We can characterize such a multivariate Gaussian distribution
-by providing the conditional mean, $\bm\mu_{\bc B|\bc Y=\bm y}$, and
-the conditional variance-covariance matrix, $\text{Var}(\bc B|\bc
-Y=\bm y)$.  These quantities depend upon the model parameters and we
-evaluate them at the estimated values of the parameters.
-
-The components of the conditional mean vector,  $\bm\mu_{\bc
-  B|\bc Y=\bm y}$, evaluated at the parameter estimates are sometimes
-called the \emph{Best Linear Unbiased Predictors}, or BLUPs, of the
-random effects.  Although the acronym is attractive I don't find this
-description particularly informative (What is a ``linear unbiased
-predictor'' and in what sense are these the ``best''?) and prefer to
-describe these values as the conditional mean vector.
-
-The conditional mean of the random effects given the observed data
-depends on the parameters $\bm\theta$ and $\bm\beta$ but not on
-$\sigma^2$.  It is easier to derive expressions for this conditional
-mean if we first consider an intermediate random variable, $\bc U$, with
-unconditional distribution
-\begin{equation}
-  \label{eq:Uunconddist}
-  \bc U\sim\mathcal{N}(\bm 0, \sigma^2\bm I_q) .
-\end{equation}
-Because the unconditional distribution of $\bc U$ is a spherical
-multivariate Gaussian we refer to these as the spherical or ``unit''
-random effects.
-
-The relationship between $\bc U$ and $\bc B$,
-\begin{equation}
-  \label{eq:BLambdaU}
-  \bc B=\bm\Lambda_\theta\bc U,
-\end{equation}
-provides the required distribution, $\bc B\sim\mathcal{N}(\bm
-0,\sigma^2\bm\Lambda_\theta\bm\Lambda_\theta\trans)$.
-
-If we knew the values of the parameters $\bm\theta$ and $\bm\beta$
-then we could evaluate the conditional mean of the spherical random
-effects, $\bm\mu_{\bc U|\bc Y=\bm y}$, as
-\begin{equation}
-  \label{eq:condmeanU}
-  (\bm U_\theta\trans\bm U+\bm I_q)\bm\mu_{\bc U|\bc Y=\bm y} =
-  \bm L_\theta\bm L_\theta\trans\bm\mu_{\bc U|\bc Y=\bm y}=
-  \bm U_\theta\trans\left(\bm y - \bm X\bm\beta\right) .
-\end{equation}
-
-At the estimated parameter values the conditional mean is $\bm\mu_{\bc
-  U|\bc Y=\bm y}=\tilde{\bm u}(\widehat{\bm\theta})$.  That is, the
-solution of the penalized least squares problem (\ref{eq:jointmin})
-provides both the conditional estimate of the fixed effects
-parameters, $\widehat{\bm\beta}_\theta$, and the conditional mean
-of the spherical random effects, $\tilde{\bm u}_\theta$, for a
-given value of $\bm\theta$.
-
-The conditional mean of $\bc B$, evaluated at the parameter estimates,
-is 
-\begin{equation}
-  \label{eq:condmeanB}
-  \bm\mu_{\bc B|\bc Y=\bm y} = \bm\Lambda_{\hat\theta}
-  \tilde{\bm u}_{\hat\theta} .
-\end{equation}
-The conditional variance of the spherical random effects is
-\begin{equation}
-  \label{eq:condVarU}
-  \text{Var}(\bc U|\bc Y=\bm y)=\sigma^2
-  \left(\bm L_\theta\bm L_\theta\trans\right)^{-1},
-\end{equation}
-hence 
-\begin{equation}
-  \label{eq:condVarB}
-  \text{Var}(\bc B|\bc Y=\bm y)=\sigma^2
-  \bm\Lambda_\theta
-  \left(\bm L_\theta\bm L_\theta\trans\right)^{-1}
-  \bm\Lambda_\theta\trans .
-\end{equation}
-
-In the simple model for the \code{Dyestuff} data that we have been
-considering the matrices $\bm\Lambda_\theta$ and $\bm L_\theta$ are
-both diagonal --- in fact, they are multiples of the identity matrix
---- so it is easy to compute $\left(\bm L_\theta\bm
-  L_\theta\trans\right)^{-1}$.  In general, though, it is not easy
-to compute the inverse of a large, sparse matrix and we do not attempt
-to do so.  Instead we evaluate the diagonal elements of
-(\ref{eq:condVarB}) at the parameter estimates and use those to form
-prediction intervals on the random effects.
-
-The conditional means and the conditional variances can be combined to
-provide a prediction interval on the random effect, given the observed
-response.  Like many other quantities in this discussion we would need
-to evaluate these at the unknown, ``true'' parameter values to obtain
-the theoretical prediction intervals.  In practice, we evaluate these
-intervals using the estimated values of the parameters in the model.
-
-Figure~\ref{fig:fm1ranef} 
-\begin{figure}[tbp]
-  \centering
-<<fm1ranef,fig=TRUE,echo=FALSE,height=2.5>>=  
-print(dotplot(ranef(fm1, postVar = TRUE), strip = FALSE)[[1]])
-@ 
-\caption{95\% prediction intervals on the random effects for
-  \code{Batch} in model \code{fm1} fit to the \code{Dyestuff} data.}
-  \label{fig:fm1ranef}
-\end{figure}
-shows 95\% prediction intervals on the random effects for \code{Batch}
-in model \code{fm1} fit to the \code{Dyestuff} data.  As in the
-\code{Dyestuff} data plot (Figure~\ref{fig:Dyestuffdot}) we have
-reordered the levels of the \code{Batch} factor.  For the plot of the
-prediction intervals the ordering is by increasing conditional mean of
-the random effects.  Because model \code{fm1} is a simple model fit to
-a balanced data set this ordering is exactly the same as the ordering
-in the data plot based on increasing mean response.
-
-\section{The ``variance components'' in more detail}
-\label{sec:VarComp}
-
-Although prediction intervals on the random effects are often useful
-in allowing us to visualize the model, we are usually more interested
-in estimating the amount of variability in the response induced by
-the selection of experimental or observational units.  The parameter
-$\sigma^2$ in the model
-\begin{equation}
-  \label{eq:LMM}
-  \bc B\sim\mathcal{N}\left(\bm 0,
-    \sigma^2\bm\Lambda_\theta\bm\Lambda_\theta\trans\right),\:
-  (\bc Y|\bc B=\bm b)\sim\mathcal{N}\left(\bm Z\bm b+\bm X\bm\beta,
-    \sigma^2\bm I\right)
-\end{equation}
-is the variance of the residual or per-observation noise.  The
-conditional maximum likelihood estimate of $\sigma^2$ is
-\begin{equation}
-  \label{eq:LMMsigmaML}
-  \widehat{\sigma^2}_{\mathit{ML}}=\frac{r^2_\theta}{n}
-\end{equation}
-and the conditional REML estimate is
-\begin{equation}
-  \label{eq:LMMsigmaREML}
-  \widehat{\sigma^2}_{\mathit{R}}=\frac{r^2_\theta}{n-p} .
-\end{equation}
-
-In Figure~\ref{fig:sigmavtheta}
-\begin{figure}[tbp]
-  \centering
-<<sigmavtheta,fig=TRUE,echo=FALSE,height=3.5>>=
-print(xyplot(n + nmp ~ theta, res,
-             outer = FALSE,
-             xlab = expression(theta),
-             ylab = expression(hat(sigma)(theta)),
-             scales = list(x = list(axs = 'i')),
-             auto.key = list(columns = 2,
-             text = c("ML", "REML"), lines = TRUE,
-             points = FALSE),
-             type = c("g","l")))
-@   
-  \caption[Conditional ML and REML estimates of $\sigma$ versus
-  $\theta$]{The conditional ML and REML estimates of $\sigma$ as a
-    function of $\theta$ for model \code{fm1}}
-  \label{fig:sigmavtheta}
-\end{figure}
-we show the ML and REML estimates of $\sigma$ as a function of
-$\theta$ for the model \code{fm1}.  The ratio
-of the variance estimates,
-\begin{displaymath}
- \widehat{\sigma^2}_{ML}/\widehat{\sigma^2}_R = \frac{n-p}{n}=1-\frac{p}{n}
-\end{displaymath}
-does not change with $\theta$ and here even the ratio of the estimated
-standard deviations is nearly constant.
-
-In cases like this where we have just two ``variance components'',
-$\sigma^2$ and $\sigma_B^2$, we can examine the deviance or the REML
-criterion as a functions of $\sigma$ and $\sigma_B$.  In
-Figure~\ref{fig:devcontoursfm1}
-\begin{figure}[tbp]
-  \centering
-<<devcontoursfm1,fig=TRUE,echo=FALSE,height=5.3>>=
-profsd <- t(apply(deviance, 1, gmin, x = sigmas))
-profsbd <- t(apply(deviance, 2, gmin, x = sigB))
-profzs <- sqrt(profsbd[,2]-deviance(fm1ML)) *
-    ifelse(sigmas < attr(VCML, "sc"), -1, 1)               
-profzsb <- sqrt(profsd[,2]-deviance(fm1ML)) *
-    ifelse(sigB < attr(VCML$Batch, "stddev"), -1, 1)
-profsR <- t(apply(REML, 1, gmin, x = sigmas))
-profsbR <- t(apply(REML, 2, gmin, x = sigB))
-print(contourplot(deviance + REML ~ sigB * sigma, grd1,
-                  xlab = expression(sigma[B]),
-                  ylab = expression(sigma),
-                  aspect = 1,
-                  at = 
-                  qchisq(c(0.5,0.8,0.9,0.95,0.99,0.999), df = 2),
-                  labels = list(labels = paste(c(50,80,90,95,99,99.9),
-                                "%", sep = "")),
-                  panel = function(...)
-              {
-                  if (panel.number() == 1) {
-                      VC <- VCML
-                      prs <- profsd
-                      prsb <- profsbd
-                  } else {
-                      VC <- VCREML
-                      prs <- profsR
-                      prsb <- profsbR
-                  }
-                  panel.points(attr(VC[[1]],"stddev"),
-                               attr(VC,"sc"), pch = 3)
-                  panel.grid(h = -1, v = -1)
-                  panel.lines(sigB, prs[,1], lty = 2)
-                  panel.lines(prsb[,1], sigmas, lty = 3)                  
-                  panel.contourplot(...)
-              }
-                  ))
-@   
-\caption[Contours of the deviance and the REML criterion for
-\code{fm1}]{Contours of the deviance and of the REML criterion for
-  model \code{fm1} as a function of $\sigma$ and $\sigma_B$.  The
-  levels of the contours correspond to the boundaries of nominal 50\%,
-  80\%, 90\%, 95\%, 99\% and 99.9\% joint confidence regions, based on
-  a likelihood ratio test statistic.  The \code{"+"} symbol designates
-  the estimated values of these parameters.  The lines through the
-  estimate are the ``profile traces'' of each parameter on the other.
-  The dashed line shows the conditional estimate of $\sigma$, given a
-  value of $\sigma_B$.  The dotted line shows the conditional estimate
-  of $\sigma_B$, given a value of $\sigma$.}
-  \label{fig:devcontoursfm1}
-\end{figure}
-we show contours of the profiled deviance and the profiled REML
-criterion as functions of $\sigma_B$ and $\sigma$.  In this figure we
-also show the \emph{profile traces}, which are the conditional estimates
-of one parameter, given the other.
-
-The deviance surface itself is shown in Figure~\ref{fig:wireframefm1}.
-\begin{figure}[tbp]
-  \centering
-<<wireframefm1,fig=TRUE,echo=FALSE,height=5>>=
-print(wireframe(deviance ~ sigB * sigma,
-                grd1, shade = TRUE,
-                xlab = expression(sigma[B]),
-                ylab = expression(sigma)))
-@   
-\caption[Profiled deviance surface for model \code{fm1}]{Profiled
-  deviance surface for model \code{fm1} as a function of $\sigma$ and
-  $\sigma_B$.  Although the $\sigma$ and $\sigma_B$ axes are not
-  labeled with the values of these parameters, their extents are the
-  same as in Figure~\ref{fig:devcontoursfm1}.}
-  \label{fig:wireframefm1}
-\end{figure}
-If we were to consider the profile of the bottom of that surface, as
-seen from the $\sigma_B$ axis, we would be looking at the minimum
-value of the deviance for each value of $\sigma_B$, hence the name
-``profiled deviance''.  From the other direction, we would see the
-minimum value of the deviance for each value of $\sigma$.  These
-profiled deviance curves are shown in Figure~\ref{fig:profileddevfm1}.
-\begin{figure}[tbp]
-  \centering
-<<profileddevfm1,fig=TRUE,echo=FALSE,height=4>>=
-print(xyplot(dev ~ x|par,
-             data.frame(dev = c(profsbd[,2], profsd[,2]),
-                        x = c(sigmas, sigB),
-                        par = gl(2, length(sigmas))),
-             strip = function(..., factor.levels)
-             strip.default(..., factor.levels = c(expression(sigma),
-                                expression(sigma[B]))),
-             ylab = "Deviance", xlab = NULL, type = c("g","l"),
-             scales = list(x = list(relation = "free", axs = 'i'))))
-@   
-  \caption{Profiled deviance in model \code{fm1} for $\sigma$ and $\sigma_B$.}
-  \label{fig:profileddevfm1}
-\end{figure}
-
-We have added a third panel to Figure~\ref{fig:profileddevfm1} showing
-the profiled deviance as a function of the fixed-effects parameter
-$\beta$.  There are, in fact, three distinct parameters in the model.
-During optimization we use the parameters $\theta$, $\beta$ and
-$\sigma$ because we can determine the conditional estimates of $\beta$
-and $\sigma$ for a fixed value of $\theta$ and thereby reduce the
-complexity of the problem of optimizing the parameter estimates.  Most
-summaries of the model, however, are phrased in terms of the
-parameters $\sigma^2_B$, $\sigma^2$ and $\beta$.
-
-The point of all of this exploration of the profiled deviance is to
-examine the shape of the profiled deviance curves as functions of
-these parameters.  It is common when fitting linear mixed models to
-summarize the parameter estimates according to the fixed-effects
-parameter estimates, $\widehat{\bm\beta}$, and their standard errors
-plus the estimates of the ``variance components'',
-$\widehat{\sigma^2_B}$ and $\widehat{\sigma^2}$, and their standard
-errors.  \citet{west07:_linear_mixed_model}, for example, provide a
-guide to using common statistical software for fitting linear mixed
-models, and all of the software that they demonstrate, with the
-notable exception of the \code{lme} function in the \package{nlme}
-package~\citep{pinheiro00:_mixed_effec_model_in_s} for \R{}, provide
-exactly this summary of the variance components.
-
-Implicit in such a summary is the assumption that the profiled
-deviance for a parameter should be approximately quadratic over the
-region of interest.  In Figure~\ref{fig:profileddevfm1} we can see
-that the profiled deviance is not at all close to being a quadratic
-function of $\sigma$ or $\sigma_B$.  Expressed as a function of
-$\sigma^2$ and $\sigma_B^2$ (Figure~\ref{fig:profileddevsqfm1}),
-\begin{figure}[tbp]
-  \centering
-<<profileddevsqfm1,fig=TRUE,echo=FALSE,height=4>>=
-print(xyplot(dev ~ x|par,
-             data.frame(dev = c(profsbd[,2], profsd[,2]),
-                        x = c(sigmas^2, sigB^2),
-                        par = gl(2, length(sigmas))),
-             strip = function(..., factor.levels)
-             strip.default(..., factor.levels = c(expression(sigma^2),
-                                expression(sigma[B]^2))),
-             ylab = "Deviance", xlab = NULL, type = c("g","l"),
-             scales = list(x = list(relation = "free", axs = 'i'))))
-@   
-  \caption{Profiled deviance in model \code{fm1} for $\sigma^2$ and $\sigma_B^2$.}
-  \label{fig:profileddevsqfm1}
-\end{figure}
-the profiled deviance is even further from quadratic behavior.
-
-Of course, it is important to consider how close to quadratic the
-profiled deviance should be and what do we consider to be ``the region
-of interest''.  To answer these questions let us consider a
-transformation of the profiled deviance, of the form discussed in
-\citet[Ch.~6]{bates88:_nonlin_regres_analy_and_its_applic}, called the
-``signed square root'' transformation.  For a particular parameter,
-which we will write as $\phi$, we are interested in the difference
-between the profiled deviance at $\phi=\phi_0$ and the minimum value
-of the deviance.  If we take the square root of that difference, which
-must be non-negative, a quadratic profiled deviance would correspond
-to a ``V-shaped'' pattern like the absolute value function.  If we
-take the negative of the square root on the left side of the estimate
-and the positive square root on the right side of the estimate, a
-quadratic profiled deviance corresponds to a straight line.
-Furthermore, the inverse of the slope of that straight line is the
-standard error of the parameter.
-In~\citet{bates88:_nonlin_regres_analy_and_its_applic} the transformed
-change in the profiled sum of squared residuals for a nonlinear
-regression model is called the \emph{profile t} statistic because it
-corresponds to the \emph{t} statistic for linear models.  The
-corresponding quantity here is more like a \emph{profile z} statistic
-because it comes from a likelihood ratio test, not an F test.
-
-\begin{figure}[tbp]
-  \centering
-<<profzfm1,fig=TRUE,echo=FALSE,height=4>>=
-print(xyplot(profz ~ x|par,
-             data.frame(profz = c(profzs, profzsb),
-                        x = c(sigmas^2, sigB^2),
-                        par = gl(2, length(sigmas))),
-             strip = function(..., factor.levels)
-             strip.default(..., factor.levels = c(expression(sigma^2),
-                                expression(sigma[B]^2))),
-             ylab = "Profile z", xlab = NULL, type = c("g","l"),
-             scales = list(x = list(relation = "free", axs = 'i'))))
-@   
-\caption{Profile z statistic in model \code{fm1} for $\sigma^2$ and
-  $\sigma_B^2$.}
-  \label{fig:profzfm1}
-\end{figure}
 
 
 The latter part of this section covers
