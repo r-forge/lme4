@@ -4,10 +4,12 @@
 <<preliminaries,echo=FALSE,print=FALSE,results=hide>>=
 options(width=65, show.signif.stars = FALSE,
         lattice.theme = function() canonical.theme("pdf", color = FALSE))
+library(splines)
+library(stats4)
 library(lattice)
 library(Matrix)
 library(lme4a)
-if (exists("classroom.rda")) {
+if (file.exists("classroom.rda")) {
     load("classroom.rda")
 } else {
     classroom <-
@@ -21,7 +23,7 @@ if (exists("classroom.rda")) {
     classroom$childid <- NULL
     save(classroom, file = "classroom.rda")
 }
-if (exists("ratbrain.rda")) {
+if (file.exists("ratbrain.rda")) {
     load("ratbrain.rda")
 } else {
     ratbrain <-
@@ -519,8 +521,8 @@ print(contourplot(REML ~ th1 + th2, grd,
               }
                   ))
 @   
-  \caption{Contours of the profiled REML criterion for model \code{fm2}.}
-  \label{fig:fm2profREMLcontours}
+  \caption{Contours of the profiled REML criterion for model \code{cm2}.}
+  \label{fig:cm3profREMLcontours}
 \end{figure}
 
 \section{Rat Brain example}
