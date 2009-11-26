@@ -801,3 +801,26 @@ nlmer2 <- function(formula, data, family = gaussian, start = NULL,
 
     merFinalize(rho)
 }
+
+setMethod("coef", signature(object = "merenvtrms"),
+	  function(object, ...)
+      {
+          if (length(list(...)))
+              warning(paste('arguments named "',
+                            paste(names(list(...)), collapse = ", "),
+                                  '" ignored', sep = ''))
+          fef <- data.frame(rbind(fixef(object)), check.names = FALSE)
+          ref <- ranef(object)
+          val <- lapply(ref, function(x) fef[rep(1, nrow(x)),,drop = FALSE])
+          for (i in seq(a = val)) {
+              refi <- ref[[i]]
+              row.names(val[[i]]) <- row.names(refi)
+              nmsi <- colnames(refi)
+              if (!all(nmsi %in% names(fef)))
+                  stop("unable to align random and fixed effects")
+              for (nm in nmsi) val[[i]][[nm]] <- val[[i]][[nm]] + refi[,nm]
+          }
+          class(val) <- "coef.mer"
+          val
+       })
+
