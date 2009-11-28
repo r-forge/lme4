@@ -1,5 +1,5 @@
-\SweaveOpts{engine=R,eps=FALSE,pdf=TRUE,strip.white=TRUE}
-\SweaveOpts{prefix=TRUE,prefix.string=figs/Long,include=FALSE}
+\SweaveOpts{engine=R,eps=FALSE,pdf=TRUE,width=8,strip.white=TRUE}
+\SweaveOpts{prefix=TRUE,prefix.string=figs/Long,include=TRUE}
 \setkeys{Gin}{width=\textwidth}
 
 <<preliminaries,echo=FALSE,print=FALSE,results=hide>>=
@@ -7,7 +7,6 @@ options(width=80, show.signif.stars = FALSE,
         lattice.theme = function() canonical.theme("pdf", color = FALSE))
 library(lattice)
 library(Matrix)
-#library(coda)
 library(lme4a)
 @
 
@@ -52,6 +51,8 @@ measurements on a given subject for a given day, and two covariates:
 \code{Subject}, the identifier of the subject on which the observation
 was made.
 
+\begin{figure}[tbp]
+  \centering
 <<sleepxyplot,fig=TRUE,echo=FALSE,height=7,width=7>>=
 print(xyplot(Reaction ~ Days | Subject, sleepstudy, aspect = "xy",
              layout = c(6,3), type = c("g", "p", "r"),
@@ -59,8 +60,6 @@ print(xyplot(Reaction ~ Days | Subject, sleepstudy, aspect = "xy",
              xlab = "Days of sleep deprivation",
              ylab = "Average reaction time (ms)"))
 @ 
-\begin{figure}[tbp]
-  \centerline{\includegraphics[width=\textwidth]{figs/Long-sleepxyplot}}
   \caption{A lattice plot of the average reaction time versus number
     of days of sleep deprivation by subject for the \code{sleepstudy}
     data.  Each subject's data are shown in a separate panel, along
@@ -122,13 +121,13 @@ systematic relationship between the subject's initial reaction time
 and their rate of increase in reaction time with days of sleep
 deprivation. 
 
-<<Sl1,fig=TRUE,echo=FALSE,height=3.2,width=7>>=
-#print(plot(confint(lmList(Reaction ~ Days | Subject, sleepstudy),
-### FIXME: Create the necessary confint plot.
-#                   pooled = TRUE), order = 1))
-@ 
 \begin{figure}[tbp]
-  \centerline{\includegraphics[width=\textwidth]{figs/Long-Sl1}}
+  \begin{center}
+<<Sl1,fig=TRUE,echo=FALSE,height=3.5>>=
+print(plot(confint(lmList(Reaction ~ Days | Subject, sleepstudy),
+                   pooled = TRUE), order = 1))
+@ 
+  \end{center}
   \caption{95\% confidence intervals on the intercept and slope of
     linear regression models fitted to the data for each subject in the
     sleep study.  A pooled estimate of the residual standard deviation
@@ -181,16 +180,16 @@ One way of writing such a model is
   \quad i=1,\dots,18, j=1,\dots,10
 \end{equation}
 where $y_{ij}$ is the $j$th reaction time observed on subject $i$,
-taken on day $x_{ij}$, $\bbeta=(\beta_1,\beta_2)\trans$ is the vector
-of fixed effects, $\bb_i=(b_{i1}, b_{i2})\trans$ is the vector of random
+taken on day $x_{ij}$, $\bm\beta=(\beta_1,\beta_2)\trans$ is the vector
+of fixed effects, $\bm b_i=(b_{i1}, b_{i2})\trans$ is the vector of random
 effects for the $i$th subject and $\epsilon_{ij}$ is the unexplained
 or ``residual'' random noise associated with this observation.
 
 We assume that the $\epsilon_{ij}$ are independently distributed as
 $\epsilon_{ij}\sim\mathcal{N}(0,\sigma^2)$.  In the first form of the
-mixed-effects model we assume that the $\bb_i$ are independently
-distributed as $\bb_i\sim\mathcal{N}(\bzer,\bSigma_1)$ where
-$\bSigma_1$ is a general $2\times 2$ variance-covariance matrix.  That
+mixed-effects model we assume that the $\bm b_i$ are independently
+distributed as $\bm b_i\sim\mathcal{N}(\bm0,\bm\Sigma_1)$ where
+$\bm\Sigma_1$ is a general $2\times 2$ variance-covariance matrix.  That
 is, in the first model the random effects for the intercept and the
 slope of the same subject are allowed to be correlated.  Because our
 graphical evaluation of the data in \S\ref{sec:sleep} indicates that
@@ -271,7 +270,7 @@ the parameter estimates.  For the moment we will concentrate on the
 parameter estimates.
 
 The estimates of the fixed effects parameters are
-$\widehat{\bbeta}=(251.41,10.467)\trans$. These represent a typical
+$\widehat{\bm\beta}=(251.41,10.467)\trans$. These represent a typical
 initial reaction time (i.e. without sleep deprivation) in the
 population of about 250 milliseconds, or 1/4 sec., and a typical
 increase in reaction time of a little more than 10 milliseconds per
@@ -325,7 +324,7 @@ intercept and slope and comparing this fitted model to \code{sm1} we
 can assess this claim using a statistical hypothesis test.
 <<sm2>>=
 (sm2 <- lmer(Reaction ~ Days + (1|Subject) + (0+Days|Subject), sleepstudy))
-#anova(sm2, sm1)
+anova(sm2, sm1)
 @ 
 
 We can see that the fitted model \code{sm2} is quite similar to
@@ -350,6 +349,45 @@ does not help us to predict their response to sleep deprivation.
 
 \section{Assessing the precision of the parameter estimates}
 \label{sec:assess-prec-param}
+
+Plots of the profile $\zeta$ (Figure~\ref{fig:pr2plt})
+\begin{figure}[ht]
+  \centering
+<<pr2plt,fig=TRUE,echo=FALSE,height=3.5>>=
+pr2 <- profile(sm2)
+print(xyplot(pr2, aspect = 1.3, layout = c(5,1), absVal = FALSE))
+@ 
+  \caption{Signed square root, $\zeta$, of the likelihood ratio test
+    statistic for each of the parameters in model \code{fm2}.  The
+    vertical lines are the endpoints of 50\%, 80\%, 90\%, 95\% and 99\%
+    confidence intervals derived from this test statistic.}
+  \label{fig:pr2plt}
+\end{figure}
+show that confidence intervals $\sigma_1$ and $\sigma_2$ will be slightly
+skewed; those for $\log(\sigma)$ will be symmetric and
+well-approximated by methods based on quantiles of the standard normal
+distribution and those for the fixed-effects parameters, $\beta_1$ and
+$\beta_2$ will be symmetric and slightly over-dispersed relative to
+the standard normal.  For example, the 95\% confidence intervals from
+the profile $\zeta$ are
+<<confintpr2>>=
+confint(pr2)
+@ 
+
+The profile pairs plot (Figure~\ref{fig:pr2pairs})
+\begin{figure}[ht]
+  \centering
+<<pr2pairs,fig=TRUE,echo=FALSE,height=8>>=
+print(splom(pr2))
+@ 
+\caption{Profile pairs plot for the parameters in model \code{fm2}.
+  The contour lines correspond to marginal 50\%, 80\%, 90\%, 95\% and
+  99\% confidence regions based on the likelihood ratio.  Panels below
+  the diagonal represent the $(\zeta_i,\zeta_j)$ parameters; those above
+  the diagonal represent the original parameters.}
+  \label{fig:pr2pairs}
+\end{figure}
+
 
 In the previous section we used a likelihood ratio test to assess
 whether the covariance of the random effects within subject is
@@ -458,17 +496,17 @@ probability plots (Figure~\ref{fig:ss2qqmath})
 \section{Examining the random effects}
 
   \begin{itemize}
-  \item Although the random effects $\bb$ behave like parameters in
+  \item Although the random effects $\bm b$ behave like parameters in
     the linear predictor, technically they are not parameters in the
     model.
   \item Instead of referring to ``estimates'' of the random effects it
     is customary to refer to ``predictors'' - in particular, the best
     linear unbiased predictors or BLUPs.
   \item These values are also the modes of the conditional
-    distribution (i.e. given the data $\by$ and the estimates of
-    $\bbeta$, $\sigma^2$ and $\bSigma$) of $\bb$.
+    distribution (i.e. given the data $\bm y$ and the estimates of
+    $\bm\beta$, $\sigma^2$ and $\bm\Sigma$) of $\bm b$.
   \item For linear mixed model the conditional
-    distribution $[\bb|\by,\sigma^2,\bSigma]$ is normal (Gaussian)
+    distribution $[\bm b|\bm y,\sigma^2,\bm\Sigma]$ is normal (Gaussian)
     hence the modes are also the conditional means.
   \item The \code{ranef} extractor function returns these conditional
     modes evaluated at the parameter estimates.
@@ -478,13 +516,11 @@ probability plots (Figure~\ref{fig:ss2qqmath})
 (rr1 <- ranef(sm1))
 @ 
 
+\begin{figure}[tbp]
+  \centering
 <<rr1plot,echo=FALSE,fig=TRUE,results=hide,height=7,width=7>>=
 print(plot(rr1, aspect = 1, type = c("g", "p")))
 @
-\pgfdeclareimage[width=\textwidth]{rr1plot}{figs/Long-rr1plot}
-
-\begin{figure}[tbp]
-  \centerline{\pgfuseimage{rr1plot}}
   \caption{Scatterplot of the conditional modes, or BLUPs, of the
     random effects for model \code{Sm1}.  Each point represents the
     mode of the distribution of the random effects for the intercept
@@ -509,6 +545,9 @@ print(plot(rr1, aspect = 1, type = c("g", "p")))
     changed substantially.
   \end{itemize}
 
+
+\begin{figure}[tbp]
+  \centering
 <<shrinkage,echo=FALSE,fig=TRUE,height=7,width=7>>=
 df <- coef(lmList(Reaction ~ Days | Subject, sleepstudy))
 ### FIXME: Need a coef method
@@ -537,10 +576,6 @@ with(df,
                    pch = trellis.par.get("superpose.symbol")$pch[1:2]))
                )))
 @ %$
-\pgfdeclareimage[width=\textwidth]{shrinkage}{figs/Long-shrinkage}
-
-\begin{figure}[tbp]
-  \centerline{\pgfuseimage{shrinkage}}
   \caption{Comparison of the within-subject estimates of the intercept
     and slope for each subject and the conditional modes of the
     per-subject intercept and slope.  Each pair of points joined by an
@@ -550,6 +585,8 @@ with(df,
   \label{fig:shrinkage}
 \end{figure}
 
+\begin{figure}[tbp]
+  \centering
 <<shrinkfit,echo=FALSE,fig=TRUE,height=7,width=7>>=
 print(xyplot(Reaction ~ Days | Subject, sleepstudy, aspect = "xy",
              layout = c(6,3), type = c("g", "p", "r"),
@@ -569,10 +606,6 @@ print(xyplot(Reaction ~ Days | Subject, sleepstudy, aspect = "xy",
              lines = list(col = trellis.par.get("superpose.line")$col[2:1],
              lty = trellis.par.get("superpose.line")$lty[2:1]))))
 @ 
-\pgfdeclareimage[width=\textwidth]{shrinkfit}{figs/Long-shrinkfit}
-
-\begin{figure}[tbp]
-  \centerline{\pgfuseimage{shrinkfit}}
   \caption{Comparison of the predictions from the within-subject fits
     with those from the conditional modes of the subject-specific
     parameters in the mixed-effects model.}
@@ -599,14 +632,13 @@ print(xyplot(Reaction ~ Days | Subject, sleepstudy, aspect = "xy",
     BLUPs are strongly influenced by the data and may appear non-normal.
   \end{itemize}
 
-<<caterpillar,fig=TRUE,echo=FALSE,results=hide,height=4,width=7>>=
-print(qqmath(ranef(sm1,post=TRUE))$Subject)
-@ %$
 
-\pgfdeclareimage[width=\textwidth]{caterpillar}{figs/Long-caterpillar}
 
 \begin{figure}[tbp]
-  \centerline{\pgfuseimage{caterpillar}}
+  \centering
+<<caterpillar,fig=TRUE,echo=FALSE,results=hide,height=4,width=7>>=
+#print(qqmath(ranef(sm1,post=TRUE))[[1]])
+@
   \caption{Prediction intervals on the random effects per subject.}
   \label{fig:caterpillar}
 \end{figure}
@@ -629,25 +661,21 @@ contributes to the random effects specification.  An unconditional
 term contributes to the fixed effects specification.
 
 The unconditional terms, together with the data to be fit, generate an
-$n\times p$ fixed-effects model matrix $\bX$ according to the rules
+$n\times p$ fixed-effects model matrix $\bm X$ according to the rules
 that we describe in \S\ref{sec:model_formulas}.  The dimensions $n$
 and $p$ are the number of observations and the dimension of the
-fixed-effects parameter vector $\bbeta$, respectively.  In this case
+fixed-effects parameter vector $\bm\beta$, respectively.  In this case
 of model \code{sm1} the only unconditional term, \code{Days}, is the
 name of a numeric variable, which is incorporated as a column,
-labelled \code{Days} in $\bX$. By convention, the intercept term,
+labelled \code{Days} in $\bm X$. By convention, the intercept term,
 which generates a column of $1$'s labelled \code{(Intercept)}, is
 included implicitly in the model specification.  (This column can be
 suppressed if desired, as shown below.)
 
-The first few rows of the $180\times 2$ model matrix $\bX$ for model
+The first few rows of the $180\times 2$ model matrix $\bm X$ for model
 \code{sm1} are
-<<headmodelmatrixsm1,eval=FALSE>>=
-#FIXME: Write model.matrix and model.response methods for the lmer class
+<<headmodelmatrixsm1>>=
 head(model.matrix(sm1))
-@ 
-<<headsm1X,echo=FALSE>>=
-head(sm1@X)
 @ 
 
 Each conditional term in the model formula generates a set of random
@@ -675,8 +703,8 @@ response.  There is one further level of variation in the model - the
 ``per-observation'' or ``residual'' noise.  It is the unexplained
 variation or what is ``left over'' after we have modeled all the other
 sources of variation in the model.  This level of variation is modeled
-as an $n$-dimensional vector $\beps\sim\mathcal{N}(\bzer,\sigma^2\bI)$
-where $\bI$ is an identity matrix.  That is, the elements of $\beps$
+as an $n$-dimensional vector $\bm\epsilon\sim\mathcal{N}(\bm0,\sigma^2\bm I)$
+where $\bm I$ is an identity matrix.  That is, the elements of $\bm\epsilon$
 is independent and identical normal random variates with mean zero and
 variance $\sigma^2$.
 
@@ -687,22 +715,22 @@ levels of the grouping factor for the $i$th such term and $q_i$ be the
 number of random effects associated with each level of the grouping
 factor.
 
-If we represent all the random effects as a vector $\bb$, of length
+If we represent all the random effects as a vector $\bm b$, of length
 $q=\sum_{i=1}^kq_in_i$, we can write
 the model as
 \begin{equation}
   \label{eq:lmmGeneral}
-  \by = \bX\bbeta + \bZ\bb + \beps,\quad
-  \bb\sim\mathcal{N}\left(\bzer,\bSigma\right),
-  \beps\sim\mathcal{N}\left(\bzer,\sigma^2\bI\right),\bb\perp\beps
+  \bm y = \bm X\bm\beta + \bm Z\bm b + \bm\epsilon,\quad
+  \bm b\sim\mathcal{N}\left(\bm0,\bm\Sigma\right),
+  \bm\epsilon\sim\mathcal{N}\left(\bm0,\sigma^2\bm I\right),\bm b\perp\bm\epsilon
 \end{equation}
-where $\bZ$ is an $n\times q$ model matrix generated from the
-conditional terms, $\bSigma$ is a $q\times q$ variance-covariance
+where $\bm Z$ is an $n\times q$ model matrix generated from the
+conditional terms, $\bm\Sigma$ is a $q\times q$ variance-covariance
 matrix, also generated from the conditional terms, and the symbol
 $\perp$ denotes independent random variables.
 
 Although the total number of random effects, $q$, can be large and
-hence the dimensions of $\bZ$ and $\bSigma$ in the general form
+hence the dimensions of $\bm Z$ and $\bm\Sigma$ in the general form
 (\ref{eq:lmmGeneral}) can be very large, these matrices are sparse and
 patterned and thus are determined by a relatively small number of
 values.
@@ -710,30 +738,30 @@ values.
 For model \code{sm1}, $k=1$, $q_1=2$ and $n_i=18$ so, as we have seen,
 $q=36$. However, the assumptions of independence of random effects
 associated with different subjects means that the $36\times 36$ matrix
-$\bSigma$ consists of the $2\times 2$ matrix $\bSigma_1$
+$\bm\Sigma$ consists of the $2\times 2$ matrix $\bm\Sigma_1$
 repeated $18$ times in the pattern
 \begin{equation}
   \label{eq:bSigmasm1}
-  \bSigma=
+  \bm\Sigma=
   \begin{bmatrix}
-    \bSigma_1 & \bzer     & \hdots & \bzer\\
-    \bzer     & \bSigma_1 & \hdots & \bzer\\
+    \bm\Sigma_1 & \bm0     & \hdots & \bm0\\
+    \bm0     & \bm\Sigma_1 & \hdots & \bm0\\
     \vdots    & \vdots    & \ddots & \vdots\\
-    \bzer     & \bzer     & \hdots & \bSigma_1
+    \bm0     & \bm0     & \hdots & \bm\Sigma_1
   \end{bmatrix}
 \end{equation}
 
-Also, although the model matrix $\bZ$ has dimension $180\times 36$,
+Also, although the model matrix $\bm Z$ has dimension $180\times 36$,
 all but two of the elements in any given row are known to be zero.
 Each row corresponds to one and only one subject and the model for
 that row incorporates only the two random effects associated with that
 subject. The other $34$ random effects associated with other subjects
 are multiplied by zero.
 
-The matrix $\bZ$ is evaluated and stored as a sparse matrix.  The
-first few rows of $\bZ$ for model \code{sm1} are
+The matrix $\bm Z$ is evaluated and stored as a sparse matrix.  The
+first few rows of $\bm Z$ for model \code{sm1} are
 <<Zsm1,echo=FALSE>>=
-head(t(sm1@Zt))
+head(t(env(sm1)$Zt))
 @ 
 These rows correspond to the first $6$ observations on the first subject.
 In the representation as a sparse matrix an element that is known to
@@ -743,23 +771,36 @@ for this observation.  It could have another value if, for example, we
 renumbered the \code{Days} and thus is not a systematic zero in the
 matrix.)
 
+Easier to understand, perhaps, is the image of $\bm Z\trans$ in
+Figure~\ref{fig:sm2Zt}.
+\begin{figure}[tbp]
+  \centering
+<<sm2Zt,fig=TRUE,echo=FALSE,results=hide,height=3,width=8>>=
+print(image(env(sm2)$Zt, sub = NULL, xlab = NULL, ylab = NULL))
+@
+\caption{Image of $\bm Z\trans$, the transpose of $\bm Z$, the random
+  effects model matrix in model \code{sm2}}
+  \label{fig:sm2Zt}
+\end{figure}
 
-In the model $\bb$ is a random variable
+
+
+In the model $\bm b$ is a random variable
 \begin{equation}
   \label{eq:bdist}
-  \bb\sim\mathcal{N}(\bzer,\bSigma)
+  \bm b\sim\mathcal{N}(\bm0,\bm\Sigma)
 \end{equation}
-and it is the elements of $\bSigma$ that we estimate.  Because we
+and it is the elements of $\bm\Sigma$ that we estimate.  Because we
 assume that random effects associated with different grouping factors
 are indep
 which we can write as
 If we write the
-model matrix for the entire random effects vector as $\bZ$ and the
+model matrix for the entire random effects vector as $\bm Z$ and the
 variance-cov
-matrix, which we call $\bZ$, for the random effects vector.
+matrix, which we call $\bm Z$, for the random effects vector.
 
 contribute to another model matrix, which we call
-$\bZ$, through a slightly more complicated mechanism.  In a
+$\bm Z$, through a slightly more complicated mechanism.  In a
 conditional term the expression on the left of the \code{|} is
 interpreted as a linear model formula and used to create a model
 matrix while the expression on the right of the \code{|} is evaluated as a
@@ -770,7 +811,7 @@ conditional term in the model specification for model \code{sm1}.
 
 If the model matrix from the expression on the left of the $i$th
 conditional has $q_i$ columns and the grouping factor has $n_i$ levels
-then the expression contributes $q_in_i$ columns to the matrix $\bZ$.
+then the expression contributes $q_in_i$ columns to the matrix $\bm Z$.
 
 \section{Conclusions from the example}
 
