@@ -5,7 +5,6 @@
 options(width=65, show.signif.stars = FALSE,
         lattice.theme = function() canonical.theme("pdf", color = FALSE))
 library(splines)
-library(stats4)
 library(lattice)
 library(Matrix)
 library(lme4a)
