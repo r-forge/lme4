@@ -15,6 +15,7 @@ copylmer <- function(x) {
     environment(gb) <- environment(gp) <- environment(sp) <- en
     new("lmerenv", setPars = sp, getPars = gp, getBounds = gb)
 }
+
 ##' Drop the which'th column from X in rho.
 
 ##' Drop the which'th column from the fixed-effects model matrix in rho,
@@ -37,11 +38,6 @@ dropX <- function(rho, which, fw) {
     rho$fixef <- rho$fixef[-w]
     rho$Xw <- rho$X[, w, drop = TRUE]
     rho$X <- X <- rho$X[, -w, drop = FALSE]
-    ## expand a zero length offset
-    if (!length(rho$offset))
-        rho$offset <- numeric(nrow(X))
-    ## store the original offset
-    rho$offset.orig <- rho$offset
     ## offset calculated from fixed parameter value
     rho$offset <- rho$Xw * fw + rho$offset.orig
     derived_mats(rho)
@@ -115,7 +111,7 @@ devfun <- function(fm)
 }
 
 setMethod("profile", "lmerenv",
-          thpr <- function(fitted, alphamax = 0.01, maxpts = 100, delta = cutoff/5,
+          function(fitted, alphamax = 0.01, maxpts = 100, delta = cutoff/5,
                            tr = 0, ...)
       {
           dd <- lme4a:::devfun(fitted)  # checks class too
@@ -220,6 +216,11 @@ setMethod("profile", "lmerenv",
               form[[3]] <- as.name(names(opt)[w])
               bakspl[[w]] <- backSpline(forspl[[w]] <- interpSpline(form, bres))
           }
+
+          ## store the original offset before profiling fixed effects
+          if (!length(rr$offset))      # expand a zero length offset
+              rr$offset <- numeric(length(rr$y))
+          rr$offset.orig <- rr$offset
 
           for (j in seq_len(p)) {
               pres <-            # intermediate results for pos. incr.
