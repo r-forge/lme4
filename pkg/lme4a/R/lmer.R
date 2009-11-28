@@ -24,7 +24,7 @@ check_y_weights <- function(fr, rho) {
         if (loff == 1) {
             offset <- rep.int(offset, n)
         } else if (loff != n) {
-            stop(gettextf("number of offsets is %d should equal %d (number of observations)",
+            stop(gettextf("number of offsets (%d) should %d (number of observations)",
                           loff, n), domain = "R-lme4")
         }
     }
