@@ -1,7 +1,7 @@
 R_PROG = R-devel
 #R_PROG = R
 FRONT = DMBmacros.tex dedication.tex preface.tex
-CHAPTERS = ChIntro ChMultiple 
+CHAPTERS = ChIntro ChMultiple ChLongitudinal
 APPENDICES = 
 
 all:  $(CHAPTERS:=.tex) $(CHAPTERS:=.R) $(APPENDICES:=.tex) $(APPENDICES:=.R) lMMwR.pdf lrgprt.pdf
