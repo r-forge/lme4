@@ -6,7 +6,6 @@
 options(width=65, show.signif.stars = FALSE,
         lattice.theme = function() canonical.theme("pdf", color = FALSE))
 library(splines)
-library(stats4)
 library(lattice)
 library(Matrix)
 library(lme4a)
@@ -688,7 +687,7 @@ performing a hypothesis test of the form $H_0:\phi = \phi_0$
   z_{\text{obs}}=\frac{\widehat{\phi} - \phi_0}{s_\phi}
 \end{equation}
 and evaluating a p-value as
-$2\mdot\mathrm{P}[\mathcal{Z}>|z_{\text{obs}}|]$ is also an
+$2\cdot\mathrm{P}[\mathcal{Z}>|z_{\text{obs}}|]$ is also an
 approximation.
 
 Of course, we don't need to perform hypothesis tests of the form
