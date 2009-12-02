@@ -6,7 +6,6 @@ import(lattice)
 import(splines)
 
 importFrom(graphics, plot)
-importFrom(stats4, BIC)
 importFrom(stats, AIC, anova, coef, confint, deviance, fitted, formula,
            logLik, model.frame, model.matrix, predict, profile,
            resid, residuals, simulate, terms, vcov)

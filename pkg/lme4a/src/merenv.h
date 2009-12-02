@@ -15,9 +15,10 @@ extern "C" {
 #include <Rdefines.h>
 #include "Matrix.h"
 
-SEXP lmerenv_deviance(SEXP rho, SEXP newth);
-SEXP lmerenv_validate(SEXP rho);
-SEXP lme4_dup_env_contents(SEXP dest, SEXP src, SEXP nms);
+    SEXP lmerenv_deviance(SEXP rho, SEXP newth);
+    SEXP lmerenv_validate(SEXP rho);
+    SEXP merenv_condVar(SEXP rho, SEXP scale);
+    SEXP lme4_dup_env_contents(SEXP dest, SEXP src, SEXP nms);
 
 #ifdef	__cplusplus
 }
@@ -187,6 +188,19 @@ public:
     }
     CHM_SP XtX, ZtX;
 };
+
+class merenvtrms : public merenv {
+public:
+    merenvtrms(SEXP rho);  	//< construct from an environment
+    
+    int validate() {
+	return 1;
+    }
+    SEXP flist;
+    int *assign;
+    SEXP cnms;
+};
+
 
 #endif /* __cplusplus */
 

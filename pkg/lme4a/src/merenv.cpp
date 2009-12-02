@@ -224,6 +224,13 @@ lmersparse::lmersparse(SEXP rho) {
     XtX = VAR_CHM_SP(rho, install("XtX"), p, p);
 }
 
+merenvtrms::merenvtrms(SEXP rho) {
+    initMer(rho);
+    flist = findVarBound(rho, install("flist"));
+    cnms = findVarBound(rho, install("cnms"));
+    
+}
+
 
 void lmer::LMMdev1() {		// update L, create cu
     CHM_DN cZty = N_AS_CHM_DN(Zty, q, 1);
