@@ -86,6 +86,9 @@ makeZt <- function(bars, fr, rho) {
                     function(x)
                 {
                     ff <- eval(substitute(factor(fac), list(fac = x[[3]])), fr)
+                    if (all(is.na(ff)))
+                        stop("Invalid grouping factor specification,",
+                             x[[3]])
                     nl <- length(levels(ff))
                     mm <- model.matrix(eval(substitute( ~ foo,
                                                        list(foo = x[[2]]))), fr)
