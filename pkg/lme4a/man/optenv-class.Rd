@@ -3,9 +3,22 @@
 \docType{class}
 \alias{optenv-class}
 \alias{lmerenv-class}
-%\alias{getBounds,optenv-method}
-%\alias{getPars,optenv-method}
-%\alias{setPars,optenv,numeric-method}
+\alias{anova,lmerenv-method}
+\alias{coef,merenvtrms-method}
+\alias{deviance,lmerenv-method}
+\alias{env,optenv-method}
+\alias{logLik,lmerenv-method}
+\alias{model.frame,lmerenv-method}
+\alias{model.matrix,lmerenv-method}
+\alias{print,lmerenv-method}
+\alias{profile,lmerenv-method}
+\alias{show,lmerenv-method}
+\alias{sigma,lmerenv-method}
+\alias{summary,lmerenv-method}
+\alias{terms,lmerenv-method}
+\alias{update,merenv-method}
+\alias{VarCorr,lmerenv-method}
+\alias{vcov,lmerenv-method}
 
 \title{Class "optenv" - an optimization environment}
 \description{An S4 class of functions used for optimization of a
