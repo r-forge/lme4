@@ -15,11 +15,12 @@ extern "C" {
 #include <Rdefines.h>
 #include "Matrix.h"
 
+    SEXP lme4_dup_env_contents(SEXP dest, SEXP src, SEXP nms);
     SEXP lmerenv_deviance(SEXP rho, SEXP newth);
     SEXP lmerenv_validate(SEXP rho);
     SEXP merenvtrms_condVar(SEXP rho, SEXP scale);
+    SEXP merenvtrms_show(SEXP rho);
     SEXP merenvtrms_validate(SEXP rho);
-    SEXP lme4_dup_env_contents(SEXP dest, SEXP src, SEXP nms);
 
 #ifdef	__cplusplus
 }
@@ -195,14 +196,15 @@ public:
     merenvtrms(SEXP rho);  	//< construct from an environment
     
     SEXP condVar(double scale);	//< create the conditional variance array
-    
+    void show();		//< debugging output
+
     int validate() {
 	return 1;
     }
     SEXP flist;			//< pointer to list of grouping factors
     int nfac;			//< number of grouping factors
     int *nl;			//< number of levels per factor
-    int *assign;		//< assign attribute
+    int *apt;			//< rle pointers into assign array
     int ntrm;			//< number of terms
     int *nc;			//< number of columns per term
 };
@@ -211,3 +213,4 @@ public:
 #endif /* __cplusplus */
 
 #endif /* LME4_MERENV_H */
+
