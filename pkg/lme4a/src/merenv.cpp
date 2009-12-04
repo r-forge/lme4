@@ -6,6 +6,9 @@
 
 void merenv::initMer(SEXP rho)
 {
+    if (!isEnvironment(rho))
+	error(_("argument rho must be an environment"));
+
     // Extract slots that must have positive length.
     // Get dimensions of the problem
     SEXP sl = findVarBound(rho, lme4_ySym);
@@ -339,11 +342,28 @@ double lmersparse::update_dev(SEXP thnew) {
 
 merenvtrms::merenvtrms(SEXP rho) {
     initMer(rho);
+
     flist = findVarBound(rho, install("flist"));
     if (!isNewList(flist))
 	error(_("Object \"flist\" must be a list"));
     nfac = LENGTH(flist);
+
+    SEXP cnms = findVarBound(rho, install("cnms"));
+    if (!isNewList(cnms))
+	error(_("Object \"cnms\" must be a list"));
+    ntrm = LENGTH(cnms);
+
+    nc = (int*)R_alloc(sizeof(int), ntrm);
     nl = (int*)R_alloc(sizeof(int), nfac);
+    apt = (int*)R_alloc(sizeof(int), nfac + 1);
+    apt[0] = 0;
+
+    SEXP asgn = getAttrib(flist, install("assign"));
+    if (LENGTH(asgn) != ntrm)
+	error(_("length(attr(flist, \"assign\")) != length(cnms)"),
+	      LENGTH(asgn), ntrm);
+    int *assign = INTEGER(asgn);
+
     for (int i = 0; i < nfac; i++) {
 	SEXP ff = VECTOR_ELT(flist, i);
 	if (!isFactor(ff))
@@ -353,48 +373,57 @@ merenvtrms::merenvtrms(SEXP rho) {
 		  i + 1, LENGTH(ff), n);
 	nl[i] = LENGTH(getAttrib(ff, R_LevelsSymbol));
     }
-
-    SEXP asgn = getAttrib(flist, install("assign"));
-    SEXP cnms = findVarBound(rho, install("cnms"));
-    ntrm = LENGTH(asgn);
-    if (LENGTH(cnms) != ntrm)
-	error(_("length(attr(flist, \"assign\")) != length(cnms)"),
-	      ntrm, LENGTH(cnms));
-    nc = (int*)R_alloc(sizeof(int), ntrm);
-    for (int i = 0; i < ntrm; i++) nc[i] = LENGTH(VECTOR_ELT(cnms, i));
-
-    assign = INTEGER(asgn);
-    int *used = new int[nfac];
-    for (int i = 0; i < nfac; i++) used[i] = 0;
-        // check range in assign and usage of flist
+				// check range in assign, store nc and apt
     for (int i = 0; i < ntrm; i++) {
 	int ii = assign[i];
 	if (ii < 1 || nfac < ii)
 	    error(_("assign attribute els must be in [1,%d]"), nfac);
-	used[ii - 1] = 1;
 	if (i > 0 && assign[i - 1] > assign[i])
 	    error(_("assign attribute must be non-decreasing"));
+	nc[i] = LENGTH(VECTOR_ELT(cnms, i));
+	apt[ii] = i + 1;
     }
+    if (apt[nfac] != ntrm)
+	error(_("assign attribute does not agree with flist"));
     for (int i = 0; i < nfac; i++)
-	if (!used[i])
-	    error(_("factor %d does not occur in assign attribute"),
-		  i + 1);
-    delete[] used;
-    
+	if (apt[i] >= apt[i + 1])
+	    error(_("assign attribute missing index %d"), i + 1);
 }
 
+void merenvtrms::show() {
+    printf("merenvtrms object: ntrm = %d, nfac = %d\n nl:", ntrm, nfac);
+    for (int i = 0; i < nfac; i++) printf(" %d", nl[i]);
+    printf("\n apt:");
+    for (int i = 0; i <= nfac; i++) printf(" %d", apt[i]);
+    printf("\n nc:");
+    for (int i = 0; i < ntrm; i++) printf(" %d", nc[i]);
+    printf("\n");
+}
+    
 SEXP merenvtrms::condVar(double scale) {
     SEXP ans = PROTECT(allocVector(VECSXP, nfac));
+    int offset = 0;
+    
+    if (scale < 0 || !R_FINITE(scale))
+	error(_("scale must be a finite, non-negative numeric scalar"));
 
-    int *apt = new int[nfac + 1]; // pointers into assign
-    apt[0] = 0;			  // initialize
-    for (int i = 0; i < ntrm; i++) apt[assign[i]] = i;
     for (int i = 0; i < nfac; i++) {
-	int nct = 0;		// total number of columns
-	for (int j = apt[i]; j < apt[i + 1]; j++) nct += nc[j];
-	SET_VECTOR_ELT(ans, i, alloc3DArray(REALSXP, nct, nct, nl[i]));
+	int ntrm = 0,		// number of terms for this factor
+	    nct = 0,		// total number of columns
+	    nli = nl[i];	// number of levels
+	for (int j = apt[i]; j < apt[i + 1]; j++) {
+	    nct += nc[j];
+	    ntrm++;
+	}
+	
+	SET_VECTOR_ELT(ans, i, alloc3DArray(REALSXP, nct, nct, nli));
+	if (ntrm > 1) error(_("code not yet written"));
+// FIXME: This will be easier to write with access to the function
+// cholmod_submatrix	
+	
+	
+	offset += nli * nct;
     }
-    delete[] apt;
     UNPROTECT(1);
     return ans;
 }
@@ -445,15 +474,27 @@ extern "C" {
     }
 
 /**
- * Check validity of an merenv environment
+ * Check validity of an merenvtrms environment
  *
- * @param x pointer to an merenv environment
+ * @param rho pointer to an merenvtrms environment
+ * @return TRUE if successful, otherwise it throws an error
  */
     SEXP merenvtrms_validate(SEXP rho) {
 	return ScalarLogical(merenvtrms(rho).validate());
     }
+/**
+ * Create the conditional variance arrays
+ *
+ * @param rho pointer to an merenvtrms environment
+ * @param scale a numeric scalar -- the non-negative scale factor
+ *
+ * @return a list of 3D arrays corresponding to the factors in flist
+ */
     SEXP merenvtrms_condVar(SEXP rho, SEXP scale) {
 	return merenvtrms(rho).condVar(asReal(scale));
     }
-    
+    SEXP merenvtrms_show(SEXP rho) {
+	merenvtrms(rho).show();
+	return R_NilValue;
+    }
 }
