@@ -6,14 +6,12 @@
 \alias{anova,lmerenv-method}
 \alias{coef,merenvtrms-method}
 \alias{deviance,lmerenv-method}
-\alias{env,optenv-method}
 \alias{logLik,lmerenv-method}
 \alias{model.frame,lmerenv-method}
 \alias{model.matrix,lmerenv-method}
 \alias{print,lmerenv-method}
 \alias{profile,lmerenv-method}
 \alias{show,lmerenv-method}
-\alias{sigma,lmerenv-method}
 \alias{summary,lmerenv-method}
 \alias{terms,lmerenv-method}
 \alias{update,merenv-method}
