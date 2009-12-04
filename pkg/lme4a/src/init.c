@@ -35,6 +35,8 @@ static R_CallMethodDef CallEntries[] = {
     CALLDEF(mer_update_mu, 1),
     CALLDEF(mer_validate, 1),
 
+    CALLDEF(merenvtrms_condVar, 2),
+    CALLDEF(merenvtrms_validate, 1),
   {NULL, NULL, 0}
 };
 
