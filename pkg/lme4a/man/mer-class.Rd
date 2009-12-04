@@ -23,7 +23,6 @@
 \alias{resid,mer-method}
 \alias{residuals,mer-method}
 \alias{show,mer-method}
-\alias{sigma,mer-method}
 \alias{simulate,mer-method}
 \alias{summary,mer-method}
 \alias{terms,mer-method}

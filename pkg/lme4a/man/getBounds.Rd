@@ -15,6 +15,8 @@
 \alias{setPars,environment,numeric-method}
 \alias{setPars,optenv,numeric-method}
 \alias{setPars,ST,ANY-method}
+\alias{env}
+\alias{env,optenv-method}
 \title{
   Generic functions required by optimization environment objects
 }
@@ -30,6 +32,7 @@
 getBounds(x, \dots)
 getPars(x, \dots)
 setPars(x, pars, \dots)
+env(x, \dots)
 }
 \arguments{
   \item{x}{an object of a class, such as \code{\linkS4class{optenv}},
@@ -42,7 +45,6 @@ setPars(x, pars, \dots)
     \code{getBounds} method.}
   \item{\dots}{optional additional arguments (none used at present).}
 }
-%\details{}
 \value{
   A \code{getPars} method returns the numeric vector of the object's
   parameters that are to be optimized.  A \code{getBounds} method returns
@@ -50,19 +52,17 @@ setPars(x, pars, \dots)
   values.  A \code{setPars} method sets the value of the parameters in
   \code{x} to \code{pars} and returns the value of the objective function
   at these parameter values.
+
+  An \code{env} method returns the common environment accessed by the other
+  methods.
 }
 \section{Methods}{
 \describe{
   \item{x = "environment"}{\code{getBounds} or \code{getPars} method}
-  \item{x = "optenv"}{\code{getBounds} or \code{getPars} method}
+  \item{x = "optenv"}{\code{getBounds} or \code{getPars} or \code{env} method}
   \item{x = "ST"}{\code{getBounds} or \code{getPars} method}
   \item{x = "environment", pars = "numeric"}{\code{setPars} method}
   \item{x = "optenv", pars = "numeric"}{\code{setPars} method}
   \item{x = "ST", pars = "ANY"}{\code{setPars} method}
 }}
-%\references{}
-%\author{}
-%\note{}
-%\seealso{}
-%\examples{}
 \keyword{methods}
