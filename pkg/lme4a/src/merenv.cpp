@@ -172,6 +172,8 @@ CHM_SP merenv::solvePL(CHM_SP src) {
     return tmp1;
 }
 
+// Definition of methods for the mersparse and merdense classes
+
 void mersparse::update_eta() {
     update_eta_Ut();
     M_cholmod_sdmult(X, 0/*no transpose*/, &one, &one,
@@ -198,6 +200,8 @@ void mersparse::initMersd(SEXP rho) {
     RZX = VAR_CHM_SP(rho, lme4_RZXSym, q, p);
 }
 
+// definition of methods for the lmer, lmerdense and lmersparse classes
+
 void lmer::initLMM(SEXP rho) {
     if (N != n)
 	error(_("nrow(X) = %d must match length(y) = %d for lmer"),
@@ -223,14 +227,6 @@ lmersparse::lmersparse(SEXP rho) {
     ZtX = VAR_CHM_SP(rho, install("ZtX"), q, p);
     XtX = VAR_CHM_SP(rho, install("XtX"), p, p);
 }
-
-merenvtrms::merenvtrms(SEXP rho) {
-    initMer(rho);
-    flist = findVarBound(rho, install("flist"));
-    cnms = findVarBound(rho, install("cnms"));
-    
-}
-
 
 void lmer::LMMdev1() {		// update L, create cu
     CHM_DN cZty = N_AS_CHM_DN(Zty, q, 1);
@@ -316,6 +312,7 @@ double lmersparse::update_dev(SEXP thnew) {
     CHM_FR LL = M_cholmod_analyze_p(DD, Perm, (int*)NULL, (size_t) 0, &c);
     if (!M_cholmod_factorize(DD, LL, &c))
 	error(_("Downdated X'X is not positive definite"));
+    delete[] Perm;
     M_cholmod_free_sparse(&DD, &c);
     *ldRX2 = M_chm_factor_ldetL2(LL);
 				// evaluate fixef
@@ -338,7 +335,71 @@ double lmersparse::update_dev(SEXP thnew) {
     return LMMdev3();
 }
 
-/* Externally callable functions */
+// definitions of methods for the merenvtrms classes
+
+merenvtrms::merenvtrms(SEXP rho) {
+    initMer(rho);
+    flist = findVarBound(rho, install("flist"));
+    if (!isNewList(flist))
+	error(_("Object \"flist\" must be a list"));
+    nfac = LENGTH(flist);
+    nl = (int*)R_alloc(sizeof(int), nfac);
+    for (int i = 0; i < nfac; i++) {
+	SEXP ff = VECTOR_ELT(flist, i);
+	if (!isFactor(ff))
+	    error(_("Element %d of flist is not a factor"), i + 1);
+	if (LENGTH(ff) != n)
+	    error(_("Element %d is length, %d; should be %d"),
+		  i + 1, LENGTH(ff), n);
+	nl[i] = LENGTH(getAttrib(ff, R_LevelsSymbol));
+    }
+
+    SEXP asgn = getAttrib(flist, install("assign"));
+    SEXP cnms = findVarBound(rho, install("cnms"));
+    ntrm = LENGTH(asgn);
+    if (LENGTH(cnms) != ntrm)
+	error(_("length(attr(flist, \"assign\")) != length(cnms)"),
+	      ntrm, LENGTH(cnms));
+    nc = (int*)R_alloc(sizeof(int), ntrm);
+    for (int i = 0; i < ntrm; i++) nc[i] = LENGTH(VECTOR_ELT(cnms, i));
+
+    assign = INTEGER(asgn);
+    int *used = new int[nfac];
+    for (int i = 0; i < nfac; i++) used[i] = 0;
+        // check range in assign and usage of flist
+    for (int i = 0; i < ntrm; i++) {
+	int ii = assign[i];
+	if (ii < 1 || nfac < ii)
+	    error(_("assign attribute els must be in [1,%d]"), nfac);
+	used[ii - 1] = 1;
+	if (i > 0 && assign[i - 1] > assign[i])
+	    error(_("assign attribute must be non-decreasing"));
+    }
+    for (int i = 0; i < nfac; i++)
+	if (!used[i])
+	    error(_("factor %d does not occur in assign attribute"),
+		  i + 1);
+    delete[] used;
+    
+}
+
+SEXP merenvtrms::condVar(double scale) {
+    SEXP ans = PROTECT(allocVector(VECSXP, nfac));
+
+    int *apt = new int[nfac + 1]; // pointers into assign
+    apt[0] = 0;			  // initialize
+    for (int i = 0; i < ntrm; i++) apt[assign[i]] = i;
+    for (int i = 0; i < nfac; i++) {
+	int nct = 0;		// total number of columns
+	for (int j = apt[i]; j < apt[i + 1]; j++) nct += nc[j];
+	SET_VECTOR_ELT(ans, i, alloc3DArray(REALSXP, nct, nct, nl[i]));
+    }
+    delete[] apt;
+    UNPROTECT(1);
+    return ans;
+}
+
+// Externally callable functions
 
 extern "C" {
 
@@ -366,7 +427,7 @@ extern "C" {
 	if (asLogical(findVarBound(rho, install("sparseX"))))
 	    return ScalarLogical(lmersparse(rho).validate());
 	else
-	    return ScalarReal(lmerdense(rho).validate());
+	    return ScalarLogical(lmerdense(rho).validate());
     }
 
     SEXP lme4_dup_env_contents(SEXP dest, SEXP src, SEXP nms) {
@@ -381,6 +442,18 @@ extern "C" {
 	    defineVar(nmsym, duplicate(findVarBound(src, nmsym)), dest);
 	}
 	return dest;
+    }
+
+/**
+ * Check validity of an merenv environment
+ *
+ * @param x pointer to an merenv environment
+ */
+    SEXP merenvtrms_validate(SEXP rho) {
+	return ScalarLogical(merenvtrms(rho).validate());
+    }
+    SEXP merenvtrms_condVar(SEXP rho, SEXP scale) {
+	return merenvtrms(rho).condVar(asReal(scale));
     }
     
 }

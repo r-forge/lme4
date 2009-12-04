@@ -17,7 +17,8 @@ extern "C" {
 
     SEXP lmerenv_deviance(SEXP rho, SEXP newth);
     SEXP lmerenv_validate(SEXP rho);
-    SEXP merenv_condVar(SEXP rho, SEXP scale);
+    SEXP merenvtrms_condVar(SEXP rho, SEXP scale);
+    SEXP merenvtrms_validate(SEXP rho);
     SEXP lme4_dup_env_contents(SEXP dest, SEXP src, SEXP nms);
 
 #ifdef	__cplusplus
@@ -193,12 +194,17 @@ class merenvtrms : public merenv {
 public:
     merenvtrms(SEXP rho);  	//< construct from an environment
     
+    SEXP condVar(double scale);	//< create the conditional variance array
+    
     int validate() {
 	return 1;
     }
-    SEXP flist;
-    int *assign;
-    SEXP cnms;
+    SEXP flist;			//< pointer to list of grouping factors
+    int nfac;			//< number of grouping factors
+    int *nl;			//< number of levels per factor
+    int *assign;		//< assign attribute
+    int ntrm;			//< number of terms
+    int *nc;			//< number of columns per term
 };
 
 
