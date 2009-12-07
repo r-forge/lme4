@@ -369,7 +369,7 @@ merenvtrms::merenvtrms(SEXP rho) {
 	if (!isFactor(ff))
 	    error(_("Element %d of flist is not a factor"), i + 1);
 	if (LENGTH(ff) != n)
-	    error(_("Element %d is length, %d; should be %d"),
+	    error(_("Element %d has length %d; should be %d"),
 		  i + 1, LENGTH(ff), n);
 	nl[i] = LENGTH(getAttrib(ff, R_LevelsSymbol));
     }
@@ -384,7 +384,7 @@ merenvtrms::merenvtrms(SEXP rho) {
 	apt[ii] = i + 1;
     }
     if (apt[nfac] != ntrm)
-	error(_("assign attribute does not agree with flist"));
+	error(_("assign attribute does not agree with cnms"));
     for (int i = 0; i < nfac; i++)
 	if (apt[i] >= apt[i + 1])
 	    error(_("assign attribute missing index %d"), i + 1);
@@ -415,14 +415,14 @@ SEXP merenvtrms::condVar(double scale) {
 	    nct += nc[j];
 	    ntrm++;
 	}
-	
+	int *cset = new int[nct];
 	SET_VECTOR_ELT(ans, i, alloc3DArray(REALSXP, nct, nct, nli));
 	if (ntrm > 1) error(_("code not yet written"));
-// FIXME: This will be easier to write with access to the function
-// cholmod_submatrix	
-	
-	
+	for (int j = 0; j < nl[i]; j++) {
+// create cset, use M_cholmod_submatrix and M_cholmod_solve
+	}
 	offset += nli * nct;
+	delete[] cset;
     }
     UNPROTECT(1);
     return ans;
