@@ -339,18 +339,19 @@ setMethod("ranef", signature(object = "merenvtrms"),
           ans <- ans[whchL]
 
           if (postVar) {
+              vv <- .Call(merenvtrms_condVar, rho, sigma(object))
               ## for the time being allow only simple scalar terms
               ## without repeated grouping factors
-              if(!(all(nc == 1) && length(nc) == length(ans)))
-  stop("postVar=TRUE currently only implemented for case of simple scalar term")
+###              if(!(all(nc == 1) && length(nc) == length(ans)))
+###  stop("postVar=TRUE currently only implemented for case of simple scalar term")
               ## evaluate the diagonal of
               ## sigma^2 Lambda(theta)P'L^{-T}L^{-1} P Lambda(theta)
-              vv <- sigma(object)^2 * diag(rho$Lambda) *
-                  diag(solve(rho$L, as(rho$Lambda, "CsparseMatrix"),
-                             system = "A"))
+###              vv <- sigma(object)^2 * diag(rho$Lambda) *
+###                  diag(solve(rho$L, as(rho$Lambda, "CsparseMatrix"),
+###                             system = "A"))
               for (i in seq_along(ans))
-                  attr(ans[[i]], "postVar") <-
-                      array(vv[nbseq == i], c(1, 1, nb[i]))
+                  attr(ans[[i]], "postVar") <- vv[[i]]
+###                      array(vv[nbseq == i], c(1, 1, nb[i]))
           }
           if (drop)
               ans <- lapply(ans, function(el)
