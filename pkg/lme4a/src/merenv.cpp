@@ -405,27 +405,89 @@ SEXP merenvtrms::condVar(double scale) {
     int offset = 0;
     
     if (scale < 0 || !R_FINITE(scale))
-	error(_("scale must be a finite, non-negative numeric scalar"));
+	error(_("scale must be non-negative and finite"));
 
+    if (!Lambda && ntrm == nfac) { // simple scalar terms only
+	int offset = 0;
+	double *cc = new double[q];
+	CHM_DN col = N_AS_CHM_DN(cc, q, 1);
+	
+	for (int i = 0; i < nfac; i++) {
+	    int nli = nl[i];
+	    SET_VECTOR_ELT(ans, i, alloc3DArray(REALSXP, 1, 1, nli));
+	    double *ai = REAL(VECTOR_ELT(ans, i));
+//FIXME: Check with Tim to see if this is better done with dense or
+//sparse columns. 
+	    for (int j = 0; j < nli; j++) {
+		for (int jj = 0; jj < q; jj++) cc[jj] = 0;
+		cc[offset] = Lambdax[offset] * scale;
+		CHM_DN sol =
+		    M_cholmod_solve(CHOLMOD_A, L, col, &c);
+		ai[j] = cc[offset] * ((double*)sol->x)[offset];
+		M_cholmod_free_dense(&sol, &c);
+		offset++;
+	    }
+	}
+	delete[] cc;
+	UNPROTECT(1);
+	return ans;
+    }
+
+    CHM_SP lam = Lambda;
+    if (!Lambda) {		// expand the diagonal Lambda
+	lam = M_cholmod_speye(q, q, CHOLMOD_REAL, &c);
+	Memcpy((double*)lam->x, Lambdax, q);
+    }
+    
+    double scsqr = scale * scale;
     for (int i = 0; i < nfac; i++) {
-	int ntrm = 0,		// number of terms for this factor
-	    nct = 0,		// total number of columns
-	    nli = nl[i];	// number of levels
-	for (int j = apt[i]; j < apt[i + 1]; j++) {
-	    nct += nc[j];
-	    ntrm++;
-	}
-	int *cset = new int[nct];
+	int api = apt[i], nli = nl[i],
+	    ntrm = apt[i + 1] - api; // number of terms for this factor
+	int *ncol = new int[ntrm], *cumcol = new int[ntrm + 1];
+	cumcol[0] = 0;
+	for (int j = 0; j < ntrm; j++)
+	    cumcol[j + 1] = cumcol[j] + (ncol[j] = nc[api + j]);
+	int nct = cumcol[ntrm];
+	int *cset = new int[nct], nct2 = nct * nct;
+	
 	SET_VECTOR_ELT(ans, i, alloc3DArray(REALSXP, nct, nct, nli));
-	if (ntrm > 1) error(_("code not yet written"));
-	for (int j = 0; j < nl[i]; j++) {
-// create cset, use M_cholmod_submatrix and M_cholmod_solve
+	double *ai = REAL(VECTOR_ELT(ans, i));
+
+	for (int j = 0; j < nli; j++) {
+	    for (int jj = 0; jj < ntrm; jj++)
+		for (int k = 0; k < ncol[jj]; k++)
+		    cset[k] = offset + j * ncol[jj] + cumcol[jj] * nli + k;
+
+	    CHM_SP cols =
+		M_cholmod_submatrix(lam, (int*)NULL, -1, cset, nct,
+				    1/*values*/, 1/*sorted*/, &c);
+	    CHM_SP sol = M_cholmod_spsolve(CHOLMOD_A, L, cols, &c);
+	    CHM_SP tcols = M_cholmod_transpose(cols, 1/*values*/, &c);
+	    M_cholmod_free_sparse(&cols, &c);
+	    CHM_SP var = M_cholmod_ssmult(tcols, sol, 0/*stype*/,
+					  1/*values*/, 1/*sorted*/, &c);
+	    M_cholmod_free_sparse(&sol, &c);
+	    M_cholmod_free_sparse(&tcols, &c);
+	    CHM_DN dvar = M_cholmod_sparse_to_dense(var, &c);
+	    M_cholmod_free_sparse(&var, &c);
+	    Memcpy(ai + j * nct2, (double*)dvar->x, nct2);
+	    M_cholmod_free_dense(&dvar, &c);
 	}
+	for (int k = 0; k < nct2 * nli; k++) ai[k] *= scsqr;
 	offset += nli * nct;
 	delete[] cset;
+	delete[] cumcol;
+	delete[] ncol;
     }
+
+    if (!Lambda)
+	M_cholmod_free_sparse(&lam, &c);
     UNPROTECT(1);
     return ans;
+}
+
+void glmerenv::initGLMM(SEXP rho)
+{
 }
 
 // Externally callable functions
@@ -498,3 +560,4 @@ extern "C" {
 	return R_NilValue;
     }
 }
+

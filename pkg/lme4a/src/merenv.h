@@ -209,6 +209,11 @@ public:
     int *nc;			//< number of columns per term
 };
 
+class glmerenv : virtual public merenv { // components common to GLMMs
+public:
+    void initGLMM(SEXP rho);
+    double *eta;
+}
 
 #endif /* __cplusplus */
 

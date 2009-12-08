@@ -186,24 +186,24 @@ setClass("merenv", representation("VIRTUAL"), contains = "optenv",
 ##' 
 ##'
 setClass("merenvtrms", representation("VIRTUAL"), contains = "merenv", 
-         validity = function(object)
-     {
-         rho <- env(object)
-         if (!(is.list(flist <- rho$flist) &&
-               all(sapply(flist, is.factor))))
-             return("environment must contain a list of factors, flist")
-         flseq <- seq_along(flist)
-         if (!(is.integer(asgn <- attr(flist, "assign")) &&
-               all(flseq %in% asgn) &&
-               all(asgn %in% flseq)))
-             return("asgn attribute of flist missing or malformed")
-         nl <- sapply(flist, function(x) length(levels(x)))[asgn]
-         if (!(is.list(cnms <- rho$cnms) &&
-               all(sapply(cnms, is.character)) &&
-               all(sapply(cnms, length) > 0) &&
-               length(cnms) == length(asgn)))
-             return("list of column names, cnms, must match asgn attribute in length")
-     })
+         validity = function(object) .Call(merenvtrms_validate, env(object)))
+     ## {
+     ##     rho <- env(object)
+     ##     if (!(is.list(flist <- rho$flist) &&
+     ##           all(sapply(flist, is.factor))))
+     ##         return("environment must contain a list of factors, flist")
+     ##     flseq <- seq_along(flist)
+     ##     if (!(is.integer(asgn <- attr(flist, "assign")) &&
+     ##           all(flseq %in% asgn) &&
+     ##           all(asgn %in% flseq)))
+     ##         return("asgn attribute of flist missing or malformed")
+     ##     nl <- sapply(flist, function(x) length(levels(x)))[asgn]
+     ##     if (!(is.list(cnms <- rho$cnms) &&
+     ##           all(sapply(cnms, is.character)) &&
+     ##           all(sapply(cnms, length) > 0) &&
+     ##           length(cnms) == length(asgn)))
+     ##         return("list of column names, cnms, must match asgn attribute in length")
+     ## })
 
 ##' Linear mixed-effects model representation.
 ##'
