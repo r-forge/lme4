@@ -169,6 +169,15 @@ stopifnot(identical(ranef(m0), ranef(m1)),
           inherits(tryCatch(lmer(y ~ x2|ff + x1, data = D), error = function(e)e),
                    "error"))
 
-
+## Reordering of grouping factors should not change the internal structure
+Pm1 <- lmer(strength ~ (1|batch) + (1|sample), Pastes, doFit = FALSE)
+Pm2 <- lmer(strength ~ (1|sample) + (1|batch), Pastes, doFit = FALSE)
+## The environments of Pm1 and Pm2 should be identical except for
+## "call" and "frame"
+trunclist <- function(x) {
+    ll <- as.list(env(x))
+    ll[-match(c("call", "frame"), names(ll))]
+}
+stopifnot(all.equal(trunclist(Pm1), trunclist(Pm2)))
 
 cat('Time elapsed: ', proc.time(),'\n') # for ``statistical reasons''
