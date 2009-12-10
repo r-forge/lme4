@@ -1,5 +1,5 @@
 
-R version 2.11.0 Under development (unstable) (2009-12-01 r50625)
+R version 2.11.0 Under development (unstable) (2009-12-10 r50700)
 Copyright (C) 2009 The R Foundation for Statistical Computing
 ISBN 3-900051-07-0
 
@@ -29,8 +29,8 @@ REML
 
 Random effects:
  Groups   Name        Variance Std.Dev. Corr  
- Subject  (Intercept) 612.090  24.7405        
-          Days         35.071   5.9221  0.066 
+ Subject  (Intercept) 612.091  24.7405        
+          Days         35.072   5.9221  0.066 
  Residual             654.941  25.5918        
 Number of obs: 180, groups: Subject, 18
 
@@ -51,7 +51,7 @@ Formula: Reaction ~ Days + (Days | Subject)
 
 Random effects:
  Groups   Name        Variance Std.Dev. Corr  
- Subject  (Intercept) 565.514  23.7805        
+ Subject  (Intercept) 565.516  23.7806        
           Days         32.682   5.7168  0.081 
  Residual             654.941  25.5918        
 Number of obs: 180, groups: Subject, 18
@@ -415,8 +415,17 @@ Error in evalbars(formula, rho$frame, contrasts) :
 Warning message:
 In Ops.factor(ff, x1) : + not meaningful for factors
 > 
-> 
+> ## Reordering of grouping factors should not change the internal structure
+> Pm1 <- lmer(strength ~ (1|batch) + (1|sample), Pastes, doFit = FALSE)
+> Pm2 <- lmer(strength ~ (1|sample) + (1|batch), Pastes, doFit = FALSE)
+> ## The environments of Pm1 and Pm2 should be identical except for
+> ## "call" and "frame"
+> trunclist <- function(x) {
++     ll <- as.list(env(x))
++     ll[-match(c("call", "frame"), names(ll))]
++ }
+> stopifnot(all.equal(trunclist(Pm1), trunclist(Pm2)))
 > 
 > cat('Time elapsed: ', proc.time(),'\n') # for ``statistical reasons''
-Time elapsed:  43.046 0.332 43.665 0 0 
+Time elapsed:  46.4 0.21 46.648 0 0 
 > 
