@@ -453,16 +453,16 @@ famType <- function(family)
     c(fTyp = fTyp, lTyp = lTyp, vTyp = vTyp)
 }
 
-glmer <-
-function(formula, data, family = gaussian, start = NULL,
-         verbose = FALSE, nAGQ = 1, doFit = TRUE, subset, weights,
-         na.action, offset, contrasts = NULL,
-         control = list(), mustart, etastart, ...)
-{
-    mc <- match.call()
-    mc[[1]] <- as.name("lmer2")
-    eval(mc, parent.frame())
-}
+## glmer <-
+## function(formula, data, family = gaussian, start = NULL,
+##          verbose = FALSE, nAGQ = 1, doFit = TRUE, subset, weights,
+##          na.action, offset, contrasts = NULL,
+##          control = list(), mustart, etastart, ...)
+## {
+##     mc <- match.call()
+##     mc[[1]] <- as.name("lmer2")
+##     eval(mc, parent.frame())
+## }
 
 #### Extractors specific to mixed-effects models
 

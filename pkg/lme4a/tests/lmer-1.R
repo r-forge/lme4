@@ -15,9 +15,9 @@ stopifnot(is(fm1, "merenv"), is(fm2l, "merenv"),
           TRUE) # not yet: is(xfm2$P, "sparseMatrix"))
 
 ## generalized linear mixed model
-(m1 <- glmer(cbind(incidence, size - incidence) ~ period + (1 | herd),
-            family = binomial, data = cbpp))
-warnings() ## << FIXME
+## (m1 <- glmer(cbind(incidence, size - incidence) ~ period + (1 | herd),
+##             family = binomial, data = cbpp))
+## warnings() ## << FIXME
 if(FALSE)#not yet
 stopifnot(is(m1,"merenv"), is((cm1 <- coef(m1)), "coef.mer"),
 	  dim(cm1$herd) == c(15,4),
@@ -65,7 +65,7 @@ if (require('MASS', quietly = TRUE)) {
     contrasts(bacteria$trt) <-
         structure(contr.sdif(3),
                   dimnames = list(NULL, c("diag", "encourage")))
-    print(fm5 <- glmer(y ~ trt + wk2 + (1|ID), bacteria, binomial))
+##    print(fm5 <- glmer(y ~ trt + wk2 + (1|ID), bacteria, binomial))
 ###? the same?
 ###? print(fm6 <- lmer(y ~ trt + wk2 + (1|ID), bacteria, binomial))
 
@@ -95,10 +95,10 @@ if (FALSE) {   # back to segfaulting again  ----- FIXME !!!!
 }
 
 ## Failure to specify a random effects term - used to give an obscure message
-try(
-m2 <- glmer(incidence / size ~ period, weights = size,
-            family = binomial, data = cbpp)
-)
+##try(
+##m2 <- glmer(incidence / size ~ period, weights = size,
+##            family = binomial, data = cbpp)
+##)
 
 ### mcmcsamp() :
 ## From: Andrew Gelman <gelman@stat.columbia.edu>

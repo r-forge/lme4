@@ -237,3 +237,25 @@ setClass("lmerenv", contains = "merenvtrms",
          TRUE
      })
 
+setClass("glmerenv", contains = "merenvtrms", 
+         validity = function(object)
+     {
+         rho <- env(object)
+         n <- length(rho$y)
+         if (!(is.numeric(rho$mu) && length(rho$mu) == n))
+             return("environment must contain a numeric vector \"mu\"")
+         if (!(is.numeric(rho$muEta) && length(rho$muEta) == n))
+             return("environment must contain a numeric vector \"muEta\"")
+         if (!(is.numeric(rho$var) && length(rho$var) == n))
+             return("environment must contain a numeric vector \"var\"")
+         if (!(is.numeric(rho$sqrtrwt) && length(rho$sqrtrwt) == n))
+             return("environment must contain a numeric vector \"sqrtrwt\"")
+         if (!(is.list(family <- rho$family)))
+             return("environment must contain a list \"family\"")
+         if (!(is.character(family$family) && length(family$family) == 1))
+             return("family list must contain a character variable \"family\"")
+         if (!(is.character(family$link) && length(family$link) == 1))
+             return("family list must contain a character variable \"link\"")
+         TRUE
+     })
+
