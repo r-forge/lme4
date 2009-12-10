@@ -1,3 +1,5 @@
+### FIXME: Change all the references to n to be nobs
+
 ##' Check and install various objects, including frame, y, weights
 ##' from the model frame in the environment rho.
 ##'
@@ -6,7 +8,7 @@
 check_y_weights <- function(fr, rho) {
     rho$frame <- fr
     attr(rho$frame, "terms") <- NULL
-    rho$n <- n <- nrow(fr)
+    rho$nobs <- n <- nrow(fr)
                                         # components of the model frame
     y <- model.response(fr)
     # avoid problems with 1D arrays, but keep names
@@ -15,7 +17,7 @@ check_y_weights <- function(fr, rho) {
         dim(y) <- NULL
         if(!is.null(nm)) names(y) <- nm
     }
-    rho$y <- unname(as.double(y))
+    rho$y <- y
     rho$weights <- as.numeric(model.weights(fr))
     if (any(rho$weights < 0))
         stop(gettext("negative weights not allowed", domain = "R-lme4"))
@@ -108,11 +110,6 @@ makeZt <- function(bars, fr, rho) {
                 })
     nl <- sapply(blist, "[[", "nl")     # no. of levels per term
     ## order terms stably by decreasing number of levels in the factor
-    
-### FIXME: There's a bug in the logic here. If we do reorder the terms
-### then Lambda and Lint do not end up consistent with Zt.  Check with
-#(fm3 <- lmer(strength ~ (1|batch) + (1|sample), Pastes, doFit = FALSE))
-    
     if (any(diff(nl)) > 0) {
         ord <- rev(order(nl))
         blist <- blist[ord]
@@ -178,6 +175,85 @@ makeZt <- function(bars, fr, rho) {
                  "0.999375-31") 2 else 1
     NULL
 }
+    
+glmer <-
+function(formula, data, family = gaussian, sparseX = FALSE,
+         compDev = if (sparseX) FALSE else TRUE,
+         control = list(), start = NULL, verbose = FALSE, doFit = TRUE,
+         subset, weights, na.action, offset, contrasts = NULL, nAGQ = 1,
+         mustart, etastart, ...)
+{
+    mf <- mc <- match.call()
+    if (missing(family)) {
+        mc[[1]] <- as.name("lmer")
+        eval(mc, parent.frame())
+    }
+    stopifnot(length(formula <- as.formula(formula)) == 3)
+    if (missing(data)) data <- environment(formula)
+                                        # environment for deviance evaluation
+    rho <- new.env(parent = environment(formula))
+    if (!(all(1 == (nAGQ <- as.integer(nAGQ)))))
+        stop("nAGQ != 1 has not been implemented")
+                                        # evaluate and install the model frame
+    m <- match(c("data", "subset", "weights", "na.action", "offset",
+                 "mustart", "etastart"),
+               names(mf), 0)
+    mf <- mf[c(1, m)]
+    mf$drop.unused.levels <- TRUE
+    mf[[1]] <- as.name("model.frame")
+    fr.form <- subbars(formula)
+    environment(fr.form) <- environment(formula)
+    mf$formula <- fr.form
+    check_y_weights(fr <- eval(mf, parent.frame()), rho)
+                                        # starting values expressed as mu or eta
+##    rho$mustart <- model.extract(mf, "mustart")
+##    rho$etastart <- model.extract(mf, "etastart")
+## Must be done inside check_y_weights
+    
+    fe.form <- formula           # evaluate fixed-effects model matrix
+    nb <- nobars(formula[[3]])   # fixed-effects terms only
+    if (is.null(nb)) nb <- 1
+    fe.form[[3]] <- nb
+    X <- if (sparseX) {
+        sparse.model.matrix(fe.form, fr, contrasts)
+    } else as(model.matrix(fe.form, fr, contrasts), "dgeMatrix")
+    rownames(X) <- NULL
+    rho$X <- X
+    rho$sparseX <- sparseX
+
+    p <- ncol(X)
+###    stopifnot((rho$nmp <- rho$n - p) > 0)
+    fixef <- numeric(p)
+    names(fixef) <- colnames(X)
+    rho$fixef <- fixef
+    rho$start <- numeric(p);            # needed for family$initialize
+                                        # evaluate and check family
+    if(is.character(family))
+        family <- get(family, mode = "function", envir = parent.frame(2))
+    if(is.function(family)) family <- family()
+    rho$family <- family
+
+    eval(family$initialize, rho)
+                                        # enforce modes on some vectors
+    rho$y <- unname(as.double(rho$y))   # must be done after initialize
+    rho$mustart <- unname(as.double(rho$mustart))
+    rho$etastart <- unname(as.double(rho$etastart))
+
+    ## Check for method argument which is no longer used
+    if (!is.null(method <- list(...)$method)) {
+        msg <- paste("Argument", sQuote("method"),
+                     "is deprecated.\nUse", sQuote("nAGQ"),
+                     "to choose AGQ.  PQL is not available.")
+        if (match.arg(method, c("Laplace", "AGQ")) == "Laplace") {
+            warning(msg)
+        } else stop(msg)
+    }
+
+    makeZt(expandSlash(findbars(formula[[3]])), fr, rho)
+    rho$L <- Cholesky(tcrossprod(rho$Zt), LDL = FALSE, Imult = 1)
+    rho$compDev <- compDev
+    rho
+}
 
 lmer <-
     function(formula, data, REML = TRUE, sparseX = FALSE,
@@ -205,6 +281,7 @@ lmer <-
     environment(fr.form) <- environment(formula)
     mf$formula <- fr.form
     check_y_weights(fr <- eval(mf, parent.frame()), rho)
+    rho$y <- unname(as.double(rho$y))
 
     fe.form <- formula           # evaluate fixed-effects model matrix
     nb <- nobars(formula[[3]])   # fixed-effects terms only
@@ -218,7 +295,7 @@ lmer <-
     rho$sparseX <- sparseX
 
     p <- ncol(X)
-    stopifnot((rho$nmp <- rho$n - p) > 0)
+    stopifnot((rho$nmp <- rho$nobs - p) > 0)
     fixef <- numeric(p)
     names(fixef) <- colnames(X)
     rho$fixef <- fixef
@@ -237,7 +314,7 @@ lmer <-
 
     derived_mats(rho)
 
-    rho$fitted <- numeric(rho$n)
+    rho$fitted <- numeric(rho$nobs)
     rho$prss <- numeric(1)
     rho$ldL2 <- numeric(1)
     rho$ldRX2 <- numeric(1)
@@ -371,9 +448,9 @@ devcomp <- function(x, ...) {
     stopifnot(is(x, "lmerenv"))
     with(env(x),
          list(cmp = c(ldL2 = ldL2, ldRX2 = ldRX2, prss = prss,
-              deviance = ldL2 + n * (1 + log(2 * pi * prss/n)),
+              deviance = ldL2 + nobs * (1 + log(2 * pi * prss/nobs)),
               REML = ldL2 + ldRX2 + nmp * (1 + log(2 * pi * prss/nmp))),
-              dims = c(n = n, p = length(fixef), nmp = nmp, q = nrow(Zt))))
+              dims = c(n = nobs, p = length(fixef), nmp = nmp, q = nrow(Zt))))
 }
 
 setMethod("sigma", signature(object = "lmerenv"),
@@ -754,7 +831,7 @@ nlmer2 <- function(formula, data, family = gaussian, start = NULL,
     rho$mustart <- unname(as.double(rho$mustart))
     rho$etastart <- unname(as.double(rho$etastart))
     if (exists("n", envir = rho))
-        rho$n <- as.double(rho$n)
+        rho$nobs <- as.double(rho$nobs)
 
     eta <- eval(rho$nlmodel, rho$nlenv)
     if (is.null(rho$etaGamma <- attr(eta, "gradient")))
