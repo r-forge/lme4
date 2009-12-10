@@ -345,7 +345,7 @@ merenvtrms::merenvtrms(SEXP rho) {
 
     flist = findVarBound(rho, install("flist"));
     if (!isNewList(flist))
-	error(_("Object \"flist\" must be a list"));
+	error(_("Object \"%s\" must be a list"), "flist");
     nfac = LENGTH(flist);
 
     SEXP cnms = findVarBound(rho, install("cnms"));
@@ -391,13 +391,13 @@ merenvtrms::merenvtrms(SEXP rho) {
 }
 
 void merenvtrms::show() {
-    printf("merenvtrms object: ntrm = %d, nfac = %d\n nl:", ntrm, nfac);
-    for (int i = 0; i < nfac; i++) printf(" %d", nl[i]);
-    printf("\n apt:");
-    for (int i = 0; i <= nfac; i++) printf(" %d", apt[i]);
-    printf("\n nc:");
-    for (int i = 0; i < ntrm; i++) printf(" %d", nc[i]);
-    printf("\n");
+    Rprintf("merenvtrms object: ntrm = %d, nfac = %d\n nl:", ntrm, nfac);
+    for (int i = 0; i < nfac; i++) Rprintf(" %d", nl[i]);
+    Rprintf("\n apt:");
+    for (int i = 0; i <= nfac; i++) Rprintf(" %d", apt[i]);
+    Rprintf("\n nc:");
+    for (int i = 0; i < ntrm; i++) Rprintf(" %d", nc[i]);
+    Rprintf("\n");
 }
     
 SEXP merenvtrms::condVar(double scale) {
@@ -486,14 +486,35 @@ SEXP merenvtrms::condVar(double scale) {
     return ans;
 }
 
-void glmerenv::initGLMM(SEXP rho)
+glmerenv::glmerenv(SEXP rho)
 {
+    initMer(rho);
+    mu = VAR_REAL_NULL(rho, install("mu"), n);
+    muEta = VAR_REAL_NULL(rho, install("muEta"), n);
+    var = VAR_REAL_NULL(rho, install("var"), n);
+    sqrtrwt = VAR_REAL_NULL(rho, install("sqrtrwt"), n);
+    family = findVarBound(rho, install("family"));
+    SEXP nms = getAttrib(family, R_NamesSymbol);
+    if (!isNewList(family) ||!isString(nms) ||
+	LENGTH(nms) != LENGTH(family))
+	error(_("Object \"%s\" must be a named list"), "family");
+    fam = CHAR(STRING_ELT(getListElement(family, nms, "family"), 1));
+    lnk = CHAR(STRING_ELT(getListElement(family, nms, "link"), 1));
+    ll = &identitylnk;
+    vv = &constvr;
+    if (!strcmp(lnk, logitlnk.nm())) ll = &logitlnk;
+    if (!strcmp(fam, mu1muvr.distnm())) vv = &mu1muvr;
+    Rprintf("variance name: %s\n", vv->distnm());
+    Rprintf("link name: %s\n", ll->nm());
 }
-
-// Externally callable functions
 
 extern "C" {
 
+    SEXP glmerenv_linkinv(SEXP rho) {
+	glmerenv(rho).linkinv();
+	return R_NilValue;
+    }
+	
 /**
  * Evaluate the deviance or REML criterion
  *
@@ -513,6 +534,7 @@ extern "C" {
  * Check validity of an merenv environment
  *
  * @param x pointer to an merenv environment
+ * @return TRUE if successful, otherwise it throws an error
  */
     SEXP lmerenv_validate(SEXP rho) {
 	if (asLogical(findVarBound(rho, install("sparseX"))))
@@ -521,6 +543,14 @@ extern "C" {
 	    return ScalarLogical(lmerdense(rho).validate());
     }
 
+/**
+ * Duplicate selected names from an environment
+ *
+ * @param dest environment in which to write the copies
+ * @param src source environment
+ * @param nms character vector of names of objects to copy
+ * @return dest
+ */
     SEXP lme4_dup_env_contents(SEXP dest, SEXP src, SEXP nms) {
 	if (!isEnvironment(dest))
 	    error(_("dest must be an environment"));

@@ -110,3 +110,20 @@ CHM_SP CHM_SP_copy_in_place(CHM_SP dest, CHM_SP src) {
     dble_cpy((double*)dest->x, (double*)src->x, nnzd);
     return dest;
 }
+
+SEXP getListElement(SEXP list, SEXP names, const char *str)
+{
+    SEXP elmt = (SEXP) NULL;
+    const char *tempChar;
+    int n = LENGTH(list);
+
+    for (int i = 0; i < n; i++) {
+	tempChar = CHAR(STRING_ELT(names, i)); /* ASCII only */
+	if( strcmp(tempChar,str) == 0) {
+	    elmt = VECTOR_ELT(list, i);
+	    break;
+	}
+    }
+    return elmt;
+}
+

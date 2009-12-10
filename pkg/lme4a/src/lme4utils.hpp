@@ -176,3 +176,4 @@ double *VAR_dMatrix_x(SEXP rho, SEXP nm, int nrow, int ncol);
 
 CHM_SP CHM_SP_copy_in_place(CHM_SP dest, CHM_SP src);
 
+SEXP getListElement(SEXP list, SEXP names, const char *str);

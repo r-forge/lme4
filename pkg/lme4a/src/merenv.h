@@ -15,9 +15,13 @@ extern "C" {
 #include <Rdefines.h>
 #include "Matrix.h"
 
+    SEXP glmerenv_linkinv(SEXP rho);
+
     SEXP lme4_dup_env_contents(SEXP dest, SEXP src, SEXP nms);
+
     SEXP lmerenv_deviance(SEXP rho, SEXP newth);
     SEXP lmerenv_validate(SEXP rho);
+
     SEXP merenvtrms_condVar(SEXP rho, SEXP scale);
     SEXP merenvtrms_show(SEXP rho);
     SEXP merenvtrms_validate(SEXP rho);
@@ -209,11 +213,39 @@ public:
     int *nc;			//< number of columns per term
 };
 
+#include "GLfamily.hpp"
+
+static logitlink logitlnk;
+static probitlink probitlnk;
+static identitylink identitylnk;
+static loglink loglnk;
+static sqrtlink sqrtlnk;
+static constvar constvr;
+static mu1muvar mu1muvr;
+static muvar muvr;
+static mu2var mu2vr;
+static mu3var mu3vr;
+
 class glmerenv : virtual public merenv { // components common to GLMMs
 public:
-    void initGLMM(SEXP rho);
-    double *eta;
+    glmerenv(SEXP rho);		//< initialize from an environment
+    SEXP family;
+    double
+	*mu,			//< conditional means of response
+	*muEta,			//< diagonal of d mu/d eta
+	*sqrtrwt,		//< square root of resid weights
+	*var,			//< conditional variances of response
+	devres;
+    GLlink *ll;
+    GLvar *vv;
+    void linkinv() {ll->linkinv(mu, muEta, eta, n);}
+    void devResid() {vv->devResid(&devres, mu, weights, y,
+				  (int*)0, n);}
+    void varFunc() {vv->varFunc(var, mu, n);}
+    const char *fam;
+    const char *lnk;
 };
+
 
 #endif /* __cplusplus */
 
