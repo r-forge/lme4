@@ -20,10 +20,11 @@ lmer2(formula, data, family = gaussian, REML = TRUE,
      control = list(), start = NULL, verbose = FALSE,
      doFit = TRUE, subset, weights, na.action, offset,
      contrasts = NULL, mustart, etastart, \dots)
-glmer(formula, data, family = gaussian, start = NULL,
-      verbose = FALSE, nAGQ = 1, doFit = TRUE, subset, weights,
-      na.action, offset, contrasts = NULL,
-      control = list(), mustart, etastart, \dots)
+glmer(formula, data, family = gaussian, sparseX = FALSE,
+      compDev = if (sparseX) FALSE else TRUE, control = list(),
+      start = NULL, verbose = FALSE, doFit = TRUE, subset, weights,
+      na.action, offset, contrasts = NULL, nAGQ = 1,
+      mustart, etastart, \dots)
 nlmer(formula, data, family = gaussian, start = NULL, verbose = FALSE, nAGQ = 1,
       doFit = TRUE, subset, weights, na.action, mustart, etastart,
       contrasts = NULL, control = list(), \dots)
