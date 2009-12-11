@@ -1,33 +1,5 @@
-#ifndef LME4_MERENV_H
-#define LME4_MERENV_H
-
-#ifdef	__cplusplus
-#define NO_C_HEADERS
-#include <cstdio>
-#include <cmath>
-#include <cstring>
-extern "C" {
-#endif 
-
-#include <R.h>
-// Rdefines.h includes Rinternals.h (for SEXP, REAL, etc.) and defines
-// GET_SLOT, MAKE_CLASS, NEW_OBJECT, SET_SLOT, etc.
-#include <Rdefines.h>
-#include "Matrix.h"
-
-    SEXP glmerenv_linkinv(SEXP rho);
-
-    SEXP lme4_dup_env_contents(SEXP dest, SEXP src, SEXP nms);
-
-    SEXP lmerenv_deviance(SEXP rho, SEXP newth);
-    SEXP lmerenv_validate(SEXP rho);
-
-    SEXP merenvtrms_condVar(SEXP rho, SEXP scale);
-    SEXP merenvtrms_show(SEXP rho);
-    SEXP merenvtrms_validate(SEXP rho);
-
-#ifdef	__cplusplus
-}
+#ifndef LME4_MERENV_HPP
+#define LME4_MERENV_HPP
 
 static int i1 = 1;
 static double one = 1, mone = -1, zero = 0;
@@ -35,18 +7,16 @@ static double one = 1, mone = -1, zero = 0;
 class merenv {
     /// Basic class for mixed-effects.
 public:
+    merenv() {}
+//    merenv(SEXP rho);
     ~merenv(){
 	delete L;
 	delete Lambda;
 	delete Ut;
 	delete Zt;
     }
-/** 
- * Initialize from an environment.
- * 
- * @param rho pointer to an environment
- */
-    void initMer(SEXP rho);	
+    void initMer(SEXP rho);
+
 /** 
  * Update the linear predictor.
  * 
@@ -133,12 +103,12 @@ private:
 
 class mersparse : virtual public merenv { // merenv with sparse X
 public:
+    mersparse(SEXP rho);
     ~mersparse() {
 	delete X;
 	delete RX;
 	delete RZX;
     }
-    void initMersd(SEXP rho);	/**< initialize from environment */
     void update_eta();		/**< update linear predictor */
     CHM_SP X,			/**< model matrix for fixed effects */
 	RX,		     /**< Cholesky factor for fixed-effects */
@@ -147,7 +117,7 @@ public:
 
 class merdense : virtual public merenv { // merenv with dense X
 public:
-    void initMersd(SEXP rho);	/**< initialize from environment */
+    merdense(SEXP rho);
     void update_eta();		/**< update linear predictor */
     double 
 	*RX,	       /**< upper Cholesky factor for fixed-effects */
@@ -157,7 +127,7 @@ public:
 
 class lmer : virtual public merenv { // components common to LMMs
 public:
-    void initLMM(SEXP rho);	/**< initialize from environment */
+    lmer(SEXP rho);   /**< initialize from environment */
     void LMMdev1();   /**< initial shared part of deviance update */
     void LMMdev2();   /**< secondary shared part of deviance update */
     double LMMdev3(); /**< tertiary shared part of deviance update */
@@ -171,9 +141,9 @@ public:
 	cu;		  /**< Intermediate value in solution for u */
 };
 
-class lmerdense : public merdense, public lmer {
+class lmerdense : public lmer, public merdense {
 public:
-    lmerdense(SEXP rho);	//< construct from an environment
+    lmerdense(SEXP rho);	/**< construct from an environment */
     double update_dev(SEXP thnew);
     int validate() {
 	return 1; 
@@ -181,9 +151,9 @@ public:
     double *XtX, *ZtX;
 };
 
-class lmersparse : public mersparse, public lmer {
+class lmersparse : public lmer, public mersparse {
 public:
-    lmersparse(SEXP rho);	//< construct from an environment
+    lmersparse(SEXP rho);	/**< construct from an environment */
     ~lmersparse(){
 	delete XtX;
 	delete ZtX;
@@ -197,20 +167,20 @@ public:
 
 class merenvtrms : public merenv {
 public:
-    merenvtrms(SEXP rho);  	//< construct from an environment
+    merenvtrms(SEXP rho);  	/**< construct from an environment */
     
-    SEXP condVar(double scale);	//< create the conditional variance array
-    void show();		//< debugging output
+    SEXP condVar(double scale);	/**< create the conditional variance array */
+    void show();		/**< debugging output */
 
     int validate() {
 	return 1;
     }
-    SEXP flist;			//< pointer to list of grouping factors
-    int nfac;			//< number of grouping factors
-    int *nl;			//< number of levels per factor
-    int *apt;			//< rle pointers into assign array
-    int ntrm;			//< number of terms
-    int *nc;			//< number of columns per term
+    SEXP flist;			/**< pointer to list of grouping factors */
+    int nfac;			/**< number of grouping factors */
+    int *nl;			/**< number of levels per factor */
+    int *apt;			/**< rle pointers into assign array */
+    int ntrm;			/**< number of terms */
+    int *nc;			/**< number of columns per term */
 };
 
 #include "GLfamily.hpp"
@@ -226,15 +196,15 @@ static muvar muvr;
 static mu2var mu2vr;
 static mu3var mu3vr;
 
-class glmerenv : virtual public merenv { // components common to GLMMs
+class glmer : virtual public merenv { // components common to GLMMs
 public:
-    glmerenv(SEXP rho);		//< initialize from an environment
+    glmer(SEXP rho);		/**< initialize from an environment */
     SEXP family;
     double
-	*mu,			//< conditional means of response
-	*muEta,			//< diagonal of d mu/d eta
-	*sqrtrwt,		//< square root of resid weights
-	*var,			//< conditional variances of response
+    *mu,			/**< conditional means of response */
+	*muEta,			/**< diagonal of d mu/d eta */
+	*sqrtrwt,		/**< square root of resid weights */
+	*var,			/**< conditional variances of response */
 	devres;
     GLlink *ll;
     GLvar *vv;
@@ -246,8 +216,29 @@ public:
     const char *lnk;
 };
 
+class glmerdense : public glmer, public merdense {
+public:
+    glmerdense(SEXP rho);	/**< construct from an environment */
+    double update_dev(SEXP thnew);
+    int validate() {
+	return 1; 
+    }
+    double *XtX, *ZtX;
+};
 
-#endif /* __cplusplus */
-
-#endif /* LME4_MERENV_H */
+class glmersparse : public glmer, public mersparse {
+public:
+    glmersparse(SEXP rho);	/**< construct from an environment */
+    ~glmersparse(){
+	delete XtX;
+	delete ZtX;
+    }
+    double update_dev(SEXP thnew);
+    int validate() {
+	return 1;
+    }
+    CHM_SP XtX, ZtX;
+};
+    
+#endif /* LME4_MERENV_HPP */
 

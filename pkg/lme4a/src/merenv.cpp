@@ -1,9 +1,11 @@
 #include "merenv.h"
+#include "merenv.hpp"
 
 #include "lme4utils.hpp"
 
 // Definition of methods for the merenv class
 
+//merenv::merenv(SEXP rho)
 void merenv::initMer(SEXP rho)
 {
     if (!isEnvironment(rho))
@@ -63,6 +65,9 @@ void merenv::initMer(SEXP rho)
     prss = VAR_REAL_NULL(rho, install("prss"), 1);
     weights = VAR_REAL_NULL(rho, install("weights"), n, TRUE);
     offset = VAR_REAL_NULL(rho, lme4_offsetSym, N, TRUE);
+//    Rprintf(
+//	"In merenv(SEXP), dimensions are N = %d, n = %d, p = %d, q = %d\n",
+//	N, n, p, q);
 }
 
 void merenv::update_Lambda_Ut(SEXP thnew) {
@@ -191,13 +196,19 @@ void merdense::update_eta() {
 			&i1, &one, eta, &i1);
 }
 
-void merdense::initMersd(SEXP rho) {
+merdense::merdense(SEXP rho) {
+//    Rprintf(
+//	"In merdense(SEXP), dimensions are N = %d, n = %d, p = %d, q = %d\n",
+//	N, n, p, q);
     X = VAR_dMatrix_x(rho, lme4_XSym, N, p);
     RX = VAR_dMatrix_x(rho, lme4_RXSym, p, p);
     RZX = VAR_dMatrix_x(rho, lme4_RZXSym, q, p);
 }
 
-void mersparse::initMersd(SEXP rho) {
+mersparse::mersparse(SEXP rho) {
+//    Rprintf(
+//	"In mersparse(SEXP), dimensions are N = %d, n = %d, p = %d, q = %d\n",
+//	N, n, p, q);
     X = VAR_CHM_SP(rho, lme4_XSym, N, p);
     RX = VAR_CHM_SP(rho, lme4_RXSym, p, p);
     RZX = VAR_CHM_SP(rho, lme4_RZXSym, q, p);
@@ -205,7 +216,10 @@ void mersparse::initMersd(SEXP rho) {
 
 // definition of methods for the lmer, lmerdense and lmersparse classes
 
-void lmer::initLMM(SEXP rho) {
+lmer::lmer(SEXP rho) {
+    initMer(rho);
+//    Rprintf("In lmer(SEXP), dimensions are N = %d, n = %d, p = %d, q = %d\n",
+//	    N, n, p, q);
     if (N != n)
 	error(_("nrow(X) = %d must match length(y) = %d for lmer"),
 	      N, n);
@@ -215,18 +229,18 @@ void lmer::initLMM(SEXP rho) {
     Zty = VAR_dMatrix_x(rho, install("Zty"), q, 1);
 }
 
-lmerdense::lmerdense(SEXP rho) {
-    initMer(rho);
-    initMersd(rho);
-    initLMM(rho);
+lmerdense::lmerdense(SEXP rho) : lmer(rho), merdense(rho) {
+//    Rprintf(
+//	"In lmerdense(SEXP), dimensions are N = %d, n = %d, p = %d, q = %d\n",
+//	    N, n, p, q);
     ZtX = VAR_dMatrix_x(rho, install("ZtX"), q, p);
     XtX = VAR_dMatrix_x(rho, install("XtX"), p, p);
 }
 
-lmersparse::lmersparse(SEXP rho) {
-    initMer(rho);
-    initMersd(rho);
-    initLMM(rho);
+lmersparse::lmersparse(SEXP rho) : lmer(rho), mersparse(rho) {
+//    Rprintf(
+//	"In lmersparse(SEXP), dimensions are N = %d, n = %d, p = %d, q = %d\n",
+//	    N, n, p, q);
     ZtX = VAR_CHM_SP(rho, install("ZtX"), q, p);
     XtX = VAR_CHM_SP(rho, install("XtX"), p, p);
 }
@@ -342,7 +356,6 @@ double lmersparse::update_dev(SEXP thnew) {
 
 merenvtrms::merenvtrms(SEXP rho) {
     initMer(rho);
-
     flist = findVarBound(rho, install("flist"));
     if (!isNewList(flist))
 	error(_("Object \"%s\" must be a list"), "flist");
@@ -486,8 +499,7 @@ SEXP merenvtrms::condVar(double scale) {
     return ans;
 }
 
-glmerenv::glmerenv(SEXP rho)
-{
+glmer::glmer(SEXP rho) {
     initMer(rho);
     mu = VAR_REAL_NULL(rho, install("mu"), n);
     muEta = VAR_REAL_NULL(rho, install("muEta"), n);
@@ -508,10 +520,19 @@ glmerenv::glmerenv(SEXP rho)
     Rprintf("link name: %s\n", ll->nm());
 }
 
+glmerdense::glmerdense(SEXP rho) : glmer(rho), merdense(rho) {
+}
+
+glmersparse::glmersparse(SEXP rho) : glmer(rho), mersparse(rho) {
+}
+
 extern "C" {
 
-    SEXP glmerenv_linkinv(SEXP rho) {
-	glmerenv(rho).linkinv();
+    SEXP glmer_linkinv(SEXP rho) {
+	if (asLogical(findVarBound(rho, install("sparseX"))))
+	    glmersparse(rho).linkinv();
+	else
+	    glmerdense(rho).linkinv();
 	return R_NilValue;
     }
 	
