@@ -1,4 +1,4 @@
-#include "merenv.h"
+#include "merenv.hpp"
 #include "mer.h"
 #include "ST.h"
 #include <R_ext/Rdynload.h>
