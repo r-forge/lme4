@@ -238,6 +238,11 @@ function(formula, data, family = gaussian, sparseX = FALSE,
     rho$y <- unname(as.double(rho$y))   # must be done after initialize
     rho$mustart <- unname(as.double(rho$mustart))
     rho$etastart <- unname(as.double(rho$etastart))
+    n <- rho$nobs
+    rho$fitted <- numeric(n)
+    rho$mu <- numeric(n)
+    rho$muEta <- numeric(n)
+    rho$sqrtrwt <- numeric(n)
 
     ## Check for method argument which is no longer used
     if (!is.null(method <- list(...)$method)) {
@@ -321,7 +326,8 @@ lmer <-
 
     rho$L <- Cholesky(tcrossprod(rho$Zt), LDL = FALSE, Imult = 1)
     rho$compDev <- compDev
-    rho$call <- mc # does this force evaluation? (It couldn't or there would be an infinite loop)
+    rho$call <- mc
+    
     sP <- function(x) {
 ### FIXME: weights are not yet incorporated (needed here?)
         if (compDev) {
