@@ -5,7 +5,9 @@
 
 // Definition of methods for the merenv class
 
-//merenv::merenv(SEXP rho)
+// Normally this would be a constructor merenv::merenv(SEXP rho) but
+// merenv is included virtually in several derived classes and calling
+// the constructor becomes problematic.
 void merenv::initMer(SEXP rho)
 {
     if (!isEnvironment(rho))
@@ -505,19 +507,7 @@ glmer::glmer(SEXP rho) {
     muEta = VAR_REAL_NULL(rho, install("muEta"), n);
     var = VAR_REAL_NULL(rho, install("var"), n);
     sqrtrwt = VAR_REAL_NULL(rho, install("sqrtrwt"), n);
-    family = findVarBound(rho, install("family"));
-    SEXP nms = getAttrib(family, R_NamesSymbol);
-    if (!isNewList(family) ||!isString(nms) ||
-	LENGTH(nms) != LENGTH(family))
-	error(_("Object \"%s\" must be a named list"), "family");
-    fam = CHAR(STRING_ELT(getListElement(family, nms, "family"), 1));
-    lnk = CHAR(STRING_ELT(getListElement(family, nms, "link"), 1));
-    ll = &identitylnk;
-    vv = &constvr;
-    if (!strcmp(lnk, logitlnk.nm())) ll = &logitlnk;
-    if (!strcmp(fam, mu1muvr.distnm())) vv = &mu1muvr;
-    Rprintf("variance name: %s\n", vv->distnm());
-    Rprintf("link name: %s\n", ll->nm());
+    fam.initGL(rho);
 }
 
 glmerdense::glmerdense(SEXP rho) : glmer(rho), merdense(rho) {

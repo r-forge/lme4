@@ -1,16 +1,32 @@
 #ifndef LME4_GLFAMILY_HPP
 #define LME4_GLFAMILY_HPP
 
+#include "lme4utils.h"		// for definition of SEXP
+
 class GLlink {
 public:
     virtual void linkinv(double *mu, double *muEta,
 			 const double* eta, int n) = 0;
     virtual const char* nm() = 0;
-    static const double LTHRESH;
-    static const double MLTHRESH;
-    static const double MPTHRESH;
-    static const double PTHRESH;
-    static const double INVEPS;
+    static const double LTHRESH, MLTHRESH, MPTHRESH, PTHRESH, INVEPS;
+};
+
+class GLvar {
+public:
+    virtual void devResid(double *ans, const double *mu,
+			  const double *pw, const double *y,
+			  const int *fac, int n) = 0;
+    virtual void varFunc(double *var, const double *mu, int n) = 0;
+    virtual const char *distnm() = 0;
+};
+
+class GLfamily {
+public:
+    void initGL(SEXP rho);	/**< initialize from an environment */
+    SEXP family;
+    const char *fname, *lname;
+    GLlink *lnk;
+    GLvar *var;
 };
 
 class logitlink : public GLlink {
@@ -47,15 +63,6 @@ class sqrtlink : public GLlink {
 public:
     void linkinv(double *mu, double *muEta, const double* eta, int n);
     const char* nm() {return "sqrt";}
-};
-
-class GLvar {
-public:
-    virtual void devResid(double *ans, const double *mu,
-			  const double *pw, const double *y,
-			  const int *fac, int n) = 0;
-    virtual void varFunc(double *var, const double *mu, int n) = 0;
-    virtual const char *distnm() = 0;
 };
 
 class constvar : public GLvar {

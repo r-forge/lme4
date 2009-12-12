@@ -1,39 +1,40 @@
 #include "GLfamily.hpp"
+#include "lme4utils.hpp"
 
-#define NO_C_HEADERS
-#include <cstdio>
-#include <cmath>
-#include <cstring>
-extern "C" {
-#include <R.h>
-#include <Rmath.h>
-}
+static logitlink logitlnk;
+static probitlink probitlnk;
+static identitylink identitylnk;
+static loglink loglnk;
+static sqrtlink sqrtlnk;
+static constvar constvr;
+static mu1muvar mu1muvr;
+static muvar muvr;
+static mu2var mu2vr;
+static mu3var mu3vr;
 
-#ifdef ENABLE_NLS	    // Allow for translation of error messages
-#include <libintl.h>
-#define _(String) dgettext ("lme4", String)
-#else
-#define _(String) (String)
-#endif
+void GLfamily::initGL(SEXP rho) {
+    family = findVarBound(rho, install("family"));
+    SEXP nms = getAttrib(family, R_NamesSymbol);
+    if (!isNewList(family) ||!isString(nms) ||
+	LENGTH(nms) != LENGTH(family))
+	error(_("Object \"%s\" must be a named list"), "family");
+    fname = CHAR(STRING_ELT(getListElement(family, nms, "family"), 0));
+    lname = CHAR(STRING_ELT(getListElement(family, nms, "link"), 0));
+    Rprintf("family name: %s\n", fname);
+    Rprintf("link name in family: %s\n", lname);
+    lnk = &identitylnk;
+    var = &constvr;
+    if (strcmp(lname, logitlnk.nm()) == 0) lnk = &logitlnk;
+    if (strcmp(fname, mu1muvr.distnm()) == 0) var = &mu1muvr;
+    Rprintf("variance name: %s\n", var->distnm());
+    Rprintf("link name: %s\n", lnk->nm());
+}    
 
 const double GLlink::LTHRESH = 30;
 const double GLlink::MLTHRESH = -30;
 const double GLlink::MPTHRESH = qnorm5(DOUBLE_EPS, 0, 1, 1, 0);
 const double GLlink::PTHRESH = -MPTHRESH;
 const double GLlink::INVEPS = 1/DOUBLE_EPS;
-
-/**
- * Evaluate y * log(y/mu) with the correct limiting value at y = 0.
- *
- * @param y 
- * @param mu
- *
- * @return y * log(y/mu) for y > 0, 0 for y == 0.
- */
-inline double y_log_y(double y, double mu)
-{
-    return (y) ? (y * log(y/mu)) : 0;
-}
 
 void logitlink::linkinv(double *mu, double *muEta,
 			const double* eta, int n)

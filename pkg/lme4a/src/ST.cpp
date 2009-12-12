@@ -26,6 +26,7 @@
 // the group pointers.
 
 #include "ST.h"
+#include "lme4utils.h"
 #include "lme4utils.hpp"
 
 class STinternal {
