@@ -1,5 +1,6 @@
 #ifndef LME4_MERENV_HPP
 #define LME4_MERENV_HPP
+#include "lme4utils.h"		// to get definitions of SEXP
 
 static int i1 = 1;
 static double one = 1, mone = -1, zero = 0;
@@ -7,8 +8,6 @@ static double one = 1, mone = -1, zero = 0;
 class merenv {
     /// Basic class for mixed-effects.
 public:
-    merenv() {}
-//    merenv(SEXP rho);
     ~merenv(){
 	delete L;
 	delete Lambda;
@@ -184,18 +183,6 @@ public:
 };
 
 #include "GLfamily.hpp"
-
-static logitlink logitlnk;
-static probitlink probitlnk;
-static identitylink identitylnk;
-static loglink loglnk;
-static sqrtlink sqrtlnk;
-static constvar constvr;
-static mu1muvar mu1muvr;
-static muvar muvr;
-static mu2var mu2vr;
-static mu3var mu3vr;
-
 class glmer : virtual public merenv { // components common to GLMMs
 public:
     glmer(SEXP rho);		/**< initialize from an environment */
@@ -206,14 +193,11 @@ public:
 	*sqrtrwt,		/**< square root of resid weights */
 	*var,			/**< conditional variances of response */
 	devres;
-    GLlink *ll;
-    GLvar *vv;
-    void linkinv() {ll->linkinv(mu, muEta, eta, n);}
-    void devResid() {vv->devResid(&devres, mu, weights, y,
-				  (int*)0, n);}
-    void varFunc() {vv->varFunc(var, mu, n);}
-    const char *fam;
-    const char *lnk;
+    GLfamily fam;
+    void linkinv() {fam.lnk->linkinv(mu, muEta, eta, n);}
+    void devResid() {fam.var->devResid(&devres, mu, weights, y,
+				      (int*)0, n);}
+    void varFunc() {fam.var->varFunc(var, mu, n);}
 };
 
 class glmerdense : public glmer, public merdense {

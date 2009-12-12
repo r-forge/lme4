@@ -1,5 +1,4 @@
-#include "Matrix.h"
-
+#include "lme4utils.h"
 #include "lme4utils.hpp"
 
 SEXP CHM_SP2SEXP(CHM_SP A, const char *cls)
@@ -126,4 +125,3 @@ SEXP getListElement(SEXP list, SEXP names, const char *str)
     }
     return elmt;
 }
-

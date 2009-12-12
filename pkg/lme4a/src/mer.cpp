@@ -1,6 +1,6 @@
 #include "mer.h"
 
-#include "Matrix.h"
+#include "lme4utils.h"
 #include "lme4utils.hpp"
 
 class mer {
@@ -48,19 +48,6 @@ const double mer::MLTHRESH = -30;
 const double mer::MPTHRESH = qnorm5(DOUBLE_EPS, 0, 1, 1, 0);
 const double mer::PTHRESH = -MPTHRESH;
 const double mer::INVEPS = 1/DOUBLE_EPS;
-
-/**
- * Evaluate y * log(y/mu) with the correct limiting value at y = 0.
- *
- * @param y 
- * @param mu
- *
- * @return y * log(y/mu) for y > 0, 0 for y == 0.
- */
-inline double y_log_y(double y, double mu)
-{
-    return (y) ? (y * log(y/mu)) : 0;
-}
 
 // Definition of methods for the mer class
 
