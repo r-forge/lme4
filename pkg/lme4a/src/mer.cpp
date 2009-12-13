@@ -212,8 +212,6 @@ CHM_SP mer::A_to_U()
 
 /**
  * Evaluate the nonlinear model function from the parameter matrix
- *
- * @param gamma parameter matrix of size n by s (N elements total)
  */
 void mer::eval_nonlin()
 {
