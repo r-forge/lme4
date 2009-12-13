@@ -22,7 +22,8 @@ static R_CallMethodDef CallEntries[] = {
     CALLDEF(ST_update_A, 2),
     CALLDEF(ST_validate, 1),
 
-    CALLDEF(glmer_linkinv, 1),
+    CALLDEF(glmer_PIRLS, 1),
+    CALLDEF(glmer_PIRLSbeta, 1),
 
     CALLDEF(lme4_ghq, 1),
     CALLDEF(lme4_dup_env_contents, 3),

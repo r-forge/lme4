@@ -194,6 +194,9 @@ public:
 	*var,			/**< conditional variances of response */
 	devres;
     GLfamily fam;
+    double PIRLS();		/**< deviance at updated u */
+    double PIRLSbeta();		/**< deviance at updated u and beta */
+    void link() {fam.lnk->link(eta, mu, n);}
     void linkinv() {fam.lnk->linkinv(mu, muEta, eta, n);}
     void devResid() {fam.var->devResid(&devres, mu, weights, y,
 				      (int*)0, n);}

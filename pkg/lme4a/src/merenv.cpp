@@ -516,14 +516,162 @@ glmerdense::glmerdense(SEXP rho) : glmer(rho), merdense(rho) {
 glmersparse::glmersparse(SEXP rho) : glmer(rho), mersparse(rho) {
 }
 
+const int CM_MAXITER = 300;
+
+double glmer::PIRLSbeta() {
+#if 0
+    int cvg, info;
+    double *betaold = new double[p], *varold = (double*)NULL,
+	*cbeta = new double[p],
+	*tmp = new double[q], *uold = new double[q],
+	*wtres = new double[n],
+	cfac = ((double)n)/((double)(q+p)), crit, pwrss_old,
+	step;
+    static double d1[2] = {1,0}, d0[2] = {0,0}, dm1[2] = {-1,0};
+    CHM_DN SOL, cRZX = N_AS_CHM_DN(RZX, q, p), cV,
+	cwtres = N_AS_CHM_DN(wtres, n, 1), ctmp = N_AS_CHM_DN(tmp, q, 1);
+    CHM_SP U;
+    R_CheckStack();
+
+    // reset u to initial values.  This can result in more
+    // iterations but it gives a repeatable function evaluation for
+    // the optimizer.
+    dble_zero(u, q); 
+    dble_zero(fixef, p);
+
+    V = new double[n * p];
+    cV = N_AS_CHM_DN(V, n, p);
+
+    cvg = FALSE;
+
+    for (int ii = 0; ii < CM_MAXITER; ii++)
+    {
+	for (int i = 0; i < CM_MAXITER; i++) {
+	    dble_cpy(uold, u, q); // record current coefficients
+	    dble_cpy(betaold, fixef, p);
+
+	    pwrss_old = update_mu();
+	    U = A_to_U();	// create U
+	    if (!M_cholmod_factorize_p(U, d1, (int*)NULL, 0 /*fsize*/, L, &c))
+		error(_("cholmod_factorize_p failed: status %d, minor %d from ncol %d"),
+		      c.status, L->minor, L->n);
+	    X_to_V();			// update V
+	    if (!M_cholmod_sdmult(U, 0,	// no transpose
+				  d1, d0, cV, cRZX, &c))
+		error(_("cholmod_sdmult failed: status %d"), c.status);
+	    if (!(SOL = M_cholmod_solve(CHOLMOD_L, L, cRZX, &c)))
+		error(_("cholmod_solve (CHOLMOD_L) failed: status %d"), c.status);
+	    dble_cpy(RZX, (double*)(SOL->x), q * p);
+	    M_cholmod_free_dense(&SOL, &c);
+				// solve for RX in downdated V'V
+	    F77_CALL(dsyrk)("U", "T", &p, &n, d1, V, &n, d0, RX, &p); //V'V
+	    F77_CALL(dsyrk)("U", "T", &p, &q, dm1, RZX, &q, d1, RX, &p);
+	    F77_CALL(dpotrf)("U", &p, RX, &p, &info);
+	    if (info)
+		error(_("Downdated V'V is not positive definite, %d."), info);
+				// tmp := U %*% wtdResid 
+	    M_cholmod_sdmult(U, 0, // no transpose
+			     d1, d0, cwtres, ctmp, &c);
+	    for (int j = 0; j < q; j++) tmp[j] -= u[j]; // tmp := tmp - u
+	    M_cholmod_free_sparse(&U, &c);
+				// solve L %*% tmp = tmp
+	    if (!(SOL = M_cholmod_solve(CHOLMOD_L, L, ctmp, &c)))
+		error(_("cholmod_solve (CHOLMOD_L) failed"));
+	    dble_cpy(tmp, (double*)(SOL->x), q);
+	    M_cholmod_free_dense(&SOL, &c);
+				// solve RX'cbeta = V'wtres - RZX'cu
+	    F77_CALL(dgemv)("T", &n, &p, d1, V, &n, wtres, &i1,
+			    d0, cbeta, &i1);
+	    F77_CALL(dgemv)("T", &q, &p, dm1, RZX, &q, tmp, &i1,
+			    d1, cbeta, &i1);
+	    F77_CALL(dtrsv)("U", "T", "N", &p, RX, &p, cbeta, &i1);
+				// evaluate convergence criterion
+	    double cul2 = sqr_length(tmp, q), cbetal2 = sqr_length(cbeta, p);
+	    crit = cfac * (cul2 + cbetal2)/ pwrss_old;
+//	    if (verb < 0) Rprintf("cul2 = %g, cbetal2 = %g\n", cul2, cbetal2);
+	    if (crit < CM_TOL) {	// don't do needless evaluations 
+		cvg = TRUE;
+		break;
+	    }
+				// solve for delta-beta
+	    F77_CALL(dtrsv)("U", "N", "N", &p, RX, &p, cbeta, &i1);
+				// solve t(L) %*% SOL = tmp - RZX cbeta
+	    F77_CALL(dgemv)("N", &q, &p, dm1, RZX, &q, cbeta, &i1,
+			    d1, tmp, &i1);
+	    if (!(SOL = M_cholmod_solve(CHOLMOD_Lt, L, ctmp, &c)))
+		error(_("cholmod_solve (CHOLMOD_Lt) failed"));
+	    dble_cpy(tmp, (double*)(SOL->x), q);
+	    M_cholmod_free_dense(&SOL, &c);
+	    
+	    for (step = 1; step > CM_SMIN; step /= 2) { // step halving 
+		for (int j = 0; j < q; j++)
+		    u[j] = uold[j] + step * tmp[j];
+		for (int j = 0; j < p; j++)
+		    fixef[j] = betaold[j] + step * cbeta[j];
+		d[pwrss_POS] = update_mu();
+		if (verb < 0)
+		    Rprintf("%2d,%8.6f,%12.4g: %15.6g %15.6g %15.6g %15.6g %15.6g\n",
+			    i, step, crit, d[pwrss_POS], pwrss_old, fixef[0], u[0], u[1]);
+		if (d[pwrss_POS] < pwrss_old) {
+		    pwrss_old = d[pwrss_POS];
+		    break;
+		}
+	    }
+	    if (step <= CM_SMIN) break;
+	    if (!(muEta || etaGamma)) { // Gaussian linear mixed models require
+		cvg = TRUE;		// only 1 iteration
+		break;
+	    }
+	}
+	if (!cvg) break;
+	if (!var) break;
+	eval_varFunc();
+	crit = 0;
+	for (int j = 0; j < n; j++) {
+	    double diff = varold[j] - var[j];
+	    crit += (diff * diff)/(var[j]*var[j] + varold[j]*varold[j]);
+	}
+	if (verb < 0) Rprintf("%2d,%8.6f %15.6g %15.6g %15.6g %15.6g\n",
+			      ii, crit, var[0], var[1], varold[0], varold[1]);
+	if (crit < CM_TOL) break;
+    }
+    
+    if (!cvg) error(_("Convergence failure in PIRLS"));
+    
+    delete[] V; delete[] betaold; delete[] cbeta;
+    delete[] tmp; delete[] uold; delete[]wtres;
+    if (var) delete[] varold; 
+    
+    d[ldRX2_POS] = 0;
+    for (int j = 0; j < p; j++) d[ldRX2_POS] += 2 * log(RX[j * (p + 1)]);
+    d[ldL2_POS] = M_chm_factor_ldetL2(L);
+    d[sigmaML_POS] = sqrt(d[pwrss_POS]/(srwt ? sqr_length(srwt, n) : (double) n));
+    d[sigmaREML_POS] = (etaGamma || muEta) ? NA_REAL :
+	d[sigmaML_POS] * sqrt((((double) n)/((double)(n - p))));
+    
+    return update_dev();
+#endif
+    return 0;
+}
+
+double glmer::PIRLS()
+{
+    varFunc();		// update the variance
+    return 0;
+}
+
 extern "C" {
 
-    SEXP glmer_linkinv(SEXP rho) {
+    SEXP glmer_PIRLS(SEXP rho) {
 	if (asLogical(findVarBound(rho, install("sparseX"))))
-	    glmersparse(rho).linkinv();
-	else
-	    glmerdense(rho).linkinv();
-	return R_NilValue;
+	    return ScalarReal(glmersparse(rho).PIRLS());
+	return ScalarReal(glmerdense(rho).PIRLS());
+    }
+
+    SEXP glmer_PIRLSbeta(SEXP rho) {
+	if (asLogical(findVarBound(rho, install("sparseX"))))
+	    return ScalarReal(glmersparse(rho).PIRLSbeta());
+	return ScalarReal(glmerdense(rho).PIRLSbeta());
     }
 	
 /**

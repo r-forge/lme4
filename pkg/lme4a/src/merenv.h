@@ -6,7 +6,8 @@
 extern "C" {
 #endif
 
-SEXP glmer_linkinv(SEXP rho);
+SEXP glmer_PIRLS(SEXP rho);
+SEXP glmer_PIRLSbeta(SEXP rho);
 
 SEXP lme4_dup_env_contents(SEXP dest, SEXP src, SEXP nms);
 
