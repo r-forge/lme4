@@ -1,18 +1,57 @@
 #include "GLfamily.hpp"
 #include "lme4utils.hpp"
 
-static logitlink logitlnk;
-static probitlink probitlnk;
+static clogloglink clogloglnk;
 static identitylink identitylnk;
+static logitlink logitlnk;
 static loglink loglnk;
+static probitlink probitlnk;
 static sqrtlink sqrtlnk;
 static constvar constvr;
 static mu1muvar mu1muvr;
-static muvar muvr;
 static mu2var mu2vr;
 static mu3var mu3vr;
+static muvar muvr;
+
+//#define USING_MAP_TEMPLATE
+#ifdef USING_MAP_TEMPLATE
+#include <string>
+#include <map>
+#else
+static const int nlink = 6;
+static const int nvar = 5;
+#endif
 
 void GLfamily::initGL(SEXP rho) {
+#ifdef USING_MAP_TEMPLATE
+    std::map<string, GLlink> links;
+    std::map<string, GLvar> vars;
+    links["cloglog"] = clogloglnk;
+    links["identity"] = identitylnk;
+    links["logit"] = logitlnk;
+    links["probit"] = probitlnk;
+    links["sqrt"] = probitlnk;
+    vars["gaussian"] = constvr;
+    vars["binomial"] = mu1muvr;
+    vars["Gamma"] = mu2vr;
+    vars["poisson"] = muvr;
+    vars["inverse.gaussian"] = mu3vr;
+#else    
+    GLlink **links = new GLlink*[nlink];
+    links[0] = &clogloglnk;
+    links[1] = &identitylnk;
+    links[2] = &logitlnk;
+    links[3] = &loglnk;
+    links[4] = &probitlnk;
+    links[5] = &sqrtlnk;
+    GLvar **vars = new GLvar*[nvar];
+    vars[0] = &constvr;
+    vars[1] = &mu1muvr;
+    vars[2] = &mu2vr;
+    vars[3] = &mu3vr;
+    vars[4] = &muvr;
+#endif
+    
     family = findVarBound(rho, install("family"));
     SEXP nms = getAttrib(family, R_NamesSymbol);
     if (!isNewList(family) ||!isString(nms) ||
@@ -22,12 +61,22 @@ void GLfamily::initGL(SEXP rho) {
     lname = CHAR(STRING_ELT(getListElement(family, nms, "link"), 0));
     Rprintf("family name: %s\n", fname);
     Rprintf("link name in family: %s\n", lname);
-    lnk = &identitylnk;
-    var = &constvr;
-    if (strcmp(lname, logitlnk.nm()) == 0) lnk = &logitlnk;
-    if (strcmp(fname, mu1muvr.distnm()) == 0) var = &mu1muvr;
+    // assign the link and variance function by comparing names
+#ifdef USING_MAP_TEMPLATE
+    lnk = links[lname];
+    var = vars[fname];
+#else
+    for (int i = 0; i < nlink; i++)
+	if (!strcmp(lname, links[i]->nm())) lnk = links[i];
+    for (int i = 0; i < nvar; i++)
+	if (!strcmp(fname, vars[i]->distnm())) var = vars[i];
+#endif
     Rprintf("variance name: %s\n", var->distnm());
     Rprintf("link name: %s\n", lnk->nm());
+#ifndef USING_MAP_TEMPLATE
+    delete[] links;
+    delete[] vars;
+#endif
 }    
 
 const double GLlink::LTHRESH = 30;
