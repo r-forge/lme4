@@ -13,22 +13,20 @@ static mu2var mu2vr;
 static mu3var mu3vr;
 static muvar muvr;
 
-#include <string>
-#include <map>
-
 void GLfamily::initGL(SEXP rho) {
-    std::map<std::string, GLlink> links;
-    std::map<std::string, GLvar> vars;
-    links["cloglog"] = clogloglnk;
-    links["identity"] = identitylnk;
-    links["logit"] = logitlnk;
-    links["probit"] = probitlnk;
-    links["sqrt"] = probitlnk;
-    vars["gaussian"] = constvr;
-    vars["binomial"] = mu1muvr;
-    vars["Gamma"] = mu2vr;
-    vars["poisson"] = muvr;
-    vars["inverse.gaussian"] = mu3vr;
+    static std::map<std::string, GLlink*> lpts;
+    static std::map<std::string, GLvar*> vpts;
+    if (!lpts.count("identity")) { // initialize the contents
+	lpts["identity"] = &identitylnk;
+	lpts["logit"] = &logitlnk;
+	lpts["probit"] = &probitlnk;
+	lpts["sqrt"] = &probitlnk;
+	vpts["gaussian"] = &constvr;
+	vpts["binomial"] = &mu1muvr;
+	vpts["Gamma"] = &mu2vr;
+	vpts["inverse.gaussian"] = &mu3vr;
+	vpts["poisson"] = &muvr;
+    }
     
     family = findVarBound(rho, install("family"));
     SEXP nms = getAttrib(family, R_NamesSymbol);
@@ -37,12 +35,10 @@ void GLfamily::initGL(SEXP rho) {
 	error(_("Object \"%s\" must be a named list"), "family");
     fname = CHAR(STRING_ELT(getListElement(family, nms, "family"), 0));
     lname = CHAR(STRING_ELT(getListElement(family, nms, "link"), 0));
-    Rprintf("family name: %s\n", fname);
-    Rprintf("link name in family: %s\n", lname);
 				// assign the link and variance class
-    if (links.count(lname)) lnk = &(links[lname]);
+    if (lpts.count(lname)) lnk = lpts[lname];
     else error(_("no compiled link function named \"%s\""), lname);
-    if (vars.count(fname)) var = &(vars[fname]);
+    if (vpts.count(fname)) var = vpts[fname];
     else error(_("no compiled variance function for \"%s\" distribution"),
 	       fname);
 }    
@@ -53,17 +49,11 @@ const double GLlink::MPTHRESH = qnorm5(DOUBLE_EPS, 0, 1, 1, 0);
 const double GLlink::PTHRESH = -MPTHRESH;
 const double GLlink::INVEPS = 1/DOUBLE_EPS;
 
-void GLlink::link(double *eta, const double* mu, int n) {
-    error(_("Should not be called"));
-}
-
-void GLlink::linkinv(double *mu, double *muEta,
-			const double* eta, int n) {
-    error(_("Should not be called"));
-}
-
 void logitlink::link(double *eta, const double* mu, int n) {
-    for (int i = 0; i < n; i++) eta[i] = 1/(1 + exp(-mu[i]));
+    for (int i = 0; i < n; i++) {
+	double mui = mu[i];
+	eta[i] = log(mui/(1 - mui));
+    }
 }
 
 void logitlink::linkinv(double *mu, double *muEta,
@@ -78,8 +68,7 @@ void logitlink::linkinv(double *mu, double *muEta,
 }
 
 void probitlink::link(double *eta, const double* mu, int n) {
-//FIXME: This is a place holder.
-    for (int i = 0; i < n; i++) eta[i] = 1/(1 + exp(-mu[i]));
+    for (int i = 0; i < n; i++) eta[i] = qnorm5(mu[i], 0, 1, 1, 0);
 }
 
 void probitlink::linkinv(double *mu, double *muEta,
@@ -95,8 +84,7 @@ void probitlink::linkinv(double *mu, double *muEta,
 }
 
 void clogloglink::link(double *eta, const double* mu, int n) {
-//FIXME: This is a place holder.
-    for (int i = 0; i < n; i++) eta[i] = 1/(1 + exp(-mu[i]));
+    for (int i = 0; i < n; i++) eta[i] = log(-log(1 - mu[i]));
 }
 
 void clogloglink::linkinv(double *mu, double *muEta,
@@ -151,15 +139,15 @@ void sqrtlink::linkinv(double *mu, double *muEta, const double* eta, int n)
     }
 }
 
-void GLvar::devResid(double *ans, const double *mu,
-			const double *pw, const double *y,
-			const int *fac, int n) {
-    error(_("Should not be called"));
-}
+// void GLvar::devResid(double *ans, const double *mu,
+// 			const double *pw, const double *y,
+// 			const int *fac, int n) {
+//     error(_("Should not be called"));
+// }
 
-void GLvar::varFunc(double *var, const double *mu, int n) {
-    error(_("Should not be called"));
-}
+// void GLvar::varFunc(double *var, const double *mu, int n) {
+//     error(_("Should not be called"));
+// }
 
 
 void constvar::devResid(double *ans, const double *mu,
