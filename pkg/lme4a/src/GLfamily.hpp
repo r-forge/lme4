@@ -2,12 +2,14 @@
 #define LME4_GLFAMILY_HPP
 
 #include "lme4utils.h"		// for definition of SEXP
+#include <string>
+#include <map>
 
 class GLlink {
 public:
-    virtual void link(double *etc, const double* mu, int n);
+    virtual void link(double *etc, const double* mu, int n) = 0;
     virtual void linkinv(double *mu, double *muEta,
-			 const double* eta, int n);
+			 const double* eta, int n) = 0;
     static const double LTHRESH, MLTHRESH, MPTHRESH, PTHRESH, INVEPS;
 };
 
@@ -15,8 +17,8 @@ class GLvar {
 public:
     virtual void devResid(double *ans, const double *mu,
 			  const double *pw, const double *y,
-			  const int *fac, int n);
-    virtual void varFunc(double *var, const double *mu, int n);
+			  const int *fac, int n) = 0;
+    virtual void varFunc(double *var, const double *mu, int n) = 0;
 };
 
 class GLfamily {
