@@ -5,9 +5,9 @@
 
 class GLlink {
 public:
+    virtual void link(double *etc, const double* mu, int n);
     virtual void linkinv(double *mu, double *muEta,
-			 const double* eta, int n) = 0;
-    virtual const char* nm() = 0;
+			 const double* eta, int n);
     static const double LTHRESH, MLTHRESH, MPTHRESH, PTHRESH, INVEPS;
 };
 
@@ -15,9 +15,8 @@ class GLvar {
 public:
     virtual void devResid(double *ans, const double *mu,
 			  const double *pw, const double *y,
-			  const int *fac, int n) = 0;
-    virtual void varFunc(double *var, const double *mu, int n) = 0;
-    virtual const char *distnm() = 0;
+			  const int *fac, int n);
+    virtual void varFunc(double *var, const double *mu, int n);
 };
 
 class GLfamily {
@@ -31,38 +30,38 @@ public:
 
 class logitlink : public GLlink {
 public:
+    void link(double *eta, const double* mu, int n);
     void linkinv(double *mu, double *muEta, const double* eta, int n);
-    const char* nm() {return "logit";}
 };
 
 class probitlink : public GLlink {
 public:
+    void link(double *eta, const double* mu, int n);
     void linkinv(double *mu, double *muEta, const double* eta, int n);
-    const char* nm() {return "probit";}
 };
 
 class clogloglink : public GLlink {
 public:
+    void link(double *eta, const double* mu, int n);
     void linkinv(double *mu, double *muEta, const double* eta, int n);
-    const char* nm() {return "cloglog";}
 };
 
 class identitylink : public GLlink {
 public:
+    void link(double *eta, const double* mu, int n);
     void linkinv(double *mu, double *muEta, const double* eta, int n);
-    const char* nm() {return "identity";}
 };
 
 class loglink : public GLlink {
 public:
+    void link(double *eta, const double* mu, int n);
     void linkinv(double *mu, double *muEta, const double* eta, int n);
-    const char* nm() {return "log";}
 };
 
 class sqrtlink : public GLlink {
 public:
+    void link(double *eta, const double* mu, int n);
     void linkinv(double *mu, double *muEta, const double* eta, int n);
-    const char* nm() {return "sqrt";}
 };
 
 class constvar : public GLvar {
@@ -71,7 +70,6 @@ public:
 		  const double *pw, const double *y,
 		  const int *fac, int n);
     void varFunc(double *var, const double *mu, int n);
-    const char *distnm() {return "gaussian";}
 };
 
 class mu1muvar : public GLvar {
@@ -80,7 +78,6 @@ public:
 		  const double *pw, const double *y,
 		  const int *fac, int n);
     void varFunc(double *var, const double *mu, int n);
-    const char *distnm() {return "binomial";}
 };
 
 class muvar : public GLvar {
@@ -89,7 +86,6 @@ public:
 		  const double *pw, const double *y,
 		  const int *fac, int n);
     void varFunc(double *var, const double *mu, int n);
-    const char *distnm() {return "poisson";}
 };
 
 class mu2var : public GLvar {
@@ -98,7 +94,6 @@ public:
 		  const double *pw, const double *y,
 		  const int *fac, int n);
     void varFunc(double *var, const double *mu, int n);
-    const char *distnm() {return "Gamma";}
 };
 
 class mu3var : public GLvar {
@@ -107,7 +102,6 @@ public:
 		  const double *pw, const double *y,
 		  const int *fac, int n);
     void varFunc(double *var, const double *mu, int n);
-    const char *distnm() {return "inverse.gaussian";}
 };
 
 #endif /* LME4_GLFAMILY_HPP */
