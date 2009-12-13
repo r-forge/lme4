@@ -544,7 +544,7 @@ extern "C" {
 /**
  * Check validity of an merenv environment
  *
- * @param x pointer to an merenv environment
+ * @param rho pointer to an merenv environment
  * @return TRUE if successful, otherwise it throws an error
  */
     SEXP lmerenv_validate(SEXP rho) {
