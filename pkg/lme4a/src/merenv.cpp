@@ -510,10 +510,38 @@ glmer::glmer(SEXP rho) {
     fam.initGL(rho);
 }
 
+void glmer::update_sqrtrwt() {
+    varFunc();
+    for (int j = 0; j < n; j++)	
+	sqrtrwt[j] = sqrt((weights ? weights[j] : 1) / var[j]);
+}
+
 glmerdense::glmerdense(SEXP rho) : glmer(rho), merdense(rho) {
+    V = new double[n * p];
+}
+
+void glmerdense::update_V() {
+    for (int j = 0; j < p; j++)
+	for (int i = 0; i < n; i++) {
+	    int ind = i * n + j;
+	    V[ind] = X[ind] * sqrtrwt[i] * muEta[i];
+	}
 }
 
 glmersparse::glmersparse(SEXP rho) : glmer(rho), mersparse(rho) {
+    V = M_cholmod_copy_sparse(X, &c);
+}
+
+void glmersparse::update_V() {
+    double *vx = (double*)V->x, *xx = (double*)X->x;
+    int *xi = (int*)X->i, *xp = (int*)X->p;
+
+    for (int j = 0; j < p; j++) {
+	for (int k = xp[j]; k < xp[j + 1]; k++) {
+	    int i = xi[j];	// row index
+	    vx[k] = xx[k] * sqrtrwt[i] * muEta[i];
+	}
+    }
 }
 
 const int CM_MAXITER = 300;
@@ -654,9 +682,22 @@ double glmer::PIRLSbeta() {
     return 0;
 }
 
-double glmer::PIRLS()
-{
-    varFunc();		// update the variance
+double glmer::PIRLS() {
+    update_sqrtrwt();		// update variance and sqrtrwt
+    return 0;
+}
+
+double glmer::IRLS() {
+    double *betaold = new double[p], *varold = new double[n];
+    update_sqrtrwt();		// update variance and sqrtrwt
+    for (int ii = 0; ii < CM_MAXITER; ii++) {
+	dble_cpy(varold, var, n);
+	for (int i = 0; i < CM_MAXITER; i++) {
+	    dble_cpy(betaold, fixef, p);
+	}
+    }	
+    delete[] betaold;
+    delete[] varold;
     return 0;
 }
 
@@ -672,6 +713,11 @@ extern "C" {
 	if (asLogical(findVarBound(rho, install("sparseX"))))
 	    return ScalarReal(glmersparse(rho).PIRLSbeta());
 	return ScalarReal(glmerdense(rho).PIRLSbeta());
+    }
+	
+    SEXP glmer_update_sqrtrwt(SEXP rho) {
+	glmer(rho).update_sqrtrwt();
+	return R_NilValue;
     }
 	
 /**

@@ -24,6 +24,7 @@ static R_CallMethodDef CallEntries[] = {
 
     CALLDEF(glmer_PIRLS, 1),
     CALLDEF(glmer_PIRLSbeta, 1),
+    CALLDEF(glmer_update_sqrtrwt, 1),
 
     CALLDEF(lme4_ghq, 1),
     CALLDEF(lme4_dup_env_contents, 3),
