@@ -187,15 +187,17 @@ class glmer : virtual public merenv { // components common to GLMMs
 public:
     glmer(SEXP rho);		/**< initialize from an environment */
     SEXP family;
-    double
-    *mu,			/**< conditional means of response */
+    double *mu,			/**< conditional means of response */
 	*muEta,			/**< diagonal of d mu/d eta */
 	*sqrtrwt,		/**< square root of resid weights */
 	*var,			/**< conditional variances of response */
+	*wtres,			/**< weighted residuals at current estimates */
 	devres;
     GLfamily fam;
     double PIRLS();		/**< deviance at updated u */
     double PIRLSbeta();		/**< deviance at updated u and beta */
+    double IRLS();		/**< deviance at updated beta */
+    void update_sqrtrwt();
     void link() {fam.lnk->link(eta, mu, n);}
     void linkinv() {fam.lnk->linkinv(mu, muEta, eta, n);}
     void devResid() {fam.var->devResid(&devres, mu, weights, y,
@@ -206,10 +208,14 @@ public:
 class glmerdense : public glmer, public merdense {
 public:
     glmerdense(SEXP rho);	/**< construct from an environment */
+    ~glmerdense() {delete[] V;}
+
+    void update_V();
     double update_dev(SEXP thnew);
     int validate() {
 	return 1; 
     }
+    double *V;
     double *XtX, *ZtX;
 };
 
@@ -219,12 +225,15 @@ public:
     ~glmersparse(){
 	delete XtX;
 	delete ZtX;
+	M_cholmod_free_sparse(&V, &c);
+	delete V;
     }
+    void update_V();
     double update_dev(SEXP thnew);
     int validate() {
 	return 1;
     }
-    CHM_SP XtX, ZtX;
+    CHM_SP XtX, ZtX, V;
 };
     
 #endif /* LME4_MERENV_HPP */

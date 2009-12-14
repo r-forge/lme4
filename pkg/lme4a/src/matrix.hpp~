@@ -1,0 +1,38 @@
+// Classes of double precision matrices
+
+/** abstract class of double precision matrices */
+class dMatrix {
+public:
+    double *contents;
+    int ncol;
+    int nrow;
+    void rprod(double *ans, const double* rhs) = 0;
+    void lprod(double *ans, const double* lhs) = 0;
+};
+
+/** concrete class of double precision diagonal square matrices */
+class ddiMatrix : public dMatrix {
+    ddiMatrix(double *x, int nrow, int ncol);
+    ddiMatrix(double *x, int *dims);
+    void rprod(double *ans, const double* rhs) = 0;
+    void lprod(double *ans, const double* lhs) = 0;
+};
+
+/** concrete class of double precision general matrices */
+class dgeMatrix : public dMatrix {
+    dgeMatrix(double *x, int nrow, int ncol);
+    dgeMatrix(double *x, int *dims);
+    void rprod(double *ans, const double* rhs) = 0;
+    void lprod(double *ans, const double* lhs) = 0;
+};
+
+/** concrete class of double precision, sparse, compressed-column matrices */
+class dgCMatrix : public dMatrix {
+    dgCMatrix(CHM_SP A);
+    CHM_SP mm;
+    void rprod(double *ans, const double* rhs) = 0;
+    void lprod(double *ans, const double* lhs) = 0;
+};
+
+
+    

@@ -1,5 +1,3 @@
-### FIXME: Change all the references to n to be nobs
-
 ##' Check and install various objects, including frame, y, weights
 ##' from the model frame in the environment rho.
 ##'
@@ -329,7 +327,7 @@ function(formula, data, family = gaussian, sparseX = FALSE,
     environment(fr.form) <- environment(formula)
     mf$formula <- fr.form
     check_y_weights(fr <- eval(mf, parent.frame()), rho, muetastart = TRUE)
-    
+
     ## evaluate fixed-effects model matrix
     fe.form <- formula
     nb <- nobars(formula[[3]])   # fixed-effects terms only
@@ -353,11 +351,13 @@ function(formula, data, family = gaussian, sparseX = FALSE,
         family <- get(family, mode = "function", envir = parent.frame(2))
     if(is.function(family)) family <- family()
     rho$family <- family
+    n <- rho$nobs
+    if (!length(rho$weights)) rho$weights <- rep.int(1, n)
     eval(family$initialize, rho)
+    rho$weights <- unname(rho$weights)
     mustart <- unname(as.numeric(rho$mustart))
     etastart <- unname(as.numeric(rho$etastart))    
     rho$etastart <- rho$mustart <- NULL
-    n <- rho$nobs
     stopifnot(length(etastart) == n || length(mustart) == n)
     if (length(etastart) == n) {
         stopifnot(family$valideta(etastart))

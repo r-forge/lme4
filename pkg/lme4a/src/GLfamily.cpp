@@ -16,7 +16,7 @@ static muvar muvr;
 void GLfamily::initGL(SEXP rho) {
     static std::map<std::string, GLlink*> lpts;
     static std::map<std::string, GLvar*> vpts;
-    if (!lpts.count("identity")) { // initialize the contents
+    if (!lpts.count("identity")) { // initialize the map contents
 	lpts["identity"] = &identitylnk;
 	lpts["logit"] = &logitlnk;
 	lpts["probit"] = &probitlnk;
