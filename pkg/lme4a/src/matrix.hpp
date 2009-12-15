@@ -1,60 +1,32 @@
+#include "lme4utils.h"		// for CHM_DN, CHM_SP, c
+
 // Classes of double precision matrices
 
-/** abstract class of double precision matrices */
-class dMatrix {
+/** abstract class of double precision matrices in CHOLMOD form */
+class CHM_r {
 public:
-    double *contents;
-    virtual int nrow() = 0;
-    virtual int ncol() = 0;
-    virtual void rdprod(double *ans, const double* rhs,
-		int nrhs, double alpha, double beta,
-		int transa, int transb) = 0;
-    static const int i1 = 1, i0 = 0;
-    static const double d1, d0, dm1;
+    virtual void drmult(int transpose, double alpha, double beta,
+			CHM_DN X, CHM_DN Y) = 0;
 };
 
-const double dMatrix::d1 = 1;
-const double dMatrix::d0 = 0;
-const double dMatrix::dm1 = -1;
-
-/** concrete class of double precision diagonal square matrices */
-class ddiMatrix : public dMatrix {
+/** concrete class of double precision dense matrices */
+class CHM_rd : public CHM_r {
 public:
-    ddiMatrix(double *x, int nr, int nc);
-    ddiMatrix(double *x, int *dims);
-    virtual int nrow() {return nro;}
-    virtual int ncol() {return nco;}
-    virtual void rdprod(double *ans, const double* rhs,
-		int nrhs, double alpha, double beta,
-		int transa);
-//    void lprod(double *ans, const double* lhs);
+    CHM_rd(SEXP x);
+    ~CHM_rd(){delete A;}
+    virtual void drmult(int transpose, double alpha, double beta,
+			CHM_DN X, CHM_DN Y);
 protected:
-    int nro;
-    int nco;
+    CHM_DN A;
 };
 
 /** concrete class of double precision general matrices */
-class dgeMatrix : public dMatrix {
+class CHM_rs : public CHM_r {
 public:
-    dgeMatrix(double *x, int nr, int nc);
-    dgeMatrix(double *x, int *dims);
-    virtual int nrow() {return nro;}
-    virtual int ncol() {return nco;}
-    virtual void rdprod(double *ans, const double* rhs,
-		int nrhs, double alpha, double beta,
-		int transa);
+    CHM_rs(SEXP x);
+    ~CHM_rs(){delete A;}
+    virtual void drmult(int transpose, double alpha, double beta,
+			CHM_DN X, CHM_DN Y);
 protected:
-    int nro;
-    int nco;
-};
-
-/** concrete class of double precision, sparse, compressed-column matrices */
-class dgCMatrix : public dMatrix {
-    dgCMatrix(CHM_SP A);
-    CHM_SP mm;
-    virtual int nrow() {return (int)mm->nrow;}
-    virtual int ncol(){return (int)mm->ncol;}
-    virtual void rdprod(double *ans, const double* rhs,
-		int nrhs, double alpha, double beta,
-		int transa);
+    CHM_SP A;
 };

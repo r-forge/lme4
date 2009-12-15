@@ -1,6 +1,7 @@
 #ifndef LME4_MERENV_HPP
 #define LME4_MERENV_HPP
 #include "lme4utils.h"		// to get definitions of SEXP
+#include "matrix.hpp"
 
 static int i1 = 1;
 static double one = 1, mone = -1, zero = 0;
@@ -94,6 +95,7 @@ public:
 	Zt;	     /**< model matrix for random effects */
     int *Lind,	     /**< Lambdax index vector into theta (1-based) */
 	nLind;	     /**< length of Lind */
+    CHM_r *Xp, *RXp, *RZXp;
 
 private:
     int nth;	      /**< number of elements of theta */
