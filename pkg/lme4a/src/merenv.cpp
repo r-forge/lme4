@@ -67,6 +67,16 @@ void merenv::initMer(SEXP rho)
     prss = VAR_REAL_NULL(rho, install("prss"), 1);
     weights = VAR_REAL_NULL(rho, install("weights"), n, TRUE);
     offset = VAR_REAL_NULL(rho, lme4_offsetSym, N, TRUE);
+    if (asLogical(findVarBound(rho, install("sparseX")))) {
+	Xp = new CHM_rs(findVarBound(rho, lme4_XSym));
+	RXp = new CHM_rs(findVarBound(rho, lme4_RXSym));
+	RZXp = new CHM_rs(findVarBound(rho, lme4_RZXSym));
+    } else {
+	Xp = new CHM_rd(findVarBound(rho, lme4_XSym));
+	RXp = new CHM_rd(findVarBound(rho, lme4_RXSym));
+	RZXp = new CHM_rd(findVarBound(rho, lme4_RZXSym));
+    }	
+    
 //    Rprintf(
 //	"In merenv(SEXP), dimensions are N = %d, n = %d, p = %d, q = %d\n",
 //	N, n, p, q);
