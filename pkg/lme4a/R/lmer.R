@@ -59,6 +59,7 @@ derived_mats <- function(rho) {
         rho$Xty <- numeric(0)
         rho$XtX <- new("dpoMatrix", Dim = zz, uplo = "U")
         rho$RX <- new("Cholesky", Dim = zz, uplo = "U", diag = "N")
+        rho$RX <- new("dgeMatrix", Dim = zz, uplo = "U", diag = "N")        
         rho$ZtX <- new("dgeMatrix", Dim = qz, Dimnames = Zt@Dimnames)
         rho$RZX <- new("dgeMatrix", Dim = qz, Dimnames = Zt@Dimnames)
     } else {
