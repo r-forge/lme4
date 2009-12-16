@@ -32,3 +32,25 @@ void CHM_rs::drmult(int transpose, double alpha, double beta,
 		    CHM_DN X, CHM_DN Y){
     M_cholmod_sdmult(A, transpose, &alpha, &beta, X, Y, &c);
 }
+
+Cholesky_rd::Cholesky_rd(SEXP x) {
+    F = new cholmod_dense;
+    if (!(IS_S4_OBJECT(x)))
+	error(_("S4 object expected but not provided"));
+    if (strcmp(CHAR(asChar(getAttrib(x, R_ClassSymbol))),
+	       "Cholesky") != 0)
+	error(_("Object must be of class \"Cholesky\""));
+    M_as_cholmod_dense(F, x);
+//    char *uplo = toupper(CHAR(asChar(GET_SLOT(x, "A"
+}
+
+void Cholesky_rd::update(CHM_r *A) {
+}
+
+void Cholesky_rs::update(CHM_r *A) {
+}
+
+Cholesky_rs::Cholesky_rs(SEXP x) {
+    F = new cholmod_factor;
+    M_as_cholmod_factor(F, x);
+}

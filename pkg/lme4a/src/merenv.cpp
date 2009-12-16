@@ -72,14 +72,18 @@ void merenv::initMer(SEXP rho)
 	RXp = new CHM_rs(findVarBound(rho, lme4_RXSym));
 	RZXp = new CHM_rs(findVarBound(rho, lme4_RZXSym));
     } else {
+// Create a new class of factorizations with sparse and dense derived classes.
+// Install a sparseX member in the merenv class.	
 	Xp = new CHM_rd(findVarBound(rho, lme4_XSym));
 	RXp = new CHM_rd(findVarBound(rho, lme4_RXSym));
 	RZXp = new CHM_rd(findVarBound(rho, lme4_RZXSym));
     }	
-    
-//    Rprintf(
-//	"In merenv(SEXP), dimensions are N = %d, n = %d, p = %d, q = %d\n",
-//	N, n, p, q);
+    if (!(Xp->nrow() == N && Xp->ncol() == p))
+	error(_("Dimensions of %s are %d by %d, should be %d by %d"),
+	      "X", Xp->nrow(), Xp->ncol(), N, p);
+    if (!(RZXp->nrow() == q && RZXp->ncol() == p))
+	error(_("Dimensions of %s are %d by %d, should be %d by %d"),
+	      "RZX", RZXp->nrow(), RZXp->ncol(), q, p);
 }
 
 void merenv::update_Lambda_Ut(SEXP thnew) {
