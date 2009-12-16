@@ -3,12 +3,16 @@
 // Classes of double precision matrices
 
 /** abstract class of double precision matrices in CHOLMOD form */
-class CHM_r {
+class dMatrix {
 public:
-    virtual void drmult(int transpose, double alpha, double beta,
-			CHM_DN X, CHM_DN Y) = 0;
     virtual int ncol() = 0;
     virtual int nrow() = 0;
+};
+
+class CHM_r : public dMatrix {
+public:    
+    virtual void drmult(int transpose, double alpha, double beta,
+			CHM_DN X, CHM_DN Y) = 0;
 };
 
 /** concrete class of double precision dense matrices */
@@ -36,33 +40,40 @@ public:
 };
 
 /** abstract class of double precision Cholesky decompositions */
-class Cholesky_r {
+class Cholesky_r : public dMatrix {
 public:
-    virtual void update(CHM_r *A) = 0;
-    virtual int ncol() = 0;
-    virtual int nrow() = 0;
+    virtual int update(CHM_r *A) = 0;
 };
 
 class Cholesky_rd : public Cholesky_r {
 public:
     Cholesky_rd(SEXP x);
-    ~Cholesky_rd(){delete F;}
-    virtual void update(CHM_r *A);
-    virtual int ncol() {return F->ncol;}
-    virtual int nrow() {return F->nrow;}
-    CHM_DN F;
-    int upper;			/**< Boolean indicator of upper factor */
+    virtual int update(CHM_r *A);
+    virtual int ncol() {return n;}
+    virtual int nrow() {return n;}
+    const char* uplo;
+    int n;
+    double *X;
 };
 
 class Cholesky_rs : public Cholesky_r {
 public:
     Cholesky_rs(SEXP x);
     ~Cholesky_rs(){delete F;}
-    virtual void update(CHM_r *A);
-    // virtual int ncol() {return F->ncol;}
-    // virtual int nrow() {return F->nrow;}
-    virtual int ncol() {return 0;}
-    virtual int nrow() {return 0;}
+    virtual int update(CHM_r *A);
+    virtual int ncol() {return (int)F->n;}
+    virtual int nrow() {return (int)F->n;}
     CHM_FR F;
+};
+
+class dpoMatrix : public dMatrix {
+public:
+    dpoMatrix(SEXP x);
+    virtual int ncol() {return n;}
+    virtual int nrow() {return n;}
+    const char* uplo;
+    int n;
+    double *X;
+    SEXP factors;
 };
 

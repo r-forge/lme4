@@ -67,20 +67,21 @@ void merenv::initMer(SEXP rho)
     prss = VAR_REAL_NULL(rho, install("prss"), 1);
     weights = VAR_REAL_NULL(rho, install("weights"), n, TRUE);
     offset = VAR_REAL_NULL(rho, lme4_offsetSym, N, TRUE);
-    if (asLogical(findVarBound(rho, install("sparseX")))) {
+    if ((sparseX = asLogical(findVarBound(rho, install("sparseX"))))) {
 	Xp = new CHM_rs(findVarBound(rho, lme4_XSym));
-	RXp = new CHM_rs(findVarBound(rho, lme4_RXSym));
+	RXp = new Cholesky_rs(findVarBound(rho, lme4_RXSym));
 	RZXp = new CHM_rs(findVarBound(rho, lme4_RZXSym));
     } else {
-// Create a new class of factorizations with sparse and dense derived classes.
-// Install a sparseX member in the merenv class.	
 	Xp = new CHM_rd(findVarBound(rho, lme4_XSym));
-	RXp = new CHM_rd(findVarBound(rho, lme4_RXSym));
+	RXp = new Cholesky_rd(findVarBound(rho, lme4_RXSym));
 	RZXp = new CHM_rd(findVarBound(rho, lme4_RZXSym));
     }	
     if (!(Xp->nrow() == N && Xp->ncol() == p))
 	error(_("Dimensions of %s are %d by %d, should be %d by %d"),
 	      "X", Xp->nrow(), Xp->ncol(), N, p);
+    if (!(RXp->nrow() == p && RXp->ncol() == p))
+	error(_("Dimensions of %s are %d by %d, should be %d by %d"),
+	      "RX", RXp->nrow(), RXp->ncol(), p, p);
     if (!(RZXp->nrow() == q && RZXp->ncol() == p))
 	error(_("Dimensions of %s are %d by %d, should be %d by %d"),
 	      "RZX", RZXp->nrow(), RZXp->ncol(), q, p);
@@ -129,14 +130,17 @@ double merenv::update_prss() {
     return *prss;
 }
 
-void merenv::update_eta_Ut() {    
+//void merenv::update_eta_Ut() {    
+void merenv::update_eta() {
     CHM_DN cu = N_AS_CHM_DN(u, q, 1),
-	ceta = N_AS_CHM_DN(eta, N, 1);
+	ceta = N_AS_CHM_DN(eta, N, 1),
+	cfixef = N_AS_CHM_DN(fixef, p, 1);
     if (offset)			// initialize to offset if used
 	dble_cpy(eta, offset, N);
     else			// otherwise initialize to zero
 	dble_zero(eta, N);
     M_cholmod_sdmult(Ut, 1/*transpose*/, &one, &one, cu, ceta, &c);
+    Xp->drmult(0/*transpose*/, one, one, cfixef, ceta);
 }
 
 CHM_DN merenv::crossprod_Lambda(CHM_DN rhs, CHM_DN ans) {
@@ -197,34 +201,14 @@ CHM_SP merenv::solvePL(CHM_SP src) {
 }
 
 // Definition of methods for the mersparse and merdense classes
-
-void mersparse::update_eta() {
-    update_eta_Ut();
-    M_cholmod_sdmult(X, 0/*no transpose*/, &one, &one,
-		     N_AS_CHM_DN(fixef, p, 1),
-		     N_AS_CHM_DN(eta, N, 1), &c);
-}
-
-void merdense::update_eta() {
-    update_eta_Ut();
-    if (p) 
-	F77_CALL(dgemv)("N", &n, &p, &one, X, &n, fixef,
-			&i1, &one, eta, &i1);
-}
-
+// No longer needed.  Pull these when lmersparse and lmerdense are defunct.
 merdense::merdense(SEXP rho) {
-//    Rprintf(
-//	"In merdense(SEXP), dimensions are N = %d, n = %d, p = %d, q = %d\n",
-//	N, n, p, q);
     X = VAR_dMatrix_x(rho, lme4_XSym, N, p);
     RX = VAR_dMatrix_x(rho, lme4_RXSym, p, p);
     RZX = VAR_dMatrix_x(rho, lme4_RZXSym, q, p);
 }
 
 mersparse::mersparse(SEXP rho) {
-//    Rprintf(
-//	"In mersparse(SEXP), dimensions are N = %d, n = %d, p = %d, q = %d\n",
-//	N, n, p, q);
     X = VAR_CHM_SP(rho, lme4_XSym, N, p);
     RX = VAR_CHM_SP(rho, lme4_RXSym, p, p);
     RZX = VAR_CHM_SP(rho, lme4_RZXSym, q, p);
@@ -234,8 +218,6 @@ mersparse::mersparse(SEXP rho) {
 
 lmer::lmer(SEXP rho) {
     initMer(rho);
-//    Rprintf("In lmer(SEXP), dimensions are N = %d, n = %d, p = %d, q = %d\n",
-//	    N, n, p, q);
     if (N != n)
 	error(_("nrow(X) = %d must match length(y) = %d for lmer"),
 	      N, n);
@@ -243,20 +225,27 @@ lmer::lmer(SEXP rho) {
     ldRX2 = VAR_REAL_NULL(rho, install("ldRX2"), 1, TRUE);
     Xty = VAR_REAL_NULL(rho, install("Xty"), p);
     Zty = VAR_dMatrix_x(rho, install("Zty"), q, 1);
+    if (sparseX) {
+	XtXp = new CHM_rs(findVarBound(rho, install("XtX")));
+	ZtXp = new CHM_rs(findVarBound(rho, install("ZtX")));
+    } else {
+	XtXp = new dpoMatrix(findVarBound(rho, install("XtX")));
+	ZtXp = new CHM_rd(findVarBound(rho, install("ZtX")));
+    }
+    if (!(XtXp->nrow() == p && XtXp->ncol() == p))
+	error(_("Dimensions of %s are %d by %d, should be %d by %d"),
+	      "XtX", XtXp->nrow(), XtXp->ncol(), p, p);
+    if (!(ZtXp->nrow() == q && ZtXp->ncol() == p))
+	error(_("Dimensions of %s are %d by %d, should be %d by %d"),
+	      "ZtX", ZtXp->nrow(), ZtXp->ncol(), q, p);
 }
 
 lmerdense::lmerdense(SEXP rho) : lmer(rho), merdense(rho) {
-//    Rprintf(
-//	"In lmerdense(SEXP), dimensions are N = %d, n = %d, p = %d, q = %d\n",
-//	    N, n, p, q);
     ZtX = VAR_dMatrix_x(rho, install("ZtX"), q, p);
     XtX = VAR_dMatrix_x(rho, install("XtX"), p, p);
 }
 
 lmersparse::lmersparse(SEXP rho) : lmer(rho), mersparse(rho) {
-//    Rprintf(
-//	"In lmersparse(SEXP), dimensions are N = %d, n = %d, p = %d, q = %d\n",
-//	    N, n, p, q);
     ZtX = VAR_CHM_SP(rho, install("ZtX"), q, p);
     XtX = VAR_CHM_SP(rho, install("XtX"), p, p);
 }
