@@ -1,4 +1,5 @@
 #include "matrix.hpp"
+
 CHM_rd::CHM_rd(SEXP x) {
     A = new cholmod_dense;
     M_as_cholmod_dense(A, x);
@@ -23,8 +24,8 @@ void CHM_rd::drmult(int transpose, double alpha, double beta,
 	if (!(ar == yr && ac == xr && xc == yc))
 	    error(_("Matrices not conformable for ddrmult"));
 	F77_CALL(dgemm)("N", "N", &yr, &yc, &xr, &alpha,
-			(double*)A->x, &ar, (double*)X->x, &xr,
-			&beta, (double*)Y->x, &xc);
+			(double*)A->x, &yr, (double*)X->x, &xr,
+			&beta, (double*)Y->x, &yr);
     }
 }
 
@@ -34,23 +35,49 @@ void CHM_rs::drmult(int transpose, double alpha, double beta,
 }
 
 Cholesky_rd::Cholesky_rd(SEXP x) {
-    F = new cholmod_dense;
     if (!(IS_S4_OBJECT(x)))
 	error(_("S4 object expected but not provided"));
+// FIXME: This check should be changed to an S4 inherits check, which
+// should be available in Rinternals.h but isn't.
     if (strcmp(CHAR(asChar(getAttrib(x, R_ClassSymbol))),
 	       "Cholesky") != 0)
 	error(_("Object must be of class \"Cholesky\""));
-    M_as_cholmod_dense(F, x);
-//    char *uplo = toupper(CHAR(asChar(GET_SLOT(x, "A"
+    uplo = CHAR(asChar(GET_SLOT(x, install("uplo"))));
+    int *dims = INTEGER(GET_SLOT(x, lme4_DimSym));
+    n = dims[0];
+    if (dims[1] != n)
+	error(_("Cholesky object must be a square matrix"));
+    X = REAL(GET_SLOT(x, lme4_xSym));
 }
 
-void Cholesky_rd::update(CHM_r *A) {
+int Cholesky_rd::update(CHM_r *A) {
+    return 0;
 }
 
-void Cholesky_rs::update(CHM_r *A) {
+int Cholesky_rs::update(CHM_r *A) {
+    return 0;
 }
 
 Cholesky_rs::Cholesky_rs(SEXP x) {
     F = new cholmod_factor;
     M_as_cholmod_factor(F, x);
+}
+
+dpoMatrix::dpoMatrix(SEXP x) {
+    if (!(IS_S4_OBJECT(x)))
+	error(_("S4 object expected but not provided"));
+// FIXME: This check should be changed to an S4 inherits check, which
+// should be available in Rinternals.h but isn't.
+    if (strcmp(CHAR(asChar(getAttrib(x, R_ClassSymbol))),
+	       "dpoMatrix") != 0)
+	error(_("Object must be of class \"Cholesky\""));
+    uplo = CHAR(asChar(GET_SLOT(x, install("uplo"))));
+    int *dims = INTEGER(GET_SLOT(x, lme4_DimSym));
+    n = dims[0];
+    if (dims[1] != n)
+	error(_("Cholesky object must be a square matrix"));
+    X = REAL(GET_SLOT(x, lme4_xSym));
+    factors = GET_SLOT(x, install("factors"));
+    if (LENGTH(factors) && !isNewList(factors))
+	error(_("\"factors\" slot should be a list"));
 }

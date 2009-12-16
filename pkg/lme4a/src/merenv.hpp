@@ -24,7 +24,8 @@ public:
  * random-effects.  Updates from the fixed-effects are done in the
  * derived classes. 
  */
-    void update_eta_Ut();
+//    void update_eta_Ut();
+    void update_eta();
 
 /** 
  *  Update Lambda and Ut from theta.
@@ -43,7 +44,6 @@ public:
  * 
  * @param src dense matrix with q rows
  * @param ans matrix of same size as src to be overwritten
- * 
  * @return ans, overwritten with the product
  */
     CHM_DN crossprod_Lambda(CHM_DN src, CHM_DN ans);
@@ -51,7 +51,6 @@ public:
  * Return the crossproduct of Lambda and src
  * 
  * @param src sparse matrix with q rows
- * 
  * @return crossprod(Lambda, src)
  */
     CHM_SP spcrossprod_Lambda(CHM_SP src);
@@ -59,7 +58,6 @@ public:
  * Solve L ans = P src (dense case)
  * 
  * @param src dense matrix of values on the right hand side
- * 
  * @return a dense matrix of the same size as src
  */
     CHM_DN solvePL(CHM_DN src);
@@ -67,16 +65,16 @@ public:
  * Solve L ans = P src (sparse case)
  * 
  * @param src sparse matrix of values on the right hand side
- * 
  * @return a sparse matrix of the same size as src
  */
     CHM_SP solvePL(CHM_SP src);
 
     int
-	N,		/**< length of eta (can be a multiple of n) */
+	N,		/**< length of gamma (can be a multiple of n) */
 	n,		/**< number of observations */
 	p,		/**< number of fixed effects */
-	q;		/**< number of random effects */
+	q,		/**< number of random effects */
+	sparseX;
     double
 	*Lambdax,	     /**< x slot of Lambda */
 	*eta,		     /**< linear predictor values */
@@ -95,7 +93,8 @@ public:
 	Zt;	     /**< model matrix for random effects */
     int *Lind,	     /**< Lambdax index vector into theta (1-based) */
 	nLind;	     /**< length of Lind */
-    CHM_r *Xp, *RXp, *RZXp;
+    CHM_r *Xp, *RZXp;
+    Cholesky_r *RXp;
 
 private:
     int nth;	      /**< number of elements of theta */
@@ -110,16 +109,16 @@ public:
 	delete RX;
 	delete RZX;
     }
-    void update_eta();		/**< update linear predictor */
     CHM_SP X,			/**< model matrix for fixed effects */
 	RX,		     /**< Cholesky factor for fixed-effects */
 	RZX;		     /**< cross-product in Cholesky factor */
 };
 
+// merdense and mersparse are no longer needed.  Pull when lmerdense
+// and lmersparse are removed.
 class merdense : virtual public merenv { // merenv with dense X
 public:
     merdense(SEXP rho);
-    void update_eta();		/**< update linear predictor */
     double 
 	*RX,	       /**< upper Cholesky factor for fixed-effects */
 	*RZX,	       /**< cross-product in Cholesky factor */
@@ -129,6 +128,10 @@ public:
 class lmer : virtual public merenv { // components common to LMMs
 public:
     lmer(SEXP rho);   /**< initialize from environment */
+    ~lmer() {
+	delete XtXp;
+	delete ZtXp;
+    }
     void LMMdev1();   /**< initial shared part of deviance update */
     void LMMdev2();   /**< secondary shared part of deviance update */
     double LMMdev3(); /**< tertiary shared part of deviance update */
@@ -140,6 +143,8 @@ public:
 	*ldRX2;			/**< log-determinant of RX squared */
     CHM_DN
 	cu;		  /**< Intermediate value in solution for u */
+    dMatrix *XtXp;
+    CHM_r *ZtXp;
 };
 
 class lmerdense : public lmer, public merdense {
