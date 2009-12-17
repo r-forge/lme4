@@ -14,6 +14,9 @@ public:
 	delete Lambda;
 	delete Ut;
 	delete Zt;
+	delete Xp;
+	delete RXp;
+	delete RZXp;
     }
     void initMer(SEXP rho);
 
@@ -109,9 +112,9 @@ public:
 	delete RX;
 	delete RZX;
     }
-    CHM_SP X,			/**< model matrix for fixed effects */
-	RX,		     /**< Cholesky factor for fixed-effects */
+    CHM_SP X,		     /**< model matrix for fixed effects */
 	RZX;		     /**< cross-product in Cholesky factor */
+    CHM_FR RX;		     /**< Cholesky factor for fixed-effects */
 };
 
 // merdense and mersparse are no longer needed.  Pull when lmerdense
@@ -244,4 +247,3 @@ public:
 };
     
 #endif /* LME4_MERENV_HPP */
-

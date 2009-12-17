@@ -71,6 +71,7 @@ void merenv::initMer(SEXP rho)
 	Xp = new CHM_rs(findVarBound(rho, lme4_XSym));
 	RXp = new Cholesky_rs(findVarBound(rho, lme4_RXSym));
 	RZXp = new CHM_rs(findVarBound(rho, lme4_RZXSym));
+	Rprintf("Succeeded in Xp, RXp and RZXp\n");
     } else {
 	Xp = new CHM_rd(findVarBound(rho, lme4_XSym));
 	RXp = new Cholesky_rd(findVarBound(rho, lme4_RXSym));
@@ -130,7 +131,6 @@ double merenv::update_prss() {
     return *prss;
 }
 
-//void merenv::update_eta_Ut() {    
 void merenv::update_eta() {
     CHM_DN cu = N_AS_CHM_DN(u, q, 1),
 	ceta = N_AS_CHM_DN(eta, N, 1),
@@ -210,7 +210,7 @@ merdense::merdense(SEXP rho) {
 
 mersparse::mersparse(SEXP rho) {
     X = VAR_CHM_SP(rho, lme4_XSym, N, p);
-    RX = VAR_CHM_SP(rho, lme4_RXSym, p, p);
+    RX = VAR_CHM_FR(rho, lme4_RXSym, p);
     RZX = VAR_CHM_SP(rho, lme4_RZXSym, q, p);
 }
 
@@ -227,7 +227,9 @@ lmer::lmer(SEXP rho) {
     Zty = VAR_dMatrix_x(rho, install("Zty"), q, 1);
     if (sparseX) {
 	XtXp = new CHM_rs(findVarBound(rho, install("XtX")));
+	Rprintf("Succeeded in XtXp\n");
 	ZtXp = new CHM_rs(findVarBound(rho, install("ZtX")));
+	Rprintf("Succeeded in ZtXp\n");
     } else {
 	XtXp = new dpoMatrix(findVarBound(rho, install("XtX")));
 	ZtXp = new CHM_rd(findVarBound(rho, install("ZtX")));
@@ -329,22 +331,23 @@ double lmersparse::update_dev(SEXP thnew) {
     CHM_SP DD = M_cholmod_add(XtX, RZXtRZX, &one, &mone, 1/*values*/,
 			      1/*sorted*/, &c);
     M_cholmod_free_sparse(&RZXtRZX, &c);
-    int *Perm = new int[p];
-    for (int i = 0; i < p; i++) Perm[i] = i;
-    CHM_FR LL = M_cholmod_analyze_p(DD, Perm, (int*)NULL, (size_t) 0, &c);
-    if (!M_cholmod_factorize(DD, LL, &c))
+//    int *Perm = new int[p];
+//    for (int i = 0; i < p; i++) Perm[i] = i;
+//    CHM_FR LL = M_cholmod_analyze_p(DD, Perm, (int*)NULL, (size_t) 0, &c);
+    if (!M_cholmod_factorize(DD, RX, &c))
 	error(_("Downdated X'X is not positive definite"));
-    delete[] Perm;
+//    delete[] Perm;
     M_cholmod_free_sparse(&DD, &c);
-    *ldRX2 = M_chm_factor_ldetL2(LL);
+    *ldRX2 = M_chm_factor_ldetL2(RX);
 				// evaluate fixef
     CHM_DN XtymRZXtu = M_cholmod_copy_dense(N_AS_CHM_DN(Xty, p, 1), &c);
     M_cholmod_sdmult(RZX, 1/*transpose*/, &mone, &one, cu, XtymRZXtu, &c);
-    CHM_DN cfixef = M_cholmod_solve(CHOLMOD_A, LL, XtymRZXtu, &c);
+    CHM_DN cfixef = M_cholmod_solve(CHOLMOD_A, RX, XtymRZXtu, &c);
     M_cholmod_free_dense(&XtymRZXtu, &c);
     dble_cpy(fixef, (double*)cfixef->x, p);
     M_cholmod_sdmult(RZX, 0/*no transpose*/, &mone, &one, cfixef, cu, &c);
     M_cholmod_free_dense(&cfixef, &c);
+#if 0
 				// evaluate and store sparse RX
     CHM_SP Lsp = M_cholmod_factor_to_sparse(LL, &c);
     M_cholmod_free_factor(&LL, &c);
@@ -352,6 +355,7 @@ double lmersparse::update_dev(SEXP thnew) {
     M_cholmod_free_sparse(&Lsp, &c);
     CHM_SP_copy_in_place(RX, Lspt);
     M_cholmod_free_sparse(&Lspt, &c);
+#endif
     LMMdev2();
     update_eta();
     return LMMdev3();

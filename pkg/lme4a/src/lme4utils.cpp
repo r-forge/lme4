@@ -83,6 +83,21 @@ CHM_SP VAR_CHM_SP(SEXP rho, SEXP nm, int nrow, int ncol)
     return ans;
 }
 
+/**
+ * Return object with name nm in environment rho in a freshly
+ * allocated CHM_SP structure checking on the number of rows and
+ * columns.  Values of 0 for nrow or ncol skip the check.
+ */
+CHM_FR VAR_CHM_FR(SEXP rho, SEXP nm, int n)
+{
+    CHM_FR ans = new cholmod_factor;
+    M_as_cholmod_factor(ans, findVarBound(rho, nm));
+    if (n && ((int)(ans->n)) != n)
+	error(_("Size of %s is %d, should be %d"),
+	      CHAR(PRINTNAME(nm)), ans->n, n);
+    return ans;
+}
+
 double *VAR_dMatrix_x(SEXP rho, SEXP nm, int nrow, int ncol) {    
     SEXP var = findVarBound(rho, nm);
 
