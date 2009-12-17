@@ -63,7 +63,9 @@ derived_mats <- function(rho) {
         rho$ZtX <- new("dgeMatrix", Dim = qz, Dimnames = Zt@Dimnames)
         rho$RZX <- new("dgeMatrix", Dim = qz, Dimnames = Zt@Dimnames)
     } else {
-        rho$RX <- chol(rho$XtX <- crossprod(X)) # check for full column rank
+        ## Create crossproduct and check for full column rank
+        rho$RX <- if (is(rho$XtX <- crossprod(X), "dsparseMatrix"))
+            Cholesky(rho$XtX) else chol(rho$XtX)
         rho$Xty <- unname(as.vector(crossprod(X, yy)))
         rho$RZX <- rho$Ut %*% X
         rho$ZtX <- Zt %*% X
@@ -259,9 +261,10 @@ lmer <-
                         sys = "L")
             RZX <<- solve(L, solve(L, crossprod(Lambda, ZtX), sys = "P"),
                           sys = "L")
-            RX <<- chol(XtX - crossprod(RZX))
-            cb <- solve(t(RX), Xty - crossprod(RZX, cu))
-            fixef[] <<- solve(RX, cb)@x
+            RX <<- if (sparseX) update(RX, XtX - crossprod(RZX)) else
+                   chol(XtX - crossprod(RZX))
+            if(sparseX) fixef[] <<- solve(RX, Xty - crossprod(RZX, cu))
+            else fixef[] <<- solve(RX, solve(t(RX), Xty - crossprod(RZX, cu)))@x
             u[] <<- solve(L, solve(L, cu - RZX %*% fixef, sys = "Lt"),
                           sys = "Pt")@x
             fitted[] <<- (if(length(offset)) offset else 0) +
@@ -269,7 +272,7 @@ lmer <-
             prss <<- sum(c(y - fitted, u)^2) # penalized residual sum of squares
             ldL2[] <<- .f * determinant(L)$mod
             ldRX2[] <<- 2 * determinant(RX)$mod
-            if (!REML) return(ldL2 + n * (1 + log(2 * pi * prss/n)))
+            if (!REML) return(ldL2 + nobs * (1 + log(2 * pi * prss/nobs)))
             ldL2 + ldRX2 + nmp * (1 + log(2 * pi * prss/nmp))
         }
     }
