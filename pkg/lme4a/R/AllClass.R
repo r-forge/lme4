@@ -225,8 +225,9 @@ setClass("lmerenv", contains = "merenvtrms",
          if (!(is(RZX <- rho$RZX, "dMatrix") &&
                all(dim(RZX) == c(q, p))))
              return("environment must contain a q by p Matrix RZX")
-         if (!(is(RX <- rho$RX, "dMatrix") &&
-               all(dim(RX) == c(p, p))))
+         RX <- rho$RX
+         if (is(RX, "CHMfactor")) RX <- as(RX, "sparseMatrix")
+         if (!(is(RX, "dMatrix") && all(dim(RX) == c(p, p))))
              return("environment must contain a p by p Matrix RX")
          if (!(is.numeric(Xty <- rho$Xty) && length(Xty) == p))
              return("environment must contain a numeric p-vector Xty")
