@@ -11,19 +11,25 @@ public:
 
 class CHM_r : public dMatrix {
 public:    
+    virtual void freeA() = 0;
     virtual void drmult(int transpose, double alpha, double beta,
 			CHM_DN X, CHM_DN Y) = 0;
+    virtual CHM_r* solveCHM_FR(CHM_FR L, int sys) = 0;
 };
 
 /** concrete class of double precision dense matrices */
 class CHM_rd : public CHM_r {
 public:
     CHM_rd(SEXP x);
+    CHM_rd(CHM_DN x){A = x;}
     ~CHM_rd(){delete A;}
+    virtual void freeA(){M_cholmod_free_dense(&A, &c);}
     virtual void drmult(int transpose, double alpha, double beta,
 			CHM_DN X, CHM_DN Y);
     virtual int ncol() {return A->ncol;}
     virtual int nrow() {return A->nrow;}
+    virtual CHM_r* solveCHM_FR(CHM_FR L, int sys);
+	
     CHM_DN A;
 };
 
@@ -31,11 +37,14 @@ public:
 class CHM_rs : public CHM_r {
 public:
     CHM_rs(SEXP x);
+    CHM_rs(CHM_SP x){A = x;}
     ~CHM_rs(){delete A;}
+    virtual void freeA(){M_cholmod_free_sparse(&A, &c);}
     virtual void drmult(int transpose, double alpha, double beta,
 			CHM_DN X, CHM_DN Y);
     virtual int ncol() {return A->ncol;}
     virtual int nrow() {return A->nrow;}
+    virtual CHM_r* solveCHM_FR(CHM_FR L, int sys);
     CHM_SP A;
 };
 

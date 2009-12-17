@@ -1,13 +1,12 @@
 #include "matrix.hpp"
 
+CHM_r* CHM_rd::solveCHM_FR(CHM_FR L, int sys) {
+    return new CHM_rd(M_cholmod_solve(sys, L, A, &c));
+}
+
 CHM_rd::CHM_rd(SEXP x) {
     A = new cholmod_dense;
     M_as_cholmod_dense(A, x);
-}
-
-CHM_rs::CHM_rs(SEXP x) {
-    A = new cholmod_sparse;
-    M_as_cholmod_sparse(A, x, (Rboolean)TRUE, (Rboolean)FALSE);
 }
 
 void CHM_rd::drmult(int transpose, double alpha, double beta,
@@ -29,15 +28,24 @@ void CHM_rd::drmult(int transpose, double alpha, double beta,
     }
 }
 
+CHM_rs::CHM_rs(SEXP x) {
+    A = new cholmod_sparse;
+    M_as_cholmod_sparse(A, x, (Rboolean)TRUE, (Rboolean)FALSE);
+}
+
 void CHM_rs::drmult(int transpose, double alpha, double beta,
 		    CHM_DN X, CHM_DN Y){
     M_cholmod_sdmult(A, transpose, &alpha, &beta, X, Y, &c);
 }
 
+CHM_r* CHM_rs::solveCHM_FR(CHM_FR L, int sys) {
+    return new CHM_rs(M_cholmod_spsolve(sys, L, A, &c));
+}
+
 Cholesky_rd::Cholesky_rd(SEXP x) {
     if (!(IS_S4_OBJECT(x)))
 	error(_("S4 object expected but not provided"));
-// FIXME: This check should be changed to an S4 inherits check, which
+// FIXME: This check should be changed to an S4 "is" check, which
 // should be available in Rinternals.h but isn't.
     if (strcmp(CHAR(asChar(getAttrib(x, R_ClassSymbol))),
 	       "Cholesky") != 0)
