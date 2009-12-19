@@ -192,6 +192,112 @@ public:
     int *nc;			/**< number of columns per term */
 };
 
+class mernew {
+public:
+    mernew(SEXP rho);
+    ~mernew();
+/** 
+ * Update the linear predictor.
+ * 
+ * Update the linear predictor using the offset, if present, the fixed
+ * effects and the random effects.
+ */
+    void update_eta();
+/** 
+ *  Update Lambda and Ut from theta.
+ * 
+ * @param thnew pointer to a numeric vector or new values for theta
+ */
+    void update_Lambda_Ut(SEXP thnew);
+/** 
+ * Update the penalized residual sum-of-squares.
+ *
+ * @return updated penalized residual sum-of-squares.
+ */
+    double update_prss();
+/** 
+ * Create the crossproduct of Lambda and src in ans.
+ * 
+ * @param src dense matrix with q rows
+ * @param ans matrix of same size as src to be overwritten
+ * @return ans, overwritten with the product
+ */
+    CHM_DN crossprod_Lambda(CHM_DN src, CHM_DN ans);
+/** 
+ * Return the crossproduct of Lambda and src
+ * 
+ * @param src sparse matrix with q rows
+ * @return crossprod(Lambda, src)
+ */
+    CHM_SP spcrossprod_Lambda(CHM_SP src);
+/** 
+ * Solve L ans = P src (dense case)
+ * 
+ * @param src dense matrix of values on the right hand side
+ * @return a dense matrix of the same size as src
+ */
+    CHM_DN solvePL(CHM_DN src);
+/** 
+ * Solve L ans = P src (sparse case)
+ * 
+ * @param src sparse matrix of values on the right hand side
+ * @return a sparse matrix of the same size as src
+ */
+    CHM_SP solvePL(CHM_SP src);
+
+    int
+	N,		/**< length of gamma (can be a multiple of n) */
+	n,		/**< number of observations */
+	p,		/**< number of fixed effects */
+	q,		/**< number of random effects */
+	sparseX;
+    double
+	*Lambdax,	     /**< x slot of Lambda */
+	*eta,		     /**< linear predictor values */
+	*fixef,		     /**< fixed-effects parameters */
+	*ldL2,		     /**< log-determinant of L squared */
+	*prss,		     /**< penalized residual sum-of-squares */
+	*theta,		     /**< parameters that determine Lambda */
+	*u,		     /**< unit random-effects vector */
+	*weights,	     /**< prior weights (may be NULL) */
+	*y;		     /**< response vector */
+    CHM_FR
+	L;			/**< sparse Cholesky factor */
+    CHM_SP
+	Lambda,	     /**< relative covariance factor */
+	Ut,	     /**< model matrix for unit random effects */
+	Zt;	     /**< model matrix for random effects */
+    int *Lind,	     /**< Lambdax index vector into theta (1-based) */
+	nLind;	     /**< length of Lind */
+    CHM_r *Xp, *RZXp;
+    Cholesky_r *RXp;
+
+private:
+    int nth;	      /**< number of elements of theta */
+    double *offset;   /**< offset of linear predictor (may be NULL) */
+};
+
+/// Linear mixed-effects model
+class lmernew : public mernew {
+public:
+    lmernew(SEXP rho);   /**< initialize from environment */
+    ~lmernew() {
+	delete XtXp;
+	delete ZtXp;
+    }
+    double update_dev(SEXP thnew);
+    int
+	REML;			/**< logical - use REML? */
+    double
+	*Xty,			/**< cross product of X and y */
+	*Zty,			/**< cross product of Z and y */
+	*ldRX2;			/**< log-determinant of RX squared */
+    CHM_DN
+	cu;		  /**< Intermediate value in solution for u */
+    dMatrix *XtXp;
+    CHM_r *ZtXp;
+};
+
 #include "GLfamily.hpp"
 class glmer : virtual public merenv { // components common to GLMMs
 public:
