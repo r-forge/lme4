@@ -33,7 +33,7 @@ public:
     CHM_DN A;
 };
 
-/** concrete class of double precision general matrices */
+/** concrete class of double precision sparse matrices */
 class CHM_rs : public CHM_r {
 public:
     CHM_rs(SEXP x);
@@ -51,13 +51,15 @@ public:
 /** abstract class of double precision Cholesky decompositions */
 class Cholesky_r : public dMatrix {
 public:
-    virtual int update(CHM_r *A) = 0;
+    virtual int update(CHM_r*) = 0;
+    virtual int downdate(CHM_r*, double, CHM_r*, double) = 0;
 };
 
 class Cholesky_rd : public Cholesky_r {
 public:
-    Cholesky_rd(SEXP x);
-    virtual int update(CHM_r *A);
+    Cholesky_rd(SEXP);
+    virtual int update(CHM_r*);
+    virtual int downdate(CHM_r*, double, CHM_r*, double);
     virtual int ncol() {return n;}
     virtual int nrow() {return n;}
     const char* uplo;
@@ -67,9 +69,10 @@ public:
 
 class Cholesky_rs : public Cholesky_r {
 public:
-    Cholesky_rs(SEXP x);
+    Cholesky_rs(SEXP);
     ~Cholesky_rs(){delete F;}
-    virtual int update(CHM_r *A);
+    virtual int update(CHM_r*);
+    virtual int downdate(CHM_r*, double, CHM_r*, double);
     virtual int ncol() {return (int)F->n;}
     virtual int nrow() {return (int)F->n;}
     CHM_FR F;

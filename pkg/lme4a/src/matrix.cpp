@@ -58,11 +58,63 @@ Cholesky_rd::Cholesky_rd(SEXP x) {
     X = REAL(GET_SLOT(x, lme4_xSym));
 }
 
-int Cholesky_rd::update(CHM_r *A) {
-    return 0;
+///replace current contents by factorization of matrix B
+int Cholesky_rd::update(CHM_r *AA) {
+    int info = 0;
+    CHM_DN A = (dynamic_cast<CHM_rd*>(AA))->A;
+    if (A->ncol != (size_t)n || A->nrow != (size_t)n)
+	error(_("in Cholesky update A must be %d by %d"), n, n);
+    if (n > 0) {
+	F77_CALL(dlacpy)(uplo, &n, &n, (double*)A->x, &n, X, &n);
+	F77_CALL(dpotrf)(uplo, &n, X, &n, &info);
+    }
+    return info;
 }
 
-int Cholesky_rs::update(CHM_r *A) {
+int Cholesky_rs::update(CHM_r *AA) {
+    CHM_SP A = (dynamic_cast<CHM_rs*>(AA))->A;
+    return M_cholmod_factorize(A, F, &c);
+}
+
+///replace current contents by factorization of alpha*B - beta*D'D
+int Cholesky_rd::downdate(CHM_r *AA, double alpha, CHM_r *CC, double beta) {
+    CHM_DN A = (dynamic_cast<CHM_rd*>(AA))->A,
+	C = (dynamic_cast<CHM_rd*>(CC))->A;
+    int info = 0;
+    
+    if ((int)C->ncol != n || (int)C->nrow != n || (int)A->nrow != n)
+	error(_("In Cholesky downdate C be %d by %d and A must be %d by x"),
+	      n, n, n);
+    if (n > 0) {
+	int k = (int)A->ncol;
+	if (k > 0) {
+	    F77_CALL(dlacpy)(uplo, &n, &n, (double*)C->x, &n, X, &n);
+	    F77_CALL(dsyrk)(uplo, "T", &n, &k, &alpha, (double*)A->x, &n,
+			    &beta, X, &n);
+	}
+	F77_CALL(dpotrf)(uplo, &n, X, &n, &info);
+    }
+    return info;
+}
+
+int Cholesky_rs::downdate(CHM_r *AA, double alpha, CHM_r *CC, double beta) {
+    CHM_SP A = (dynamic_cast<CHM_rs*>(AA))->A,
+	C = (dynamic_cast<CHM_rs*>(CC))->A;
+    size_t n = F->n;
+
+    if (C->ncol != n || C->nrow != n || !C->stype)
+	error(_("In Cholesky downdate C be symmetric %d by %d"), n, n);
+    if (n > 0) {
+	CHM_SP At = M_cholmod_transpose(A, 1/*values*/, &c);
+	CHM_SP AtA = M_cholmod_aat(At, (int*)NULL, (size_t)0,
+				   -1/*numerical values*/, &c);
+	M_cholmod_free_sparse(&At, &c);
+	CHM_SP sum = M_cholmod_add(AtA, C, &alpha, &beta, 1/*values*/,
+				   1/*sorted*/, &c);
+	M_cholmod_free_sparse(&AtA, &c);
+	M_cholmod_factorize(sum, F, &c);
+	M_cholmod_free_sparse(&sum, &c);
+    }
     return 0;
 }
 
