@@ -3,7 +3,8 @@
 \docType{data}
 \title{Paste strength by batch and cask}
 \description{
-  Paste str
+  Strength of a chemical paste product; its quality depending on the
+  delivery batch, and the cask within the delivery.
 }
 \usage{data(Pastes)}
 \format{
