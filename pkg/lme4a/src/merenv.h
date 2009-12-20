@@ -15,6 +15,8 @@ extern "C" {
     SEXP lmerenv_deviance(SEXP rho, SEXP newth);
     SEXP lmerenv_validate(SEXP rho);
 
+    SEXP lmernew_validate(SEXP rho);
+
     SEXP merenvtrms_condVar(SEXP rho, SEXP scale);
     SEXP merenvtrms_show(SEXP rho);
     SEXP merenvtrms_validate(SEXP rho);
