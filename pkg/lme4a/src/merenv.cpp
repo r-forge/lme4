@@ -415,6 +415,30 @@ CHM_SP mernew::solvePL(CHM_SP src) {
     return tmp1;
 }
 
+lmernew::lmernew(SEXP rho) : mernew(rho) {
+    if (N != n)
+	error(_("nrow(X) = %d must match length(y) = %d for lmer"),
+	      N, n);
+    REML = asLogical(findVarBound(rho, install("REML")));
+    ldRX2 = VAR_REAL_NULL(rho, install("ldRX2"), 1, TRUE);
+    Xty = VAR_REAL_NULL(rho, install("Xty"), p);
+    Zty = VAR_dMatrix_x(rho, install("Zty"), q, 1);
+    if (sparseX) {
+	XtXp = new CHM_rs(findVarBound(rho, install("XtX")));
+	Rprintf("Succeeded in XtXp\n");
+	ZtXp = new CHM_rs(findVarBound(rho, install("ZtX")));
+	Rprintf("Succeeded in ZtXp\n");
+    } else {
+	XtXp = new dpoMatrix(findVarBound(rho, install("XtX")));
+	ZtXp = new CHM_rd(findVarBound(rho, install("ZtX")));
+    }
+    if (!(XtXp->nrow() == p && XtXp->ncol() == p))
+	error(_("Dimensions of %s are %d by %d, should be %d by %d"),
+	      "XtX", XtXp->nrow(), XtXp->ncol(), p, p);
+    if (!(ZtXp->nrow() == q && ZtXp->ncol() == p))
+	error(_("Dimensions of %s are %d by %d, should be %d by %d"),
+	      "ZtX", ZtXp->nrow(), ZtXp->ncol(), q, p);
+}
 
 double lmernew::update_dev(SEXP thnew) {
     int info;
@@ -997,6 +1021,10 @@ extern "C" {
 	    return ScalarLogical(lmersparse(rho).validate());
 	else
 	    return ScalarLogical(lmerdense(rho).validate());
+    }
+
+    SEXP lmernew_validate(SEXP rho) {
+	return ScalarLogical(lmernew(rho).validate());
     }
 
 /**

@@ -154,9 +154,7 @@ class lmerdense : public lmer, public merdense {
 public:
     lmerdense(SEXP rho);	/**< construct from an environment */
     double update_dev(SEXP thnew);
-    int validate() {
-	return 1; 
-    }
+    int validate() {return 1;}
     double *XtX, *ZtX;
 };
 
@@ -168,9 +166,7 @@ public:
 	delete ZtX;
     }
     double update_dev(SEXP thnew);
-    int validate() {
-	return 1;
-    }
+    int validate() {return 1;}
     CHM_SP XtX, ZtX;
 };
 
@@ -280,12 +276,13 @@ private:
 /// Linear mixed-effects model
 class lmernew : public mernew {
 public:
-    lmernew(SEXP rho);   /**< initialize from environment */
+    lmernew(SEXP);   /**< initialize from environment */
     ~lmernew() {
 	delete XtXp;
 	delete ZtXp;
     }
     double update_dev(SEXP thnew);
+    int validate(){return 1;}
     int
 	REML;			/**< logical - use REML? */
     double
