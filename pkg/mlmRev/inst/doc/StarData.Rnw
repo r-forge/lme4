@@ -9,8 +9,9 @@
 %%\VignetteIndexEntry{Creating an R data set from STAR}
 %%\VignetteDepends{lme4}
 \begin{document}
-\SweaveOpts{engine=R,eps=FALSE,pdf=TRUE,width=5,height=3,strip.white=TRUE,keep.source=TRUE}
-\SweaveOpts{prefix=TRUE,prefix.string=figs/SoftRev,include=FALSE}%        ^^^^^^^^^^^^^^^^
+\SweaveOpts{engine=R,eps=FALSE,pdf=TRUE,width=5,height=3}
+\SweaveOpts{strip.white=TRUE,keep.source=TRUE}
+\SweaveOpts{prefix=TRUE,prefix.string=figs/SoftRev,include=FALSE}
 \maketitle
 \begin{abstract}
   A substantial portion of the data from Tennessee's Student Teacher
@@ -48,20 +49,22 @@ should be represented as factors in \RR but many of these columns will
 need to be combined before we can work with them.  We will convert the
 first 5 columns to factors and leave the remaining 48 columns as integers.
 <<datainput>>=
-orig <- read.delim(unz(system.file("original/text-star.zip", package = "mlmRev"),
-                     "webstar.txt"), colCl = rep(c("factor", "integer"), c(5, 48)))
-@
+str(orig <- read.delim(unz(system.file("original/text-star.zip",
+                                       package = "mlmRev"),
+                           "webstar.txt"),
+                       colCl = rep(c("factor", "integer"), c(5, 48))))
+@ 
 In the call to \code{read.delim} we read directly from the zip archive
 and avoided expanding the much larger text file.  The call to
 \code{system.file} determines the name of a file that is part of a
 package.  In practice it is often more convenient to use the
 \code{file.choose} function which brings up a file chooser panel.
 
-We can check the form of the original data with
+We also check the form of the original data by calling \code{str} on
+the object
 <<strorig>>=
 str(orig)
 @
-
 
 \subsection{Missing value codes}
 \label{sec:missval}
