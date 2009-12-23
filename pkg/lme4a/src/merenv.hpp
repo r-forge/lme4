@@ -27,8 +27,7 @@ public:
  * random-effects.  Updates from the fixed-effects are done in the
  * derived classes. 
  */
-//    void update_eta_Ut();
-    void update_eta();
+    void update_gamma();
 
 /** 
  *  Update Lambda and Ut from theta.
@@ -80,10 +79,13 @@ public:
 	sparseX;
     double
 	*Lambdax,	     /**< x slot of Lambda */
-	*eta,		     /**< linear predictor values */
 	*fixef,		     /**< fixed-effects parameters */
+	*gam,		     /**< linear predictor values (not called
+				gamma b/c that conflicts with the gamma func */
 	*ldL2,		     /**< log-determinant of L squared */
+	*mu,		     /**< conditional mean response */
 	*prss,		     /**< penalized residual sum-of-squares */
+	*sqrtrwt,	     /**< square root of residual weights */
 	*theta,		     /**< parameters that determine Lambda */
 	*u,		     /**< unit random-effects vector */
 	*weights,	     /**< prior weights (may be NULL) */
@@ -198,7 +200,7 @@ public:
  * Update the linear predictor using the offset, if present, the fixed
  * effects and the random effects.
  */
-    void update_eta();
+    void update_gamma();
 /** 
  *  Update Lambda and Ut from theta.
  * 
@@ -249,10 +251,13 @@ public:
 	sparseX;
     double
 	*Lambdax,	     /**< x slot of Lambda */
-	*eta,		     /**< linear predictor values */
 	*fixef,		     /**< fixed-effects parameters */
+	*gam,		     /**< linear predictor (not called gamma b/c
+				that conflicts with the gamma function) */
 	*ldL2,		     /**< log-determinant of L squared */
+	*mu,		     /**< conditional mean response */
 	*prss,		     /**< penalized residual sum-of-squares */
+	*sqrtrwt,	     /**< sqrt of residual weights */
 	*theta,		     /**< parameters that determine Lambda */
 	*u,		     /**< unit random-effects vector */
 	*weights,	     /**< prior weights (may be NULL) */
@@ -300,9 +305,9 @@ class glmer : virtual public merenv { // components common to GLMMs
 public:
     glmer(SEXP rho);		/**< initialize from an environment */
     SEXP family;
-    double *mu,			/**< conditional means of response */
+    double 
+	*eta,			/**< conditional mean on link scale */
 	*muEta,			/**< diagonal of d mu/d eta */
-	*sqrtrwt,		/**< square root of resid weights */
 	*var,			/**< conditional variances of response */
 	*wtres,			/**< weighted residuals at current estimates */
 	devres;

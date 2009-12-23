@@ -62,10 +62,12 @@ void merenv::initMer(SEXP rho)
 	    error(_("length(Lind) = %d should be  %d"), nLind, nnz);
 	Lambdax = (double*)(Lambda->x);
     }
-    eta = VAR_REAL_NULL(rho, install("fitted"), N);
+    gam = VAR_REAL_NULL(rho, install("gamma"), N);
+    mu = VAR_REAL_NULL(rho, install("mu"), n);
     ldL2 = VAR_REAL_NULL(rho, install("ldL2"), 1);
     prss = VAR_REAL_NULL(rho, install("prss"), 1);
     weights = VAR_REAL_NULL(rho, install("weights"), n, TRUE);
+    sqrtrwt = VAR_REAL_NULL(rho, install("sqrtrwt"), n, TRUE);
     offset = VAR_REAL_NULL(rho, lme4_offsetSym, N, TRUE);
     if ((sparseX = asLogical(findVarBound(rho, install("sparseX"))))) {
 	Xp = new CHM_rs(findVarBound(rho, lme4_XSym));
@@ -125,22 +127,22 @@ void merenv::update_Lambda_Ut(SEXP thnew) {
 double merenv::update_prss() {
     *prss = sqr_length(u, q);
     for (int i = 0; i < n; i++) {
-	double resi = y[i] - eta[i];
+	double resi = (y[i] - mu[i]) * (sqrtrwt ? sqrtrwt[i] : 1);
 	*prss += resi * resi;
     }
     return *prss;
 }
 
-void merenv::update_eta() {
+void merenv::update_gamma() {
     CHM_DN cu = N_AS_CHM_DN(u, q, 1),
-	ceta = N_AS_CHM_DN(eta, N, 1),
+	cgamma = N_AS_CHM_DN(gam, N, 1),
 	cfixef = N_AS_CHM_DN(fixef, p, 1);
     if (offset)			// initialize to offset if used
-	dble_cpy(eta, offset, N);
+	dble_cpy(gam, offset, N);
     else			// otherwise initialize to zero
-	dble_zero(eta, N);
-    M_cholmod_sdmult(Ut, 1/*transpose*/, &one, &one, cu, ceta, &c);
-    Xp->drmult(0/*transpose*/, one, one, cfixef, ceta);
+	dble_zero(gam, N);
+    M_cholmod_sdmult(Ut, 1/*transpose*/, &one, &one, cu, cgamma, &c);
+    Xp->drmult(0/*transpose*/, one, one, cfixef, cgamma);
 }
 
 CHM_DN merenv::crossprod_Lambda(CHM_DN rhs, CHM_DN ans) {
@@ -278,7 +280,8 @@ mernew::mernew(SEXP rho)
 	    error(_("length(Lind) = %d should be  %d"), nLind, nnz);
 	Lambdax = (double*)(Lambda->x);
     }
-    eta = VAR_REAL_NULL(rho, install("fitted"), N);
+    gam = VAR_REAL_NULL(rho, install("gamma"), N);
+    mu = VAR_REAL_NULL(rho, install("mu"), N);
     ldL2 = VAR_REAL_NULL(rho, install("ldL2"), 1);
     prss = VAR_REAL_NULL(rho, install("prss"), 1);
     weights = VAR_REAL_NULL(rho, install("weights"), n, TRUE);
@@ -340,22 +343,22 @@ void mernew::update_Lambda_Ut(SEXP thnew) {
 double mernew::update_prss() {
     *prss = sqr_length(u, q);
     for (int i = 0; i < n; i++) {
-	double resi = y[i] - eta[i];
+	double resi = (y[i] - mu[i]) * (sqrtrwt ? sqrtrwt[i] : 1);
 	*prss += resi * resi;
     }
     return *prss;
 }
 
-void mernew::update_eta() {
+void mernew::update_gamma() {
     CHM_DN cu = N_AS_CHM_DN(u, q, 1),
-	ceta = N_AS_CHM_DN(eta, N, 1),
+	cgamma = N_AS_CHM_DN(gam, N, 1),
 	cfixef = N_AS_CHM_DN(fixef, p, 1);
     if (offset)			// initialize to offset if used
-	dble_cpy(eta, offset, N);
+	dble_cpy(gam, offset, N);
     else			// otherwise initialize to zero
-	dble_zero(eta, N);
-    M_cholmod_sdmult(Ut, 1/*transpose*/, &one, &one, cu, ceta, &c);
-    Xp->drmult(0/*transpose*/, one, one, cfixef, ceta);
+	dble_zero(gam, N);
+    M_cholmod_sdmult(Ut, 1/*transpose*/, &one, &one, cu, cgamma, &c);
+    Xp->drmult(0/*transpose*/, one, one, cfixef, cgamma);
 }
 
 CHM_DN mernew::crossprod_Lambda(CHM_DN rhs, CHM_DN ans) {
@@ -579,7 +582,8 @@ double lmerdense::update_dev(SEXP thnew) {
 			(double*)(cu->x), &i1);
     }
     LMMdev2();
-    update_eta();
+    update_gamma();
+    dble_cpy(mu, gam, n);
     return LMMdev3();
 }
 
@@ -625,7 +629,8 @@ double lmersparse::update_dev(SEXP thnew) {
     M_cholmod_free_sparse(&Lspt, &c);
 #endif
     LMMdev2();
-    update_eta();
+    update_gamma();
+    dble_cpy(mu, gam, n);
     return LMMdev3();
 }
 

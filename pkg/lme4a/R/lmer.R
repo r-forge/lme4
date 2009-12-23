@@ -237,10 +237,12 @@ lmer <-
 
     derived_mats(rho)
 
-    rho$fitted <- numeric(rho$nobs)
+    rho$mu <- numeric(rho$nobs)
+    rho$gamma <- numeric(rho$nobs)
     rho$prss <- numeric(1)
     rho$ldL2 <- numeric(1)
     rho$ldRX2 <- numeric(1)
+    rho$sqrtrwt <- sqrt(rho$weights)
 
     rho$L <- Cholesky(tcrossprod(rho$Zt), LDL = FALSE, Imult = 1)
     rho$compDev <- compDev
@@ -267,9 +269,10 @@ lmer <-
             else fixef[] <<- solve(RX, solve(t(RX), Xty - crossprod(RZX, cu)))@x
             u[] <<- solve(L, solve(L, cu - RZX %*% fixef, sys = "Lt"),
                           sys = "Pt")@x
-            fitted[] <<- (if(length(offset)) offset else 0) +
+            gamma[] <<- (if(length(offset)) offset else 0) +
                 (crossprod(Ut, u) + X %*% fixef)@x
-            prss <<- sum(c(y - fitted, u)^2) # penalized residual sum of squares
+            mu[] <<- gamma
+            prss <<- sum(c(y - mu, u)^2) # penalized residual sum of squares
             ldL2[] <<- .f * determinant(L)$mod
             ldRX2[] <<- 2 * determinant(RX)$mod
             if (!REML) return(ldL2 + nobs * (1 + log(2 * pi * prss/nobs)))
@@ -370,9 +373,7 @@ function(formula, data, family = gaussian, sparseX = FALSE,
         stopifnot(family$validmu(mustart))
         etastart <- family$linkfun(mustart)
     }
-### FIXME: what is called fitted should be given another name, linpred?
-### We don't want to use eta because in the nonlinear case eta != linpred
-    rho$fitted <- etastart
+    rho$gamma <- etastart
     rho$mu <- mustart
     rho$var <- family$variance(mustart)
     rho$muEta <- family$mu.eta(etastart)
