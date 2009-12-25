@@ -15,6 +15,10 @@ public:
     virtual void drmult(int transpose, double alpha, double beta,
 			CHM_DN X, CHM_DN Y) = 0;
     virtual CHM_r* solveCHM_FR(CHM_FR L, int sys) = 0;
+    virtual void copy_contents(CHM_r *src) = 0;
+// FIXME: Change the mernew structure to bypass the special case of
+// diagonal Lambda and eliminate the need to pass the double*
+    virtual CHM_r* crossprod_SP(CHM_SP) = 0;
 };
 
 /** concrete class of double precision dense matrices */
@@ -29,6 +33,8 @@ public:
     virtual int ncol() {return A->ncol;}
     virtual int nrow() {return A->nrow;}
     virtual CHM_r* solveCHM_FR(CHM_FR L, int sys);
+    virtual void copy_contents(CHM_r *src);
+    virtual CHM_r* crossprod_SP(CHM_SP);
 	
     CHM_DN A;
 };
@@ -44,7 +50,10 @@ public:
 			CHM_DN X, CHM_DN Y);
     virtual int ncol() {return A->ncol;}
     virtual int nrow() {return A->nrow;}
-    virtual CHM_r* solveCHM_FR(CHM_FR L, int sys);
+    virtual CHM_r* solveCHM_FR(CHM_FR, int);
+    virtual void copy_contents(CHM_r*);
+    virtual CHM_r* crossprod_SP(CHM_SP);
+
     CHM_SP A;
 };
 
@@ -52,18 +61,21 @@ public:
 class Cholesky_r : public dMatrix {
 public:
     virtual int update(CHM_r*) = 0;
-    virtual int downdate(CHM_r*, double, CHM_r*, double) = 0;
+    virtual void downdate(CHM_r*, double, dMatrix*, double) = 0;
+    virtual CHM_DN solveA(CHM_DN) = 0;
 };
 
 class Cholesky_rd : public Cholesky_r {
 public:
     Cholesky_rd(SEXP);
     virtual int update(CHM_r*);
-    virtual int downdate(CHM_r*, double, CHM_r*, double);
+    virtual void downdate(CHM_r*, double, dMatrix*, double);
     virtual int ncol() {return n;}
     virtual int nrow() {return n;}
+    virtual CHM_DN solveA(CHM_DN);
     const char* uplo;
     int n;
+
     double *X;
 };
 
@@ -72,9 +84,11 @@ public:
     Cholesky_rs(SEXP);
     ~Cholesky_rs(){delete F;}
     virtual int update(CHM_r*);
-    virtual int downdate(CHM_r*, double, CHM_r*, double);
+    virtual void downdate(CHM_r*, double, dMatrix*, double);
+    virtual CHM_DN solveA(CHM_DN);
     virtual int ncol() {return (int)F->n;}
     virtual int nrow() {return (int)F->n;}
+
     CHM_FR F;
 };
 
