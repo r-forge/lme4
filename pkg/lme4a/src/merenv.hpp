@@ -34,6 +34,7 @@ public:
  * 
  * @param thnew pointer to a numeric vector or new values for theta
  */
+/// FIXME: Add a sqrtXwt member and update L here too
     void update_Lambda_Ut(SEXP thnew);
 /** 
  * Update the penalized residual sum-of-squares.
@@ -248,9 +249,9 @@ public:
 	n,		/**< number of observations */
 	p,		/**< number of fixed effects */
 	q,		/**< number of random effects */
+	diagonalLambda,
 	sparseX;
     double
-	*Lambdax,	     /**< x slot of Lambda */
 	*fixef,		     /**< fixed-effects parameters */
 	*gam,		     /**< linear predictor (not called gamma b/c
 				that conflicts with the gamma function) */
