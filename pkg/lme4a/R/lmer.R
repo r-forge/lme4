@@ -59,16 +59,17 @@ derived_mats <- function(rho) {
         rho$Xty <- numeric(0)
         rho$XtX <- new("dpoMatrix", Dim = zz, uplo = "U")
         rho$RX <- new("Cholesky", Dim = zz, uplo = "U", diag = "N")
-        rho$RX <- new("dgeMatrix", Dim = zz, uplo = "U", diag = "N")        
         rho$ZtX <- new("dgeMatrix", Dim = qz, Dimnames = Zt@Dimnames)
         rho$RZX <- new("dgeMatrix", Dim = qz, Dimnames = Zt@Dimnames)
     } else {
         ## Create crossproduct and check for full column rank
-        rho$RX <- if (is(rho$XtX <- crossprod(X), "dsparseMatrix"))
-            Cholesky(rho$XtX) else chol(rho$XtX)
-        rho$Xty <- unname(as.vector(crossprod(X, yy)))
-        rho$RZX <- rho$Ut %*% X
+        rho$Xty <- unname(as.vector(crossprod(X, yy))) 
         rho$ZtX <- Zt %*% X
+        rho$RZX <- solve(rho$L, solve(rho$L, crossprod(rho$Lambda,
+                                                       rho$ZtX),
+                                      sys = "P"), sys = "L")
+        rho$RX <- if (is(rho$XtX <- crossprod(X), "dsparseMatrix"))
+            Cholesky(rho$XtX - crossprod(rho$RZX)) else chol(rho$XtX)
     }
 }
 
@@ -234,7 +235,7 @@ lmer <-
     }
 
     makeZt(expandSlash(findbars(formula[[3]])), fr, rho)
-
+    rho$L <- Cholesky(tcrossprod(rho$Zt), LDL = FALSE, Imult = 1)
     derived_mats(rho)
 
     rho$mu <- numeric(rho$nobs)
@@ -244,7 +245,6 @@ lmer <-
     rho$ldRX2 <- numeric(1)
     rho$sqrtrwt <- sqrt(rho$weights)
 
-    rho$L <- Cholesky(tcrossprod(rho$Zt), LDL = FALSE, Imult = 1)
     rho$compDev <- compDev
     rho$call <- mc
     
@@ -265,8 +265,8 @@ lmer <-
                           sys = "L")
             RX <<- if (sparseX) update(RX, XtX - crossprod(RZX)) else
                    chol(XtX - crossprod(RZX))
-            if(sparseX) fixef[] <<- solve(RX, Xty - crossprod(RZX, cu))
-            else fixef[] <<- solve(RX, solve(t(RX), Xty - crossprod(RZX, cu)))@x
+            fixef[] <<- if (sparseX) solve(RX, Xty - crossprod(RZX, cu))@x
+            else solve(RX, solve(t(RX), Xty - crossprod(RZX, cu)))@x
             u[] <<- solve(L, solve(L, cu - RZX %*% fixef, sys = "Lt"),
                           sys = "Pt")@x
             gamma[] <<- (if(length(offset)) offset else 0) +
