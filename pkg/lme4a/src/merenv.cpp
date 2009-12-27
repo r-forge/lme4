@@ -73,7 +73,6 @@ void merenv::initMer(SEXP rho)
 	Xp = new CHM_rs(findVarBound(rho, lme4_XSym));
 	RXp = new Cholesky_rs(findVarBound(rho, lme4_RXSym));
 	RZXp = new CHM_rs(findVarBound(rho, lme4_RZXSym));
-	Rprintf("Succeeded in Xp, RXp and RZXp\n");
     } else {
 	Xp = new CHM_rd(findVarBound(rho, lme4_XSym));
 	RXp = new Cholesky_rd(findVarBound(rho, lme4_RXSym));
@@ -292,7 +291,6 @@ mernew::mernew(SEXP rho)
 	Xp = new CHM_rs(findVarBound(rho, lme4_XSym));
 	RXp = new Cholesky_rs(findVarBound(rho, lme4_RXSym));
 	RZXp = new CHM_rs(findVarBound(rho, lme4_RZXSym));
-	Rprintf("Succeeded in Xp, RXp and RZXp\n");
     } else {
 	Xp = new CHM_rd(findVarBound(rho, lme4_XSym));
 	RXp = new Cholesky_rd(findVarBound(rho, lme4_RXSym));
@@ -417,9 +415,7 @@ lmernew::lmernew(SEXP rho) : mernew(rho) {
     Zty = VAR_dMatrix_x(rho, install("Zty"), q, 1);
     if (sparseX) {
 	XtXp = new CHM_rs(findVarBound(rho, install("XtX")));
-	Rprintf("Succeeded in XtXp\n");
 	ZtXp = new CHM_rs(findVarBound(rho, install("ZtX")));
-	Rprintf("Succeeded in ZtXp\n");
     } else {
 	XtXp = new dpoMatrix(findVarBound(rho, install("XtX")));
 	ZtXp = new CHM_rd(findVarBound(rho, install("ZtX")));
@@ -436,53 +432,41 @@ double lmernew::update_dev(SEXP thnew) {
     update_Lambda_Ut(thnew);
     M_cholmod_factorize_p(Ut, &one, (int*)NULL, (size_t)0, L, &c);
     *ldL2 = M_chm_factor_ldetL2(L);
+    *ldRX2 = 0;			// in case p == 0
     cu = solvePL(N_AS_CHM_DN(Zty, q, 1));
     if (p) {
-	CHM_r *tmp1, *tmp2;
-	tmp1 = ZtXp->crossprod_SP(Lambda);
-	tmp2 = tmp1->solveCHM_FR(L, CHOLMOD_P);
+	CHM_r *tmp1 = ZtXp->crossprod_SP(Lambda);
+	CHM_r *tmp2 = tmp1->solveCHM_FR(L, CHOLMOD_P);
 	tmp1->freeA(); delete tmp1;
 	tmp1 = tmp2->solveCHM_FR(L, CHOLMOD_L);
 	tmp2->freeA(); delete tmp2;
 	RZXp->copy_contents(tmp1);
 	tmp1->freeA(); delete tmp1;
 	RXp->downdate(RZXp, -1.0, XtXp, 1.0);
+	*ldRX2 = RXp->ldet2();
+	CHM_DN tt = M_cholmod_copy_dense(N_AS_CHM_DN(Xty, p, 1), &c);
+	RZXp->drmult(1/*transpose*/, -1.0, 1.0, cu, tt);
+	CHM_DN ff = RXp->solveA(tt);
+	M_cholmod_free_dense(&tt, &c);
+	dble_cpy(fixef, (double*)ff->x, p);
+	RZXp->drmult(0/*no trans*/, -1.0, 1.0, ff, cu);
+	M_cholmod_free_dense(&ff, &c);
     }
-// //    CHM_DN PLZtX = solvePL(N_AS_CHM_DN(ZtX, q, p));
-//     dble_cpy(RZX, (double*)(PLZtX->x), q * p);
-//     M_cholmod_free_dense(&PLZtX, &c);
-//     *ldRX2 = 0;
-// 				// downdate and factor XtX, solve for fixef
-//     if (p) {
-// 	dble_cpy(RX, XtX, p * p);
-// 	F77_CALL(dsyrk)("U", "T", &p, &q, &mone, RZX, &q, &one, RX, &p);
-// 	dble_cpy(fixef, Xty, p);
-// 	F77_CALL(dgemv)("T", &q, &p, &mone, RZX, &q, (double*)(cu->x),
-// 			&i1, &one, fixef, &i1);
-// 	F77_CALL(dposv)("U", &p, &i1, RX, &p, fixef, &p, &info);
-// 	if (info)
-// 	    error(_("Downdated X'X is not positive definite, %d."), info);
-// 				// evaluate ldRX2
-// 	for (int i = 0; i < p; i++) *ldRX2 += 2 * log(RX[i * (p + 1)]);
-// 	F77_CALL(dgemv)("N", &q, &p, &mone, RZX, &q, fixef, &i1, &one,
-// 			(double*)(cu->x), &i1);
-//     }
-//     CHM_DN tmp1, tmp2;
-//     tmp1 = M_cholmod_solve(CHOLMOD_Lt, L, cu, &c);
-//     M_cholmod_free_dense(&cu, &c);
-//     tmp2 = M_cholmod_solve(CHOLMOD_Pt, L, tmp1, &c);
-//     M_cholmod_free_dense(&tmp1, &c);
-//     dble_cpy(u, (double*)(tmp2->x), q);
-//     M_cholmod_free_dense(&tmp2, &c);
-//     update_eta();
-//     update_prss();
+    CHM_r *td1 = new CHM_rd(cu);
+    CHM_r *td2 = td1->solveCHM_FR(L, CHOLMOD_Lt);
+    M_cholmod_free_dense(&cu, &c); delete td1;
+    td1 = td2->solveCHM_FR(L, CHOLMOD_Pt);
+    td2->freeA(); delete td2;
+    dble_cpy(u, (double*)(dynamic_cast<CHM_rd*>(td1)->A)->x, q);
+    td1->freeA(); delete td1;
+    update_gamma();
+    dble_cpy(mu, gam, n);
+    update_prss();
     if (REML) {
-//	double nmp = (double)(n - p);
-//	return *ldL2 + *ldRX2 + nmp * (1 + log(2 * PI * (*prss)/nmp));
-	return 1.2;
+	double nmp = (double)(n - p);
+	return *ldL2 + *ldRX2 + nmp * (1 + log(2 * PI * (*prss)/nmp));
     }				       
-//    return *ldL2 + n * (1 + log(2 * PI * (*prss)/((double)n)));
-    return 1.1;
+    return *ldL2 + n * (1 + log(2 * PI * (*prss)/((double)n)));
 }    
     
 // definition of methods for the lmer, lmerdense and lmersparse classes
@@ -497,9 +481,7 @@ lmer::lmer(SEXP rho) {
     Zty = VAR_dMatrix_x(rho, install("Zty"), q, 1);
     if (sparseX) {
 	XtXp = new CHM_rs(findVarBound(rho, install("XtX")));
-	Rprintf("Succeeded in XtXp\n");
 	ZtXp = new CHM_rs(findVarBound(rho, install("ZtX")));
-	Rprintf("Succeeded in ZtXp\n");
     } else {
 	XtXp = new dpoMatrix(findVarBound(rho, install("XtX")));
 	ZtXp = new CHM_rd(findVarBound(rho, install("ZtX")));

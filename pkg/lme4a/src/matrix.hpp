@@ -26,7 +26,7 @@ class CHM_rd : public CHM_r {
 public:
     CHM_rd(SEXP x);
     CHM_rd(CHM_DN x){A = x;}
-    ~CHM_rd(){delete A;}
+//    ~CHM_rd(){delete A;}
     virtual void freeA(){M_cholmod_free_dense(&A, &c);}
     virtual void drmult(int transpose, double alpha, double beta,
 			CHM_DN X, CHM_DN Y);
@@ -44,7 +44,7 @@ class CHM_rs : public CHM_r {
 public:
     CHM_rs(SEXP x);
     CHM_rs(CHM_SP x){A = x;}
-    ~CHM_rs(){delete A;}
+//    ~CHM_rs(){delete A;}
     virtual void freeA(){M_cholmod_free_sparse(&A, &c);}
     virtual void drmult(int transpose, double alpha, double beta,
 			CHM_DN X, CHM_DN Y);
@@ -63,6 +63,7 @@ public:
     virtual int update(CHM_r*) = 0;
     virtual void downdate(CHM_r*, double, dMatrix*, double) = 0;
     virtual CHM_DN solveA(CHM_DN) = 0;
+    virtual double ldet2() = 0;
 };
 
 class Cholesky_rd : public Cholesky_r {
@@ -73,6 +74,7 @@ public:
     virtual int ncol() {return n;}
     virtual int nrow() {return n;}
     virtual CHM_DN solveA(CHM_DN);
+    virtual double ldet2();
     const char* uplo;
     int n;
 
@@ -88,6 +90,7 @@ public:
     virtual CHM_DN solveA(CHM_DN);
     virtual int ncol() {return (int)F->n;}
     virtual int nrow() {return (int)F->n;}
+    virtual double ldet2();
 
     CHM_FR F;
 };

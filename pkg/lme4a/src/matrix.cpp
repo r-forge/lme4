@@ -109,9 +109,18 @@ CHM_DN Cholesky_rd::solveA(CHM_DN rhs) {
     CHM_DN ans = M_cholmod_copy_dense(rhs, &c);
     F77_CALL(dpotrs)(uplo, &n, &nrhs, X, &n,
 		     (double*)ans->x, &n, &info);
-    if (!info)
+    if (info)
 	error(_("dpotrs in Cholesky_rd::solveA returned error code %d"),
 	      info);
+    return ans;
+}
+
+double Cholesky_rd::ldet2() {
+    double ans = 0;
+    for (int i = 0; i < n; i++) {
+	double dxi = X[i * (n + 1)];
+	ans += log(dxi * dxi);
+    }
     return ans;
 }
 
@@ -168,6 +177,25 @@ int Cholesky_rs::update(CHM_r *AA) {
     return M_cholmod_factorize(A, F, &c);
 }
 
+double Cholesky_rs::ldet2() {
+    return M_chm_factor_ldetL2(F);
+}
+
+static void check_sparse(CHM_SP A, const char* nm) {
+    Rprintf("CHM_SP %s: nr = %d, nc = %d, nzmax = %d, nnz = %d\n",
+	    nm, A->nrow, A->ncol, A->nzmax, ((int*)A->p)[A->ncol]);
+    Rprintf("  xtype = %d, stype = %d, sorted = %d, packed = %d\n  p =",
+	    A->xtype, A->stype, A->sorted, A->packed);
+    int *pp = (int*)A->p, *ii = (int*)A->i;
+    double *xx = (double*)A->x;
+    for (int i = 0; i < 9; i++) Rprintf(" %d,", pp[i]);
+    Rprintf(" %d\n  i =", pp[9]);
+    for (int i = 0; i < 9; i++) Rprintf(" %d,", ii[i]);
+    Rprintf(" %d\n  x =", ii[9]);
+    for (int i = 0; i < 5; i++) Rprintf(" %f,", xx[i]);
+    Rprintf(" %f\n", xx[5]);
+}
+
 void Cholesky_rs::downdate(CHM_r *AA, double alpha,
 			   dMatrix *CC, double beta) {
     CHM_SP A = (dynamic_cast<CHM_rs*>(AA))->A,
@@ -175,15 +203,20 @@ void Cholesky_rs::downdate(CHM_r *AA, double alpha,
     size_t n = F->n;
 
     if (C->ncol != n || C->nrow != n || !C->stype)
-	error(_("In Cholesky downdate C be symmetric %d by %d"), n, n);
+	error(_("In Cholesky downdate C must be symmetric %d by %d"), n, n);
     if (n > 0) {
+//	check_sparse(A, "A");
+//	check_sparse(C, "C");
 	CHM_SP At = M_cholmod_transpose(A, 1/*values*/, &c);
-	CHM_SP AtA = M_cholmod_aat(At, (int*)NULL, (size_t)0,
-				   -1/*numerical values*/, &c);
+//	check_sparse(At, "At");
+	CHM_SP AtA = M_cholmod_ssmult(At, A, 1/*stype*/, 1/*values*/,
+				      0/*sorted*/, &c);
+//	check_sparse(AtA, "AtA");
 	M_cholmod_free_sparse(&At, &c);
-	CHM_SP sum = M_cholmod_add(AtA, C, &alpha, &beta, 1/*values*/,
-				   1/*sorted*/, &c);
+	CHM_SP sum = M_cholmod_add(AtA, C, &alpha, &beta,
+				   1/*values*/, 1/*sorted*/, &c);
 	M_cholmod_free_sparse(&AtA, &c);
+//	check_sparse(sum, "sum");
 	M_cholmod_factorize(sum, F, &c);
 	M_cholmod_free_sparse(&sum, &c);
     }
