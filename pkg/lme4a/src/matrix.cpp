@@ -38,9 +38,9 @@ void CHM_rd::copy_contents(CHM_r *SRC) {
 }
 
 CHM_r* CHM_rd::crossprod_SP(CHM_SP Lam) {
-    double one = 1, zero = 0;
+    static double one[] = {1,0}, zero[] = {0,0};
     CHM_rd *ans = new CHM_rd(M_cholmod_copy_dense(A, &c));
-    M_cholmod_sdmult(Lam, 1/*transpose*/, &one, &zero, A, ans->A, &c);
+    M_cholmod_sdmult(Lam, 1/*transpose*/, one, zero, A, ans->A, &c);
     return ans;
 }
 

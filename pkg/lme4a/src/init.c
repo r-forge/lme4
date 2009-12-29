@@ -32,8 +32,6 @@ static R_CallMethodDef CallEntries[] = {
     CALLDEF(lmer_deviance, 2),
     CALLDEF(lmer_validate, 1),
     
-    CALLDEF(lmerold_deviance, 2),
-    CALLDEF(lmerold_validate, 1),
     CALLDEF(mer_A_to_U, 1),
     CALLDEF(mer_MCMCsamp, 2),
     CALLDEF(mer_PIRLS, 1),

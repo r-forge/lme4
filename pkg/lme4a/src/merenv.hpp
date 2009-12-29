@@ -3,9 +3,6 @@
 #include "lme4utils.h"		// to get definitions of SEXP
 #include "matrix.hpp"
 
-static int i1 = 1;
-static double one = 1, mone = -1, zero = 0;
-
 class merenv {
 public:
     merenv(SEXP rho);
@@ -70,6 +67,7 @@ public:
 	*fixef,		   /**< fixed-effects parameters */
 	*gam,		   /**< linear predictor (not called gamma b/c
 			      of conflicts with the gamma function) */
+	*Lambdax,	   /**< x slot of Lambda matrix */
 	*ldL2,		   /**< log-determinant of L squared */
 	*mu,		   /**< conditional mean response */
 	*pwrss,		   /**< penalized, weighted RSS */
@@ -136,165 +134,6 @@ public:
     void devResid() {fam.var->devResid(&devres, mu, weights, y,
 				      (int*)0, n);}
     void varFunc() {fam.var->varFunc(var, mu, n);}
-};
-
-class merold {
-    /// Basic class for mixed-effects.
-public:
-    ~merold();
-    void initMer(SEXP rho);
-
-/** 
- * Update the linear predictor.
- * 
- * Update the linear predictor using the offset, if present, and the
- * random-effects.  Updates from the fixed-effects are done in the
- * derived classes. 
- */
-    void update_gamma();
-
-/** 
- *  Update Lambda and Ut from theta.
- * 
- * @param thnew pointer to a numeric vector or new values for theta
- */
-/// FIXME: Add a sqrtXwt member and update L here too
-    void update_Lambda_Ut(SEXP thnew);
-/** 
- * Update the penalized residual sum-of-squares.
- *
- * @return updated penalized residual sum-of-squares.
- */
-    double update_prss();
-/** 
- * Create the crossproduct of Lambda and src in ans.
- * 
- * @param src dense matrix with q rows
- * @param ans matrix of same size as src to be overwritten
- * @return ans, overwritten with the product
- */
-    CHM_DN crossprod_Lambda(CHM_DN src, CHM_DN ans);
-/** 
- * Return the crossproduct of Lambda and src
- * 
- * @param src sparse matrix with q rows
- * @return crossprod(Lambda, src)
- */
-    CHM_SP spcrossprod_Lambda(CHM_SP src);
-/** 
- * Solve L ans = P src (dense case)
- * 
- * @param src dense matrix of values on the right hand side
- * @return a dense matrix of the same size as src
- */
-    CHM_DN solvePL(CHM_DN src);
-/** 
- * Solve L ans = P src (sparse case)
- * 
- * @param src sparse matrix of values on the right hand side
- * @return a sparse matrix of the same size as src
- */
-    CHM_SP solvePL(CHM_SP src);
-
-    int
-	N,		/**< length of gamma (can be a multiple of n) */
-	n,		/**< number of observations */
-	p,		/**< number of fixed effects */
-	q,		/**< number of random effects */
-	sparseX;
-    double
-	*Lambdax,	     /**< x slot of Lambda */
-	*fixef,		     /**< fixed-effects parameters */
-	*gam,		     /**< linear predictor values (not called
-				gamma b/c that conflicts with the gamma func */
-	*ldL2,		     /**< log-determinant of L squared */
-	*mu,		     /**< conditional mean response */
-	*prss,		     /**< penalized residual sum-of-squares */
-	*sqrtrwt,	     /**< square root of residual weights */
-	*theta,		     /**< parameters that determine Lambda */
-	*u,		     /**< unit random-effects vector */
-	*weights,	     /**< prior weights (may be NULL) */
-	*y;		     /**< response vector */
-    CHM_FR
-	L;			/**< sparse Cholesky factor */
-    CHM_SP
-	Lambda,	     /**< relative covariance factor */
-	Ut,	     /**< model matrix for unit random effects */
-	Zt;	     /**< model matrix for random effects */
-    int *Lind,	     /**< Lambdax index vector into theta (1-based) */
-	nLind;	     /**< length of Lind */
-    CHM_r *Xp, *RZXp;
-    Cholesky_r *RXp;
-
-private:
-    int nth;	      /**< number of elements of theta */
-    double *offset;   /**< offset of linear predictor (may be NULL) */
-};
-
-class mersparse : virtual public merold { // merenv with sparse X
-public:
-    mersparse(SEXP rho);
-    ~mersparse() {
-	delete X;
-	delete RX;
-	delete RZX;
-    }
-    CHM_SP X,		     /**< model matrix for fixed effects */
-	RZX;		     /**< cross-product in Cholesky factor */
-    CHM_FR RX;		     /**< Cholesky factor for fixed-effects */
-};
-
-// merdense and mersparse are no longer needed.  Pull when lmerdense
-// and lmersparse are removed.
-class merdense : virtual public merold { // merenv with dense X
-public:
-    merdense(SEXP rho);
-    double 
-	*RX,	       /**< upper Cholesky factor for fixed-effects */
-	*RZX,	       /**< cross-product in Cholesky factor */
-	*X;	       /**< model matrix for fixed effects */
-};
-
-class lmerold : virtual public merold { // components common to LMMs
-public:
-    lmerold(SEXP rho);   /**< initialize from environment */
-    ~lmerold() {
-	delete XtXp;
-	delete ZtXp;
-    }
-    void LMMdev1();   /**< initial shared part of deviance update */
-    void LMMdev2();   /**< secondary shared part of deviance update */
-    double LMMdev3(); /**< tertiary shared part of deviance update */
-    int
-	REML;			/**< logical - use REML? */
-    double
-	*Xty,			/**< cross product of X and y */
-	*Zty,			/**< cross product of Z and y */
-	*ldRX2;			/**< log-determinant of RX squared */
-    CHM_DN
-	cu;		  /**< Intermediate value in solution for u */
-    dMatrix *XtXp;
-    CHM_r *ZtXp;
-};
-
-class lmerdense : public lmerold, public merdense {
-public:
-    lmerdense(SEXP rho);	/**< construct from an environment */
-    double update_dev(SEXP thnew);
-    int validate() {return 1;}
-    double *XtX, *ZtX;
-};
-
-class lmersparse : public lmerold, public mersparse {
-public:
-    lmersparse(SEXP rho);	/**< construct from an environment */
-    ~lmersparse(){
-	delete XtX;
-	delete ZtX;
-    }
-    double update_dev(SEXP thnew);
-    int validate() {return 1;}
-    CHM_SP XtX, ZtX;
 };
 
 class merenvtrms : public merenv {

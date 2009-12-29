@@ -42,9 +42,7 @@ public:
 /** concrete class of double precision sparse matrices */
 class CHM_rs : public CHM_r {
 public:
-//    CHM_rs(SEXP x);
     CHM_rs(CHM_SP x){A = x;}
-//    ~CHM_rs(){if (deleteA) delete A;}
     virtual void freeA(){M_cholmod_free_sparse(&A, &c);}
     virtual void drmult(int transpose, double alpha, double beta,
 			CHM_DN X, CHM_DN Y);
