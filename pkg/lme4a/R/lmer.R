@@ -585,27 +585,17 @@ setMethod("ranef", signature(object = "merenvtrms"),
 
           if (postVar) {
               vv <- .Call(merenvtrms_condVar, rho, sigma(object))
-              ## for the time being allow only simple scalar terms
-              ## without repeated grouping factors
-###              if(!(all(nc == 1) && length(nc) == length(ans)))
-###  stop("postVar=TRUE currently only implemented for case of simple scalar term")
-              ## evaluate the diagonal of
-              ## sigma^2 Lambda(theta)P'L^{-T}L^{-1} P Lambda(theta)
-###              vv <- sigma(object)^2 * diag(rho$Lambda) *
-###                  diag(solve(rho$L, as(rho$Lambda, "CsparseMatrix"),
-###                             system = "A"))
               for (i in seq_along(ans))
                   attr(ans[[i]], "postVar") <- vv[[i]]
-###                      array(vv[nbseq == i], c(1, 1, nb[i]))
           }
           if (drop)
               ans <- lapply(ans, function(el)
                         {
                             if (ncol(el) > 1) return(el)
-###                            pv <- drop(attr(el, "postVar"))
+                            pv <- drop(attr(el, "postVar"))
                             el <- drop(as.matrix(el))
-###                            if (!is.null(pv))
-###                                attr(el, "postVar") <- pv
+                            if (!is.null(pv))
+                                attr(el, "postVar") <- pv
                             el
                         })
           class(ans) <- "ranef.mer"
@@ -732,9 +722,9 @@ setMethod("vcov", signature(object = "lmerenv"),
           rr
       })
 
+##' Create the VarCorr object of variances and covariances
 setMethod("VarCorr", signature(x = "lmerenv"),
 	  function(x, ...)
-### Create the VarCorr object of variances and covariances
       {
           sc <- sigma(x)
           rho <- env(x)
@@ -846,7 +836,7 @@ setMethod("summary", signature(object = "lmerenv"),
                       AICtab= AICframe,
                       call = rho$call
                       )
-          class(ans) <- "summary.lmer2" # use S3 class for now
+          class(ans) <- "summary.lmer" # use S3 class for now
           ans
       })## summary()
 
