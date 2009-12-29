@@ -311,7 +311,8 @@ void STinternal::update_A(CHM_SP Zt, CHM_SP A)
     int *ai = (int*)(A->i), *ap = (int*)(A->p),
 	*zi = (int*)(Zt->i), *zp = (int*)(Zt->p);
     int annz = ap[A->ncol], znnz = zp[Zt->ncol], anc = (int)(A->ncol);
-    double *ax = (double*)(A->x), *zx = (double*)(Zt->x), one[] = {1, 0};
+    double *ax = (double*)(A->x), *zx = (double*)(Zt->x);
+    static double one = 1;
 
     if (annz == znnz) {	     // Copy Z' to A unless A has new nonzeros
 	Memcpy(ax, zx, znnz);
@@ -338,7 +339,7 @@ void STinternal::update_A(CHM_SP Zt, CHM_SP A)
 		    while ((ai[nr] - Gp[i]) < nlev[i]) nr++;
 		    nr -= p;	// nr == 1 except in models with carry-over
 		    F77_CALL(dtrmm)("R", "L", "N", "U", &nr, nc + i,
-				    one, st[i], nc + i, ax + p, &nr);
+				    &one, st[i], nc + i, ax + p, &nr);
 		    p += (nr * nc[i]);
 		}
 	    }
@@ -408,7 +409,8 @@ SEXP STinternal::condVar(CHM_FR L, SEXP pperm, SEXP flistP, SEXP which)
 	error(_("perm must be an integer vector of length %d"), q);
     int nr = 0, pos = 0;
     int *asgn = INTEGER(getAttrib(flistP, install("assign")));
-    double *vv, one[] = {1,0};
+    double *vv;
+    static double one[] = {1,0};
     CHM_SP sm1, sm2;
     CHM_DN dm1;
     int *perm = INTEGER(pperm), *iperm = new int[q];
