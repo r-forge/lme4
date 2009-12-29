@@ -16,15 +16,14 @@ public:
 			CHM_DN X, CHM_DN Y) = 0;
     virtual CHM_r* solveCHM_FR(CHM_FR L, int sys) = 0;
     virtual void copy_contents(CHM_r *src) = 0;
-// FIXME: Change the mernew structure to bypass the special case of
-// diagonal Lambda and eliminate the need to pass the double*
     virtual CHM_r* crossprod_SP(CHM_SP) = 0;
+    virtual void show(const char*) = 0;
 };
 
 /** concrete class of double precision dense matrices */
 class CHM_rd : public CHM_r {
 public:
-    CHM_rd(SEXP x);
+//    CHM_rd(SEXP x);
     CHM_rd(CHM_DN x){A = x;}
 //    ~CHM_rd(){delete A;}
     virtual void freeA(){M_cholmod_free_dense(&A, &c);}
@@ -35,6 +34,7 @@ public:
     virtual CHM_r* solveCHM_FR(CHM_FR L, int sys);
     virtual void copy_contents(CHM_r *src);
     virtual CHM_r* crossprod_SP(CHM_SP);
+    virtual void show(const char*);
 	
     CHM_DN A;
 };
@@ -42,9 +42,9 @@ public:
 /** concrete class of double precision sparse matrices */
 class CHM_rs : public CHM_r {
 public:
-    CHM_rs(SEXP x);
+//    CHM_rs(SEXP x);
     CHM_rs(CHM_SP x){A = x;}
-//    ~CHM_rs(){delete A;}
+//    ~CHM_rs(){if (deleteA) delete A;}
     virtual void freeA(){M_cholmod_free_sparse(&A, &c);}
     virtual void drmult(int transpose, double alpha, double beta,
 			CHM_DN X, CHM_DN Y);
@@ -53,6 +53,7 @@ public:
     virtual CHM_r* solveCHM_FR(CHM_FR, int);
     virtual void copy_contents(CHM_r*);
     virtual CHM_r* crossprod_SP(CHM_SP);
+    virtual void show(const char*);
 
     CHM_SP A;
 };
@@ -68,7 +69,7 @@ public:
 
 class Cholesky_rd : public Cholesky_r {
 public:
-    Cholesky_rd(SEXP);
+    Cholesky_rd(SEXP, int);
     virtual int update(CHM_r*);
     virtual void downdate(CHM_r*, double, dMatrix*, double);
     virtual int ncol() {return n;}
@@ -83,8 +84,7 @@ public:
 
 class Cholesky_rs : public Cholesky_r {
 public:
-    Cholesky_rs(SEXP);
-    ~Cholesky_rs(){delete F;}
+    Cholesky_rs(CHM_FR x){F = x;}
     virtual int update(CHM_r*);
     virtual void downdate(CHM_r*, double, dMatrix*, double);
     virtual CHM_DN solveA(CHM_DN);

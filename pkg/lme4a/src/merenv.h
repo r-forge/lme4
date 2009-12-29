@@ -12,11 +12,11 @@ extern "C" {
     
     SEXP lme4_dup_env_contents(SEXP dest, SEXP src, SEXP nms);
 
-    SEXP lmerenv_deviance(SEXP rho, SEXP newth);
-    SEXP lmerenv_validate(SEXP rho);
+    SEXP lmer_deviance(SEXP rho, SEXP newth);
+    SEXP lmer_validate(SEXP rho);
 
-    SEXP lmernew_validate(SEXP rho);
-    SEXP lmernew_deviance(SEXP rho, SEXP newth);
+    SEXP lmerold_validate(SEXP rho);
+    SEXP lmerold_deviance(SEXP rho, SEXP newth);
 
     SEXP merenvtrms_condVar(SEXP rho, SEXP scale);
     SEXP merenvtrms_show(SEXP rho);

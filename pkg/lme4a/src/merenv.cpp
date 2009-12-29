@@ -4,11 +4,7 @@
 #include "lme4utils.hpp"
 
 // Definition of methods for the merenv class
-
-// Normally this would be a constructor merenv::merenv(SEXP rho) but
-// merenv is included virtually in several derived classes and calling
-// the constructor becomes problematic.
-void merenv::initMer(SEXP rho)
+merenv::merenv(SEXP rho)
 {
     if (!isEnvironment(rho))
 	error(_("argument rho must be an environment"));
@@ -36,7 +32,7 @@ void merenv::initMer(SEXP rho)
 	error(_("theta vector must be numeric (double)"));
     theta = REAL(sl);
 
-    sl = findVarBound(rho, install("Lind"));
+    sl = findVarBound(rho, lme4_LindSym);
     if (!(nLind = LENGTH(sl)) || !isInteger(sl))
 	error(_("Lind vector must be integer"));
     Lind = INTEGER(sl);
@@ -45,228 +41,7 @@ void merenv::initMer(SEXP rho)
     Zt = VAR_CHM_SP(rho, lme4_ZtSym, q, 0);
     N = (int)Zt->ncol;
     Ut = VAR_CHM_SP(rho, lme4_UtSym, q, N);
-    L = new cholmod_factor;
-    M_as_cholmod_factor(L, findVarInFrame(rho, lme4_LSym));
-				// versions of Lambda
-    ///FIXME: Use S4 class to determine diagonalLambda
-    if (asLogical(findVarBound(rho, install("diagonalLambda")))) {
-	Lambdax = VAR_dMatrix_x(rho, lme4_LambdaSym, q, q);
-	if (nLind != q)
-	    error(_("Lind should be of length q = %d for diagonal Lambda"),
-		  q);
-	Lambda = (CHM_SP) NULL;
-    } else {
-	Lambda = VAR_CHM_SP(rho, lme4_LambdaSym, q, q);
-	int nnz = M_cholmod_nnz(Lambda, &c);
-	if (nnz != nLind)
-	    error(_("length(Lind) = %d should be  %d"), nLind, nnz);
-	Lambdax = (double*)(Lambda->x);
-    }
-    gam = VAR_REAL_NULL(rho, install("gamma"), N);
-    mu = VAR_REAL_NULL(rho, install("mu"), n);
-    ldL2 = VAR_REAL_NULL(rho, install("ldL2"), 1);
-    prss = VAR_REAL_NULL(rho, install("prss"), 1);
-    weights = VAR_REAL_NULL(rho, install("weights"), n, TRUE);
-    sqrtrwt = VAR_REAL_NULL(rho, install("sqrtrwt"), n, TRUE);
-    offset = VAR_REAL_NULL(rho, lme4_offsetSym, N, TRUE);
-    if ((sparseX = asLogical(findVarBound(rho, install("sparseX"))))) {
-	Xp = new CHM_rs(findVarBound(rho, lme4_XSym));
-	RXp = new Cholesky_rs(findVarBound(rho, lme4_RXSym));
-	RZXp = new CHM_rs(findVarBound(rho, lme4_RZXSym));
-    } else {
-	Xp = new CHM_rd(findVarBound(rho, lme4_XSym));
-	RXp = new Cholesky_rd(findVarBound(rho, lme4_RXSym));
-	RZXp = new CHM_rd(findVarBound(rho, lme4_RZXSym));
-    }	
-    if (!(Xp->nrow() == N && Xp->ncol() == p))
-	error(_("Dimensions of %s are %d by %d, should be %d by %d"),
-	      "X", Xp->nrow(), Xp->ncol(), N, p);
-    if (!(RXp->nrow() == p && RXp->ncol() == p))
-	error(_("Dimensions of %s are %d by %d, should be %d by %d"),
-	      "RX", RXp->nrow(), RXp->ncol(), p, p);
-    if (!(RZXp->nrow() == q && RZXp->ncol() == p))
-	error(_("Dimensions of %s are %d by %d, should be %d by %d"),
-	      "RZX", RZXp->nrow(), RZXp->ncol(), q, p);
-}
-
-void merenv::update_Lambda_Ut(SEXP thnew) {
-				// check and copy thnew
-    if (!isReal(thnew) || LENGTH(thnew) != nth)
-	error(_("theta must be numeric and of length %d"), nth);
-    dble_cpy(theta, REAL(thnew), nth);
-				// update Lambda
-    for (int i = 0; i < nLind; i++) Lambdax[i] = theta[Lind[i] - 1];
-				// update Ut from Lambda and Zt
-    if (Lambda) {
-	CHM_SP Lamtr = M_cholmod_transpose(Lambda, TRUE/*values*/, &c),
-	    tmp = M_cholmod_ssmult(Lamtr, Zt, 0/*stype*/,
-				   TRUE/*values*/, TRUE/*sorted*/, &c);
-	M_cholmod_free_sparse(&Lamtr, &c);
-	// Should we store t(Lambda), instead of Lambda?
-	int *it = (int*)(tmp->i), *iu = (int*)(Ut->i),
-	    *pt = (int*)(tmp->p), *pu = (int*)(Ut->p);
-	double *xt = (double*)(tmp->x), *xu = (double*)(Ut->x); 
-
-	for (int j = 0; j <= n; j++)
-	    if (pt[j] != pu[j])
-		error(_("Ut is not consistent with Lambda %*% Zt"));
-	for (int j = 0; j < pu[n]; j++) {
-	    if (it[j] != iu[j])
-		error(_("Ut is not consistent with Lambda %*% Zt"));
-	    xu[j] = xt[j];
-	}
-	M_cholmod_free_sparse(&tmp, &c);
-    } else {			// special case for diagonal Lambda
-	int *iz = (int*)(Zt->i), nnz = ((int*)(Zt->p))[n];
-	double *xu = (double*)(Ut->x), *xz = (double*)(Zt->x);
-	for (int i = 0; i < nnz; i++) xu[i] = xz[i] * Lambdax[iz[i]];
-    }
-// Note: we do not update L here because there may be weights to consider
-// Well, that depends on how U is defined.  For that we may need sqrtXwts.
-}
-
-double merenv::update_prss() {	// update the penalized, weighted RSS
-    *prss = sqr_length(u, q);
-    for (int i = 0; i < n; i++) {
-	double resi = (y[i] - mu[i]) * (sqrtrwt ? sqrtrwt[i] : 1);
-	*prss += resi * resi;
-    }
-    return *prss;
-}
-
-void merenv::update_gamma() {	// update the linear predictor
-    CHM_DN cu = N_AS_CHM_DN(u, q, 1),
-	cgamma = N_AS_CHM_DN(gam, N, 1),
-	cfixef = N_AS_CHM_DN(fixef, p, 1);
-    if (offset)			// initialize to offset if used
-	dble_cpy(gam, offset, N);
-    else			// otherwise initialize to zero
-	dble_zero(gam, N);
-    M_cholmod_sdmult(Ut, 1/*transpose*/, &one, &one, cu, cgamma, &c);
-    Xp->drmult(0/*transpose*/, one, one, cfixef, cgamma);
-}
-
-CHM_DN merenv::crossprod_Lambda(CHM_DN rhs, CHM_DN ans) {
-    if (((int)(rhs->nrow)) != q)
-	error(_("in crossprod_Lambda, rhs->nrow = %d, should be %d"),
-	      rhs->nrow, q);
-    if (Lambda) {
-	M_cholmod_sdmult(Lambda, 1/*transpose*/, &one, &zero,
-			 rhs, ans, &c);
-    } else {
-	double *ax = (double*)(ans->x), *rx = (double*)(rhs->x);
-	int nc = rhs->ncol;
-    	for (int j = 0; j < nc * q; j++) ax[j] = rx[j] * Lambdax[j % q];
-    }
-    return ans;
-}
-
-CHM_SP merenv::spcrossprod_Lambda(CHM_SP src) {
-    if (((int)(src->nrow)) != q)
-	error(_("in spcrossprod_Lambda, src->nrow = %d, should be %d"),
-	      src->nrow, q);
-    if (Lambda) {
-	CHM_SP Lamtr = M_cholmod_transpose(Lambda, TRUE/*values*/, &c),
-	    tmp = M_cholmod_ssmult(Lamtr, src, 0/*stype*/,
-				   TRUE/*values*/, TRUE/*sorted*/, &c);
-	M_cholmod_free_sparse(&Lamtr, &c);
-	return tmp;
-    }
-				// special case for diagonal Lambda
-    CHM_SP ans = M_cholmod_copy_sparse(src, &c);
-    CHM_DN lambda = N_AS_CHM_DN(Lambdax, q, 1);
-    if (!M_cholmod_scale(lambda, CHOLMOD_ROW, ans, &c))
-	error(_("Error return from cholmod_scale"));
-    return ans;
-}
-
-CHM_DN merenv::solvePL(CHM_DN src) {
-    CHM_DN tmp1, tmp2;
-
-    tmp1 = M_cholmod_copy_dense(src, &c);
-    crossprod_Lambda(src, tmp1);
-    tmp2 = M_cholmod_solve(CHOLMOD_P, L, tmp1, &c);
-    M_cholmod_free_dense(&tmp1, &c);
-    tmp1 = M_cholmod_solve(CHOLMOD_L, L, tmp2, &c);
-    M_cholmod_free_dense(&tmp2, &c);
-    return tmp1;
-}
-
-CHM_SP merenv::solvePL(CHM_SP src) {
-    CHM_SP tmp1, tmp2;
-
-    tmp1 = spcrossprod_Lambda(src);
-    tmp2 = M_cholmod_spsolve(CHOLMOD_P, L, tmp1, &c);
-    M_cholmod_free_sparse(&tmp1, &c);
-    tmp1 = M_cholmod_spsolve(CHOLMOD_L, L, tmp2, &c);
-    M_cholmod_free_sparse(&tmp2, &c);
-    return tmp1;
-}
-
-// Definition of methods for the mersparse and merdense classes
-// No longer needed.  Pull these when lmersparse and lmerdense are defunct.
-merdense::merdense(SEXP rho) {
-    X = VAR_dMatrix_x(rho, lme4_XSym, N, p);
-    RX = VAR_dMatrix_x(rho, lme4_RXSym, p, p);
-    RZX = VAR_dMatrix_x(rho, lme4_RZXSym, q, p);
-}
-
-mersparse::mersparse(SEXP rho) {
-    X = VAR_CHM_SP(rho, lme4_XSym, N, p);
-    RX = VAR_CHM_FR(rho, lme4_RXSym, p);
-    RZX = VAR_CHM_SP(rho, lme4_RZXSym, q, p);
-}
-
-mernew::~mernew(){
-    delete L;
-    if (diagonalLambda) M_cholmod_free_sparse(&Lambda, &c);
-    delete Lambda;
-    delete Ut;
-    delete Zt;
-    delete Xp;
-    delete RXp;
-    delete RZXp;
-}
-
-mernew::mernew(SEXP rho)
-{
-    if (!isEnvironment(rho))
-	error(_("argument rho must be an environment"));
-
-    // Extract slots that must have positive length.
-    // Get dimensions of the problem
-    SEXP sl = findVarBound(rho, lme4_ySym);
-    if (!(n = LENGTH(sl)) || !isReal(sl)) // n = length of response
-	error(_("Response vector y must be numeric (double) and non-empty"));
-    y = REAL(sl);
-
-    sl = findVarBound(rho, lme4_fixefSym);
-    if (!isReal(sl))		// p = length of fixef
-	error(_("fixef vector must be numeric (double)"));
-    p = LENGTH(sl);
-    fixef = REAL(sl);
-
-    sl = findVarBound(rho, lme4_uSym);
-    if (!(q = LENGTH(sl)) || !isReal(sl)) // q = length of u
-	error(_("u vector must be numeric (double)"));
-    u = REAL(sl);
-
-    sl = findVarBound(rho, install("theta"));
-    if (!(nth = LENGTH(sl)) || !isReal(sl)) // nth = length of theta
-	error(_("theta vector must be numeric (double)"));
-    theta = REAL(sl);
-
-    sl = findVarBound(rho, install("Lind"));
-    if (!(nLind = LENGTH(sl)) || !isInteger(sl))
-	error(_("Lind vector must be integer"));
-    Lind = INTEGER(sl);
-    
-    // allow for Z and X to have a multiple of n rows.
-    Zt = VAR_CHM_SP(rho, lme4_ZtSym, q, 0);
-    N = (int)Zt->ncol;
-    Ut = VAR_CHM_SP(rho, lme4_UtSym, q, N);
-    L = new cholmod_factor;
-    M_as_cholmod_factor(L, findVarInFrame(rho, lme4_LSym));
+    L = VAR_CHM_FR(rho, lme4_LSym, q);
 				// versions of Lambda
 ///FIXME: Use S4 class to determine diagonalLambda
     diagonalLambda = asLogical(findVarBound(rho, install("diagonalLambda")));
@@ -282,41 +57,30 @@ mernew::mernew(SEXP rho)
 	error(_("length(Lind) = %d should be  %d"), nLind, nnz);
 
     gam = VAR_REAL_NULL(rho, install("gamma"), N);
-    mu = VAR_REAL_NULL(rho, install("mu"), N);
+    mu = VAR_REAL_NULL(rho, lme4_muSym, N);
     ldL2 = VAR_REAL_NULL(rho, install("ldL2"), 1);
-    prss = VAR_REAL_NULL(rho, install("prss"), 1);
+    pwrss = VAR_REAL_NULL(rho, install("pwrss"), 1);
     weights = VAR_REAL_NULL(rho, install("weights"), n, TRUE);
     offset = VAR_REAL_NULL(rho, lme4_offsetSym, N, TRUE);
     if ((sparseX = asLogical(findVarBound(rho, install("sparseX"))))) {
-	Xp = new CHM_rs(findVarBound(rho, lme4_XSym));
-	RXp = new Cholesky_rs(findVarBound(rho, lme4_RXSym));
-	RZXp = new CHM_rs(findVarBound(rho, lme4_RZXSym));
+	Xp = new CHM_rs(VAR_CHM_SP(rho, lme4_XSym, N, p));
+	RXp = new Cholesky_rs(VAR_CHM_FR(rho, lme4_RXSym, p));
+	RZXp = new CHM_rs(VAR_CHM_SP(rho, lme4_RZXSym, q, p));
     } else {
-	Xp = new CHM_rd(findVarBound(rho, lme4_XSym));
-	RXp = new Cholesky_rd(findVarBound(rho, lme4_RXSym));
-	RZXp = new CHM_rd(findVarBound(rho, lme4_RZXSym));
+	Xp = new CHM_rd(VAR_CHM_DN(rho, lme4_XSym, N, p));
+	RXp = new Cholesky_rd(findVarBound(rho, lme4_RXSym), p);
+	RZXp = new CHM_rd(VAR_CHM_DN(rho, lme4_RZXSym, q, p));
     }	
-    if (!(Xp->nrow() == N && Xp->ncol() == p))
-	error(_("Dimensions of %s are %d by %d, should be %d by %d"),
-	      "X", Xp->nrow(), Xp->ncol(), N, p);
-    if (!(RXp->nrow() == p && RXp->ncol() == p))
-	error(_("Dimensions of %s are %d by %d, should be %d by %d"),
-	      "RX", RXp->nrow(), RXp->ncol(), p, p);
-    if (!(RZXp->nrow() == q && RZXp->ncol() == p))
-	error(_("Dimensions of %s are %d by %d, should be %d by %d"),
-	      "RZX", RZXp->nrow(), RZXp->ncol(), q, p);
 }
 
-double mernew::update_prss() {
-    *prss = sqr_length(u, q);
-    for (int i = 0; i < n; i++) {
-	double resi = (y[i] - mu[i]) * (sqrtrwt ? sqrtrwt[i] : 1);
-	*prss += resi * resi;
-    }
-    return *prss;
+merenv::~merenv(){
+    if (diagonalLambda) M_cholmod_free_sparse(&Lambda, &c);
+    delete Xp;
+    delete RXp;
+    delete RZXp;
 }
 
-void mernew::update_gamma() {
+void merenv::update_gamma() {
     CHM_DN cu = N_AS_CHM_DN(u, q, 1),
 	cgamma = N_AS_CHM_DN(gam, N, 1),
 	cfixef = N_AS_CHM_DN(fixef, p, 1);
@@ -328,7 +92,16 @@ void mernew::update_gamma() {
     Xp->drmult(0/*transpose*/, one, one, cfixef, cgamma);
 }
 
-void mernew::update_Lambda_Ut(SEXP thnew) {
+double merenv::update_pwrss() {
+    *pwrss = sqr_length(u, q);
+    for (int i = 0; i < n; i++) {
+	double resi = (y[i] - mu[i]) * (sqrtrwt ? sqrtrwt[i] : 1);
+	*pwrss += resi * resi;
+    }
+    return *pwrss;
+}
+
+void merenv::update_Lambda_Ut(SEXP thnew) {
 				// check and copy thnew
     if (!isReal(thnew) || LENGTH(thnew) != nth)
 	error(_("theta must be numeric and of length %d"), nth);
@@ -368,13 +141,13 @@ void mernew::update_Lambda_Ut(SEXP thnew) {
 // Well, that depends on how U is defined.  For that we may need sqrtXwts.
 }
 
-CHM_DN mernew::crossprod_Lambda(CHM_DN rhs, CHM_DN ans) {
+CHM_DN merenv::crossprod_Lambda(CHM_DN rhs, CHM_DN ans) {
     M_cholmod_sdmult(Lambda, 1/*transpose*/, &one, &zero,
 		     rhs, ans, &c);
     return ans;
 }
 
-CHM_SP mernew::spcrossprod_Lambda(CHM_SP src) {
+CHM_SP merenv::spcrossprod_Lambda(CHM_SP src) {
     CHM_SP Lamtr = M_cholmod_transpose(Lambda, TRUE/*values*/, &c),
 	tmp = M_cholmod_ssmult(Lamtr, Zt, 0/*stype*/,
 			       TRUE/*values*/, TRUE/*sorted*/, &c);
@@ -382,7 +155,7 @@ CHM_SP mernew::spcrossprod_Lambda(CHM_SP src) {
     return tmp;
 }
 
-CHM_DN mernew::solvePL(CHM_DN src) {
+CHM_DN merenv::solvePL(CHM_DN src) {
     CHM_DN tmp1, tmp2;
 
     tmp1 = M_cholmod_copy_dense(src, &c);
@@ -394,7 +167,7 @@ CHM_DN mernew::solvePL(CHM_DN src) {
     return tmp1;
 }
 
-CHM_SP mernew::solvePL(CHM_SP src) {
+CHM_SP merenv::solvePL(CHM_SP src) {
     CHM_SP tmp1, tmp2;
 
     tmp1 = spcrossprod_Lambda(src);
@@ -405,7 +178,154 @@ CHM_SP mernew::solvePL(CHM_SP src) {
     return tmp1;
 }
 
-lmernew::lmernew(SEXP rho) : mernew(rho) {
+// definitions of methods for the merenvtrms classes
+
+merenvtrms::merenvtrms(SEXP rho) : merenv(rho) {
+    flist = findVarBound(rho, lme4_flistSym);
+    if (!isNewList(flist))
+	error(_("Object \"%s\" must be a list"), "flist");
+    nfac = LENGTH(flist);
+
+    SEXP cnms = findVarBound(rho, install("cnms"));
+    if (!isNewList(cnms))
+	error(_("Object \"cnms\" must be a list"));
+    ntrm = LENGTH(cnms);
+
+    nc = (int*)R_alloc(sizeof(int), ntrm);
+    nl = (int*)R_alloc(sizeof(int), nfac);
+    apt = (int*)R_alloc(sizeof(int), nfac + 1);
+    apt[0] = 0;
+
+    SEXP asgn = getAttrib(flist, install("assign"));
+    if (LENGTH(asgn) != ntrm)
+	error(_("length(attr(flist, \"assign\")) != length(cnms)"),
+	      LENGTH(asgn), ntrm);
+    int *assign = INTEGER(asgn);
+
+    for (int i = 0; i < nfac; i++) {
+	SEXP ff = VECTOR_ELT(flist, i);
+	if (!isFactor(ff))
+	    error(_("Element %d of flist is not a factor"), i + 1);
+	if (LENGTH(ff) != n)
+	    error(_("Element %d has length %d; should be %d"),
+		  i + 1, LENGTH(ff), n);
+	nl[i] = LENGTH(getAttrib(ff, R_LevelsSymbol));
+    }
+				// check range in assign, store nc and apt
+    for (int i = 0; i < ntrm; i++) {
+	int ii = assign[i];
+	if (ii < 1 || nfac < ii)
+	    error(_("assign attribute els must be in [1,%d]"), nfac);
+	if (i > 0 && assign[i - 1] > assign[i])
+	    error(_("assign attribute must be non-decreasing"));
+	nc[i] = LENGTH(VECTOR_ELT(cnms, i));
+	apt[ii] = i + 1;
+    }
+    if (apt[nfac] != ntrm)
+	error(_("assign attribute does not agree with cnms"));
+    for (int i = 0; i < nfac; i++)
+	if (apt[i] >= apt[i + 1])
+	    error(_("assign attribute missing index %d"), i + 1);
+}
+
+void merenvtrms::show() {
+    Rprintf("merenvtrms object: ntrm = %d, nfac = %d\n nl:", ntrm, nfac);
+    for (int i = 0; i < nfac; i++) Rprintf(" %d", nl[i]);
+    Rprintf("\n apt:");
+    for (int i = 0; i <= nfac; i++) Rprintf(" %d", apt[i]);
+    Rprintf("\n nc:");
+    for (int i = 0; i < ntrm; i++) Rprintf(" %d", nc[i]);
+    Rprintf("\n");
+}
+    
+SEXP merenvtrms::condVar(double scale) {
+    SEXP ans = PROTECT(allocVector(VECSXP, nfac));
+    int offset = 0;
+    
+    if (scale < 0 || !R_FINITE(scale))
+	error(_("scale must be non-negative and finite"));
+
+#if 0
+    if (!Lambda && ntrm == nfac) { // simple scalar terms only
+	int offset = 0;
+	double *cc = new double[q];
+	CHM_DN col = N_AS_CHM_DN(cc, q, 1);
+	
+	for (int i = 0; i < nfac; i++) {
+	    int nli = nl[i];
+	    SET_VECTOR_ELT(ans, i, alloc3DArray(REALSXP, 1, 1, nli));
+	    double *ai = REAL(VECTOR_ELT(ans, i));
+//FIXME: Check with Tim to see if this is better done with dense or
+//sparse columns. 
+	    for (int j = 0; j < nli; j++) {
+		for (int jj = 0; jj < q; jj++) cc[jj] = 0;
+		cc[offset] = Lambdax[offset] * scale;
+		CHM_DN sol =
+		    M_cholmod_solve(CHOLMOD_A, L, col, &c);
+		ai[j] = cc[offset] * ((double*)sol->x)[offset];
+		M_cholmod_free_dense(&sol, &c);
+		offset++;
+	    }
+	}
+	delete[] cc;
+	UNPROTECT(1);
+	return ans;
+    }
+
+    CHM_SP lam = Lambda;
+    if (!Lambda) {		// expand the diagonal Lambda
+	lam = M_cholmod_speye(q, q, CHOLMOD_REAL, &c);
+	Memcpy((double*)lam->x, Lambdax, q);
+    }
+#endif    
+    double scsqr = scale * scale;
+    for (int i = 0; i < nfac; i++) {
+	int api = apt[i], nli = nl[i],
+	    ntrm = apt[i + 1] - api; // number of terms for this factor
+	int *ncol = new int[ntrm], *cumcol = new int[ntrm + 1];
+	cumcol[0] = 0;
+	for (int j = 0; j < ntrm; j++)
+	    cumcol[j + 1] = cumcol[j] + (ncol[j] = nc[api + j]);
+	int nct = cumcol[ntrm];
+	int *cset = new int[nct], nct2 = nct * nct;
+	
+	SET_VECTOR_ELT(ans, i, alloc3DArray(REALSXP, nct, nct, nli));
+	double *ai = REAL(VECTOR_ELT(ans, i));
+
+	for (int j = 0; j < nli; j++) {
+	    for (int jj = 0; jj < ntrm; jj++)
+		for (int k = 0; k < ncol[jj]; k++)
+		    cset[k] = offset + j * ncol[jj] + cumcol[jj] * nli + k;
+
+	    CHM_SP cols =
+		M_cholmod_submatrix(Lambda, (int*)NULL, -1, cset, nct,
+				    1/*values*/, 1/*sorted*/, &c);
+	    CHM_SP sol = M_cholmod_spsolve(CHOLMOD_A, L, cols, &c);
+	    CHM_SP tcols = M_cholmod_transpose(cols, 1/*values*/, &c);
+	    M_cholmod_free_sparse(&cols, &c);
+	    CHM_SP var = M_cholmod_ssmult(tcols, sol, 0/*stype*/,
+					  1/*values*/, 1/*sorted*/, &c);
+	    M_cholmod_free_sparse(&sol, &c);
+	    M_cholmod_free_sparse(&tcols, &c);
+	    CHM_DN dvar = M_cholmod_sparse_to_dense(var, &c);
+	    M_cholmod_free_sparse(&var, &c);
+	    Memcpy(ai + j * nct2, (double*)dvar->x, nct2);
+	    M_cholmod_free_dense(&dvar, &c);
+	}
+	for (int k = 0; k < nct2 * nli; k++) ai[k] *= scsqr;
+	offset += nli * nct;
+	delete[] cset;
+	delete[] cumcol;
+	delete[] ncol;
+    }
+
+//    if (!Lambda)
+//	M_cholmod_free_sparse(&lam, &c);
+    UNPROTECT(1);
+    return ans;
+}
+
+lmer::lmer(SEXP rho) : merenv(rho) {
     if (N != n)
 	error(_("nrow(X) = %d must match length(y) = %d for lmer"),
 	      N, n);
@@ -414,41 +334,51 @@ lmernew::lmernew(SEXP rho) : mernew(rho) {
     Xty = VAR_REAL_NULL(rho, install("Xty"), p);
     Zty = VAR_dMatrix_x(rho, install("Zty"), q, 1);
     if (sparseX) {
-	XtXp = new CHM_rs(findVarBound(rho, install("XtX")));
-	ZtXp = new CHM_rs(findVarBound(rho, install("ZtX")));
+	XtXp = new CHM_rs(VAR_CHM_SP(rho, install("XtX"), p, p));
+	ZtXp = new CHM_rs(VAR_CHM_SP(rho, install("ZtX"), q, p));
     } else {
 	XtXp = new dpoMatrix(findVarBound(rho, install("XtX")));
-	ZtXp = new CHM_rd(findVarBound(rho, install("ZtX")));
+	if (!(XtXp->nrow() == p && XtXp->ncol() == p))
+	    error(_("Dimensions of %s are %d by %d, should be %d by %d"),
+		  "XtX", XtXp->nrow(), XtXp->ncol(), p, p);
+	ZtXp = new CHM_rd(VAR_CHM_DN(rho, install("ZtX"), q, p));
     }
-    if (!(XtXp->nrow() == p && XtXp->ncol() == p))
-	error(_("Dimensions of %s are %d by %d, should be %d by %d"),
-	      "XtX", XtXp->nrow(), XtXp->ncol(), p, p);
-    if (!(ZtXp->nrow() == q && ZtXp->ncol() == p))
-	error(_("Dimensions of %s are %d by %d, should be %d by %d"),
-	      "ZtX", ZtXp->nrow(), ZtXp->ncol(), q, p);
 }
 
-double lmernew::update_dev(SEXP thnew) {
+lmer::~lmer() {
+    delete XtXp;
+    delete ZtXp;
+}
+
+double lmer::update_dev(SEXP thnew) {
     update_Lambda_Ut(thnew);
     M_cholmod_factorize_p(Ut, &one, (int*)NULL, (size_t)0, L, &c);
     *ldL2 = M_chm_factor_ldetL2(L);
     *ldRX2 = 0;			// in case p == 0
     cu = solvePL(N_AS_CHM_DN(Zty, q, 1));
     if (p) {
+//	ZtXp->show("ZtX");
+//	RZXp->show("RZX");
 	CHM_r *tmp1 = ZtXp->crossprod_SP(Lambda);
+//	tmp1->show("tmp1");
 	CHM_r *tmp2 = tmp1->solveCHM_FR(L, CHOLMOD_P);
+//	tmp2->show("tmp2");
 	tmp1->freeA(); delete tmp1;
 	tmp1 = tmp2->solveCHM_FR(L, CHOLMOD_L);
+//	tmp1->show("tmp1");
 	tmp2->freeA(); delete tmp2;
 	RZXp->copy_contents(tmp1);
 	tmp1->freeA(); delete tmp1;
 	RXp->downdate(RZXp, -1.0, XtXp, 1.0);
 	*ldRX2 = RXp->ldet2();
 	CHM_DN tt = M_cholmod_copy_dense(N_AS_CHM_DN(Xty, p, 1), &c);
+//	Rprintf("cu: %d by %d\n", cu->nrow, cu->ncol);
+//	Rprintf("tt: %d by %d\n", tt->nrow, tt->ncol);
 	RZXp->drmult(1/*transpose*/, -1.0, 1.0, cu, tt);
 	CHM_DN ff = RXp->solveA(tt);
 	M_cholmod_free_dense(&tt, &c);
 	dble_cpy(fixef, (double*)ff->x, p);
+//	Rprintf("ff: %d by %d\n", ff->nrow, ff->ncol);
 	RZXp->drmult(0/*no trans*/, -1.0, 1.0, ff, cu);
 	M_cholmod_free_dense(&ff, &c);
     }
@@ -461,16 +391,239 @@ double lmernew::update_dev(SEXP thnew) {
     td1->freeA(); delete td1;
     update_gamma();
     dble_cpy(mu, gam, n);
-    update_prss();
+    update_pwrss();
     if (REML) {
 	double nmp = (double)(n - p);
-	return *ldL2 + *ldRX2 + nmp * (1 + log(2 * PI * (*prss)/nmp));
+	return *ldL2 + *ldRX2 + nmp * (1 + log(2 * PI * (*pwrss)/nmp));
     }				       
-    return *ldL2 + n * (1 + log(2 * PI * (*prss)/((double)n)));
+    return *ldL2 + n * (1 + log(2 * PI * (*pwrss)/((double)n)));
 }    
+
+// Normally this would be a constructor merenv::merenv(SEXP rho) but
+// merenv is included virtually in several derived classes and calling
+// the constructor becomes problematic.
+void merold::initMer(SEXP rho)
+{
+    if (!isEnvironment(rho))
+	error(_("argument rho must be an environment"));
+
+    // Extract slots that must have positive length.
+    // Get dimensions of the problem
+    SEXP sl = findVarBound(rho, lme4_ySym);
+    if (!(n = LENGTH(sl)) || !isReal(sl)) // n = length of response
+	error(_("Response vector y must be numeric (double) and non-empty"));
+    y = REAL(sl);
+
+    sl = findVarBound(rho, lme4_fixefSym);
+    if (!isReal(sl))		// p = length of fixef
+	error(_("fixef vector must be numeric (double)"));
+    p = LENGTH(sl);
+    fixef = REAL(sl);
+
+    sl = findVarBound(rho, lme4_uSym);
+    if (!(q = LENGTH(sl)) || !isReal(sl)) // q = length of u
+	error(_("u vector must be numeric (double)"));
+    u = REAL(sl);
+
+    sl = findVarBound(rho, install("theta"));
+    if (!(nth = LENGTH(sl)) || !isReal(sl)) // nth = length of theta
+	error(_("theta vector must be numeric (double)"));
+    theta = REAL(sl);
+
+    sl = findVarBound(rho, lme4_LindSym);
+    if (!(nLind = LENGTH(sl)) || !isInteger(sl))
+	error(_("Lind vector must be integer"));
+    Lind = INTEGER(sl);
+    
+    // allow for Z and X to have a multiple of n rows.
+    Zt = VAR_CHM_SP(rho, lme4_ZtSym, q, 0);
+    N = (int)Zt->ncol;
+    Ut = VAR_CHM_SP(rho, lme4_UtSym, q, N);
+    L = new cholmod_factor;
+    M_as_cholmod_factor(L, findVarInFrame(rho, lme4_LSym));
+				// versions of Lambda
+    ///FIXME: Use S4 class to determine diagonalLambda
+    if (asLogical(findVarBound(rho, install("diagonalLambda")))) {
+	Lambdax = VAR_dMatrix_x(rho, lme4_LambdaSym, q, q);
+	if (nLind != q)
+	    error(_("Lind should be of length q = %d for diagonal Lambda"),
+		  q);
+	Lambda = (CHM_SP) NULL;
+    } else {
+	Lambda = VAR_CHM_SP(rho, lme4_LambdaSym, q, q);
+	int nnz = M_cholmod_nnz(Lambda, &c);
+	if (nnz != nLind)
+	    error(_("length(Lind) = %d should be  %d"), nLind, nnz);
+	Lambdax = (double*)(Lambda->x);
+    }
+    gam = VAR_REAL_NULL(rho, install("gamma"), N);
+    mu = VAR_REAL_NULL(rho, lme4_muSym, n);
+    ldL2 = VAR_REAL_NULL(rho, install("ldL2"), 1);
+    prss = VAR_REAL_NULL(rho, install("prss"), 1);
+    weights = VAR_REAL_NULL(rho, install("weights"), n, TRUE);
+    sqrtrwt = VAR_REAL_NULL(rho, install("sqrtrwt"), n, TRUE);
+    offset = VAR_REAL_NULL(rho, lme4_offsetSym, N, TRUE);
+    if ((sparseX = asLogical(findVarBound(rho, install("sparseX"))))) {
+	Xp = new CHM_rs(VAR_CHM_SP(rho, lme4_XSym, N, p));
+	RXp = new Cholesky_rs(VAR_CHM_FR(rho, lme4_RXSym, p));
+	RZXp = new CHM_rs(VAR_CHM_SP(rho, lme4_RZXSym, q, p));
+    } else {
+	Xp = new CHM_rd(VAR_CHM_DN(rho, lme4_XSym, p, p));
+	RXp = new Cholesky_rd(findVarBound(rho, lme4_RXSym), p);
+	RZXp = new CHM_rd(VAR_CHM_DN(rho, lme4_RZXSym, q, p));
+    }	
+    if (!(Xp->nrow() == N && Xp->ncol() == p))
+	error(_("Dimensions of %s are %d by %d, should be %d by %d"),
+	      "X", Xp->nrow(), Xp->ncol(), N, p);
+    if (!(RXp->nrow() == p && RXp->ncol() == p))
+	error(_("Dimensions of %s are %d by %d, should be %d by %d"),
+	      "RX", RXp->nrow(), RXp->ncol(), p, p);
+    if (!(RZXp->nrow() == q && RZXp->ncol() == p))
+	error(_("Dimensions of %s are %d by %d, should be %d by %d"),
+	      "RZX", RZXp->nrow(), RZXp->ncol(), q, p);
+}
+
+merold::~merold(){
+    delete L;
+    delete Lambda;
+    delete Ut;
+    delete Zt;
+    delete Xp;
+    delete RXp;
+    delete RZXp;
+}
+
+void merold::update_Lambda_Ut(SEXP thnew) {
+				// check and copy thnew
+    if (!isReal(thnew) || LENGTH(thnew) != nth)
+	error(_("theta must be numeric and of length %d"), nth);
+    dble_cpy(theta, REAL(thnew), nth);
+				// update Lambda
+    for (int i = 0; i < nLind; i++) Lambdax[i] = theta[Lind[i] - 1];
+				// update Ut from Lambda and Zt
+    if (Lambda) {
+	CHM_SP Lamtr = M_cholmod_transpose(Lambda, TRUE/*values*/, &c),
+	    tmp = M_cholmod_ssmult(Lamtr, Zt, 0/*stype*/,
+				   TRUE/*values*/, TRUE/*sorted*/, &c);
+	M_cholmod_free_sparse(&Lamtr, &c);
+	// Should we store t(Lambda), instead of Lambda?
+	int *it = (int*)(tmp->i), *iu = (int*)(Ut->i),
+	    *pt = (int*)(tmp->p), *pu = (int*)(Ut->p);
+	double *xt = (double*)(tmp->x), *xu = (double*)(Ut->x); 
+
+	for (int j = 0; j <= n; j++)
+	    if (pt[j] != pu[j])
+		error(_("Ut is not consistent with Lambda %*% Zt"));
+	for (int j = 0; j < pu[n]; j++) {
+	    if (it[j] != iu[j])
+		error(_("Ut is not consistent with Lambda %*% Zt"));
+	    xu[j] = xt[j];
+	}
+	M_cholmod_free_sparse(&tmp, &c);
+    } else {			// special case for diagonal Lambda
+	int *iz = (int*)(Zt->i), nnz = ((int*)(Zt->p))[n];
+	double *xu = (double*)(Ut->x), *xz = (double*)(Zt->x);
+	for (int i = 0; i < nnz; i++) xu[i] = xz[i] * Lambdax[iz[i]];
+    }
+// Note: we do not update L here because there may be weights to consider
+// Well, that depends on how U is defined.  For that we may need sqrtXwts.
+}
+
+double merold::update_prss() {	// update the penalized, weighted RSS
+    *prss = sqr_length(u, q);
+    for (int i = 0; i < n; i++) {
+	double resi = (y[i] - mu[i]) * (sqrtrwt ? sqrtrwt[i] : 1);
+	*prss += resi * resi;
+    }
+    return *prss;
+}
+
+void merold::update_gamma() {	// update the linear predictor
+    CHM_DN cu = N_AS_CHM_DN(u, q, 1),
+	cgamma = N_AS_CHM_DN(gam, N, 1),
+	cfixef = N_AS_CHM_DN(fixef, p, 1);
+    if (offset)			// initialize to offset if used
+	dble_cpy(gam, offset, N);
+    else			// otherwise initialize to zero
+	dble_zero(gam, N);
+    M_cholmod_sdmult(Ut, 1/*transpose*/, &one, &one, cu, cgamma, &c);
+    Xp->drmult(0/*transpose*/, one, one, cfixef, cgamma);
+}
+
+CHM_DN merold::crossprod_Lambda(CHM_DN rhs, CHM_DN ans) {
+    if (((int)(rhs->nrow)) != q)
+	error(_("in crossprod_Lambda, rhs->nrow = %d, should be %d"),
+	      rhs->nrow, q);
+    if (Lambda) {
+	M_cholmod_sdmult(Lambda, 1/*transpose*/, &one, &zero,
+			 rhs, ans, &c);
+    } else {
+	double *ax = (double*)(ans->x), *rx = (double*)(rhs->x);
+	int nc = rhs->ncol;
+    	for (int j = 0; j < nc * q; j++) ax[j] = rx[j] * Lambdax[j % q];
+    }
+    return ans;
+}
+
+CHM_SP merold::spcrossprod_Lambda(CHM_SP src) {
+    if (((int)(src->nrow)) != q)
+	error(_("in spcrossprod_Lambda, src->nrow = %d, should be %d"),
+	      src->nrow, q);
+    if (Lambda) {
+	CHM_SP Lamtr = M_cholmod_transpose(Lambda, TRUE/*values*/, &c),
+	    tmp = M_cholmod_ssmult(Lamtr, src, 0/*stype*/,
+				   TRUE/*values*/, TRUE/*sorted*/, &c);
+	M_cholmod_free_sparse(&Lamtr, &c);
+	return tmp;
+    }
+				// special case for diagonal Lambda
+    CHM_SP ans = M_cholmod_copy_sparse(src, &c);
+    CHM_DN lambda = N_AS_CHM_DN(Lambdax, q, 1);
+    if (!M_cholmod_scale(lambda, CHOLMOD_ROW, ans, &c))
+	error(_("Error return from cholmod_scale"));
+    return ans;
+}
+
+CHM_DN merold::solvePL(CHM_DN src) {
+    CHM_DN tmp1, tmp2;
+
+    tmp1 = M_cholmod_copy_dense(src, &c);
+    crossprod_Lambda(src, tmp1);
+    tmp2 = M_cholmod_solve(CHOLMOD_P, L, tmp1, &c);
+    M_cholmod_free_dense(&tmp1, &c);
+    tmp1 = M_cholmod_solve(CHOLMOD_L, L, tmp2, &c);
+    M_cholmod_free_dense(&tmp2, &c);
+    return tmp1;
+}
+
+CHM_SP merold::solvePL(CHM_SP src) {
+    CHM_SP tmp1, tmp2;
+
+    tmp1 = spcrossprod_Lambda(src);
+    tmp2 = M_cholmod_spsolve(CHOLMOD_P, L, tmp1, &c);
+    M_cholmod_free_sparse(&tmp1, &c);
+    tmp1 = M_cholmod_spsolve(CHOLMOD_L, L, tmp2, &c);
+    M_cholmod_free_sparse(&tmp2, &c);
+    return tmp1;
+}
+
+// Definition of methods for the mersparse and merdense classes
+// No longer needed.  Pull these when lmersparse and lmerdense are defunct.
+merdense::merdense(SEXP rho) {
+    X = VAR_dMatrix_x(rho, lme4_XSym, N, p);
+    RX = VAR_dMatrix_x(rho, lme4_RXSym, p, p);
+    RZX = VAR_dMatrix_x(rho, lme4_RZXSym, q, p);
+}
+
+mersparse::mersparse(SEXP rho) {
+    X = VAR_CHM_SP(rho, lme4_XSym, N, p);
+    RX = VAR_CHM_FR(rho, lme4_RXSym, p);
+    RZX = VAR_CHM_SP(rho, lme4_RZXSym, q, p);
+}
+
     
 // definition of methods for the lmer, lmerdense and lmersparse classes
-lmer::lmer(SEXP rho) {
+lmerold::lmerold(SEXP rho) {
     initMer(rho);
     if (N != n)
 	error(_("nrow(X) = %d must match length(y) = %d for lmer"),
@@ -480,38 +633,35 @@ lmer::lmer(SEXP rho) {
     Xty = VAR_REAL_NULL(rho, install("Xty"), p);
     Zty = VAR_dMatrix_x(rho, install("Zty"), q, 1);
     if (sparseX) {
-	XtXp = new CHM_rs(findVarBound(rho, install("XtX")));
-	ZtXp = new CHM_rs(findVarBound(rho, install("ZtX")));
+	XtXp = new CHM_rs(VAR_CHM_SP(rho, install("XtX"), p, p));
+	ZtXp = new CHM_rs(VAR_CHM_SP(rho, install("ZtX"), q, p));
     } else {
 	XtXp = new dpoMatrix(findVarBound(rho, install("XtX")));
-	ZtXp = new CHM_rd(findVarBound(rho, install("ZtX")));
+	if (!(XtXp->nrow() == p && XtXp->ncol() == p))
+	    error(_("Dimensions of %s are %d by %d, should be %d by %d"),
+		  "XtX", XtXp->nrow(), XtXp->ncol(), p, p);
+	ZtXp = new CHM_rd(VAR_CHM_DN(rho, install("ZtX"), q, p));
     }
-    if (!(XtXp->nrow() == p && XtXp->ncol() == p))
-	error(_("Dimensions of %s are %d by %d, should be %d by %d"),
-	      "XtX", XtXp->nrow(), XtXp->ncol(), p, p);
-    if (!(ZtXp->nrow() == q && ZtXp->ncol() == p))
-	error(_("Dimensions of %s are %d by %d, should be %d by %d"),
-	      "ZtX", ZtXp->nrow(), ZtXp->ncol(), q, p);
 }
 
-lmerdense::lmerdense(SEXP rho) : lmer(rho), merdense(rho) {
+lmerdense::lmerdense(SEXP rho) : lmerold(rho), merdense(rho) {
     ZtX = VAR_dMatrix_x(rho, install("ZtX"), q, p);
     XtX = VAR_dMatrix_x(rho, install("XtX"), p, p);
 }
 
-lmersparse::lmersparse(SEXP rho) : lmer(rho), mersparse(rho) {
+lmersparse::lmersparse(SEXP rho) : lmerold(rho), mersparse(rho) {
     ZtX = VAR_CHM_SP(rho, install("ZtX"), q, p);
     XtX = VAR_CHM_SP(rho, install("XtX"), p, p);
 }
 
-void lmer::LMMdev1() {		// update L, create cu
+void lmerold::LMMdev1() {		// update L, create cu
     CHM_DN cZty = N_AS_CHM_DN(Zty, q, 1);
     M_cholmod_factorize_p(Ut, &one, (int*)NULL, (size_t)0, L, &c);
     *ldL2 = M_chm_factor_ldetL2(L);
     cu = solvePL(cZty);
 }
 
-void lmer::LMMdev2() {		// solve for u
+void lmerold::LMMdev2() {		// solve for u
     CHM_DN tmp1, tmp2;
     tmp1 = M_cholmod_solve(CHOLMOD_Lt, L, cu, &c);
     M_cholmod_free_dense(&cu, &c);
@@ -521,7 +671,7 @@ void lmer::LMMdev2() {		// solve for u
     M_cholmod_free_dense(&tmp2, &c);
 }    
 
-double lmer::LMMdev3() {
+double lmerold::LMMdev3() {
     update_prss();
     if (REML) {
 	double nmp = (double)(n - p);
@@ -615,159 +765,10 @@ double lmersparse::update_dev(SEXP thnew) {
     return LMMdev3();
 }
 
-// definitions of methods for the merenvtrms classes
-
-merenvtrms::merenvtrms(SEXP rho) {
-    initMer(rho);
-    flist = findVarBound(rho, install("flist"));
-    if (!isNewList(flist))
-	error(_("Object \"%s\" must be a list"), "flist");
-    nfac = LENGTH(flist);
-
-    SEXP cnms = findVarBound(rho, install("cnms"));
-    if (!isNewList(cnms))
-	error(_("Object \"cnms\" must be a list"));
-    ntrm = LENGTH(cnms);
-
-    nc = (int*)R_alloc(sizeof(int), ntrm);
-    nl = (int*)R_alloc(sizeof(int), nfac);
-    apt = (int*)R_alloc(sizeof(int), nfac + 1);
-    apt[0] = 0;
-
-    SEXP asgn = getAttrib(flist, install("assign"));
-    if (LENGTH(asgn) != ntrm)
-	error(_("length(attr(flist, \"assign\")) != length(cnms)"),
-	      LENGTH(asgn), ntrm);
-    int *assign = INTEGER(asgn);
-
-    for (int i = 0; i < nfac; i++) {
-	SEXP ff = VECTOR_ELT(flist, i);
-	if (!isFactor(ff))
-	    error(_("Element %d of flist is not a factor"), i + 1);
-	if (LENGTH(ff) != n)
-	    error(_("Element %d has length %d; should be %d"),
-		  i + 1, LENGTH(ff), n);
-	nl[i] = LENGTH(getAttrib(ff, R_LevelsSymbol));
-    }
-				// check range in assign, store nc and apt
-    for (int i = 0; i < ntrm; i++) {
-	int ii = assign[i];
-	if (ii < 1 || nfac < ii)
-	    error(_("assign attribute els must be in [1,%d]"), nfac);
-	if (i > 0 && assign[i - 1] > assign[i])
-	    error(_("assign attribute must be non-decreasing"));
-	nc[i] = LENGTH(VECTOR_ELT(cnms, i));
-	apt[ii] = i + 1;
-    }
-    if (apt[nfac] != ntrm)
-	error(_("assign attribute does not agree with cnms"));
-    for (int i = 0; i < nfac; i++)
-	if (apt[i] >= apt[i + 1])
-	    error(_("assign attribute missing index %d"), i + 1);
-}
-
-void merenvtrms::show() {
-    Rprintf("merenvtrms object: ntrm = %d, nfac = %d\n nl:", ntrm, nfac);
-    for (int i = 0; i < nfac; i++) Rprintf(" %d", nl[i]);
-    Rprintf("\n apt:");
-    for (int i = 0; i <= nfac; i++) Rprintf(" %d", apt[i]);
-    Rprintf("\n nc:");
-    for (int i = 0; i < ntrm; i++) Rprintf(" %d", nc[i]);
-    Rprintf("\n");
-}
-    
-SEXP merenvtrms::condVar(double scale) {
-    SEXP ans = PROTECT(allocVector(VECSXP, nfac));
-    int offset = 0;
-    
-    if (scale < 0 || !R_FINITE(scale))
-	error(_("scale must be non-negative and finite"));
-
-    if (!Lambda && ntrm == nfac) { // simple scalar terms only
-	int offset = 0;
-	double *cc = new double[q];
-	CHM_DN col = N_AS_CHM_DN(cc, q, 1);
-	
-	for (int i = 0; i < nfac; i++) {
-	    int nli = nl[i];
-	    SET_VECTOR_ELT(ans, i, alloc3DArray(REALSXP, 1, 1, nli));
-	    double *ai = REAL(VECTOR_ELT(ans, i));
-//FIXME: Check with Tim to see if this is better done with dense or
-//sparse columns. 
-	    for (int j = 0; j < nli; j++) {
-		for (int jj = 0; jj < q; jj++) cc[jj] = 0;
-		cc[offset] = Lambdax[offset] * scale;
-		CHM_DN sol =
-		    M_cholmod_solve(CHOLMOD_A, L, col, &c);
-		ai[j] = cc[offset] * ((double*)sol->x)[offset];
-		M_cholmod_free_dense(&sol, &c);
-		offset++;
-	    }
-	}
-	delete[] cc;
-	UNPROTECT(1);
-	return ans;
-    }
-
-    CHM_SP lam = Lambda;
-    if (!Lambda) {		// expand the diagonal Lambda
-	lam = M_cholmod_speye(q, q, CHOLMOD_REAL, &c);
-	Memcpy((double*)lam->x, Lambdax, q);
-    }
-    
-    double scsqr = scale * scale;
-    for (int i = 0; i < nfac; i++) {
-	int api = apt[i], nli = nl[i],
-	    ntrm = apt[i + 1] - api; // number of terms for this factor
-	int *ncol = new int[ntrm], *cumcol = new int[ntrm + 1];
-	cumcol[0] = 0;
-	for (int j = 0; j < ntrm; j++)
-	    cumcol[j + 1] = cumcol[j] + (ncol[j] = nc[api + j]);
-	int nct = cumcol[ntrm];
-	int *cset = new int[nct], nct2 = nct * nct;
-	
-	SET_VECTOR_ELT(ans, i, alloc3DArray(REALSXP, nct, nct, nli));
-	double *ai = REAL(VECTOR_ELT(ans, i));
-
-	for (int j = 0; j < nli; j++) {
-	    for (int jj = 0; jj < ntrm; jj++)
-		for (int k = 0; k < ncol[jj]; k++)
-		    cset[k] = offset + j * ncol[jj] + cumcol[jj] * nli + k;
-
-	    CHM_SP cols =
-		M_cholmod_submatrix(lam, (int*)NULL, -1, cset, nct,
-				    1/*values*/, 1/*sorted*/, &c);
-	    CHM_SP sol = M_cholmod_spsolve(CHOLMOD_A, L, cols, &c);
-	    CHM_SP tcols = M_cholmod_transpose(cols, 1/*values*/, &c);
-	    M_cholmod_free_sparse(&cols, &c);
-	    CHM_SP var = M_cholmod_ssmult(tcols, sol, 0/*stype*/,
-					  1/*values*/, 1/*sorted*/, &c);
-	    M_cholmod_free_sparse(&sol, &c);
-	    M_cholmod_free_sparse(&tcols, &c);
-	    CHM_DN dvar = M_cholmod_sparse_to_dense(var, &c);
-	    M_cholmod_free_sparse(&var, &c);
-	    Memcpy(ai + j * nct2, (double*)dvar->x, nct2);
-	    M_cholmod_free_dense(&dvar, &c);
-	}
-	for (int k = 0; k < nct2 * nli; k++) ai[k] *= scsqr;
-	offset += nli * nct;
-	delete[] cset;
-	delete[] cumcol;
-	delete[] ncol;
-    }
-
-    if (!Lambda)
-	M_cholmod_free_sparse(&lam, &c);
-    UNPROTECT(1);
-    return ans;
-}
-
-glmer::glmer(SEXP rho) {
-    initMer(rho);
-    mu = VAR_REAL_NULL(rho, install("mu"), n);
+glmer::glmer(SEXP rho) : merenv(rho) {
+    eta = VAR_REAL_NULL(rho, install("eta"), n);
     muEta = VAR_REAL_NULL(rho, install("muEta"), n);
     var = VAR_REAL_NULL(rho, install("var"), n);
-    sqrtrwt = VAR_REAL_NULL(rho, install("sqrtrwt"), n);
     fam.initGL(rho);
 }
 
@@ -777,38 +778,30 @@ void glmer::update_sqrtrwt() {
 	sqrtrwt[j] = sqrt((weights ? weights[j] : 1) / var[j]);
 }
 
-glmerdense::glmerdense(SEXP rho) : glmer(rho), merdense(rho) {
-    V = new double[n * p];
+void glmer::update_V() {
+    // for (int j = 0; j < p; j++)
+    // 	for (int i = 0; i < n; i++) {
+    // 	    int ind = i * n + j;
+    // 	    V[ind] = X[ind] * sqrtrwt[i] * muEta[i];
+    // 	}
 }
 
-void glmerdense::update_V() {
-    for (int j = 0; j < p; j++)
-	for (int i = 0; i < n; i++) {
-	    int ind = i * n + j;
-	    V[ind] = X[ind] * sqrtrwt[i] * muEta[i];
-	}
+double glmer::PIRLS() {
+    return 1;
 }
 
-glmersparse::glmersparse(SEXP rho) : glmer(rho), mersparse(rho) {
-    V = M_cholmod_copy_sparse(X, &c);
+double glmer::PIRLSbeta() {
+    return 1;
 }
 
-void glmersparse::update_V() {
-    double *vx = (double*)V->x, *xx = (double*)X->x;
-    int *xi = (int*)X->i, *xp = (int*)X->p;
-
-    for (int j = 0; j < p; j++) {
-	for (int k = xp[j]; k < xp[j + 1]; k++) {
-	    int i = xi[j];	// row index
-	    vx[k] = xx[k] * sqrtrwt[i] * muEta[i];
-	}
-    }
+double glmer::IRLS() {
+    return 1;
 }
 
 const int CM_MAXITER = 300;
 
-double glmer::PIRLSbeta() {
 #if 0
+double glmerold::PIRLSbeta() {
     int cvg, info;
     double *betaold = new double[p], *varold = (double*)NULL,
 	*cbeta = new double[p],
@@ -939,16 +932,15 @@ double glmer::PIRLSbeta() {
 	d[sigmaML_POS] * sqrt((((double) n)/((double)(n - p))));
     
     return update_dev();
-#endif
     return 0;
 }
 
-double glmer::PIRLS() {
+double glmerold::PIRLS() {
     update_sqrtrwt();		// update variance and sqrtrwt
     return 0;
 }
 
-double glmer::IRLS() {
+double glmerold::IRLS() {
     double *betaold = new double[p], *varold = new double[n];
     update_sqrtrwt();		// update variance and sqrtrwt
     for (int ii = 0; ii < CM_MAXITER; ii++) {
@@ -961,60 +953,30 @@ double glmer::IRLS() {
     delete[] varold;
     return 0;
 }
+#endif
 
 extern "C" {
 
     SEXP glmer_PIRLS(SEXP rho) {
-	if (asLogical(findVarBound(rho, install("sparseX"))))
-	    return ScalarReal(glmersparse(rho).PIRLS());
-	return ScalarReal(glmerdense(rho).PIRLS());
+	return ScalarReal(glmer(rho).PIRLS());
     }
 
     SEXP glmer_PIRLSbeta(SEXP rho) {
-	if (asLogical(findVarBound(rho, install("sparseX"))))
-	    return ScalarReal(glmersparse(rho).PIRLSbeta());
-	return ScalarReal(glmerdense(rho).PIRLSbeta());
+	return ScalarReal(glmer(rho).PIRLSbeta());
     }
 	
     SEXP glmer_update_sqrtrwt(SEXP rho) {
 	glmer(rho).update_sqrtrwt();
 	return R_NilValue;
     }
-	
-/**
- * Evaluate the deviance or REML criterion
- *
- * @param rho pointer to an lmerenv environment
- * @param thnew pointer to an numeric vector theta
- *
- * @return deviance value
- */
-    SEXP lmerenv_deviance(SEXP rho, SEXP thnew) {
-	if (asLogical(findVarBound(rho, install("sparseX"))))
-	    return ScalarReal(lmersparse(rho).update_dev(thnew));
-	else
-	    return ScalarReal(lmerdense(rho).update_dev(thnew));
+
+
+    SEXP lmer_validate(SEXP rho) {
+	return ScalarLogical(lmer(rho).validate());
     }
 
-/**
- * Check validity of an merenv environment
- *
- * @param rho pointer to an merenv environment
- * @return TRUE if successful, otherwise it throws an error
- */
-    SEXP lmerenv_validate(SEXP rho) {
-	if (asLogical(findVarBound(rho, install("sparseX"))))
-	    return ScalarLogical(lmersparse(rho).validate());
-	else
-	    return ScalarLogical(lmerdense(rho).validate());
-    }
-
-    SEXP lmernew_validate(SEXP rho) {
-	return ScalarLogical(lmernew(rho).validate());
-    }
-
-    SEXP lmernew_deviance(SEXP rho, SEXP thnew) {
-	return ScalarReal(lmernew(rho).update_dev(thnew));
+    SEXP lmer_deviance(SEXP rho, SEXP thnew) {
+	return ScalarReal(lmer(rho).update_dev(thnew));
     }
 
 /**
@@ -1039,15 +1001,11 @@ extern "C" {
 	return dest;
     }
 
-/**
- * Check validity of an merenvtrms environment
- *
- * @param rho pointer to an merenvtrms environment
- * @return TRUE if successful, otherwise it throws an error
- */
+/// Check validity of an merenvtrms environment
     SEXP merenvtrms_validate(SEXP rho) {
 	return ScalarLogical(merenvtrms(rho).validate());
     }
+
 /**
  * Create the conditional variance arrays
  *
@@ -1062,6 +1020,34 @@ extern "C" {
     SEXP merenvtrms_show(SEXP rho) {
 	merenvtrms(rho).show();
 	return R_NilValue;
+    }
+	
+/**
+ * Evaluate the deviance or REML criterion
+ *
+ * @param rho pointer to an lmerold environment
+ * @param thnew pointer to an numeric vector theta
+ *
+ * @return deviance value
+ */
+    SEXP lmerold_deviance(SEXP rho, SEXP thnew) {
+	if (asLogical(findVarBound(rho, install("sparseX"))))
+	    return ScalarReal(lmersparse(rho).update_dev(thnew));
+	else
+	    return ScalarReal(lmerdense(rho).update_dev(thnew));
+    }
+
+/**
+ * Check validity of an merenv environment
+ *
+ * @param rho pointer to an merenv environment
+ * @return TRUE if successful, otherwise it throws an error
+ */
+    SEXP lmerold_validate(SEXP rho) {
+	if (asLogical(findVarBound(rho, install("sparseX"))))
+	    return ScalarLogical(lmersparse(rho).validate());
+	else
+	    return ScalarLogical(lmerdense(rho).validate());
     }
 }
 
