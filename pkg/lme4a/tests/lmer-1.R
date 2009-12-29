@@ -8,11 +8,11 @@ options(show.signif.stars = FALSE)
 ## transformed vars should work[even if non-sensical as here;failed in 0.995-1]
 fm2l <- lmer(log(Reaction) ~ log(Days+1) + (log(Days+1)|Subject),
              data = sleepstudy, REML = FALSE)
-if(FALSE)# not yet
+if(FALSE)# no need for an expand method now
 xfm2 <- expand(fm2l)
 stopifnot(is(fm1, "merenv"), is(fm2l, "merenv"),
           dim(ranef(fm2l)[[1]]) == c(18, 2),
-          TRUE) # not yet: is(xfm2$P, "sparseMatrix"))
+          TRUE)
 
 ## generalized linear mixed model
 ## (m1 <- glmer(cbind(incidence, size - incidence) ~ period + (1 | herd),
