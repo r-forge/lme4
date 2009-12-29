@@ -82,6 +82,24 @@ enum dimP {
 
 // Inlined utilties
 
+
+/**
+ * Copy the first nn elements of src to dest
+ *
+ * @param src source vector
+ * @param dest destination vector
+ * @param nn number of elements in src and dest
+ *
+ * @return dest
+ * @fixme this and int_cpy should use a template
+ */
+static inline double *dble_cpy(double *dest, const double *src, int nn)
+{
+    for (int i = 0; i < nn; i++)
+	dest[i] = src[i];
+    return dest;
+}
+
 /**
  * Copy the first nn elements of src to dest
  *
@@ -91,7 +109,7 @@ enum dimP {
  *
  * @return dest
  */
-static inline double *dble_cpy(double *dest, const double *src, int nn)
+static inline int *int_cpy(int *dest, const int *src, int nn)
 {
     for (int i = 0; i < nn; i++)
 	dest[i] = src[i];

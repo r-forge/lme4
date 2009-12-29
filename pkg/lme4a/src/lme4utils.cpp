@@ -71,7 +71,7 @@ double *VAR_REAL_NULL(SEXP rho, SEXP nm, int len)
  */
 CHM_SP VAR_CHM_SP(SEXP rho, SEXP nm, int nrow, int ncol)
 {
-    CHM_SP ans = new cholmod_sparse;
+    CHM_SP ans = (CHM_SP) R_alloc(1, sizeof(cholmod_sparse));
     M_as_cholmod_sparse(ans, findVarBound(rho, nm),
 			(Rboolean)TRUE, (Rboolean)FALSE);
     if (nrow && ((int)(ans->nrow)) != nrow)
@@ -88,9 +88,27 @@ CHM_SP VAR_CHM_SP(SEXP rho, SEXP nm, int nrow, int ncol)
  * allocated CHM_SP structure checking on the number of rows and
  * columns.  Values of 0 for nrow or ncol skip the check.
  */
+CHM_DN VAR_CHM_DN(SEXP rho, SEXP nm, int nrow, int ncol)
+{
+    CHM_DN ans = (CHM_DN) R_alloc(1, sizeof(cholmod_dense));
+    M_as_cholmod_dense(ans, findVarBound(rho, nm));
+    if (nrow && ((int)(ans->nrow)) != nrow)
+	error(_("Number of rows of %s is %d, should be %d"),
+	      CHAR(PRINTNAME(nm)), ans->nrow, nrow);
+    if (ncol && ((int)(ans->ncol)) != ncol)
+	error(_("Number of columns of %s is %d, should be %d"),
+	      CHAR(PRINTNAME(nm)), ans->ncol, ncol);
+    return ans;
+}
+
+/**
+ * Return object with name nm in environment rho in a freshly
+ * allocated CHM_SP structure checking on the number of rows and
+ * columns.  Values of 0 for nrow or ncol skip the check.
+ */
 CHM_FR VAR_CHM_FR(SEXP rho, SEXP nm, int n)
 {
-    CHM_FR ans = new cholmod_factor;
+    CHM_FR ans = (CHM_FR) R_alloc(1, sizeof(cholmod_factor));
     M_as_cholmod_factor(ans, findVarBound(rho, nm));
     if (n && ((int)(ans->n)) != n)
 	error(_("Size of %s is %d, should be %d"),

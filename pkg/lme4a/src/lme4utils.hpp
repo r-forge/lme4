@@ -12,6 +12,7 @@ double *VAR_REAL_NULL(SEXP rho, SEXP nm, int len, int nullOK,
 double *VAR_REAL_NULL(SEXP rho, SEXP nm, int len, int nullOK);
 double *VAR_REAL_NULL(SEXP rho, SEXP nm, int len);
 CHM_SP VAR_CHM_SP(SEXP rho, SEXP nm, int nrow, int ncol);
+CHM_DN VAR_CHM_DN(SEXP rho, SEXP nm, int nrow, int ncol);
 CHM_FR VAR_CHM_FR(SEXP rho, SEXP nm, int n);
 double *VAR_dMatrix_x(SEXP rho, SEXP nm, int nrow, int ncol);
 
