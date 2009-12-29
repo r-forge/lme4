@@ -240,7 +240,7 @@ lmer <-
 
     rho$mu <- numeric(rho$nobs)
     rho$gamma <- numeric(rho$nobs)
-    rho$prss <- numeric(1)
+    rho$pwrss <- numeric(1)
     rho$ldL2 <- numeric(1)
     rho$ldRX2 <- numeric(1)
     rho$sqrtrwt <- sqrt(rho$weights)
@@ -251,7 +251,7 @@ lmer <-
     sP <- function(x) {
 ### FIXME: weights are not yet incorporated (needed here?)
         if (compDev) {
-            .Call("lmerenv_deviance", parent.env(environment()), x,
+            .Call("lmer_deviance", parent.env(environment()), x,
                   PACKAGE = "lme4a")
         } else {
             stopifnot(length(x) == length(theta))
@@ -272,11 +272,11 @@ lmer <-
             gamma[] <<- (if(length(offset)) offset else 0) +
                 (crossprod(Ut, u) + X %*% fixef)@x
             mu[] <<- gamma
-            prss <<- sum(c(y - mu, u)^2) # penalized residual sum of squares
+            pwrss <<- sum(c(y - mu, u)^2) # penalized residual sum of squares
             ldL2[] <<- .f * determinant(L)$mod
             ldRX2[] <<- 2 * determinant(RX)$mod
-            if (!REML) return(ldL2 + nobs * (1 + log(2 * pi * prss/nobs)))
-            ldL2 + ldRX2 + nmp * (1 + log(2 * pi * prss/nmp))
+            if (!REML) return(ldL2 + nobs * (1 + log(2 * pi * pwrss/nobs)))
+            ldL2 + ldRX2 + nmp * (1 + log(2 * pi * pwrss/nmp))
         }
     }
     gP <- function() theta
@@ -380,7 +380,7 @@ function(formula, data, family = gaussian, sparseX = FALSE,
 
     ## enforce modes
     rho$y <- unname(as.double(rho$y))   # must be done after initialize
-    rho$prss <- numeric(1)
+    rho$pwrss <- numeric(1)
     rho$ldL2 <- numeric(1)
     rho$ldRX2 <- numeric(1)
     rho$sqrtrwt <- numeric(n)
@@ -615,16 +615,16 @@ setMethod("ranef", signature(object = "merenvtrms"),
 devcomp <- function(x, ...) {
     stopifnot(is(x, "lmerenv"))
     with(env(x),
-         list(cmp = c(ldL2 = ldL2, ldRX2 = ldRX2, prss = prss,
-              deviance = ldL2 + nobs * (1 + log(2 * pi * prss/nobs)),
-              REML = ldL2 + ldRX2 + nmp * (1 + log(2 * pi * prss/nmp))),
+         list(cmp = c(ldL2 = ldL2, ldRX2 = ldRX2, pwrss = pwrss,
+              deviance = ldL2 + nobs * (1 + log(2 * pi * pwrss/nobs)),
+              REML = ldL2 + ldRX2 + nmp * (1 + log(2 * pi * pwrss/nmp))),
               dims = c(n = nobs, p = length(fixef), nmp = nmp, q = nrow(Zt))))
 }
 
 setMethod("sigma", signature(object = "lmerenv"),
           function (object, ...) {
               dc <- devcomp(object)
-              unname(sqrt(dc$cmp["prss"]/
+              unname(sqrt(dc$cmp["pwrss"]/
                           dc$dims[if (env(object)$REML) "nmp" else "n"]))
           })
 
