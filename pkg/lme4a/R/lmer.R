@@ -182,8 +182,8 @@ makeZt <- function(bars, fr, rho) {
 lmer <-
     function(formula, data, REML = TRUE, sparseX = FALSE,
              control = list(), start = NULL, verbose = FALSE, doFit = TRUE,
-             compDev = if (sparseX) FALSE else TRUE, subset, weights,
-             na.action, offset, contrasts = NULL, ...)
+             compDev = TRUE, subset, weights, na.action, offset,
+             contrasts = NULL, ...)
 {
     mf <- mc <- match.call()
     if (!is.null(list(...)$family)) {      # call glmer if family specified
@@ -244,6 +244,7 @@ lmer <-
     rho$ldL2 <- numeric(1)
     rho$ldRX2 <- numeric(1)
     rho$sqrtrwt <- sqrt(rho$weights)
+    rho$sqrtXwt <- sqrt(rho$weights)    # to ensure a distinct copy
 
     rho$compDev <- compDev
     rho$call <- mc
@@ -296,10 +297,9 @@ lmer <-
 
 glmer <-
 function(formula, data, family = gaussian, sparseX = FALSE,
-         compDev = if (sparseX) FALSE else TRUE,
-         control = list(), start = NULL, verbose = FALSE, doFit = TRUE,
-         subset, weights, na.action, offset, contrasts = NULL, nAGQ = 1,
-         mustart, etastart, ...)
+         compDev = TRUE, control = list(), start = NULL,
+         verbose = FALSE, doFit = TRUE, subset, weights, na.action,
+         offset, contrasts = NULL, nAGQ = 1, mustart, etastart, ...)
 {
     mf <- mc <- match.call()
     if (missing(family)) {
@@ -384,6 +384,7 @@ function(formula, data, family = gaussian, sparseX = FALSE,
     rho$ldL2 <- numeric(1)
     rho$ldRX2 <- numeric(1)
     rho$sqrtrwt <- numeric(n)
+    rho$sqrtXwt <- numeric(n)
 
     makeZt(expandSlash(findbars(formula[[3]])), fr, rho)
     rho$L <- Cholesky(tcrossprod(rho$Zt), LDL = FALSE, Imult = 1)
