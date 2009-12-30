@@ -2,6 +2,14 @@
 #include "merenv.hpp"
 
 #include "lme4utils.hpp"
+#if 0
+static void showdbl(const double* x, const char* nm, int n) {
+    int n5 = (n < 5) ? n : 5;
+    Rprintf("%s: %g", nm, x[0]);
+    for (int i = 1; i < n5; i++) Rprintf(", %g", x[i]);
+    Rprintf("\n");
+}
+#endif
 
 // Definition of methods for the merenv class
 merenv::merenv(SEXP rho)
@@ -61,6 +69,8 @@ merenv::merenv(SEXP rho)
     ldL2 = VAR_REAL_NULL(rho, install("ldL2"), 1);
     pwrss = VAR_REAL_NULL(rho, install("pwrss"), 1);
     weights = VAR_REAL_NULL(rho, install("weights"), n, TRUE);
+    sqrtrwt = VAR_REAL_NULL(rho, install("sqrtrwt"), n, TRUE);
+    sqrtXwt = VAR_REAL_NULL(rho, install("sqrtXwt"), n, TRUE);
     offset = VAR_REAL_NULL(rho, lme4_offsetSym, N, TRUE);
     if ((sparseX = asLogical(findVarBound(rho, install("sparseX"))))) {
 	Xp = new CHM_rs(VAR_CHM_SP(rho, lme4_XSym, N, p));
@@ -83,6 +93,26 @@ merenv::~merenv(){
     delete RZXp;
 }
 
+CHM_r *merenv::Vp() {
+    CHM_r *ans;
+    if (sparseX) {
+	CHM_SP A = M_cholmod_copy_sparse((dynamic_cast<CHM_rs*>(Xp))->A, &c);
+	if (sqrtXwt) {
+	    M_cholmod_scale(N_AS_CHM_DN(sqrtXwt,A->nrow,1), CHOLMOD_ROW, A, &c);
+	}
+	ans = new CHM_rs(A);
+    } else {
+	CHM_DN A = M_cholmod_copy_dense((dynamic_cast<CHM_rd*>(Xp))->A, &c);
+	if (sqrtXwt) {
+	    int m = (int)A->nrow, n = (int)A->ncol;
+	    double *ax = (double*)A->x;
+	    for (int j = 0; j < n; j++)
+		for (int i = 0; i < m; i++) ax[i + j*m] *= sqrtXwt[j];
+	}
+	ans = new CHM_rd(A);
+    }
+    return ans;
+}
 void merenv::update_gamma() {
     static double one[] = {1,0};
     CHM_DN cu = N_AS_CHM_DN(u, q, 1),
@@ -327,28 +357,20 @@ double lmer::update_dev(SEXP thnew) {
     *ldRX2 = 0;			// in case p == 0
     cu = solvePL(N_AS_CHM_DN(Zty, q, 1));
     if (p) {
-//	ZtXp->show("ZtX");
-//	RZXp->show("RZX");
 	CHM_r *tmp1 = ZtXp->crossprod_SP(Lambda);
-//	tmp1->show("tmp1");
 	CHM_r *tmp2 = tmp1->solveCHM_FR(L, CHOLMOD_P);
-//	tmp2->show("tmp2");
 	tmp1->freeA(); delete tmp1;
 	tmp1 = tmp2->solveCHM_FR(L, CHOLMOD_L);
-//	tmp1->show("tmp1");
 	tmp2->freeA(); delete tmp2;
 	RZXp->copy_contents(tmp1);
 	tmp1->freeA(); delete tmp1;
 	RXp->downdate(RZXp, -1.0, XtXp, 1.0);
 	*ldRX2 = RXp->ldet2();
 	CHM_DN tt = M_cholmod_copy_dense(N_AS_CHM_DN(Xty, p, 1), &c);
-//	Rprintf("cu: %d by %d\n", cu->nrow, cu->ncol);
-//	Rprintf("tt: %d by %d\n", tt->nrow, tt->ncol);
 	RZXp->drmult(1/*transpose*/, -1.0, 1.0, cu, tt);
 	CHM_DN ff = RXp->solveA(tt);
 	M_cholmod_free_dense(&tt, &c);
 	dble_cpy(fixef, (double*)ff->x, p);
-//	Rprintf("ff: %d by %d\n", ff->nrow, ff->ncol);
 	RZXp->drmult(0/*no trans*/, -1.0, 1.0, ff, cu);
 	M_cholmod_free_dense(&ff, &c);
     }
@@ -369,9 +391,7 @@ double lmer::update_dev(SEXP thnew) {
     return *ldL2 + n * (1 + log(2 * PI * (*pwrss)/((double)n)));
 }    
 
-
 glmer::glmer(SEXP rho) : merenv(rho) {
-    eta = VAR_REAL_NULL(rho, install("eta"), n);
     muEta = VAR_REAL_NULL(rho, install("muEta"), n);
     var = VAR_REAL_NULL(rho, install("var"), n);
     fam.initGL(rho);
@@ -379,8 +399,10 @@ glmer::glmer(SEXP rho) : merenv(rho) {
 
 void glmer::update_sqrtrwt() {
     varFunc();
-    for (int j = 0; j < n; j++)	
+    for (int j = 0; j < n; j++)	{
 	sqrtrwt[j] = sqrt((weights ? weights[j] : 1) / var[j]);
+	sqrtXwt[j] = muEta[j] * sqrtrwt[j];
+    }
 }
 
 void glmer::update_V() {
