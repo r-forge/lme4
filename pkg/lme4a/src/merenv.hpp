@@ -55,6 +55,7 @@ public:
  * @return a sparse matrix of the same size as src
  */
     CHM_SP solvePL(CHM_SP src);
+    CHM_r *Vp(); /**< return pointer to a copy of X with rows scaled by sqrtXwt */
 
     int
 	N,		/**< length of gamma (can be a multiple of n) */
@@ -113,24 +114,26 @@ public:
 };
 
 #include "GLfamily.hpp"
-class glmer : public merenv { // components common to GLMMs
+
+/// generalized linear mixed models
+
+class glmer : public merenv {
 public:
     glmer(SEXP rho);		/**< initialize from an environment */
     SEXP family;
     double 
-	*eta,			/**< conditional mean on link scale */
 	*muEta,			/**< diagonal of d mu/d eta */
 	*var,			/**< conditional variances of response */
 	*wtres,			/**< weighted residuals */
 	devres;
-    GLfamily fam;
+    GLfamily fam;               /**< GLM family of functions */
     double PIRLS();		/**< deviance at updated u */
     double PIRLSbeta();		/**< deviance at updated u and beta */
     double IRLS();		/**< deviance at updated beta */
     void update_sqrtrwt();
     void update_V();
-    void link() {fam.lnk->link(eta, mu, n);}
-    void linkinv() {fam.lnk->linkinv(mu, muEta, eta, n);}
+    void link() {fam.lnk->link(gam, mu, n);}
+    void linkinv() {fam.lnk->linkinv(mu, muEta, gam, n);}
     void devResid() {fam.var->devResid(&devres, mu, weights, y,
 				      (int*)0, n);}
     void varFunc() {fam.var->varFunc(var, mu, n);}
