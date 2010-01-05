@@ -1,54 +1,86 @@
-\documentclass[footinfo,envcountsame,envcountchap]{svmono}
-\usepackage[authoryear,round]{natbib}
-\bibliographystyle{plainnat}
+%%%%%%%%%%%%%%%%%%%% book.tex %%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%
+% sample root file for the chapters of your "monograph"
+%
+% Use this file as a template for your own input.
+%
+%%%%%%%%%%%%%%%% Springer-Verlag %%%%%%%%%%%%%%%%%%%%%%%%%%
+
+
+% RECOMMENDED %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\documentclass[graybox,envcountchap,sectrefs]{svmono}
+
+% choose options for [] as required from the list
+% in the Reference Guide
+
+\usepackage{mathptmx}
+\usepackage{helvet}
+\usepackage{courier}
+%
+\usepackage{type1cm}         
+
 \usepackage{makeidx}         % allows index generation
+\usepackage{graphicx}        % standard LaTeX graphics tool
+                             % when including figure files
 \usepackage{multicol}        % used for the two-column index
 \usepackage[bottom]{footmisc}% places footnotes at page bottom
-%\usepackage{graphicx,amsmath,amssymb,bm,url}
-\usepackage{graphicx,amsmath,bm,url}
+\usepackage[authoryear,round]{natbib}
+\bibliographystyle{plainnat}
+% see the list of further useful packages
+% in the Reference Guide
+\usepackage{graphicx,amsmath,amsfonts,bm,url}
 \usepackage{url}
 \usepackage{Sweave}
 \input{DMBmacros}
-\makeindex 
-\DefineVerbatimEnvironment{Sinput}{Verbatim}%
-{%formatcom={\vspace{-2.5ex}},
-  fontfamily=courier,%
-  fontseries=b,%
-  fontshape=sl,%
-  fontsize=\small}
-\DefineVerbatimEnvironment{Soutput}{Verbatim}
-{%formatcom={\vspace{-2.5ex}},
-  fontfamily=courier,%
-  fontseries=b,%
-  fontsize=\small}
+
+\makeindex             % used for the subject index
+                       % please use the style svind.ist with
+                       % your makeindex program
+
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
 \begin{document}
+
 \author{Douglas M. Bates}
 \title{lme4: Mixed-effects modeling with R}
-%{\small SPIN Springer's internal project number, if known}}
 %\subtitle{-- Monograph --}
 \maketitle
+
 \frontmatter%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-%\include{dedication}
+
+\include{dedic}
+%\include{foreword}
 %\include{preface}
+%\include{acknow}
+
 \tableofcontents
+
+%\include{acronym}
 \listoffigures{}
 \listoftables{}
+
+
 \mainmatter%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \include{ChIntro}
 \include{ChMultiple}
 \include{ChLongitudinal}
-%\include{ChGLMM}
-%\include{ChLarge}
-%\include{ChExample}
-%\include{ChTheory}
-%\include{ChArgs}
-%\include{ChData}
-%\include{ChWithin}
-%\include{ChLMM}
-\appendix
+\include{ChTheory}
+% \include{part}
+% \include{chapter}
+% \include{appendix}
+
 \backmatter%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-%\include{solutions}
+\bibliographystyle{spbasic}
 \bibliography{lMMwR}
+%\include{glossary}
+%\include{solutions}
 \printindex
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
 \end{document}
+
+
+
+
+

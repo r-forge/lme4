@@ -5,9 +5,11 @@
 <<preliminaries,echo=FALSE,print=FALSE,results=hide>>=
 options(width=80, show.signif.stars = FALSE,
         lattice.theme = function() canonical.theme("pdf", color = FALSE))
+library(splines)
 library(lattice)
 library(Matrix)
 library(lme4a)
+library(MEMSS)
 @
 
 \chapter{Simple longitudinal data}
@@ -550,7 +552,6 @@ print(plot(rr1, aspect = 1, type = c("g", "p")))
   \centering
 <<shrinkage,echo=FALSE,fig=TRUE,height=7,width=7>>=
 df <- coef(lmList(Reaction ~ Days | Subject, sleepstudy))
-### FIXME: Need a coef method
 cc1 <- as.data.frame(coef(sm1)$Subject)
 names(cc1) <- c("A", "B")
 df <- cbind(df, cc1)
@@ -834,3 +835,54 @@ then the expression contributes $q_in_i$ columns to the matrix $\bm Z$.
   \item Most of the prediction intervals for the random effects
     overlap zero.
   \end{itemize}
+\section*{Problems}
+\addcontentsline{toc}{section}{Problems}
+\begin{prob}\label{probL1}
+    Check the structure of documentation, structure and a summary of
+  the \code{Orthodont} data set.
+  \begin{enumerate}
+  \item Create an \code{xyplot} of the \code{distance} versus
+    \code{age} by \code{Subject} for the female subjects
+    only.  You can use the optional argument \code{subset = Sex ==
+      "Female"} in the call to \code{xyplot} to achieve this.  Use
+    the optional argument \code{type = c("g","p","r")} to add
+    reference lines to each panel.
+  \item Enhance the plot by choosing an aspect ratio for which the
+    typical slope of the reference line is around 45$^o$.  You can set
+    it manually (something like \code{aspect = 4}) or with an
+    automatic specification (\code{aspect = "xy"}).  Change the layout
+    so the panels form one row (\code{layout = c(11,1)}).
+  \item Order the panels according to increasing response at age 8.
+    This is achieved with the optional argument \code{index.cond}
+    which is a function  of arguments \code{x} and \code{y}.  In this
+    case you could use \code{index.cond = function(x,y) y[x == 8]}.
+    Add meaningful axis labels.  Your final plot should be like
+    \begin{center}
+<<orthofem,echo=FALSE,fig=TRUE,height=4.5>>=
+print(xyplot(distance ~ age|Subject, Orthodont, subset = Sex == "Female",
+             index.cond = function(x,y) y[x == 8],
+             aspect = 'xy', layout = c(11,1), type = c("g","p","r"),
+             xlab = "Age (yr)",
+             ylab = "Distance from pituitary to pterygomaxillary fissure (mm)"))
+@     
+    \end{center}
+
+  \item Fit a linear mixed model to the data for the females only with
+    random effects for the intercept and for the slope by subject,
+    allowing for correlation of these random effects within subject.
+    Relate the fixed effects and the random effects' variances and
+    covariances to the variability shown in the figure.
+  \item Produce a ``caterpillar plot'' of the random effects for
+    intercept and slope.  Does the plot indicate correlated random effects?
+  \item Consider what the Intercept coefficient and random effects
+    represents.  What will happen if you center the ages by
+    subtracting 8 (the baseline year) or 11 (the middle of the age range)?
+  \item Repeat for the data from the male subjects.
+  \end{enumerate}
+\end{prob}
+\begin{prob}
+\item Fit a model to both the female and the male subjects in the
+  \code{Orthodont} allowing for differences by sex in the
+  fixed-effects for intercept (probably with respect to the centered
+  age range) and slope.
+\end{prob}

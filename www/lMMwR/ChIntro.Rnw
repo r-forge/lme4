@@ -1158,3 +1158,4 @@ written $|\bm L|$ and $|\bm R_X|$, are easily evaluated as the product
 of the diagonal elements in the matrix.  The determinant of a matrix
 is the measure of the size of the matrix that is used in evaluating
 probability densities of random variables after transformation.
+
