@@ -385,6 +385,7 @@ function(formula, data, family = gaussian, sparseX = FALSE,
     rho$ldRX2 <- numeric(1)
     rho$sqrtrwt <- numeric(n)
     rho$sqrtXwt <- numeric(n)
+    rho$wtres <- numeric(n)
 
     makeZt(expandSlash(findbars(formula[[3]])), fr, rho)
     rho$L <- Cholesky(tcrossprod(rho$Zt), LDL = FALSE, Imult = 1)
