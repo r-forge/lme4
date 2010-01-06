@@ -131,7 +131,7 @@ public:
     double PIRLSbeta();		/**< deviance at updated u and beta */
     double IRLS();		/**< deviance at updated beta */
     void update_sqrtrwt();
-    void update_V();
+    double update_wtres();
     void link() {fam.lnk->link(gam, mu, n);}
     void linkinv() {fam.lnk->linkinv(mu, muEta, gam, n);}
     void devResid() {fam.var->devResid(&devres, mu, weights, y,

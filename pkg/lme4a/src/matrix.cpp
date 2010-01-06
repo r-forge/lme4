@@ -13,18 +13,26 @@ void CHM_rd::drmult(int transpose, double alpha, double beta,
 		    CHM_DN X, CHM_DN Y){
     int ar = A->nrow, ac = A->ncol, xr = X->nrow, xc = X->ncol,
 	yr = Y->nrow, yc = Y->ncol;
-    if (transpose) {
-	if (!(ac == yr && ar == xr && xc == yc))
-	    error(_("Matrices not conformable for ddrmult"));
-	F77_CALL(dgemm)("T", "N", &yr, &yc, &xr, &alpha,
-			(double*)A->x, &ar, (double*)X->x, &xr,
-			&beta, (double*)Y->x, &yr);
-    } else {
-	if (!(ar == yr && ac == xr && xc == yc))
-	    error(_("Matrices not conformable for ddrmult"));
-	F77_CALL(dgemm)("N", "N", &yr, &yc, &xc, &alpha,
-			(double*)A->x, &yr, (double*)X->x, &xr,
-			&beta, (double*)Y->x, &yr);
+    if (xr > 0 && yr > 0) {
+	if (transpose) {
+	    if (!(ac == yr && ar == xr && xc == yc))
+		error(_("Matrices not conformable for ddrmult"));
+	    F77_CALL(dgemm)("T", "N", &yr, &yc, &xr, &alpha,
+			    (double*)A->x, &ar, (double*)X->x, &xr,
+			    &beta, (double*)Y->x, &yr);
+	} else {
+	    if (!(ar == yr && ac == xr && xc == yc))
+		error(_("Matrices not conformable for ddrmult"));
+	    F77_CALL(dgemm)("N", "N", &yr, &yc, &xc, &alpha,
+			    (double*)A->x, &yr, (double*)X->x, &xr,
+			    &beta, (double*)Y->x, &yr);
+	}
+	return;
+    }
+    if (beta != 1) {
+	int ny = yr * yc;
+	double *yp = (double*)Y->x;
+	for (int j = 0; j < ny; j++) yp[j] *= beta;
     }
 }
 
@@ -41,6 +49,17 @@ CHM_r* CHM_rd::crossprod_SP(CHM_SP Lam) {
     static double one[] = {1,0}, zero[] = {0,0};
     CHM_rd *ans = new CHM_rd(M_cholmod_copy_dense(A, &c));
     M_cholmod_sdmult(Lam, 1/*transpose*/, one, zero, A, ans->A, &c);
+    return ans;
+}
+
+CHM_r* CHM_rd::AtA() {
+    static double one[] = {1,0}, zero[] = {0,0};
+    int nc = (int)A->ncol, nr = (int)A->nrow;
+    CHM_rd *ans = new CHM_rd(M_cholmod_allocate_dense(nc, nc, nc,
+						      CHOLMOD_REAL, &c));
+    if (nc > 0 && nr > 0) 
+	F77_CALL(dsyrk)("U", "T", &nc, &nr, one, (double*)A->x, &nr,
+			zero, (double*)((ans->A)->x), &nc);
     return ans;
 }
 
@@ -182,6 +201,15 @@ CHM_r* CHM_rs::crossprod_SP(CHM_SP Lam) {
 	M_cholmod_ssmult(Lamtr, A, 0/*stype*/, TRUE/*values*/,
 			 TRUE/*sorted*/, &c));
     M_cholmod_free_sparse(&Lamtr, &c);
+    return ans;
+}
+
+CHM_r* CHM_rs::AtA() {
+    CHM_SP At = M_cholmod_transpose(A, TRUE/*values*/, &c);
+    CHM_rs *ans = new CHM_rs(
+	M_cholmod_ssmult(At, A, 1/*stype*/, TRUE/*values*/,
+			 TRUE/*sorted*/, &c));
+    M_cholmod_free_sparse(&At, &c);
     return ans;
 }
 

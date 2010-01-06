@@ -18,6 +18,7 @@ public:
     virtual void copy_contents(CHM_r *src) = 0;
     virtual CHM_r* crossprod_SP(CHM_SP) = 0;
     virtual void show(const char*) = 0;
+    virtual CHM_r* AtA() = 0;
 };
 
 /** concrete class of double precision dense matrices */
@@ -35,7 +36,8 @@ public:
     virtual void copy_contents(CHM_r *src);
     virtual CHM_r* crossprod_SP(CHM_SP);
     virtual void show(const char*);
-	
+    virtual CHM_r* AtA();	
+
     CHM_DN A;
 };
 
@@ -52,6 +54,7 @@ public:
     virtual void copy_contents(CHM_r*);
     virtual CHM_r* crossprod_SP(CHM_SP);
     virtual void show(const char*);
+    virtual CHM_r* AtA();
 
     CHM_SP A;
 };

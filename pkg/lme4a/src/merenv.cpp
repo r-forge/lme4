@@ -2,14 +2,13 @@
 #include "merenv.hpp"
 
 #include "lme4utils.hpp"
-#if 0
+
 static void showdbl(const double* x, const char* nm, int n) {
     int n5 = (n < 5) ? n : 5;
     Rprintf("%s: %g", nm, x[0]);
     for (int i = 1; i < n5; i++) Rprintf(", %g", x[i]);
     Rprintf("\n");
 }
-#endif
 
 // Definition of methods for the merenv class
 merenv::merenv(SEXP rho)
@@ -394,6 +393,7 @@ double lmer::update_dev(SEXP thnew) {
 glmer::glmer(SEXP rho) : merenv(rho) {
     muEta = VAR_REAL_NULL(rho, install("muEta"), n);
     var = VAR_REAL_NULL(rho, install("var"), n);
+    wtres = VAR_REAL_NULL(rho, install("wtres"), n);
     fam.initGL(rho);
 }
 
@@ -405,12 +405,13 @@ void glmer::update_sqrtrwt() {
     }
 }
 
-void glmer::update_V() {
-    // for (int j = 0; j < p; j++)
-    // 	for (int i = 0; i < n; i++) {
-    // 	    int ind = i * n + j;
-    // 	    V[ind] = X[ind] * sqrtrwt[i] * muEta[i];
-    // 	}
+double glmer::update_wtres() {
+    double ans = 0;
+    for (int j = 0; j < n; j++) {
+	wtres[j] = sqrtrwt[j] * (y[j] - mu[j]);
+	ans += wtres[j] * wtres[j];
+    }
+    return ans;
 }
 
 double glmer::PIRLS() {
@@ -418,14 +419,64 @@ double glmer::PIRLS() {
 }
 
 double glmer::PIRLSbeta() {
+    int cvg = 1;//, info;
+    double *betaold = new double[p], *varold = (double*)NULL,
+	*cbeta = new double[p],
+	*tmp = new double[q], *uold = new double[q];
+//	cfac = ((double)n)/((double)(q+p));//, crit, pwrss_old,
+//	step;
+//    static double one[] = {1,0}, zero[] = {0,0}, mone[] = {-1,0};
+//    CHM_DN SOL, cRZX = N_AS_CHM_DN(RZX, q, p), cV,
+//	cwtres = N_AS_CHM_DN(wtres, n, 1), ctmp = N_AS_CHM_DN(tmp, q, 1);
+//    CHM_SP U;
+//    R_CheckStack();
+    if (!cvg) error(_("Convergence failure in PIRLS"));
+    
+//    delete[] V;
+    delete[] betaold; delete[] cbeta;
+    delete[] tmp; delete[] uold; 
+    if (var) delete[] varold; 
+
     return 1;
 }
+
+static const int CM_MAXITER = 300;
+static const double CM_SMIN = 0.001;
 
 double glmer::IRLS() {
+    CHM_r *V, *VtV;    
+    CHM_DN cwtres = N_AS_CHM_DN(wtres, n, 1), deltaf;
+    double *betaold = new double[p], step, wrss0, wrss1;
+    
+    update_sqrtrwt();
+    for (int i = 0; i < CM_MAXITER; i++) { // iterate until weights stabilize
+	dble_cpy(betaold, fixef, p);
+	V = Vp();		// derive V from X
+	update_gamma();		// linear predictor
+	linkinv();		// mu and muEta
+	VtV = V->AtA();		// crossproduct
+	RXp->update(VtV);	// factor
+	
+	wrss1 = wrss0 = update_wtres(); // force one evaluation
+	deltaf = RXp->solveA(cwtres);
+	for (step = 1.; wrss0 <= wrss1 && step > CM_SMIN; step /= 2.) {
+	    for (int k = 0; k < p; k++)
+		fixef[k] = betaold[k] + step * ((double*)deltaf->x)[k];
+	    update_gamma();
+	    linkinv();
+	    wrss1 = update_wtres();
+	    Rprintf("step = %g, wrss0 = %g; wrss1 = %g\nfixef: %g",
+		    step, wrss0, wrss1, fixef[0]);
+	    for (int k = 1; k < p; k++) Rprintf(", %g", fixef[k]);
+	    Rprintf("\n");
+	}
+	VtV->freeA(); delete VtV;
+	V->freeA(); delete V;
+	break;
+    }
+    delete[] betaold;
     return 1;
 }
-
-const int CM_MAXITER = 300;
 
 #if 0
 double glmerold::PIRLSbeta() {
@@ -586,6 +637,10 @@ extern "C" {
 
     SEXP glmer_PIRLS(SEXP rho) {
 	return ScalarReal(glmer(rho).PIRLS());
+    }
+
+    SEXP glmer_IRLS(SEXP rho) {
+	return ScalarReal(glmer(rho).IRLS());
     }
 
     SEXP glmer_PIRLSbeta(SEXP rho) {

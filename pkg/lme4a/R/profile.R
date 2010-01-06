@@ -42,6 +42,7 @@ dropX <- function(rho, which, fw) {
     rho$offset <- rho$Xw * fw + rho$offset.orig
     derived_mats(rho)
 }
+
 ##' Reset the which'th fixed effect in rho.
 
 ##' Reset the which'th fixed effect in the environment rho that
@@ -77,7 +78,7 @@ update_dr_env <- function(rho, fw) {
 devfun <- function(fm)
 {
     stopifnot(is(fm, "lmerenv"))
-    fm1 <- lme4a:::copylmer(fm)
+    fm1 <- copylmer(fm)
     rm(fm)
     rho <- env(fm1)
     if (rho$REML) rho$REML <- FALSE
@@ -97,7 +98,7 @@ devfun <- function(fm)
         fm1@setPars(pars[-np]/sigma)
         sigsq <- sigma^2
         dc <- devcomp(fm1)
-        unname(dc$cmp["ldL2"] + dc$cmp["prss"]/sigsq +
+        unname(dc$cmp["ldL2"] + dc$cmp["pwrss"]/sigsq +
                dc$dims["n"] * log(2 * pi * sigsq))
     }
     opt <- c(sig * rho$theta, lsig)
@@ -114,7 +115,7 @@ setMethod("profile", "lmerenv",
           function(fitted, alphamax = 0.01, maxpts = 100, delta = cutoff/5,
                            tr = 0, ...)
       {
-          dd <- lme4a:::devfun(fitted)  # checks class too
+          dd <- devfun(fitted)  # checks class too
           X.orig <- env(fitted)$X
 
           base <- attr(dd, "basedev")
@@ -235,7 +236,7 @@ setMethod("profile", "lmerenv",
                   ores <- nlminb(thopt, fm1@setPars, lower = rr$lower,
                                  control = list(trace = tr))
 ### FIXME: check ores for convergence
-                  sig <- sqrt(rr$prss / n)
+                  sig <- sqrt(rr$pwrss / n)
                   c(sign(fw - est) * sqrt(ores$objective - base),
                     rr$theta * sig, log(sig), mkpar(p, j, fw, rr$fixef))
               }

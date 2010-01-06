@@ -6,6 +6,7 @@
 extern "C" {
 #endif
 
+    SEXP glmer_IRLS(SEXP rho);
     SEXP glmer_PIRLS(SEXP rho);
     SEXP glmer_PIRLSbeta(SEXP rho);
     SEXP glmer_update_sqrtrwt(SEXP rho);
