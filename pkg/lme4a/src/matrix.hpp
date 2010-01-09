@@ -24,9 +24,7 @@ public:
 /** concrete class of double precision dense matrices */
 class CHM_rd : public CHM_r {
 public:
-//    CHM_rd(SEXP x);
     CHM_rd(CHM_DN x){A = x;}
-//    ~CHM_rd(){delete A;}
     virtual void freeA(){M_cholmod_free_dense(&A, &c);}
     virtual void drmult(int transpose, double alpha, double beta,
 			CHM_DN X, CHM_DN Y);
