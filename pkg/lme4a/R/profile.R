@@ -112,17 +112,17 @@ devfun <- function(fm)
 }
 
 setMethod("profile", "lmerenv",
-          function(fitted, alphamax = 0.01, maxpts = 100, delta = cutoff/5,
+          function(fitted, alphamax = 0.01, maxpts = 100, delta = cutoff/8,
                            tr = 0, ...)
       {
           dd <- devfun(fitted)  # checks class too
-          X.orig <- env(fitted)$X
 
           base <- attr(dd, "basedev")
           thopt <- attr(dd, "thopt")
           stderr <- attr(dd, "stderr")
           fm1 <- environment(dd)$fm1
           rr <- environment(dd)$rho
+          X.orig <- rr$X
           n <- length(rr$y)
           p <- length(rr$fixef)
 
