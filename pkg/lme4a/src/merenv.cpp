@@ -3,12 +3,14 @@
 
 #include "lme4utils.hpp"
 
+#if 0
 static void showdbl(const double* x, const char* nm, int n) {
     int n5 = (n < 5) ? n : 5;
     Rprintf("%s: %g", nm, x[0]);
     for (int i = 1; i < n5; i++) Rprintf(", %g", x[i]);
     Rprintf("\n");
 }
+#endif
 
 // Definition of methods for the merenv class
 merenv::merenv(SEXP rho)
@@ -122,7 +124,7 @@ void merenv::update_gamma() {
     else			// otherwise initialize to zero
 	dble_zero(gam, N);
     M_cholmod_sdmult(Ut, 1/*transpose*/, one, one, cu, cgamma, &c);
-    Xp->drmult(0/*transpose*/, *one, *one, cfixef, cgamma);
+    Xp->drmult(0/*transpose*/, 1, 1, cfixef, cgamma);
 }
 
 double merenv::update_pwrss() {
@@ -375,7 +377,7 @@ double lmer::update_dev(SEXP thnew) {
     }
     CHM_r *td1 = new CHM_rd(cu);
     CHM_r *td2 = td1->solveCHM_FR(L, CHOLMOD_Lt);
-    M_cholmod_free_dense(&cu, &c); delete td1;
+    td1->freeA(); delete td1;
     td1 = td2->solveCHM_FR(L, CHOLMOD_Pt);
     td2->freeA(); delete td2;
     dble_cpy(u, (double*)(dynamic_cast<CHM_rd*>(td1)->A)->x, q);
@@ -445,7 +447,9 @@ static const double CM_SMIN = 0.001;
 
 double glmer::IRLS() {
     CHM_r *V, *VtV;    
-    CHM_DN cwtres = N_AS_CHM_DN(wtres, n, 1), deltaf;
+    CHM_DN cwtres = N_AS_CHM_DN(wtres, n, 1), deltaf,
+	Vtwr = M_cholmod_allocate_dense((size_t)p, (size_t)1, (size_t)p,
+				       CHOLMOD_REAL, &c);
     double *betaold = new double[p], step, wrss0, wrss1;
     
     update_sqrtrwt();
@@ -457,8 +461,10 @@ double glmer::IRLS() {
 	VtV = V->AtA();		// crossproduct
 	RXp->update(VtV);	// factor
 	
-	wrss1 = wrss0 = update_wtres(); // force one evaluation
-	deltaf = RXp->solveA(cwtres);
+	wrss0 = update_wtres(); 
+	V->drmult(1/*transpose*/, 1, 0, cwtres, Vtwr);
+	deltaf = RXp->solveA(Vtwr);
+	wrss1 = wrss0;		// force one evaluation of the loop
 	for (step = 1.; wrss0 <= wrss1 && step > CM_SMIN; step /= 2.) {
 	    for (int k = 0; k < p; k++)
 		fixef[k] = betaold[k] + step * ((double*)deltaf->x)[k];
@@ -472,9 +478,11 @@ double glmer::IRLS() {
 	}
 	VtV->freeA(); delete VtV;
 	V->freeA(); delete V;
+	M_cholmod_free_dense(&deltaf, &c);
 	break;
     }
     delete[] betaold;
+    M_cholmod_free_dense(&Vtwr, &c);
     return 1;
 }
 

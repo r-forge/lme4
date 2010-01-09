@@ -16,15 +16,15 @@ void CHM_rd::drmult(int transpose, double alpha, double beta,
     if (xr > 0 && yr > 0) {
 	if (transpose) {
 	    if (!(ac == yr && ar == xr && xc == yc))
-		error(_("Matrices not conformable for ddrmult"));
+		error(_("Matrices not conformable for drmult"));
 	    F77_CALL(dgemm)("T", "N", &yr, &yc, &xr, &alpha,
 			    (double*)A->x, &ar, (double*)X->x, &xr,
 			    &beta, (double*)Y->x, &yr);
 	} else {
 	    if (!(ar == yr && ac == xr && xc == yc))
-		error(_("Matrices not conformable for ddrmult"));
-	    F77_CALL(dgemm)("N", "N", &yr, &yc, &xc, &alpha,
-			    (double*)A->x, &yr, (double*)X->x, &xr,
+		error(_("Matrices not conformable for drmult"));
+	    F77_CALL(dgemm)("N", "N", &yr, &yc, &xr, &alpha,
+			    (double*)A->x, &ar, (double*)X->x, &xr,
 			    &beta, (double*)Y->x, &yr);
 	}
 	return;
@@ -128,6 +128,9 @@ void Cholesky_rd::downdate(CHM_r *AA, double alpha,
 
 CHM_DN Cholesky_rd::solveA(CHM_DN rhs) {
     int info, nrhs = (int)rhs->ncol;
+    if (n != (int)rhs->nrow)
+	error(_("%s dimension mismatch: lhs of size %d, rhs has %d rows"),
+	      "Cholesky_rd::solveA", n, rhs->nrow);
     CHM_DN ans = M_cholmod_copy_dense(rhs, &c);
     F77_CALL(dpotrs)(uplo, &n, &nrhs, X, &n,
 		     (double*)ans->x, &n, &info);
