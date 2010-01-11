@@ -2,7 +2,7 @@
 \SweaveOpts{prefix=TRUE,prefix.string=figs/Multiple,include=TRUE}
 \setkeys{Gin}{width=\textwidth}
 <<preliminaries,echo=FALSE,print=FALSE,results=hide>>=
-options(width=65, show.signif.stars = FALSE,
+options(width=85, show.signif.stars = FALSE,
         lattice.theme = function() canonical.theme("pdf", color = FALSE))
 library(splines)
 library(lattice)
@@ -91,7 +91,15 @@ described as coming from an investigation to
   solution.
 \end{quote}
 
-
+As with the \code{Dyestuff} data, we examine the structure
+<<strPen>>=
+str(Penicillin)
+@ 
+and a summary
+<<sumPen>>=
+summary(Penicillin)
+@ 
+of the \code{Penicillin} data, then plot it
 \begin{figure}[tbp]
   \centering
 <<Penicillindot,fig=TRUE,echo=FALSE,height=7>>=
@@ -106,15 +114,6 @@ penicillin]{Diameter of the growth inhibition zone (mm) in the
   plates.  The lines join observations on the same sample.}
   \label{fig:Penicillindot}
 \end{figure}
-As with the \code{Dyestuff} data, we examine the structure
-<<strPen>>=
-str(Penicillin)
-@ 
-and a summary
-<<sumPen>>=
-summary(Penicillin)
-@ 
-of the \code{Penicillin} data, then plot it
 (Figure~\ref{fig:Penicillindot}).
 
 The variation in the diameter is associated with the plates and with
@@ -194,11 +193,11 @@ distribution of the random effects for \code{sample}.
 
 In chapter~\ref{chap:ExamLMM} we saw that a model with a single,
 simple, scalar random-effects term generated a random-effects model
-matrix, $\bm Z$, that is the matrix of indicators of the levels of the
+matrix, $\vec Z$, that is the matrix of indicators of the levels of the
 grouping factor.  When we have multiple, simple, scalar random-effects
 terms, as in model \code{fm2}, each term generates a matrix of
 indicator columns and all the sets of indicator columns are
-concatenated to for the model matrix $\bm Z$.  The transpose of this
+concatenated to for the model matrix $\vec Z$.  The transpose of this
 matrix contains rows of indicators for each factor, as shown in
 Figure~\ref{fig:fm2Ztimage}.
 \begin{figure}[tbp]
@@ -208,13 +207,13 @@ print(image(env(fm2)$Zt, sub=NULL,xlab=NULL,ylab=NULL))
 @   
   \caption[Image of the random-effects model matrix for
   \texttt{fm1}]{Image of the transpose of the random-effects model
-    matrix, $\bm Z$, for model \code{fm1}.  The non-zero elements,
+    matrix, $\vec Z$, for model \code{fm1}.  The non-zero elements,
     which are all unity, are shown as darkened squares.  The zero
     elements are blank.}
   \label{fig:fm2Ztimage}
 \end{figure}
 
-The parameter $\bm\theta$ for this model is two-dimensional.
+The parameter $\vec\theta$ for this model is two-dimensional.
 <<fm2verb>>=
 fm2@getPars()
 @ 
@@ -223,39 +222,28 @@ effects for \code{plate}, which has the value (0.84671/0.54992) at
 convergence, and the second is the relative standard deviation of the
 random effects for \code{sample} (1.93157/0.54992).
 
-Contours of the profiled REML criterion are shown in
-Figure~\ref{fig:fm2profREMLcontours}.
+A profile plot of the parameters in model \code{fm2}
 \begin{figure}[tbp]
   \centering
-<<fm2profREMLcontours,fig=TRUE,echo=FALSE,height=5>>=
-fm2env <- lmer(diameter ~ 1 + (1|plate) + (1|sample),
-               Penicillin, doFit = FALSE)
-grd <- expand.grid(th1 = seq(0.9,2.9,len = 101),
-                   th2 = seq(1.5,15,len = 101))
-attr(grd, "out.attrs") <- NULL          # save a bit of space
-REML <- apply(t(grd), 2, setPars, x = fm2env)
-thetahat <- fm2@getPars()
-print(contourplot(REML ~ th1 + th2, grd,
-                  xlab = expression(theta[1]),
-                  ylab = expression(theta[2]),                  
-                  at = deviance(fm2) +
-                  qchisq(c(0.5,0.8,0.9,0.95,0.99), df = 2),
-                  labels = list(labels = paste(c(50,80,90,95,99),
-                                "%", sep = "")),
-                  panel = function(...)
-              {
-                  panel.grid(h = -1, v = -1)
-                  panel.points(thetahat[1], thetahat[2], pch = 3)
-                  panel.contourplot(...)
-              }
-                  ))
+<<fm2prplot,fig=TRUE,echo=FALSE,height=3.5>>=
+pr2 <- profile(fm2)
+print(xyplot(pr2, absVal=0, aspect=1.3, layout=c(4,1)))
 @   
-  \caption{Contours of the profiled REML criterion for model \code{fm2}.}
-  \label{fig:fm2profREMLcontours}
+  \caption{Profile plot of the parameters in model \code{fm2}.}
+  \label{fig:fm2prplot}
 \end{figure}
-These contours correspond to joint confidence regions with confidence
-levels 50\%, 80\%, 90\%, 95\% and 99\% for these parameters, based on
-the REML criterion.
+is shown in Figure~\ref{fig:fm2prplot} and the profile pairs plot
+\begin{figure}[tbp]
+  \centering
+<<fm2prpairs,fig=TRUE,echo=FALSE,height=8>>=
+print(splom(pr2))
+@   
+  \caption{Profile pairs plot of the parameters in model \code{fm2}.}
+  \label{fig:fm2prpairs}
+\end{figure}
+in Figure~\ref{fm2prpairs}.  The contours in the profile pairs plot
+correspond to pairwise marginal confidence regions with confidence
+levels 50\%, 80\%, 90\%, 95\% and 99\%.
 
 \subsection{The \texttt{Pastes} data}
 \label{sec:PastesData}
@@ -278,6 +266,7 @@ str(Pastes)
 summary(Pastes)
 @ 
 
+As stated in the description in
 \begin{figure}[tbp]
   \centering
 <<imagextabsPastes,fig=TRUE,echo=FALSE,height=3>>=
@@ -288,7 +277,6 @@ print(image(xtabs(~ batch + sample, Pastes, sparse = TRUE),
   \code{sample} factors in the \code{Pastes} data.}
   \label{fig:imagextabsPastes}
 \end{figure}
-As stated in the description in
 \citet{davies72:_statis_method_in_resear_and_produc}, there are 30
 samples, three from each of the 10 delivery batches. We have labelled
 the levels of the \code{sample} factor with the label of the
@@ -314,7 +302,6 @@ the same symbol for cask `a' in different batches.  There is no
 relationship between cask `a' in batch `A' and cask `a' in batch `B'.
 The labels `a', `b' and `c' are used only to distinguish the three
 samples within a batch; they do not have a meaning across batches.
-
 \begin{figure}[tbp]
   \centering
 <<Pastesplot,fig=TRUE,echo=FALSE,height=7.2>>=
@@ -335,6 +322,7 @@ print(dotplot(ss ~ strength | bb, pp,
   batches.}
   \label{fig:Pastesplot}
 \end{figure}
+
 In Figure~\ref{fig:Pastesplot} we plot the two strength measurements
 on each of the samples within each of the batches and join up the
 average strength for each sample.  The perceptive reader will have
@@ -451,78 +439,63 @@ district:school interaction do indeed correspond to unique schools.
 \label{sec:fitting}
 
 <<fm3>>=
-(fm3 <- lmer(strength ~ 1 + (1|sample) + (1|batch), Pastes))
+(fm3 <- lmer(strength ~ 1 + (1|sample) + (1|batch), Pastes, REML=0))
 @ 
 
-Contours of the profiled REML criterion are shown in
-Figure~\ref{fig:fm3profREMLcontours}.
+A profile plot of the parameters in model \code{fm3}
 \begin{figure}[tbp]
   \centering
-<<fm3profREMLcontours,fig=TRUE,echo=FALSE,height=5>>=
-fm3env <- lmer(strength ~ 1 + (1|sample) + (1|batch),
-               Pastes, doFit = FALSE)
-grd <- expand.grid(th1 = seq(1.5,7,len = 101),
-                   th2 = seq(0,7,len = 101))
-attr(grd, "out.attrs") <- NULL          # save a bit of space
-REML <- apply(t(grd[c("th1","th2")]), 2, setPars, x = fm3env)
-thetahat <- fm3@getPars()
-print(contourplot(REML ~ th1 + th2, grd,
-                  xlab = expression(theta[1]),
-                  ylab = expression(theta[2]),                  
-                  at = deviance(fm3) +
-                  qchisq(c(0.5,0.8,0.9,0.95,0.99), df = 2),
-                  labels = list(labels = paste(c(50,80,90,95,99),
-                                "%", sep = "")),
-                  panel = function(...)
-              {
-                  panel.grid(h = -1, v = -1)
-                  panel.points(thetahat[1], thetahat[2], pch = 3)
-                  panel.contourplot(...)
-              }
-                  ))
+<<fm3prplot,fig=TRUE,echo=FALSE,height=3.5>>=
+pr3 <- profile(fm3)
+print(xyplot(pr3, absVal=0, aspect=1.3, layout=c(4,1)))
 @   
-  \caption{Contours of the profiled REML criterion for model \code{fm3}.}
-  \label{fig:fm3profREMLcontours}
+  \caption{Profile plot of the parameters in model \code{fm3}.}
+  \label{fig:fm3prplot}
 \end{figure}
+is shown in Figure~\ref{fig:fm3prplot} and the profile pairs plot
+\begin{figure}[tbp]
+  \centering
+<<fm3prpairs,fig=TRUE,echo=FALSE,height=8>>=
+print(splom(pr3))
+@   
+  \caption{Profile pairs plot of the parameters in model \code{fm3}.}
+  \label{fig:fm3prpairs}
+\end{figure}
+in Figure~\ref{fm3prpairs}.  The contours in the profile pairs plot
+correspond to pairwise marginal confidence regions with confidence
+levels 50\%, 80\%, 90\%, 95\% and 99\%.
+
 
 \section{Models incorporating covariates}
 \label{sec:covariates}
 
-<<cm3>>=
-(cm3 <- lmer(mathgain ~ I(mathkind-450) + sex + minority + ses + housepov + (1|classid) + (1|schoolid), classroom))
+<<fm4>>=
+(fm4 <- lmer(mathgain ~ I(mathkind-450) + sex + minority + ses
+             + housepov + (1|classid) + (1|schoolid), classroom))
 @ 
 
-Contours of the profiled REML criterion are shown in
-Figure~\ref{fig:cm3profREMLcontours}.
+A profile plot of the parameters in model \code{fm4}
 \begin{figure}[tbp]
   \centering
-<<cm3profREMLcontours,fig=TRUE,echo=FALSE,height=5>>=
-cm3env <- lmer(mathgain ~ I(mathkind-450) + sex + minority + ses + housepov +
-               (1|classid) + (1|schoolid),
-               classroom, doFit = FALSE)
-grd <- expand.grid(th1 = seq(0.09,0.55,len = 101),
-                   th2 = seq(0.1,0.55,len = 101))
-attr(grd, "out.attrs") <- NULL          # save a bit of space
-REML <- apply(t(grd[c("th1","th2")]), 2, setPars, x = cm3env)
-thetahat <- cm3@getPars()
-print(contourplot(REML ~ th1 + th2, grd,
-                  xlab = expression(theta[1]),
-                  ylab = expression(theta[2]),                  
-                  at = deviance(cm3) +
-                  qchisq(c(0.5,0.8,0.9,0.95,0.99), df = 2),
-                  labels = list(labels = paste(c(50,80,90,95,99),
-                                "%", sep = "")),
-                  panel = function(...)
-              {
-                  panel.grid(h = -1, v = -1)
-                  panel.points(thetahat[1], thetahat[2], pch = 3)
-                  panel.contourplot(...)
-              }
-                  ))
+<<fm4prplot,fig=TRUE,echo=FALSE,height=3.5>>=
+pr4 <- profile(fm4)
+print(xyplot(pr4, absVal=0, aspect=1.3, layout=c(4,1)))
 @   
-  \caption{Contours of the profiled REML criterion for model \code{cm2}.}
-  \label{fig:cm3profREMLcontours}
+  \caption{Profile plot of the parameters in model \code{fm4}.}
+  \label{fig:fm4prplot}
 \end{figure}
+is shown in Figure~\ref{fig:fm4prplot} and the profile pairs plot
+\begin{figure}[tbp]
+  \centering
+<<fm4prpairs,fig=TRUE,echo=FALSE,height=8>>=
+print(splom(pr4))
+@   
+  \caption{Profile pairs plot of the parameters in model \code{fm4}.}
+  \label{fig:fm4prpairs}
+\end{figure}
+in Figure~\ref{fm4prpairs}.  The contours in the profile pairs plot
+correspond to pairwise marginal confidence regions with confidence
+levels 50\%, 80\%, 90\%, 95\% and 99\%.
 
 \section{Rat Brain example}
 \label{sec:RatBrain}
@@ -531,6 +504,7 @@ print(contourplot(REML ~ th1 + th2, grd,
 ftable(xtabs(activate ~ animal + treatment + region, ratbrain))
 @ 
 
+Description of the Rat Brain data should go here.
 \begin{figure}[tbp]
   \centering
 <<Ratbraindot,fig=TRUE,echo=FALSE,height=4>>=
