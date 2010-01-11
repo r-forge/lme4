@@ -13,9 +13,7 @@
 % choose options for [] as required from the list
 % in the Reference Guide
 
-\usepackage{mathptmx}
-\usepackage{helvet}
-\usepackage{courier}
+\usepackage{mathptmx,helvet,courier}
 %
 \usepackage{type1cm}         
 
@@ -25,20 +23,16 @@
 \usepackage{multicol}        % used for the two-column index
 \usepackage[bottom]{footmisc}% places footnotes at page bottom
 \usepackage[authoryear,round]{natbib}
-\bibliographystyle{plainnat}
+\bibliographystyle{spmpsci}
 % see the list of further useful packages
 % in the Reference Guide
-\usepackage{graphicx,amsmath,amsfonts,bm,url}
-\usepackage{url}
-\usepackage{Sweave}
+\usepackage{amsmath,amsfonts,bm,url,Sweave}
 \input{DMBmacros}
-
 \makeindex             % used for the subject index
                        % please use the style svind.ist with
                        % your makeindex program
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-
 \begin{document}
 
 \author{Douglas M. Bates}
@@ -48,7 +42,7 @@
 
 \frontmatter%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-\include{dedic}
+\include{dedication}
 %\include{foreword}
 %\include{preface}
 %\include{acknow}
@@ -70,7 +64,6 @@
 % \include{appendix}
 
 \backmatter%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-\bibliographystyle{spbasic}
 \bibliography{lMMwR}
 %\include{glossary}
 %\include{solutions}

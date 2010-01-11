@@ -1,17 +1,6 @@
 \newcommand{\bc}[1]{\ensuremath{\bm{\mathcal{#1}}}}
 \newcommand{\code}[1]{\texttt{\small #1}}
 \newcommand{\package}[1]{\texttt{\small #1}}
-\newcommand{\Rinput}[1]{{%
-        \fontfamily{courier}%
-        \fontseries{b}%
-        \fontshape{sl}%
-        \fontsize{9}{11pt}%
-        \selectfont #1}}
-\newcommand{\Routput}[1]{{%
-        \fontfamily{courier}%
-        \fontseries{b}%
-        \fontsize{9}{11pt}%
-        \selectfont #1}}
 \newcommand{\abs}{\operatorname{abs}}
 \newcommand{\tr}{\operatorname{tr}}
 \newcommand{\rank}{\operatorname{rank}}
@@ -19,4 +8,6 @@
 \newcommand{\inv}{\ensuremath{^{-1}}}
 \newcommand{\invtrans}{\ensuremath{^{\mathsf{T}}}}
 \newcommand{\trans}{\ensuremath{^{\mathsf{T}}}}
-%\newcommand{\trans}{\ensuremath{^\intercal}}
+\DefineVerbatimEnvironment{Sinput}{Verbatim}{fontsize=\small}
+\DefineVerbatimEnvironment{Soutput}{Verbatim}{fontsize=\small}
+\DefineVerbatimEnvironment{Scode}{Verbatim}{fontsize=\small}

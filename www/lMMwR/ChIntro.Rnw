@@ -13,61 +13,8 @@ fm1 <- lmer(Yield ~ 1 + (1|Batch), Dyestuff)
 fm1ML <- update(fm1, REML = FALSE)
 VCREML <- VarCorr(fm1)
 VCML <- VarCorr(fm1ML)
-##' Min y and arg min y for equally spaced x and corresponding y
-##' points in a grid.
-gmin <- function(x, y)
-{
-    if (missing(x))
-        x <- seq_along(y)
-    mpos <- which.min(y)
-    if (mpos %in% c(1L, length(y))) return(c(x[mpos], y[mpos]))
-    conv <- array(c(0,-1,1,2,0,-2,0,1,1), c(3,3))/2
-    ycoef <- conv %*% y[mpos + -1:1]
-    pos <- -ycoef[2]/(2*ycoef[3])
-    stopifnot(-1 < pos, pos < 1)
-    b <- c(1, pos, pos^2)
-    c(crossprod(conv %*% x[mpos + -1:1], b), crossprod(ycoef, b))
-}
-if (file.exists("grd1.rda")) {
-    load("grd1.rda")
-    sigB <- sort(unique(grd1$sigB))
-    sigmas <- sort(unique(grd1$sigma))
-    deviance <- array(grd1$deviance + deviance(fm1ML),
-                      c(length(sigB), length(sigmas)))
-    REML <- array(grd1$REML + deviance(fm1),
-                  c(length(sigB), length(sigmas)))
-} else {
-    sigmaDev <- function(fenv, theta, sigma)
-    {
-        fenv@setPars(theta)
-        sigmasq <- sigma^2
-        dc <- devcomp(fenv)
-        dev <- dc$cmp
-        unname(dev["ldL2"] +  dev["prss"]/sigmasq +
-               c(dev["ldRX2"],0) +
-               dc$dims[c("nmp","n")] * log(2*pi*sigmasq))
-    }
-    sigmaDev1 <- function(fenv, pars)
-    {
-        pars <- as.numeric(pars)
-        stopifnot((lp <- length(pars)) > 1)
-        sigmaDev(fenv, pars[-lp]/pars[lp], pars[lp])
-    }
-    fm1env <- lmer(Yield ~ 1 + (1|Batch), Dyestuff, doFit = FALSE)
-    sigB <- seq(0, 225,len = 101)
-    sigmas <- seq(30, 100,len = 101)
-    grd1 <- expand.grid(sigB = sigB, sigma = sigmas)
-    attr(grd1, "out.attrs") <- NULL          # save a bit of space
-    vals <- apply(t(grd1[, 1:2]), 2, sigmaDev1, fenv = fm1env)
-    grd1$REML <- vals[1,] - deviance(fm1)
-    grd1$deviance <- vals[2,] - deviance(fm1ML)
-    deviance <- array(vals[2,], c(length(sigB), length(sigmas)))
-    REML <- array(vals[1,], c(length(sigB), length(sigmas)))
-    save(grd1, file = "grd1.rda")
-}
-@
-
-\chapter{A simple linear mixed-effects model}
+@ 
+\chapter{A Simple, Linear, Mixed-effects Model}
 \label{chap:ExamLMM}
 
 In this book we describe the theory behind a type of statistical model
@@ -85,7 +32,7 @@ function in the \package{lme4} package for fitting such models and
 analyzing the fitted model.  Building from the example we describe the
 general form of linear mixed models that can be fit using \code{lmer}.
 
-\section{Mixed-effects models}
+\section{Mixed-effects Models}
 \label{sec:memod}
 
 Mixed-effects models, like many other types of statistical models,
@@ -148,14 +95,14 @@ mixed model.
 
 We characterize the statistical model in terms of two random
 variables: a $q$-dimensional vector of random effects represented by
-the random variable $\mathcal{\bm B}$ and an $n$-dimensional response
-vector represented by the random variable $\mathcal{\bm Y}$.  We
-observe the value, $\bm y$, of $\mathcal{\bm Y}$.  We do not observe
-the value of $\mathcal{\bm B}$.
+the random variable $\bc B$ and an $n$-dimensional response
+vector represented by the random variable $\bc Y$.  We
+observe the value, $\vec y$, of $\bc Y$.  We do not observe
+the value of $\bc B$.
 
 When formulating the model we describe the unconditional distribution
-of $\mathcal{\bm B}$ and the conditional distribution, $(\mathcal{\bm
-  Y}|\mathcal{\bm B}=\bm b)$.  The descriptions of the distributions
+of $\bc B$ and the conditional distribution, $(\bc
+  Y|\bc B=\vec b)$.  The descriptions of the distributions
 involve the form of the distribution and the values of certain
 parameters.  We use the observed values of the response and the
 covariates to estimate these parameters and to make inferences about
@@ -167,7 +114,7 @@ models and by studying a simple example of such a model.  First we
 will describe the data in the example.
 
 \section{The \texttt{Dyestuff} and
-  \texttt{Dyestuff2} data}
+  \texttt{Dyestuff2} Data}
 \label{sec:DyestuffData}
 
 Models with random effects have been in use for a long time.  The
@@ -180,7 +127,7 @@ data in the \package{lme4} package. In this section we describe and
 plot these data and introduce a second example, the \code{Dyestuff2}
 data, described in \citet{box73:_bayes_infer_statis_analy}.
 
-\subsection{The \texttt{Dyestuff} data}
+\subsection{The \texttt{Dyestuff} Data}
 \label{sec:dyestuff}
 
 The \code{Dyestuff} data are described in \citet[Table~6.3,
@@ -308,7 +255,7 @@ batch in the past increased or decreased the yield is not usually an
 important goal for us.  We will model the effects of the batches as
 random effects rather than as fixed-effects parameters.
 
-\subsection{The \texttt{Dyestuff2} data}
+\subsection{The \texttt{Dyestuff2} Data}
 \label{sec:dyestuff2}
 
 The \code{Dyestuff2} data are simulated data presented in \citet[Table
@@ -349,7 +296,7 @@ variance components.
 The methods we will present are not compromised when estimating small
 variance components.
 
-\section{Fitting linear mixed models}
+\section{Fitting Linear Mixed Models}
 \label{sec:FittingLMMs}
 
 Before we formally define a linear mixed model, let's go ahead
@@ -369,7 +316,7 @@ specifications will be given in this formula/data format.
 
 We will explain the structure of the formula after we have
 considered an example.
-\subsection{A model for the \texttt{Dyestuff} data}
+\subsection{A Model For the \texttt{Dyestuff} Data}
 \label{sec:DyestuffLMM}
 
 We fit a model to the \code{Dyestuff} data allowing for an overall
@@ -397,7 +344,7 @@ various \emph{extractor} functions to the fitted model to get a brief
 summary of the model fit or to obtain the values of some of the
 estimated quantities.
 
-\subsubsection{Details of the printed display}
+\subsubsection{Details of the Printed Display}
 \label{sec:printedDetails}
 
 The printed display of a model fit with \code{lmer} has four major
@@ -515,14 +462,14 @@ error of the intercept estimate is
 \Sexpr{round(coef(summary(fm1))[1,2], 2)} gm. for the REML fit and
 \Sexpr{round(coef(summary(fm1ML))[,2], 2)} gm. for the ML fit.
 
-\subsection{Assessing variability of the parameter estimates}
+\subsection{Assessing the Variability of the Parameter Estimates}
 \label{sec:variability}
 
 The mixed-effects model fit as \code{fm1} or \code{fm1ML} has three
 parameters for which we obtained estimates.  These parameters are
 $\sigma_1$, the standard deviation of the random effects, $\sigma$,
 the standard deviation of the residual or ``per-observation'' noise
-term and $\beta_0$ the fixed-effects parameter that is labelled as the
+term and $\beta_0$, the fixed-effects parameter that is labelled as the
 intercept.  A standard error for the estimate $\widehat{\beta_0}$ is
 provided but no standard errors are given for the estimates
 $\widehat{\sigma_1}$ and $\widehat{\sigma}$.
@@ -643,7 +590,7 @@ parameter values greater than the estimate providing a curve whose
 interpretation is similar to that of a normal probability plot of data
 or residuals.
 
-\subsubsection{Interpretation of the shape of the $\zeta$ plot}
+\subsubsection{Interpretation of the Shape of the $\zeta$ Plot}
 
 We will use $\phi$ to represent a parameter or a transformation of a
 parameter in the model.  For the model we are considering $\phi$ can
@@ -748,7 +695,7 @@ elongated ``S'' curve) pattern for the profile plot of $\beta_0$ in Figure~\ref{
 parameter $\beta_0$ is very close to symmetric about the estimate
 $\widehat{\beta_0}$ but over-dispersed relative to a normal distribution.
 
-\subsubsection{Precision of the variance components}
+\subsubsection{Precision of the Variance Components}
 \label{sec:precvarcomp}
 
 When we summarize our knowledge of a parameter in a fitted model by
@@ -794,7 +741,36 @@ print(xyplot(zeta ~ endpts|pnm, fr, type = "h",
   \caption{Signed square root, $\zeta$, of the likelihood ratio test statistic as a function of $\sigma$ and as a function of $\sigma^2$.   The vertical lines are the endpoints of 50\%, 80\%, 90\%, 95\% and 99\% confidence intervals.}
 \end{figure}
 
-\section{The linear mixed-effects probability model}
+\subsection{Profile Pairs Plots}
+\label{sec:Profpairs}
+
+We can use the information from the profiled deviance to produce
+\begin{figure}[tb]
+  \centering
+<<fm1profpair,fig=TRUE,echo=FALSE,height=8>>=
+print(splom(pr1))
+@   
+\caption{Profile pairs plot for the parameters in model \code{fm1}.
+  The contour lines correspond to marginal 50\%, 80\%, 90\%, 95\% and
+  99\% marginal confidence regions based on the likelihood ratio.
+  Panels below the diagonal represent the $(\zeta_i,\zeta_j)$
+  parameters; those above the diagonal represent the original
+  parameters.}
+  \label{fig:fm1profpair}
+\end{figure}
+approximate contours of the profiled deviance with respect to pairs of
+parameters.  Such a plot is shown in Figure~\ref{fig:fm1profpair}.
+Because we will use such plots throughout this book to examine the
+pairwise dependence of parameters, we will describe this plot in some detail.
+
+The labels along the diagonal indicate the parameter shown on a
+particular axis.  Each parameter is represented on two scales, the
+original scale and the transformation determined by $\zeta$.  Panels
+above the diagonal are on the original scale; those below the diagonal
+are on the $(\zeta_i,\zeta_j)$ scale.  There are two lines drawn on
+each panel.  These lines intersect at the estimated parameter values.
+
+\section{The Linear Mixed-effects Probability Model}
 \label{sec:Probability}
 
 In explaining some of parameter estimates related to the random
@@ -805,7 +781,7 @@ of this section we define several terms and concepts that will be used
 throughout the book.  I would recommend that subsection to all
 readers.  
 
-\subsection{Definitions of the random variables}
+\subsection{Definitions of the Random Variables}
 \label{sec:defnRV}
 
 As mentioned in section~\ref{sec:memod}, the mixed-effects probability
@@ -817,82 +793,82 @@ and the dimension of the random effects vector is $q=6$.
 
 In all the forms of mixed models that we will consider, the random effects
 vector has a multivariate normal (also called Gaussian) distribution
-with mean vector $\bm 0$ and with a parameterized, $q\times q$,
+with mean vector $\vec 0$ and with a parameterized, $q\times q$,
 symmetric, variance-covariance matrix that we will write as
-$\bm\Sigma_\theta$.  The notation indicates that this symmetric
-$q\times q$ matrix $\bm\Sigma$ depends on a parameter vector that is
-written as $\bm\theta$.  Even though some of the elements of
-$\bm\theta$ may determine covariances and not variances, we shall
+$\Sigma_\theta$.  The notation indicates that this symmetric
+$q\times q$ matrix $\Sigma$ depends on a parameter vector that is
+written as $\vec\theta$.  Even though some of the elements of
+$\vec\theta$ may determine covariances and not variances, we shall
 refer to them collectively as the \emph{variance-component
   parameters}.
 
 We write this distribution as
 \begin{equation}
   \label{eq:unconditionalB}
-  \bc{B}\sim\mathcal{N}(\bm 0,\bm\Sigma_\theta) .
+  \bc{B}\sim\mathcal{N}(\vec0,\Sigma_\theta) .
 \end{equation}
-Because this distribution does not depend on the value, $\bm y$, of
+Because this distribution does not depend on the value, $\vec y$, of
 the random variable, $\bc Y$, we say it is the \emph{unconditional}
 distribution of $\bc B$.
 
 The probability model for the response, $\bc Y$, is most easily
-described by stating the conditional distribution $(\bc Y|\bc B=\bm
+described by stating the conditional distribution $(\bc Y|\bc B=\vec
 b)$, which is the distribution of the response vector, $\bc Y$,
 assuming that the value of the random effects vector, $\bc B$, is
-known to be $\bm b$.  (In practice we never know the value $\bm b$
+known to be $\vec b$.  (In practice we never know the value $\vec b$
 but, for the purpose of formulating the model, we will assume that we
-do.)  For all the forms of mixed models that we will consider, $\bm b$
+do.)  For all the forms of mixed models that we will consider, $\vec b$
 changes the conditional distribution of $\bc Y$ by changing the
-conditional mean, $\bm\mu_{\bc Y|\bc B=\bm b}$.  Furthermore, the
-conditional mean response depends on $\bm b$ and on the fixed-effects
-parameter vector $\bm\beta$ only through the \emph{linear predictor}
+conditional mean, $\vec\mu_{\bc Y|\bc B=\vec b}$.  Furthermore, the
+conditional mean response depends on $\vec b$ and on the fixed-effects
+parameter vector $\vec\beta$ only through the \emph{linear predictor}
 \begin{equation}
   \label{eq:linpred}
-  \bm Z\bm b+\bm X\bm\beta
+  \vec Z\vec b+\vec X\vec\beta
 \end{equation}
-where $\bm Z$ and $\bm X$ are known \emph{model matrices} of
+where $\vec Z$ and $\vec X$ are known \emph{model matrices} of
 the appropriate size.
 
 This description applies to all forms of mixed models considered in
 this book.  In the case of a linear mixed model we can be more
 specific about the conditional mean and the conditional distribution.
-For linear mixed models the conditional mean, $\bm\mu_{\bc Y|\bc B=\bm
+For linear mixed models the conditional mean, $\vec\mu_{\bc Y|\bc B=\vec
   b}$, is exactly the linear predictor, and the conditional
 distribution is a ``spherical'' Gaussian distribution.  That is
 \begin{equation}
   \label{eq:condmeanY}
-  \bm\mu_{\bc Y|\bc B=\bm b}=\bm Z\bm b+\bm X\bm\beta
+  \vec\mu_{\bc Y|\bc B=\vec b}=\vec Z\vec b+\vec X\vec\beta
 \end{equation}
 and
 \begin{equation}
   \label{eq:LMMconddist}
-  (\bc Y|\bc B=\bm b)\sim\mathcal{N}\left(\bm Z\bm b+\bm
-    X\bm\beta,\sigma^2\bm I_n\right) .
+  (\bc Y|\bc B=\vec b)\sim\mathcal{N}\left(\vec Z\vec b+\vec
+    X\vec\beta,\sigma^2\vec I_n\right) .
 \end{equation}
 
-The expression $\bm I_n$ denotes the identity matrix of size $n$.
+The expression $\vec I_n$ denotes the identity matrix of size $n$.
 This is the $n\times n$ matrix whose diagonal elements are all unity
 and whose off-diagonal elements are all zero.  The parameter
 $\sigma$ is called the \emph{common scale parameter}.  Its square is the
 variance of the residual ``noise'' terms that cannot be explained by
 other parts of the model.  The name ``spherical'' is applied to
 Gaussian distributions of the form (\ref{eq:LMMconddist}) because the
-contours of constant probability density are spheres centered at $\bm
-Z\bm b+\bm X\bm\beta$ in the $n$-dimensional response space
+contours of constant probability density are spheres centered at $\vec
+Z\vec b+\vec X\vec\beta$ in the $n$-dimensional response space
 
 Because the conditional mean must be an $n$-dimensional vector, the
-model matrix $\bm Z$ must be $n\times q$ and the model matrix $\bm X$
+model matrix $\vec Z$ must be $n\times q$ and the model matrix $\vec X$
 must be $n\times p$, where $p$ is the dimension of the fixed-effects
-parameter vector, $\bm\beta$.  For the model fit to the
-\code{Dyestuff} data, $p=1$ and the matrix $\bm X$ is a $30\times 1$
+parameter vector, $\vec\beta$.  For the model fit to the
+\code{Dyestuff} data, $p=1$ and the matrix $\vec X$ is a $30\times 1$
 matrix, all of whose elements are unity.  The fixed-effects term
 \code{1} in a model formula generates a column of ones in the
-fixed-effects model matrix, $\bm X$.  For the model being considered
-here, this column of ones is the only column in $\bm X$.
+fixed-effects model matrix, $\vec X$.  For the model being considered
+here, this column of ones is the only column in $\vec X$.
 
-The form of the random-effects model matrix, $\bm Z$, and the form of
-the variance-covariance matrix, $\bm\Sigma_\theta$, and the method by which
-$\bm\Sigma_\theta$ is determined from the value of $\bm\theta$ are all based
+The form of the random-effects model matrix, $\vec Z$, and the form of
+the variance-covariance matrix, $\Sigma_\theta$, and the method by which
+$\Sigma_\theta$ is determined from the value of $\vec\theta$ are all based
 on the random-effects terms in the model formula.  As stated earlier,
 there is one random effects term, \code{(1 | Batch)}, in the formula
 for this model.  Random-effects terms are those that contain the
@@ -905,9 +881,9 @@ describe the term as a \emph{simple, scalar, random-effects term}.
 The designation ``scalar'' means there will be exactly one random
 effect generated for each level of the grouping factor.  A simple,
 scalar term generates a block of indicator columns --- the indicators for
-the grouping factor --- in $\bm Z$.  Because there is only one
+the grouping factor --- in $\vec Z$.  Because there is only one
 random-effects term in this model and because that term is a simple,
-scalar term, the model matrix $\bm Z$ for this model is the indicator
+scalar term, the model matrix $\vec Z$ for this model is the indicator
 matrix for the levels of \code{Batch}.
 
 The transpose of this matrix, of dimension $6\times 30$, is stored as
@@ -921,7 +897,7 @@ The nature of an indicator matrix is such that only one element in
 each row of the indicator matrix, corresponding to a column of the
 transpose of the indicator matrix that is shown above, is non-zero.
 Sparse matrix
-methods~\citep{davis06:_direc_method_for_spars_linear_system} for
+methods~\citep{davis06:csparse_book} for
 numerical linear algebra provide special techniques for storing and
 manipulating such matrices.  These techniques are the basis of the
 numerical methods implemented in \code{lmer}.
@@ -935,7 +911,7 @@ print(image(env(fm1)$Zt, sub=NULL))
 @   
   \caption[Image of the random-effects model matrix for
   \texttt{fm1}]{Image of the transpose of the random-effects model
-    matrix, $\bm Z$, for model \code{fm1}.  The non-zero elements,
+    matrix, $\vec Z$, for model \code{fm1}.  The non-zero elements,
     which are all unity, are shown as darkened squares.  The zero
     elements are blank.}
   \label{fig:fm1Ztimage}
@@ -945,60 +921,60 @@ its structure more compactly than does the printed representation.
 
 When the model contains only one random-effects term and that term is
 a simple, scalar term, then the variance-covariance matrix
-$\bm\Sigma_\theta$ is a non-negative multiple of $\bm I_q$, the
+$\Sigma_\theta$ is a non-negative multiple of $\vec I_q$, the
 $q\times q$ identity matrix.  Although we will defer until later the
-discussion of the exact form of $\bm\Sigma_\theta$ for other
+discussion of the exact form of $\Sigma_\theta$ for other
 models, we will now introduce a transformation of
-$\bm\Sigma_\theta$ that we will use throughout.
+$\Sigma_\theta$ that we will use throughout.
 
 \subsubsection{The relative covariance factor}
 \label{sec:relcovfac}
 
-A variance-covariance matrix like $\bm\Sigma_\theta$ is required to be
+A variance-covariance matrix like $\Sigma_\theta$ is required to be
 symmetric and, in addition, to be \emph{positive semi-definite}, which
-means, in effect, that $\bm\Sigma_\theta$ has the matrix equivalent of a
+means, in effect, that $\Sigma_\theta$ has the matrix equivalent of a
 ``square root''.  Recall that a scalar variance, such as $\sigma^2$ in
 (\ref{eq:LMMconddist}), must be non-negative and that the standard
 deviation, $\sigma\ge0$, is the square root of the variance.  A
 variance-covariance matrix has a similar property.  There must be a
-matrix, say $\bm\Lambda_\theta$, such that when it is multiplied
+matrix, say $\Lambda_\theta$, such that when it is multiplied
 by its transpose it produces the original matrix,
-$\bm\Sigma_\theta$.  This is not quite like ``squaring'' the
-matrix because the factor, $\bm\Lambda_\theta$, is multiplied by
+$\Sigma_\theta$.  This is not quite like ``squaring'' the
+matrix because the factor, $\Lambda_\theta$, is multiplied by
 its transpose, so as to create a product that is symmetric, as
-$\bm\Sigma_\theta$ must be.
+$\Sigma_\theta$ must be.
 
 It turns out that we can simplify many subsequent formulas if we
-define $\bm\Lambda_\theta$ to be a multiple of the square-root
+define $\Lambda_\theta$ to be a multiple of the square-root
 factor, which we call the \emph{relative covariance factor}, defined
 to satisfy
 \begin{equation}
   \label{eq:relcovfac}
-  \bm\Sigma_\theta=\sigma^2\bm\Lambda_\theta
-  \bm\Lambda_\theta\trans .
+  \Sigma_\theta=\sigma^2\Lambda_\theta
+  \Lambda_\theta\trans .
 \end{equation}
 The symbol $\trans$ denotes the transpose of a matrix. The scalar
 $\sigma^2$ is the square of the common scale parameter introduced in
 (\ref{eq:LMMconddist}).
 
-The term ``relative'' indicates that $\bm\Lambda_\theta$ is the factor
-of the variance, $\bm\Sigma_\theta$, of $\bc B$ relative to the
+The term ``relative'' indicates that $\Lambda_\theta$ is the factor
+of the variance, $\Sigma_\theta$, of $\bc B$ relative to the
 variance, $\sigma^2$, in the conditional distribution $(\bc Y|\bc
-B=\bm b)$.  It happens that the way that we generate
-$\bm\Lambda_\theta$ it ends up being lower triangular and corresponds
-to the left Cholesky factor of $\bm\Sigma_\theta/\sigma^2$.  A left
-Cholesky factor is often written $\bm L$; because this matrix contains
+B=\vec b)$.  It happens that the way that we generate
+$\Lambda_\theta$ it ends up being lower triangular and corresponds
+to the left Cholesky factor of $\Sigma_\theta/\sigma^2$.  A left
+Cholesky factor is often written $\vec L$; because this matrix contains
 parameter values we denote it with the corresponding Greek letter,
-$\bm\Lambda$.
+$\Lambda$.
 
 For the \code{Dyestuff} model, which has only one simple, scalar
-random-effects term, $\bm\Sigma_\theta$ and
-$\bm\Lambda_\theta$ are both multiples of $\bm I_6$, the identity
-matrix of size six.  Furthermore, $\bm\theta$ is one-dimensional so we
+random-effects term, $\Sigma_\theta$ and
+$\Lambda_\theta$ are both multiples of $\vec I_6$, the identity
+matrix of size six.  Furthermore, $\vec\theta$ is one-dimensional so we
 will write it as $\theta$.  We set
 \begin{equation}
   \label{eq:lambdatheta}
-  \bm\Lambda_\theta = \theta\bm I_6
+  \Lambda_\theta = \theta\vec I_6
 \end{equation}
 subject to the constraint that $\theta\ge0$.
 
@@ -1013,148 +989,148 @@ so.
 \label{sec:PLS}
 
 The general form of a linear mixed model incorporates two parameter
-vectors, $\bm\beta$ and $\bm\theta$, and one scalar parameter,
+vectors, $\vec\beta$ and $\vec\theta$, and one scalar parameter,
 $\sigma^2$.  To evaluate the maximum likelihood estimates,
-$\widehat{\bm\beta}$, $\widehat{\bm\theta}$ and $\widehat{\sigma^2}$,
+$\widehat{\vec\beta}$, $\widehat{\vec\theta}$ and $\widehat{\sigma^2}$,
 we could attempt to optimize the likelihood of the parameters, given
 the model and the observed data, with respect to all of these
 parameters simultaneously.  However, for this particular model we can
 simplify the optimization problem because, for any value of
-$\bm\theta$, we can determine the conditional estimates,
-$\widehat{\bm\beta}_\theta$ and $\widehat{\sigma^2}_\theta$,
+$\vec\theta$, we can determine the conditional estimates,
+$\widehat{\vec\beta}_\theta$ and $\widehat{\sigma^2}_\theta$,
 of the other parameters in a direct computation.
 
 Furthermore, this computation, determining the solution of the penalized
 linear least squares problem
 \begin{equation}
   \label{eq:PLS}
-  \min_{\bm u,\bm\beta}
+  \min_{\vec u,\vec\beta}
   \left\|
-    \begin{bmatrix}\bm y\\\bm 0\end{bmatrix} -
+    \begin{bmatrix}\vec y\\\vec 0\end{bmatrix} -
     \begin{bmatrix}
-      \bm Z\bm\Lambda_\theta & \bm X\\
-      \bm I_q & \bm 0
+      \vec Z\Lambda_\theta & \vec X\\
+      \vec I_q & \vec 0
     \end{bmatrix}
-    \begin{bmatrix}\bm u\\\bm\beta\end{bmatrix}
+    \begin{bmatrix}\vec u\\\vec\beta\end{bmatrix}
   \right\|^2 =
-  \min_{\bm u,\bm\beta}\left(
-    \left\|\bm y - \bm Z\bm\Lambda_\theta\bm u -
-      \bm X\bm\beta\right\|^2 + \|\bm u\|^2\right)
+  \min_{\vec u,\vec\beta}\left(
+    \left\|\vec y - \vec Z\Lambda_\theta\vec u -
+      \vec X\vec\beta\right\|^2 + \|\vec u\|^2\right)
 \end{equation}
-as the vectors, $\widehat{\bm\beta}_\theta$ and $\tilde{\bm u}_\theta$,
+as the vectors, $\widehat{\vec\beta}_\theta$ and $\tilde{\vec u}_\theta$,
 that satisfy
 \begin{equation}
   \label{eq:plsSol}
   \begin{bmatrix}
-    \bm\Lambda_\theta\trans\bm Z\trans\bm
-    Z\bm\Lambda_\theta+\bm I_q&\bm\Lambda_\theta\trans\bm
-    Z\trans\bm X\\
-    \bm X\trans\bm Z\bm\Lambda_\theta&\bm X\trans\bm X
+    \Lambda_\theta\trans\vec Z\trans\vec
+    Z\Lambda_\theta+\vec I_q&\Lambda_\theta\trans\vec
+    Z\trans\vec X\\
+    \vec X\trans\vec Z\Lambda_\theta&\vec X\trans\vec X
   \end{bmatrix}
-  \begin{bmatrix}\tilde{\bm u}\\\widehat{\bm\beta}_\theta\end{bmatrix}
+  \begin{bmatrix}\tilde{\vec u}\\\widehat{\vec\beta}_\theta\end{bmatrix}
   =
   \begin{bmatrix}
-    \bm\Lambda_\theta\trans\bm Z\trans\bm y\\\bm X\trans\bm y
+    \Lambda_\theta\trans\vec Z\trans\vec y\\\vec X\trans\vec y
   \end{bmatrix} ,
 \end{equation}
-provides, as we have seen, the conditional mean, $\bm\mu_{\bc B|\bm
-  Y=\bm y}$, and conditional variance of the random effects, $\bc B$,
-given the observed data, $\bc Y=\bm y$, plus a concise expression for
+provides, as we have seen, the conditional mean, $\vec\mu_{\bc B|\vec
+  Y=\vec y}$, and conditional variance of the random effects, $\bc B$,
+given the observed data, $\bc Y=\vec y$, plus a concise expression for
 the log-likelihood and the REML criterion.
 
 An effective way of determining the solution to (\ref{eq:plsSol}) is
 to create the Cholesky decomposition of the matrix on the left.  In
 considering this step, however, we must bear in mind that the matrix
-$\bm Z$ is quite sparse and, in some cases, can be very large.  I have
+$\vec Z$ is quite sparse and, in some cases, can be very large.  I have
 myself fit linear mixed models in which both the number of rows and
-the number of columns in $\bm Z$ exceeded one million.  
+the number of columns in $\vec Z$ exceeded one million.  
 
 Dealing with matrices of this size requires considerable care in
 deciding how to structure the computation.  The key to fitting mixed
 models with a complex structure to very large data sets using the
 \package{lme4} package is the ability to determine the sparse Cholesky
-factor of $\bm\Lambda_\theta\trans\bm Z\trans\bm
-Z\bm\Lambda_\theta+\bm I_q$ for many different values of
-$\bm\theta$.
+factor of $\Lambda_\theta\trans\vec Z\trans\vec
+Z\Lambda_\theta+\vec I_q$ for many different values of
+$\vec\theta$.
 
 The Cholesky decomposition of large, sparse matrices like this has the
 interesting characteristic that reordering the rows and columns of
 the matrix can change, sometimes dramatically, the number of nonzero
 elements in the factor. Decreasing the number of nonzeros in the
 factor will increase the speed of the decomposition, which is
-important when this needs to be done for many values of $\bm\theta$.
+important when this needs to be done for many values of $\vec\theta$.
 We will write a \emph{fill-reducing permutation}, determined in this
 case by the Approximate Minimal Degree algorithm~\citep{Davis:1996},
-as a $q\times q$ permutation matrix, $\bm P$.  (In practice it is only
+as a $q\times q$ permutation matrix, $\vec P$.  (In practice it is only
 the permutation, which is a reordering of the numbers $1$ to $q$, that
 is created and stored but it is convenient to represent this
 permutation as a matrix in the formulas.)  The permutation depends
-only on the positions of the nonzeros in the matrix $\bm
-Z\bm\Lambda(\bm\theta_0)$ where $\bm\theta_0$ is an initial estimate
-or ``starting value'' for the parameter $\bm\theta$.
+only on the positions of the nonzeros in the matrix $\vec
+Z\Lambda(\vec\theta_0)$ where $\vec\theta_0$ is an initial estimate
+or ``starting value'' for the parameter $\vec\theta$.
 
 To allow for later generalizations of the linear mixed model we write
 the decomposition as
 \begin{equation}
   \label{eq:bigChol2}
   \begin{bmatrix}
-    \bm L_\theta            & \bm 0\\
-    \bm R_{ZX}\trans  & \bm R_X\trans
+    \vec L_\theta            & \vec 0\\
+    \vec R_{ZX}\trans  & \vec R_X\trans
   \end{bmatrix}
   \begin{bmatrix}
-    \bm L_\theta\trans   & \bm R_{ZX}\\
-    \bm 0         & \bm R_X
+    \vec L_\theta\trans   & \vec R_{ZX}\\
+    \vec 0         & \vec R_X
   \end{bmatrix} =
   \begin{bmatrix}
-    \bm U_\theta\trans\bm U_\theta+\bm I_q & \bm U_\theta\trans\bm V\\
-    \bm V\trans\bm U_\theta         & \bm V\trans\bm V
+    \vec U_\theta\trans\vec U_\theta+\vec I_q & \vec U_\theta\trans\vec V\\
+    \vec V\trans\vec U_\theta         & \vec V\trans\vec V
   \end{bmatrix}
 \end{equation}
 where
 \begin{equation}
   \label{eq:UV}
-  \bm U_\theta=\bm Z\bm\Lambda_\theta\text{ and }
-  \bm V=\bm X .
+  \vec U_\theta=\vec Z\Lambda_\theta\text{ and }
+  \vec V=\vec X .
 \end{equation}
 The solution to (\ref{eq:plsSol}), which would now be written as,
 \begin{equation}
   \label{eq:UVplsSol}
   \begin{bmatrix}
-    \bm P\trans\bm L_\theta      & \bm 0\\
-    \bm R_{ZX}\trans  & \bm R_X\trans
+    \vec P\trans\vec L_\theta      & \vec 0\\
+    \vec R_{ZX}\trans  & \vec R_X\trans
   \end{bmatrix}
   \begin{bmatrix}
-    \bm L_\theta\trans\bm P   & \bm R_{ZX}\\
-    \bm 0         & \bm R_X
+    \vec L_\theta\trans\vec P   & \vec R_{ZX}\\
+    \vec 0         & \vec R_X
   \end{bmatrix} =
-  \begin{bmatrix}\tilde{\bm u}_\theta\\\widehat{\bm\beta}_\theta\end{bmatrix}
+  \begin{bmatrix}\tilde{\vec u}_\theta\\\widehat{\vec\beta}_\theta\end{bmatrix}
   =
   \begin{bmatrix}
-    \bm U_\theta\trans\bm y\\\bm V\trans\bm y
+    \vec U_\theta\trans\vec y\\\vec V\trans\vec y
   \end{bmatrix} ,
 \end{equation}
 produces both the conditional estimate,
-$\widehat{\bm\beta}_\theta$, of the fixed-effects parameters and
-the conditional mean $\bm\mu_{\bc B|\bc Y=\bm y}=\bm\Lambda_\theta\tilde{\bm
+$\widehat{\vec\beta}_\theta$, of the fixed-effects parameters and
+the conditional mean $\vec\mu_{\bc B|\bc Y=\vec y}=\Lambda_\theta\tilde{\vec
   u}$, of the random effects.  If $r^2_\theta$ is the minimum penalized
 residual sum of squares,
 \begin{equation}
   \label{eq:minpls}
-  r^2_\theta=\|\bm y-\bm U_\theta\tilde{\bm u}_\theta-
-  \bm V\widehat{\bm\beta}_\theta\|^2+\|\tilde{\bm u}_\theta\|^2
+  r^2_\theta=\|\vec y-\vec U_\theta\tilde{\vec u}_\theta-
+  \vec V\widehat{\vec\beta}_\theta\|^2+\|\tilde{\vec u}_\theta\|^2
 \end{equation}
 then the conditional maximum likelihood estimate of $\sigma^2$ is
 $\widehat{\sigma^2}_\theta=\frac{r^2}{n}$ and the conditional REML
 estimate of $\sigma^2$ is
 $\widehat{\sigma^2}_R(\theta)=\frac{r^2}{n-p}$.
 
-Although we have not written this explicitly, the matrices $\bm L_\theta$,
-$\bm R_{ZX}$ and $\bm R_X$ all depend on the value of $\bm\theta$.
-Both the $q\times q$ matrix $\bm L_\theta$ and the $p\times p$
-matrix $\bm R_X(\theta)$ are triangular: $\bm L_\theta$ is
-lower triangular and $\bm R_X(\theta)$ is upper triangular.
+Although we have not written this explicitly, the matrices $\vec L_\theta$,
+$\vec R_{ZX}$ and $\vec R_X$ all depend on the value of $\vec\theta$.
+Both the $q\times q$ matrix $\vec L_\theta$ and the $p\times p$
+matrix $\vec R_X(\theta)$ are triangular: $\vec L_\theta$ is
+lower triangular and $\vec R_X(\theta)$ is upper triangular.
 Because these matrices are square and triangular their determinants,
-written $|\bm L|$ and $|\bm R_X|$, are easily evaluated as the product
+written $|\vec L|$ and $|\vec R_X|$, are easily evaluated as the product
 of the diagonal elements in the matrix.  The determinant of a matrix
 is the measure of the size of the matrix that is used in evaluating
 probability densities of random variables after transformation.
