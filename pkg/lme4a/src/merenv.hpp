@@ -15,7 +15,7 @@ public:
  */
     void update_gamma();
 /** 
- *  Update Lambda and Ut from theta.
+ *  Update Lambda, and Ut from theta and sqrtXwt
  * 
  * @param thnew pointer to a numeric vector or new values for theta
  */
@@ -60,38 +60,34 @@ public:
     int
 	N,		/**< length of gamma (can be a multiple of n) */
 	n,		/**< number of observations */
+	nth,		/**< number of elements of theta */
 	p,		/**< number of fixed effects */
 	q,		/**< number of random effects */
 	diagonalLambda,
 	sparseX;
     double
-	*fixef,		   /**< fixed-effects parameters */
-	*gam,		   /**< linear predictor (not called gamma b/c
-			      of conflicts with the gamma function) */
-	*Lambdax,	   /**< x slot of Lambda matrix */
-	*ldL2,		   /**< log-determinant of L squared */
-	*mu,		   /**< conditional mean response */
-	*pwrss,		   /**< penalized, weighted RSS */
-	*sqrtrwt,	   /**< sqrt of residual weights */
-	*sqrtXwt,	   /**< sqrt of weights for X->V and U->L */  
-	*theta,		   /**< parameters that determine Lambda */
-	*u,		   /**< unit random-effects vector */
-	*weights,	   /**< prior weights (may be NULL) */
-	*y;		   /**< response vector */
-    CHM_FR
-	L;			/**< sparse Cholesky factor */
-    CHM_SP
-	Lambda,	     /**< relative covariance factor */
-	Ut,	     /**< model matrix for unit random effects */
-	Zt;	     /**< model matrix for random effects */
-    int *Lind,	     /**< Lambdax index vector into theta (1-based) */
-	nLind;	     /**< length of Lind */
+	*fixef,	      /**< fixed-effects parameters */
+	*gam,	      /**< linear predictor (not called gamma b/c
+			 of conflicts with the gamma function) */ 
+	*Lambdax,     /**< x slot of Lambda matrix */
+	*ldL2,	      /**< log-determinant of L squared */
+	*mu,	      /**< conditional mean response */
+	*offset,      /**< offset of linear predictor (may be NULL) */
+	*pwrss,	      /**< penalized, weighted RSS */
+	*sqrtrwt,     /**< sqrt of residual weights */
+	*sqrtXwt,     /**< sqrt of weights for X->V and U->L */  
+	*theta,	      /**< parameters that determine Lambda */
+	*u,	      /**< unit random-effects vector */
+	*weights,     /**< prior weights (may be NULL) */
+	*y;	      /**< response vector */
+    CHM_FR L;	      /**< sparse Cholesky factor */
+    CHM_SP Lambda,    /**< relative covariance factor */
+	Ut,	      /**< model matrix for unit random effects */
+	Zt;	      /**< model matrix for random effects */
+    int *Lind,	      /**< lambdax index vector into theta (1-based) */
+	nLind;	      /**< length of Lind */
     CHM_r *Xp, *RZXp;
     Cholesky_r *RXp;
-
-private:
-    int nth;	      /**< number of elements of theta */
-    double *offset;   /**< offset of linear predictor (may be NULL) */
 };
 
 /// Linear mixed-effects model
@@ -127,10 +123,12 @@ public:
 	*wtres,			/**< weighted residuals */
 	devres;
     GLfamily fam;               /**< GLM family of functions */
-    double PIRLS();		/**< deviance at updated u */
+    double PIRLS(SEXP);		/**< deviance at updated u */
     double PIRLSbeta();		/**< deviance at updated u and beta */
     double IRLS();		/**< deviance at updated beta */
+    double deviance();
     void update_sqrtrwt();
+    void update_sqrtXwt();
     double update_wtres();
     void link() {fam.lnk->link(gam, mu, n);}
     void linkinv() {fam.lnk->linkinv(mu, muEta, gam, n);}
