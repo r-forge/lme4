@@ -3,14 +3,12 @@
 
 #include "lme4utils.hpp"
 
-#if 0
 static void showdbl(const double* x, const char* nm, int n) {
     int n5 = (n < 5) ? n : 5;
     Rprintf("%s: %g", nm, x[0]);
     for (int i = 1; i < n5; i++) Rprintf(", %g", x[i]);
     Rprintf("\n");
 }
-#endif
 
 // Definition of methods for the merenv class
 merenv::merenv(SEXP rho)
@@ -108,12 +106,13 @@ CHM_r *merenv::Vp() {
 	    int m = (int)A->nrow, n = (int)A->ncol;
 	    double *ax = (double*)A->x;
 	    for (int j = 0; j < n; j++)
-		for (int i = 0; i < m; i++) ax[i + j*m] *= sqrtXwt[j];
+		for (int i = 0; i < m; i++) ax[i + j*m] *= sqrtXwt[i];
 	}
 	ans = new CHM_rd(A);
     }
     return ans;
 }
+
 void merenv::update_gamma() {
     static double one[] = {1,0};
     CHM_DN cu = N_AS_CHM_DN(u, q, 1),
@@ -138,42 +137,17 @@ double merenv::update_pwrss() {
 
 void merenv::update_Lambda_Ut(SEXP thnew) {
 				// check and copy thnew
-    if (!isReal(thnew) || LENGTH(thnew) != nth)
-	error(_("theta must be numeric and of length %d"), nth);
+    if (!isReal(thnew) || LENGTH(thnew) < nth)
+	error(_("theta must be numeric and of length at least %d"), nth);
     dble_cpy(theta, REAL(thnew), nth);
 				// update Lambda
     double *Lambdax = (double*)Lambda->x;
     for (int i = 0; i < nLind; i++) Lambdax[i] = theta[Lind[i] - 1];
 				// update Ut from Lambda and Zt
-    CHM_SP tmp;
-    int m = (int)Ut->nrow, n = (int)Ut->ncol;
-    if (diagonalLambda) {
-	tmp = M_cholmod_ssmult(Lambda, Zt, 0/*stype*/, TRUE/*values*/,
-			       TRUE/*sorted*/, &c);
-    } else {
-	CHM_SP Lamtr = M_cholmod_transpose(Lambda, 1/*values*/, &c);
-	tmp = M_cholmod_ssmult(Lamtr, Zt, 0/*stype*/, TRUE/*values*/,
-			       TRUE/*sorted*/, &c);
-	M_cholmod_free_sparse(&Lamtr, &c);
-    }
-    if (!(m == (int)tmp->nrow && n == (int)tmp->ncol))
-	error(_("Lambda'Zt (%d by %d) doesn't match Ut (%d by %d)"),
-	      tmp->nrow, tmp->ncol, m, n);
-    int *di = (int*)(Ut->i), *si = (int*)(tmp->i),
-	*dp = (int*)(Ut->p), *sp = (int*)(tmp->p);
-    double *dx = (double*)(Ut->x), *sx = (double*)(tmp->x); 
-    
-    for (int j = 0; j <= n; j++)
-	if (dp[j] != sp[j])
-	    error(_("Ut->p[%d] not consistent with Lambda'Zt"), j);
-    for (int j = 0; j < dp[n]; j++) {
-	if (di[j] != si[j])
-	    error(_("Ut->i[%d] not consistent with Lambda'Zt"), j);
-	dx[j] = sx[j];
-    }
-    M_cholmod_free_sparse(&tmp, &c);
-// Note: we do not update L here because there may be weights to consider
-// Well, that depends on how U is defined.  For that we may need sqrtXwts.
+    CHM_r *tmp = new CHM_rs(spcrossprod_Lambda(Zt));
+    CHM_rs *Utp = new CHM_rs(Ut);
+    Utp->copy_contents(tmp);
+    tmp->freeA(); delete tmp; delete Utp;
 }
 
 CHM_DN merenv::crossprod_Lambda(CHM_DN rhs, CHM_DN ans) {
@@ -401,10 +375,12 @@ glmer::glmer(SEXP rho) : merenv(rho) {
 
 void glmer::update_sqrtrwt() {
     varFunc();
-    for (int j = 0; j < n; j++)	{
+    for (int j = 0; j < n; j++)
 	sqrtrwt[j] = sqrt((weights ? weights[j] : 1) / var[j]);
-	sqrtXwt[j] = muEta[j] * sqrtrwt[j];
-    }
+}
+
+void glmer::update_sqrtXwt() {
+    for (int j = 0; j < n; j++) sqrtXwt[j] = muEta[j] * sqrtrwt[j];
 }
 
 double glmer::update_wtres() {
@@ -416,8 +392,81 @@ double glmer::update_wtres() {
     return ans;
 }
 
-double glmer::PIRLS() {
-    return 1;
+static const int CM_MAXITER = 300;
+static const double CM_SMIN = 0.001;
+static const double CM_TOL = 0.001;
+
+/**
+ * Determine the Euclidean distance between two vectors relative to the
+ * square root of the product of their lengths
+ */
+static double compare_vec(const double *v1, const double *v2, int n) {
+    double num = 0., d1 = 0., d2 = 0.;
+    for (int i = 0; i < n; i++) {
+	double diff = v1[i] - v2[i];
+	num += diff * diff;
+	d1 += v1[i] * v1[i];
+	d2 += v2[i] * v2[i];
+    }
+    num = sqrt(num); d1 = sqrt(d1); d2 = sqrt(d2);
+    if (d1 == 0) {
+	if (d2 == 0) return num;
+	else return num/d2;
+    }
+    if (d2 == 0) return num/d1;
+    return num/sqrt(d1 * d2);
+}
+
+double glmer::PIRLS(SEXP pars) {
+    static double one[] = {1,0}, zero[] = {0,0};
+    CHM_DN cwtres = N_AS_CHM_DN(wtres, n, 1), deltau,
+	cu = M_cholmod_allocate_dense((size_t)q, (size_t)1, (size_t)q,
+				      CHOLMOD_REAL, &c);
+    CHM_SP Utsc;
+    double *uold = new double[q], *varold = new double[n],
+	crit, step, wrss0, wrss1;
+    
+    update_Lambda_Ut(pars);
+    if (LENGTH(pars) != nth + p)
+	error(_("%s: length of pars is %d, should be nth + p = %d"),
+	      "glmer::PIRLS", LENGTH(pars), nth + p);
+    dble_cpy(fixef, REAL(pars) + nth, p);
+    update_sqrtrwt();		// var and sqrtrwt
+    crit = 10. * CM_TOL;
+    for (int i = 0; crit >= CM_TOL && i < CM_MAXITER; i++) { 
+	dble_cpy(varold, var, n);
+	dble_cpy(uold, u, q);
+	update_gamma();		// linear predictor
+	linkinv();		// mu and muEta
+	wrss0 = update_wtres(); 
+	update_sqrtXwt();
+	Utsc = M_cholmod_copy_sparse(Ut, &c);
+	M_cholmod_scale(N_AS_CHM_DN(sqrtXwt,n,1), CHOLMOD_COL, Utsc, &c);
+	M_cholmod_factorize_p(Utsc, one, (int*)NULL, (size_t)0, L, &c);
+	M_cholmod_sdmult(Utsc, 0/*no trans*/, one, zero, cwtres, cu, &c);
+	deltau = M_cholmod_solve(CHOLMOD_A, L, cu, &c);
+	M_cholmod_free_sparse(&Utsc, &c);
+
+	showdbl((double*)deltau->x, "deltau", p);
+	wrss1 = wrss0;		// force one evaluation of the loop
+	for (step = 1.; wrss0 <= wrss1 && step > CM_SMIN; step /= 2.) {
+	    for (int k = 0; k < q; k++)
+		u[k] = uold[k] + step * ((double*)deltau->x)[k];
+	    update_gamma();
+	    linkinv();
+	    wrss1 = update_wtres();
+	    Rprintf("step = %g, wrss0 = %g; wrss1 = %g\n",
+		    step, wrss0, wrss1, fixef[0]);
+	    showdbl(u, "u", q);
+	}
+	update_sqrtrwt();
+	crit = compare_vec(varold, var, n);
+	Rprintf("convergence criterion: %g\n", crit);
+	M_cholmod_free_dense(&deltau, &c);
+    }
+    delete[] uold; delete[] varold;
+    M_cholmod_free_dense(&cu, &c);
+    return deviance();
 }
 
 double glmer::PIRLSbeta() {
@@ -442,28 +491,35 @@ double glmer::PIRLSbeta() {
     return 1;
 }
 
-static const int CM_MAXITER = 300;
-static const double CM_SMIN = 0.001;
-
+double glmer::deviance() {
+    devResid();
+    return devres + sqr_length(u, q);
+}
+    
 double glmer::IRLS() {
     CHM_r *V, *VtV;    
     CHM_DN cwtres = N_AS_CHM_DN(wtres, n, 1), deltaf,
 	Vtwr = M_cholmod_allocate_dense((size_t)p, (size_t)1, (size_t)p,
 				       CHOLMOD_REAL, &c);
-    double *betaold = new double[p], step, wrss0, wrss1;
+    double *betaold = new double[p], *varold = new double[n],
+	crit, step, wrss0, wrss1;
     
-    update_sqrtrwt();
-    for (int i = 0; i < CM_MAXITER; i++) { // iterate until weights stabilize
+    update_sqrtrwt();		// var and sqrtrwt
+    crit = 10. * CM_TOL;
+    for (int i = 0; crit >= CM_TOL && i < CM_MAXITER; i++) { 
+	dble_cpy(varold, var, n);
 	dble_cpy(betaold, fixef, p);
-	V = Vp();		// derive V from X
 	update_gamma();		// linear predictor
 	linkinv();		// mu and muEta
+	update_sqrtXwt();
+	wrss0 = update_wtres(); 
+	V = Vp();		// derive V from X
 	VtV = V->AtA();		// crossproduct
 	RXp->update(VtV);	// factor
-	
-	wrss0 = update_wtres(); 
+
 	V->drmult(1/*transpose*/, 1, 0, cwtres, Vtwr);
 	deltaf = RXp->solveA(Vtwr);
+	showdbl((double*)deltaf->x, "deltaf", p);
 	wrss1 = wrss0;		// force one evaluation of the loop
 	for (step = 1.; wrss0 <= wrss1 && step > CM_SMIN; step /= 2.) {
 	    for (int k = 0; k < p; k++)
@@ -471,19 +527,20 @@ double glmer::IRLS() {
 	    update_gamma();
 	    linkinv();
 	    wrss1 = update_wtres();
-	    Rprintf("step = %g, wrss0 = %g; wrss1 = %g\nfixef: %g",
+	    Rprintf("step = %g, wrss0 = %g; wrss1 = %g\n",
 		    step, wrss0, wrss1, fixef[0]);
-	    for (int k = 1; k < p; k++) Rprintf(", %g", fixef[k]);
-	    Rprintf("\n");
+	    showdbl(fixef, "fixef", p);
 	}
+	update_sqrtrwt();
+	crit = compare_vec(varold, var, n);
+	Rprintf("convergence criterion: %g\n", crit);
 	VtV->freeA(); delete VtV;
 	V->freeA(); delete V;
 	M_cholmod_free_dense(&deltaf, &c);
-	break;
     }
-    delete[] betaold;
+    delete[] betaold; delete[] varold;
     M_cholmod_free_dense(&Vtwr, &c);
-    return 1;
+    return deviance();
 }
 
 #if 0
@@ -579,6 +636,7 @@ double glmerold::PIRLSbeta() {
 		d[pwrss_POS] = update_mu();
 		if (verb < 0)
 		    Rprintf("%2d,%8.6f,%12.4g: %15.6g %15.6g %15.6g %15.6g %15.6g\n",
+	    showdbl((double*)deltaf->x, p);
 			    i, step, crit, d[pwrss_POS], pwrss_old, fixef[0], u[0], u[1]);
 		if (d[pwrss_POS] < pwrss_old) {
 		    pwrss_old = d[pwrss_POS];
@@ -643,8 +701,8 @@ double glmerold::IRLS() {
 
 extern "C" {
 
-    SEXP glmer_PIRLS(SEXP rho) {
-	return ScalarReal(glmer(rho).PIRLS());
+    SEXP glmer_PIRLS(SEXP rho, SEXP pars) {
+	return ScalarReal(glmer(rho).PIRLS(pars));
     }
 
     SEXP glmer_IRLS(SEXP rho) {
