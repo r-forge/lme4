@@ -268,7 +268,7 @@ xyplot.thpr <-
     function (x, data = NULL,
               levels = sqrt(qchisq(pmax.int(0, pmin.int(1, conf)), 1)),
               conf = c(50, 80, 90, 95, 99)/100,
-              absVal = TRUE, ...)
+              absVal = FALSE, ...)
 {
     levels <- sort(levels[is.finite(levels) & levels > 0])
     spl <- attr(x, "forward")
@@ -422,11 +422,11 @@ splom.thpr <-
         psji <- predict(tr$sji)        
         ## do the actual plotting
         panel.grid(h = -1, v = -1)
-        llines(predy(bsp[[i]], psij$y), predy(bsp[[j]], psij$x), ...)
-        llines(predy(bsp[[i]], psji$x), predy(bsp[[j]], psji$y), ...)
+        llines(predy(bsp[[i]], psij$x), predy(bsp[[j]], psij$y), ...)
+        llines(predy(bsp[[i]], psji$y), predy(bsp[[j]], psji$x), ...)
         for (k in seq_along(levels))
-            llines(predy(bsp[[i]], pts[k, , 1]),
-                   predy(bsp[[j]], pts[k, , 2]), ...)
+            llines(predy(bsp[[i]], pts[k, , 2]),
+                   predy(bsp[[j]], pts[k, , 1]), ...)
     }        
     dp <- function(x = NULL,            # diagonal panel
                    varname = NULL, limits, at = NULL, lab = NULL,
