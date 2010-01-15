@@ -10,6 +10,7 @@ library(splines)
 library(lattice)
 library(Matrix)
 library(lme4a)
+data(Rail, package = "MEMSS")
 fm1 <- lmer(Yield ~ 1 + (1|Batch), Dyestuff)
 fm1ML <- update(fm1, REML = FALSE)
 if (file.exists("pr1.rda")) {
@@ -222,10 +223,10 @@ data, namely that there are exactly $5$ observations on each batch --- a
 property that we will describe by saying that the data are
 \emph{balanced} with respect to \code{Batch} --- we usually learn much
 more about the structure of such data from plots like
-Figure~\ref{fig:Dyestuffdot} than we can from
+Fig.~\ref{fig:Dyestuffdot} than we can from
 numerical summaries.
 
-In Figure~\ref{fig:Dyestuffdot} we can see that there is considerable
+In Fig.~\ref{fig:Dyestuffdot} we can see that there is considerable
 variability in yield, even for preparations from the same batch, but
 there is also noticeable batch-to-batch variability.  For example,
 four of the five preparations from batch F provided lower yields than
@@ -275,7 +276,7 @@ str(Dyestuff2)
 summary(Dyestuff2)
 @
 are intentionally similar to those of the \code{Dyestuff} data.  As
-can be seen in Figure~\ref{fig:Dyestuff2dot}
+can be seen in Fig.~\ref{fig:Dyestuff2dot}
 \begin{figure}[tbp]
   \centering
 <<Dyestuff2dot,fig=TRUE,echo=FALSE,height=3.5>>=
@@ -477,7 +478,7 @@ call to \code{lmer} with extra arguments.  For complicated model fits
 it can be.)
 
 An estimate of $0$ for $\sigma_1$ does not mean that there is no
-variation between the groups.  Indeed Figure~\ref{fig:Dyestuff2dot}
+variation between the groups.  Indeed Fig.~\ref{fig:Dyestuff2dot}
 shows that there is some small amount of variability between the
 groups.  The estimate, $\widehat{\sigma}_1=0$, simply indicates that
 the level of ``between-group'' variability is not sufficient to
@@ -627,7 +628,7 @@ random effects and the conditional estimate, $\widehat{\beta}_\theta$,
 of the fixed effects.  At the conditional estimate of the fixed
 effects the deviance is
 \begin{equation}
-  \label{eq:LMMdeviance}
+  \label{eq:LMMprdev}
   d(\vec\theta,\widehat{\beta}_\theta,\sigma|\vec y)
   =n\log(2\pi\sigma^2)+\log(|\vec L_\theta|^2)+\frac{r^2_\theta}{\sigma^2}.
 \end{equation}
@@ -687,11 +688,12 @@ $\Lambda_{\widehat{\theta}}$ is
 env(fm1ML)$Lambda
 @ 
 Often we will show the structure of sparse matrices as an image
-(Figure~\ref{fig:fm1Lambdaimage}).
+(Fig.~\ref{fig:fm1Lambdaimage}).
 \begin{figure}[tbp]
-  \centering
-<<fm1Lambdaimage,fig=TRUE,echo=FALSE,height=2.5>>=
-print(image(env(fm1)$Lambda, sub=NULL))
+  \sidecaption[t]
+  \setkeys{Gin}{width=2in}
+<<fm1Lambdaimage,fig=TRUE,echo=FALSE,width=2.5,height=2.5>>=
+print(image(env(fm1)$Lambda, sub=NULL, xlab=NULL, ylab=NULL))
 @   
 \caption[Image of the $\Lambda$ for model \texttt{fm1ML}]{Image of the
   relative covariance factor, $\Lambda_{\widehat{\theta}}$ for model
@@ -706,17 +708,17 @@ more compactly than does the printed representation.
 <<fm1Ztimage,fig=TRUE,echo=FALSE,height=2.5>>=
 print(image(env(fm1)$Zt, sub=NULL))
 @   
-  \caption[Image of the random-effects model matrix for
-  \texttt{fm1}]{Image of the transpose of the random-effects model
-    matrix, $\vec Z$, for model \code{fm1}.  The non-zero elements,
-    which are all unity, are shown as darkened squares.  The zero
-    elements are blank.}
+\caption[Image of the random-effects model matrix, $\vec Z\trans$, for
+\texttt{fm1}]{Image of the transpose of the random-effects model
+  matrix, $\vec Z$, for model \code{fm1}.  The non-zero elements,
+  which are all unity, are shown as darkened squares.  The zero
+  elements are blank.}
   \label{fig:fm1Ztimage}
 \end{figure}
 
 In this simple model $\Lambda=\theta\vec I_6$ is a multiple of the
 identity matrix and the $30\times 6$ model matrix $\vec Z$, whose
-transpose is shown in Figure~\ref{fig:fm1Ztimage}, consists of the
+transpose is shown in Fig.~\ref{fig:fm1Ztimage}, consists of the
 indicator columns for \code{Batch}.  Because the data are balanced
 with respect to \code{Batch}, the Cholesky factor, $\vec L$ is also a
 multiple of the identity (you can check this with
@@ -772,15 +774,16 @@ pr1 <- profile(fm1ML)
 <<fm1prof,fig=TRUE,echo=FALSE,height=3.5>>=
 print(xyplot(pr1, aspect = 1.3))
 @   
-  \caption{Signed square root, $\zeta$, of the likelihood ratio test
-    statistic for each of the parameters in model \code{fm1ML}.  The
-    vertical lines are the endpoints of 50\%, 80\%, 90\%, 95\% and 99\%
-    confidence intervals derived from this test statistic.}
+\caption[Profile zeta plots of the parameters in model \code{fm1ML}]
+{Signed square root, $\zeta$, of the likelihood ratio test statistic
+  for each of the parameters in model \code{fm1ML}.  The vertical
+  lines are the endpoints of 50\%, 80\%, 90\%, 95\% and 99\%
+  confidence intervals derived from this test statistic.}
   \label{fig:fm1prof}
 \end{figure}
 
 Plots of $\zeta$ versus the parameter being profiled
-(Figure~\ref{fig:fm1prof}) are obtained with
+(Fig.~\ref{fig:fm1prof}) are obtained with
 <<fm1profshow>>=
 xyplot(pr1, aspect = 1.3)
 @
@@ -809,22 +812,23 @@ instead of $\sigma$, the residual standard deviation.
 <<fm1absprof,fig=TRUE,echo=FALSE,height=2.5>>=
 print(xyplot(pr1, absVal = TRUE, aspect = 0.7, strip=FALSE, strip.left = TRUE))
 @   
-\caption{Profiled deviance, on the scale $|\zeta|$, the square root of
-  the change in the deviance, for each of the parameters in model
-  \code{fm1ML}.  The intervals shown are 50\%, 80\%, 90\%, 95\% and
-  99\% confidence intervals based on the profile likelihood.}
+\caption[Absolute value profile zeta plots of the parameters in model
+\code{fm1ML}] {Profiled deviance, on the scale $|\zeta|$, the square
+  root of the change in the deviance, for each of the parameters in
+  model \code{fm1ML}.  The intervals shown are 50\%, 80\%, 90\%, 95\%
+  and 99\% confidence intervals based on the profile likelihood.}
   \label{fig:fm1absprof}
 \end{figure}
 
 A plot of $|\zeta|$, the absolute value of $\zeta$, versus the
-parameter (Figure~\ref{fig:fm1absprof}), obtained by adding the
+parameter (Fig.~\ref{fig:fm1absprof}), obtained by adding the
 optional argument \code{absVal = TRUE} to the call to \code{xyplot},
 can be more effective for visualizing the confidence intervals.
 
 \subsection{Interpreting the Profile Zeta Plot}
 \label{sec:interpprofzeta}
 
-A profile zeta plot, such as Figure~\ref{fig:fm1prof}, shows us the
+A profile zeta plot, such as Fig.~\ref{fig:fm1prof}, shows us the
 sensitivity of the model fit to changes in the value of particular
 parameters. Although this is not quite the same as describing the
 distribution of an estimator, it is a similar idea and we will use some
@@ -840,7 +844,7 @@ normal approximation for inference.  The common practice of quoting a
 parameter estimate and its standard error assumes that this is always
 the case.
 
-In Figure~\ref{fig:fm1prof} the profile zeta plot for $\log(\sigma)$
+In Fig.~\ref{fig:fm1prof} the profile zeta plot for $\log(\sigma)$
 \begin{figure}[tb]
   \centering
 <<sigmaprof,fig=TRUE,echo=FALSE,height=3.5>>=
@@ -870,16 +874,17 @@ print(xyplot(zeta ~ endpts|pnm, fr, type = "h",
                                     exp(pr$x * 2)), pr$y)
              }))
 @   
-\caption{Signed square root, $\zeta$, of the likelihood ratio test
-  statistic as a function of $\log(\sigma)$, of $\sigma$ and of
-  $\sigma^2$.  The vertical lines are the endpoints of 50\%, 80\%,
-  90\%, 95\% and 99\% confidence intervals.}
+\caption[Profile zeta plots comparing $\log(\sigma)$, $\sigma$ and
+$\sigma^2$ in model \code{fm1ML}]{Signed square root, $\zeta$, of the
+  likelihood ratio test statistic as a function of $\log(\sigma)$, of
+  $\sigma$ and of $\sigma^2$.  The vertical lines are the endpoints of
+  50\%, 80\%, 90\%, 95\% and 99\% confidence intervals.}
   \label{fig:sigmaprof}
 \end{figure}
 is reasonably straight so $\log(\sigma)$ has a good normal
 approximation.  But this does not mean that there is a good normal
 approximation for $\sigma^2$ or even for $\sigma$.  As shown in
-Figure~\ref{fig:sigmaprof} the profile zeta plot for $\log(\sigma)$ is
+Fig.~\ref{fig:sigmaprof} the profile zeta plot for $\log(\sigma)$ is
 slightly skewed, that for $\sigma$ is moderately skewed and the
 profile zeta plot for $\sigma^2$ is highly skewed.  Deviance-based
 confidence intervals on $\sigma^2$ are quite asymmetric, of the form
@@ -944,13 +949,14 @@ print(xyplot(zeta ~ endpts|pnm, fr, type = "h",
                                     pr$x^2), pr$y)
              }))
 @   
-\caption{Signed square root, $\zeta$, of the likelihood ratio test
-  statistic as a function of $\log(\sigma_1)$, of $\sigma_1$ and of
-  $\sigma_1^2$.  The vertical lines are the endpoints of 50\%, 80\%,
-  90\%, 95\% and 99\% confidence intervals.}
+\caption[Profile zeta plots comparing $\log(\sigma_1)$, $\sigma_1$ and
+$\sigma_1^2$ in model \code{fm1ML}]{Signed square root, $\zeta$, of the
+  likelihood ratio test statistic as a function of $\log(\sigma_1)$,
+  of $\sigma_1$ and of $\sigma_1^2$.  The vertical lines are the
+  endpoints of 50\%, 80\%, 90\%, 95\% and 99\% confidence intervals.}
   \label{fig:sigma1prof}
 \end{figure}
-Figure~\ref{fig:sigma1prof} shows the profile zeta plot on the scale
+Fig.~\ref{fig:sigma1prof} shows the profile zeta plot on the scale
 of $\log(\sigma_1)$, $\sigma_1$ and $\sigma_1^2$.  Notice that the
 profile zeta plot for $\log(\sigma_1)$ is very close to linear to the
 right of the estimate but flattens out on the left.  That is,
@@ -979,7 +985,8 @@ influenced by each other.
 <<fm1profpair,fig=TRUE,echo=FALSE,height=8>>=
 print(splom(pr1))
 @   
-\caption{Profile pairs plot for the parameters in model \code{fm1}.
+\caption[Profile pairs plot for the parameters in model
+\code{fm1}]{Profile pairs plot for the parameters in model \code{fm1}.
   The contour lines correspond to marginal 50\%, 80\%, 90\%, 95\% and
   99\% marginal confidence regions based on the likelihood ratio.
   Panels below the diagonal represent the $(\zeta_i,\zeta_j)$
@@ -992,7 +999,7 @@ The \emph{profile pairs} plot, obtained as
 <<fm1profpairshow,eval=FALSE>>=
 splom(pr1)
 @
-and shown in Figure~\ref{fig:fm1profpair} shows the profile traces
+and shown in Fig.~\ref{fig:fm1profpair} shows the profile traces
 along with interpolated contours of the two-dimensional profiled
 deviance function.  The contours are chosen to correspond to the
 two-dimensional marginal confidence regions at particular confidence
@@ -1168,12 +1175,11 @@ for ``posterior variance'', which is a misnomer that had become
 established as an argument name before I realized that it wasn't the
 correct term.)
 \begin{figure}[tbp]
-  \centering
 <<fm1preddot,fig=TRUE,echo=FALSE,results=hide,height=2>>=
 print(dotplot(ranef(fm1ML, postVar=TRUE), strip = FALSE))
 @   
 \caption{95\% prediction intervals on the random effects in
-  \code{fm1ML} shown as a dotplot.}
+  \code{fm1ML}, shown as a dotplot.}
   \label{fig:fm1preddot}
 \end{figure}
 
@@ -1181,10 +1187,11 @@ We can plot these prediction intervals using
 <<fm1preddotshow,eval=FALSE>>=
 dotplot(ranef(fm1ML, postVar = TRUE))
 @ 
-(Figure~\ref{fig:fm1preddot}), which provides linear spacing
+(Fig.~\ref{fig:fm1preddot}), which provides linear spacing
 \begin{figure}[tbp]
-  \centering
-<<fm1predqq,fig=TRUE,echo=FALSE,results=hide,height=3.5>>=
+  \sidecaption[t]
+  \setkeys{Gin}{width=1.5in}
+<<fm1predqq,fig=TRUE,echo=FALSE,results=hide,width=3.5,height=3.5>>=
 print(qqmath(ranef(fm1ML, postVar=TRUE), strip = FALSE))
 @   
 \caption{95\% prediction intervals on the random effects in
@@ -1195,7 +1202,7 @@ of the levels on the y axis, or using
 <<fm1predqqshow,eval=FALSE>>=
 qqmath(ranef(fm1ML, postVar=TRUE))
 @
-(Figure~\ref{fig:fm1predqq}), where the intervals are plotted versus
+(Fig.~\ref{fig:fm1predqq}), where the intervals are plotted versus
 quantiles of the standard normal.
 
 The dotplot is preferred when there are only a few levels of the
@@ -1250,3 +1257,77 @@ marginal confidence regions.
 Prediction intervals from the conditional distribution of the random
 effects, given the observed data, allow us to assess the precision of
 the random effects.
+\section*{Exercises}
+\addcontentsline{toc}{section}{Exercises}
+
+These exercises and several others in this book use data sets from the
+\package{MEMSS} package for \R{}. You will need to ensure that this
+package is installed before you can access the data sets.
+
+To load a particular data set,
+\begin{figure}[tbp]
+  \centering
+<<Raildot,fig=TRUE,echo=FALSE,height=3>>=
+print(dotplot(reorder(Rail, travel) ~ travel, Rail,
+              ylab = "Rail", pch = 21,
+              xlab = "Travel time for an ultrasonic wave (ms.)",
+              type = c("p", "a")))
+@   
+\caption{Travel time for an ultrasonic wave test on 6 rails}
+  \label{fig:Raildot}
+\end{figure}
+either attach the package
+<<attMEMSS,eval=FALSE>>=
+library(MEMSS)
+@ 
+or load just the one data set
+<<loadRail,eval=FALSE>>=
+data(Rail, package = "MEMSS")
+@ 
+\begin{prob}\label{prS1}
+  Check the structure of documentation, structure and a summary of the
+  \code{Rail} data (Fig.~\ref{fig:Raildot}) from the \package{MEMSS}
+  package.  Note that if you used \code{data} to access this data set
+  then you must use
+<<helpRail,eval=FALSE>>=
+help(Rail, package = "MEMSS")
+@   
+to display the documentation for it.
+\end{prob}
+\begin{prob}
+  Fit a model with \code{travel} as the response and a simple, scalar
+  random-effects term for the variable \code{Rail}.  Use the REML
+  criterion, which is the default.  Create a dotplot of the
+  conditional modes of the the random effects.
+\end{prob}
+\begin{prob}
+  Refit the model using maximum likelihood.  Check the parameter
+  estimates and, in the case of the fixed-effects parameter, its
+  standard error.  In what ways have the parameter estimates changed?
+  In particular, which parameter estimates have not changed?
+\end{prob}
+\begin{prob}
+  Profile the fitted model and construct 95\% profile-based confidence
+  intervals on the parameters.  Is the confidence interval on
+  $\sigma_1$ close to being symmetric about the estimate?  Is the
+  corresponding interval on $\log(\sigma_1)$ close to being symmetric
+  about its estimate?
+\end{prob}
+\begin{prob}
+  Create the profile zeta plot for this model.  For which parameters
+  is there a good normal approximation?
+\end{prob}
+\begin{prob}
+  Create a profile pairs plot for this model.  How does the shape of
+  the contours in this model correspond to those in
+  Fig.~\ref{fig:fm1profpair}?
+\end{prob}
+\begin{prob}
+  Plot the prediction intervals on the random effects from this model.
+  Do any of these prediction intervals contain zero?  Consider the
+  relative magnitudes of $\widehat{\sigma_1}$ and $\widehat{\sigma}$
+  in this model compared to those in model \code{fm1} for the
+  \code{Dyestuff} data.  Should these ratios of $\sigma_1/\sigma$ lead
+  you to expect a different pattern of prediction intervals in this
+  plot than those in Fig.~\ref{fig:fm1preddot}?
+\end{prob}
