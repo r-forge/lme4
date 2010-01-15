@@ -521,7 +521,7 @@ model.
 
 In section~\ref{sec:variability} we introduce a method of assessing
 variability in parameter estimates using the ``profiled deviance'' and
-in section~\ref{sec:randomeffects} we show methods of characterizing
+in section~\ref{sec:assessRE} we show methods of characterizing
 the conditional distribution of the random effects given the data.
 Before we get to these sections, however, we should state in some
 detail the probability model for linear mixed-effects and establish
@@ -634,10 +634,11 @@ effects the deviance is
 Minimizing this expression with respect to $\sigma^2$ produces the
 conditional estimate
 \begin{equation}
-  \widehat{\sigma^2}_\theta=r^2_\theta/n 
+  \widehat{\sigma^2}_\theta=\frac{r^2_\theta}{n} 
 \end{equation}
 which provides the \emph{profiled deviance},
 \begin{equation}
+  \label{eq:LMMprofdev}
   \tilde{d}(\vec\theta|\vec y)=d(\vec\theta,\widehat{\beta}_\theta,\widehat{\sigma}_\theta|\vec y)
   =\log(|\vec L_\theta|^2)+n\left(1 +
     \log\left(\frac{2\pi r^2_\theta}{n}\right)\right),
@@ -646,9 +647,10 @@ a function of $\vec\theta$ alone.
 
 The \emph{maximum likelihood estimate} (MLE) of $\vec\theta$, written
 $\widehat{\vec\theta}$, is the value that minimizes the profiled
-deviance.  We determine this value by numerical optimization.  In the
-process of evaluating $\tilde{d}((\widehat{\vec\theta}|\vec y)$ we
-determine $\widehat{\beta}$, $\tilde{\vec u}_{\widehat{\theta}}$ and
+deviance~(\ref{eq:LMMprofdev}).  We determine this value by numerical
+optimization.  In the process of evaluating
+$\tilde{d}(\widehat{\vec\theta}|\vec y)$ we determine
+$\widehat{\beta}$, $\tilde{\vec u}_{\widehat{\theta}}$ and
 $r^2_{\widehat{\theta}}$, from which we can evaluate
 $\widehat{\sigma}=\sqrt{r^2_{\widehat{\theta}}/n}$.
 
@@ -658,7 +660,7 @@ parameter estimates,
 \tilde{b}_{\widehat{\theta}}=\Lambda_{\widehat{\theta}}\tilde{u}_{\widehat{\theta}}
 \end{equation}
 are sometimes called the \emph{best linear unbiased predictors} or
-BLUPs of the random effects.  Other than having an appealing acronym,
+BLUPs of the random effects.  Although it has an appealing acronym,
 I don't find the term particularly instructive (what is a ``linear
 unbiased predictor'' and in what sense are these the ``best''?) and
 prefer the term ``conditional mode'', which is explained in
@@ -722,12 +724,6 @@ multiple of the identity (you can check this with
 the matrix $\vec X$ have the same names in \code{env(fm1ML)}.  The
 vector $\beta$ is called \code{fixef}.
 
-In the remainder of this section we discuss the derivation of the
-quantities defined above.  Readers who are less interested in the
-``why'' than in the ``what'' should feel free to skip to
-section~\ref{sec:variability}.
-
-
 \section{Assessing the Variability of the Parameter Estimates}
 \label{sec:variability}
 
@@ -736,9 +732,6 @@ from a fitted linear mixed model and how to use this object to
 evaluate confidence intervals on the parameters.  We also discuss the
 construction and interpretation of \emph{profile zeta} plots for the
 parameters and \emph{profile pairs} plots for parameter pairs.
-
-As in the previous section, we will state the results first and provide more
-detailed derivations and explanations later.  
 
 \subsection{Confidence Intervals on the Parameters}
 \label{sec:profdevconf}
@@ -769,7 +762,7 @@ re-fitting the model many times, can be computationally intensive, one
 should exercise caution with complex models fit to very large data
 sets.  Because the statistic of interest is a likelihood ratio, the
 model is re-fit according to the maximum likelihood criterion, even if
-the original fit is a REML fit so there is a slight advantage in
+the original fit is a REML fit.  Thus, there is a slight advantage in
 starting with an ML fit.
 <<pr1,eval=FALSE>>=
 pr1 <- profile(fm1ML)
@@ -834,13 +827,13 @@ can be more effective for visualizing the confidence intervals.
 A profile zeta plot, such as Figure~\ref{fig:fm1prof}, shows us the
 sensitivity of the model fit to changes in the value of particular
 parameters. Although this is not quite the same as describing the
-distribution of an estimator, it is a similar idea and we wil use some
+distribution of an estimator, it is a similar idea and we will use some
 of the terminology from distributions when describing these plots.
 Essentially we view the patterns in the plots as we would those in a
 normal probability plot of data values or residuals from a model.
 
 Ideally the pattern in the plot will be a straight line, in which case
-we can perform statistical inference based on the parameter's
+we can perform reliable statistical inference based on the parameter's
 estimate, its standard error and quantiles of the standard normal
 distribution.  We will describe such as situation as providing a good
 normal approximation for inference.  The common practice of quoting a
@@ -885,7 +878,7 @@ print(xyplot(zeta ~ endpts|pnm, fr, type = "h",
 \end{figure}
 is reasonably straight so $\log(\sigma)$ has a good normal
 approximation.  But this does not mean that there is a good normal
-approximation for $\sigma^2$ or even $\sigma$.  As shown in
+approximation for $\sigma^2$ or even for $\sigma$.  As shown in
 Figure~\ref{fig:sigmaprof} the profile zeta plot for $\log(\sigma)$ is
 slightly skewed, that for $\sigma$ is moderately skewed and the
 profile zeta plot for $\sigma^2$ is highly skewed.  Deviance-based
@@ -1022,7 +1015,7 @@ axis and $\beta_0$ on the vertical axis.
 In addition to the contour lines in this panel, there are two other
 lines, which are the profile traces of $\sigma_1$ on $\beta_0$ and of
 $\beta_0$ on $\sigma_1$.  The profile trace of $\beta_0$ on $\sigma_1$
-is a straight horizontal line, meaning that the conditional estimate
+is a straight horizontal line, indicating that the conditional estimate
 of $\beta_0$, given a value of $\sigma_1$, is constant.  Again, this is 
 a consequence of the simple model form and the balanced data set.  The
 other line in this panel, which is the profile trace of $\sigma_1$ on
@@ -1052,8 +1045,8 @@ is, the conditional estimate of $\beta_0$ doesn't depend on
 $\log(\sigma)$ and the conditional estimate of $\log(\sigma)$ doesn't
 depend on $\beta_0$.  Even in this case, however, the contour lines
 are not concentric ellipses, because the deviance is not perfectly
-quadratic in these parameters.  That is, $\zeta(\beta_0)$ and
-$\zeta(\log(\sigma))$ not perfectly linear.
+quadratic in these parameters.  That is, the zeta functions,
+$\zeta(\beta_0)$ and $\zeta(\log(\sigma))$, are not linear.
 
 The $(1,2)$ panel, showing $\log(\sigma)$ versus $\sigma_1$ shows
 distortion along both axes and nonlinear patterns in both traces.
@@ -1064,8 +1057,8 @@ $\log(\sigma)$ because the variability that would be explained by the
 random effects gets incorporated into the residual noise term.
 
 Panels below the diagonal are on the $\zeta$ scale, which is why the
-axes on each of these panels are the same values, running from $-3$ to
-$+3$ and the profile traces always cross at the origin.  Thus the
+axes on each of these panels span the same range, approximately $-3$ to
+$+3$, and the profile traces always cross at the origin.  Thus the
 $(3,1)$ panel shows $\zeta(\sigma_1)$ on the vertical axis versus
 $\zeta(\beta_0)$ on the horizontal.  These panels allow us to see
 distortions from an elliptical shape due to nonlinearity of the
@@ -1090,23 +1083,25 @@ estimates, and that they can be calculated as
 $\tilde{b}_{\widehat{\theta}}=\Lambda_{\widehat{\theta}}\tilde{u}_{\widehat{\theta}}$.
 
 These values are often considered as some sort of ``estimates'' of the
-random effects and that can be helpful but it can also be misleading.
-As we have stated several times, the random effects are not, strictly
-speaking, parameters; they are unobserved random variables.  We don't
-estimate the random effects the way that we estimate parameters.
-Instead, we consider the conditional distribution of $\bc B$ given the
-observed data.  That is, we consider $(\bc B|\bc Y=\vec y)$.
+random effects it can be helpful to think of them this way.  However,
+it can also be misleading.  As we have stated, the random effects are
+not, strictly speaking, parameters---they are unobserved random
+variables.  We don't estimate the random effects in the same sense
+that we estimate parameters.  Instead, we consider the conditional
+distribution of $\bc B$ given the observed data.  That is, we consider
+$(\bc B|\bc Y=\vec y)$.
 
 Because the unconditional distribution, $\bc B\sim\mathcal{N}(\vec
-0,\Sigma_\theta$ is continuous, the conditional distribution, $(\bc
-B|\bc Y=\vec y)$ will also be continuous.  The phrase ``conditional
-mode'' refers to the point at which the conditional density of $\bc
-B$, given $\bc Y=\vec y$, is maximized.  Because this definition
-relates to the probability model, the values of the parameters are
-assumed to be known.  In practice, of course, we don't know the values
-of the parameters (if we did there would be no purpose in forming the
-parameter estimates), so we use the estimated values of the
-parameters to evaluate the conditional modes.
+0,\Sigma_\theta)$ is continuous, the conditional distribution, $(\bc
+B|\bc Y=\vec y)$ will also be continuous.  In general, the mode of a
+probability density is the point of maximum density, so the phrase
+``conditional mode'' refers to the point at which this conditional
+density is maximized.  Because this definition relates to the
+probability model, the values of the parameters are assumed to be
+known.  In practice, of course, we don't know the values of the
+parameters (if we did there would be no purpose in forming the
+parameter estimates), so we use the estimated values of the parameters
+to evaluate the conditional modes.
 
 Those who are familiar with the multivariate Gaussian distribution may
 recognize that, because both $\bc B$ and $(\bc Y|\bc B=\vec b)$ are
@@ -1120,7 +1115,7 @@ which is why we use the term ``conditional mode'' to describe these
 values.  We will only use the term ``conditional mean'' and the
 symbol, $\vec\mu$, in reference to $\mathrm{E}(\bc Y|\bc B=\vec b)$,
 which is the conditional mean of $\bc Y$ given $\bc B$, and is an
-important part of all forms of mixed-effects models.
+important part of the formulation of all types of mixed-effects models.
 
 The \code{ranef} extractor returns the conditional modes.
 <<raneffm1>>=
@@ -1130,7 +1125,7 @@ Applying \code{str} to the result of \code{ranef}
 <<strraneffm1>>=
 str(ranef(fm1ML))
 @
-shows that the values is a list of data frames.  In this case the
+shows that the value is a list of data frames.  In this case the
 list is of length 1 because there is only one random-effects term,
 \code{(1|Batch)}, in the model and, hence, only one grouping factor,
 \code{Batch}, for the random effects.  There is only one column in
@@ -1140,7 +1135,7 @@ a simple, scalar term.
 To make this more explicit, random-effects terms in the model formula
 are those that contain the vertical bar (\code{"|"}) character.  The
 \code{Batch} variable is the grouping factor for the random effects
-described by this term.  An expression for the grouping factor,
+generated by this term.  An expression for the grouping factor,
 usually just the name of a variable, occurs to the right of the
 vertical bar.  If the expression on the left of the vertical bar is
 \code{1}, as it is here, we describe the term as a \emph{simple,
@@ -1160,12 +1155,12 @@ model, each term has a unique grouping factor and the elements of the
 list returned by \code{ranef} can be considered as associated with
 terms or with grouping factors.  In more complex models a particular
 grouping factor may occur in more than one term, in which case the
-elements of the list are associated with grouping factors, not the
+elements of the list are associated with the grouping factors, not the
 terms.
 
-Given the data $\bc y$ and the parameter estimates we can evaluate a
-measure of the dispersion of $(\bc B|\bc Y=\vec y)$.  In the case of a
-linear mixed model, this is the conditional standard deviation, from
+Given the data, $\vec y$, and the parameter estimates, we can evaluate
+a measure of the dispersion of $(\bc B|\bc Y=\vec y)$.  In the case of
+a linear mixed model, this is the conditional standard deviation, from
 which we can obtain a prediction interval.  The \code{ranef} extractor
 takes an optional argument, \code{postVar = TRUE}, which adds these
 dispersion measures as an attribute of the result.  (The name stands
@@ -1174,10 +1169,11 @@ established as an argument name before I realized that it wasn't the
 correct term.)
 \begin{figure}[tbp]
   \centering
-<<fm1preddot,fig=TRUE,echo=FALSE,results=hide,height=2.5>>=
-print(dotplot(ranef(fm1ML, postVar=TRUE)))
+<<fm1preddot,fig=TRUE,echo=FALSE,results=hide,height=2>>=
+print(dotplot(ranef(fm1ML, postVar=TRUE), strip = FALSE))
 @   
-\caption{95\% prediction intervals on the random effects in \code{fm1ML}}
+\caption{95\% prediction intervals on the random effects in
+  \code{fm1ML} shown as a dotplot.}
   \label{fig:fm1preddot}
 \end{figure}
 
@@ -1185,13 +1181,14 @@ We can plot these prediction intervals using
 <<fm1preddotshow,eval=FALSE>>=
 dotplot(ranef(fm1ML, postVar = TRUE))
 @ 
-(Figure~\ref{fm1preddot}), which provides linear spacing
+(Figure~\ref{fig:fm1preddot}), which provides linear spacing
 \begin{figure}[tbp]
   \centering
 <<fm1predqq,fig=TRUE,echo=FALSE,results=hide,height=3.5>>=
-print(qqmath(ranef(fm1ML, postVar=TRUE)))
+print(qqmath(ranef(fm1ML, postVar=TRUE), strip = FALSE))
 @   
-\caption{95\% prediction intervals on the random effects in \code{fm1ML}}
+\caption{95\% prediction intervals on the random effects in
+  \code{fm1ML} versus quantiles of the standard normal distribution.}
   \label{fig:fm1predqq}
 \end{figure}
 of the levels on the y axis, or using
@@ -1201,42 +1198,55 @@ qqmath(ranef(fm1ML, postVar=TRUE))
 (Figure~\ref{fig:fm1predqq}), where the intervals are plotted versus
 quantiles of the standard normal.
 
-The dotplot is preferred when there are only a few random effects per
-term, as in this case.  When there are hundreds or thousands of random
-effects the \code{qqmath} form is preferred because it focuses
-attention on the ``important few'' at the extremes and de-emphasizes
-the ``trivial many'' that are close to zero.
+The dotplot is preferred when there are only a few levels of the
+grouping factor, as in this case.  When there are hundreds or
+thousands of random effects the \code{qqmath} form is preferred
+because it focuses attention on the ``important few'' at the extremes
+and de-emphasizes the ``trivial many'' that are close to zero.
 
 \section{Chapter Summary}
 \label{sec:ChIntroSummary}
 
 A considerable amount of material has been presented in this chapter,
 especially considering the word ``simple'' in its title (it's the
-model that is simple, not the material).  It is worthwhile summarizing
-some of the highlights.
+model that is simple, not the material).  A summary may be in order.
 
 A mixed-effects model incorporates fixed-effects parameters and random
 effects, which are unobserved random variables, $\bc B$.  In a linear
 mixed model, both the unconditional distribution of $\bc B$ and the
-conditional distribution, $(\bc Y|\bc B=\vec b)$ are multivariate
+conditional distribution, $(\bc Y|\bc B=\vec b)$, are multivariate
 Gaussian distributions.  Furthermode, this conditional distribution is
 a spherical Gaussian with mean, $\vec\mu$, determined by the 
 linear predictor, $\vec Z\vec b+\vec X\vec\beta$.  That is,
 \begin{displaymath}
   (\bc Y|\bc B=\vec b)\sim
-  \mathcal{N}(\vec Z\vec b+\vec X\vec\beta, \sigma^2\vec I_n)
+  \mathcal{N}(\vec Z\vec b+\vec X\vec\beta, \sigma^2\vec I_n) .
 \end{displaymath}
 The unconditional distribution of $\bc B$ has mean $\vec 0$ and a
 parameterized $q\times q$ variance-covariance matrix, $\Sigma_\theta$.
 
-In the models we considered in this chapter, $\Sigma_\theta$, was a
-simple multiple of the identity matrix, $\vec I_6$.  This will always
-be the case for models with just one random-effects term that is a
-simple, scalar term.  The reason for introducing all this machinery is
-to allow for more general models.
+In the models we considered in this chapter, $\Sigma_\theta$, is a
+simple multiple of the identity matrix, $\vec I_6$.  This matrix is
+always a multiple of the identity in models with just one
+random-effects term that is a simple, scalar term.  The reason for
+introducing all the machinery that we did is to allow for more general
+model specifications.
 
 The maximum likelihood estimates of the parameters are obtained by
-minimizing the deviance.  For these models we can minimize the
+minimizing the deviance.  For linear mixed models we can minimize the
 profiled deviance, which is a function of $\vec\theta$ only, thereby
 considerably simplifying the optimization problem.
 
+To assess the precision of the parameter estimates, we profile the
+deviance function with respect each parameter and apply a signed
+square root transformation to the likelihood ratio test statistic,
+producing a profile zeta function for each parameter.  These functions
+provide likelihood-based confidence intervals for the parameters.
+Profile zeta plots allow us to visually assess the precision of
+individual parameters.  Profile pairs plots allow us to visualize the
+pairwise dependence of parameter estimates and two-dimensional
+marginal confidence regions.
+
+Prediction intervals from the conditional distribution of the random
+effects, given the observed data, allow us to assess the precision of
+the random effects.
