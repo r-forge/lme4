@@ -8,50 +8,37 @@ library(splines)
 library(lattice)
 library(Matrix)
 library(lme4a)
-if (file.exists("classroom.rda")) {
-    load("classroom.rda")
+fm2ML <- lmer(diameter ~ 1 + (1|plate) + (1|sample), Penicillin, REML=0)
+fm3 <- lmer(strength ~ 1 + (1|sample) + (1|batch), Pastes, REML=0)
+if (file.exists("pr2.rda")) {
+    load("pr2.rda")
 } else {
-    classroom <-
-        within(read.csv("http://www-personal.umich.edu/~bwest/classroom.csv"),
-           {
-               classid <- factor(classid)
-               schoolid <- factor(schoolid)
-               sex <- factor(sex, labels = c("M","F"))
-               minority <- factor(minority, labels = c("N", "Y"))
-           })
-    classroom$childid <- NULL
-    save(classroom, file = "classroom.rda")
+    pr2 <- profile(fm2ML)
+    save(pr2, file = "pr2.rda")
 }
-if (file.exists("ratbrain.rda")) {
-    load("ratbrain.rda")
+if (file.exists("pr3.rda")) {
+    load("pr3.rda")
 } else {
-    ratbrain <-
-        within(read.delim("http://www-personal.umich.edu/~bwest/rat_brain.dat"),
-           {
-               treatment <- factor(treatment,
-                                   labels = c("Basal", "Carbachol"))
-               region <- factor(region,
-                                labels = c("BST", "LS", "VDB"))
-           })
-    save(ratbrain, file = "ratbrain.rda")
+    pr3 <- profile(fm3)
+    save(pr3, file = "pr3.rda")
 }
 @
 
-\chapter{Models with multiple random-effects terms}
+\chapter{Models with multiple terms}
 \label{chap:Multiple}
 
 The mixed models considered in the previous chapter had only one
-random-effects term, which was a simple, scalar random-effects term.
-Although such models can be useful, it is with the facility to use
-multiple random-effects terms and to use random-effects terms beyond a
-simple, scalar term that we can begin to realize the flexibility and
-versatility of mixed models.  In this chapter we consider models with
-multiple simple, scalar random-effects terms.  In the next chapter we
-consider models with random-effects terms that are more complex than a
-simple, scalar term.
+random-effects term, which was a simple, scalar random-effects term,
+and a single fixed-effects coefficient.  Although such models can be
+useful, it is with the facility to use multiple random-effects terms
+and to use random-effects terms beyond a simple, scalar term that we
+can begin to realize the flexibility and versatility of mixed models.  Also, in practice it is rare not to be considering more than one fixed-effects term.
 
-\section{Data with crossed grouping factors}
-\label{sec:crossedgrouping}
+In this chapter we consider models with multiple simple, scalar
+random-effects terms.
+
+\section{Models with crossed random effects}
+\label{sec:crossedRE}
 
 One of the areas in which the methods in the \package{lme4} package
 for \R{} are particularly effective is in fitting models to
@@ -114,7 +101,7 @@ penicillin]{Diameter of the growth inhibition zone (mm) in the
   plates.  The lines join observations on the same sample.}
   \label{fig:Penicillindot}
 \end{figure}
-(Figure~\ref{fig:Penicillindot}).
+(Fig.~\ref{fig:Penicillindot}).
 
 The variation in the diameter is associated with the plates and with
 the samples.  Because each plate is used for only the six
@@ -132,7 +119,7 @@ not nested.  If we wish to be more specific, we could describe these
 factors as being \emph{completely crossed}, which means that we have at
 least one observation for each combination of a level of \code{sample}
 and a level of \code{plate}.  We can see this in
-Figure~\ref{fig:Penicillindot} and, because there are a moderate
+Fig.~\ref{fig:Penicillindot} and, because there are a moderate
 number of levels in these factors, we can check it in a
 cross-tabulation
 <<xtabsPenicillin>>=
@@ -172,10 +159,10 @@ the greatest contribution, then plate-to-plate variability and finally
 the ``residual'' variability that cannot be attributed to either the
 sample or the plate.  These conclusions are consistent with what we
 see in the \code{Penicillin} data plot
-(Figure~\ref{fig:Penicillindot}).
+(Fig.~\ref{fig:Penicillindot}).
 
 The prediction intervals on the random effects
-(Figure~\ref{fig:fm2ranef})
+(Fig.~\ref{fig:fm2ranef})
 \begin{figure}[tbp]
   \centering
 <<fm2ranef,fig=TRUE,echo=FALSE,height=5.5>>=  
@@ -197,59 +184,160 @@ matrix, $\vec Z$, that is the matrix of indicators of the levels of the
 grouping factor.  When we have multiple, simple, scalar random-effects
 terms, as in model \code{fm2}, each term generates a matrix of
 indicator columns and all the sets of indicator columns are
-concatenated to for the model matrix $\vec Z$.  The transpose of this
+concatenated to form the model matrix $\vec Z$.  The transpose of this
 matrix contains rows of indicators for each factor, as shown in
-Figure~\ref{fig:fm2Ztimage}.
+Fig.~\ref{fig:fm2Ztimage}.
 \begin{figure}[tbp]
   \centering
 <<fm2Ztimage,fig=TRUE,echo=FALSE,height=2.4>>=
 print(image(env(fm2)$Zt, sub=NULL,xlab=NULL,ylab=NULL))
 @   
   \caption[Image of the random-effects model matrix for
-  \texttt{fm1}]{Image of the transpose of the random-effects model
-    matrix, $\vec Z$, for model \code{fm1}.  The non-zero elements,
+  \texttt{fm2}]{Image of the transpose of the random-effects model
+    matrix, $\vec Z$, for model \code{fm2}.  The non-zero elements,
     which are all unity, are shown as darkened squares.  The zero
     elements are blank.}
   \label{fig:fm2Ztimage}
 \end{figure}
+\begin{figure}[tbp]
+  \centering
+<<fm2LambdaLimage,fig=TRUE,echo=FALSE,height=3.5>>=
+print(image(env(fm2)$Lambda, sub=NULL,xlab=expression(Lambda),ylab=NULL),
+      split=c(1,1,3,1), more=TRUE)
+print(image(tcrossprod(env(fm2)$Zt),sub=NULL,xlab="Z'Z",ylab=NULL),
+      split=c(2,1,3,1), more=TRUE)
+print(image(env(fm2)$L, sub=NULL,xlab="L",ylab=NULL,colorkey=FALSE),
+      split=c(3,1,3,1))
+@   
+\caption[Images of $\Lambda$, $\vec Z\trans\vec Z$ and $\vec L$ for
+model \texttt{fm2}]{Images of the relative covariance factor,
+  $\Lambda$, the cross-product of the random-effects model matrix,
+  $\vec Z\trans\vec Z$, and the sparse Cholesky factor, $\vec L$, for
+  model \code{fm2}.}
+  \label{fig:fm2LambdaLimage}
+\end{figure}
 
-The parameter $\vec\theta$ for this model is two-dimensional.
+The relative covariance factor (Fig.~\ref{fig:fm2LambdaLimage}, left
+panel) is no longer a multiple of the identity.  It is now block
+diagonal, with two blocks, one of size 24 and one of size 6, each of
+which is a multiple of the identity.  The diagonal elements in each
+block are the $\theta_1$ and $\theta_2$.  The numeric values of
+$\vec\theta$ can be obtained as
 <<fm2verb>>=
-fm2@getPars()
+env(fm2)$theta
 @ 
 The first parameter is the relative standard deviation of the random
 effects for \code{plate}, which has the value (0.84671/0.54992) at
 convergence, and the second is the relative standard deviation of the
 random effects for \code{sample} (1.93157/0.54992).
 
-A profile plot of the parameters in model \code{fm2}
+Because $\Lambda_\theta$ is diagonal, the pattern of non-zeros in
+$\Lambda_\theta\trans\vec Z\trans\vec Z\Lambda_\theta+\vec I$ will be
+the same as that in $\vec Z\trans\vec Z$, shown in the middle panel of
+Fig.~\ref{fig:fm2LambdaLimage}.  The sparse Cholesky factor, $\vec L$,
+shown in the right panel is lower triangular and has non-zero elements
+in the lower right hand corner in positions where $\vec Z\trans\vec Z$
+has systematic zeros.  We say that ``fill-in'' has occurred when
+forming the sparse Cholesky decomposition.  In this case there is a
+relatively minor amount of fill but in other cases there can be a
+substantial amount of fill and we shall take precautions so as to
+reduce this, because fill-in adds to the computational effort in
+determining the MLEs or the REML estimates.
+
+A profile zeta plot (Fig.~\ref{fig:fm2prplot}) for the parameters in
+model \code{fm2}
 \begin{figure}[tbp]
   \centering
 <<fm2prplot,fig=TRUE,echo=FALSE,height=3.5>>=
-pr2 <- profile(fm2)
 print(xyplot(pr2, absVal=0, aspect=1.3, layout=c(4,1)))
 @   
-  \caption{Profile plot of the parameters in model \code{fm2}.}
+  \caption{Profile zeta plot of the parameters in model \code{fm2}.}
   \label{fig:fm2prplot}
 \end{figure}
-is shown in Figure~\ref{fig:fm2prplot} and the profile pairs plot
+leads to conclusions similar to those from Fig.~\ref{fig:fm1prof} for
+model \code{fm1ML} in the previous chapter.  The fixed-effect
+parameter, $\beta_0$, for the \code{(Intercept)} term has symmetric
+intervals and is over-dispersed relative to the normal distribution.
+The logarithm of $\sigma$ has a good normal approximation but the
+standard deviations of the random effects, $\sigma_1$ and $\sigma_2$,
+are skewed.  The skewness for $\sigma_2$ is worse than that for
+$\sigma_1$, because the estimate of $\sigma_2$ is less precise than
+that of $\sigma_1$, in both absolute and relative senses.  For an 
+absolute comparison we compare the widths of the confidence intervals for
+these parameters.
+<<fm2confint>>=
+confint(pr2)
+@
+In a relative comparison we examine the ratio of the endpoints of
+the interval divided by the estimate.
+<<fm2confintrel>>=
+confint(pr2)[1:2,]/c(0.8455722, 1.770648)
+@ 
+
+The lack of precision in the estimate of $\sigma_2$ is a consequence
+of only having 6 distinct levels of the \code{sample} factor.  The
+\code{plate} factor, on the other hand, has 24 distinct levels.  In
+general it is more difficult to estimate a measure of spread, such as
+the standard deviation, than to estimate a measure of location, such
+as a mean, especially when the number of levels of the factor is
+small.  Six levels are about the minimum number required for obtaining
+sensible estimates of standard deviations for simple, scalar random
+effects terms.
+
+The profile pairs plot (Fig.~\ref{fig:fm2prpairs}) shows
 \begin{figure}[tbp]
   \centering
 <<fm2prpairs,fig=TRUE,echo=FALSE,height=8>>=
 print(splom(pr2))
 @   
-  \caption{Profile pairs plot of the parameters in model \code{fm2}.}
+  \caption[Profile pairs plot of the parameters in model \code{fm2}.]
+  {Profile pairs plot for the parameters in model \code{fm2} fit to
+    the \code{Penicillin} data.}
   \label{fig:fm2prpairs}
 \end{figure}
-in Figure~\ref{fm2prpairs}.  The contours in the profile pairs plot
-correspond to pairwise marginal confidence regions with confidence
-levels 50\%, 80\%, 90\%, 95\% and 99\%.
+patterns similar to those in Fig.~\ref{fig:fm1profpair} for pairs of
+parameters in model \code{fm1} fit to the \code{Dyestuff} data.  On
+the $\zeta$ scale (panels below the diagonal) the profile traces are
+nearly straight and orthogonal with the exception of the trace of
+$\zeta(\sigma_2)$ on $\zeta(\beta_0)$ (the horizontal trace for the
+panel in the $(4,2)$ position.  The pattern of this trace is similar
+to the pattern of the trace of $\zeta(\sigma_1)$ on $\zeta(\beta_0)$
+in Fig.~\ref{fig:fm1profpair}.  Moving $\beta_0$ from its estimate,
+$\widehat{\beta}_0$ in either direction will increase the residual sum
+of squares.  The increase in the residual variability is reflected in
+an increase of one or more of the dispersion parameters.  The balanced
+experimental design results in a fixed estimate of $\sigma$ and the
+extra apparent variability must be incorporated into $\sigma_1$ or
+$\sigma_2$.
+
+Contours in panels of parameter pairs on the original scales
+(i.e. panels above the diagonal) can show considerable distortion from
+the ideal elliptical shape.  For example, contours in the $\sigma_2$
+versus $\sigma_1$ panel (the $(1,2)$ position) and the $\log(\sigma)$
+versus $\sigma_2$ panel (in the $(2,3)$ position) are dramatically
+non-elliptical.  However, the distortion of the contours is not due to
+these parameter estimates depending on each other.  It is almost
+entirely due choice of scale for $\sigma_1$ and $\sigma_2$.  When we
+plot the contours on the scale of $\log(\sigma_1)$ and
+$\log(\sigma_2)$ instead (Fig.~\ref{fig:toBeConstructed}) they are
+much closer to the elliptical pattern.
+
+Conversely, if we tried to plot contours on the scale of $\sigma_1^2$
+and $\sigma_2^2$ (not shown), they would be hideously distorted.
+
+\section{Models with nested random effects}
+\label{sec:NestedRE}
+
+In this section we again consider a simple example, this time
+illustrating applications of models with \emph{nested} grouping
+factors for the random effects.
 
 \subsection{The \texttt{Pastes} data}
 \label{sec:PastesData}
 
-The third example from 
-\citet[Table~6.5, p.~138]{davies72:_statis_method_in_resear_and_produc} is described as coming from
+The third example from \citet[Table~6.5,
+p.~138]{davies72:_statis_method_in_resear_and_produc} is described as
+coming from
 \begin{quote}
   deliveries of a chemical paste product contained in casks where, in
   addition to sampling and testing errors, there are variations in
@@ -287,7 +375,7 @@ the \code{xtabs} function, using the optional argument \code{sparse =
 <<xtabsPastes>>=
 xtabs(~ batch + sample, Pastes, drop = TRUE, sparse = TRUE)
 @
-Alternatively, we can use an image (Figure~\ref{fig:imagextabsPastes})
+Alternatively, we can use an image (Fig.~\ref{fig:imagextabsPastes})
 of this cross-tabulation to visualize the structure.  Images like this
 are often an effective way of visualizing the structure of large,
 sparse matrices.
@@ -323,11 +411,11 @@ print(dotplot(ss ~ strength | bb, pp,
   \label{fig:Pastesplot}
 \end{figure}
 
-In Figure~\ref{fig:Pastesplot} we plot the two strength measurements
+In Fig.~\ref{fig:Pastesplot} we plot the two strength measurements
 on each of the samples within each of the batches and join up the
 average strength for each sample.  The perceptive reader will have
 noticed that the levels of the factors on the vertical axis in this
-figure, and in Figures~\ref{fig:Dyestuffdot} and
+figure, and in Fig.~\ref{fig:Dyestuffdot} and
 \ref{fig:Penicillindot}, have been reordered according to increasing
 average response.  In all these cases there is no inherent ordering of
 the levels of the covariate such as \code{batch} or \code{plate}.
@@ -338,7 +426,7 @@ us to more easily check for structure in the data, including
 undesirable characteristics like increasing variability of the
 response with increasing mean level of the response.
 
-In Figure~\ref{fig:Pastesplot} we order the samples within each batch
+In Fig.~\ref{fig:Pastesplot} we order the samples within each batch
 separately then order the batches according to increasing mean
 strength.  
 
@@ -446,13 +534,12 @@ A profile plot of the parameters in model \code{fm3}
 \begin{figure}[tbp]
   \centering
 <<fm3prplot,fig=TRUE,echo=FALSE,height=3.5>>=
-pr3 <- profile(fm3)
 print(xyplot(pr3, absVal=0, aspect=1.3, layout=c(4,1)))
 @   
   \caption{Profile plot of the parameters in model \code{fm3}.}
   \label{fig:fm3prplot}
 \end{figure}
-is shown in Figure~\ref{fig:fm3prplot} and the profile pairs plot
+is shown in Fig.~\ref{fig:fm3prplot} and the profile pairs plot
 \begin{figure}[tbp]
   \centering
 <<fm3prpairs,fig=TRUE,echo=FALSE,height=8>>=
@@ -461,79 +548,7 @@ print(splom(pr3))
   \caption{Profile pairs plot of the parameters in model \code{fm3}.}
   \label{fig:fm3prpairs}
 \end{figure}
-in Figure~\ref{fm3prpairs}.  The contours in the profile pairs plot
+in Fig.~\ref{fm3prpairs}.  The contours in the profile pairs plot
 correspond to pairwise marginal confidence regions with confidence
 levels 50\%, 80\%, 90\%, 95\% and 99\%.
 
-
-\section{Models incorporating covariates}
-\label{sec:covariates}
-
-<<fm4>>=
-(fm4 <- lmer(mathgain ~ I(mathkind-450) + sex + minority + ses
-             + housepov + (1|classid) + (1|schoolid), classroom))
-@ 
-
-A profile plot of the parameters in model \code{fm4}
-\begin{figure}[tbp]
-  \centering
-<<fm4prplot,fig=TRUE,echo=FALSE,height=3.5>>=
-pr4 <- profile(fm4)
-print(xyplot(pr4, absVal=0, aspect=1.3, layout=c(4,1)))
-@   
-  \caption{Profile plot of the parameters in model \code{fm4}.}
-  \label{fig:fm4prplot}
-\end{figure}
-is shown in Figure~\ref{fig:fm4prplot} and the profile pairs plot
-\begin{figure}[tbp]
-  \centering
-<<fm4prpairs,fig=TRUE,echo=FALSE,height=8>>=
-print(splom(pr4))
-@   
-  \caption{Profile pairs plot of the parameters in model \code{fm4}.}
-  \label{fig:fm4prpairs}
-\end{figure}
-in Figure~\ref{fm4prpairs}.  The contours in the profile pairs plot
-correspond to pairwise marginal confidence regions with confidence
-levels 50\%, 80\%, 90\%, 95\% and 99\%.
-
-\section{Rat Brain example}
-\label{sec:RatBrain}
-
-<<ratbraindat>>=
-ftable(xtabs(activate ~ animal + treatment + region, ratbrain))
-@ 
-
-Description of the Rat Brain data should go here.
-\begin{figure}[tbp]
-  \centering
-<<Ratbraindot,fig=TRUE,echo=FALSE,height=4>>=
-print(dotplot(region ~ activate | treatment, groups = animal,
-              ratbrain, type = c("p","a"), layout = c(1,2),
-              strip=FALSE, strip.left = TRUE,
-              auto.key = list(space = "right", lines = TRUE)))
-@   
-\caption[Activation of brain regions in rats]{Activation of brain
-  regions in rats}
-  \label{fig:Ratbraindot}
-\end{figure}
-
-\subsection{Structure of the formula used in \texttt{lmer}}
-\label{sec:lmerformula}
-
-At this point all that we need to know about the formula is that it
-consists of two expressions separated by a tilde ($\sim$), which is
-read as ``is modeled by''.  The expression on the left of the tilde is the
-response --- typically just the name of a variable in the data set but
-more complicated expressions are possible.  The expression on the
-right consists of one or more \emph{terms}, separated by plus ($+$)
-operators.  A random-effects term consists of two expressions
-separated by the vertical bar ($|$) operator, read as ``given'' or
-``by''.  The expression on the right of the vertical bar is evaluated
-as a factor, called the \emph{grouping factor} for the random effects.
-The random effects are associated with the levels of this factor.  In
-this section all the models we will fit have with \emph{simple, scalar
-  random effects}, meaning that there is exactly one random effect
-associated with each level of the grouping factor and it is an
-additive random effect.  In these cases the expression on the left of
-the vertical bar is ``\code{1}'', which denotes a constant.

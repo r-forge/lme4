@@ -21,6 +21,327 @@ options(width=80, show.signif.stars = FALSE,
   models and the computational approach used to evaluate or
   approximate the log-likelihood of a model/data/parameter value
   combination.}
+\subsection{Definitions of the Random Variables}
+\label{sec:defnRV}
+
+As mentioned in section~\ref{sec:memod}, the mixed-effects probability
+model is based on two vector-valued random variables: the
+$q$-dimensional vector of random effects, $\bc B$, and the
+$n$-dimensional response vector, $\bc Y$.  In our model for the
+\code{Dyestuff} data the dimension of the response vector is $n=30$
+and the dimension of the random effects vector is $q=6$.  
+
+In all the forms of mixed models that we will consider, the random
+effects vector has a multivariate Gaussian (also called ``normal'')
+distribution with mean vector $\vec 0$ and with a parameterized,
+$q\times q$, symmetric, variance-covariance matrix that we will write
+as $\Sigma_\theta$.  The notation indicates that the matrix $\Sigma$
+depends on a parameter vector that is written as $\vec\theta$ and
+which we call the \emph{variance-component parameters}, even though
+some of the elements of $\vec\theta$ may determine covariances and not
+variances.
+
+We write this distribution as
+\begin{equation}
+  \label{eq:unconditionalB}
+  \bc{B}\sim\mathcal{N}(\vec0,\Sigma_\theta) .
+\end{equation}
+Because this distribution does not depend on the value, $\vec y$, of
+the random variable, $\bc Y$, we say it is the \emph{unconditional}
+distribution of $\bc B$.
+
+To describe the probability model for the response, $\bc Y$, we
+provide the conditional distribution $(\bc Y|\bc B=\vec b)$, which is
+the distribution of the response vector, $\bc Y$, assuming that the
+value of the random effects vector, $\bc B$, is known to be $\vec b$.
+(In practice we never know the value $\vec b$ but, for the purpose of
+formulating the model, we will assume that we do.)  For all the forms
+of mixed models that we will consider, $\vec b$ changes the
+conditional distribution of $\bc Y$ by changing the conditional mean,
+$\vec\mu_{\bc Y|\bc B=\vec b}$.  Furthermore, the conditional mean
+response depends on $\vec b$ and on the fixed-effects parameter vector
+$\vec\beta$ only through the \emph{linear predictor}
+\begin{equation}
+  \label{eq:linpred}
+  \vec\gamma = \vec Z\vec b+\vec X\vec\beta
+\end{equation}
+where $\vec Z$ and $\vec X$ are known \emph{model matrices} of
+the appropriate size.
+
+To simplify notation, we will write the conditional mean,
+$\vec\mu_{\bc Y|\bc B=\vec b}$, as $\vec\mu$ without the subscript.
+Bear in mind that $\vec\mu$ will always represent the $n$-dimension
+vector that is the conditional mean of the response random variable,
+$\bc Y$, given a particular value, $\vec b$, of the random effects
+random variable $\bc B$.
+
+For all the forms of mixed models that will be considered in this book
+the fixed-effects parameter, $\vec\beta$, and the random effects
+vector, $\vec b$, determine the (conditional) mean, $\vec\mu$ through
+the linear predictor, $\vec\gamma$.  In the case of a linear mixed
+model $\vec\mu=\vec\gamma$ and the particular form of the conditional
+distribution is a ``spherical'' Gaussian.  That is
+\begin{equation}
+  \label{eq:condmeanY}
+  \vec\mu=\vec\gamma=\vec Z\vec b+\vec X\vec\beta
+\end{equation}
+and
+\begin{equation}
+  \label{eq:LMMconddist}
+  (\bc Y|\bc B=\vec b)\sim\mathcal{N}\left(\vec Z\vec b+\vec
+    X\vec\beta,\sigma^2\vec I_n\right) .
+\end{equation}
+
+The expression $\vec I_n$ denotes the identity matrix of size $n$.
+This is the $n\times n$ matrix whose diagonal elements are all unity
+and whose off-diagonal elements are all zero.  The parameter
+$\sigma$ is called the \emph{common scale parameter}.  Its square is the
+variance of the residual ``noise'' terms that cannot be explained by
+other parts of the model.  The name ``spherical'' is applied to
+Gaussian distributions of the form (\ref{eq:LMMconddist}) because the
+contours of constant probability density are spheres centered at $\vec
+Z\vec b+\vec X\vec\beta$ in the $n$-dimensional response space
+
+Because $\vec\mu$ (and, hence, $\vec\gamma$) are $n$-dimensional
+vectors, the model matrix $\vec Z$ must be $n\times q$ and the model
+matrix $\vec X$ must be $n\times p$, where $p$ is the dimension of the
+fixed-effects parameter vector, $\vec\beta$.  For the model fit to the
+\code{Dyestuff} data, $p=1$ and $\vec X$ is a $30\times 1$
+matrix, all of whose elements are unity.  The fixed-effects term
+\code{1} in a model formula generates a column of ones in the
+fixed-effects model matrix, $\vec X$.  For the model being considered
+here, this column of ones is the only column in $\vec X$.
+
+The form of the random-effects model matrix, $\vec Z$, and the form of
+the variance-covariance matrix, $\Sigma_\theta$, and the method by which
+$\Sigma_\theta$ is determined from the value of $\vec\theta$ are all based
+on the random-effects terms in the model formula.  As stated earlier,
+there is one random effects term, \code{(1 | Batch)}, in the formula
+for this model.  Random-effects terms are those that contain the
+vertical bar, \code{"|"}, character.  The \code{Batch} variable is the
+grouping factor for the random effects described by this term.  An
+expression for the grouping factor, usually just the name of a
+variable, occurs to the right of the vertical bar.  If the expression
+on the left of the vertical bar is \code{1}, as it is here, we
+describe the term as a \emph{simple, scalar, random-effects term}.
+The designation ``scalar'' means there will be exactly one random
+effect generated for each level of the grouping factor.  A simple,
+scalar term generates a block of indicator columns --- the indicators for
+the grouping factor --- in $\vec Z$.  Because there is only one
+random-effects term in this model and because that term is a simple,
+scalar term, the model matrix $\vec Z$ for this model is the indicator
+matrix for the levels of \code{Batch}.
+
+% A sparse matrix is one in which most of the elements are known to be
+% zero.  These elements are represented by a \code{"."} in this display.
+% The nature of an indicator matrix is such that only one element in
+% each row of the indicator matrix (corresponding to a column of \code{Zt}
+% shown above) is non-zero.  Sparse matrix
+% methods~\citep{davis06:csparse_book} for numerical linear algebra
+% provide special techniques for storing and manipulating such matrices.
+% These techniques are the basis of the numerical methods implemented in
+% \code{lmer}.
+
+When the model contains only one random-effects term and that term is
+a simple, scalar term, then the variance-covariance matrix
+$\Sigma_\theta$ is a non-negative multiple of $\vec I_q$, the
+$q\times q$ identity matrix.  Although we will defer until later the
+discussion of the exact form of $\Sigma_\theta$ for other
+models, we will now introduce a transformation of
+$\Sigma_\theta$ that we will use throughout.
+
+\subsection{The relative covariance factor}
+\label{sec:relcovfac}
+
+A variance-covariance matrix such as $\Sigma_\theta$ is required to be
+symmetric and \emph{positive semi-definite}, which means, in effect,
+that $\Sigma_\theta$ has the matrix equivalent of a ``square root''.
+Recall that a scalar variance, such as $\sigma^2$ in
+(\ref{eq:LMMconddist}), must be non-negative and that the standard
+deviation, $\sigma\ge0$, is the square root of the variance.  A
+variance-covariance matrix has a similar property.  There must be a
+matrix, say $\Lambda_\theta$, such that when it is multiplied by its
+transpose it produces the original matrix, $\Sigma_\theta$.  This is
+not quite the same ``squaring'' the matrix $\Lambda_\theta$ because it
+is multiplied by its transpose, $\Lambda_\theta\trans$, so as to create a
+product that is symmetric, as $\Sigma_\theta$ must be.
+
+It turns out that we can simplify many subsequent formulas if we
+define $\Lambda_\theta$ to be a multiple of the square-root
+factor, which we call the \emph{relative covariance factor}, defined
+to satisfy
+\begin{equation}
+  \label{eq:relcovfac}
+  \Sigma_\theta=\sigma^2\Lambda_\theta
+  \Lambda_\theta\trans .
+\end{equation}
+The scalar $\sigma^2$ is the square of the common scale parameter
+introduced in (\ref{eq:LMMconddist}).  The name ``relative covariance
+factor'' indicates that $\Lambda_\theta$ is the factor of the
+variance-covariance matrix, $\Sigma_\theta$, of $\bc B$ relative to
+the variance, $\sigma^2$, in the conditional distribution $(\bc Y|\bc
+B=\vec b)$.
+
+For the \code{Dyestuff} model, which has only one simple, scalar
+random-effects term, $\Sigma_\theta$ and
+$\Lambda_\theta$ are both multiples of $\vec I_6$, the identity
+matrix of size six and $\theta$ is a one-dimensional parameter.
+Setting $\theta=\frac{\sigma_1}{\sigma}$ we can write
+\begin{equation}
+  \label{eq:lambdatheta}
+  \Lambda_\theta = \theta\vec I_6 \text{ and }\Sigma_\theta=\theta^2\vec I_6
+\end{equation}
+subject to the constraint that $\theta\ge0$.  Notice that the
+constraint allows for $\theta$ to be zero, in which case both
+$\Lambda_0$ and $\Sigma_0$ are $6\times6$ matrices of zeros.
+
+\subsection{The ``Spherical'' Random Effects Vector}
+\label{sec:sphericalRE}
+
+Because we isolate the effect of $\vec b$ on the conditional
+distribution, $(\bc Y|\bc B=\vec b)$, in the linear predictor,
+$\vec\gamma$, we can use a linear transformation of $\bc B$ in place
+of $\bc B$.  Because we wish to allow for degenerate models, we define
+the transformation in the other direction, from a $q$-dimensional
+``spherical'' Gaussian random variable, $\bc U$, to $\bc B$ as
+\begin{equation}
+  \label{eq:3}
+  \bc B=\Lambda_\theta\bc U,\quad
+  \bc U\sim\mathcal{N}(\vec 0,\sigma^2\vec I_q).
+\end{equation}
+so the transformation is well-defined, even when $\Lambda_\theta$ is
+singular, and produces the desired distribution, $\bc
+B\sim\mathcal{N}(\vec 0,\Sigma_\theta)$.
+
+The linear predictor, $\vec\gamma$, can be expressed in terms of $\vec
+u$ as
+\begin{equation}
+  \label{eq:4}
+  \vec\gamma=\vec Z\Lambda_\theta\vec u + \vec X\vec\beta.
+\end{equation}
+
+Because we observe $\vec y$ and do not observe $\vec b$ or $\vec u$,
+the conditional distribution of interest, for the purposes of
+statistical inference, is $(\bc U|\bc Y=\vec y)$ (or, equivalently,
+$(\bc B|\bc Y=\vec y)$).  For a linear mixed model in which both $\bc
+Y$ and $\bc U$ have spherical Gaussian distributions, with the same
+scale parameter, $\sigma$, we can explicitly derive the conditional
+distribution $(\bc U|\bc Y=\vec y)$.  We will state some of the
+characteristics of this distribution here and defer the actual
+derivation until Chapter~\ref{chap:computational}.
+
+The conditional distribution, $(\bc U|\bc Y=\vec y)$, is a multivariate
+Gaussian whose mean, which we will write as $\tilde{\vec u}$, is the
+solution to the penalized least squares problem
+\begin{equation}
+  \label{eq:LMMcondmode}
+  \begin{aligned}
+  \tilde{\vec u}&=\arg\min_{\vec u}\left\{\|\vec y-\vec\gamma\|^2+
+    \|\vec u\|^2\right\}\\
+    &=\arg\min_{\vec u}\left\{\|(\vec y-\vec X\vec\beta)-\vec
+      Z\Lambda_\theta\vec u\|^2+
+    \|\vec u\|^2\right\} .
+  \end{aligned}
+\end{equation}
+(The notation $\arg\min_{\vec u}$ means that $\tilde{\vec u}$ is the
+value of $\vec u$ that minimizes the expression on the right.)  We say
+this is a \emph{penalized least squares} problem because it requires
+determining the value of $\vec u$ that minimizes the sum of a residual
+sum of squares, $\|(\vec y-\vec X\vec\beta)-\vec Z\Lambda_\theta\vec
+u\|^2$, plus $\|u\|^2$, which we describe as a penalty on the size of
+$\vec u$.
+
+One way of expressing a penalized least squares problem like this is
+by incorporating the penalty as ``pseudo-data'' in a standard least
+squares problem.  We extend the observed response vector, which in
+this case is actually $\vec y-\vec X\vec\beta$ because we are
+minimizing with respect to $\vec u$ only, with $q$ responses that are
+0 and we extend the predictor expression, $\vec Z\Lambda_\theta\vec u$
+with $\vec I_q\vec u$.  Writing this as a least squares problem produces
+\begin{equation}
+  \label{eq:PLSLMM}
+  \tilde{\vec u}=\arg\min_{\vec u}\left\|
+    \begin{bmatrix}
+      \vec y-\vec X\vec\beta\\
+      \vec 0
+    \end{bmatrix} -
+    \begin{bmatrix}
+      \vec Z\Lambda_\theta\\
+      \vec I_q
+    \end{bmatrix}\vec u\right\|^2
+\end{equation}
+with a solution that satisfies
+\begin{equation}
+  \label{eq:LMMPLSsol}
+  \left(\Lambda_\theta\trans\vec Z\trans\vec Z\Lambda_\theta+\vec
+    I_q\right)\tilde{\vec u}
+  =\Lambda_\theta\trans\vec Z\trans\left[\vec y-\vec X\vec\beta\right]
+\end{equation}
+
+To evaluate $\tilde{\vec u}$ we form the \emph{sparse Cholesky
+  factor}, $\vec L_\theta$, which is a lower triangular $q\times q$
+matrix that satisfies
+\begin{equation}
+  \label{eq:sparseCholesky}
+  \vec L_\theta\vec L_\theta\trans=
+  \Lambda_\theta\trans\vec Z\trans\vec Z\Lambda_\theta+\vec I_q .
+\end{equation}
+(In chapter~\ref{chap:computational} we will modify this definition slightly by incorporating a
+``fill-reducing'' permutation matrix but that is a computational
+detail and does not affect the results here.)  Obtaining the Cholesky
+factor, $\vec L_\theta$, may not seem to be great progress because we
+now need to solve
+\begin{equation}
+  \label{eq:LMMCholsol}
+  \vec L_\theta\vec L_\theta\trans\tilde{\vec u}
+  =\Lambda_\theta\trans\vec Z\trans\left[\vec y-\vec X\vec\beta\right]
+\end{equation}
+for $\tilde{\vec u}$.  However, this is the key step in computational
+methods in the \package{lme4} package. The ability to evaluate $\vec
+L_\theta$ rapidly for many different values of $\vec\theta$ is what
+makes the computational methods in \package{lme4} feasible, even when
+applied to very large data sets with complex structure.  Determining
+$\tilde{\vec u}$ through (\ref{eq:LMMCholsol}) is a straightforward
+process because $\vec L_\theta$ is lower triangular.
+
+After evaluating $\vec L_\theta$ and using that to solve for
+$\tilde{\vec u}$, which also produces $r^2_{\beta,\theta}$, the value
+of the penalized residual sum of squares (PRSS) at $\tilde{\vec u}$, we can
+evaluate the likelihood, which is a function of the parameters,
+$\vec\beta$, $\vec\theta$ and $\sigma$, given the observed data, $\vec
+y$. On the deviance scale, which is negative twice the (natural)
+logarithm of the likelihood, this is
+\begin{equation}
+  \label{eq:LMMdeviance}
+  d(\vec\theta,\vec\beta,\sigma|\vec y)
+  =n\log(2\pi\sigma^2)+\log(|\vec L_\theta|^2)+\frac{r^2_{\beta,\theta}}{\sigma^2}.
+\end{equation}
+%(The notation $|\vec L_\theta|$ denotes the \emph{determinant} of
+%$\vec L_\theta$. In the case of a triangular matrix, such as $\vec
+%L_\theta$, this is simply the product of the diagonal elements.)
+The maximum likelihood estimates of the parameters are those that
+minimize the deviance, (\ref{eq:LMMdeviance}).
+
+Equation (\ref{eq:LMMdeviance}) is a remarkably compact expression,
+considering that the class of models to which it applies is very large
+indeed.  However, we can do better than this if we notice that
+$\vec\beta$ enters (\ref{eq:LMMdeviance}) only through the PRSS
+$r^2_{\beta,\theta}$, and, for any value of
+$\vec\theta$, minimizing this expression with respect to $\vec\beta$
+is just another least squares problem.  Let
+$\widehat{\vec\beta}_\theta$ be the value of $\vec\beta$ that
+minimizes the PRSS simultaneously with respect to
+$\vec\beta$ and $\vec u$ and let $r^2_\theta$ be the minimum PRSS.
+Furthermore, if we set $\widehat{\sigma^2}_\theta=r^2_\theta/n$,
+which is the value of $\sigma^2$ that minimizes the deviance for a
+given value of $r^2_\theta$, then the \emph{profiled deviance}, which
+is a function of $\vec\theta$ only, is
+\begin{equation}
+  \label{eq:LMMprofdeviance}
+  \tilde{d}(\vec\theta|\vec y)
+  =\log(|\vec L_\theta|^2)+n\left[1 +
+    \log\left(\frac{2 \pi r^2_\theta}{n}\right)\right].
+\end{equation}
 
 \section{Introduction}
 \label{sec:intro}
