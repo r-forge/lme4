@@ -371,11 +371,7 @@ obtained by specifying the optional argument \code{REML = FALSE}.
 the assignment and the display of the fitted model into a single
 step. The redundant set of parentheses surrounding the assignment
 causes the result of the assignment to be displayed. We will use this
-device often in what follows.  This code fragment also illustrates, in
-the second line, the continuation prompt, \code{"+"}.  When an
-incomplete \R{} expression is submitted, the prompt is changed from
-\code{">"} to \code{"+"}, indicating that additional input is required
-before the expression can be evaluated.)
+device often in what follows.)
 
 The display of a model fit by maximum likelihood provides several
 other model-fit statistics such as Akaike's Information Criterion
@@ -472,10 +468,10 @@ estimate $\widehat{\sigma}_1=0$ in both the REML
 and the ML fits.
 <<fm2ML>>=
 (fm2ML <- update(fm2, REML = FALSE))
-@ 
-(Note the use of the \code{update} function to re-fit a model with
-different values of some of the arguments.  In a case like this where
-the call to fit the original model is not very complicated the use of
+@
+(Note the use of the \code{update} function to re-fit a model
+changing some of the arguments.  In a case like this, where the call
+to fit the original model is not very complicated, the use of
 \code{update} is not that much simpler than repeating the original
 call to \code{lmer} with extra arguments.  For complicated model fits
 it can be.)
@@ -512,7 +508,7 @@ models, in the sense that they correspond in the degenerate case, is
 part of the motivation for the use of the REML criterion for fitting
 mixed-effects models.
 
-\subsection{Further assessment of the fitted models}
+\subsection{Further Assessment of the Fitted Models}
 \label{sec:furtherassess}
 
 The parameter estimates in a statistical model represent our ``best
@@ -530,7 +526,7 @@ the conditional distribution of the random effects given the data.
 Before we get to these sections, however, we should state in some
 detail the probability model for linear mixed-effects and establish
 some definitions and notation.  In particular, before we can discuss
-profiling the deviance, we should define the deviance and we do that
+profiling the deviance, we should define the deviance.  We do that
 in the next section.
 
 \section{The Linear Mixed-effects Probability Model}
@@ -542,222 +538,167 @@ the theory of probability.  Before proceeding further we should
 clarify the linear mixed-effects probability model and define several
 terms and concepts that will be used throughout the book.
 
-\subsection{Important definitions and results}
+\subsection{Definitions and Results}
 \label{sec:definitions}
 
-Because some readers may find the rest of this section uncomfortably
-complex we will first highlight a few important definitions and
-results.  These results are presented without derivation and with
-minimal explanation so that those readers who prefer not to be exposed
-to the longer explanations and derivations that follow can read this
-subsection then skip the rest of the section.  The equations in this
-subsection are not numbered because they are repeated for reference in
-later subsections.
+In this section we provide some definitions and formulas without
+derivation and with minimal explanation, so that we can use these
+terms in what follows.  In Chapter~\ref{chap:computational} we revisit
+these definitions providing derivations and more explanation.
 
-As stated earlier, a mixed model incorporates two random variables,
-$\bc B$, the $q$-dimensional vector of random effects, and $\bc Y$,
-the $n$-dimensional response vector.  In a linear mixed model the
-unconditional distribution of $\bc B$ and the conditional distribution
-$(\bc Y|\bc B=\vec b)$ are
-\begin{displaymath}
+As mentioned in section~\ref{sec:memod}, a mixed model incorporates
+two random variables: $\bc B$, the $q$-dimensional vector of random
+effects, and $\bc Y$, the $n$-dimensional response vector.  In a
+linear mixed model the unconditional distribution of $\bc B$ and the
+conditional distribution, $(\bc Y|\bc B=\vec b)$, are both
+multivariate Gaussian (or ``normal'') distributions,
+\begin{equation}
   \begin{aligned}
     (\bc Y|\bc B=\vec b)&\sim\mathcal{N}(\vec X\vec\beta+\vec Z\vec
     b,\sigma^2\vec I)\\
     \bc{B}&\sim\mathcal{N}(\vec0,\Sigma_\theta) .
   \end{aligned}
-\end{displaymath}
-That is, they are both multivariate Gaussian (or ``normal'')
-distributions. The \emph{conditional mean} of $\bc Y$, given $\bc
-B=\vec b$, is the \emph{linear predictor}, $\vec X\vec\beta+\vec Z\vec
-b$, which depends on the $p$-dimensional \emph{fixed-effects
-  parameter}, $\vec \beta$, and on $\vec b$.  The \emph{model
-  matrices}, $\vec X$ and $\vec Z$, which are of dimension $n\times p$
-and $n\times q$, respectively, are determined from the formula for the
-model and the values of covariates.  The matrix $\vec Z$ is always
-sparse (i.e. most of the elements in the matrix are zero).
+\end{equation}
+The \emph{conditional mean} of $\bc Y$, given $\bc B=\vec b$, is the
+\emph{linear predictor}, $\vec X\vec\beta+\vec Z\vec b$, which depends
+on the $p$-dimensional \emph{fixed-effects parameter}, $\vec \beta$,
+and on $\vec b$.  The \emph{model matrices}, $\vec X$ and $\vec Z$, of
+dimension $n\times p$ and $n\times q$, respectively, are determined
+from the formula for the model and the values of covariates.  Although
+the matrix $\vec Z$ can be large (i.e. both $n$ and $q$ can be large),
+it is sparse (i.e. most of the elements in the matrix are zero).
 
 The \emph{relative covariance factor}, $\Lambda_\theta$ is a
 $q\times q$ matrix, depending on the \emph{variance-component
   parameter}, $\vec\theta$, and generating the symmetric $q\times q$
 variance-covariance matrix, $\Sigma_\theta$, according to
-\begin{displaymath}
+\begin{equation}
   \Sigma_\theta=\sigma^2\Lambda_\theta\Lambda_\theta\trans .
-\end{displaymath}
+\end{equation}
 The \emph{spherical random effects}, $\bc U\sim\mathcal{N}(\vec
 0,\sigma^2\vec I_q)$, determine $\bc B$ according to
-\begin{displaymath}
+\begin{equation}
   \bc B=\Lambda_\theta\bc U .
-\end{displaymath}
-The \emph{sparse Cholesky factor}, $\vec L_\theta$, is a lower
+\end{equation}
+
+The \emph{penalized residual sum of squares} (PRSS),
+\begin{equation}
+  r^2(\vec\theta,\vec\beta,\vec u)=\left\{\|\vec y -\vec X\vec\beta -\vec
+    Z\Lambda_\theta\vec u\|^2+\|\vec u\|^2\right\},
+\end{equation}
+is the sum of the residual sum of squares, measuring fidelity of the
+model to the data, and a penalty on the size of $\vec u$, measuring
+the complexity of the model.  Minimizing $r^2$ with respect to $\vec u$,
+\begin{equation}
+  r^2_{\beta,\theta} =\min_{\vec u}\left\{\|\vec y -\vec X\vec\beta -\vec
+    Z\Lambda_\theta\vec u\|^2+\|\vec u\|^2\right\}
+\end{equation}
+is a direct (i.e. non-iterative) computation for which we calculate
+the \emph{sparse Cholesky factor}, $\vec L_\theta$, which is a lower
 triangular $q\times q$ matrix satisfying
-\begin{displaymath}
+\begin{equation}
   \vec L_\theta\vec L_\theta\trans=
   \Lambda_\theta\trans\vec Z\trans\vec Z\Lambda_\theta+\vec I_q .
-\end{displaymath}
-where $\vec I_q$ is the $q\times q$ \emph{identity matrix}.  The
-\emph{conditional mode}, $\tilde{\vec u}_\theta$, of the spherical random
-effects and the conditional estimate, $\widehat{\beta}_\theta$, are the
-values that minimize the \emph{penalized residual sum of squares}
-(PRSS) and $r^2_\theta$ is the value at the minimum.  That is,
-\begin{displaymath}
-  r^2_\theta=\min_{u,\beta}\left\{\|\vec y -\vec X\vec\beta -\vec
-    Z\Lambda_\theta\vec u\|^2+\|\vec u\|^2\right\} .
-\end{displaymath}
+\end{equation}
+where $\vec I_q$ is the $q\times q$ \emph{identity matrix}. 
 
-The \emph{maximum likelihood estimate}, $\widehat{\theta}$, is the
-value that minimizes \emph{profiled deviance}
-\begin{displaymath}
-  \tilde{d}(\vec\theta|\vec y)
-  =\log(|\vec L_\theta|^2)+n\left(1 +
-    \log\left(\frac{2\pi r^2_\theta}{n}\right)\right).
-\end{displaymath}
+The \emph{deviance} (negative twice the log-likelihood) of the
+parameters, given the data, $\vec y$, is
+\begin{equation}
+  \label{eq:LMMdeviance}
+  d(\vec\theta,\vec\beta,\sigma|\vec y)
+  =n\log(2\pi\sigma^2)+\log(|\vec L_\theta|^2)+\frac{r^2_{\beta,\theta}}{\sigma^2}.
+\end{equation}
 where $|\vec L_\theta|$ denotes the \emph{determinant} of $\vec
 L_\theta$.  Because $\vec L_\theta$ is triangular, its determinant is
 the product of its diagonal elements.
 
-We use numerical optimization of $\tilde{d}(\vec\theta|\vec y)$ to
-determine $\widehat{\vec\theta}$. In the process of evaluating
-$\tilde{d}((\widehat{\vec\theta}|\vec y)$ we determine
-$\widehat{\beta}$, $\tilde{\vec u}_{\widehat{\theta}}$ and
+Because the conditional mean, $\vec\mu$, is a linear function of
+$\vec\beta$ and $\vec u$, minimization of the PRSS with respect to
+both $\vec\beta$ and $\vec u$ to produce
+\begin{equation}
+  r^2_\theta =\min_{\vec\beta,\vec u}\left\{\|\vec y -\vec X\vec\beta -\vec
+    Z\Lambda_\theta\vec u\|^2+\|\vec u\|^2\right\}
+\end{equation}
+is also a direct calculation.  The values of $\vec u$ and $\vec\beta$
+that provide this minimum are called, respectively, the
+\emph{conditional mode}, $\tilde{\vec u}_\theta$, of the spherical
+random effects and the conditional estimate, $\widehat{\beta}_\theta$,
+of the fixed effects.  At the conditional estimate of the fixed
+effects the deviance is
+\begin{equation}
+  \label{eq:LMMdeviance}
+  d(\vec\theta,\widehat{\beta}_\theta,\sigma|\vec y)
+  =n\log(2\pi\sigma^2)+\log(|\vec L_\theta|^2)+\frac{r^2_\theta}{\sigma^2}.
+\end{equation}
+Minimizing this expression with respect to $\sigma^2$ produces the
+conditional estimate
+\begin{equation}
+  \widehat{\sigma^2}_\theta=r^2_\theta/n 
+\end{equation}
+which provides the \emph{profiled deviance},
+\begin{equation}
+  \tilde{d}(\vec\theta|\vec y)=d(\vec\theta,\widehat{\beta}_\theta,\widehat{\sigma}_\theta|\vec y)
+  =\log(|\vec L_\theta|^2)+n\left(1 +
+    \log\left(\frac{2\pi r^2_\theta}{n}\right)\right),
+\end{equation}
+a function of $\vec\theta$ alone.
+
+The \emph{maximum likelihood estimate} (MLE) of $\vec\theta$, written
+$\widehat{\vec\theta}$, is the value that minimizes the profiled
+deviance.  We determine this value by numerical optimization.  In the
+process of evaluating $\tilde{d}((\widehat{\vec\theta}|\vec y)$ we
+determine $\widehat{\beta}$, $\tilde{\vec u}_{\widehat{\theta}}$ and
 $r^2_{\widehat{\theta}}$, from which we can evaluate
-$\widehat{\sigma}=r^2_{\widehat{\theta}}/n$.
+$\widehat{\sigma}=\sqrt{r^2_{\widehat{\theta}}/n}$.
 
 The elements of the conditional mode of $\bc B$, evaluated at the
 parameter estimates,
-\begin{displaymath}
+\begin{equation}
 \tilde{b}_{\widehat{\theta}}=\Lambda_{\widehat{\theta}}\tilde{u}_{\widehat{\theta}}
-\end{displaymath}
+\end{equation}
 are sometimes called the \emph{best linear unbiased predictors} or
-BLUPs of the random effects.
+BLUPs of the random effects.  Other than having an appealing acronym,
+I don't find the term particularly instructive (what is a ``linear
+unbiased predictor'' and in what sense are these the ``best''?) and
+prefer the term ``conditional mode'', which is explained in
+section~\ref{sec:assessRE}.
 
-\subsection{Definitions of the Random Variables}
-\label{sec:defnRV}
+\subsection{Matrices and Vectors in the Fitted Model Object}
+\label{sec:FittedModel}
 
-As mentioned in section~\ref{sec:memod}, the mixed-effects probability
-model is based on two vector-valued random variables: the
-$q$-dimensional vector of random effects, $\bc B$, and the
-$n$-dimensional response vector, $\bc Y$.  In our model for the
-\code{Dyestuff} data the dimension of the response vector is $n=30$
-and the dimension of the random effects vector is $q=6$.  
-
-In all the forms of mixed models that we will consider, the random
-effects vector has a multivariate Gaussian (also called ``normal'')
-distribution with mean vector $\vec 0$ and with a parameterized,
-$q\times q$, symmetric, variance-covariance matrix that we will write
-as $\Sigma_\theta$.  The notation indicates that the matrix $\Sigma$
-depends on a parameter vector that is written as $\vec\theta$ and
-which we call the \emph{variance-component parameters}, even though
-some of the elements of $\vec\theta$ may determine covariances and not
-variances.
-
-We write this distribution as
-\begin{equation}
-  \label{eq:unconditionalB}
-  \bc{B}\sim\mathcal{N}(\vec0,\Sigma_\theta) .
-\end{equation}
-Because this distribution does not depend on the value, $\vec y$, of
-the random variable, $\bc Y$, we say it is the \emph{unconditional}
-distribution of $\bc B$.
-
-To describe the probability model for the response, $\bc Y$, we
-provide the conditional distribution $(\bc Y|\bc B=\vec b)$, which is
-the distribution of the response vector, $\bc Y$, assuming that the
-value of the random effects vector, $\bc B$, is known to be $\vec b$.
-(In practice we never know the value $\vec b$ but, for the purpose of
-formulating the model, we will assume that we do.)  For all the forms
-of mixed models that we will consider, $\vec b$ changes the
-conditional distribution of $\bc Y$ by changing the conditional mean,
-$\vec\mu_{\bc Y|\bc B=\vec b}$.  Furthermore, the conditional mean
-response depends on $\vec b$ and on the fixed-effects parameter vector
-$\vec\beta$ only through the \emph{linear predictor}
-\begin{equation}
-  \label{eq:linpred}
-  \vec\gamma = \vec Z\vec b+\vec X\vec\beta
-\end{equation}
-where $\vec Z$ and $\vec X$ are known \emph{model matrices} of
-the appropriate size.
-
-To simplify notation, we will write the conditional mean,
-$\vec\mu_{\bc Y|\bc B=\vec b}$, as $\vec\mu$ without the subscript.
-Bear in mind that $\vec\mu$ will always represent the $n$-dimension
-vector that is the conditional mean of the response random variable,
-$\bc Y$, given a particular value, $\vec b$, of the random effects
-random variable $\bc B$.
-
-For all the forms of mixed models that will be considered in this book
-the fixed-effects parameter, $\vec\beta$, and the random effects
-vector, $\vec b$, determine the (conditional) mean, $\vec\mu$ through
-the linear predictor, $\vec\gamma$.  In the case of a linear mixed
-model $\vec\mu=\vec\gamma$ and the particular form of the conditional
-distribution is a ``spherical'' Gaussian.  That is
-\begin{equation}
-  \label{eq:condmeanY}
-  \vec\mu=\vec\gamma=\vec Z\vec b+\vec X\vec\beta
-\end{equation}
-and
-\begin{equation}
-  \label{eq:LMMconddist}
-  (\bc Y|\bc B=\vec b)\sim\mathcal{N}\left(\vec Z\vec b+\vec
-    X\vec\beta,\sigma^2\vec I_n\right) .
-\end{equation}
-
-The expression $\vec I_n$ denotes the identity matrix of size $n$.
-This is the $n\times n$ matrix whose diagonal elements are all unity
-and whose off-diagonal elements are all zero.  The parameter
-$\sigma$ is called the \emph{common scale parameter}.  Its square is the
-variance of the residual ``noise'' terms that cannot be explained by
-other parts of the model.  The name ``spherical'' is applied to
-Gaussian distributions of the form (\ref{eq:LMMconddist}) because the
-contours of constant probability density are spheres centered at $\vec
-Z\vec b+\vec X\vec\beta$ in the $n$-dimensional response space
-
-Because $\vec\mu$ (and, hence, $\vec\gamma$) are $n$-dimensional
-vectors, the model matrix $\vec Z$ must be $n\times q$ and the model
-matrix $\vec X$ must be $n\times p$, where $p$ is the dimension of the
-fixed-effects parameter vector, $\vec\beta$.  For the model fit to the
-\code{Dyestuff} data, $p=1$ and $\vec X$ is a $30\times 1$
-matrix, all of whose elements are unity.  The fixed-effects term
-\code{1} in a model formula generates a column of ones in the
-fixed-effects model matrix, $\vec X$.  For the model being considered
-here, this column of ones is the only column in $\vec X$.
-
-The form of the random-effects model matrix, $\vec Z$, and the form of
-the variance-covariance matrix, $\Sigma_\theta$, and the method by which
-$\Sigma_\theta$ is determined from the value of $\vec\theta$ are all based
-on the random-effects terms in the model formula.  As stated earlier,
-there is one random effects term, \code{(1 | Batch)}, in the formula
-for this model.  Random-effects terms are those that contain the
-vertical bar, \code{"|"}, character.  The \code{Batch} variable is the
-grouping factor for the random effects described by this term.  An
-expression for the grouping factor, usually just the name of a
-variable, occurs to the right of the vertical bar.  If the expression
-on the left of the vertical bar is \code{1}, as it is here, we
-describe the term as a \emph{simple, scalar, random-effects term}.
-The designation ``scalar'' means there will be exactly one random
-effect generated for each level of the grouping factor.  A simple,
-scalar term generates a block of indicator columns --- the indicators for
-the grouping factor --- in $\vec Z$.  Because there is only one
-random-effects term in this model and because that term is a simple,
-scalar term, the model matrix $\vec Z$ for this model is the indicator
-matrix for the levels of \code{Batch}.
-
-The transpose of this matrix, of dimension $6\times 30$, is stored as
-a sparse matrix in the environment of the fitted model as \code{Zt}.
-<<fm1Zt>>=
-env(fm1)$Zt
+The optional argument, \code{verbose = TRUE}, in a call to \code{lmer}
+produces output showing the progress of the iterative optimization of
+$\tilde{d}(\vec\theta|\vec y)$.
+<<fm1MLverb>>=
+fm1ML <- lmer(Yield ~ 1|Batch, Dyestuff, REML = FALSE, verbose = TRUE)
 @ 
-A sparse matrix is one in which most of the elements are known to be
-zero.  These elements are represented by a \code{"."} in this display.
-The nature of an indicator matrix is such that only one element in
-each row of the indicator matrix (corresponding to a column of \code{Zt}
-shown above) is non-zero.  Sparse matrix
-methods~\citep{davis06:csparse_book} for numerical linear algebra
-provide special techniques for storing and manipulating such matrices.
-These techniques are the basis of the numerical methods implemented in
-\code{lmer}.
-
+The algorithm converges in 6 iterations to a profiled deviance of
+\Sexpr{sprintf("%.5f", deviance(fm1ML))}
+at $\theta=$\Sexpr{sprintf("%.6f", fm1ML@getPars())}.
+  
+The actual values of many of the matrices and vectors defined above
+are available in the \emph{environment} of the fitted model object,
+accessed with the \code{env} function.  For example,
+$\Lambda_{\widehat{\theta}}$ is
+<<fm1MLLambda>>=
+env(fm1ML)$Lambda
+@ 
 Often we will show the structure of sparse matrices as an image
-(Figure~\ref{fig:fm1Ztimage}).
+(Figure~\ref{fig:fm1Lambdaimage}).
+\begin{figure}[tbp]
+  \centering
+<<fm1Lambdaimage,fig=TRUE,echo=FALSE,height=2.5>>=
+print(image(env(fm1)$Lambda, sub=NULL))
+@   
+\caption[Image of the $\Lambda$ for model \texttt{fm1ML}]{Image of the
+  relative covariance factor, $\Lambda_{\widehat{\theta}}$ for model
+  \code{fm1ML}.  The non-zero elements are shown as darkened squares.
+  The zero elements are blank.}
+  \label{fig:fm1Lambdaimage}
+\end{figure}
+Especially for large sparse matrices, the image conveys the structure
+more compactly than does the printed representation.
 \begin{figure}[tbp]
   \centering
 <<fm1Ztimage,fig=TRUE,echo=FALSE,height=2.5>>=
@@ -770,247 +711,110 @@ print(image(env(fm1)$Zt, sub=NULL))
     elements are blank.}
   \label{fig:fm1Ztimage}
 \end{figure}
-Especially for large sparse matrices, the image conveys its structure
-more compactly than does the printed representation.
 
-When the model contains only one random-effects term and that term is
-a simple, scalar term, then the variance-covariance matrix
-$\Sigma_\theta$ is a non-negative multiple of $\vec I_q$, the
-$q\times q$ identity matrix.  Although we will defer until later the
-discussion of the exact form of $\Sigma_\theta$ for other
-models, we will now introduce a transformation of
-$\Sigma_\theta$ that we will use throughout.
+In this simple model $\Lambda=\theta\vec I_6$ is a multiple of the
+identity matrix and the $30\times 6$ model matrix $\vec Z$, whose
+transpose is shown in Figure~\ref{fig:fm1Ztimage}, consists of the
+indicator columns for \code{Batch}.  Because the data are balanced
+with respect to \code{Batch}, the Cholesky factor, $\vec L$ is also a
+multiple of the identity (you can check this with
+\code{image(env(fm1ML)\$L}).  The vectors $\vec u$ and $\vec b$ and
+the matrix $\vec X$ have the same names in \code{env(fm1ML)}.  The
+vector $\beta$ is called \code{fixef}.
 
-\subsection{The relative covariance factor}
-\label{sec:relcovfac}
-
-A variance-covariance matrix such as $\Sigma_\theta$ is required to be
-symmetric and \emph{positive semi-definite}, which means, in effect,
-that $\Sigma_\theta$ has the matrix equivalent of a ``square root''.
-Recall that a scalar variance, such as $\sigma^2$ in
-(\ref{eq:LMMconddist}), must be non-negative and that the standard
-deviation, $\sigma\ge0$, is the square root of the variance.  A
-variance-covariance matrix has a similar property.  There must be a
-matrix, say $\Lambda_\theta$, such that when it is multiplied by its
-transpose it produces the original matrix, $\Sigma_\theta$.  This is
-not quite the same ``squaring'' the matrix $\Lambda_\theta$ because it
-is multiplied by its transpose, $\Lambda_\theta\trans$, so as to create a
-product that is symmetric, as $\Sigma_\theta$ must be.
-
-It turns out that we can simplify many subsequent formulas if we
-define $\Lambda_\theta$ to be a multiple of the square-root
-factor, which we call the \emph{relative covariance factor}, defined
-to satisfy
-\begin{equation}
-  \label{eq:relcovfac}
-  \Sigma_\theta=\sigma^2\Lambda_\theta
-  \Lambda_\theta\trans .
-\end{equation}
-The scalar $\sigma^2$ is the square of the common scale parameter
-introduced in (\ref{eq:LMMconddist}).  The name ``relative covariance
-factor'' indicates that $\Lambda_\theta$ is the factor of the
-variance-covariance matrix, $\Sigma_\theta$, of $\bc B$ relative to
-the variance, $\sigma^2$, in the conditional distribution $(\bc Y|\bc
-B=\vec b)$.
-
-For the \code{Dyestuff} model, which has only one simple, scalar
-random-effects term, $\Sigma_\theta$ and
-$\Lambda_\theta$ are both multiples of $\vec I_6$, the identity
-matrix of size six and $\theta$ is a one-dimensional parameter.
-Setting $\theta=\frac{\sigma_1}{\sigma}$ we can write
-\begin{equation}
-  \label{eq:lambdatheta}
-  \Lambda_\theta = \theta\vec I_6 \text{ and }\Sigma_\theta=\theta^2\vec I_6
-\end{equation}
-subject to the constraint that $\theta\ge0$.  Notice that the
-constraint allows for $\theta$ to be zero, in which case both
-$\Lambda_0$ and $\Sigma_0$ are $6\times6$ matrices of zeros.
-
-\subsection{The ``Spherical'' Random Effects Vector}
-\label{sec:sphericalRE}
-
-Because we isolate the effect of $\vec b$ on the conditional
-distribution, $(\bc Y|\bc B=\vec b)$, in the linear predictor,
-$\vec\gamma$, we can use a linear transformation of $\bc B$ in place
-of $\bc B$.  Because we wish to allow for degenerate models, we define
-the transformation in the other direction, from a $q$-dimensional
-``spherical'' Gaussian random variable, $\bc U$, to $\bc B$ as
-\begin{equation}
-  \label{eq:3}
-  \bc B=\Lambda_\theta\bc U,\quad
-  \bc U\sim\mathcal{N}(\vec 0,\sigma^2\vec I_q).
-\end{equation}
-so the transformation is well-defined, even when $\Lambda_\theta$ is
-singular, and produces the desired distribution, $\bc
-B\sim\mathcal{N}(\vec 0,\Sigma_\theta)$.
-
-The linear predictor, $\vec\gamma$, can be expressed in terms of $\vec
-u$ as
-\begin{equation}
-  \label{eq:4}
-  \vec\gamma=\vec Z\Lambda_\theta\vec u + \vec X\vec\beta.
-\end{equation}
-
-Because we observe $\vec y$ and do not observe $\vec b$ or $\vec u$,
-the conditional distribution of interest, for the purposes of
-statistical inference, is $(\bc U|\bc Y=\vec y)$ (or, equivalently,
-$(\bc B|\bc Y=\vec y)$).  For a linear mixed model in which both $\bc
-Y$ and $\bc U$ have spherical Gaussian distributions, with the same
-scale parameter, $\sigma$, we can explicitly derive the conditional
-distribution $(\bc U|\bc Y=\vec y)$.  We will state some of the
-characteristics of this distribution here and defer the actual
-derivation until Chapter~\ref{chap:computational}.
-
-The conditional distribution, $(\bc U|\bc Y=\vec y)$, is a multivariate
-Gaussian whose mean, which we will write as $\tilde{\vec u}$, is the
-solution to the penalized least squares problem
-\begin{equation}
-  \label{eq:LMMcondmode}
-  \begin{aligned}
-  \tilde{\vec u}&=\arg\min_{\vec u}\left\{\|\vec y-\vec\gamma\|^2+
-    \|\vec u\|^2\right\}\\
-    &=\arg\min_{\vec u}\left\{\|(\vec y-\vec X\vec\beta)-\vec
-      Z\Lambda_\theta\vec u\|^2+
-    \|\vec u\|^2\right\} .
-  \end{aligned}
-\end{equation}
-(The notation $\arg\min_{\vec u}$ means that $\tilde{\vec u}$ is the
-value of $\vec u$ that minimizes the expression on the right.)  We say
-this is a \emph{penalized least squares} problem because it requires
-determining the value of $\vec u$ that minimizes the sum of a residual
-sum of squares, $\|(\vec y-\vec X\vec\beta)-\vec Z\Lambda_\theta\vec
-u\|^2$, plus $\|u\|^2$, which we describe as a penalty on the size of
-$\vec u$.
-
-One way of expressing a penalized least squares problem like this is
-by incorporating the penalty as ``pseudo-data'' in a standard least
-squares problem.  We extend the observed response vector, which in
-this case is actually $\vec y-\vec X\vec\beta$ because we are
-minimizing with respect to $\vec u$ only, with $q$ responses that are
-0 and we extend the predictor expression, $\vec Z\Lambda_\theta\vec u$
-with $\vec I_q\vec u$.  Writing this as a least squares problem produces
-\begin{equation}
-  \label{eq:PLSLMM}
-  \tilde{\vec u}=\arg\min_{\vec u}\left\|
-    \begin{bmatrix}
-      \vec y-\vec X\vec\beta\\
-      \vec 0
-    \end{bmatrix} -
-    \begin{bmatrix}
-      \vec Z\Lambda_\theta\\
-      \vec I_q
-    \end{bmatrix}\vec u\right\|^2
-\end{equation}
-with a solution that satisfies
-\begin{equation}
-  \label{eq:LMMPLSsol}
-  \left(\Lambda_\theta\trans\vec Z\trans\vec Z\Lambda_\theta+\vec
-    I_q\right)\tilde{\vec u}
-  =\Lambda_\theta\trans\vec Z\trans\left[\vec y-\vec X\vec\beta\right]
-\end{equation}
-
-To evaluate $\tilde{\vec u}$ we form the \emph{sparse Cholesky
-  factor}, $\vec L_\theta$, which is a lower triangular $q\times q$
-matrix that satisfies
-\begin{equation}
-  \label{eq:sparseCholesky}
-  \vec L_\theta\vec L_\theta\trans=
-  \Lambda_\theta\trans\vec Z\trans\vec Z\Lambda_\theta+\vec I_q .
-\end{equation}
-(In chapter~\ref{chap:computational} we will modify this definition slightly by incorporating a
-``fill-reducing'' permutation matrix but that is a computational
-detail and does not affect the results here.)  Obtaining the Cholesky
-factor, $\vec L_\theta$, may not seem to be great progress because we
-now need to solve
-\begin{equation}
-  \label{eq:LMMCholsol}
-  \vec L_\theta\vec L_\theta\trans\tilde{\vec u}
-  =\Lambda_\theta\trans\vec Z\trans\left[\vec y-\vec X\vec\beta\right]
-\end{equation}
-for $\tilde{\vec u}$.  However, this is the key step in computational
-methods in the \package{lme4} package. The ability to evaluate $\vec
-L_\theta$ rapidly for many different values of $\vec\theta$ is what
-makes the computational methods in \package{lme4} feasible, even when
-applied to very large data sets with complex structure.  Determining
-$\tilde{\vec u}$ through (\ref{eq:LMMCholsol}) is a straightforward
-process because $\vec L_\theta$ is lower triangular.
-
-After evaluating $\vec L_\theta$ and using that to solve for
-$\tilde{\vec u}$, which also produces $r^2_{\beta,\theta}$, the value
-of the penalized residual sum of squares (PRSS) at $\tilde{\vec u}$, we can
-evaluate the likelihood, which is a function of the parameters,
-$\vec\beta$, $\vec\theta$ and $\sigma$, given the observed data, $\vec
-y$. On the deviance scale, which is negative twice the (natural)
-logarithm of the likelihood, this is
-\begin{equation}
-  \label{eq:LMMdeviance}
-  d(\vec\theta,\vec\beta,\sigma|\vec y)
-  =n\log(2\pi\sigma^2)+\log(|\vec L_\theta|^2)+\frac{r^2_{\beta,\theta}}{\sigma^2}.
-\end{equation}
-%(The notation $|\vec L_\theta|$ denotes the \emph{determinant} of
-%$\vec L_\theta$. In the case of a triangular matrix, such as $\vec
-%L_\theta$, this is simply the product of the diagonal elements.)
-The maximum likelihood estimates of the parameters are those that
-minimize the deviance, (\ref{eq:LMMdeviance}).
-
-Equation (\ref{eq:LMMdeviance}) is a remarkably compact expression,
-considering that the class of models to which it applies is very large
-indeed.  However, we can do better than this if we notice that
-$\vec\beta$ enters (\ref{eq:LMMdeviance}) only through the PRSS
-$r^2_{\beta,\theta}$, and, for any value of
-$\vec\theta$, minimizing this expression with respect to $\vec\beta$
-is just another least squares problem.  Let
-$\widehat{\vec\beta}_\theta$ be the value of $\vec\beta$ that
-minimizes the PRSS simultaneously with respect to
-$\vec\beta$ and $\vec u$ and let $r^2_\theta$ be the minimum PRSS.
-Furthermore, if we set $\widehat{\sigma^2}_\theta=r^2_\theta/n$,
-which is the value of $\sigma^2$ that minimizes the deviance for a
-given value of $r^2_\theta$, then the \emph{profiled deviance}, which
-is a function of $\vec\theta$ only, is
-\begin{equation}
-  \label{eq:LMMprofdeviance}
-  \tilde{d}(\vec\theta|\vec y)
-  =\log(|\vec L_\theta|^2)+n\left[1 +
-    \log\left(\frac{2 \pi r^2_\theta}{n}\right)\right].
-\end{equation}
+In the remainder of this section we discuss the derivation of the
+quantities defined above.  Readers who are less interested in the
+``why'' than in the ``what'' should feel free to skip to
+section~\ref{sec:variability}.
 
 
 \section{Assessing the Variability of the Parameter Estimates}
 \label{sec:variability}
 
+In this section we show how to create a \emph{profile deviance} object
+from a fitted linear mixed model and how to use this object to
+evaluate confidence intervals on the parameters.  We also discuss the
+construction and interpretation of \emph{profile zeta} plots for the
+parameters and \emph{profile pairs} plots for parameter pairs.
+
+As in the previous section, we will state the results first and provide more
+detailed derivations and explanations later.  
+
+\subsection{Confidence Intervals on the Parameters}
+\label{sec:profdevconf}
+
 The mixed-effects model fit as \code{fm1} or \code{fm1ML} has three
 parameters for which we obtained estimates.  These parameters are
 $\sigma_1$, the standard deviation of the random effects, $\sigma$,
 the standard deviation of the residual or ``per-observation'' noise
-term and $\beta_0$, the fixed-effects parameter that is labelled as the
-intercept.  A standard error for the estimate $\widehat{\beta_0}$ is
-provided but no standard errors are given for the estimates
-$\widehat{\sigma_1}$ and $\widehat{\sigma}$.
+term and $\beta_0$, the fixed-effects parameter that is labeled as 
+\code{(Intercept)}.
 
-The reason that we do not simply quote standard errors for the
-estimated standard deviations is because they are misleading.  Even
-more misleading is the common practice of quoting a standard error for
-an estimated variance.  Quoting a parameter estimate and a standard
-error for the estimator gives the impression that we can summarize the
-precision of the estimate with a series of confidence intervals that
-are symmetric about the estimate.  In other words we are assuming that
-decreasing a parameter from its estimate by an amount $\delta$ has the
-same effect on the quality of the model fit as does increasing the
-parameter by $\delta$.  It is not realistic to expect that this is
-true of measures of variability, such as standard deviations and variances.
+The \code{profile} function systematically varies the parameters in a
+model, assessing the best possible fit that can be obtained with one
+parameter fixed at a specific value and comparing this fit to the
+\emph{globally optimal fit}, which is the original model fit that
+allowed all the parameters to vary.  The models are compared according
+to the change in the deviance, which is the \emph{likelihood ratio
+  test} (LRT) statistic.  We apply a \emph{signed square root}
+transformation to this statistic and plot the resulting function,
+called $\zeta$, versus the parameter value.  A $\zeta$ value can be
+compared to the quantiles of the \emph{standard normal distribution},
+$\bc Z\sim\mathcal{N}(0,1)$.  For example, a 95\% profile deviance
+confidence interval on the parameter consists of the values for which
+$-1.960 < \zeta < 1.960$.
 
-Instead of making the unrealistic assumption that the precision of
-these parameter estimates can be summarized by standard errors we
-evaluate the quality of the fit for nearby values of the parameter and
-form confidence intervals based on the change in the deviance.  This
-is called \emph{profiling} the deviance with respect to a parameter.
-We plot the profiles, obtained by applying the function \code{profile}
-to the fitted model, on the scale of the square root of the change in
-the deviance, as shown in Figure~\ref{fig:fm1absprof}.
+Because the process of profiling a fitted model, which involves
+re-fitting the model many times, can be computationally intensive, one
+should exercise caution with complex models fit to very large data
+sets.  Because the statistic of interest is a likelihood ratio, the
+model is re-fit according to the maximum likelihood criterion, even if
+the original fit is a REML fit so there is a slight advantage in
+starting with an ML fit.
+<<pr1,eval=FALSE>>=
+pr1 <- profile(fm1ML)
+@ 
+\begin{figure}[tb]
+  \centering
+<<fm1prof,fig=TRUE,echo=FALSE,height=3.5>>=
+print(xyplot(pr1, aspect = 1.3))
+@   
+  \caption{Signed square root, $\zeta$, of the likelihood ratio test
+    statistic for each of the parameters in model \code{fm1ML}.  The
+    vertical lines are the endpoints of 50\%, 80\%, 90\%, 95\% and 99\%
+    confidence intervals derived from this test statistic.}
+  \label{fig:fm1prof}
+\end{figure}
+
+Plots of $\zeta$ versus the parameter being profiled
+(Figure~\ref{fig:fm1prof}) are obtained with
+<<fm1profshow>>=
+xyplot(pr1, aspect = 1.3)
+@
+We will refer to such plots as \emph{profile zeta} plots.  I usually
+adjust the aspect ratio of the panels in profile zeta plots to, say,
+\code{aspect = 1.3} and frequently set the layout so the panels form a
+single row (\code{layout = c(3,1)}, in this case).
+
+The vertical lines in the panels delimit the 50\%, 80\%, 90\%, 95\%
+and 99\% confidence intervals, when these intervals can be calculated.
+Numerical values of the endpoints are returned by the \code{confint}
+extractor.
+<<confintfm195>>=
+confint(pr1)
+@ 
+By default the 95\% confidence interval is returned.  The optional
+argument, \code{level}, is used to obtain other confidence levels.
+<<confintfm199>>=
+confint(pr1, level = 0.99)
+@
+Notice that the lower bound on the 99\% confidence interval for
+$\sigma_1$ is not defined.  Also notice that we profile $\log(\sigma)$
+instead of $\sigma$, the residual standard deviation.
 \begin{figure}[tb]
   \centering
 <<fm1absprof,fig=TRUE,echo=FALSE,height=2.5>>=
-print(xyplot(pr1, aspect = 0.7, strip=FALSE, strip.left = TRUE))
+print(xyplot(pr1, absVal = TRUE, aspect = 0.7, strip=FALSE, strip.left = TRUE))
 @   
 \caption{Profiled deviance, on the scale $|\zeta|$, the square root of
   the change in the deviance, for each of the parameters in model
@@ -1019,248 +823,164 @@ print(xyplot(pr1, aspect = 0.7, strip=FALSE, strip.left = TRUE))
   \label{fig:fm1absprof}
 \end{figure}
 
-Because we will use such plots of the profiled deviance extensively
-for assessing the uncertainty in parameter estimates, we will describe
-this particular plot qualitatively, but in some detail, here.  Formal
-definitions and equations will be given in the next section.
+A plot of $|\zeta|$, the absolute value of $\zeta$, versus the
+parameter (Figure~\ref{fig:fm1absprof}), obtained by adding the
+optional argument \code{absVal = TRUE} to the call to \code{xyplot},
+can be more effective for visualizing the confidence intervals.
 
-Recall that one of the measures of the quality of a model fit is the
-\emph{deviance}, which is negative twice the log-likelihood evaluated
-at the parameter estimates.  The maximum likelihood estimates are the
-parameter values that minimize the deviance,
-$d(\sigma_1,\sigma,\beta_0)$, over all feasible values of the
-parameters.
+\subsection{Interpreting the Profile Zeta Plot}
+\label{sec:interpprofzeta}
 
-To perform a hypothesis test of the form $H_0:\sigma_1=80$ versus
-$H_a:\sigma_1\ne 80$ we could consider the minimum deviance achieved
-when $\sigma_1=80$ minus the global minimum deviance.  This difference,
-\begin{displaymath}
-  \min_{\sigma,\beta_0}d(80,\sigma,\beta_0)-
-  d(\widehat{\sigma}_1, \widehat{\sigma}, \widehat{\beta}_0),
-\end{displaymath}
-is the likelihood ratio test statistic. (The deviance is a multiple of
-the logarithm of the likelihood so ratios of likelihoods correspond to
-differences in the deviance.)  This test statistic explicitly compares
-how well we can fit the model for this specific value of one of the
-parameters to the best possible fit of the model.  Note that this
-quantity is based on two model fits: the unconstrained fit and a
-second fit subject to the constraint $\sigma_1=80$.   We are not
-basing our test on how well we think we should be able to fit the
-constrained model --- based on the global parameter estimates and
-approximate standard errors --- we are actually re-fitting the model
-subject to the constraint.
+A profile zeta plot, such as Figure~\ref{fig:fm1prof}, shows us the
+sensitivity of the model fit to changes in the value of particular
+parameters. Although this is not quite the same as describing the
+distribution of an estimator, it is a similar idea and we wil use some
+of the terminology from distributions when describing these plots.
+Essentially we view the patterns in the plots as we would those in a
+normal probability plot of data values or residuals from a model.
 
-The theory of likelihood ratio tests states that the test statistic
-would be compared to the quantiles of the $\chi_k^2$ distribution
-where $k$ is the number of constraints, which is 1 in this case.  But
-a $\chi_1^2$ distribution is simply the square of the standard
-normal distribution, $\mathcal{N}(0,1)$, so we plot its square root,
-which we denote as
-\begin{equation}
-  \label{eq:abszetadef}
-  |\zeta(\sigma_1)|=\sqrt{
-  \min_{\sigma,\beta_0}d(\sigma_1,\sigma,\beta_0)-
-  d(\widehat{\sigma}_1, \widehat{\sigma}, \widehat{\beta}_0)},
-\end{equation}
-with similar definitions for the other parameters.  (The perceptive
-reader will have notice that the second profile plot is on the scale
-of $\log(\sigma)$, not $\sigma$.  We will discuss this choice of scale
-later.)
+Ideally the pattern in the plot will be a straight line, in which case
+we can perform statistical inference based on the parameter's
+estimate, its standard error and quantiles of the standard normal
+distribution.  We will describe such as situation as providing a good
+normal approximation for inference.  The common practice of quoting a
+parameter estimate and its standard error assumes that this is always
+the case.
 
-The intervals shown on the plots are 50\%, 80\%, 90\%, 95\% and 99\%
-confidence intervals based on this likelihood ratio test.  That is,
-the bounds on the 95\% confidence intervals are the points where
-$|\zeta|=1.960$.  We use the \R{} function \code{profile} to create the
-profiled deviance object and \code{xyplot} to display the plot.
-<<pr1,eval=FALSE>>=
-pr1 <- profile(fm1ML)
-@ 
-The
-\code{confint} extractor is used to obtain the endpoints of a
-particular confidence interval.
-<<confint1>>=
-confint(pr1)
-@ 
-
-Often the \emph{signed square root} provides a more meaningful scale
-on which to plot the likelihood ratio test statistic, as in
-Figure~\ref{fig:fm1prof}.
+In Figure~\ref{fig:fm1prof} the profile zeta plot for $\log(\sigma)$
 \begin{figure}[tb]
   \centering
-<<fm1prof,fig=TRUE,echo=FALSE,height=3.5>>=
-print(xyplot(pr1, aspect = 1.3, absVal = FALSE))
-@   
-  \caption{Signed square root, $\zeta$, of the likelihood ratio test
-    statistic for each of the parameters in model \code{fm1ML}.  The
-    vertical lines are the endpoints of 50\%, 80\%, 90\%, 95\% and 99\%
-    confidence intervals derived from this test statistic.}
-  \label{fig:fm1prof}
-\end{figure}
-The signed square root assigns a negative sign to $\zeta$ for
-parameter values less than the estimate and a positive sign for
-parameter values greater than the estimate providing a curve whose
-interpretation is similar to that of a normal probability plot of data
-or residuals.
-
-\subsubsection{Interpretation of the Shape of the $\zeta$ Plot}
-
-We will use $\phi$ to represent a parameter or a transformation of a
-parameter in the model.  For the model we are considering $\phi$ can
-be $\sigma_1$ or $\sigma_1^2$ or $\log(\sigma)$ or $\sigma$ or
-$\sigma^2$ or $\beta_0$ or one of many other possibilities.  In a plot
-of $\zeta(\phi)$ versus $\phi$ the estimate, $\widehat{\phi}$, is the
-point where $\zeta = 0$ and the slope of the curve at $\widehat{\phi}$
-is the inverse of the standard error of $\phi$.  There is more than
-one way of calculating a standard error of a parameter estimate and in
-chapter~\ref{cha:Theory} we will clarify that this standard error is
-based on a quantity called ``the observed information matrix''.  That
-level of detail is not necessary here.  All we need to know is that
-the inverse slope, written $s_\phi$, is that standard error of the
-parameter estimate, which is a measure of its precision.
-
-If the plot of $\zeta$ versus $\phi$ is close to a straight line over
-the region of interest then our $(1-\alpha)$ confidence interval on
-$\phi$ will be close to
-\begin{equation}
-  \label{eq:confint}
-  \widehat{\phi}\pm z_{\alpha/2}s_{\phi} 
-\end{equation}
-where $z_{\alpha/2}$ is the $\alpha/2$ upper quantile of the standard
-normal (also called Gaussian) distribution.  For example,
-$z_{0.025}=1.960$ so a 95\% confidence interval on the parameter
-$\phi$ would be calculated as
-\begin{equation}
-  \label{eq:confint95}
-  \widehat{\phi}\pm 1.960 s_{\phi} 
-\end{equation}
-or, effectively, the estimate plus-or-minus two standard errors of the
-estimate.
-
-We should realize that confidence intervals of the form
-(\ref{eq:confint}) are based on an approximation.  Similarly,
-performing a hypothesis test of the form $H_0:\phi = \phi_0$
-\textrm{vs.} $H_a:\phi\ne\phi_0$ by calculating the observed
-``z-statistic''
-\begin{equation}
-  \label{eq:zobs}
-  z_{\text{obs}}=\frac{\widehat{\phi} - \phi_0}{s_\phi}
-\end{equation}
-and evaluating a p-value as
-$2\cdot\mathrm{P}[\mathcal{Z}>|z_{\text{obs}}|]$ is also an
-approximation.
-
-Of course, we don't need to perform hypothesis tests of the form
-$H_0:\phi=\phi_0$ \emph{vs.} $H_a:\phi\ne\phi_0$ in this way
-because can fit the model without any constraints on the parameters
-then fit the model subject to the constraint $\phi=\phi_0$ and compare
-the two model fits using the likelihood ratio.  Furthermore the
-confidence intervals we obtain are based on ``inverting'' such
-hypothesis tests.  Because we are fitting the model under both
-conditions and comparing the quality of the fits we obtain more
-realistic information regarding whether the parameter value $\phi_0$
-is reasonable.  We do not need to resort to fitting the model once
-only and keeping our fingers crossed while using approximations to
-perform statistical inference.
-
-This situation is unfortunately characteristic of modern statistics.
-The well-known statistical methods shown in many texts are often based
-on unnecessary approximations.  We have the ability to fit models many
-times subject to different constraints on the parameters so we can
-actually examine the effective variability in the parameter estimates
-rather than resorting to approximations.
-
-Returning to consideration of confidence intervals of the form
-(\ref{eq:confint}) and hypothesis tests based on (\ref{eq:zobs}),
-these will be suitable methods when the profile plot (the plot of
-$\zeta$ versus $\phi$) is reasonably straight. In those cases, of
-course, the methods based on $\zeta$ will produce confidence intervals
-or p-values for hypothesis tests of the expected form.  The important
-cases are when the profile plot is not reasonably straight over the
-region of interest.  In those cases the confidence intervals are not
-symmetric or not determined from quantiles of the standard normal nor
-are p-values based on the standard normal distribution.
-
-As shown above, we can create confidence intervals on parameters or
-transformed parameter values using the profile and the \code{confint}
-extractor function so we don't really need to examine the profile
-plot.  However, the profile plots do provide us with a valuable visual
-evaluation of the precision of the parameter estimates and we will
-use them frequently.
-
-We can read a profile plot similar to the way that we read a
-quantile-quantile plot, such as a normal probability plot, of observed
-data or of residuals from a fitted model.  That is, we evaluate a
-profile plot for skewness and for over-dispersion.  We will
-speak of these properties as applying to the distribution of the
-parameter estimator.  Technically that is not quite correct (the
-profile plot indicates the sensitivity of the model fit to the
-parameter values) but I find it a convenient way of discussing
-patterns in the profile plots.
-
-With this in mind we can examine the patterns in
-Figure~\ref{fig:fm1prof}.  The profile plot for $\log(\sigma)$ is
-quite straight indicating that the local approximation based on a
-standard error is quite good.  Notice, however, that this pattern is
-with respect to $\log(\sigma)$, not $\sigma$ or, even worse, $\sigma^2$
-see that the sigmoidal (i.e. like an
-elongated ``S'' curve) pattern for the profile plot of $\beta_0$ in Figure~\ref{fig:fm1prof} the
-parameter $\beta_0$ is very close to symmetric about the estimate
-$\widehat{\beta_0}$ but over-dispersed relative to a normal distribution.
-
-\subsubsection{Precision of the Variance Components}
-\label{sec:precvarcomp}
-
-When we summarize our knowledge of a parameter in a fitted model by
-giving its estimate and a standard error of this estimate we are
-assuming that the quality of fit for different values of this
-parameter, as measured by the signed square root, $\eta$, say, will be
-symmetric about the estimate.  Furthermore, if we are to use a z
-test'' or confidence intervals based on quantiles of the standard
-normal, then we are assuming that the plot of $\zeta$ will be
-reasonably close to a straight line.  In that case the standard error
-of the parameter corresponds to the inverse of the slope of the line.
-
-We can see that the only panel in Figure~\ref{fig:fm1prof} that is at
-all close to a straight line is the middle panel, which shows $\zeta$
-versus $\log(\sigma)$, not $\zeta$ versus $\sigma$ or, even worse,
-$\zeta$ versus $\sigma^2$, as shown in Figure~\ref{fig:sigmaprof}.
-\begin{figure}[tb]
-  \centering
-<<sigmaprof,fig=TRUE,echo=FALSE>>=
+<<sigmaprof,fig=TRUE,echo=FALSE,height=3.5>>=
 zeta <- sqrt(qchisq(c(0.5,0.8,0.9,0.95,0.99), 1))
 zeta <- c(-rev(zeta), 0, zeta)
 spl <- attr(pr1, "forward")[[2]]
 endpts <- predict(attr(pr1, "backward")[[2]], zeta)$y
 
-fr <- data.frame(zeta = rep.int(zeta, 2),
-                 endpts = c(exp(endpts), exp(2*endpts)),
-                 pnm = gl(2, length(zeta)))
-levels(fr$pnm) <- c(expression(sigma), expression(sigma^2))
+fr <- data.frame(zeta = rep.int(zeta, 3),
+                 endpts = c(endpts, exp(endpts), exp(2*endpts)),
+                 pnm = gl(3, length(zeta)))
 print(xyplot(zeta ~ endpts|pnm, fr, type = "h",
              scales = list(x = list(relation = "free")),
              xlab = NULL, ylab = expression(zeta), aspect = 1.3,
              strip = strip.custom(
-             factor.levels = expression(sigma, sigma^2)),
+             factor.levels = expression(log(sigma), sigma, sigma^2)),
              panel = function(...) {
                  panel.grid(h = -1, v = -1)
+                 panel.abline(h=0)
                  panel.xyplot(...)
-                 lims <- log(current.panel.limits()$xlim)
-                 if (panel.number() == 2) lims <- lims/2
+                 ll <- current.panel.limits()$xlim
+                 lims <- switch(panel.number(), ll, log(ll), log(ll)/2)
                  pr <- predict(spl, seq(lims[1], lims[2], len = 101))
-                 panel.lines(exp(pr$x * panel.number()), pr$y)
+                 panel.lines(switch(panel.number(),
+                                    pr$x,
+                                    exp(pr$x),
+                                    exp(pr$x * 2)), pr$y)
              }))
 @   
 \caption{Signed square root, $\zeta$, of the likelihood ratio test
-  statistic as a function of $\sigma$ and as a function of $\sigma^2$.
-  The vertical lines are the endpoints of 50\%, 80\%, 90\%, 95\% and
-  99\% confidence intervals.}
+  statistic as a function of $\log(\sigma)$, of $\sigma$ and of
+  $\sigma^2$.  The vertical lines are the endpoints of 50\%, 80\%,
+  90\%, 95\% and 99\% confidence intervals.}
   \label{fig:sigmaprof}
 \end{figure}
+is reasonably straight so $\log(\sigma)$ has a good normal
+approximation.  But this does not mean that there is a good normal
+approximation for $\sigma^2$ or even $\sigma$.  As shown in
+Figure~\ref{fig:sigmaprof} the profile zeta plot for $\log(\sigma)$ is
+slightly skewed, that for $\sigma$ is moderately skewed and the
+profile zeta plot for $\sigma^2$ is highly skewed.  Deviance-based
+confidence intervals on $\sigma^2$ are quite asymmetric, of the form
+``estimate minus a little, plus a lot''.
+
+This should not come as a surprise to anyone who learned in an
+introductory statistics course that, given a random sample of data
+assumed to come from a Gaussian distribution, we use a $\chi^2$
+distribution, which can be quite skewed, to form a confidence interval
+on $\sigma^2$.  Yet somehow there is a widespread belief that the
+distribution of variance estimators in much more complex situations
+should be well approximated by a normal distribution.  It is
+nonsensical to believe that.  In most cases summarizing the precision
+of a variance component estimate by giving an approximate standard
+error is woefully inadequate.
+
+The pattern in the profile plot for $\beta_0$ is sigmoidal (i.e. an
+elongated ``S''-shape).  The pattern is symmetric about the estimate
+but curved in such a way that the profile-based confidence intervals
+are wider than those based on a normal approximation.  We characterize
+this pattern as symmetric but over-dispersed (relative to a normal
+distribution).  Again, this pattern is not unexpected.  Estimators of
+the coefficients in a linear model without random effects have a
+distribution which is a scaled Student's T distribution.  That is,
+they follow a symmetric distribution that is over-dispersed relative
+to the normal.
+
+
+The pattern in the profile zeta plot for $\sigma_1$ is more complex.
+\begin{figure}[tb]
+  \centering
+<<sigma1prof,fig=TRUE,echo=FALSE,height=3.5>>=
+zeta <- sqrt(qchisq(c(0.5,0.8,0.9,0.95,0.99), 1))
+zeta <- c(-rev(zeta), 0, zeta)
+spl <- attr(pr1, "forward")[[1]]
+endpts <- predict(attr(pr1, "backward")[[1]], zeta)$y
+
+fr <- data.frame(zeta = rep.int(zeta, 3),
+                 endpts = c(log(endpts), endpts, endpts^2),
+                 pnm = gl(3, length(zeta)))
+## A mighty kludge here
+fr[1,] <- c(NA, 1.5, 1)
+fr[12,] <- c(NA, 0, 2)
+print(xyplot(zeta ~ endpts|pnm, fr, type = "h",
+             scales = list(x = list(relation = "free")),
+             xlab = NULL, ylab = expression(zeta), aspect = 1.3,
+             strip = strip.custom(
+             factor.levels = expression(log(sigma[1]), sigma[1], sigma[1]^2)),
+             panel = function(...) {
+                 panel.grid(h = -1, v = -1)
+                 panel.abline(h = 0)
+                 panel.xyplot(...)
+                 ll <- (current.panel.limits()$xlim)[2]
+                 lims <- switch(panel.number(),
+                                c(1.5, exp(ll)),
+                                c(0, ll),
+                                c(0, sqrt(ll)))
+                 pr <- predict(spl, seq(lims[1], lims[2], len = 101))
+                 panel.lines(switch(panel.number(),
+                                    log(pr$x),
+                                    pr$x,
+                                    pr$x^2), pr$y)
+             }))
+@   
+\caption{Signed square root, $\zeta$, of the likelihood ratio test
+  statistic as a function of $\log(\sigma_1)$, of $\sigma_1$ and of
+  $\sigma_1^2$.  The vertical lines are the endpoints of 50\%, 80\%,
+  90\%, 95\% and 99\% confidence intervals.}
+  \label{fig:sigma1prof}
+\end{figure}
+Figure~\ref{fig:sigma1prof} shows the profile zeta plot on the scale
+of $\log(\sigma_1)$, $\sigma_1$ and $\sigma_1^2$.  Notice that the
+profile zeta plot for $\log(\sigma_1)$ is very close to linear to the
+right of the estimate but flattens out on the left.  That is,
+$\sigma_1$ behaves like $\sigma$ in that its profile zeta plot is
+more-or-less a straight line on the logarithmic scale, except when
+$\sigma_1$ is close to zero.  The model loses sensitivity to values
+of $\sigma_1$ that are close to zero.  If, as in this case, zero is
+within the ``region of interest'' then we should expect that the
+profile zeta plot will flatten out on the left hand side.
 
 \subsection{Profile Pairs Plots}
 \label{sec:Profpairs}
 
-We can use the information from the profiled deviance to produce
+A profiled deviance object, such as \code{pr1} not only provides
+information on the sensitivity of the model fit to changes in
+parameters, it also tells us how the parameters influence each
+other. When we re-fit the model subject to a constraint such as, say,
+$\sigma_1=60$, we obtain the conditional estimates for the other
+parameters, $\sigma$ and $\beta_0$ in this case.  The conditional
+estimate of, say, $\sigma$ as a function of $\sigma_1$ is called the
+\emph{profile trace} of $\sigma$ on $\sigma_1$.  Plotting such traces
+provides valuable information on how the parameters in the model are
+influenced by each other.
 \begin{figure}[tb]
   \centering
 <<fm1profpair,fig=TRUE,echo=FALSE,height=8>>=
@@ -1274,15 +994,249 @@ print(splom(pr1))
   parameters.}
   \label{fig:fm1profpair}
 \end{figure}
-approximate contours of the profiled deviance with respect to pairs of
-parameters.  Such a plot is shown in Figure~\ref{fig:fm1profpair}.
-Because we will use such plots throughout this book to examine the
-pairwise dependence of parameters, we will describe this plot in some detail.
 
-The labels along the diagonal indicate the parameter shown on a
-particular axis.  Each parameter is represented on two scales, the
-original scale and the transformation determined by $\zeta$.  Panels
-above the diagonal are on the original scale; those below the diagonal
-are on the $(\zeta_i,\zeta_j)$ scale.  There are two lines drawn on
-each panel.  These lines intersect at the estimated parameter values.
+The \emph{profile pairs} plot, obtained as
+<<fm1profpairshow,eval=FALSE>>=
+splom(pr1)
+@
+and shown in Figure~\ref{fig:fm1profpair} shows the profile traces
+along with interpolated contours of the two-dimensional profiled
+deviance function.  The contours are chosen to correspond to the
+two-dimensional marginal confidence regions at particular confidence
+levels.
+
+Because this plot may be rather confusing at first we will explain
+what is shown in each panel.  To make it easier to refer to panels we will
+assign them $(x,y)$ coordinates as in a Cartesian coordinate system.
+The columns are numbered 1 to 3 from left to right and the rows are
+numbered 1 to 3 from bottom to top.  Note that the rows are
+numbered from the bottom to the top, like the y-axis of a graph, not
+from top to bottom, like a matrix.
+
+The diagonal panels show the ordering of the parameters: $\sigma_1$
+first, then $\log(\sigma)$ then $\beta_0$.  Panels above the diagonal
+are in the original scale of the parameters.  That is, the top-left
+panel, which is the $(1,3)$ position, has $\sigma_1$ on the horizontal
+axis and $\beta_0$ on the vertical axis.
+
+In addition to the contour lines in this panel, there are two other
+lines, which are the profile traces of $\sigma_1$ on $\beta_0$ and of
+$\beta_0$ on $\sigma_1$.  The profile trace of $\beta_0$ on $\sigma_1$
+is a straight horizontal line, meaning that the conditional estimate
+of $\beta_0$, given a value of $\sigma_1$, is constant.  Again, this is 
+a consequence of the simple model form and the balanced data set.  The
+other line in this panel, which is the profile trace of $\sigma_1$ on
+$\beta_0$, is curved.  That is, the conditional estimate of $\sigma_1$
+given $\beta_0$ depends on $\beta_0$.  As $\beta_0$ moves away from
+the estimate, $\widehat{\beta}_0$, in either direction, the
+conditional estimate of $\sigma_1$ increases.
+
+We will refer to the two traces on a panel as the ``horizontal trace''
+and ``vertical trace''.  They are not always perfectly horizontal and
+vertical lines but the meaning should be clear from the panel because
+one trace will always be more horizontal and the other will be more
+vertical.  The one that is more horizontal is the trace of the
+parameter on the y axis as a function of the parameter on the
+horizontal axis, and vice versa.
+
+The contours shown on the panel are interpolated from the profile zeta
+function and the profile traces, in the manner described in
+\citet[Chapter 6]{bateswatts88:_nonlin}.  One characteristic of a
+profile trace, which we can verify visually in this panel, is that the
+tangent to a contour must be vertical where it intersects the
+horizontal trace and horizontal where it intersects the vertical trace.
+
+The $(2,3)$ panel shows $\beta_0$ versus $\log(\sigma)$.  In this case
+the traces actually are horizontal and vertical straight lines.  That
+is, the conditional estimate of $\beta_0$ doesn't depend on
+$\log(\sigma)$ and the conditional estimate of $\log(\sigma)$ doesn't
+depend on $\beta_0$.  Even in this case, however, the contour lines
+are not concentric ellipses, because the deviance is not perfectly
+quadratic in these parameters.  That is, $\zeta(\beta_0)$ and
+$\zeta(\log(\sigma))$ not perfectly linear.
+
+The $(1,2)$ panel, showing $\log(\sigma)$ versus $\sigma_1$ shows
+distortion along both axes and nonlinear patterns in both traces.
+When $\sigma_1$ is close to zero the conditional estimate of
+$\log(\sigma)$ is larger than when $\sigma_1$ is large.  In other
+words small values of $\sigma_1$ inflate the estimate of
+$\log(\sigma)$ because the variability that would be explained by the
+random effects gets incorporated into the residual noise term.
+
+Panels below the diagonal are on the $\zeta$ scale, which is why the
+axes on each of these panels are the same values, running from $-3$ to
+$+3$ and the profile traces always cross at the origin.  Thus the
+$(3,1)$ panel shows $\zeta(\sigma_1)$ on the vertical axis versus
+$\zeta(\beta_0)$ on the horizontal.  These panels allow us to see
+distortions from an elliptical shape due to nonlinearity of the
+traces, separately from the one-dimensional distortions caused by a
+poor choice of scale for the parameter.  The $\zeta$ scales provide,
+in some sense, the best possible set of single-parameter
+transformations for assessing the contours.  On the $\zeta$ scales the
+extent of a contour on the horizontal axis is exactly the same as the
+extent on the vertical axis and both are centered about zero.
+
+Another way to think of this is that, if we would have profiled
+$\sigma_1^2$ instead of $\sigma_1$, we would change all the panels in
+the first column but the panels on the first row would remain the same.
+
+\section{Assessing the Random Effects}
+\label{sec:assessRE}
+
+In section~\ref{sec:definitions} we mentioned that what are sometimes
+called the BLUPs (or best linear unbiased estimators) of the random
+effects, $\bc B$, are the conditional modes evaluated at the parameter
+estimates, and that they can be calculated as
+$\tilde{b}_{\widehat{\theta}}=\Lambda_{\widehat{\theta}}\tilde{u}_{\widehat{\theta}}$.
+
+These values are often considered as some sort of ``estimates'' of the
+random effects and that can be helpful but it can also be misleading.
+As we have stated several times, the random effects are not, strictly
+speaking, parameters; they are unobserved random variables.  We don't
+estimate the random effects the way that we estimate parameters.
+Instead, we consider the conditional distribution of $\bc B$ given the
+observed data.  That is, we consider $(\bc B|\bc Y=\vec y)$.
+
+Because the unconditional distribution, $\bc B\sim\mathcal{N}(\vec
+0,\Sigma_\theta$ is continuous, the conditional distribution, $(\bc
+B|\bc Y=\vec y)$ will also be continuous.  The phrase ``conditional
+mode'' refers to the point at which the conditional density of $\bc
+B$, given $\bc Y=\vec y$, is maximized.  Because this definition
+relates to the probability model, the values of the parameters are
+assumed to be known.  In practice, of course, we don't know the values
+of the parameters (if we did there would be no purpose in forming the
+parameter estimates), so we use the estimated values of the
+parameters to evaluate the conditional modes.
+
+Those who are familiar with the multivariate Gaussian distribution may
+recognize that, because both $\bc B$ and $(\bc Y|\bc B=\vec b)$ are
+multivariate Gaussian, $(\bc B|\bc Y=\vec y)$ will also be
+multivariate Gaussian and the conditional mode will also be the
+conditional mean of $\bc B$, given $\bc Y=\vec y$.  This is the case
+for a linear mixed model but it does not carry over to other forms of
+mixed models.  In the general case all we can say about $\tilde{\vec
+  u}$ or $\tilde{\vec b}$ is that they maximize a conditional density,
+which is why we use the term ``conditional mode'' to describe these
+values.  We will only use the term ``conditional mean'' and the
+symbol, $\vec\mu$, in reference to $\mathrm{E}(\bc Y|\bc B=\vec b)$,
+which is the conditional mean of $\bc Y$ given $\bc B$, and is an
+important part of all forms of mixed-effects models.
+
+The \code{ranef} extractor returns the conditional modes.
+<<raneffm1>>=
+ranef(fm1ML)
+@ 
+Applying \code{str} to the result of \code{ranef}
+<<strraneffm1>>=
+str(ranef(fm1ML))
+@
+shows that the values is a list of data frames.  In this case the
+list is of length 1 because there is only one random-effects term,
+\code{(1|Batch)}, in the model and, hence, only one grouping factor,
+\code{Batch}, for the random effects.  There is only one column in
+this data frame because the random-effects term, \code{(1|Batch)}, is
+a simple, scalar term.
+
+To make this more explicit, random-effects terms in the model formula
+are those that contain the vertical bar (\code{"|"}) character.  The
+\code{Batch} variable is the grouping factor for the random effects
+described by this term.  An expression for the grouping factor,
+usually just the name of a variable, occurs to the right of the
+vertical bar.  If the expression on the left of the vertical bar is
+\code{1}, as it is here, we describe the term as a \emph{simple,
+  scalar, random-effects term}.  The designation ``scalar'' means
+there will be exactly one random effect generated for each level of
+the grouping factor.  A simple, scalar term generates a block of
+indicator columns --- the indicators for the grouping factor --- in
+$\vec Z$.  Because there is only one random-effects term in this model
+and because that term is a simple, scalar term, the model matrix $\vec
+Z$ for this model is the indicator matrix for the levels of
+\code{Batch}.
+
+In the next chapter we fit models with multiple simple, scalar terms
+and, in subsequent chapters, we extend random-effects terms beyond
+simple, scalar terms.  When we have only simple, scalar terms in the
+model, each term has a unique grouping factor and the elements of the
+list returned by \code{ranef} can be considered as associated with
+terms or with grouping factors.  In more complex models a particular
+grouping factor may occur in more than one term, in which case the
+elements of the list are associated with grouping factors, not the
+terms.
+
+Given the data $\bc y$ and the parameter estimates we can evaluate a
+measure of the dispersion of $(\bc B|\bc Y=\vec y)$.  In the case of a
+linear mixed model, this is the conditional standard deviation, from
+which we can obtain a prediction interval.  The \code{ranef} extractor
+takes an optional argument, \code{postVar = TRUE}, which adds these
+dispersion measures as an attribute of the result.  (The name stands
+for ``posterior variance'', which is a misnomer that had become
+established as an argument name before I realized that it wasn't the
+correct term.)
+\begin{figure}[tbp]
+  \centering
+<<fm1preddot,fig=TRUE,echo=FALSE,results=hide,height=2.5>>=
+print(dotplot(ranef(fm1ML, postVar=TRUE)))
+@   
+\caption{95\% prediction intervals on the random effects in \code{fm1ML}}
+  \label{fig:fm1preddot}
+\end{figure}
+
+We can plot these prediction intervals using
+<<fm1preddotshow,eval=FALSE>>=
+dotplot(ranef(fm1ML, postVar = TRUE))
+@ 
+(Figure~\ref{fm1preddot}), which provides linear spacing
+\begin{figure}[tbp]
+  \centering
+<<fm1predqq,fig=TRUE,echo=FALSE,results=hide,height=3.5>>=
+print(qqmath(ranef(fm1ML, postVar=TRUE)))
+@   
+\caption{95\% prediction intervals on the random effects in \code{fm1ML}}
+  \label{fig:fm1predqq}
+\end{figure}
+of the levels on the y axis, or using
+<<fm1predqqshow,eval=FALSE>>=
+qqmath(ranef(fm1ML, postVar=TRUE))
+@
+(Figure~\ref{fig:fm1predqq}), where the intervals are plotted versus
+quantiles of the standard normal.
+
+The dotplot is preferred when there are only a few random effects per
+term, as in this case.  When there are hundreds or thousands of random
+effects the \code{qqmath} form is preferred because it focuses
+attention on the ``important few'' at the extremes and de-emphasizes
+the ``trivial many'' that are close to zero.
+
+\section{Chapter Summary}
+\label{sec:ChIntroSummary}
+
+A considerable amount of material has been presented in this chapter,
+especially considering the word ``simple'' in its title (it's the
+model that is simple, not the material).  It is worthwhile summarizing
+some of the highlights.
+
+A mixed-effects model incorporates fixed-effects parameters and random
+effects, which are unobserved random variables, $\bc B$.  In a linear
+mixed model, both the unconditional distribution of $\bc B$ and the
+conditional distribution, $(\bc Y|\bc B=\vec b)$ are multivariate
+Gaussian distributions.  Furthermode, this conditional distribution is
+a spherical Gaussian with mean, $\vec\mu$, determined by the 
+linear predictor, $\vec Z\vec b+\vec X\vec\beta$.  That is,
+\begin{displaymath}
+  (\bc Y|\bc B=\vec b)\sim
+  \mathcal{N}(\vec Z\vec b+\vec X\vec\beta, \sigma^2\vec I_n)
+\end{displaymath}
+The unconditional distribution of $\bc B$ has mean $\vec 0$ and a
+parameterized $q\times q$ variance-covariance matrix, $\Sigma_\theta$.
+
+In the models we considered in this chapter, $\Sigma_\theta$, was a
+simple multiple of the identity matrix, $\vec I_6$.  This will always
+be the case for models with just one random-effects term that is a
+simple, scalar term.  The reason for introducing all this machinery is
+to allow for more general models.
+
+The maximum likelihood estimates of the parameters are obtained by
+minimizing the deviance.  For these models we can minimize the
+profiled deviance, which is a function of $\vec\theta$ only, thereby
+considerably simplifying the optimization problem.
 
