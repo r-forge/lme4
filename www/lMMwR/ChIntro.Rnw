@@ -836,13 +836,13 @@ of the terminology from distributions when describing these plots.
 Essentially we view the patterns in the plots as we would those in a
 normal probability plot of data values or residuals from a model.
 
-Ideally the pattern in the plot will be a straight line, in which case
-we can perform reliable statistical inference based on the parameter's
-estimate, its standard error and quantiles of the standard normal
-distribution.  We will describe such as situation as providing a good
-normal approximation for inference.  The common practice of quoting a
-parameter estimate and its standard error assumes that this is always
-the case.
+Ideally the profile zeta plot will be close to a straight line over
+the region of interest, in which case we can perform reliable
+statistical inference based on the parameter's estimate, its standard
+error and quantiles of the standard normal distribution.  We will
+describe such as situation as providing a good normal approximation
+for inference.  The common practice of quoting a parameter estimate
+and its standard error assumes that this is always the case.
 
 In Fig.~\ref{fig:fm1prof} the profile zeta plot for $\log(\sigma)$
 \begin{figure}[tb]
@@ -970,12 +970,12 @@ profile zeta plot will flatten out on the left hand side.
 \subsection{Profile Pairs Plots}
 \label{sec:Profpairs}
 
-A profiled deviance object, such as \code{pr1} not only provides
+A profiled deviance object, such as \code{pr1}, not only provides
 information on the sensitivity of the model fit to changes in
 parameters, it also tells us how the parameters influence each
 other. When we re-fit the model subject to a constraint such as, say,
 $\sigma_1=60$, we obtain the conditional estimates for the other
-parameters, $\sigma$ and $\beta_0$ in this case.  The conditional
+parameters --- $\sigma$ and $\beta_0$ in this case.  The conditional
 estimate of, say, $\sigma$ as a function of $\sigma_1$ is called the
 \emph{profile trace} of $\sigma$ on $\sigma_1$.  Plotting such traces
 provides valuable information on how the parameters in the model are
@@ -987,9 +987,9 @@ print(splom(pr1))
 @   
 \caption[Profile pairs plot for the parameters in model
 \code{fm1}]{Profile pairs plot for the parameters in model \code{fm1}.
-  The contour lines correspond to marginal 50\%, 80\%, 90\%, 95\% and
-  99\% marginal confidence regions based on the likelihood ratio.
-  Panels below the diagonal represent the $(\zeta_i,\zeta_j)$
+  The contour lines correspond to two-dimensional 50\%, 80\%, 90\%,
+  95\% and 99\% marginal confidence regions based on the likelihood
+  ratio.  Panels below the diagonal represent the $(\zeta_i,\zeta_j)$
   parameters; those above the diagonal represent the original
   parameters.}
   \label{fig:fm1profpair}
@@ -1006,12 +1006,12 @@ two-dimensional marginal confidence regions at particular confidence
 levels.
 
 Because this plot may be rather confusing at first we will explain
-what is shown in each panel.  To make it easier to refer to panels we will
-assign them $(x,y)$ coordinates as in a Cartesian coordinate system.
+what is shown in each panel.  To make it easier to refer to panels we
+assign them $(x,y)$ coordinates, as in a Cartesian coordinate system.
 The columns are numbered 1 to 3 from left to right and the rows are
-numbered 1 to 3 from bottom to top.  Note that the rows are
-numbered from the bottom to the top, like the y-axis of a graph, not
-from top to bottom, like a matrix.
+numbered 1 to 3 from bottom to top.  Note that the rows are numbered
+from the bottom to the top, like the y-axis of a graph, not from top
+to bottom, like a matrix.
 
 The diagonal panels show the ordering of the parameters: $\sigma_1$
 first, then $\log(\sigma)$ then $\beta_0$.  Panels above the diagonal
@@ -1090,12 +1090,12 @@ estimates, and that they can be calculated as
 $\tilde{b}_{\widehat{\theta}}=\Lambda_{\widehat{\theta}}\tilde{u}_{\widehat{\theta}}$.
 
 These values are often considered as some sort of ``estimates'' of the
-random effects it can be helpful to think of them this way.  However,
-it can also be misleading.  As we have stated, the random effects are
-not, strictly speaking, parameters---they are unobserved random
-variables.  We don't estimate the random effects in the same sense
-that we estimate parameters.  Instead, we consider the conditional
-distribution of $\bc B$ given the observed data.  That is, we consider
+random effects. It can be helpful to think of them this way but it can
+also be misleading.  As we have stated, the random effects are not,
+strictly speaking, parameters---they are unobserved random variables.
+We don't estimate the random effects in the same sense that we
+estimate parameters.  Instead, we consider the conditional
+distribution of $\bc B$ given the observed data,
 $(\bc B|\bc Y=\vec y)$.
 
 Because the unconditional distribution, $\bc B\sim\mathcal{N}(\vec
@@ -1121,7 +1121,7 @@ mixed models.  In the general case all we can say about $\tilde{\vec
 which is why we use the term ``conditional mode'' to describe these
 values.  We will only use the term ``conditional mean'' and the
 symbol, $\vec\mu$, in reference to $\mathrm{E}(\bc Y|\bc B=\vec b)$,
-which is the conditional mean of $\bc Y$ given $\bc B$, and is an
+which is the conditional mean of $\bc Y$ given $\bc B$, and an
 important part of the formulation of all types of mixed-effects models.
 
 The \code{ranef} extractor returns the conditional modes.
@@ -1222,7 +1222,7 @@ A mixed-effects model incorporates fixed-effects parameters and random
 effects, which are unobserved random variables, $\bc B$.  In a linear
 mixed model, both the unconditional distribution of $\bc B$ and the
 conditional distribution, $(\bc Y|\bc B=\vec b)$, are multivariate
-Gaussian distributions.  Furthermode, this conditional distribution is
+Gaussian distributions.  Furthermore, this conditional distribution is
 a spherical Gaussian with mean, $\vec\mu$, determined by the 
 linear predictor, $\vec Z\vec b+\vec X\vec\beta$.  That is,
 \begin{displaymath}
@@ -1245,7 +1245,7 @@ profiled deviance, which is a function of $\vec\theta$ only, thereby
 considerably simplifying the optimization problem.
 
 To assess the precision of the parameter estimates, we profile the
-deviance function with respect each parameter and apply a signed
+deviance function with respect to each parameter and apply a signed
 square root transformation to the likelihood ratio test statistic,
 producing a profile zeta function for each parameter.  These functions
 provide likelihood-based confidence intervals for the parameters.
@@ -1285,7 +1285,7 @@ or load just the one data set
 data(Rail, package = "MEMSS")
 @ 
 \begin{prob}\label{prS1}
-  Check the structure of documentation, structure and a summary of the
+  Check the documentation, the structure (\code{str}) and a summary of the
   \code{Rail} data (Fig.~\ref{fig:Raildot}) from the \package{MEMSS}
   package.  Note that if you used \code{data} to access this data set
   then you must use
@@ -1298,13 +1298,13 @@ to display the documentation for it.
   Fit a model with \code{travel} as the response and a simple, scalar
   random-effects term for the variable \code{Rail}.  Use the REML
   criterion, which is the default.  Create a dotplot of the
-  conditional modes of the the random effects.
+  conditional modes of the random effects.
 \end{prob}
 \begin{prob}
   Refit the model using maximum likelihood.  Check the parameter
   estimates and, in the case of the fixed-effects parameter, its
   standard error.  In what ways have the parameter estimates changed?
-  In particular, which parameter estimates have not changed?
+  Which parameter estimates have not changed?
 \end{prob}
 \begin{prob}
   Profile the fitted model and construct 95\% profile-based confidence
@@ -1315,11 +1315,11 @@ to display the documentation for it.
 \end{prob}
 \begin{prob}
   Create the profile zeta plot for this model.  For which parameters
-  is there a good normal approximation?
+  there good normal approximations?
 \end{prob}
 \begin{prob}
-  Create a profile pairs plot for this model.  How does the shape of
-  the contours in this model correspond to those in
+  Create a profile pairs plot for this model.  Does the shape of the
+  deviance contours in this model mirror those in
   Fig.~\ref{fig:fm1profpair}?
 \end{prob}
 \begin{prob}
