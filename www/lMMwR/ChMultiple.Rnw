@@ -1,4 +1,5 @@
 \SweaveOpts{engine=R,eps=FALSE,pdf=TRUE,width=8,strip.white=TRUE}
+\SweaveOpts{keep.source=TRUE}
 \SweaveOpts{prefix=TRUE,prefix.string=figs/Multiple,include=TRUE}
 \setkeys{Gin}{width=\textwidth}
 <<preliminaries,echo=FALSE,print=FALSE,results=hide>>=
@@ -10,21 +11,31 @@ library(Matrix)
 library(lme4a)
 fm2ML <- lmer(diameter ~ 1 + (1|plate) + (1|sample), Penicillin, REML=0)
 fm3 <- lmer(strength ~ 1 + (1|sample) + (1|batch), Pastes, REML=0)
+fm3a <- lmer(strength ~ 1 + (1|sample), Pastes, REML=0)
 if (file.exists("pr2.rda")) {
     load("pr2.rda")
 } else {
     pr2 <- profile(fm2ML)
     save(pr2, file = "pr2.rda")
 }
-if (file.exists("pr3.rda")) {
-    load("pr3.rda")
+if (file.exists("pr3.rda")) {load("pr3.rda")
 } else {
     pr3 <- profile(fm3)
     save(pr3, file = "pr3.rda")
 }
+if (file.exists("pr3a.rda")) {load("pr3a.rda")
+} else {
+    pr3a <- profile(fm3a)
+    save(pr3a, file = "pr3a.rda")
+}
+if (file.exists("fm4.rda")) { load("fm4.rda")
+} else {
+    fm4 <- lmer(y ~ 1 + (1|s) + (1|d) + (1|dept:service), InstEval, REML=0)
+    save(fm4, file = "fm4.rda")
+}
 @
 
-\chapter{Models with multiple terms}
+\chapter{Models with multiple random-effects terms}
 \label{chap:Multiple}
 
 The mixed models considered in the previous chapter had only one
@@ -32,23 +43,28 @@ random-effects term, which was a simple, scalar random-effects term,
 and a single fixed-effects coefficient.  Although such models can be
 useful, it is with the facility to use multiple random-effects terms
 and to use random-effects terms beyond a simple, scalar term that we
-can begin to realize the flexibility and versatility of mixed models.  Also, in practice it is rare not to be considering more than one fixed-effects term.
+can begin to realize the flexibility and versatility of mixed models.
 
 In this chapter we consider models with multiple simple, scalar
-random-effects terms.
+random-effects terms, showing examples where the grouping factors for
+these terms are in completely crossed or nested or partially crossed
+configurations.  For ease of description we will refer to the random
+effects as being crossed or nested although, strictly speaking, the
+distinction between nested and non-nested refers to the grouping
+factors, not the random effects.
 
-\section{Models with crossed random effects}
+\section{A Model With Crossed Random Effects}
 \label{sec:crossedRE}
 
 One of the areas in which the methods in the \package{lme4} package
 for \R{} are particularly effective is in fitting models to
 cross-classified data where several factors have random effects
-associated with them.  For example, in many experiments in Psychology
+associated with them.  For example, in many experiments in psychology
 the reaction of each of a set of subjects to each of a group of
 stimuli or items is measured.  If the subjects are considered to be a
-sample from a particular population and the items are a sample from a
-population then it would make sense to associate random effects with
-both these factors.
+sample from a population of subjects and the items are a sample from a
+population of items, then it would make sense to associate random
+effects with both these factors.
 
 In the past it was difficult to fit mixed models with multiple,
 crossed grouping factors to large, possibly unbalanced, data sets.
@@ -56,7 +72,7 @@ The methods in the \package{lme4} package are able to do this.  To
 introduce the methods let us first consider a small, balanced data set
 with crossed grouping factors.
 
-\subsection{The \texttt{Penicillin} data}
+\subsection{The \texttt{Penicillin} Data}
 \label{sec:Penicillin}
 
 The \code{Penicillin} data are derived from Table~6.6, p.~144 of
@@ -108,8 +124,7 @@ the samples.  Because each plate is used for only the six
 samples shown here we will use random effects for the plate.  As in
 the dyestuff example, we are more interested in the sample-to-sample
 variability in the penicillin samples than in the potency of a
-particular sample.  Hence we will use random effects for the sample
-too. 
+particular sample.  Hence we will also use random effects for the sample. 
 
 In this experiment each sample is used on each plate.  We say that the
 \code{sample} and \code{plate} factors are \emph{crossed}, as opposed
@@ -119,8 +134,8 @@ not nested.  If we wish to be more specific, we could describe these
 factors as being \emph{completely crossed}, which means that we have at
 least one observation for each combination of a level of \code{sample}
 and a level of \code{plate}.  We can see this in
-Fig.~\ref{fig:Penicillindot} and, because there are a moderate
-number of levels in these factors, we can check it in a
+Fig.~\ref{fig:Penicillindot} and, because there are moderate
+numbers of levels in these factors, we can check it in a
 cross-tabulation
 <<xtabsPenicillin>>=
 xtabs(~ sample + plate, Penicillin)
@@ -145,7 +160,7 @@ six samples to each of the 24 plates, something could go wrong for one
 of the samples on one of the plates, leaving us without a measurement
 for that combination of levels and thus an unbalanced data set.
 
-\subsection{A model for the \texttt{Penicillin} data}
+\subsection{A Model for the \texttt{Penicillin} Data}
 \label{sec:PenicillinModel}
 
 A model incorporating random effects for both the \code{plate} and the
@@ -174,7 +189,7 @@ print(qrr2[[2]], pos = c(0,0.65,1,1))
   \code{fm2} fit to the \code{Penicillin} data.}
   \label{fig:fm2ranef}
 \end{figure}
-show that the conditional distribution of the random effects for
+confirm that the conditional distribution of the random effects for
 \code{sample} has much less variability than does the conditional
 distribution of the random effects for \code{sample}.
 
@@ -221,8 +236,8 @@ The relative covariance factor (Fig.~\ref{fig:fm2LambdaLimage}, left
 panel) is no longer a multiple of the identity.  It is now block
 diagonal, with two blocks, one of size 24 and one of size 6, each of
 which is a multiple of the identity.  The diagonal elements in each
-block are the $\theta_1$ and $\theta_2$.  The numeric values of
-$\vec\theta$ can be obtained as
+block are $\theta_1$ and $\theta_2$.  The numeric values of
+these parameters can be obtained as
 <<fm2verb>>=
 env(fm2)$theta
 @ 
@@ -317,7 +332,7 @@ versus $\sigma_1$ panel (the $(1,2)$ position) and the $\log(\sigma)$
 versus $\sigma_2$ panel (in the $(2,3)$ position) are dramatically
 non-elliptical.  However, the distortion of the contours is not due to
 these parameter estimates depending on each other.  It is almost
-entirely due choice of scale for $\sigma_1$ and $\sigma_2$.  When we
+entirely due to the choice of scale for $\sigma_1$ and $\sigma_2$.  When we
 plot the contours on the scale of $\log(\sigma_1)$ and
 $\log(\sigma_2)$ instead (Fig.~\ref{fig:toBeConstructed}) they are
 much closer to the elliptical pattern.
@@ -325,14 +340,13 @@ much closer to the elliptical pattern.
 Conversely, if we tried to plot contours on the scale of $\sigma_1^2$
 and $\sigma_2^2$ (not shown), they would be hideously distorted.
 
-\section{Models with nested random effects}
+\section{A Model With Nested Random Effects}
 \label{sec:NestedRE}
 
-In this section we again consider a simple example, this time
-illustrating applications of models with \emph{nested} grouping
-factors for the random effects.
+In this section we again consider a simple example, this time fitting
+a model with \emph{nested} grouping factors for the random effects.
 
-\subsection{The \texttt{Pastes} data}
+\subsection{The \texttt{Pastes} Data}
 \label{sec:PastesData}
 
 The third example from \citet[Table~6.5,
@@ -376,9 +390,7 @@ the \code{xtabs} function, using the optional argument \code{sparse =
 xtabs(~ batch + sample, Pastes, drop = TRUE, sparse = TRUE)
 @
 Alternatively, we can use an image (Fig.~\ref{fig:imagextabsPastes})
-of this cross-tabulation to visualize the structure.  Images like this
-are often an effective way of visualizing the structure of large,
-sparse matrices.
+of this cross-tabulation to visualize the structure.
 
 When plotting the \code{strength} versus \code{batch} and
 \code{sample} in the \code{Pastes} data we should remember that we
@@ -397,7 +409,7 @@ pp <- Pastes
 pp <- within(pp, bb <- reorder(batch, strength))
 pp <- within(pp, ss <- reorder(reorder(sample, strength),
           as.numeric(batch)))
-print(dotplot(ss ~ strength | bb, pp,
+print(dotplot(ss ~ strength | bb, pp, pch = 21,
               strip = FALSE, strip.left = TRUE, layout = c(1, 10),
               scales = list(y = list(relation = "free")),
               ylab = "Sample within batch", type = c("p", "a"),
@@ -443,7 +455,7 @@ mean sample strength.  In section \ref{sec:PastesModel} we will
 examine the need for incorporating batch-to-batch variability in a
 statistical model in addition to sample-to-sample variability.
 
-\subsubsection{Nested  factors}
+\subsubsection{Nested  Factors}
 \label{sec:nestedcrossed}
 
 Because each level of \code{sample} occurs with one and only one level
@@ -494,23 +506,23 @@ data is exactly such an implicitly nested factor.  If we
 cross-tabulate \code{batch} and \code{cask}
 <<Pastesxtab>>=
 xtabs(~ cask + batch, Pastes)
-@
-we get the impression that the \code{cask} and \code{batch} factors
+@ we get the impression that the \code{cask} and \code{batch} factors
 are crossed, not nested.  If we know that the cask should be
 considered as nested within the batch then we should create a new
 categorical variable giving the batch-cask combination, which is
 exactly what the \code{sample} factor is.  A simple way to create such
 a factor is to use the interaction operator, `\code{:}', on the
-factors.  It is advisable, but not necessary, to drop unused levels of
-the interaction factor in the process of creating it.  (An ``unused
-level'' is a combination that did not occur in the data.)  A
-convenient code idiom is
+factors.  It is advisable, but not necessary, to apply \code{factor}
+to the result thereby dropping unused levels of the interaction from
+the set of all possible levels of the factor.  (An ``unused level'' is
+a combination that does not occur in the data.)  A convenient code
+idiom is
 <<nested1>>=
-Pastes$sample <- with(Pastes, (batch:cask)[drop = TRUE])
+Pastes$sample <- with(Pastes, factor(batch:cask))
 @ %$
 or
 <<nested2>>=
-Pastes <- within(Pastes, sample <- (batch:cask)[drop = TRUE])
+Pastes <- within(Pastes, sample <- factor(batch:cask))
 @ 
 
 In a small data set like \code{Pastes} we can quickly detect a factor
@@ -523,32 +535,308 @@ sure, the safest thing to do is to create the interaction factor, as
 shown above, so you can be confident that levels of the
 district:school interaction do indeed correspond to unique schools.
 
-\subsection{Fitting a model with random-effects for nested factors}
+\subsection{Fitting a Model With Random-effects for Nested Factors}
 \label{sec:fitting}
 
+Fitting a model with simple, scalar random effects for nested factors
+is done in exactly the same way as fitting a model with random effects
+for crossed grouping factors.   We include random-effects terms for
+each factor, as in
 <<fm3>>=
 (fm3 <- lmer(strength ~ 1 + (1|sample) + (1|batch), Pastes, REML=0))
 @ 
 
-A profile plot of the parameters in model \code{fm3}
+Not only is the model specification similar for nested and crossed
+\begin{figure}[tbp]
+  \centering
+<<fm3LambdaLimage,fig=TRUE,echo=FALSE,height=3.5>>=
+print(image(env(fm3)$Lambda, sub=NULL,xlab=expression(Lambda),ylab=NULL),
+      split=c(1,1,3,1), more=TRUE)
+print(image(tcrossprod(env(fm3)$Zt),sub=NULL,xlab="Z'Z",ylab=NULL),
+      split=c(2,1,3,1), more=TRUE)
+print(image(env(fm3)$L, sub=NULL,xlab="L",ylab=NULL,colorkey=FALSE),
+      split=c(3,1,3,1))
+@   
+\caption[Images of $\Lambda$, $\vec Z\trans\vec Z$ and $\vec L$ for
+model \texttt{fm3}]{Images of the relative covariance factor,
+  $\Lambda$, the cross-product of the random-effects model matrix,
+  $\vec Z\trans\vec Z$, and the sparse Cholesky factor, $\vec L$, for
+  model \code{fm3}.}
+  \label{fig:fm3LambdaLimage}
+\end{figure}
+factors, the internal calculations are performed according to the
+methods described in Sect.~\ref{sec:definitions} for each model type.
+Comparing the patterns in the matrices $\Lambda$, $\vec Z\trans\vec Z$
+and $\vec L$ for this model (Fig.~\ref{fig:fm3LambdaLimage}) to those
+in Fig.~\ref{fig:fm2LambdaLimage} shows that models with nested
+factors produce simple repeated structures along the diagonal of the
+sparse Cholesky factor, $\vec L$, after reordering the random effects
+(we discuss this reordering later in Sect.~\ref{sec:permutation}).
+This type of structure has the desirable property that there is no
+"fill-in" during calculation of the Cholesky factor.  In other words,
+the number of non-zeros in $\vec L$ is the same as the number of
+non-zeros in the lower triangle of the matrix being factored,
+$\Lambda\trans\vec Z\trans\vec Z\Lambda+\vec I$ (which, because
+$\Lambda$ is diagonal, has the same structure as $\vec Z\trans\vec
+Z$).
+
+Fill-in of the Cholesky factor is not an important issue when we have
+a few dozen random effects, as we do here.  It is an important issue
+when we have millions of random effects in complex configurations, as
+has been the case in some of the models that have been fit using
+\code{lmer}.
+
+\subsection[Parameter Estimates for Model \code{fm3}]{Assessing the
+  Parameter Estimates for Model \code{fm3}}
+\label{sec:assessingfm3}
+<<stddev,echo=FALSE,results=hide>>=
+f3 <- "%.3f"
+f4 <- "%.4f"
+vc3 <- VarCorr(fm3)
+stddev <- unname(c(sapply(vc3, function(el) attr(el, "stddev")),
+                   attr(vc3, "sc")))
+@ 
+The parameter estimates are:
+$\widehat{\sigma_1}=$\Sexpr{sprintf(f3,stddev[1])}, the standard
+deviation of the random effects for \code{sample};
+$\widehat{\sigma_2}=$\Sexpr{sprintf(f3,stddev[2])}, the standard
+deviation of the random effects for \code{batch};
+$\widehat{\sigma}=$\Sexpr{sprintf(f3,stddev[3])}, the standard
+deviation of the residual noise term; and
+$\widehat{\beta_0}=$\Sexpr{sprintf(f3,fixef(fm3))}, the overall mean
+response, which is labeled \code{(Intercept)} in these models.
+
+The estimated standard deviation for \code{sample} is nearly three
+times as large as that for \code{batch}, which confirms what we saw in
+Fig.~\ref{fig:Pastesplot}.  Indeed our conclusion from
+Fig.~\ref{fig:Pastesplot} was that there may not be a significant
+batch-to-batch variability in addition to the sample-to-sample
+variability.
+
+Plots of the prediction intervals of the random effects
+(Fig.~\ref{fig:fm3ranef}))
+\begin{figure}[tbp]
+  \centering
+<<fm3ranef,fig=TRUE,echo=FALSE,height=6.5,results=hide>>=  
+qrr3 <- dotplot(ranef(fm3, postVar = TRUE), strip = FALSE)
+print(qrr3[[1]], pos = c(0,0,1,0.75), more = TRUE)
+print(qrr3[[2]], pos = c(0,0.65,1,1))
+@ 
+\caption{95\% prediction intervals on the random effects for model
+  \code{fm2} fit to the \code{Penicillin} data.}
+  \label{fig:fm2ranef}
+\end{figure}
+confirm this impression in that all the prediction intervals for the
+random effects for \code{batch} contain zero.
 \begin{figure}[tbp]
   \centering
 <<fm3prplot,fig=TRUE,echo=FALSE,height=3.5>>=
 print(xyplot(pr3, absVal=0, aspect=1.3, layout=c(4,1)))
 @   
-  \caption{Profile plot of the parameters in model \code{fm3}.}
+  \caption{Profile zeta plots for the parameters in model \code{fm3}.}
   \label{fig:fm3prplot}
 \end{figure}
-is shown in Fig.~\ref{fig:fm3prplot} and the profile pairs plot
+Furthermore, the profile zeta plot (Fig.~\ref{fig:fm3prplot})
+shows that the even the 50\% profile-based confidence interval on
+$\sigma_2$ extends to zero.
+
+\subsection{Testing $H_0:\sigma_2=0$ Versus $H_a:\sigma_2>0$}
+\label{sec:TestingSig2is0}
+
+One of the many famous quotes from Albert Einstein is ``Everything
+should be made as simple as possible, but not simpler.''  In
+statistical modeling this \emph{principal of parsimony} is embodied in
+hypothesis test comparing two models, one of which contains the other
+as a special case.  Typically, one or more of the parameters in the
+more general model, which we call the \emph{alternative hypothesis},
+is constrained in some way, resulting in the restricted model, which
+we call the \emph{null hypothesis}.  Although we phrase the hypothesis
+test in terms of the parameter restriction, it is important to realize
+that we are comparing the quality of fits obtained with two different
+models.  
+
+Because the more general model, $H_a$, must provide a fit that is at
+least as good as the restricted model, $H_0$, our purpose is to
+determine whether the change in the quality of the fit is sufficient
+to justify the greater complexity of model $H_0$.  This comparison is
+often reduced to a \emph{p-value} which is the probability of seeing a
+difference in the model fits as large as we did, or even larger, when,
+in fact, $H_0$ is adequate.  Like all probabilities, a p-value must be
+between 0 and 1.  When the p-value for a test is small (close to zero)
+we prefer the more complex model, saying that we ``reject $H_0$ in
+favor of $H_a$''.  On the other hand, when the p-value is not small we
+``fail to reject $H_0$'', arguing that there is a non-negligible
+probability that the observed difference in the model fits could
+reasonably be the result of random chance, not the inherent
+superiority of the model $H_a$.  Under these circumstances we prefer
+the simpler model, $H_0$ according to the principal of parsimony.
+
+These are the general principles of statistical hypothesis tests.  To
+perform a test in practice we must specify the criterion for comparing
+the model fits, the method for calculating the p-value from the
+observed value of the criterion and the standard by which we will
+determine if the p-value is ``small'' or not.  The criterion is called
+the \emph{test statistic}, the p-value is calculated from a
+\emph{reference distribution} for the test statistic, and the standard
+for small p-values is called the \emph{level} of the test.
+
+In Sect.~\ref{sec:variability} we referred to likelihood ratio tests
+(LRTs) for which the test statistic is the difference in the
+deviance. That is, the LRT statistic is $d_0-d_a$ where $d_a$ is the
+deviance in the more general ($H_a$) model fit and $d_0$ is the
+deviance in the constrained ($H_0$) model.  An approximate reference
+distribution for an LRT statistic is the $\chi^2_\nu$ distribution
+where $\nu$, the degrees of freedom, is determined by the number of
+constraints imposed on the parameters of $H_a$ to produce $H_0$.
+
+The restricted model fit
+<<fm3a>>=
+(fm3a <- lmer(strength ~ 1 + 1|sample, Pastes, REML=0)) 
+@ 
+is compared to model \code{fm3} with the \code{anova} function
+<<anovafm3>>=
+anova(fm3a, fm3)
+@
+which provides a p-value of \Sexpr{sprintf(f4,anova(fm3a,fm3)$Pr[2])}.%$
+Because typical standards for ``small'' p-values are 5\% or 1\%, a
+p-value over 50\% would not be considered significant at any
+reasonable level.
+
+We do need to be cautious in quoting this p-value, however, because
+the parameter value being tested, $\sigma_2=0$ is on the boundary of
+set of possible values, $\sigma_2\ge 0$, for this parameter.  The
+argument for using a $\chi^2_1$ distribution to calculate a p-value
+for the change in the deviance does not apply when the parameter value
+being tested is on the boundary.  As shown in
+\citet[Sect.~2.5]{pinheiro00:_mixed_effec_model_in_s}, the p-value
+from the $\chi^2_1$ distribution will be ``conservative'' in the sense
+that it is larger than a simulation-based p-value would be.  In the
+worst-case scenario the $\chi^2$-based p-value will be twice as large
+as it should be but, even if that were true, an effective p-value of
+26\% would not cause us to reject $H_0$ in favor of $H_a$.
+
+\subsection{Assessing the Reduced Model, \code{fm3a}}
+\label{sec:assessReduced}
+
+The profile zeta plots
 \begin{figure}[tbp]
   \centering
-<<fm3prpairs,fig=TRUE,echo=FALSE,height=8>>=
-print(splom(pr3))
+<<fm3aprplot,fig=TRUE,echo=FALSE,height=3.5>>=
+print(xyplot(pr3a, aspect=1.3, layout=c(3,1)))
 @   
-  \caption{Profile pairs plot of the parameters in model \code{fm3}.}
-  \label{fig:fm3prpairs}
+  \caption{Profile zeta plots for the parameters in model \code{fm3a}.}
+  \label{fig:fm3aprplot}
 \end{figure}
-in Fig.~\ref{fm3prpairs}.  The contours in the profile pairs plot
-correspond to pairwise marginal confidence regions with confidence
-levels 50\%, 80\%, 90\%, 95\% and 99\%.
+of the parameters in model \code{fm3a} (Fig.~\ref{fig:fm3aplots}) are
+similar to the corresponding plots in Fig.~\ref{fig:fm3plots}, as
+confirmed by the numerical values of the confidence intervals.
+<<confintfm3>>=
+confint(pr3)
+confint(pr3a)
+@
+The confidence intervals on $\log(\sigma)$ and $\beta_0$ are similar
+for the two models.  The confidence interval on $\sigma_1$ is slightly
+wider in model \code{fm3a} than in \code{fm3}, because the variability
+that is attributed to \code{batch} in \code{fm3} is incorporated into
+the variability due to \code{sample} in \code{fm3a}.
+\begin{figure}[tbp]
+  \centering
+<<fm3aprpairs,fig=TRUE,echo=FALSE,height=6.5>>=
+print(splom(pr3a))
+@   
+  \caption[Profile pairs plot of the parameters in model \code{fm3a}.]
+  {Profile pairs plot for the parameters in model \code{fm3a} fit to
+    the \code{Pastes} data.}
+  \label{fig:fm3aprpairs}
+\end{figure}
+
+The patterns in the profile pairs plot (Fig.~\ref{fig:fm3aprpairs})
+for the reduced model \code{fm3a} are similar to those in
+Fig.~\ref{fig:fm1profpair}, the profile pairs plot for model
+\code{fm1}.
+
+\section{A Model With Partially Crossed Random Effects}
+\label{sec:partially}
+
+Especially in observational studies with multiple grouping factors,
+the configuration of the factors is neither nested nor completely
+crossed.  We describe such situations as having \emph{partially
+  crossed} grouping factors for the random effects.
+
+Studies in education, in which test scores for students over time are
+also associated with teachers and schools, usually result in partially
+crossed grouping factors.  When students with scores in different
+years have different teachers for the different years, the student
+factor is not nested within the teacher factor.  To have complete
+crossing of the student and teacher factor is would be necessary for
+each student to be observed with each teacher which would be unusual.
+A study of thousands of students and hundreds of teachers inevitably
+ends up partially crossed.
+
+In this section we consider an example with thousands of students and
+instructors where the response is the student's evaluation of the
+instructor's effectiveness.  These data, like those from most large
+observational studies, are quite unbalanced.
+
+\subsection{The \code{InstEval} Data}
+\label{sec:InstEval}
+
+The \code{InstEval} data are from a special evaluation of lecturers by
+students at ETH-Z\"{u}rich, to determine who should receive the
+``best-liked professor'' award.  These data have been slightly
+simplified and identifying labels removed so as to preserve anonymity.
+
+The variables 
+<<strInstEval>>=
+str(InstEval)
+@ 
+have somewhat cryptic names.  Factor \code{s} designates the student
+and \code{d} the instructor.  The \code{dept} factor is the department
+for the course and \code{service} indicates whether the course was a
+service course taught to students from other departments.
+
+Although the response, \code{y}, is on a scale of 1 to 5,
+<<xtabsy>>=
+xtabs(~ y, InstEval)
+@
+it is sufficiently spread out to warrant treating is as if it were a
+continuous response.
+
+In this chapter we fit models that have random effects for student,
+instructor, and department or the \code{dept:service} combination to
+these data.  Later we will fit models that have fixed for
+instructor and department to these data.
+<<fm4show,eval=FALSE>>=
+(fm4 <- lmer(y ~ 1 + (1|s) + (1|d) + (1|dept:service), InstEval, REML=0))
+@
+<<fm4,echo=FALSE>>=
+fm4
+@ 
+(Fitting this complex model to a moderately large data set takes less
+than two minutes on a modest laptop computer purchased in 2006.  Although this
+is more time than required for earlier model fits, it is a remarkably
+short time for fitting a model of this size and complexity.  In some
+ways it is remarkable that such a model can be fit on a modest
+laptop.)
+
+All three estimated standard deviations of the random effects are less
+than $\widehat{\sigma}$, with $\widehat{\sigma_3}$ the estimated
+standard deviation of the random effects for the \code{dept:service}
+interaction less than one-tenth the estimated residual standard
+deviation.
+\begin{figure}[tbp]
+  \centering
+<<fm4ranef,fig=TRUE,echo=FALSE,height=3.5,results=hide>>=  
+print(dotplot(ranef(fm4, postVar = TRUE, whichel = "dept:service")))
+@ 
+\caption{95\% prediction intervals on the random effects for the
+  \code{dept:service} factor in model \code{fm4} fit to the
+  \code{InstEval} data.}
+  \label{fig:fm4ranef}
+\end{figure}
+
+It is not surprising that zero is within all of the prediction
+intervals on the random effects for this factor
+(Fig.~\ref{fig:fm4ranef}).  In fact, zero is close to the middle of
+all these prediction intervals.
 
