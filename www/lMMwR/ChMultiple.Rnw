@@ -28,10 +28,20 @@ if (file.exists("pr3a.rda")) {load("pr3a.rda")
     pr3a <- profile(fm3a)
     save(pr3a, file = "pr3a.rda")
 }
-if (file.exists("fm4.rda")) { load("fm4.rda")
+if (file.exists("fm4.rda")) {load("fm4.rda")
 } else {
     fm4 <- lmer(y ~ 1 + (1|s) + (1|d) + (1|dept:service), InstEval, REML=0)
     save(fm4, file = "fm4.rda")
+}
+if (file.exists("rr4.rda")) {load("rr4.rda")
+} else {                             
+    rr4 <- ranef(fm4, postVar = TRUE, whichel = "dept:service")
+    save(rr4, file = "rr4.rda")
+}
+if (file.exists("fm4a.rda")) { load("fm4a.rda")
+} else {
+    fm4a <- lmer(y ~ 1 + (1|s) + (1|d), InstEval, REML=0)
+    save(fm4a, file = "fm4a.rda")
 }
 @
 
@@ -446,14 +456,14 @@ Figure~\ref{fig:Pastesplot} shows considerable variability in strength
 between samples relative to the variability within samples.  There is
 some indication of variability between batches, in addition to the
 variability induced by the samples, but not a strong indication of a
-batch effect.  For example, each of batches I and D, with
-low mean strength relative to the other batches, contained one sample (I:b and
-D:c, respectively) that had high mean strength relative to the
-other samples.  Also, batches H and C, with comparatively high mean
-batch strength. contain samples H:a and C:a with comparatively low
-mean sample strength.  In section \ref{sec:PastesModel} we will
-examine the need for incorporating batch-to-batch variability in a
-statistical model in addition to sample-to-sample variability.
+batch effect.  For example, each of batches I and D, with low mean
+strength relative to the other batches, contained one sample (I:b and
+D:c, respectively) that had high mean strength relative to the other
+samples.  Also, batches H and C, with comparatively high mean batch
+strength. contain samples H:a and C:a with comparatively low mean
+sample strength.  In Sect.~\ref{sec:TestingSig2is0} we will examine
+the need for incorporating batch-to-batch variability in addition to
+sample-to-sample variability in the statistical model.
 
 \subsubsection{Nested  Factors}
 \label{sec:nestedcrossed}
@@ -535,8 +545,8 @@ sure, the safest thing to do is to create the interaction factor, as
 shown above, so you can be confident that levels of the
 district:school interaction do indeed correspond to unique schools.
 
-\subsection{Fitting a Model With Random-effects for Nested Factors}
-\label{sec:fitting}
+\subsection{Fitting a Model With Nested Random Effects}
+\label{sec:fittingPastes}
 
 Fitting a model with simple, scalar random effects for nested factors
 is done in exactly the same way as fitting a model with random effects
@@ -573,7 +583,7 @@ factors produce simple repeated structures along the diagonal of the
 sparse Cholesky factor, $\vec L$, after reordering the random effects
 (we discuss this reordering later in Sect.~\ref{sec:permutation}).
 This type of structure has the desirable property that there is no
-"fill-in" during calculation of the Cholesky factor.  In other words,
+``fill-in'' during calculation of the Cholesky factor.  In other words,
 the number of non-zeros in $\vec L$ is the same as the number of
 non-zeros in the lower triangle of the matrix being factored,
 $\Lambda\trans\vec Z\trans\vec Z\Lambda+\vec I$ (which, because
@@ -624,7 +634,7 @@ print(qrr3[[2]], pos = c(0,0.65,1,1))
 @ 
 \caption{95\% prediction intervals on the random effects for model
   \code{fm2} fit to the \code{Penicillin} data.}
-  \label{fig:fm2ranef}
+  \label{fig:fm3ranef}
 \end{figure}
 confirm this impression in that all the prediction intervals for the
 random effects for \code{batch} contain zero.
@@ -715,7 +725,7 @@ worst-case scenario the $\chi^2$-based p-value will be twice as large
 as it should be but, even if that were true, an effective p-value of
 26\% would not cause us to reject $H_0$ in favor of $H_a$.
 
-\subsection{Assessing the Reduced Model, \code{fm3a}}
+\subsection{Assessing the Reduced Model, \texttt{fm3a}}
 \label{sec:assessReduced}
 
 The profile zeta plots
@@ -727,8 +737,8 @@ print(xyplot(pr3a, aspect=1.3, layout=c(3,1)))
   \caption{Profile zeta plots for the parameters in model \code{fm3a}.}
   \label{fig:fm3aprplot}
 \end{figure}
-of the parameters in model \code{fm3a} (Fig.~\ref{fig:fm3aplots}) are
-similar to the corresponding plots in Fig.~\ref{fig:fm3plots}, as
+of the parameters in model \code{fm3a} (Fig.~\ref{fig:fm3aprplot}) are
+similar to the corresponding plots in Fig.~\ref{fig:fm3prplot}, as
 confirmed by the numerical values of the confidence intervals.
 <<confintfm3>>=
 confint(pr3)
@@ -813,21 +823,21 @@ instructor and department to these data.
 fm4
 @ 
 (Fitting this complex model to a moderately large data set takes less
-than two minutes on a modest laptop computer purchased in 2006.  Although this
-is more time than required for earlier model fits, it is a remarkably
-short time for fitting a model of this size and complexity.  In some
-ways it is remarkable that such a model can be fit on a modest
-laptop.)
+than two minutes on a modest laptop computer purchased in 2006.
+Although this is more time than required for earlier model fits, it is
+a remarkably short time for fitting a model of this size and
+complexity.  In some ways it is remarkable that such a model can be
+fit at all on such a computer.)
 
 All three estimated standard deviations of the random effects are less
-than $\widehat{\sigma}$, with $\widehat{\sigma_3}$ the estimated
+than $\widehat{\sigma}$, with $\widehat{\sigma}_3$, the estimated
 standard deviation of the random effects for the \code{dept:service}
-interaction less than one-tenth the estimated residual standard
+interaction, less than one-tenth the estimated residual standard
 deviation.
 \begin{figure}[tbp]
   \centering
-<<fm4ranef,fig=TRUE,echo=FALSE,height=3.5,results=hide>>=  
-print(dotplot(ranef(fm4, postVar = TRUE, whichel = "dept:service")))
+<<fm4ranef,fig=TRUE,echo=FALSE,height=5,results=hide>>=  
+print(dotplot(rr4, strip = FALSE))
 @ 
 \caption{95\% prediction intervals on the random effects for the
   \code{dept:service} factor in model \code{fm4} fit to the
@@ -838,5 +848,66 @@ print(dotplot(ranef(fm4, postVar = TRUE, whichel = "dept:service")))
 It is not surprising that zero is within all of the prediction
 intervals on the random effects for this factor
 (Fig.~\ref{fig:fm4ranef}).  In fact, zero is close to the middle of
-all these prediction intervals.
+all these prediction intervals.  However, the p-value for the LRT of
+$H_0:\sigma_3=0$ versus $H_a:\sigma_3>0$
+<<LRTshow,eval=FALSE>>=
+fm4a <- lmer(y ~ 1 + (1|s) + (1|d), InstEval, REML=0)
+@
+<<LRTfm4>>=
+anova(fm4a,fm4)
+@ 
+is highly significant.  That is, we have very strong evidence that we
+should reject $H_0$ in favor of $H_a$.
 
+The seeming inconsistency of these conclusions is due to the large
+sample size ($n=73421$).  When a model is fit to a very large sample
+even the most subtle of differences can be highly ``statistically
+significant''.  The researcher or data analyst must then decide if
+these terms have practical significance, in addition to the apparent
+statistical significance.
+
+The large sample size also helps to assure that the parameters have
+good normal approximations.  We could profile this model fit but doing
+so would take a very long time and, in this particular case, the
+analysts are more interested in a model that uses fixed-effects
+parameters for the instructors, which we will describe in the next
+chapter.
+\begin{figure}[tbp]
+  \centering
+<<fm4Limage,fig=TRUE,echo=FALSE,height=5,results=hide>>=  
+print(image(env(fm4)$L, sub=NULL, xlab=NULL, ylab=NULL, colorkey=FALSE))
+@ 
+\caption{Image of the sparse Cholesky factor, $\vec L$, from model \code{fm4}}
+  \label{fig:fm4Limage}
+\end{figure}
+
+Before leaving this model we examine the sparse Cholesky factor, $\vec
+L$, (Fig.~\ref{fig:fm4Limage}), which is of size $4128\times4128$.
+Even as a sparse matrix this factor requires a considerable amount of
+memory,
+<<fm4Lstats>>=
+object.size(env(fm4)$L)
+unclass(round(object.size(env(fm4)$L)/2^20, 3))  # size in megabytes
+@ 
+but as a triangular dense matrix it would require nearly 10 times as
+much.  There are $(4128\times 4129)/2$ elements on and below the
+diagonal, each of which would require 8 bytes of storage.  A packed
+lower triangular array would require
+<<fm4densestats>>=
+(8 * (4128 * 4129)/2)/2^20   # size in megabytes
+@ 
+megabytes.  The more commonly used full rectangular storage requires
+<<fm4densestats>>=
+(8 * 4128^2)/2^20   # size in megabytes
+@ 
+megabytes of storage.
+
+The number of nonzero elements in this matrix that must be updated for
+each evaluation of the deviance is
+<<nnzero>>=
+nnzero(as(env(fm4)$L, "sparseMatrix"))
+@
+Comparing this to \Sexpr{(4128*4129)/2}, the number of elements that
+must be updated in a dense Cholesky factor, we can see why the sparse
+Cholesky factor provides a much more efficient evaluation of the
+profiled deviance function.
