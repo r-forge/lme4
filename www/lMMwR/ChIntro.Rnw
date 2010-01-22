@@ -412,13 +412,13 @@ conflicts with this name.)  The line labeled \code{Batch} in the
 random effects table shows that the random effects added to the
 \code{(Intercept)} term, one for each level of the \code{Batch}
 factor, are modeled as random variables whose unconditional variance
-is estimated as \Sexpr{sprintf("%.2f", unlist(VarCorr(fm1)))} gm.$^2$
+is estimated as \Sexpr{sprintf("%.2f", unlist(VarCorr(fm1)))} g$^2$
 in the REML fit and as
-\Sexpr{sprintf("%.2f", unlist(VarCorr(fm1ML)))} gm.$^2$
+\Sexpr{sprintf("%.2f", unlist(VarCorr(fm1ML)))} g$^2$
 in the ML fit.  The corresponding standard deviations
-are \Sexpr{sprintf("%.2f", sqrt(VarCorr(fm1)[["Batch"]][1,1]))} gm. for the
+are \Sexpr{sprintf("%.2f", sqrt(VarCorr(fm1)[["Batch"]][1,1]))} g for the
 REML fit and \Sexpr{sprintf("%.2f", sqrt(VarCorr(fm1ML)[["Batch"]][1,1]))}
-gm. for the ML fit.
+g for the ML fit.
 
 Note that the last column in the random effects summary table is the
 estimate of the variability expressed as a standard deviation rather
@@ -432,11 +432,11 @@ section~\ref{sec:variability} we explain why we do not provide standard
 errors of variance estimates.
 
 The line labeled \code{Residual} in this table gives the estimate of
-the variance of the residuals (also in gm.$^2$) and its corresponding
+the variance of the residuals (also in g$^2$) and its corresponding
 standard deviation.  For the REML fit the estimated standard deviation
-of the residuals is \Sexpr{round(attr(VarCorr(fm1), "sc"), 2)} gm. and
+of the residuals is \Sexpr{round(attr(VarCorr(fm1), "sc"), 2)} g and
 for the ML fit it is also \Sexpr{round(attr(VarCorr(fm1ML), "sc"), 2)}
-gm.  (Generally these estimates do not need to be equal.  They happen
+g  (Generally these estimates do not need to be equal.  They happen
 to be equal in this case because of the simple model form and the
 balanced data set.)
 
@@ -452,11 +452,11 @@ errors  of any fixed-effects parameters in the model.  The only
 fixed-effects term in the model formula is the \code{1}, denoting a
 constant which, as explained above, is labeled as \code{(Intercept)}.
 For both the REML and the ML estimation criterion the estimate of this
-parameter is \Sexpr{round(fixef(fm1)[1], 2)} gm. (equality is again a
+parameter is \Sexpr{round(fixef(fm1)[1], 2)} g (equality is again a
 consequence of the simple model and balanced data set).  The standard
 error of the intercept estimate is
-\Sexpr{round(coef(summary(fm1))[1,2], 2)} gm. for the REML fit and
-\Sexpr{round(coef(summary(fm1ML))[,2], 2)} gm. for the ML fit.
+\Sexpr{round(coef(summary(fm1))[1,2], 2)} g for the REML fit and
+\Sexpr{round(coef(summary(fm1ML))[,2], 2)} g for the ML fit.
 
 \subsection{A Model For the \texttt{Dyestuff2} Data}
 \label{sec:Dyestuff2LMM}
