@@ -1,6 +1,6 @@
 \documentclass[graybox,envcountchap,footinfo,natbib]{svmono}
 \usepackage{mathptmx,helvet,courier}
-\usepackage{type1cm}         
+\usepackage{type1cm}
 
 
 \usepackage{makeidx}         % allows index generation
@@ -17,6 +17,20 @@
                        % please use the style svind.ist with
                        % your makeindex program
 
+%% Do comment in and out different parts only here (not below):
+%% {keeps *.aux files, TOC, etc in a more consistent state}
+\includeonly{
+% dedication
+% ,foreword
+% ,preface
+%,acknow,
+,acronym%
+,ChIntro%
+,ChMultiple%
+% ,ChLongitudinal%
+,ChTheory%
+}
+
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \begin{document}
 \author{Douglas M. Bates}
@@ -26,22 +40,20 @@
 
 \frontmatter%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-%\include{dedication}
+\include{dedication}
 %\include{foreword}
-%\include{preface}
+\include{preface}
 %\include{acknow}
 
 \tableofcontents
-
 \listoffigures{}
 %\listoftables{}
-%\include{acronym}
-
+\include{acronym}
 
 \mainmatter%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \include{ChIntro}
 \include{ChMultiple}
-%\include{ChLongitudinal}
+\include{ChLongitudinal}
 \include{ChTheory}
 % \include{part}
 % \include{chapter}
