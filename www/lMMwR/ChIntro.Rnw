@@ -554,6 +554,7 @@ linear mixed model the unconditional distribution of $\bc B$ and the
 conditional distribution, $(\bc Y|\bc B=\vec b)$, are both
 multivariate Gaussian (or ``normal'') distributions,
 \begin{equation}
+  \label{eq:LMMdist}
   \begin{aligned}
     (\bc Y|\bc B=\vec b)&\sim\mathcal{N}(\vec X\vec\beta+\vec Z\vec
     b,\sigma^2\vec I)\\
@@ -574,13 +575,14 @@ $q\times q$ matrix, depending on the \emph{variance-component
   parameter}, $\vec\theta$, and generating the symmetric $q\times q$
 variance-covariance matrix, $\Sigma_\theta$, according to
 \begin{equation}
+  \label{eq:relcovfac}
   \Sigma_\theta=\sigma^2\Lambda_\theta\Lambda_\theta\trans .
 \end{equation}
 The \emph{spherical random effects}, $\bc U\sim\mathcal{N}(\vec
 0,\sigma^2\vec I_q)$, determine $\bc B$ according to
-\begin{equation}
+\begin{displaymath}
   \bc B=\Lambda_\theta\bc U .
-\end{equation}
+\end{displaymath}
 
 The \emph{penalized residual sum of squares} (PRSS),
 \begin{equation}

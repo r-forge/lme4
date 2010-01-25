@@ -21,21 +21,235 @@ options(width=80, show.signif.stars = FALSE,
   models and the computational approach used to evaluate or
   approximate the log-likelihood of a model/data/parameter value
   combination.}
-\subsection{Definitions of the Random Variables}
-\label{sec:defnRV}
 
-As mentioned in section~\ref{sec:memod}, the mixed-effects probability
+In this chapter we describe some of the details of the theoretical
+development and the computational methods for fitting mixed-effects
+models as implemented in the \package{lme4} package.  We also provide
+the basis for later generalizations to models for non-Gaussian
+responses and to models in which the relationship between the
+conditional mean, $\vec\mu$, and the linear predictor, $\vec
+X\vec\beta+\vec Z\vec b$ is a nonlinear relationship.
+
+This material is directed at those readers who wish to follow the
+theory and methodology and especially how both can be extended to
+other types of models.  Readers who are less interested in the ``how''
+and the ``why'' of fitting mixed models than in the results themselves
+should not feel obligated to master these details.
+
+\section{Methods for linear mixed models}
+\label{sec:LMMtheory}
+
+We begin by reviewing the definition of linear mixed-effects models
+and some of the basics of the computational methods, as given in
+Sect.~\ref{sec:memod}.
+
+\subsection{Definitions and basic results.}
+\label{sec:defnLMM}
+
+As described in Sect.~\ref{sec:memod}, a linear mixed-effects
 model is based on two vector-valued random variables: the
 $q$-dimensional vector of random effects, $\bc B$, and the
-$n$-dimensional response vector, $\bc Y$.  In our model for the
-\code{Dyestuff} data the dimension of the response vector is $n=30$
-and the dimension of the random effects vector is $q=6$.  
+$n$-dimensional response vector, $\bc Y$.  The unconditional
+distribution of $\bc B$ and the conditional distribution of $\bc Y$,
+given $\bc B=\vec b$, are described in (\ref{eq:LMMdist}) as
+multivariate Gaussian distributions of the form
+\begin{equation}
+  \label{eq:LMMdist}
+  \begin{aligned}
+    (\bc Y|\bc B=\vec b)&\sim\mathcal{N}(\vec X\vec\beta+\vec Z\vec
+    b,\sigma^2\vec I)\\
+    \bc{B}&\sim\mathcal{N}(\vec0,\Sigma_\theta) .
+  \end{aligned}
+\end{equation}
+
+The $q\times q$, symmetric, variance-covariance matrix,
+$\mathrm{Var}(\bc B)=\Sigma_\theta$, depends on the
+\emph{variance-component parameter vector}, $\vec\theta$, and is
+\emph{positive semidefinite}, which means that
+\begin{equation}
+  \label{eq:posSemiDef}
+  \vec b\trans\Sigma_\theta\vec b\ge0\quad\forall\vec b\ne\vec 0 .
+\end{equation}
+This property does not guarantee that $\Sigma_\theta^{-1}$ exists.
+Indeed, singular (non-invertible) $\Sigma_\theta$ can and do occur in
+practice, as we have seen in some of the examples in earlier
+chapters.  Moreover, during the course of the numerical optimization
+by which the parameter estimates are determined it is frequently the
+case that the profiled deviance or the profiled REML criterion will be
+evaluated at values of $\vec\theta$ that produce singular $\Sigma_\theta$.
+
+The scalar parameter, $\sigma>0$, which is the standard deviation of
+the residual or per-observation noise terms, is called the
+\emph{common scale parameter}.  Equation~(\ref{eq:relcovfac}) defines the
+relative covariance factor, $\Lambda_\theta$, as any matrix that satisfies
+\begin{equation}
+  \label{eq:relcovfac}
+  \Sigma_\theta=\sigma^2\Lambda_\theta\Lambda_\theta\trans .
+\end{equation}
+(Technically, we should write the variance-covariance matrix as
+$\Sigma_{\sigma,\theta}$ and not just $\Sigma_\theta$, but we will
+blur that distinction and continue to use $\Sigma_\theta$.)  
+The matrix $\Lambda_\theta$ can be singular.
+
+Our computational methods employ $\Lambda_\theta$ directly.  That is,
+the effect of the parameter $\vec\theta$ is only through the way it
+determines $\Lambda_\theta$.  The matrix $\Sigma$ in explicitly
+evaluated at the converged parameter estimates only.
+
+The spherical random effects, $\bc U\sim\mathcal{N}(\vec
+0,\sigma^2\vec I_q)$, determine $\bc B$ as
+\begin{equation}
+  \label{eq:sphericalRE}
+  \bc B=\Lambda_\theta\bc U .
+\end{equation}
+(Although it may seem more reasonable to write $\bc U$ as a linear
+transformation of $\bc B$, we cannot do that when $\Lambda_\theta$ is
+singular so we must define the transformation this way.)
+
+We can easily verify that (\ref{eq:sphericalRE}) provides the desired
+distribution for $\bc B$.  As a linear transformation of a
+multivariate Gaussian random variable, $\bc B$ will be multivariate
+Gaussian with mean
+\begin{displaymath}
+  \mathrm{E}[\bc B] = \Lambda_\theta\mathrm{E}[\bc U]=\Lambda_\theta\vec0=\vec0
+\end{displaymath}
+and variance-covariance matrix
+\begin{displaymath}
+  \begin{aligned}
+    \mathrm{Var}(\bc B)&=\mathrm{E}\left[(\bc B-\mathrm{E}[\bc B])
+      (\bc B-\mathrm{E}[\bc B])\trans\right]\\
+    &=\mathrm{E}\left[\bc B\bc B\trans\right]\\
+    &=\mathrm{E}\left[\Lambda_\theta\,\bc U\bc U\trans\Lambda_\theta\right]\\
+    &=\Lambda_\theta\,\mathrm{E}[\bc U\bc U\trans]\Lambda_\theta\trans\\
+    &=\Lambda_\theta\,\mathrm{Var}(\bc U)\Lambda_\theta\\
+    &=\Lambda_\theta\,\sigma^2\vec I_q\,\Lambda_\theta\\
+    &=\sigma^2\Lambda_\theta\Lambda_\theta\trans\\
+    &=\Sigma_\theta .
+  \end{aligned}
+\end{displaymath}
+
+Just as we concentrate on how $\vec\theta$ determines
+$\Lambda_\theta$, not $\Sigma$, we will concentrate on properties of
+$\bc U$ rather than on $\bc B$.  In particular, we now define the
+model according to the distributions
+\begin{equation}
+  \label{eq:condYgivenU}
+  \begin{aligned}
+  (\bc Y|\bc U=\vec u)&\sim\mathcal{N}(\vec Z\vec\Lambda_\theta\vec
+  u+\vec X\beta,\sigma^2\vec I_n)\\
+  \bc U&\sim\mathcal{N}(\vec0,\sigma^2\vec I_q) .
+  \end{aligned}
+\end{equation}
+
+To allow for extensions to other types of mixed models we distinguish
+between the \emph{linear predictor}
+\begin{equation}
+  \label{eq:linearpred}
+  \vec\gamma = \vec Z\vec\Lambda_\theta\vec u+\vec X\beta
+\end{equation}
+and the \emph{conditional mean} of $\bc Y$, given $\bc U=\vec u$,
+which is
+\begin{equation}
+  \label{eq:conditionalMean}
+  \vec\mu = \mathrm{E}\left[\bc Y|\bc U=\vec u\right] .
+\end{equation}
+In a linear mixed model $\vec\mu=\vec\gamma$ and, because $\vec\mu$ is
+$n$-dimensional, the model matrices $\vec Z$ and $\vec X$ must be
+$n\times q$ and $n\times p$, respectively.
+
+\subsection{The conditional distribution $(\bc U|\bc Y=\vec y)$}
+\label{sec:conddistUgivenY}
+
+In this section it will help to be able to distinguish between the
+observed response vector and an arbitrary value of $\bc Y$.  For this
+section only we will write the observed data vector as $\vec
+y_{\text{obs}}$ whereas $\vec y$ without the subscript will refer to an
+arbitrary value of the random variable $\bc Y$.
+The likelihood of the parameters, $\vec\theta$, $\vec\beta$, and
+$\sigma$, given the observed data, $\vec y_{\text{obs}}`w$, is defined as the
+probability density of $\bc Y$, which is a function of the parameters,
+evaluated at $\vec y_{\text{obs}}$.  
+
+The natural approach to evaluating the likelihood is to determine the
+marginal (or unconditional) distribution of $\bc Y$, which in this
+case amounts to determining the marginal density of $\bc Y$, and
+evaluate that density at $\vec y_{\text{obs}}$.  To follow this course
+we would first determine the joint density of $\bc U$ and $\bc Y$,
+written $f_{\bc u,\bc y}(\vec u,\vec y)$, then integrate this density
+with respect $\bc u$ to create the marginal density, $f_{\bc Y}(\vec
+y)$, then evaluate the marginal density at $\bc y_{\text{obs}}$.  To
+allow for later generalizations we will change the order of these
+steps slightly.  We evaluate the joint density function, $f_{\bc U,\bc
+  Y}(\vec u,\vec y)$, at $\vec y_{\text{obs}}$, producing the
+\emph{unnormalized conditional density}, $h(\vec u)$.  We say that $h$
+is ``unnormalized'' because it is a multiple of the conditional
+density,
+\begin{equation}
+  \label{eq:conddenUgivenY}
+  f_{\bc U|\bc Y}(\vec u|\vec y_{\text{obs}})=\frac
+  {h(\vec u)}{\int_{\mathbb{R}^q}h(\vec u)\,d\vec u}  .
+\end{equation}
+In some theoretical developments the normalizing constant, which is
+the integral in the denominator of an
+expression like (\ref{eq:conddenUgivenY}), is not of interest.  In
+this case it is of interest because the normalizing constant is
+exactly the likelihood that we wish to evaluate,
+\begin{equation}
+  \label{eq:LMMlikelihood}
+  L(\vec\theta,\vec\beta,\sigma|\vec y_{\text{obs}}) = 
+  \int_{\mathbb{R}^q}h(\vec u)\,d\vec u .
+\end{equation}
+
+For a linear mixed model, where all the distributions of interest are
+multivariate Gaussian and the conditional mean, $\vec\mu$, is a linear
+function of both $\vec u$ and $\vec\beta$, the distinction between
+evaluating the joint density at $\vec y_{\text{obs}}$ to produce
+$h(\vec u)$ then integrating with respect to $\vec u$, as opposed to
+first integrating the joint density then evaluating at $\vec
+y_{\text{obs}}$ is not terribly important.  For other mixed models
+this distinction can be important.  In particular, generalized linear
+mixed models, described in Sect.~\ref{sec:GLMM}, can be used to model
+a discrete response, such as a binary response or a count, leading to
+a joint distribution for $\bc Y$ and $\bc U$ that is discrete in one
+direction and continuous in the other.  But even in cases like this
+the conditional distribution $(\bc U|\bc Y=\vec y_{\text{obs}}$ is
+continuous and both the conditional density, $f_{\bc U|\bc Y}(\vec
+u|\vec y_{\text{obs}})$ and it unnormalized form, $h(\vec u)$, are
+well-defined.
+
+\subsection{Integrating $h(\vec u)$ in the linear mixed model}
+\label{sec:IntegratingH}
+
+The integral defining the likelihood in (\ref{eq:LMMlikelihood}) has a
+closed form in the case of a linear mixed model but not for some of
+the more general forms of mixed models.  To motivate methods for
+approximating the likelihood in more general situations, we describe
+in some detail how the integral can be evaluated using the sparse
+Cholesky factor, $\vec L_\theta$, and the conditional mode,
+\begin{equation}
+  \label{eq:condMode}
+  \tilde{\vec u} 
+\end{equation}
+
+Alternatively, we can consider the conditional distribution $(\bc
+U|\bc Y=\vec y)$, which is described by its density function
+$f_{\bc U|\bc Y}(\vec u|\vec y)$.  We can evaluate this density
+function, up to a scale factor, as the product of the unconditional
+density of $\bc U$, written $f_{\bc U}(\vec u)$, and the conditional
+density of $(\bc Y|\bc U=\vec u)$.  That is, if we let $h(\vec u)$
+
+
+parameters, given the data, is
+\begin{equation}
+  \label{eq:likelihood}
+  L(\vec\theta,\vec\beta,\sigma|\vec y)=
+  \int_\mathbb{R}^q f_{\bc U|\bc Y}(\vec u|\vec y)\,d\vec u
+\end{equation}
+
 
 In all the forms of mixed models that we will consider, the random
 effects vector has a multivariate Gaussian (also called ``normal'')
-distribution with mean vector $\vec 0$ and with a parameterized,
-$q\times q$, symmetric, variance-covariance matrix that we will write
-as $\Sigma_\theta$.  The notation indicates that the matrix $\Sigma$
+distribution with mean vector $\vec 0$ and with a   The notation indicates that the matrix $\Sigma$
 depends on a parameter vector that is written as $\vec\theta$ and
 which we call the \emph{variance-component parameters}, even though
 some of the elements of $\vec\theta$ may determine covariances and not
