@@ -10,8 +10,7 @@ RNW = $(CHAPTERS) $(APPENDICES)
 ## load *fast*
 ## FIXME -- update this list
 lrgGRAPHS = figs/Intro-fm1profpair.pdf \
-	  figs/Multiple-fm3prpairs.pdf figs/Multiple-fm2prpairs.pdf \
-	  figs/Long-pr2pairs.pdf
+	  figs/Multiple-fm2prpairs.pdf
 smlGRAPHS= $(lrgGRAPHS:.pdf=.png)
 
 
