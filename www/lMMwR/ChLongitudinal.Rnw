@@ -1,4 +1,5 @@
 \SweaveOpts{engine=R,eps=FALSE,pdf=TRUE,width=8,strip.white=TRUE}
+\SweaveOpts{keep.source=TRUE}
 \SweaveOpts{prefix=TRUE,prefix.string=figs/Long,include=TRUE}
 \setkeys{Gin}{width=\textwidth}
 
@@ -9,10 +10,17 @@ library(splines)
 library(lattice)
 library(Matrix)
 library(lme4a)
+fm9 <- lmer(Reaction ~ Days + (1|Subject) + (0+Days|Subject), sleepstudy, REML = 0)
+if (file.exists("pr9.rda")) {
+    load("pr9.rda")
+} else {
+    pr9 <- profile(fm9)
+    save(pr9, file = "pr9.rda")
+}
 data(Orthodont, package = "MEMSS")
 @
 
-\chapter{Simple longitudinal data}
+\chapter{Models for Longitudinal Data}
 \label{chap:longitudinal}
 
 Longitudinal data consist of repeated measurements on the same subject
@@ -21,17 +29,11 @@ wish to characterize the time trends within subjects and between
 subjects.  The data will always include the response, the time
 covariate and the indicator of the subject on which the measurement
 has been made.  If other covariates are recorded, say whether the
-subject is in the treatment group or the control group, we may wish
+subject is in the treatment group or the control group, we may wish to
 relate the within- and between-subject trends to such covariates.
 
 In this chapter we introduce graphical and statistical techniques
-for multilevel analysis by applying them to a simple longitudinal
-example. Because our purpose is to motivate the later presentation of
-the statistical and computational techniques we simply provide the
-results here and delay until later chapters the detailed
-explanations of how the plots are created and how the statistical models
-are fit to the data.
-
+for the analysis of longitudinal data by applying them to a simple example.
 
 \section{The sleepstudy data}
 \label{sec:sleep}
@@ -44,14 +46,15 @@ each night.  We consider here the group of 18 subjects who were
 restricted to three hours of sleep per night for the first ten days of
 the trial.  Each subject's reaction time was measured several times on
 each day of the trial.
+<<strsleepstudy>>=
+str(sleepstudy)
+@ 
 
-The data, available as the data frame \code{sleepstudy} in the
-\code{"Matrix"} package, consist of the response variable
-\code{Reaction}, which is the average of the reaction time
-measurements on a given subject for a given day, and two covariates:
-\code{Days}, the number of days of sleep deprivation, and
-\code{Subject}, the identifier of the subject on which the observation
-was made.
+In this data frame, the response variable \code{Reaction}, is the average
+of the reaction time measurements on a given subject for a given day.
+The two covariates are \code{Days}, the number of days of sleep
+deprivation, and \code{Subject}, the identifier of the subject on
+which the observation was made.
 \begin{figure}[tbp]
   \centering
 <<sleepxyplot,fig=TRUE,echo=FALSE,height=7,width=7>>=
@@ -73,96 +76,79 @@ print(xyplot(Reaction ~ Days | Subject, sleepstudy, aspect = "xy",
 \end{figure}
 
 As recommended for any statistical analysis, we begin by plotting the
-data.  For data such as these we use the multipanel style of plots
-pioneered by Bill Cleveland\index{Cleveland,William} and his coworkers
-at Bell Labs as ``Trellis graphics'' and implemented for R in the
-\code{"lattice"} package by Deepayan Sarkar\index{Sarkar,Deepayan}.
-
-The most important relationship to plot for longitudinal data on
+data.  The most important relationship to plot for longitudinal data on
 multiple subjects is the trend of the response over time by subject,
-as shown in Figure~\ref{fig:sleepxyplot}.  This plot, in which the
+as shown in Fig.~\ref{fig:sleepxyplot}.  This plot, in which the
 data for different subjects are shown in separate panels with the axes
 held constant for all the panels, allows for examination of the
 time-trends within subjects and for comparison of these patterns
 between subjects.  Through the use of small panels in a repeating
-pattern Figure~\ref{fig:sleepxyplot} conveys a great deal of
+pattern Fig.~\ref{fig:sleepxyplot} conveys a great deal of
 information, the individual time trends for 18 subjects over 10 days
---- a total of 180 points, without being overly cluttered.
+--- a total of 180 points --- without being overly cluttered.
 
-In section \ref{sec:longitudinalplots} we discuss the details of
-producing this style of plot for longitudinal data and give other
-examples of such plots.  Here we concentrate on some of the aspects of
-this particular plot; specifically, the use of a reference line, the
-choice of the aspect ratio and the ordering of the panels.
+\subsection{Characteristics of the Data Plot}
+\label{sec:DataPlotChar}
 
-A simple linear regression line has been added to each panel of
-Figure~\ref{fig:sleepxyplot} to help assess the linearity of the
-relationship and to allow comparison of slopes and intercepts.  The
-aspect ratio of the panels (ratio of the height to the width) has been
-chosen, according to an algorithm described in
+The principles of ``Trellis graphics'', developed by Bill
+Cleveland\index{Cleveland,William} and his coworkers at Bell Labs and
+implemented in the \package{lattice} package for \R{} by Deepayan
+Sarkar\index{Sarkar,Deepayan}, have been incorporated in this plot.
+As stated above, all the panels have the same vertical and horizontal
+scales, allowing us to evaluate the pattern over time for each subject
+and also to compare patterns between subjects.  The line drawn in each
+panel is a simple least squares line fit to the data in that panel
+only.  It is provided to enhance our ability to discern patterns in
+both the slope (the typical change in reaction time per day of sleep
+deprivation for that particular subject) and the intercept (the
+average response time for the subject when on their usual sleep
+pattern).
+
+The aspect ratio of the panels (ratio of the height to the width) has
+been chosen, according to an algorithm described in
 \citet{cleveland93:_visual_data}, to facilitate comparison of slopes.
 The effect of choosing the aspect ratio in this way is to have the
 slopes of the lines on the page distributed around $\pm 45^\circ$,
 thereby making it easier to detect systematic changes in slopes.
 
-We can see that for all the subjects except subject 335 reaction time
-increases, more-or-less linearly, with days of sleep deprivation.
-However, there is considerable variation both in the initial reaction
-time and in the daily rate of increase in reaction time.  A question
-of interest to the experimenters is whether a subject's rate of
-increase is related to the subject's initial reaction time.  To aid in
-assessing possible relationships between the per-subject intercept and
-slope, the panels in Figure~\ref{fig:sleepxyplot} have been ordered by
-increasing intercept of the within-panel regression lines, from left
-to right within rows starting on the bottom row.  With such an ordering
-of the panels, a systematic relationship between the intercept and the
-slope would show up as a systematic trend in slopes across the panels.
-There is little evidence in Figure~\ref{fig:sleepxyplot} of such a
+The panels have been ordered (from left to right starting at the
+bottom row) by increasing intercept.  Because the subject identifiers,
+shown in the strip above each panel, are unrelated to the response it
+would not be helpful to use the default ordering of the panels, which
+is by increasing subject number.  If we did so our perception of
+patterns in the data would be confused by the, essentially random,
+ordering of the panels. Instead we use a characteristic of the data to
+determine the ordering of the panels, thereby enhancing our ability to
+compare across panels.  For example, a question of interest to the
+experimenters is whether a subject's rate of change in reaction time
+is related to the subject's initial reaction time.  If this is the
+case then we would expect that the slopes would show an increasing
+trend (or, less likely, a decreasing trend) in the left to right,
+bottom to top ordering.
+
+There is little evidence in Fig.~\ref{fig:sleepxyplot} of such a
 systematic relationship between the subject's initial reaction time
-and their rate of increase in reaction time with days of sleep
-deprivation. 
-\begin{figure}[tbp]
-  \begin{center}
-<<Sl1,fig=TRUE,echo=FALSE,height=3.5>>=
-print(plot(confint(lmList(Reaction ~ Days | Subject, sleepstudy),
-                   pooled = TRUE), order = 1))
+and their rate of change in reaction time per day of sleep
+deprivation.  We do see that for all the subjects, except 335,
+reaction time increases, more-or-less linearly, with days of sleep
+deprivation.  However, there is considerable variation both in the
+initial reaction time and in the daily rate of increase in reaction
+time.  We can also see that these data are balanced, both with respect
+to the number of observations on each subject, and with respect to the
+times at which these observations were taken.  This can be confirmed
+with a cross-tabulation of \code{Subject} by \code{Days}.
+<<xtabssleep>>=
+xtabs(~ Subject + Days, sleepstudy)
 @ 
-  \end{center}
-  \caption{95\% confidence intervals on the intercept and slope of
-    linear regression models fitted to the data for each subject in the
-    sleep study.  A pooled estimate of the residual standard deviation
-    was used, resulting in a constant width of the intervals across
-    subjects for this balanced data set.  The subjects have been
-    ordered according to increasing estimated intercept.}
-  \label{fig:Sl1}
-\end{figure}
 
-Another way of assessing the extent of such a
-relationship is to plot confidence intervals on the fitted slopes
-and intercepts (Figure~\ref{fig:Sl1}).  In this plot we have again
-ordered the subjects according to the estimated intercept.  This
-produces an obvious pattern in the intervals for the intercept.  If
-there was a systematic relationship between the intercepts and the
-slopes we should also see a pattern in the slopes. Although
-Figure~\ref{fig:Sl1} does show considerable variation between subjects
-in both the intercept and the slope, there is little evidence of a
-systematic relationship between the intercept and the slope.
-
-One notable characteristic of Figure~\ref{fig:Sl1} is the consistency
-of the widths of the intervals, a result of the data being balanced
-and of the use of a common (``pooled'') estimate of the variance of
-the random noise term in the regression model.
-
-We say that longitudinal data are \emph{balanced} if each subject is
-observed the same number of times if the times of these observations
-are consistent across subjects.  In a designed experiment, such as
-generated these data, we can reasonably expect the data to be
-balanced.  An observational study, on the other hand, will almost
-never generate balanced data.  Although the methods that we describe
-in this book apply to balanced or unbalanced data, highly unbalanced
-data can make interpretation of the results from a fitted model more
-difficult, as we shall see in later chapters.
-
+In cases like this where there are several observations (10) per
+subject and a relatively simple within-subject pattern (more-or-less
+linear) we may want to examine coefficients from within-subject
+fixed-effects fits.  However, because the subjects constitute a sample
+from the population of interest and we wish to drawn conclusions about
+typical patterns in the population and the subject-to-subject
+variablity of these patterns, we will eventually want to fit mixed
+models so we begin doing so.
 
 \section{Mixed-effects models for the sleep data}
 \label{sec:SleepMixed}
@@ -173,68 +159,104 @@ intercept and slope of the linear time trend for the population, and
 two random effects for each subject.  The random effects for a
 particular subject are the deviations in intercept and slope of
 that subject's time trend from the population values.  
+<<fm8>>=
+(fm8 <- lmer(Reaction ~ Days + (Days|Subject), sleepstudy))
+@
 
-One way of writing such a model is
-\begin{equation}
-  \label{eq:yij}
-  y_{ij} = \beta_1+\beta_2 x_{ij} + b_{i1} + b_{i2} x_{ij} + \epsilon_{ij},
-  \quad i=1,\dots,18, j=1,\dots,10
-\end{equation}
-where $y_{ij}$ is the $j$th reaction time observed on subject $i$,
-taken on day $x_{ij}$, $\vec\beta=(\beta_1,\beta_2)\trans$ is the vector
-of fixed effects, $\vec b_i=(b_{i1}, b_{i2})\trans$ is the vector of random
-effects for the $i$th subject and $\epsilon_{ij}$ is the unexplained
-or ``residual'' random noise associated with this observation.
-
-We assume that the $\epsilon_{ij}$ are independently distributed as
-$\epsilon_{ij}\sim\mathcal{N}(0,\sigma^2)$.  In the first form of the
-mixed-effects model we assume that the $\vec b_i$ are independently
-distributed as $\vec b_i\sim\mathcal{N}(\vec0,\Sigma_1)$ where
-$\Sigma_1$ is a general $2\times 2$ variance-covariance matrix.  That
-is, in the first model the random effects for the intercept and the
-slope of the same subject are allowed to be correlated.  Because our
-graphical evaluation of the data in \S\ref{sec:sleep} indicates that
-it may be reasonable to model these data with independent random
-effects for intercept and slope within subject, we will later fit a
-second model that has such independent random effects then compare the
-two fitted models.
-
-When fitting mixed-effects models using \code{lmer} we specify the
-model to be fit using a formula.  For the first model the formula can
-be written
-<<formulasm1,echo=FALSE>>=
+We see that this model incorporates both and intercept and a slope
+(w.r.t. \code{Days}) in both the fixed effects and the random effects.
+In linear model formulas the intercept term is implicit.  If we had
+written the formula as
+<<formulafm8,echo=FALSE>>=
 Reaction ~ 1 + Days + (1 + Days|Subject)
-@ 
-indicating that the variable \code{Reaction} is modeled by an
-intercept and a slope with respect to the variable \code{Days} plus
-random effects, grouped by \code{Subject}, for the intercept and the
-slope.
+@
+the fitted model would be the same.  Many people prefer to include
+the intercept explicitly in the formula to emphasize the relationship
+between terms in the formula and coefficients or random effects in the
+model.  Others omit these implicit terms to economize on the amount
+of typing required.
 
-That is, the left hand side of the formula, \code{Reaction} in this
-case, specifies the response.  Usually the left hand side is the name
-of a variable, as it is here, but it can be a more general expression
-like \code{log(Response)}.  Expressions on the right hand side of the
-formula, \code{1 + Days + (1 + Days|Subject)} in this case, together
-specify the fixed effects and the random effects formulation.  A
-conditional expression, which is any expression that contains the
-vertical bar, \code{|}, designate random effects for the terms on the
-left of the \code{|} grouped according to the factor on the right of
-the \code{|}.  Expressions on the right hand side of the formula that
-do not include the vertical bar specify fixed effects.
+As this is the first time we have seen a random effects term other
+than for a simple, scalar random effect we should discuss the general
+form of such terms.  As previously described, the expression on the
+right hand side of the vertical bar is evaluated as a factor, the
+\emph{grouping factor} for the term.  The expression on the left hand
+side is evaluated as a linear model formula, producing a model matrix.
+Because the left hand side of \code{(1 + Days|Subject)} produces a
+model matrix with two columns, there will be two random effects
+associated with each level of \code{Subject}.  That is, there is a
+total of 36 random effects generated by this term.  We say that we
+have a \emph{vector-valued random effect}, an intercept effect and a
+slope effect, for each level of the \code{Subject} factor.
+\begin{figure}[tbp]
+  \centering
+<<fm8Zt,fig=TRUE,echo=FALSE,results=hide,height=3,width=8>>=
+print(image(env(fm8)$Zt, sub = NULL, xlab = NULL, ylab = NULL))
+@
+  \caption[Image of $\vec Z\trans$ for model \code{fm8}}
+  \label{fig:fm8Zt}
+\end{figure}
 
-The formula as given above explicitly indicates the presence of the
-intercept terms.  Howewer, it is common to write a formula like this as
-<<formulasm1a,echo=FALSE>>=
-Reaction ~ Days + (Days|Subject)
-@ 
-taking advantage of the fact that the formula language implicitly
-includes an intercept term in the fixed effects and in each random
-effects specification.
+As shown in Fig.~ref{fig:fm8Zt}, the 36 columns of $\vec Z$ (rows of
+$\vec Z\trans$ in the figure) can be regarded as 18 pairs, one pair
+for each level of \code{Subject}. The first column in each pair is the
+indicator for that level of \code{Subject}.  The second column in
+each pair is the value of the \code{Days} variable but only for the
+measurements on that subject.
+
+One way to imagine the process of generating $\vec Z$ is to start with
+the $180\times2$ model matrix for the linear model formula \code{1 +
+  Days} and the $180\times18$ indicator matrix for the levels of
+\code{Subject}.
+
+\begin{figure}[tbp]
+  \centering
+<<fm8LambdaL,fig=TRUE,echo=FALSE,results=hide,height=3,width=8>>=
+print(image(env(fm8)$Lambda, sub = NULL, xlab = expression(Lambda),
+            ylab = NULL), pos = c(1,1,3,1), more = TRUE)
+print(image(tcrossprod(env(fm8)$Lambda), sub = NULL,
+            xlab = expression(Sigma), ylab = NULL),
+      pos = c(2,1,3,1), more = TRUE)
+print(image(env(fm8)$L, sub = NULL, xlab = "L", ylab = NULL),
+      pos = c(2,1,3,1))
+@
+  \caption[Images of $\Lambda$, $\Sigma$ and $\vec L$ for model \code{fm8}}
+  \label{fig:fm8LambdaL}
+\end{figure}
+
+The images of $\Lambda$, $\Sigma$ and $L$ for this model
+(Fig.~\ref{fig:fm8LambdaL}) show 18 triangular blocks of size 2 along
+the diagonal of $\Lambda$, generating 18 square, symmetric blocks of
+size 2 along the diagonal of $\Sigma$.  The 18 symmetric blocks on the
+diagonal of $\Sigma$ are identical, although this may not be obvious
+from the figure.  Overall we estimate two standard deviations and a
+correlation for the vector-valued random effect of size 2, as shown in
+the model summary.
+
+Often the variances and the covariance of random effects are quoted,
+rather than the standard deviations and the correlation shown here.
+We have already seen that the variance of a random effect is a poor
+scale on which to quote the estimate because confidence intervals on
+the variance are so badly skewed.  It is more sensible to assess the
+estimates of the standard deviations of random effects or possibly the
+logarithms of the standard deviations, when we can be confident that 0
+is outside the region of interest.  We do display the estimates of the
+variances of the random effects but mostly so that the user can
+compare these estimates to those from other software or for cases
+where an estimated of a variance is expected (sometimes even required)
+to be given in reporting a model fit.
+
+We do not quote estimates of covariances of vector-valued random
+effects because the covariance is a difficult scale to interpret.  We
+know that a correlation must be between $-1$ and $1$.  A
+correlation estimate close to those extremes indicates that
+$\Sigma$ is close to singular and the model is not well formulated.
+
 
 To specify a model with independent random effects by subject for the
 intercept and the slope we will use two random-effects terms and write
 the formula as
-<<formulasm2,echo=FALSE>>=
+<<formulafm9,echo=FALSE>>=
 Reaction ~ Days + (1|Subject) + (0+Days|Subject)
 @
 
@@ -254,10 +276,10 @@ the interpretation of the model formulae until \S\ref{sec:model_form}.
 At this point let us fit these models and examine the parameter
 estimates.
 
-We can fit the first model, store the result as \code{sm1}
+We can fit the first model, store the result as \code{fm8}
 (sleepstudy model 1), and ask for a brief display of the results with
-<<sm1>>=
-(sm1 <- lmer(Reaction ~ Days + (Days|Subject), sleepstudy))
+<<fm8>>=
+(fm8 <- lmer(Reaction ~ Days + (Days|Subject), sleepstudy))
 @
 (The extra set of parentheses surrounding the assignment causes the
 fitted model to display itself.  Normally the result of an assignment
@@ -320,17 +342,17 @@ words, observing a subject's initial reaction time does not give us
 much information for predicting whether their reaction time will be
 strongly affected by each day of sleep deprivation or not.
 
-By fitting model \code{sm2} with independent random effects for
-intercept and slope and comparing this fitted model to \code{sm1} we
+By fitting model \code{fm9} with independent random effects for
+intercept and slope and comparing this fitted model to \code{fm8} we
 can assess this claim using a statistical hypothesis test.
-<<sm2>>=
-(sm2 <- lmer(Reaction ~ Days + (1|Subject) + (0+Days|Subject), sleepstudy))
-anova(sm2, sm1)
+<<fm9>>=
+(fm9 <- lmer(Reaction ~ Days + (1|Subject) + (0+Days|Subject), sleepstudy))
+anova(fm9, fm8)
 @ 
 
-We can see that the fitted model \code{sm2} is quite similar to
-\code{sm1} except for the obvious difference that there is no
-within-subject correlation of the random effects in \code{sm2}.  The
+We can see that the fitted model \code{fm9} is quite similar to
+\code{fm8} except for the obvious difference that there is no
+within-subject correlation of the random effects in \code{fm9}.  The
 estimates of all the other parameters, which are common to the two
 models, are practically unchanged.
 
@@ -339,8 +361,8 @@ likelihood ratio test, which evaluates the change in the quality of
 the fits, as measured by the deviance (defined in
 \S\ref{sec:overview-theory}), relative to the change in the number of
 parameters.  The results of this test indicate that the model
-\code{sm1} does not fit significantly better than the model \code{sm2}
-and hence we prefer the model \code{sm2} which has fewer parameters.
+\code{fm8} does not fit significantly better than the model \code{fm9}
+and hence we prefer the model \code{fm9} which has fewer parameters.
 
 We conclude that there is significant variation between subjects in
 both the initial reaction time and in the rate of change in reaction
@@ -355,22 +377,21 @@ Plots of the profile $\zeta$ (Figure~\ref{fig:pr2plt})
 \begin{figure}[ht]
   \centering
 <<pr2plt,fig=TRUE,echo=FALSE,height=3.5>>=
-pr2 <- profile(sm2)
-print(xyplot(pr2, aspect = 1.3, layout = c(5,1), absVal = FALSE))
+print(xyplot(pr9, aspect = 1.3, layout = c(5,1)))
 @ 
-  \caption{Signed square root, $\zeta$, of the likelihood ratio test
-    statistic for each of the parameters in model \code{fm2}.  The
-    vertical lines are the endpoints of 50\%, 80\%, 90\%, 95\% and 99\%
-    confidence intervals derived from this test statistic.}
+\caption{Profile zeta plot for each of the parameters in model
+  \code{fm9}.  The vertical lines are the endpoints of 50\%, 80\%,
+  90\%, 95\% and 99\% profile-based confidence intervals for each
+  parameter.}
   \label{fig:pr2plt}
 \end{figure}
-show that confidence intervals $\sigma_1$ and $\sigma_2$ will be slightly
-skewed; those for $\log(\sigma)$ will be symmetric and
+show that confidence intervals $\sigma_1$ and $\sigma_2$ will be
+slightly skewed; those for $\log(\sigma)$ will be symmetric and
 well-approximated by methods based on quantiles of the standard normal
 distribution and those for the fixed-effects parameters, $\beta_1$ and
 $\beta_2$ will be symmetric and slightly over-dispersed relative to
-the standard normal.  For example, the 95\% confidence intervals from
-the profile $\zeta$ are
+the standard normal.  For example, the 95\% profile-based confidence
+intervals are
 <<confintpr2>>=
 confint(pr2)
 @ 
@@ -381,7 +402,7 @@ The profile pairs plot (Figure~\ref{fig:pr2pairs})
 <<pr2pairs,fig=TRUE,echo=FALSE,height=8>>=
 print(splom(pr2))
 @ 
-\caption{Profile pairs plot for the parameters in model \code{fm2}.
+\caption{Profile pairs plot for the parameters in model \code{fm9}.
   The contour lines correspond to marginal 50\%, 80\%, 90\%, 95\% and
   99\% confidence regions based on the likelihood ratio.  Panels below
   the diagonal represent the $(\zeta_i,\zeta_j)$ parameters; those above
@@ -436,19 +457,19 @@ Details of the particular Bayesian formulation of the linear mixed
 model that we use, including the choice of prior distributions for the
 parameters, are given in \S\ref{sec:bayes-form-model}.
 
-\subsection{Posterior distributions from model \code{sm2}}
+\subsection{Posterior distributions from model \code{fm9}}
 \label{sec:post-param-distr}
 
 The function \code{mcmcsamp} applied to a fitted lmer model produces
 an MCMC sample from the posterior distribution of the parameter
 estimates, from which we can evaluate HPD intervals. Let us create and
 store a sample of size 10,000 from the posterior distribution of the
-parameters in model \code{sm2}.
+parameters in model \code{fm9}.
 <<ss2seed,echo=FALSE,results=hide>>=
 set.seed(123454321)
 @ 
 <<ss2>>=
-#ss2 <- mcmcsamp(sm2,10000)
+#ss2 <- mcmcsamp(fm9,10000)
 @ 
 
 The \code{HPDinterval} function creates HPD intervals on each of the
@@ -471,7 +492,7 @@ distributed as shown by the density plots in Figure~\ref{fig:ss2density}
 %   \centerline{\includegraphics[width=\textwidth]{figs/Long-ss2density}}
 %     \caption{Empirical density estimates of a Markov Chain Monte Carlo
 %       sample from the posterior distribution of the parameters in
-%       model \code{Sm2}.  The variance parameters are shown on the
+%       model \code{Fm9}.  The variance parameters are shown on the
 %       logarithm scale.}
 %   \label{fig:ss2density}
 % \end{figure}
@@ -488,7 +509,7 @@ probability plots (Figure~\ref{fig:ss2qqmath})
 %   \centerline{\includegraphics[width=\textwidth]{figs/Long-ss2qqmath}}
 %   \caption{Normal probability plots of the Markov Chain Monte Carlo
 %     sample from the posterior distribution of the parameters in model
-%     \code{sm2}.  The variance and covariance parameters have been
+%     \code{fm9}.  The variance and covariance parameters have been
 %     transformed to the logarithms of the variances and Fisher's z
 %     transformation of the correlations, respectively.}
 %   \label{fig:ss2qqmath}
@@ -513,7 +534,7 @@ probability plots (Figure~\ref{fig:ss2qqmath})
     modes evaluated at the parameter estimates.
   \end{itemize}
 <<rr1>>= 
-(rr1 <- ranef(sm1))
+(rr1 <- ranef(fm8))
 @ 
 
   \begin{itemize}
@@ -524,7 +545,7 @@ probability plots (Figure~\ref{fig:ss2qqmath})
 print(plot(rr1, aspect = 1, type = c("g", "p")))
 @
   \caption{Scatterplot of the conditional modes, or BLUPs, of the
-    random effects for model \code{Sm1}.  Each point represents the
+    random effects for model \code{Fm8}.  Each point represents the
     mode of the distribution of the random effects for the intercept
     and slope associated with one of the subjects.}
   \label{fig:rr1plot}
@@ -547,7 +568,7 @@ print(plot(rr1, aspect = 1, type = c("g", "p")))
   \centering
 <<shrinkage,echo=FALSE,fig=TRUE,height=7,width=7>>=
 df <- coef(lmList(Reaction ~ Days | Subject, sleepstudy))
-cc1 <- as.data.frame(coef(sm1)$Subject)
+cc1 <- as.data.frame(coef(fm8)$Subject)
 names(cc1) <- c("A", "B")
 df <- cbind(df, cc1)
 with(df,
@@ -629,7 +650,7 @@ print(xyplot(Reaction ~ Days | Subject, sleepstudy, aspect = "xy",
 \begin{figure}[tbp]
   \centering
 <<caterpillar,fig=TRUE,echo=FALSE,results=hide,height=4,width=7>>=
-#print(qqmath(ranef(sm1,post=TRUE))[[1]])
+#print(qqmath(ranef(fm8,post=TRUE))[[1]])
 @
   \caption{Prediction intervals on the random effects per subject.}
   \label{fig:caterpillar}
@@ -639,8 +660,8 @@ print(xyplot(Reaction ~ Days | Subject, sleepstudy, aspect = "xy",
 \label{sec:model-spec-codelm}
 
 A linear mixed-effects model to be fit by \code{lmer} is specified by
-the \code{formula} argument.  For model \code{sm1} the formula is
-<<formulasm1,echo=FALSE>>=
+the \code{formula} argument.  For model \code{fm8} the formula is
+<<formulafm8,echo=FALSE>>=
 Reaction ~ Days + (Days|Subject)
 @ 
 which can be read as ``\code{Reaction} is modeled by \code{Days} and
@@ -657,7 +678,7 @@ $n\times p$ fixed-effects model matrix $\vec X$ according to the rules
 that we describe in \S\ref{sec:model_formulas}.  The dimensions $n$
 and $p$ are the number of observations and the dimension of the
 fixed-effects parameter vector $\vec\beta$, respectively.  In this case
-of model \code{sm1} the only unconditional term, \code{Days}, is the
+of model \code{fm8} the only unconditional term, \code{Days}, is the
 name of a numeric variable, which is incorporated as a column,
 labelled \code{Days} in $\vec X$. By convention, the intercept term,
 which generates a column of $1$'s labelled \code{(Intercept)}, is
@@ -665,9 +686,9 @@ included implicitly in the model specification.  (This column can be
 suppressed if desired, as shown below.)
 
 The first few rows of the $180\times 2$ model matrix $\vec X$ for model
-\code{sm1} are
-<<headmodelmatrixsm1>>=
-head(model.matrix(sm1))
+\code{fm8} are
+<<headmodelmatrixfm8>>=
+head(model.matrix(fm8))
 @ 
 
 Each conditional term in the model formula generates a set of random
@@ -727,13 +748,13 @@ hence the dimensions of $\vec Z$ and $\Sigma$ in the general form
 patterned and thus are determined by a relatively small number of
 values.
 
-For model \code{sm1}, $k=1$, $q_1=2$ and $n_i=18$ so, as we have seen,
+For model \code{fm8}, $k=1$, $q_1=2$ and $n_i=18$ so, as we have seen,
 $q=36$. However, the assumptions of independence of random effects
 associated with different subjects means that the $36\times 36$ matrix
 $\Sigma$ consists of the $2\times 2$ matrix $\Sigma_1$
 repeated $18$ times in the pattern
 \begin{equation}
-  \label{eq:bSigmasm1}
+  \label{eq:bSigmafm8}
   \Sigma=
   \begin{bmatrix}
     \Sigma_1 & \vec0     & \hdots & \vec0\\
@@ -751,9 +772,9 @@ subject. The other $34$ random effects associated with other subjects
 are multiplied by zero.
 
 The matrix $\vec Z$ is evaluated and stored as a sparse matrix.  The
-first few rows of $\vec Z$ for model \code{sm1} are
-<<Zsm1,echo=FALSE>>=
-head(t(env(sm1)$Zt))
+first few rows of $\vec Z$ for model \code{fm8} are
+<<Zfm8,echo=FALSE>>=
+head(t(env(fm8)$Zt))
 @ 
 These rows correspond to the first $6$ observations on the first subject.
 In the representation as a sparse matrix an element that is known to
@@ -764,15 +785,15 @@ renumbered the \code{Days} and thus is not a systematic zero in the
 matrix.)
 
 Easier to understand, perhaps, is the image of $\vec Z\trans$ in
-Figure~\ref{fig:sm2Zt}.
+Figure~\ref{fig:fm9Zt}.
 \begin{figure}[tbp]
   \centering
-<<sm2Zt,fig=TRUE,echo=FALSE,results=hide,height=3,width=8>>=
-print(image(env(sm2)$Zt, sub = NULL, xlab = NULL, ylab = NULL))
+<<fm9Zt,fig=TRUE,echo=FALSE,results=hide,height=3,width=8>>=
+print(image(env(fm9)$Zt, sub = NULL, xlab = NULL, ylab = NULL))
 @
 \caption{Image of $\vec Z\trans$, the transpose of $\vec Z$, the random
-  effects model matrix in model \code{sm2}}
-  \label{fig:sm2Zt}
+  effects model matrix in model \code{fm9}}
+  \label{fig:fm9Zt}
 \end{figure}
 
 
@@ -799,7 +820,7 @@ matrix while the expression on the right of the \code{|} is evaluated as a
 factor, called the \emph{grouping factor} for the term.  We allow
 multiple conditional terms in a model specification so we will refer
 to the $i$th conditional term even though there is only one such
-conditional term in the model specification for model \code{sm1}.
+conditional term in the model specification for model \code{fm8}.
 
 If the model matrix from the expression on the left of the $i$th
 conditional has $q_i$ columns and the grouping factor has $n_i$ levels
