@@ -193,7 +193,7 @@ slope effect, for each level of the \code{Subject} factor.
 <<fm8Zt,fig=TRUE,echo=FALSE,results=hide,height=3,width=8>>=
 print(image(env(fm8)$Zt, sub = NULL, xlab = NULL, ylab = NULL))
 @
-  \caption[Image of $\vec Z\trans$ for model \code{fm8}}
+  \caption{Image of $\vec Z\trans$ for model \code{fm8}}
   \label{fig:fm8Zt}
 \end{figure}
 
@@ -213,14 +213,14 @@ the $180\times2$ model matrix for the linear model formula \code{1 +
   \centering
 <<fm8LambdaL,fig=TRUE,echo=FALSE,results=hide,height=3,width=8>>=
 print(image(env(fm8)$Lambda, sub = NULL, xlab = expression(Lambda),
-            ylab = NULL), pos = c(1,1,3,1), more = TRUE)
+            ylab = NULL), split = c(1,1,3,1), more = TRUE)
 print(image(tcrossprod(env(fm8)$Lambda), sub = NULL,
             xlab = expression(Sigma), ylab = NULL),
-      pos = c(2,1,3,1), more = TRUE)
+      split = c(2,1,3,1), more = TRUE)
 print(image(env(fm8)$L, sub = NULL, xlab = "L", ylab = NULL),
-      pos = c(2,1,3,1))
+      split = c(3,1,3,1))
 @
-  \caption[Images of $\Lambda$, $\Sigma$ and $\vec L$ for model \code{fm8}}
+  \caption{Images of $\Lambda$, $\Sigma$ and $\vec L$ for model \code{fm8}}
   \label{fig:fm8LambdaL}
 \end{figure}
 

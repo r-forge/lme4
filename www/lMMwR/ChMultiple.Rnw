@@ -945,7 +945,7 @@ factors, in which the levels of one factor are only meaningful within
 a particular level of the other factor.  In the \code{Pastes}
 data, levels of the \code{cask} factor are only meaningful within a
 particular level of the \code{batch} factor.  A model formula of
-<<badformula>>=
+<<badformula,echo=FALSE>>=
 strength ~ 1 + (1|cask) + (1|batch)
 @
 would result in a fitted model that did not appropriately reflect the
@@ -956,11 +956,11 @@ avoid such ambiguity.
 
 For convenience, a model with multiple, nested random-effects terms
 can be specified as
-<<slashform>>=
+<<slashform,echo=FALSE>>=
 strength ~ 1 + (1|batch/cask)
 @ 
 which internally is re-expressed as
-<<expandedform>>=
+<<expandedform,echo=FALSE>>=
 strength ~ 1 + (1|batch) + (1|batch:cask)
 @ 
 We will avoid terms of the form \code{(1|batch/cask)}, preferring
@@ -994,7 +994,7 @@ be zero.
 
 Another observation from the last example is that, for data sets with a
 large numbers of observations, a term in a model may be
-``statistically significant'' even though its practical significance
-may be negligible.
+``statistically significant'' even when its practical significance
+is negligible.
 
 
