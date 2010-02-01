@@ -9,8 +9,8 @@ RNW = $(CHAPTERS) $(APPENDICES)
 ## Need some graphics as 'png' rather than 'pdf' to make the resulting pdf
 ## load *fast*
 ## FIXME -- update this list
-lrgGRAPHS = figs/Intro-fm1profpair.pdf \
-	  figs/Multiple-fm2prpairs.pdf
+lrgGRAPHS = #figs/Intro-fm1profpair.pdf \
+	    #figs/Multiple-fm2prpairs.pdf
 smlGRAPHS= $(lrgGRAPHS:.pdf=.png)
 
 

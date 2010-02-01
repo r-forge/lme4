@@ -1,4 +1,4 @@
-\SweaveOpts{engine=R,eps=FALSE,pdf=TRUE,width=8,strip.white=TRUE}
+\SweaveOpts{engine=R,eps=FALSE,pdf=TRUE,width=8,strip.white=all}
 \SweaveOpts{keep.source=TRUE}
 \SweaveOpts{prefix=TRUE,prefix.string=figs/Long,include=TRUE}
 \setkeys{Gin}{width=\textwidth}
@@ -35,7 +35,7 @@ relate the within- and between-subject trends to such covariates.
 In this chapter we introduce graphical and statistical techniques
 for the analysis of longitudinal data by applying them to a simple example.
 
-\section{The sleepstudy data}
+\section{The \texttt{sleepstudy} Data}
 \label{sec:sleep}
 
 \citet{belenky03:_patter} report on a study of the effects of sleep
@@ -64,14 +64,14 @@ print(xyplot(Reaction ~ Days | Subject, sleepstudy, aspect = "xy",
              xlab = "Days of sleep deprivation",
              ylab = "Average reaction time (ms)"))
 @ 
-  \caption{A lattice plot of the average reaction time versus number
-    of days of sleep deprivation by subject for the \code{sleepstudy}
-    data.  Each subject's data are shown in a separate panel, along
-    with a simple linear regression line fit to the data in that
-    panel.  The panels are ordered, from left to right along rows
-    starting at the bottom row, by increasing intercept of these
-    per-subject linear regression lines.  The subject number is given
-    in the strip above the panel.}
+\caption[Lattice plot of the \code{sleepstudy} data]{A lattice plot of
+  the average reaction time versus number of days of sleep deprivation
+  by subject for the \code{sleepstudy} data.  Each subject's data are
+  shown in a separate panel, along with a simple linear regression
+  line fit to the data in that panel.  The panels are ordered, from
+  left to right along rows starting at the bottom row, by increasing
+  intercept of these per-subject linear regression lines.  The subject
+  number is given in the strip above the panel.}
   \label{fig:sleepxyplot}
 \end{figure}
 
@@ -87,7 +87,7 @@ pattern Fig.~\ref{fig:sleepxyplot} conveys a great deal of
 information, the individual time trends for 18 subjects over 10 days
 --- a total of 180 points --- without being overly cluttered.
 
-\subsection{Characteristics of the Data Plot}
+\subsection{Characteristics of the \texttt{sleepstudy} Data Plot}
 \label{sec:DataPlotChar}
 
 The principles of ``Trellis graphics'', developed by Bill
@@ -150,23 +150,23 @@ typical patterns in the population and the subject-to-subject
 variablity of these patterns, we will eventually want to fit mixed
 models so we begin doing so.
 
-\section{Mixed-effects models for the sleep data}
+\section{Mixed-effects Models For the \texttt{sleepstudy} Data}
 \label{sec:SleepMixed}
 
-Based on our preliminary graphical and analytical exploration of these
-data, we fit a mixed-effects model with two fixed-effects parameters, the
-intercept and slope of the linear time trend for the population, and
-two random effects for each subject.  The random effects for a
-particular subject are the deviations in intercept and slope of
-that subject's time trend from the population values.  
+Based on our preliminary graphical exploration of these data, we fit a
+mixed-effects model with two fixed-effects parameters, the intercept
+and slope of the linear time trend for the population, and two random
+effects for each subject.  The random effects for a particular subject
+are the deviations in intercept and slope of that subject's time trend
+from the population values.
 <<fm8>>=
 (fm8 <- lmer(Reaction ~ Days + (Days|Subject), sleepstudy))
 @
 
-We see that this model incorporates both and intercept and a slope
-(w.r.t. \code{Days}) in both the fixed effects and the random effects.
-In linear model formulas the intercept term is implicit.  If we had
-written the formula as
+From the display we see that this model incorporates both an intercept
+and a slope (w.r.t. \code{Days}) in the fixed effects and in the
+random effects.  In linear model formulas the intercept term is
+implicit.  If we had written the formula as
 <<formulafm8,echo=FALSE>>=
 Reaction ~ 1 + Days + (1 + Days|Subject)
 @
@@ -197,7 +197,7 @@ print(image(env(fm8)$Zt, sub = NULL, xlab = NULL, ylab = NULL))
   \label{fig:fm8Zt}
 \end{figure}
 
-As shown in Fig.~ref{fig:fm8Zt}, the 36 columns of $\vec Z$ (rows of
+As shown in Fig.~\ref{fig:fm8Zt}, the 36 columns of $\vec Z$ (rows of
 $\vec Z\trans$ in the figure) can be regarded as 18 pairs, one pair
 for each level of \code{Subject}. The first column in each pair is the
 indicator for that level of \code{Subject}.  The second column in
@@ -208,6 +208,7 @@ One way to imagine the process of generating $\vec Z$ is to start with
 the $180\times2$ model matrix for the linear model formula \code{1 +
   Days} and the $180\times18$ indicator matrix for the levels of
 \code{Subject}.
+%% FIXME: More explanation needed here.
 
 \begin{figure}[tbp]
   \centering
@@ -217,14 +218,14 @@ print(image(env(fm8)$Lambda, sub = NULL, xlab = expression(Lambda),
 print(image(tcrossprod(env(fm8)$Lambda), sub = NULL,
             xlab = expression(Sigma), ylab = NULL),
       split = c(2,1,3,1), more = TRUE)
-print(image(env(fm8)$L, sub = NULL, xlab = "L", ylab = NULL),
+print(image(get("L", envir = env(fm8))), sub = NULL, xlab = "L", ylab = NULL),
       split = c(3,1,3,1))
 @
   \caption{Images of $\Lambda$, $\Sigma$ and $\vec L$ for model \code{fm8}}
   \label{fig:fm8LambdaL}
 \end{figure}
 
-The images of $\Lambda$, $\Sigma$ and $L$ for this model
+The images of $\Lambda$, $\Sigma$ and $\vec L$ for this model
 (Fig.~\ref{fig:fm8LambdaL}) show 18 triangular blocks of size 2 along
 the diagonal of $\Lambda$, generating 18 square, symmetric blocks of
 size 2 along the diagonal of $\Sigma$.  The 18 symmetric blocks on the
@@ -244,7 +245,7 @@ is outside the region of interest.  We do display the estimates of the
 variances of the random effects but mostly so that the user can
 compare these estimates to those from other software or for cases
 where an estimated of a variance is expected (sometimes even required)
-to be given in reporting a model fit.
+to be given when reporting a mixed model fit.
 
 We do not quote estimates of covariances of vector-valued random
 effects because the covariance is a difficult scale to interpret.  We
@@ -317,15 +318,14 @@ interval on this random variable would be approximately $\pm 50$ ms.
 Combining this range with a population estimated intercept of 250
 ms. indicates that we should not be surprised by intercepts as low as 200
 ms. or as high as 300 ms.  This range is consistent with the reference
-lines shown in Figure~\ref{fig:sleepxyplot} and the intervals shown in
-Figure~\ref{fig:Sl1}.
+lines shown in Figure~\ref{fig:sleepxyplot}.
 
 Similarly, the estimated subject-to-subject variation in the slope
 corresponds to a standard deviation of about 6 ms./day so we would not
 be surprised by slopes as low as $10.5 - 2\cdot 6=-1.5$ ms./day or as
 high as $10.5 + 2\cdot 6=22.5$ ms./day.  Again, the conclusions from
 these rough, ``back of the envelope'' calculations are consistent with
-our observations from Figures~\ref{fig:sleepxyplot} and \ref{fig:Sl1}.
+our observations from Fig.~\ref{fig:sleepxyplot}.
 
 The estimated residual standard deviation is about 25 ms. leading us to
 expect a scatter around the fitted lines for each subject of up to
@@ -370,7 +370,7 @@ time with respect to days of sleep deprivation but that these changes
 are not correlated.  That is knowing a person's initial reaction time
 does not help us to predict their response to sleep deprivation.
 
-\section{Assessing the precision of the parameter estimates}
+\section{Assessing the Precision of the Parameter Estimates}
 \label{sec:assess-prec-param}
 
 Plots of the profile $\zeta$ (Figure~\ref{fig:pr2plt})
@@ -379,7 +379,8 @@ Plots of the profile $\zeta$ (Figure~\ref{fig:pr2plt})
 <<pr2plt,fig=TRUE,echo=FALSE,height=3.5>>=
 print(xyplot(pr9, aspect = 1.3, layout = c(5,1)))
 @ 
-\caption{Profile zeta plot for each of the parameters in model
+\caption[Profile zeta plots for the parameters in model
+\code{fm9}]{Profile zeta plot for each of the parameters in model
   \code{fm9}.  The vertical lines are the endpoints of 50\%, 80\%,
   90\%, 95\% and 99\% profile-based confidence intervals for each
   parameter.}
@@ -402,7 +403,8 @@ The profile pairs plot (Figure~\ref{fig:pr2pairs})
 <<pr2pairs,fig=TRUE,echo=FALSE,height=8>>=
 print(splom(pr2))
 @ 
-\caption{Profile pairs plot for the parameters in model \code{fm9}.
+\caption[Profile pairs plot for the parameters in model
+\code{fm9}]{Profile pairs plot for the parameters in model \code{fm9}.
   The contour lines correspond to marginal 50\%, 80\%, 90\%, 95\% and
   99\% confidence regions based on the likelihood ratio.  Panels below
   the diagonal represent the $(\zeta_i,\zeta_j)$ parameters; those above
@@ -411,111 +413,7 @@ print(splom(pr2))
 \end{figure}
 
 
-In the previous section we used a likelihood ratio test to assess
-whether the covariance of the random effects within subject is
-significantly different from zero.  This is an example of a
-statistical hypothesis test, which is one form of statistical
-inference.  Another, related, form of statisticial inference is
-assessing the precision of the parameter estimates, say by forming
-confidence intervals or more general confidence regions.
-
-For some statistical models it is possible to derive the theoretical
-distributions of the parameter estimates and use these theoretical
-distributions to create confidence intervals or regions.  At present,
-the theoretical tools to analyze the general form of a linear mixed
-model in this ``exact'' approach are not available and confidence
-intervals and regions are typically created using approximations,
-especially what are called ``asymptotic'' approximations that are
-expected to perform well for large data sets.
-
-Recently another approach to statistical inference, using Markov chain
-Monte Carlo (MCMC) samples from the (Bayesian) posterior distribution
-of the parameters, has gained popularity.  Although MCMC is a
-computationally intensive approach to inference the current
-availability of inexpensive, powerful computers has made it feasible
-for models such as linear mixed models.
-
-An advantage of using MCMC samples to assess the precision of the
-parameter estimates is that this approach uses the actual distribution
-of the parameters and not an approximation.  Furthermore we can use
-graphical techniques to visualize these distributions and provide
-insight into the behavior of the parameters in the model.
-
-MCMC sampling methods are based on a Bayesian formulation of the
-linear mixed model in which the parameters are considered to be random
-variables that have a \emph{prior} distribution (prior in the sense of
-``before the data are known'') and a \emph{posterior}, or ``after the
-data are known'' distribution.  Instead of confidence intervals on the
-parameters we will formulate \emph{highest posterior density} (HPD)
-intervals \citep{box73:_bayes_infer_statis_analy}.  An 95\% HPD
-interval on a parameter is the shortest interval that contains 95\% of the
-probability content of the posterior distribution.  It is the Bayesian
-equivalent of a 95\% confidence interval on the parameter.
-
-
-Details of the particular Bayesian formulation of the linear mixed
-model that we use, including the choice of prior distributions for the
-parameters, are given in \S\ref{sec:bayes-form-model}.
-
-\subsection{Posterior distributions from model \code{fm9}}
-\label{sec:post-param-distr}
-
-The function \code{mcmcsamp} applied to a fitted lmer model produces
-an MCMC sample from the posterior distribution of the parameter
-estimates, from which we can evaluate HPD intervals. Let us create and
-store a sample of size 10,000 from the posterior distribution of the
-parameters in model \code{fm9}.
-<<ss2seed,echo=FALSE,results=hide>>=
-set.seed(123454321)
-@ 
-<<ss2>>=
-#ss2 <- mcmcsamp(fm9,10000)
-@ 
-
-The \code{HPDinterval} function creates HPD intervals on each of the
-parameters in the sample.  By default it returns intervals whose
-empirical probability content is 95\% (this can be changed, if
-desired).
-<<ss2HPD>>=
-#HPDinterval(ss2[,-6])
-@ 
-
-Notice that in the intervals all the variance parameters are reported
-on the logarithm scale.  The reason for taking this transformation is
-because the logarithm of a variance tends to be symmetrically
-distributed as shown by the density plots in Figure~\ref{fig:ss2density}
-<<ss2density,fig=TRUE,echo=FALSE,height=2.9,width=7>>=
-#print(densityplot(ss2[,-6],plot.points=FALSE,aspect='xy',
-#                  type=c("g","l"),layout=c(3,2)))
-@ 
-% \begin{figure}[tbp]
-%   \centerline{\includegraphics[width=\textwidth]{figs/Long-ss2density}}
-%     \caption{Empirical density estimates of a Markov Chain Monte Carlo
-%       sample from the posterior distribution of the parameters in
-%       model \code{Fm9}.  The variance parameters are shown on the
-%       logarithm scale.}
-%   \label{fig:ss2density}
-% \end{figure}
-
-Not only are the posterior distributions on this scale symmetric, they
-are very close to normal distributions as shown by their normal
-probability plots (Figure~\ref{fig:ss2qqmath})
-<<ss2qqmath,fig=TRUE,echo=FALSE,height=2.5,width=7>>=
-#print(qqmath(window(ss2[,-6],thin=10), pch = ".", cex = 1.8,
-#             type = c("g", "p"), layout = c(5,1),
-#             xlab = "Quantiles of a standard normal distribution"))
-@ 
-% \begin{figure}[tbp]
-%   \centerline{\includegraphics[width=\textwidth]{figs/Long-ss2qqmath}}
-%   \caption{Normal probability plots of the Markov Chain Monte Carlo
-%     sample from the posterior distribution of the parameters in model
-%     \code{fm9}.  The variance and covariance parameters have been
-%     transformed to the logarithms of the variances and Fisher's z
-%     transformation of the correlations, respectively.}
-%   \label{fig:ss2qqmath}
-% \end{figure}
-
-\section{Examining the random effects}
+\section{Examining the Random Effects}
 
   \begin{itemize}
   \item Although the random effects $\vec b$ behave like parameters in
@@ -544,10 +442,11 @@ probability plots (Figure~\ref{fig:ss2qqmath})
 <<rr1plot,echo=FALSE,fig=TRUE,results=hide,height=7,width=7>>=
 print(plot(rr1, aspect = 1, type = c("g", "p")))
 @
-  \caption{Scatterplot of the conditional modes, or BLUPs, of the
-    random effects for model \code{Fm8}.  Each point represents the
-    mode of the distribution of the random effects for the intercept
-    and slope associated with one of the subjects.}
+\caption[Conditional modes of the random effects for model
+\code{fm8}]{Scatterplot of the conditional modes, or BLUPs, of the
+  random effects for model \code{fm8}.  Each point represents the mode
+  of the distribution of the random effects for the intercept and
+  slope associated with one of the subjects.}
   \label{fig:rr1plot}
 \end{figure}
     and the estimates of the fixed effects to get BLUPs for the
@@ -593,12 +492,13 @@ with(df,
                    pch = trellis.par.get("superpose.symbol")$pch[1:2]))
                )))
 @ %$
-  \caption{Comparison of the within-subject estimates of the intercept
-    and slope for each subject and the conditional modes of the
-    per-subject intercept and slope.  Each pair of points joined by an
-    arrow are the within-subject and conditional mode estimates for
-    the same subject.  The arrow points from the within-subject
-    estimate to the conditional mode for the mixed-effects model.}
+\caption[Comparison of within-subject estimates and conditional modes
+for \code{fm8}]{Comparison of the within-subject estimates of the
+  intercept and slope for each subject and the conditional modes of
+  the per-subject intercept and slope.  Each pair of points joined by
+  an arrow are the within-subject and conditional mode estimates for
+  the same subject.  The arrow points from the within-subject estimate
+  to the conditional mode for the mixed-effects model.}
   \label{fig:shrinkage}
 \end{figure}
 \begin{figure}[tbp]
@@ -622,13 +522,14 @@ print(xyplot(Reaction ~ Days | Subject, sleepstudy, aspect = "xy",
              lines = list(col = trellis.par.get("superpose.line")$col[2:1],
              lty = trellis.par.get("superpose.line")$lty[2:1]))))
 @ 
-  \caption{Comparison of the predictions from the within-subject fits
-    with those from the conditional modes of the subject-specific
-    parameters in the mixed-effects model.}
+\caption[Comparison of predictions from separate fits and
+\code{fm8}]{Comparison of the predictions from the within-subject fits
+  with those from the conditional modes of the subject-specific
+  parameters in the mixed-effects model.}
   \label{fig:shrinkfit}
 \end{figure}
 
-\subsection{Prediction intervals on the random effects}
+\subsection{Prediction Intervals on the Random Effects}
 \label{sec:pred-interv-rand}
 
   \begin{itemize}
@@ -656,177 +557,7 @@ print(xyplot(Reaction ~ Days | Subject, sleepstudy, aspect = "xy",
   \label{fig:caterpillar}
 \end{figure}
 
-\section{Model specification for \code{lmer}}
-\label{sec:model-spec-codelm}
-
-A linear mixed-effects model to be fit by \code{lmer} is specified by
-the \code{formula} argument.  For model \code{fm8} the formula is
-<<formulafm8,echo=FALSE>>=
-Reaction ~ Days + (Days|Subject)
-@ 
-which can be read as ``\code{Reaction} is modeled by \code{Days} and
-\code{Days} given \code{Subject}''.  That is, the response, which is
-the variable named \code{Reaction}, is to be modeled by one conditional
-term, \code{(Days|Subject)}, and one unconditional term, \code{Days}.
-
-A conditonal term (any term including the vertical bar, \code{|})
-contributes to the random effects specification.  An unconditional
-term contributes to the fixed effects specification.
-
-The unconditional terms, together with the data to be fit, generate an
-$n\times p$ fixed-effects model matrix $\vec X$ according to the rules
-that we describe in \S\ref{sec:model_formulas}.  The dimensions $n$
-and $p$ are the number of observations and the dimension of the
-fixed-effects parameter vector $\vec\beta$, respectively.  In this case
-of model \code{fm8} the only unconditional term, \code{Days}, is the
-name of a numeric variable, which is incorporated as a column,
-labelled \code{Days} in $\vec X$. By convention, the intercept term,
-which generates a column of $1$'s labelled \code{(Intercept)}, is
-included implicitly in the model specification.  (This column can be
-suppressed if desired, as shown below.)
-
-The first few rows of the $180\times 2$ model matrix $\vec X$ for model
-\code{fm8} are
-<<headmodelmatrixfm8>>=
-head(model.matrix(fm8))
-@ 
-
-Each conditional term in the model formula generates a set of random
-effects and variance-covariance matrix for these random effects.  In a
-conditional term the expression on the right hand side of the \code{|}
-is evaluated as a factor called the \emph{grouping factor} for the
-term.  Because a factor associates one of a finite set of levels with each
-observation, we can consider a factor as dividing the
-observations into groups corresponding to the levels of the factor.
-Observations within such groups share a set of random effects.
-The expression on the left of the \code{|} in a conditional term is
-evaluated as a linear model formula and determines the number and form
-of the random effects associated with each level of the grouping
-factor.  Thus \code{(Days|Subject)} designates an (implicit) intercept
-coefficient and a \code{Days} coefficient for each level of the
-\code{Subject} grouping factor producing, as we have seen, 36 random
-effects --- two for each of the 18 subjects.
-
-Random effects generated by different conditional terms are
-independent, as are random effects corresponding to different levels
-of the grouping factor in the same conditional term.
-
-Each group of random effects models some of the variation in the
-response.  There is one further level of variation in the model - the
-``per-observation'' or ``residual'' noise.  It is the unexplained
-variation or what is ``left over'' after we have modeled all the other
-sources of variation in the model.  This level of variation is modeled
-as an $n$-dimensional vector $\vec\epsilon\sim\mathcal{N}(\vec0,\sigma^2\vec I)$
-where $\vec I$ is an identity matrix.  That is, the elements of $\vec\epsilon$
-is independent and identical normal random variates with mean zero and
-variance $\sigma^2$.
-
-The general model allows for multiple conditional terms in a model
-specification generating multiple groups of random effects.  Let $k$
-be the number of conditional terms, $n_i,i=1,\dots,k$ be the number of
-levels of the grouping factor for the $i$th such term and $q_i$ be the
-number of random effects associated with each level of the grouping
-factor.
-
-If we represent all the random effects as a vector $\vec b$, of length
-$q=\sum_{i=1}^kq_in_i$, we can write
-the model as
-\begin{equation}
-  \label{eq:lmmGeneral}
-  \vec y = \vec X\vec\beta + \vec Z\vec b + \vec\epsilon,\quad
-  \vec b\sim\mathcal{N}\left(\vec0,\Sigma\right),
-  \vec\epsilon\sim\mathcal{N}\left(\vec0,\sigma^2\vec I\right),\vec b\perp\vec\epsilon
-\end{equation}
-where $\vec Z$ is an $n\times q$ model matrix generated from the
-conditional terms, $\Sigma$ is a $q\times q$ variance-covariance
-matrix, also generated from the conditional terms, and the symbol
-$\perp$ denotes independent random variables.
-
-Although the total number of random effects, $q$, can be large and
-hence the dimensions of $\vec Z$ and $\Sigma$ in the general form
-(\ref{eq:lmmGeneral}) can be very large, these matrices are sparse and
-patterned and thus are determined by a relatively small number of
-values.
-
-For model \code{fm8}, $k=1$, $q_1=2$ and $n_i=18$ so, as we have seen,
-$q=36$. However, the assumptions of independence of random effects
-associated with different subjects means that the $36\times 36$ matrix
-$\Sigma$ consists of the $2\times 2$ matrix $\Sigma_1$
-repeated $18$ times in the pattern
-\begin{equation}
-  \label{eq:bSigmafm8}
-  \Sigma=
-  \begin{bmatrix}
-    \Sigma_1 & \vec0     & \hdots & \vec0\\
-    \vec0     & \Sigma_1 & \hdots & \vec0\\
-    \vdots    & \vdots    & \ddots & \vdots\\
-    \vec0     & \vec0     & \hdots & \Sigma_1
-  \end{bmatrix}
-\end{equation}
-
-Also, although the model matrix $\vec Z$ has dimension $180\times 36$,
-all but two of the elements in any given row are known to be zero.
-Each row corresponds to one and only one subject and the model for
-that row incorporates only the two random effects associated with that
-subject. The other $34$ random effects associated with other subjects
-are multiplied by zero.
-
-The matrix $\vec Z$ is evaluated and stored as a sparse matrix.  The
-first few rows of $\vec Z$ for model \code{fm8} are
-<<Zfm8,echo=FALSE>>=
-head(t(env(fm8)$Zt))
-@ 
-These rows correspond to the first $6$ observations on the first subject.
-In the representation as a sparse matrix an element that is known to
-be zero prints as a `.'. (The (1,2) element of this matrix does have
-the value zero because the value of the \code{Days} variable is zero
-for this observation.  It could have another value if, for example, we
-renumbered the \code{Days} and thus is not a systematic zero in the
-matrix.)
-
-Easier to understand, perhaps, is the image of $\vec Z\trans$ in
-Figure~\ref{fig:fm9Zt}.
-\begin{figure}[tbp]
-  \centering
-<<fm9Zt,fig=TRUE,echo=FALSE,results=hide,height=3,width=8>>=
-print(image(env(fm9)$Zt, sub = NULL, xlab = NULL, ylab = NULL))
-@
-\caption{Image of $\vec Z\trans$, the transpose of $\vec Z$, the random
-  effects model matrix in model \code{fm9}}
-  \label{fig:fm9Zt}
-\end{figure}
-
-
-
-In the model $\vec b$ is a random variable
-\begin{equation}
-  \label{eq:bdist}
-  \vec b\sim\mathcal{N}(\vec0,\Sigma)
-\end{equation}
-and it is the elements of $\Sigma$ that we estimate.  Because we
-assume that random effects associated with different grouping factors
-are indep
-which we can write as
-If we write the
-model matrix for the entire random effects vector as $\vec Z$ and the
-variance-cov
-matrix, which we call $\vec Z$, for the random effects vector.
-
-contribute to another model matrix, which we call
-$\vec Z$, through a slightly more complicated mechanism.  In a
-conditional term the expression on the left of the \code{|} is
-interpreted as a linear model formula and used to create a model
-matrix while the expression on the right of the \code{|} is evaluated as a
-factor, called the \emph{grouping factor} for the term.  We allow
-multiple conditional terms in a model specification so we will refer
-to the $i$th conditional term even though there is only one such
-conditional term in the model specification for model \code{fm8}.
-
-If the model matrix from the expression on the left of the $i$th
-conditional has $q_i$ columns and the grouping factor has $n_i$ levels
-then the expression contributes $q_in_i$ columns to the matrix $\vec Z$.
-
-\section{Conclusions from the example}
+\section{Chapter Summary}
 
   \begin{itemize}
   \item Carefully plotting the data is enormously helpful in
@@ -847,6 +578,7 @@ then the expression contributes $q_in_i$ columns to the matrix $\vec Z$.
   \item Most of the prediction intervals for the random effects
     overlap zero.
   \end{itemize}
+  
 \section*{Problems}
 \addcontentsline{toc}{section}{Problems}
 \begin{prob}\label{probL1}

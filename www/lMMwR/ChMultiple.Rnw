@@ -44,14 +44,17 @@ if (file.exists("fm4a.rda")) { load("fm4a.rda")
     save(fm4a, file = "fm4a.rda")
 }
 if (!file.exists("figs/Multiple-fm4Limage.png")) {
+    ttt <- env(fm4)$L
+    ttt@x[] <- 1
     trellis.device(png, color = FALSE, file = "figs/Multiple-fm4Limage.png",
                    height=6, width=8, units='in', res=600)
-    print(image(env(fm4)$L, sub=NULL, xlab=NULL, ylab=NULL, colorkey=FALSE))
+    print(image(ttt, sub=NULL, xlab=NULL, ylab=NULL, colorkey=FALSE))
+    rm(ttt)
     dev.off()
 }
 @
 
-\chapter{Models with multiple random-effects terms}
+\chapter{Models With Multiple Random-effects Terms}
 \label{chap:Multiple}
 
 The mixed models considered in the previous chapter had only one
@@ -76,7 +79,7 @@ One of the areas in which the methods in the \package{lme4} package
 for \R{} are particularly effective is in fitting models to
 cross-classified data where several factors have random effects
 associated with them.  For example, in many experiments in psychology
-the reaction of each of a set of subjects to each of a group of
+the reaction of each of a group of subjects to each of a group of
 stimuli or items is measured.  If the subjects are considered to be a
 sample from a population of subjects and the items are a sample from a
 population of items, then it would make sense to associate random
@@ -96,7 +99,7 @@ The \code{Penicillin} data are derived from Table~6.6, p.~144 of
 described as coming from an investigation to
 \begin{quote}
   assess the variability between samples of penicillin by the
-  \emph{B. subtilis} method.  In this test method a bulk-innoculated
+  \emph{B.~subtilis} method.  In this test method a bulk-innoculated
   nutrient agar medium is poured into a Petri dish of approximately 90
   mm. diameter, known as a plate.  When the medium has set, six small
   hollow cylinders or pots (about 4 mm. in diameter) are cemented onto
@@ -136,11 +139,16 @@ penicillin]{Diameter of the growth inhibition zone (mm) in the
 (Fig.~\ref{fig:Penicillindot}).
 
 The variation in the diameter is associated with the plates and with
-the samples.  Because each plate is used for only the six
-samples shown here we will use random effects for the plate.  As in
-the dyestuff example, we are more interested in the sample-to-sample
-variability in the penicillin samples than in the potency of a
-particular sample.  Hence we will also use random effects for the sample. 
+the samples.  Because each plate is used only for the six samples
+shown here we are not interested in the contributions of specific
+plates as much as we are interested in the variation due to plates and
+in assessing the potency of the samples after accounting for this
+variation. Thus, we will use random effects for the \code{plate}
+factor.  We will also use random effects for the \code{sample} factor
+because, as in the dyestuff example, we are more interested in the
+sample-to-sample variability in the penicillin samples than in the
+potency of a particular sample.
+
 
 In this experiment each sample is used on each plate.  We say that the
 \code{sample} and \code{plate} factors are \emph{crossed}, as opposed
@@ -176,7 +184,7 @@ six samples to each of the 24 plates, something could go wrong for one
 of the samples on one of the plates, leaving us without a measurement
 for that combination of levels and thus an unbalanced data set.
 
-\subsection{A Model for the \texttt{Penicillin} Data}
+\subsection{A Model For the \texttt{Penicillin} Data}
 \label{sec:PenicillinModel}
 
 A model incorporating random effects for both the \code{plate} and the
@@ -201,7 +209,8 @@ qrr2 <- dotplot(ranef(fm2, postVar = TRUE), strip = FALSE)
 print(qrr2[[1]], pos = c(0,0,1,0.75), more = TRUE)
 print(qrr2[[2]], pos = c(0,0.65,1,1))
 @ 
-\caption{95\% prediction intervals on the random effects for model
+\caption[Random effects prediction intervals for model \code{fm2}]{95\%
+  prediction intervals on the random effects for model
   \code{fm2} fit to the \code{Penicillin} data.}
   \label{fig:fm2ranef}
 \end{figure}
@@ -211,13 +220,13 @@ distribution of the random effects for \code{sample}.
 
 In chapter~\ref{chap:ExamLMM} we saw that a model with a single,
 simple, scalar random-effects term generated a random-effects model
-matrix, $\vec Z$, that is the matrix of indicators of the levels of the
-grouping factor.  When we have multiple, simple, scalar random-effects
-terms, as in model \code{fm2}, each term generates a matrix of
-indicator columns and all the sets of indicator columns are
+matrix, $\vec Z$, that is the matrix of indicators of the levels of
+the grouping factor.  When we have multiple, simple, scalar
+random-effects terms, as in model \code{fm2}, each term generates a
+matrix of indicator columns and these sets of indicators are
 concatenated to form the model matrix $\vec Z$.  The transpose of this
-matrix contains rows of indicators for each factor, as shown in
-Fig.~\ref{fig:fm2Ztimage}.
+matrix, shown in Fig.~\ref{fig:fm2Ztimage}, contains rows of
+indicators for each factor.
 \begin{figure}[tbp]
   \centering
 <<fm2Ztimage,fig=TRUE,echo=FALSE,height=2.4>>=
@@ -248,25 +257,26 @@ model \texttt{fm2}]{Images of the relative covariance factor,
   \label{fig:fm2LambdaLimage}
 \end{figure}
 
-The relative covariance factor (Fig.~\ref{fig:fm2LambdaLimage}, left
-panel) is no longer a multiple of the identity.  It is now block
-diagonal, with two blocks, one of size 24 and one of size 6, each of
-which is a multiple of the identity.  The diagonal elements in each
-block are $\theta_1$ and $\theta_2$.  The numeric values of
-these parameters can be obtained as
+The relative covariance factor, $\Lambda_\theta$,
+(Fig.~\ref{fig:fm2LambdaLimage}, left panel) is no longer a multiple
+of the identity.  It is now block diagonal, with two blocks, one of
+size 24 and one of size 6, each of which is a multiple of the
+identity.  The diagonal elements of the two blocks are $\theta_1$ and
+$\theta_2$, respectively.  The numeric values of these parameters can
+be obtained as
 <<fm2verb>>=
 env(fm2)$theta
 @ 
 The first parameter is the relative standard deviation of the random
-effects for \code{plate}, which has the value (0.84671/0.54992) at
+effects for \code{plate}, which has the value $0.84671/0.54992=1.53968$ at
 convergence, and the second is the relative standard deviation of the
-random effects for \code{sample} (1.93157/0.54992).
+random effects for \code{sample} ($1.93157/0.54992=3.512443$).
 
 Because $\Lambda_\theta$ is diagonal, the pattern of non-zeros in
 $\Lambda_\theta\trans\vec Z\trans\vec Z\Lambda_\theta+\vec I$ will be
 the same as that in $\vec Z\trans\vec Z$, shown in the middle panel of
 Fig.~\ref{fig:fm2LambdaLimage}.  The sparse Cholesky factor, $\vec L$,
-shown in the right panel is lower triangular and has non-zero elements
+shown in the right panel, is lower triangular and has non-zero elements
 in the lower right hand corner in positions where $\vec Z\trans\vec Z$
 has systematic zeros.  We say that ``fill-in'' has occurred when
 forming the sparse Cholesky decomposition.  In this case there is a
@@ -331,10 +341,10 @@ parameters in model \code{fm1} fit to the \code{Dyestuff} data.  On
 the $\zeta$ scale (panels below the diagonal) the profile traces are
 nearly straight and orthogonal with the exception of the trace of
 $\zeta(\sigma_2)$ on $\zeta(\beta_0)$ (the horizontal trace for the
-panel in the $(4,2)$ position.  The pattern of this trace is similar
+panel in the $(4,2)$ position).  The pattern of this trace is similar
 to the pattern of the trace of $\zeta(\sigma_1)$ on $\zeta(\beta_0)$
 in Fig.~\ref{fig:fm1profpair}.  Moving $\beta_0$ from its estimate,
-$\widehat{\beta}_0$ in either direction will increase the residual sum
+$\widehat{\beta}_0$, in either direction will increase the residual sum
 of squares.  The increase in the residual variability is reflected in
 an increase of one or more of the dispersion parameters.  The balanced
 experimental design results in a fixed estimate of $\sigma$ and the
@@ -347,7 +357,7 @@ the ideal elliptical shape.  For example, contours in the $\sigma_2$
 versus $\sigma_1$ panel (the $(1,2)$ position) and the $\log(\sigma)$
 versus $\sigma_2$ panel (in the $(2,3)$ position) are dramatically
 non-elliptical.  However, the distortion of the contours is not due to
-these parameter estimates depending on each other.  It is almost
+these parameter estimates depending strongly on each other.  It is almost
 entirely due to the choice of scale for $\sigma_1$ and $\sigma_2$.  When we
 plot the contours on the scale of $\log(\sigma_1)$ and
 $\log(\sigma_2)$ instead (Fig.~\ref{fig:toBeConstructed}) they are
@@ -391,7 +401,8 @@ As stated in the description in
 print(image(xtabs(~ batch + sample, Pastes, sparse = TRUE),
             sub = NULL, xlab = "sample", ylab = "batch"))
 @   
-\caption{Image of the cross-tabulation of the \code{batch} and
+\caption[Cross-tabulation image of the \code{batch} and \code{sample}
+factors]{Image of the cross-tabulation of the \code{batch} and
   \code{sample} factors in the \code{Pastes} data.}
   \label{fig:imagextabsPastes}
 \end{figure}
@@ -462,14 +473,14 @@ Figure~\ref{fig:Pastesplot} shows considerable variability in strength
 between samples relative to the variability within samples.  There is
 some indication of variability between batches, in addition to the
 variability induced by the samples, but not a strong indication of a
-batch effect.  For example, each of batches I and D, with low mean
-strength relative to the other batches, contained one sample (I:b and
-D:c, respectively) that had high mean strength relative to the other
+batch effect.  For example, batches I and D, with low mean strength
+relative to the other batches, each contained one sample (I:b and D:c,
+respectively) that had high mean strength relative to the other
 samples.  Also, batches H and C, with comparatively high mean batch
-strength. contain samples H:a and C:a with comparatively low mean
+strength, contain samples H:a and C:a with comparatively low mean
 sample strength.  In Sect.~\ref{sec:TestingSig2is0} we will examine
-the need for incorporating batch-to-batch variability in addition to
-sample-to-sample variability in the statistical model.
+the need for incorporating batch-to-batch variability, in addition to
+sample-to-sample variability, in the statistical model.
 
 \subsubsection{Nested  Factors}
 \label{sec:nestedcrossed}
@@ -587,7 +598,7 @@ and $\vec L$ for this model (Fig.~\ref{fig:fm3LambdaLimage}) to those
 in Fig.~\ref{fig:fm2LambdaLimage} shows that models with nested
 factors produce simple repeated structures along the diagonal of the
 sparse Cholesky factor, $\vec L$, after reordering the random effects
-(we discuss this reordering later in Sect.~\ref{sec:permutation}).
+(we discuss this reordering later in Sect.~\ref{sec:fill-reducingP}).
 This type of structure has the desirable property that there is no
 ``fill-in'' during calculation of the Cholesky factor.  In other words,
 the number of non-zeros in $\vec L$ is the same as the number of
@@ -638,8 +649,9 @@ qrr3 <- dotplot(ranef(fm3, postVar = TRUE), strip = FALSE)
 print(qrr3[[1]], pos = c(0,0,1,0.75), more = TRUE)
 print(qrr3[[2]], pos = c(0,0.65,1,1))
 @ 
-\caption{95\% prediction intervals on the random effects for model
-  \code{fm2} fit to the \code{Penicillin} data.}
+\caption[Random effects prediction intervals for model \code{fm3}]{95\%
+  prediction intervals on the random effects for model
+  \code{fm3} fit to the \code{Pastes} data.}
   \label{fig:fm3ranef}
 \end{figure}
 confirm this impression in that all the prediction intervals for the
@@ -662,7 +674,7 @@ $\sigma_2$ extends to zero.
 One of the many famous quotes from Albert Einstein is ``Everything
 should be made as simple as possible, but not simpler.''  In
 statistical modeling this \emph{principal of parsimony} is embodied in
-hypothesis test comparing two models, one of which contains the other
+hypothesis tests comparing two models, one of which contains the other
 as a special case.  Typically, one or more of the parameters in the
 more general model, which we call the \emph{alternative hypothesis},
 is constrained in some way, resulting in the restricted model, which
@@ -685,7 +697,7 @@ favor of $H_a$''.  On the other hand, when the p-value is not small we
 probability that the observed difference in the model fits could
 reasonably be the result of random chance, not the inherent
 superiority of the model $H_a$.  Under these circumstances we prefer
-the simpler model, $H_0$ according to the principal of parsimony.
+the simpler model, $H_0$, according to the principal of parsimony.
 
 These are the general principles of statistical hypothesis tests.  To
 perform a test in practice we must specify the criterion for comparing
@@ -707,16 +719,17 @@ constraints imposed on the parameters of $H_a$ to produce $H_0$.
 
 The restricted model fit
 <<fm3a>>=
-(fm3a <- lmer(strength ~ 1 + 1|sample, Pastes, REML=0)) 
+(fm3a <- lmer(strength ~ 1 + (1|sample), Pastes, REML=0)) 
 @ 
 is compared to model \code{fm3} with the \code{anova} function
 <<anovafm3>>=
 anova(fm3a, fm3)
 @
-which provides a p-value of \Sexpr{sprintf(f4,anova(fm3a,fm3)$Pr[2])}.%$
-Because typical standards for ``small'' p-values are 5\% or 1\%, a
-p-value over 50\% would not be considered significant at any
-reasonable level.
+which provides a p-value of
+$\Sexpr{sprintf("%.4f",anova(fm3a,fm3)[["Pr(>Chisq)"]][2])}$.
+Because typical
+standards for ``small'' p-values are 5\% or 1\%, a p-value over 50\%
+would not be considered significant at any reasonable level.
 
 We do need to be cautious in quoting this p-value, however, because
 the parameter value being tested, $\sigma_2=0$ is on the boundary of
@@ -775,37 +788,50 @@ Fig.~\ref{fig:fm1profpair}, the profile pairs plot for model
 \label{sec:partially}
 
 Especially in observational studies with multiple grouping factors,
-the configuration of the factors is neither nested nor completely
-crossed.  We describe such situations as having \emph{partially
-  crossed} grouping factors for the random effects.
+the configuration of the factors frequently ends up neither nested nor
+completely crossed.  We describe such situations as having
+\emph{partially crossed} grouping factors for the random effects.
 
 Studies in education, in which test scores for students over time are
 also associated with teachers and schools, usually result in partially
 crossed grouping factors.  When students with scores in different
 years have different teachers for the different years, the student
 factor is not nested within the teacher factor.  To have complete
-crossing of the student and teacher factor is would be necessary for
-each student to be observed with each teacher which would be unusual.
-A study of thousands of students and hundreds of teachers inevitably
-ends up partially crossed.
+crossing of the student and teacher factor it would be necessary for
+each student to be observed with each teacher, which would be unusual.
+A longitudinal study of thousands of students with hundreds of
+different teachers inevitably ends up partially crossed.
 
 In this section we consider an example with thousands of students and
 instructors where the response is the student's evaluation of the
 instructor's effectiveness.  These data, like those from most large
 observational studies, are quite unbalanced.
 
-\subsection{The \code{InstEval} Data}
+\subsection{The \texttt{InstEval} Data}
 \label{sec:InstEval}
 
 The \code{InstEval} data are from a special evaluation of lecturers by
-students at ETH-Z\"{u}rich, to determine who should receive the
-``best-liked professor'' award.  These data have been slightly
-simplified and identifying labels removed so as to preserve anonymity.
+students at the Swiss Federal Institute for Technology---Z\"{u}rich
+(ETH-Z\"{u}rich), to determine who should receive the ``best-liked
+professor'' award.  These data have been slightly simplified and
+identifying labels removed so as to preserve anonymity.
 
 The variables 
-<<strInstEval>>=
-str(InstEval)
-@ 
+\begin{Schunk}
+\begin{Sinput}
+> str(InstEval)
+\end{Sinput}
+\begin{Soutput}
+'data.frame':	73421 obs. of  7 variables:
+ $ s      : Factor w/ 2972 levels "1","2","3","4",..: 1 1 1 1 2 2 3 3 ...
+ $ d      : Factor w/ 1128 levels "1","6","7","8",..: 525 560 832 1068 ...
+ $ studage: Ord.factor w/ 4 levels "2"<"4"<"6"<"8": 1 1 1 1 1 1 1 1 1 ...
+ $ lectage: Ord.factor w/ 6 levels "1"<"2"<"3"<"4"<..: 2 1 2 2 1 1 1 ...
+ $ service: Factor w/ 2 levels "0","1": 1 2 1 2 1 1 2 1 1 1 ...
+ $ dept   : Factor w/ 14 levels "15","5","10",..: 14 5 14 12 2 2 13 ...
+ $ y      : int  5 2 5 3 2 4 4 5 5 4 ...
+\end{Soutput}
+\end{Schunk}%$
 have somewhat cryptic names.  Factor \code{s} designates the student
 and \code{d} the instructor.  The \code{dept} factor is the department
 for the course and \code{service} indicates whether the course was a
@@ -815,13 +841,13 @@ Although the response, \code{y}, is on a scale of 1 to 5,
 <<xtabsy>>=
 xtabs(~ y, InstEval)
 @
-it is sufficiently spread out to warrant treating is as if it were a
+it is sufficiently diffuse to warrant treating it as if it were a
 continuous response.
 
 In this chapter we fit models that have random effects for student,
-instructor, and department or the \code{dept:service} combination to
-these data.  Later we will fit models that have fixed for
-instructor and department to these data.
+instructor, and department (or the \code{dept:service} combination) to
+these data.  In the next chapter we will fit models incorporating
+fixed-effects for instructor and department to these data.
 <<fm4show,eval=FALSE>>=
 (fm4 <- lmer(y ~ 1 + (1|s) + (1|d) + (1|dept:service), InstEval, REML=0))
 @
@@ -845,7 +871,8 @@ deviation.
 <<fm4ranef,fig=TRUE,echo=FALSE,height=5,results=hide>>=  
 print(dotplot(rr4, strip = FALSE))
 @ 
-\caption{95\% prediction intervals on the random effects for the
+\caption[Random effects prediction intervals for model \code{fm4}]{95\%
+  prediction intervals on the random effects for the
   \code{dept:service} factor in model \code{fm4} fit to the
   \code{InstEval} data.}
   \label{fig:fm4ranef}
@@ -858,8 +885,9 @@ all these prediction intervals.  However, the p-value for the LRT of
 $H_0:\sigma_3=0$ versus $H_a:\sigma_3>0$
 <<LRTshow,eval=FALSE>>=
 fm4a <- lmer(y ~ 1 + (1|s) + (1|d), InstEval, REML=0)
+anova(fm4a,fm4)
 @
-<<LRTfm4>>=
+<<LRTfm4,echo=FALSE>>=
 anova(fm4a,fm4)
 @ 
 is highly significant.  That is, we have very strong evidence that we
@@ -869,7 +897,7 @@ The seeming inconsistency of these conclusions is due to the large
 sample size ($n=73421$).  When a model is fit to a very large sample
 even the most subtle of differences can be highly ``statistically
 significant''.  The researcher or data analyst must then decide if
-these terms have practical significance, in addition to the apparent
+these terms have practical significance, beyond the apparent
 statistical significance.
 
 The large sample size also helps to assure that the parameters have
@@ -916,8 +944,8 @@ must be updated in a dense Cholesky factor, we can see why the sparse
 Cholesky factor provides a much more efficient evaluation of the
 profiled deviance function.
 
-\section{Chapter Review}
-\label{sec:MultReview}
+\section{Chapter Summary}
+\label{sec:MultSummary}
 
 A simple, scalar random effects term in an \code{lmer} model formula
 is of the form \code{(1|fac)}, where \code{fac} is an expression whose
@@ -930,15 +958,15 @@ example.
 
 Because simple, scalar random-effects terms can differ only in the
 description of the grouping factor we refer to configurations such as
-crossed or nested as applying to the terms although it is more
-accurate to refer to the configuration as applying to the grouping
-factors.
+crossed or nested as applying to the terms or to the random effects,
+although it is more accurate to refer to the configuration as applying
+to the grouping factors.
 
 A model formula can include several such random effects terms. Because
 configurations such as nested or crossed or partially crossed grouping
 factors are a property of the data, the specification in the model
 formula does not depend on the configuration.  We simply include
-multiple terms.
+multiple random effects terms in the formula specifying the model.
 
 One apparent exception to this rule occurs with implicitly nested
 factors, in which the levels of one factor are only meaningful within
@@ -977,9 +1005,9 @@ educational studies but until now it has been very difficult to fit
 models that appropriately reflect such a structure.  Much of the
 literature on mixed-effects models leaves the impression that multiple
 random effects terms can only be associated with nested grouping
-factors.  The emphasis on hierarchical or multilevel configurations is
-an artifact of the computational methods used to fit the models, not
-the models themselves.
+factors.  The resulting emphasis on hierarchical or multilevel
+configurations is an artifact of the computational methods used to fit
+the models, not the models themselves.
 
 The parameters of the models fit to small data sets have properties
 similar to those for the models in the previous chapter.  That is,
@@ -992,9 +1020,7 @@ the standard deviations of random effects ($\sigma_1$, $\sigma_2$,
 etc.) are symmetric on a logarithmic scale except for those that could
 be zero.
 
-Another observation from the last example is that, for data sets with a
-large numbers of observations, a term in a model may be
-``statistically significant'' even when its practical significance
-is negligible.
-
-
+Another observation from the last example is that, for data sets with
+a very large numbers of observations, a term in a model may be
+``statistically significant'' even when its practical significance is
+negligible.
