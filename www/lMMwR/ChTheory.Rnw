@@ -49,7 +49,7 @@ As described in Sect.~\ref{sec:memod}, a linear mixed-effects model is
 based on two vector-valued random variables: the $q$-dimensional
 vector of random effects, $\bc B$, and the $n$-dimensional response
 vector, $\bc Y$.  Equation (\ref{eq:LMMdist}) defines the unconditional distribution of $\bc B$ and the
-conditional distribution of $\bc Y$, given $\bc B=\vec b$, as 
+conditional distribution of $\bc Y$, given $\bc B=\vec b$, as
 multivariate Gaussian distributions of the form
 \begin{displaymath}
   \begin{aligned}
@@ -172,7 +172,8 @@ $\vec\mu$ and $\vec y$, but for a linear mixed model the dimension of
 $\vec\gamma$ must be $n$.  Hence, the model matrices $\vec Z$ must be
 $n\times q$ and $\vec X$ must be $n\times p$.
 
-\section{The Conditional Distribution $(\bc U|\bc Y=\vec y)$}
+%% \bc inside \section{...} + \usepackage{hyperref} fails -> using \mathcal here
+\section{The Conditional Distribution $(\mathcal{U}|\mathcal{Y}=\vec y)$}
 \label{sec:conddistUgivenY}
 
 In this section it will help to be able to distinguish between the
@@ -217,7 +218,7 @@ it is of interest because the normalizing constant is
 exactly the likelihood that we wish to evaluate,
 \begin{equation}
   \label{eq:LMMlikelihood}
-  L(\vec\theta,\vec\beta,\sigma|\vec y_{\text{obs}}) = 
+  L(\vec\theta,\vec\beta,\sigma|\vec y_{\text{obs}}) =
   \int_{\mathbb{R}^q}h(\vec u)\,d\vec u .
 \end{equation}
 
@@ -261,7 +262,7 @@ Cholesky factor, $\vec L_\theta$, and the conditional mode,
   f_{\bc Y|\bc U}(\vec y|\vec u)\,f_{\bc U}(\vec u)
 \end{equation}
 The notation $\arg\max_{\vec u}$ means that $\tilde{\vec u}$ is the
-value of $\vec u$ that maximizes the expression on the right.  
+value of $\vec u$ that maximizes the expression on the right.
 
 In general, the \emph{mode} of a continuous distribution is the value
 of the random variable that maximizes the density.  The value
@@ -443,7 +444,7 @@ the non-zeros near the diagonal of the factor. See
 \citet{davis06:csparse_book} for details.
 
 The transpose of a permutation matrix like $\vec P$ is its inverse.
-That is $\vec P\trans\vec P=\vec P\vec P\trans=\vec I_q$. 
+That is $\vec P\trans\vec P=\vec P\vec P\trans=\vec I_q$.
 Applying the permutation corresponds to multiplying a vector or matrix
 by $\vec P$.  Applying the inverse permutation corresponds to
 multiplication by $\vec P\trans$.
@@ -640,7 +641,7 @@ and
   \label{eq:RXdef}
   \vec R_X\trans\vec R_X=\vec X\trans\vec X-\vec R_{ZX}\trans\vec R_{ZX}
 \end{equation}
-  
+
 Those who are familiar with standard ways of writing a Cholesky
 decomposition as either $\vec L\vec L\trans$ or $\vec R\trans\vec R$
 ($\vec L$ is the factor as it appears on the left and $\vec R$ is as
@@ -711,7 +712,7 @@ unbiasedness of variance estimators does not generalize from the
 linear regression model to linear mixed models.  This is all to say
 that the distinction between REML and ML estimates of variances and
 variance components is probably less important that many people
-believe. 
+believe.
 
 Nevertheless it is worthwhile seeing how the computational techniques
 described in this chapter apply to the REML criterion because the REML
@@ -769,10 +770,10 @@ The REML estimate of $\vec\theta$ is
   \widehat{\vec\theta}_R=\arg\min_{\vec\theta}\tilde{d}_R(\vec\theta|\vec y) ,
 \end{equation}
 and the REML estimate of $\sigma^2$ is the conditional REML estimate of
-$\sigma^2$ at $\widehat{\vec\theta}_R$, 
+$\sigma^2$ at $\widehat{\vec\theta}_R$,
 \begin{equation}
   \label{eq:REMLsigmasq}
-  \widehat{\sigma^2_R}=\frac{r^2_{\widehat\theta_R}}{n-p} .  
+  \widehat{\sigma^2_R}=\frac{r^2_{\widehat\theta_R}}{n-p} .
 \end{equation}
 It is not entirely clear how one would define a ``REML estimate'' of
 $\vec\beta$ because the REML criterion, $d_R(\vec\theta,\sigma|\vec
@@ -854,7 +855,7 @@ solutions to the sparse, positive-definite linear system
   \end{bmatrix} =
   \begin{bmatrix}
     \Lambda\trans(\vec\theta)\vec Z\trans\vec y\\
-    \vec X\trans\vec y 
+    \vec X\trans\vec y
   \end{bmatrix} .
 \end{displaymath}
 In the process of solving this system we create the sparse left
