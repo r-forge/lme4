@@ -2,13 +2,12 @@ R_PROG = R-devel
 #R_PROG = R
 FRONT = DMBmacros.tex acronym.tex dedication.tex preface.tex # acknow.tex foreword.tex
 CHAPTERS = ChIntro ChMultiple ChTheory ChLongitudinal
-#CHAPTERS = ChIntro ChMultiple ChLongitudinal ChTheory
 APPENDICES =
 RNW = $(CHAPTERS) $(APPENDICES)
 
+## Currently unused, using R code to produce (and test for existance):
 ## Need some graphics as 'png' rather than 'pdf' to make the resulting pdf
 ## load *fast*
-## FIXME -- update this list
 lrgGRAPHS = #figs/Intro-fm1profpair.pdf \
 	    #figs/Multiple-fm2prpairs.pdf
 smlGRAPHS= $(lrgGRAPHS:.pdf=.png)
@@ -16,8 +15,9 @@ smlGRAPHS= $(lrgGRAPHS:.pdf=.png)
 
 
 all:  $(CHAPTERS:=.tex) $(RNW:=.R) $(RNW:=.tex) lMMwR.pdf lrgprt.pdf
-	${RM} *.out Rplots.ps figs/*.eps \
-          *.aux *.log *.toc *.nav *.snm *.vrb *.dvi
+# keep *.aux at least (for subsets in \includeonly{}):
+#	${RM} *.out Rplots.ps figs/*.eps \
+#		*.aux *.log *.toc *.nav *.snm *.vrb *.dvi
 
 %.tex: %.Rnw
 	${R_PROG} CMD Sweave $<
@@ -50,12 +50,13 @@ lMMwR.idx:
 
 
 clean:
-	$(RM) -f *.aux *.bbl *.blg *.idx *.ilg *.pdf *.log *.ind *.toc *.lof *.lot
-	$(RM) -f Rplots.* *~ figs/*.pdf
+	$(RM) -f *.aux *.bbl *.blg *.idx *.ilg *.log *.ind *.toc *.lof *.lot
+	$(RM) -f Rplots.* figs/*.pdf
 
 realclean: clean
-	$(RM) -f $(RNW:=.tex) figs/*.png
+	$(RM) -f *~ $(RNW:=.tex) *.pdf *.rda lrgprt.tex figs/*.png
 
+## TODO?  Use 'dist: clean' or 'dist: realclean'  and maybe *some* extra?
 dist:
-	$(RM) Rplots.ps $(CHAPTERS:=.tex) $(CHAPTERS:=.out) allR \
+	$(RM) Rplots.ps $(RNW:=.R) $(CHAPTERS:=.tex) $(CHAPTERS:=.out) allR \
 	   figs/*.pdf figs/*.eps *.aux *.log *.toc *.nav *.snm *.vrb *.dvi

@@ -1,4 +1,5 @@
 \newcommand{\bc}[1]{\ensuremath{\bm{\mathcal{#1}}}}
+%           ^^^- fails inside \section{} with package{hyperref}
 \newcommand{\code}[1]{\texttt{\small #1}}
 \newcommand{\package}[1]{\texttt{\small #1}}
 \newcommand{\abs}{\operatorname{abs}}
@@ -6,7 +7,7 @@
 \newcommand{\rank}{\operatorname{rank}}
 \newcommand{\R}{\textsf{R}}
 \newcommand{\inv}{\ensuremath{^{-1}}}
-\newcommand{\invtrans}{\ensuremath{^{\mathsf{T}}}}
+\newcommand{\invtrans}{\ensuremath{^{-\mathsf{T}}}}
 \newcommand{\trans}{\ensuremath{^{\mathsf{T}}}}
 \DefineVerbatimEnvironment{Sinput}{Verbatim}{fontsize=\small}
 \DefineVerbatimEnvironment{Soutput}{Verbatim}{fontsize=\small}
