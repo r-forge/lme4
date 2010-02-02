@@ -1,4 +1,5 @@
 \SweaveOpts{engine=R,eps=FALSE,pdf=TRUE,width=8,strip.white=TRUE}
+\SweaveOpts{keep.source=TRUE}
 \SweaveOpts{prefix=TRUE,prefix.string=figs/Long,include=TRUE}
 \setkeys{Gin}{width=\textwidth}
 
@@ -702,17 +703,17 @@ an \emph{unbiased} estimate of $\sigma^2$, in the sense that the
 expected value of the estimator is equal to the value of the
 parameter.  However, determining the expected value of an estimator
 involves integrating with respect to the density of the estimator and
-we have seen that such densities will be skewed and often highly
-skewed.  It is not clear why we should be interested in the expected
-value of a highly skewed estimator.  It we were to transform to a more
-symmetric scale, such as the estimator of the standard deviation or
-the estimator of the logarithm of the standard deviation, the REML
-estimator would no longer be unbiased.  Furthermore, this property of
-unbiasedness of variance estimators does not generalize from the
-linear regression model to linear mixed models.  This is all to say
-that the distinction between REML and ML estimates of variances and
-variance components is probably less important that many people
-believe.
+we have seen that densities of estimators of variances will be skewed,
+often highly skewed.  It is not clear why we should be interested in
+the expected value of a highly skewed estimator.  If we were to
+transform to a more symmetric scale, such as the estimator of the
+standard deviation or the estimator of the logarithm of the standard
+deviation, the REML estimator would no longer be unbiased.
+Furthermore, this property of unbiasedness of variance estimators does
+not generalize from the linear regression model to linear mixed
+models.  This is all to say that the distinction between REML and ML
+estimates of variances and variance components is probably less
+important that many people believe.
 
 Nevertheless it is worthwhile seeing how the computational techniques
 described in this chapter apply to the REML criterion because the REML
@@ -729,7 +730,7 @@ expressed as
   \int_{\mathbb{R}^p}L(\vec\theta,\vec\beta,\sigma|\vec y)\,d\vec\beta
 \end{equation}
 on the deviance scale.  The REML estimates $\widehat{\vec\theta}_R$ and
-$\widehat{\sigma_R^2}$ minimize $d_R(\vec\theta,\vec\sigma|\vec y)$.
+$\widehat{\sigma_R^2}$ minimize $d_R(\vec\theta,\sigma|\vec y)$.
 
 To evaluate this integral we form an expansion, similar to
 (\ref{eq:PRSSwithL}), of $r^2_{\theta,\beta}$ about
@@ -760,8 +761,8 @@ criterion
 \begin{equation}
   \label{eq:24}
   \tilde{d}_R(\vec\theta|\vec y)=
-  \log(|\vec L_\theta|^2|\vec R_X|^2)+(n-p)
-  \left(1+\log\left(\frac{2\pi\tilde{d}(\vec\theta|\vec y)}{n-p}\right)\right)
+  \log\left(|\vec L_\theta|^2|\vec R_X|^2\right)+(n-p)
+  \left[1+\log\left(\frac{2\pi r^2_\theta}{n-p}\right)\right]
 \end{equation}
 
 The REML estimate of $\vec\theta$ is
