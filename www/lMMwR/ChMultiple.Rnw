@@ -3,7 +3,7 @@
 \SweaveOpts{prefix=TRUE,prefix.string=figs/Multiple,include=TRUE}
 \setkeys{Gin}{width=\textwidth}
 <<preliminaries,echo=FALSE,print=FALSE,results=hide>>=
-options(width=85, show.signif.stars = FALSE,
+options(width=75, show.signif.stars = FALSE,
         lattice.theme = function() canonical.theme("pdf", color = FALSE))
 library(splines)
 library(lattice)
@@ -826,21 +826,12 @@ professor'' award.  These data have been slightly simplified and
 identifying labels have been removed, so as to preserve anonymity.
 
 The variables 
-\begin{Schunk}
-\begin{Sinput}
-> str(InstEval)
-\end{Sinput}
-\begin{Soutput}
-'data.frame':	73421 obs. of  7 variables:
- $ s      : Factor w/ 2972 levels "1","2","3","4",..: 1 1 1 1 2 2 3 3 ...
- $ d      : Factor w/ 1128 levels "1","6","7","8",..: 525 560 832 1068 ...
- $ studage: Ord.factor w/ 4 levels "2"<"4"<"6"<"8": 1 1 1 1 1 1 1 1 1 ...
- $ lectage: Ord.factor w/ 6 levels "1"<"2"<"3"<"4"<..: 2 1 2 2 1 1 1 ...
- $ service: Factor w/ 2 levels "0","1": 1 2 1 2 1 1 2 1 1 1 ...
- $ dept   : Factor w/ 14 levels "15","5","10",..: 14 5 14 12 2 2 13 ...
- $ y      : int  5 2 5 3 2 4 4 5 5 4 ...
-\end{Soutput}
-\end{Schunk}%$
+<<strInstEval, keep.source=FALSE>>=
+## the default  strict.width is "no" for back-compatibility
+## instead, we could also *globally* set
+##    strOptions(strict.width = "cut")
+str(InstEval, strict.width="cut")
+@
 have somewhat cryptic names.  Factor \code{s} designates the student
 and \code{d} the instructor.  The \code{dept} factor is the department
 for the course and \code{service} indicates whether the course was a
