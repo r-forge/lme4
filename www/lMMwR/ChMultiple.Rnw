@@ -3,8 +3,8 @@
 \SweaveOpts{prefix=TRUE,prefix.string=figs/Multiple,include=TRUE}
 \setkeys{Gin}{width=\textwidth}
 <<preliminaries,echo=FALSE,print=FALSE,results=hide>>=
-options(width=75, show.signif.stars = FALSE,
-        lattice.theme = function() canonical.theme("pdf", color = FALSE))
+options(lattice.theme = function() canonical.theme("pdf", color = FALSE))
+strOptions(strict.width = "cut")
 library(splines)
 library(lattice)
 library(Matrix)
@@ -52,6 +52,8 @@ if (!file.exists("figs/Multiple-fm4Limage.png")) {
     rm(ttt)
     dev.off()
 }
+options(width=74, show.signif.stars = FALSE,
+        str = strOptions(strict.width = "cut"))
 @
 
 \chapter{Models With Multiple Random-effects Terms}
@@ -642,7 +644,7 @@ batch-to-batch variability in addition to the sample-to-sample
 variability.
 
 Plots of the prediction intervals of the random effects
-(Fig.~\ref{fig:fm3ranef}))
+(Fig.~\ref{fig:fm3ranef})
 \begin{figure}[tbp]
   \centering
 <<fm3ranef,fig=TRUE,echo=FALSE,height=6.5,results=hide>>=  
@@ -676,7 +678,7 @@ be zero, resulting in a simpler model incorporating random effects for
 \subsection{Testing $H_0:\sigma_2=0$ Versus $H_a:\sigma_2>0$}
 \label{sec:TestingSig2is0}
 
-One of the many famous quotes from Albert Einstein is ``Everything
+One of the many famous statements by Albert Einstein is ``Everything
 should be made as simple as possible, but not simpler.''  In
 statistical modeling this \emph{principal of parsimony} is embodied in
 hypothesis tests comparing two models, one of which contains the other
@@ -686,15 +688,15 @@ is constrained in some way, resulting in the restricted model, which
 we call the \emph{null hypothesis}.  Although we phrase the hypothesis
 test in terms of the parameter restriction, it is important to realize
 that we are comparing the quality of fits obtained with two nested
-models.  That is, we are not comparing parameters per se, we are
-comparing the model fits obtainable with some constraints on parameter
-values to those without the constraints.
+models.  That is, we are not assessing parameter values per se; we are
+comparing the model fit obtainable with some constraints on parameter
+values to that without the constraints.
 
 Because the more general model, $H_a$, must provide a fit that is at
 least as good as the restricted model, $H_0$, our purpose is to
 determine whether the change in the quality of the fit is sufficient
 to justify the greater complexity of model $H_a$.  This comparison is
-often reduced to a \emph{p-value} which is the probability of seeing a
+often reduced to a \emph{p-value}, which is the probability of seeing a
 difference in the model fits as large as we did, or even larger, when,
 in fact, $H_0$ is adequate.  Like all probabilities, a p-value must be
 between 0 and 1.  When the p-value for a test is small (close to zero)
@@ -709,7 +711,7 @@ the simpler model, $H_0$, according to the principal of parsimony.
 These are the general principles of statistical hypothesis tests.  To
 perform a test in practice we must specify the criterion for comparing
 the model fits, the method for calculating the p-value from an
-observed value of the criterion and the standard by which we will
+observed value of the criterion, and the standard by which we will
 determine if the p-value is ``small'' or not.  The criterion is called
 the \emph{test statistic}, the p-value is calculated from a
 \emph{reference distribution} for the test statistic, and the standard
@@ -804,7 +806,7 @@ Studies in education, in which test scores for students over time are
 also associated with teachers and schools, usually result in partially
 crossed grouping factors.  If students with scores in multiple years
 have different teachers for the different years, the student factor
-cannot be nested within the teacher factor.  Conversely student and
+cannot be nested within the teacher factor.  Conversely, student and
 teacher factors are not expected to be completely crossed.  To have
 complete crossing of the student and teacher factors it would be
 necessary for each student to be observed with each teacher, which
@@ -830,7 +832,8 @@ The variables
 ## the default  strict.width is "no" for back-compatibility
 ## instead, we could also *globally* set
 ##    strOptions(strict.width = "cut")
-str(InstEval, strict.width="cut")
+##str(InstEval, strict.width = "cut")
+str(InstEval)
 @
 have somewhat cryptic names.  Factor \code{s} designates the student
 and \code{d} the instructor.  The \code{dept} factor is the department
@@ -844,12 +847,12 @@ xtabs(~ y, InstEval)
 it is sufficiently diffuse to warrant treating it as if it were a
 continuous response.
 
-In this chapter we fit models that have random effects for student,
+At this point we will fit models that have random effects for student,
 instructor, and department (or the \code{dept:service} combination) to
 these data.  In the next chapter we will fit models incorporating
 fixed-effects for instructor and department to these data.
 <<fm4show,eval=FALSE>>=
-(fm4 <- lmer(y ~ 1 + (1|s) + (1|d) + (1|dept:service), InstEval, REML=0))
+(fm4 <- lmer(y ~ 1 + (1|s) + (1|d)+(1|dept:service), InstEval, REML=0))
 @
 <<fm4,echo=FALSE>>=
 fm4
@@ -906,12 +909,21 @@ so would take a very long time and, in this particular case, the
 analysts are more interested in a model that uses fixed-effects
 parameters for the instructors, which we will describe in the next
 chapter.
+
+We could pursue other mixed-effects models here, such as using the
+\code{dept} factor and not the \code{dept:service} interaction to
+define random effects, but we will revisit these data in the next
+chapter and follow up on some of these variations there.
 \begin{figure}[tbp]
   \centering
 \includegraphics{figs/Multiple-fm4Limage}
 \caption{Image of the sparse Cholesky factor, $\vec L$, from model \code{fm4}}
   \label{fig:fm4Limage}
 \end{figure}
+
+\subsection{Structure of $\vec L$ for model \texttt{fm4}}
+\label{sec:fm4L}
+
 
 Before leaving this model we examine the sparse Cholesky factor, $\vec
 L$, (Fig.~\ref{fig:fm4Limage}), which is of size $4128\times4128$.
@@ -1038,7 +1050,7 @@ or load just the one data set
 <<loadRail,eval=FALSE>>=
 data(ergoStool, package = "MEMSS")
 @ 
-\begin{prob}\label{prS1}
+\begin{prob}\label{pr2.1.1}
   Check the documentation, the structure (\code{str}) and a summary of
   the \code{ergoStool} data from the \package{MEMSS} package.  (If you
   are a Star Trek fan, you can speculate about what, exactly, the
@@ -1058,13 +1070,13 @@ completely crossed.  Is this a replicated or an unreplicated design?
 \begin{prob}
   The experimenters are interested in comparing these specific stool
   types.  In the next chapter we will fit a model with fixed-effects
-  for the \code{Type} factor and random effects for \code{Subject}
-  which allows us to perform comparisons of these specific types.  At
+  for the \code{Type} factor and random effects for \code{Subject},
+  allowing us to perform comparisons of these specific types.  At
   this point fit a model with random effects for both \code{Type} and
   \code{Subject}.  What are the relative sizes of the estimates of the
   standard deviations, $\widehat{\sigma}_1$ (for \code{Subject}),
   $\widehat{\sigma}_2$ (for \code{Type}) and $\widehat{\sigma}$ (for
-  the residual variability)
+  the residual variability)?
 \end{prob}
 \begin{prob}
   Refit the model using maximum likelihood.  Check the parameter
@@ -1084,7 +1096,7 @@ completely crossed.  Is this a replicated or an unreplicated design?
 \end{prob}
 \begin{prob}
   Create the profile zeta plot for this model.  For which parameters
-  there good normal approximations?
+  are there good normal approximations?
 \end{prob}
 \begin{prob}
   Create a profile pairs plot for this model.  Comment on the shapes
@@ -1095,7 +1107,8 @@ completely crossed.  Is this a replicated or an unreplicated design?
   Create a plot of the 95\% prediction intervals on the random effects
   for \code{Type} using
 <<plotexam,eval=FALSE>>=
-dotplot(ranef(fm, which = "Type", postVar = TRUE), aspect = 0.2, strip = FALSE)
+dotplot(ranef(fm, which = "Type", postVar = TRUE), aspect = 0.2,
+        strip = FALSE)
 @   
 (Substitute the name of your fitted model for \code{fm} in the call to
 \code{ranef}.)  Is there a clear winner among the stool types?
@@ -1125,7 +1138,7 @@ partially crossed or completely crossed.
   effects for \code{Pair}, \code{Storage} and \code{Block}.
 \end{prob}
 \begin{prob}
-  Plot the prediction intervals on each of the three sets of random effects.
+  Plot the prediction intervals for each of the three sets of random effects.
 \end{prob}
 \begin{prob}
   Profile the parameters in this model.  Create a profile zeta plot.
@@ -1146,5 +1159,5 @@ partially crossed or completely crossed.
   Profile the reduced model (i.e. the one without random effects for
   \code{Block}) and create profile zeta and profile pairs plots.  Can
   you explain the apparent interaction between $\log(\sigma)$ and
-  $\sigma_1$ (this is a difficult question)?
+  $\sigma_1$? (This is a difficult question.)
 \end{prob}
