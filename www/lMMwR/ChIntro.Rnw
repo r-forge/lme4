@@ -1,11 +1,12 @@
-\SweaveOpts{engine=R,eps=FALSE,pdf=TRUE,width=8,strip.white=TRUE}
+\SweaveOpts{engine=R,eps=FALSE,pdf=TRUE,width=8,strip.white=all}
 \SweaveOpts{keep.source=TRUE}
 \SweaveOpts{prefix=TRUE,prefix.string=figs/Intro,include=TRUE}
 \setkeys{Gin}{width=\textwidth}
 
 <<preliminaries,echo=FALSE,print=FALSE,results=hide>>=
 options(width=85, show.signif.stars = FALSE,
-        lattice.theme = function() canonical.theme("pdf", color = FALSE))
+        lattice.theme = function() canonical.theme("pdf", color = FALSE),
+        str = strOptions(strict.width = "cut"))
 library(splines)
 library(lattice)
 library(Matrix)
@@ -239,13 +240,13 @@ such a plot.  Because this book was created using Sweave
 \citep{lmucs-papers:Leisch:2002}, the exact code used to create the
 plot, as well as the code for all the other figures and calculations
 in the book, is available on the web site for the book.  In
-section~\ref{sec:lattice} we review some of the principles of
+Sect.~\ref{sec:lattice} we review some of the principles of
 lattice graphics, such as reordering the levels of the \code{Batch}
 factor by increasing mean response, that enhance the informativeness
 of the plot.  At this point we will concentrate on the information
 conveyed by the plot and not on how the plot is created.
 
-In section \ref{sec:DyestuffLMM} we will use mixed models to
+In Sect.~\ref{sec:DyestuffLMM} we will use mixed models to
 quantify the variability in yield between batches.  For the time being
 let us just note that the particular batches used in this experiment
 are a selection or sample from the set of all batches that we wish to
@@ -355,7 +356,7 @@ consider each of these sections in turn.
 
 The description section states that this is a linear mixed model in
 which the parameters have been estimated as those that minimize the
-REML criterion (explained in section \ref{sec:REML}).  The
+REML criterion (explained in Sect.~\ref{sec:REML}).  The
 \code{formula} and \code{data} arguments are displayed for later
 reference.  If other, optional arguments affecting the fit, such as a
 \code{subset} specification, were used, they too will be displayed
@@ -388,7 +389,7 @@ estimation criterion is the REML criterion.  Generally the REML
 estimates of variance components are preferred to the ML estimates.
 However, when comparing models it is safest to refit all the models
 using the maximum likelihood criterion.  We will discuss comparisons
-of model fits later in section~\ref{sec:compmod}.
+of model fits in Sect.~\ref{sec:TestingSig2is0}.
 
 The third section is the table of estimates of parameters associated
 with the random effects.  There are two sources of variability in the
@@ -428,7 +429,7 @@ response, than it is to visualize the magnitude of a variance.  The
 values in this column are a simple re-expression (the square root) of
 the estimated variances. Do not confuse them with the standard errors
 of the variance estimators, which are not given here.  In
-section~\ref{sec:variability} we explain why we do not provide standard
+Sect.~\ref{sec:variability} we explain why we do not provide standard
 errors of variance estimates.
 
 The line labeled \code{Residual} in this table gives the estimate of
@@ -520,9 +521,9 @@ the data and we must assess the effect of this variability on the
 parameter estimates and on the precision of predictions made from the
 model.
 
-In section~\ref{sec:variability} we introduce a method of assessing
+In Sect.~\ref{sec:variability} we introduce a method of assessing
 variability in parameter estimates using the ``profiled deviance'' and
-in section~\ref{sec:assessRE} we show methods of characterizing
+in Sect.~\ref{sec:assessRE} we show methods of characterizing
 the conditional distribution of the random effects given the data.
 Before we get to these sections, however, we should state in some
 detail the probability model for linear mixed-effects and establish
@@ -547,7 +548,7 @@ derivation and with minimal explanation, so that we can use these
 terms in what follows.  In Chapter~\ref{chap:computational} we revisit
 these definitions providing derivations and more explanation.
 
-As mentioned in section~\ref{sec:memod}, a mixed model incorporates
+As mentioned in Sect.~\ref{sec:memod}, a mixed model incorporates
 two random variables: $\bc B$, the $q$-dimensional vector of random
 effects, and $\bc Y$, the $n$-dimensional response vector.  In a
 linear mixed model the unconditional distribution of $\bc B$ and the
@@ -643,8 +644,8 @@ which provides the \emph{profiled deviance},
 \begin{equation}
   \label{eq:LMMprofdev}
   \tilde{d}(\vec\theta|\vec y)=d(\vec\theta,\widehat{\beta}_\theta,\widehat{\sigma}_\theta|\vec y)
-  =\log(|\vec L_\theta|^2)+n\left(1 +
-    \log\left(\frac{2\pi r^2_\theta}{n}\right)\right),
+  =\log(|\vec L_\theta|^2)+n\left[1 +
+    \log\left(\frac{2\pi r^2_\theta}{n}\right)\right],
 \end{equation}
 a function of $\vec\theta$ alone.
 
@@ -667,7 +668,7 @@ BLUPs of the random effects.  Although it has an appealing acronym,
 I don't find the term particularly instructive (what is a ``linear
 unbiased predictor'' and in what sense are these the ``best''?) and
 prefer the term ``conditional mode'', which is explained in
-section~\ref{sec:assessRE}.
+Sect.~\ref{sec:assessRE}.
 
 \subsection{Matrices and Vectors in the Fitted Model Object}
 \label{sec:FittedModel}
@@ -693,7 +694,7 @@ Often we will show the structure of sparse matrices as an image
 (Fig.~\ref{fig:fm1Lambdaimage}).
 \begin{figure}[tbp]
   \sidecaption[t]
-  \setkeys{Gin}{width=2in}
+  \setkeys{Gin}{width=1.5in}
 <<fm1Lambdaimage,fig=TRUE,echo=FALSE,width=2.5,height=2.5>>=
 print(image(env(fm1)$Lambda, sub=NULL, xlab=NULL, ylab=NULL))
 @   
@@ -1085,7 +1086,7 @@ the first column but the panels on the first row would remain the same.
 \section{Assessing the Random Effects}
 \label{sec:assessRE}
 
-In section~\ref{sec:definitions} we mentioned that what are sometimes
+In Sect.~\ref{sec:definitions} we mentioned that what are sometimes
 called the BLUPs (or best linear unbiased estimators) of the random
 effects, $\bc B$, are the conditional modes evaluated at the parameter
 estimates, and that they can be calculated as

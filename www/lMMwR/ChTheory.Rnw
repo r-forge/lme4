@@ -1,11 +1,12 @@
-\SweaveOpts{engine=R,eps=FALSE,pdf=TRUE,width=8,strip.white=TRUE}
+\SweaveOpts{engine=R,eps=FALSE,pdf=TRUE,width=8,strip.white=all}
 \SweaveOpts{keep.source=TRUE}
 \SweaveOpts{prefix=TRUE,prefix.string=figs/Long,include=TRUE}
 \setkeys{Gin}{width=\textwidth}
 
 <<preliminaries,echo=FALSE,print=FALSE,results=hide>>=
-options(width=80, show.signif.stars = FALSE,
-        lattice.theme = function() canonical.theme("pdf", color = FALSE))
+options(width=74, show.signif.stars = FALSE,
+        lattice.theme = function() canonical.theme("pdf", color = FALSE),
+        str = strOptions(strict.width = "cut"))
 #library(splines)
 #library(lattice)
 #library(Matrix)
@@ -30,7 +31,7 @@ methods.  We also provide the basis for later generalizations to
 models for non-Gaussian responses and to models in which the
 relationship between the conditional mean, $\vec\mu$, and the linear
 predictor, $\vec\gamma=\vec X\vec\beta+\vec Z\vec b=
-\vec Z\Lambda_\theta\vec u+\vec X\vec\beta$ is a nonlinear relationship.
+\vec Z\Lambda_\theta\vec u+\vec X\vec\beta$, is a nonlinear relationship.
 
 This material is directed at those readers who wish to follow the
 theory and methodology of linear mixed models and how both can be
@@ -123,9 +124,13 @@ distribution for $\bc B$.  As a linear transformation of a
 multivariate Gaussian random variable, $\bc B$ will also be
 multivariate Gaussian.  Its mean and variance-covariance matrix are
 straightforward to evaluate,
-\begin{align}
-  \mathrm{E}[\bc B]& = \Lambda_\theta\mathrm{E}[\bc U]=\Lambda_\theta\vec0=\vec0\\
-  \mathrm{Var}(\bc B)&
+\begin{equation}
+  \label{eq:EB}
+  \mathrm{E}[\bc B] = \Lambda_\theta\mathrm{E}[\bc U]=\Lambda_\theta\vec0=\vec0
+\end{equation}
+and
+\begin{equation}
+  \mathrm{Var}(\bc B)
   \begin{aligned}[t]
     &=\mathrm{E}\left[(\bc B-\mathrm{E}[\bc B])
       (\bc B-\mathrm{E}[\bc B])\trans\right]
@@ -137,7 +142,7 @@ straightforward to evaluate,
     =\sigma^2\Lambda_\theta\Lambda_\theta\trans
     =\Sigma_\theta
   \end{aligned},
-\end{align}
+\end{equation}
 and have the desired form.
 
 Just as we concentrate on how $\vec\theta$ determines
@@ -170,11 +175,12 @@ mixed models the conditional mean, $\vec\mu$, can be a nonlinear
 function of the linear predictor, $\vec\gamma$.  For some models the
 dimension of $\vec\gamma$ is a multiple of $n$, the dimension of
 $\vec\mu$ and $\vec y$, but for a linear mixed model the dimension of
-$\vec\gamma$ must be $n$.  Hence, the model matrices $\vec Z$ must be
+$\vec\gamma$ must be $n$.  Hence, the model matrix $\vec Z$ must be
 $n\times q$ and $\vec X$ must be $n\times p$.
 
 %% \bc inside \section{...} + \usepackage{hyperref} fails -> using \mathcal here
-\section{The Conditional Distribution $(\mathcal{U}|\mathcal{Y}=\vec y)$}
+\section{The Conditional Distribution
+  $(\mathcal{U}|\mathcal{Y}=\vec y)$}
 \label{sec:conddistUgivenY}
 
 In this section it will help to be able to distinguish between the
@@ -191,7 +197,7 @@ likelihood are identical, the interpretations of these functions are
 different.  In the density we consider the parameters to be fixed
 and the value of $\vec y$ as varying.  In the likelihood we consider
 $\vec y$ to be fixed at $\vec y_{\text{obs}}$ and the
-parameters, $\vec\theta$, $\vec\beta$ and $\sigma$ as varying.
+parameters, $\vec\theta$, $\vec\beta$ and $\sigma$, as varying.
 
 The natural approach for evaluating the likelihood is to determine the
 marginal distribution of $\bc Y$, which in this case amounts to
@@ -244,7 +250,7 @@ arbitrary value of $\vec y$, so we can concentrate on the conditional
 distribution of $\bc U$ given $\bc Y=\vec y_{\text{obs}}$.  For all
 the mixed models we will consider, the conditional distribution, $(\bc
 U|\bc Y=\vec y_{\text{obs}})$, is continuous and both the conditional
-density, $f_{\bc U|\bc Y}(\vec u|\vec y_{\text{obs}})$ and its
+density, $f_{\bc U|\bc Y}(\vec u|\vec y_{\text{obs}})$, and its
 unnormalized form, $h(\vec u)$, are well-defined.
 
 \section{Integrating $h(\vec u)$ in the Linear Mixed Model}
@@ -272,7 +278,7 @@ $\bc Y=\vec y_{\text{obs}}$, because $\tilde{\vec u}$ maximizes the
 conditional density of $\bc U$ given $\bc Y=\vec y_{\text{obs}}$.  The
 location of the maximum can be determined by maximizing the
 unnormalized conditional density because $h(\vec u)$ is just a
-constant multiple of $f_{\bc U|\bc Y}(\vec y|\vec u)$.  The last part
+constant multiple of $f_{\bc U|\bc Y}(\vec u|\vec y)$.  The last part
 of (\ref{eq:condMode}) is simply a re-expression of $h(\vec u)$ as the
 product of $f_{\bc Y|\bc U}(\vec y|\vec u)$ and $f_{\bc U}(\vec u)$.
 For a linear mixed model these densities are
@@ -288,7 +294,7 @@ For a linear mixed model these densities are
 
 We can simplify the task of maximizing the product of these densities
 by transforming to the deviance scale (negative twice the logarithm of
-the density).
+the density),
 \begin{equation}
   \label{eq:devh}
   -2\log\left(h(\vec u)\right)=(n+q)\log(2\pi\sigma^2)
@@ -387,6 +393,9 @@ matrix that satisfies
   \vec L_\theta\vec L_\theta\trans=
   \Lambda_\theta\trans\vec Z\trans\vec Z\Lambda_\theta+\vec I_q .
 \end{equation}
+The actual evaluation of sparse Cholesky factor, $\vec L_\theta$,
+often incorporates a \emph{fill-reducing permutation}, which we
+describe next.
 
 \subsection{The Fill-reducing Permutation, $\vec P$}
 \label{sec:fill-reducingP}
@@ -416,7 +425,9 @@ be the sparse lower triangular $q\times q$ matrix that satisfies
   \label{eq:sparseCholeskyP}
   \vec L_\theta\vec L_\theta\trans=
    \vec P\Lambda_\theta\trans\vec Z\trans\vec Z\Lambda_\theta\vec P\trans
-   +\vec I_q .
+   +\vec I_q
+   = \vec P\left(\Lambda_\theta\trans\vec Z\trans\vec Z\Lambda_\theta
+   +\vec I_q\right)\vec P\trans.
 \end{equation}
 
 Many sparse matrix methods, including the sparse Cholesky
@@ -450,24 +461,42 @@ Applying the permutation corresponds to multiplying a vector or matrix
 by $\vec P$.  Applying the inverse permutation corresponds to
 multiplication by $\vec P\trans$.
 
+The pseudo-data representation of the PLS problem, (\ref{eq:PLSLMM}), becomes
+\begin{equation}
+  \label{eq:PLSLMMP}
+  \tilde{\vec u}=\arg\min_{\vec u}\left\|
+    \begin{bmatrix}
+      \vec y-\vec X\vec\beta\\
+      \vec 0
+    \end{bmatrix} -
+    \begin{bmatrix}
+      \vec Z\Lambda_\theta\vec P\trans\\
+      \vec I_q
+    \end{bmatrix}\vec P\vec u\right\|^2
+\end{equation}
+and the system of linear equations satisfied by $\tilde{\vec u}$ is
+\begin{equation}
+  \label{eq:LMMPLSsolP}
+  \vec L_\theta\vec L_\theta\trans\vec P\tilde{\vec u}=
+  \vec P\left(\Lambda_\theta\trans\vec Z\trans\vec Z\Lambda_\theta+\vec
+    I_q\right)\vec P\trans\vec P\tilde{\vec u}
+  =\vec P\Lambda_\theta\trans\vec Z\trans\left[\vec y-\vec X\vec\beta\right]
+\end{equation}
+
+
 \subsection{Solving for $\tilde{\vec u}$}
 \label{sec:solvingtildeu}
 
 Obtaining the Cholesky factor, $\vec L_\theta$, may not seem to be
-great progress toward determining $\tilde{\vec u}$ because we still must solve
-\begin{equation}
-  \label{eq:LMMCholsol}
-  \vec L_\theta\vec L_\theta\trans\tilde{\vec u}
-  =\vec P\Lambda_\theta\trans\vec Z\trans\left[\vec y-\vec X\vec\beta\right]
-\end{equation}
-for $\tilde{\vec u}$.  However, this is the key step in computational
-methods in the \package{lme4} package. The ability to evaluate $\vec
-L_\theta$ rapidly for many different values of $\vec\theta$ is what
-makes the computational methods in \package{lme4} feasible, even when
-applied to very large data sets with complex structure.  Once we
-evaluate $\vec L_\theta$ it is straightforward to solve
-(\ref{eq:LMMCholsol}) for $\tilde{\vec u}$ because $\vec L_\theta$ is
-triangular.
+great progress toward determining $\tilde{\vec u}$ because we still
+must solve (\ref{eq:LMMPLSsolP}) for $\tilde{\vec u}$.  However, this
+is the key step in computational methods in the \package{lme4}
+package. The ability to evaluate $\vec L_\theta$ rapidly for many
+different values of $\vec\theta$ is what makes the computational
+methods in \package{lme4} feasible, even when applied to very large
+data sets with complex structure.  Once we evaluate $\vec L_\theta$ it
+is straightforward to solve (\ref{eq:LMMPLSsolP}) for $\tilde{\vec u}$
+because $\vec L_\theta$ is triangular.
 
 After evaluating $\vec L_\theta$ and using that to solve for
 $\tilde{\vec u}$, which also produces $r^2_{\beta,\theta}$, we can
@@ -522,17 +551,17 @@ Putting all this together gives
 \end{equation}
 
 The deviance, which is negative twice the (natural)
-logarithm of the likelihood, becomes (\ref{eq:LMMdeviance})
+logarithm of the likelihood, now becomes
 \begin{displaymath}
   d(\vec\theta,\vec\beta,\sigma|\vec y)
   =n\log(2\pi\sigma^2)+\log(|\vec L_\theta|^2)+
   \frac{r^2_{\beta,\theta}}{\sigma^2}.
 \end{displaymath}
-The maximum likelihood estimates of the parameters are those that
-minimize this deviance.  Note that evaluating the determinant, $|\vec
-L_\theta|$, which may seem formidable, is not. Because $\vec L_\theta$
-is triangular, its determinant is simply the product of its diagonal
-elements.
+as stated in (\ref{eq:LMMdeviance}).  The maximum likelihood estimates
+of the parameters are those that minimize this deviance.  Note that
+evaluating the determinant, $|\vec L_\theta|$, which may seem
+formidable, is not. Because $\vec L_\theta$ is triangular, its
+determinant is simply the product of its diagonal elements.
 
 Equation (\ref{eq:LMMdeviance}) is a remarkably compact expression,
 considering that the class of models to which it applies is very large
@@ -540,7 +569,7 @@ indeed.  However, we can do better than this if we notice that
 $\vec\beta$ affects (\ref{eq:LMMdeviance}) only through
 $r^2_{\beta,\theta}$, and, for any value of
 $\vec\theta$, minimizing this expression with respect to $\vec\beta$
-is just another least squares problem.  Let
+is just an extension of the penalized least squares problem.  Let
 $\widehat{\vec\beta}_\theta$ be the value of $\vec\beta$ that
 minimizes the PRSS simultaneously with respect to
 $\vec\beta$ and $\vec u$ and let $r^2_\theta$ be the minimum PRSS.
@@ -555,11 +584,11 @@ is a function of $\vec\theta$ only, is
     \log\left(\frac{2 \pi r^2_\theta}{n}\right)\right].
 \end{equation}
 
-The profiled deviance (\ref{eq:LMMprofdeviance}) is optimized
-numerically with respect to $\vec\theta$ to determine the MLE,
-$\widehat{\vec\theta}$.  The MLEs for the other parameters,
-$\widehat{\vec\beta}$ and $\widehat{\sigma}$, are the conditional
-estimates evaluated at $\widehat{\vec\theta}$.
+Numerical optimization of $\tilde{d}(\vec\theta|\vec y)$ with respect
+to $\vec\theta$ to determine the MLE, $\widehat{\vec\theta}$.  The
+MLEs for the other parameters, $\widehat{\vec\beta}$ and
+$\widehat{\sigma}$, are the corresponding conditional estimates
+evaluated at $\widehat{\vec\theta}$.
 
 \subsection{Determining $r^2_\theta$ and $\widehat{\vec\beta}_\theta$}
 \label{sec:betahat}
@@ -588,7 +617,7 @@ simultaneously we rearrange the terms in (\ref{eq:PLSLMM}) as
     \end{bmatrix}
   \right\|^2 .
 \end{equation}
-The PLS values, $\vec P\tilde{\vec u}$ and $\widehat{\vec\beta}_\theta$, are
+The PLS values, $\tilde{\vec u}$ and $\widehat{\vec\beta}_\theta$, are
 the solutions to
 \begin{equation}
   \label{eq:bigPLS}
@@ -657,7 +686,7 @@ factor.
 The extended decomposition (\ref{eq:bigdecomp}) not only provides for
 the evaluation of the profiled deviance function,
 $\tilde{d}(\vec\theta)$, (\ref{eq:LMMprofdeviance}) but also allows
-use to define and evaluate the profiled REML criterion.
+us to define and evaluate the profiled REML criterion.
 
 \section{The REML Criterion}
 \label{sec:REML}

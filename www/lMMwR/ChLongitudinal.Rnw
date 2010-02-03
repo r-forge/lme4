@@ -275,7 +275,7 @@ expression for \code{Days} without an intercept by \code{Subject} is
 \code{(Days - 1 | Subject)}.
 
 We delay further discussion on the mathematical form of the model and
-the interpretation of the model formulae until \S\ref{sec:model_form}.
+the interpretation of the model formulae until Sect.~\ref{sec:model_form}.
 At this point let us fit these models and examine the parameter
 estimates.
 
@@ -361,7 +361,7 @@ models, are practically unchanged.
 The call to \code{anova} compares the two fitted models using a
 likelihood ratio test, which evaluates the change in the quality of
 the fits, as measured by the deviance (defined in
-\S\ref{sec:overview-theory}), relative to the change in the number of
+Sect~\ref{sec:definitions}), relative to the change in the number of
 parameters.  The results of this test indicate that the model
 \code{fm8} does not fit significantly better than the model \code{fm9}
 and hence we prefer the model \code{fm9} which has fewer parameters.
