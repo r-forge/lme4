@@ -7,10 +7,10 @@
 options(width=74, show.signif.stars = FALSE,
         lattice.theme = function() canonical.theme("pdf", color = FALSE),
         str = strOptions(strict.width = "cut"))
-#library(splines)
-#library(lattice)
-#library(Matrix)
-#library(lme4a)
+library(splines)
+library(lattice)
+library(Matrix)
+library(lme4a)
 @
 
 \chapter{Computational Methods for Linear Mixed Models}
@@ -141,7 +141,7 @@ and
     &=\Lambda_\theta\,\sigma^2\vec I_q\,\Lambda_\theta\trans
     =\sigma^2\Lambda_\theta\Lambda_\theta\trans
     =\Sigma_\theta
-  \end{aligned},
+  \end{aligned}
 \end{equation}
 and have the desired form.
 
@@ -289,12 +289,15 @@ For a linear mixed model these densities are
   \exp\left(-\frac{\left\|\vec y-\vec X\vec\beta-\vec Z\Lambda_\theta\vec u\right\|^2}{2\sigma^2}\right)\\
   f_{\bc U}(\vec u)&=
   \frac{1}{\left(2\pi\sigma^2\right)^{q/2}}\exp\left(-\frac{\|\vec u\|^2}
-    {2\sigma^2}\right) .
+    {2\sigma^2}\right)
 \end{align}
-
-We can simplify the task of maximizing the product of these densities
-by transforming to the deviance scale (negative twice the logarithm of
-the density),
+with product
+\begin{equation}
+  \label{eq:hudef}
+  h(\vec u)=\frac{1}{\left(2\pi\sigma^2\right)^{(n+q)/2}}
+  \exp\left(-\frac{\left\|\vec y-\vec X\vec\beta-\vec Z\Lambda_\theta\vec u\right\|^2+\|\vec u\|^2}{2\sigma^2}\right) .
+\end{equation}
+On the deviance scale we have
 \begin{equation}
   \label{eq:devh}
   -2\log\left(h(\vec u)\right)=(n+q)\log(2\pi\sigma^2)
@@ -305,7 +308,7 @@ Because (\ref{eq:devh}) describes the negative log density,
 $\tilde{\vec u}$ will be the value of $\vec u$ that minimizes the
 expression on the right of (\ref{eq:devh}).
 
-The only part of the expression in (\ref{eq:devh}) that depends on
+The only part of the right hand side of (\ref{eq:devh}) that depends on
 $\vec u$ is the numerator of the second term.  Thus
 \begin{equation}
   \label{eq:PLSsol}
@@ -408,9 +411,9 @@ the theory of linear mixed models but can have a profound effect on
 the time and storage required to evaluate $\vec L_\theta$ in large
 problems.  We write the effect of the permutation as multiplication by
 a $q\times q$ \emph{permutation matrix}, $\vec P$, although in
-practice we perform the permutation without ever constructing $\vec
-P$.  That is, the matrix $\vec P$ is only a notational convenience only.  The
-permutation is determined from the structure of
+practice we apply the permutation without ever constructing $\vec
+P$.  That is, the matrix $\vec P$ is only a notational convenience
+only.  The permutation is determined from the structure of
 $\Lambda_\theta\trans\vec Z\trans\vec Z\Lambda_\theta+\vec I_q$ for
 some initial value of $\vec\theta$ in the optimization of the profiled
 deviance.  The particular value of $\vec\theta$ used to determine the
@@ -436,9 +439,9 @@ in which the locations of the non-zeros in the result are determined
 and the \emph{numeric phase} in which the numeric values at these
 positions are evaluated.  The symbolic phase for the decomposition
 (\ref{eq:sparseCholeskyP}), which includes determining the
-permutation, $\vec P$, need only be done once.  Evaluation of $\vec L_\theta$
-for subsequent values of $\vec\theta$ requires only the numeric phase,
-which is often much faster than the symbolic phase.
+permutation, $\vec P$, need only be done once.  Evaluation of $\vec
+L_\theta$ for subsequent values of $\vec\theta$ requires only the
+numeric phase, which is often much faster than the symbolic phase.
 
 The permutation, $\vec P$, serves two purposes.  The first and most
 important purpose is to reduce the number of non-zeros in the factor,
@@ -461,7 +464,8 @@ Applying the permutation corresponds to multiplying a vector or matrix
 by $\vec P$.  Applying the inverse permutation corresponds to
 multiplication by $\vec P\trans$.
 
-The pseudo-data representation of the PLS problem, (\ref{eq:PLSLMM}), becomes
+The pseudo-data representation of the PLS problem, (\ref{eq:PLSLMM}),
+becomes
 \begin{equation}
   \label{eq:PLSLMMP}
   \tilde{\vec u}=\arg\min_{\vec u}\left\|
@@ -480,7 +484,7 @@ and the system of linear equations satisfied by $\tilde{\vec u}$ is
   \vec L_\theta\vec L_\theta\trans\vec P\tilde{\vec u}=
   \vec P\left(\Lambda_\theta\trans\vec Z\trans\vec Z\Lambda_\theta+\vec
     I_q\right)\vec P\trans\vec P\tilde{\vec u}
-  =\vec P\Lambda_\theta\trans\vec Z\trans\left[\vec y-\vec X\vec\beta\right]
+  =\vec P\Lambda_\theta\trans\vec Z\trans\left(\vec y-\vec X\vec\beta\right) .
 \end{equation}
 
 
@@ -496,7 +500,8 @@ different values of $\vec\theta$ is what makes the computational
 methods in \package{lme4} feasible, even when applied to very large
 data sets with complex structure.  Once we evaluate $\vec L_\theta$ it
 is straightforward to solve (\ref{eq:LMMPLSsolP}) for $\tilde{\vec u}$
-because $\vec L_\theta$ is triangular.
+because $\vec L_\theta$ is triangular.  In Sect.~\ref{sec:stepByStep}
+we will describe the steps in determining this solution.
 
 After evaluating $\vec L_\theta$ and using that to solve for
 $\tilde{\vec u}$, which also produces $r^2_{\beta,\theta}$, we can
@@ -551,11 +556,11 @@ Putting all this together gives
 \end{equation}
 
 The deviance, which is negative twice the (natural)
-logarithm of the likelihood, now becomes
+logarithm of the likelihood, can now be expressed as
 \begin{displaymath}
   d(\vec\theta,\vec\beta,\sigma|\vec y)
   =n\log(2\pi\sigma^2)+\log(|\vec L_\theta|^2)+
-  \frac{r^2_{\beta,\theta}}{\sigma^2}.
+  \frac{r^2_{\beta,\theta}}{\sigma^2},
 \end{displaymath}
 as stated in (\ref{eq:LMMdeviance}).  The maximum likelihood estimates
 of the parameters are those that minimize this deviance.  Note that
@@ -585,7 +590,7 @@ is a function of $\vec\theta$ only, is
 \end{equation}
 
 Numerical optimization of $\tilde{d}(\vec\theta|\vec y)$ with respect
-to $\vec\theta$ to determine the MLE, $\widehat{\vec\theta}$.  The
+to $\vec\theta$ determines the MLE, $\widehat{\vec\theta}$.  The
 MLEs for the other parameters, $\widehat{\vec\beta}$ and
 $\widehat{\sigma}$, are the corresponding conditional estimates
 evaluated at $\widehat{\vec\theta}$.
@@ -594,7 +599,7 @@ evaluated at $\widehat{\vec\theta}$.
 \label{sec:betahat}
 
 To determine $\tilde{\vec u}$ and $\widehat{\vec\beta}_\theta$
-simultaneously we rearrange the terms in (\ref{eq:PLSLMM}) as
+simultaneously we rearrange the terms in (\ref{eq:PLSLMMP}) as
 \begin{equation}
   \label{eq:PLSLMM1}
   \begin{bmatrix}
@@ -672,10 +677,10 @@ and
   \vec R_X\trans\vec R_X=\vec X\trans\vec X-\vec R_{ZX}\trans\vec R_{ZX}
 \end{equation}
 
-Those who are familiar with standard ways of writing a Cholesky
-decomposition as either $\vec L\vec L\trans$ or $\vec R\trans\vec R$
-($\vec L$ is the factor as it appears on the left and $\vec R$ is as
-it appears on the right) will notice a notational inconsistency in
+Those familiar with standard ways of writing a Cholesky decomposition
+as either $\vec L\vec L\trans$ or $\vec R\trans\vec R$ ($\vec L$ is
+the factor as it appears on the left and $\vec R$ is as it appears on
+the right) will notice a notational inconsistency in
 (\ref{eq:bigdecomp}).  One Cholesky factor is defined as the lower
 triangular fractor on the left and the other is defined as the upper
 triangular factor on the right.  It happens that in \R{} the Cholesky
@@ -691,8 +696,8 @@ us to define and evaluate the profiled REML criterion.
 \section{The REML Criterion}
 \label{sec:REML}
 
-In practice the so-called REML estimates of variance components are
-often preferred to the maximum likelihood estimates.  (``REML'' can be
+The so-called REML estimates of variance components are often
+preferred to the maximum likelihood estimates.  (``REML'' can be
 considered to be an acronym for ``restricted'' or ``residual'' maximum
 likelihood, although neither term is completely accurate because these
 estimates do not maximize a likelihood.) We can motivate the use of
@@ -751,22 +756,22 @@ $\widehat{\sigma_R^2}$ for a linear mixed model have the property that
 they would specialize to $\widehat{\sigma^2_R}$ from (\ref{eq:21}) for
 a linear regression model, as seen in Sect.~\ref{sec:Dyestuff2LMM}.
 
-Although not usually derived in this way, the REML criterion can be
-expressed as
+Although not usually derived in this way, the REML criterion (on the
+deviance scale) can be expressed as
 \begin{equation}
   \label{eq:23}
   d_R(\vec\theta,\sigma|\vec y)=-2\log
-  \int_{\mathbb{R}^p}L(\vec\theta,\vec\beta,\sigma|\vec y)\,d\vec\beta
+  \int_{\mathbb{R}^p}L(\vec\theta,\vec\beta,\sigma|\vec y)\,d\vec\beta .
 \end{equation}
-on the deviance scale.  The REML estimates $\widehat{\vec\theta}_R$ and
-$\widehat{\sigma_R^2}$ minimize $d_R(\vec\theta,\sigma|\vec y)$.
+The REML estimates $\widehat{\vec\theta}_R$ and $\widehat{\sigma_R^2}$
+minimize $d_R(\vec\theta,\sigma|\vec y)$.
 
 To evaluate this integral we form an expansion, similar to
 (\ref{eq:PRSSwithL}), of $r^2_{\theta,\beta}$ about
 $\widehat{\vec\beta}_\theta$
 \begin{equation}
   \label{eq:rsqbetathetaexp}
-  r^2_{\theta,\beta}=r^2_\theta+\|\vec R_X(\vec\beta-\widehat{\vec\beta})\|^2 .
+  r^2_{\theta,\beta}=r^2_\theta+\|\vec R_X(\vec\beta-\widehat{\vec\beta}_\theta)\|^2 .
 \end{equation}
 In the same way that (\ref{eq:PRSSwithL}) was used to simplify the
 integral in (\ref{eq:hintegral}), we can derive
@@ -803,7 +808,7 @@ and the REML estimate of $\sigma^2$ is the conditional REML estimate of
 $\sigma^2$ at $\widehat{\vec\theta}_R$,
 \begin{equation}
   \label{eq:REMLsigmasq}
-  \widehat{\sigma^2_R}=\frac{r^2_{\widehat\theta_R}}{n-p} .
+  \widehat{\sigma^2_R}=r^2_{\widehat\theta_R}/(n-p) .
 \end{equation}
 It is not entirely clear how one would define a ``REML estimate'' of
 $\vec\beta$ because the REML criterion, $d_R(\vec\theta,\sigma|\vec
@@ -811,6 +816,139 @@ y)$, defined in (\ref{eq:REMLdev}), does not depend on $\vec\beta$.
 However, it is customary (and not unreasonable) to use
 $\widehat{\vec\beta}_R=\tilde{\vec\beta}(\widehat{\vec\theta}_R)$ as
 the REML estimate of $\vec\beta$.
+
+\section{Step-by-step Evaluation of the Profiled Deviance}
+\label{sec:stepByStep}
+
+As we have seen, an object returned by \code{lmer} contains an
+environment, accessed with the \code{env} extractor.  This environment
+contains several matrices and vectors that are used in the evaluation
+of the profiled deviance.  In this section we use these matrices and
+vectors from one of our examples to explicitly trace the steps in
+evaluating the profiled deviance.  This level of detail is provided
+for those whose style of learning is more of a ``hands on'' style and
+for those who may want to program modifications of this approach.
+
+Consider our model \code{fm8}, fit as
+<<fm8reduxshow,eval=FALSE>>=
+fm8 <- lmer(Reaction ~ 1 + Days + (1 + Days|Subject),
+            sleepstudy, REML = 0, verbose = TRUE)
+@ 
+<<fm8redux,echo=FALSE>>=
+cat(paste(capture.output(fm8 <- lmer(Reaction ~ 1 + Days + (1 + Days|Subject),
+                                     sleepstudy, REML = 0,
+                                     verbose = TRUE))[1:4],
+          collapse = "\n"), "\n...\n")
+@
+The environment of the model contains the converged parameter vector,
+$\vec\theta$, (\code{theta}), the relative covariance factor,
+$\Lambda_\theta$ (\code{Lambda}), the sparse Cholesky factor, $\vec
+L_\theta$ (\code{L}), the matrices $\vec R_{ZX}$ (\code{RZX}) and
+$\vec R_X$ (\code{RX}), the conditional mode, $\tilde{\vec u}$
+(\code{u}) and the conditional estimate, $\widehat{\vec\beta}_\theta$
+(\code{fixef}).  The permutation represented by $\vec P$ is part of
+the representation of $\vec L$.
+
+Although the model matrices, $\vec X$ (\code{X}) and $\vec Z\trans$
+(\code{Zt}), and the response vector, $\vec y$ (\code{y}), are
+available in the environment, many of the products that involve only
+these fixed values are precomputed and stored separately under the
+names \code{XtX} ($\vec X\trans\vec X$), \code{Xty}, \code{ZtX}
+and \code{Zty}.
+
+To provide easy access to the objects in the environment of \code{fm8} we
+attach it to the search path.
+<<attachrho>>=
+attach(env(fm8))
+@
+Please note that this is done here for illustration only.  The
+practice of attaching a list or a data frame or, less commonly, and
+environment in an \R{} session is overused, somewhat dangerous
+(because of the potential of forgetting to detach it later) and
+discouraged.  The better practice is to use the \code{with} function
+to gain access to names in such composite objects.  For this section
+of code, however, using \code{with} or \code{within} would quickly
+become very tedious.
+
+To update the matrix $\Lambda_\theta$ to a new value
+of $\vec\theta$ we need to know which of the non-zeros in
+$\Lambda$ are updated from which elements of $\vec\theta$.  Recall
+that the dimension of $\vec\theta$ is small (3, in this case) but
+$\Lambda$ is potentially large ($18\times18$ with $54$ non-zeros).
+The environment \code{rho} contains an integer vector \code{Lind} that
+maps the elements of \code{theta} to the non-zeros in \code{Lambda}.
+
+Suppose we wish to recreate the evaluation of the profiled deviance at
+the initial value of $\vec\theta=(1,0,1)$.  We begin by updating
+$\Lambda$ and forming the product
+$\vec U\trans=\Lambda_\theta\trans\vec Z\trans$
+<<updateLambda>>=
+str(Lambda)
+str(Lind)
+Lambda@x[] <- c(1,0,1)[Lind]
+str(Lambda@x)
+Ut <- crossprod(Lambda, Zt)
+@
+The Cholesky factor object, \code{L}, can be updated from \code{Ut}
+without forming $\vec U\trans\vec U+\vec I$ explicitly.  The optional
+argument \code{mult} to the \code{update} method specifies a multiple
+of the identity to be added to $\vec U\trans\vec U$
+<<updateL>>=
+L <- update(L, Ut, mult = 1)
+@ 
+Then we evaluate \code{RZX} and \code{RX} according to (\ref{eq:RZXdef}) and
+(\ref{eq:RXdef})
+<<RZXandRX>>=
+RZX <- solve(L, solve(L, crossprod(Lambda, ZtX), sys = "P"), sys = "L")
+RX <- chol(XtX - crossprod(RZX))
+@ 
+
+Solving (\ref{eq:bigPLS}) for $\tilde{\vec u}$ and
+$\widehat{\vec\beta}_\theta$ is done in stages.  Writing $\vec c_u$ and $\vec c_\beta$ for the intermediate results that satisfy
+\begin{equation}
+  \label{eq:stage1}
+    \begin{bmatrix}
+    \vec L_\theta & \vec 0\\
+    \vec R_{ZX}\trans & \vec R_X\trans
+  \end{bmatrix}
+  \begin{bmatrix}
+    \vec c_u\\\vec c_\beta
+  \end{bmatrix}=
+  \begin{bmatrix}
+    \vec P\Lambda_\theta\trans\vec Z\trans\vec y\\
+    \vec X\trans\vec y .
+  \end{bmatrix}
+\end{equation}
+we evaluate
+<<cu>>=
+cu <- solve(L, solve(L, crossprod(Lambda, Zty), sys = "P"), sys = "L")
+cbeta <- solve(t(RX), Xty - crossprod(RZX, cu))
+@ 
+
+The next set of equations to solve is
+\begin{equation}
+  \label{eq:stage2}
+    \begin{bmatrix}
+    \vec L_\theta\trans & \vec R_{ZX}\\
+    \vec 0 & \vec R_X
+  \end{bmatrix}
+  \begin{bmatrix}
+    \vec P\tilde{\vec u}\\
+    \widehat{\vec\beta}_\theta
+  \end{bmatrix}=
+  \begin{bmatrix}
+    \vec c_U\\\vec c_\beta
+  \end{bmatrix}
+\end{equation}
+<<stage2>>=
+fixef <- as.vector(solve(RX, cbeta))
+u <- solve(L, solve(L, cu - RZX %*% fixef, sys = "Lt"), sys = "Pt")
+mu <- gamma <- as.vector(crossprod(Ut, u) + X %*% fixef)
+prss <- sum(c(y - mu, as.vector(u))^2)
+ldL2 <- 2 * as.vector(determinant(L)$mod)
+(deviance <- ldL2 + nobs * (1 + log(2 * pi * prss/nobs)))
+detach()
+@ 
 
 \section{Generalizing to Other Forms of Mixed Models}
 \label{sec:general}
