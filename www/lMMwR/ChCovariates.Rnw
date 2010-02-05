@@ -1,0 +1,118 @@
+\SweaveOpts{engine=R,eps=FALSE,pdf=TRUE,width=8,strip.white=all}
+\SweaveOpts{keep.source=TRUE}
+\SweaveOpts{prefix=TRUE,prefix.string=figs/Covariates,include=TRUE}
+\setkeys{Gin}{width=\textwidth}
+<<preliminaries,echo=FALSE,print=FALSE,results=hide>>=
+options(lattice.theme = function() canonical.theme("pdf", color = FALSE),
+        str = strOptions(strict.width = "cut"))
+library(splines)
+library(lattice)
+library(Matrix)
+library(lme4a)
+if (file.exists("classroom.rda")) {
+    load("classroom.rda")
+} else {
+    classroom <-
+        within(read.csv("http://www-personal.umich.edu/~bwest/classroom.csv"),
+           {
+               classid <- factor(classid)
+               schoolid <- factor(schoolid)
+               sex <- factor(sex, labels = c("M","F"))
+               minority <- factor(minority, labels = c("N", "Y"))
+           })
+    classroom$childid <- NULL
+    save(classroom, file = "classroom.rda")
+}
+if (file.exists("pr4.rda")) {
+    load("pr4.rda")
+} else {
+    fm4 <- lmer(mathgain ~ I(mathkind-450) + sex + minority + ses
+             + housepov + (1|classid) + (1|schoolid), classroom)
+    pr4 <- profile(fm4)
+    save(pr4, file = "pr4.rda")
+}
+if (file.exists("ratbrain.rda")) {
+    load("ratbrain.rda")
+} else {
+    ratbrain <-
+        within(read.delim("http://www-personal.umich.edu/~bwest/rat_brain.dat"),
+           {
+               treatment <- factor(treatment,
+                                   labels = c("Basal", "Carbachol"))
+               region <- factor(region,
+                                labels = c("BST", "LS", "VDB"))
+           })
+    save(ratbrain, file = "ratbrain.rda")
+}
+@ 
+
+\chapter{Models Incorporating Covariates}
+\label{chap:Covariates}
+
+<<fm4>>=
+(fm4 <- lmer(mathgain ~ I(mathkind-450) + sex + minority + ses
+             + housepov + (1|classid) + (1|schoolid), classroom))
+@ 
+
+A profile plot of the parameters in model \code{fm4}
+\begin{figure}[tbp]
+  \centering
+<<fm4prplot,fig=TRUE,echo=FALSE,height=3.5>>=
+print(xyplot(pr4, absVal=0, aspect=1.3, layout=c(4,1)))
+@   
+  \caption{Profile plot of the parameters in model \code{fm4}.}
+  \label{fig:fm4prplot}
+\end{figure}
+is shown in Fig.~\ref{fig:fm4prplot} and the profile pairs plot
+\begin{figure}[tbp]
+  \centering
+<<fm4prpairs,fig=TRUE,echo=FALSE,height=8>>=
+print(splom(pr4))
+@   
+  \caption{Profile pairs plot of the parameters in model \code{fm4}.}
+  \label{fig:fm4prpairs}
+\end{figure}
+in Fig.~\ref{fig:fm4prpairs}.  The contours in the profile pairs plot
+correspond to pairwise marginal confidence regions with confidence
+levels 50\%, 80\%, 90\%, 95\% and 99\%.
+
+\section{Rat Brain example}
+\label{sec:RatBrain}
+
+<<ratbraindat>>=
+ftable(xtabs(activate ~ animal + treatment + region, ratbrain))
+@ 
+
+Description of the Rat Brain data should go here.
+\begin{figure}[tbp]
+  \centering
+<<Ratbraindot,fig=TRUE,echo=FALSE,height=4>>=
+print(dotplot(region ~ activate | treatment, groups = animal,
+              ratbrain, type = c("p","a"), layout = c(1,2),
+              strip=FALSE, strip.left = TRUE,
+              auto.key = list(space = "right", lines = TRUE)))
+@   
+\caption[Activation of brain regions in rats]{Activation of brain
+  regions in rats}
+  \label{fig:Ratbraindot}
+\end{figure}
+
+\subsection{Structure of the formula used in \texttt{lmer}}
+\label{sec:lmerformula}
+
+At this point all that we need to know about the formula is that it
+consists of two expressions separated by a tilde ($\sim$), which is
+read as ``is modeled by''.  The expression on the left of the tilde is the
+response --- typically just the name of a variable in the data set but
+more complicated expressions are possible.  The expression on the
+right consists of one or more \emph{terms}, separated by plus ($+$)
+operators.  A random-effects term consists of two expressions
+separated by the vertical bar ($|$) operator, read as ``given'' or
+``by''.  The expression on the right of the vertical bar is evaluated
+as a factor, called the \emph{grouping factor} for the random effects.
+The random effects are associated with the levels of this factor.  In
+this section all the models we will fit have with \emph{simple, scalar
+  random effects}, meaning that there is exactly one random effect
+associated with each level of the grouping factor and it is an
+additive random effect.  In these cases the expression on the left of
+the vertical bar is ``\code{1}'', which denotes a constant.
