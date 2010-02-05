@@ -1,7 +1,7 @@
 R_PROG = R-devel
 #R_PROG = R
 FRONT = DMBmacros.tex acronym.tex dedication.tex preface.tex # acknow.tex foreword.tex
-CHAPTERS = ChIntro ChMultiple ChTheory ChLongitudinal
+CHAPTERS = ChIntro ChMultiple ChCovariates ChLongitudinal ChTheory
 APPENDICES =
 RNW = $(CHAPTERS) $(APPENDICES)
 
