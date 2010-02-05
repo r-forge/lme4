@@ -3,8 +3,8 @@
 \SweaveOpts{prefix=TRUE,prefix.string=figs/Multiple,include=TRUE}
 \setkeys{Gin}{width=\textwidth}
 <<preliminaries,echo=FALSE,print=FALSE,results=hide>>=
-options(lattice.theme = function() canonical.theme("pdf", color = FALSE))
-strOptions(strict.width = "cut")
+options(lattice.theme = function() canonical.theme("pdf", color = FALSE),
+        str = strOptions(strict.width = "cut"))
 library(splines)
 library(lattice)
 library(Matrix)

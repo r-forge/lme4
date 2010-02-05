@@ -183,11 +183,12 @@ $n\times q$ and $\vec X$ must be $n\times p$.
   $(\mathcal{U}|\mathcal{Y}=\vec y)$}
 \label{sec:conddistUgivenY}
 
-In this section it will help to be able to distinguish between the
+In this chapter it will help to be able to distinguish between the
 observed response vector and an arbitrary value of $\bc Y$.  For this
-section only we will write the observed data vector as $\vec
-y_{\text{obs}}$, whereas $\vec y$ without the subscript will refer to an
-arbitrary value of the random variable $\bc Y$.
+chapter only we will write the observed data vector as $\vec
+y_{\text{obs}}$, with the understanding that $\vec y$ without the
+subscript will refer to an arbitrary value of the random variable $\bc
+Y$.
 
 The likelihood of the parameters, $\vec\theta$, $\vec\beta$, and
 $\sigma$, given the observed data, $\vec y_{\text{obs}}$, is the
@@ -264,9 +265,9 @@ in some detail how the integral can be evaluated using the sparse
 Cholesky factor, $\vec L_\theta$, and the conditional mode,
 \begin{equation}
   \label{eq:condMode}
-  \tilde{\vec u}=\arg\max_{\vec u} f_{\bc U|\bc Y}(\vec u|\vec y)=
+  \tilde{\vec u}=\arg\max_{\vec u} f_{\bc U|\bc Y}(\vec u|\vec y_{\text{obs}})=
   \arg\max_{\vec u} h(\vec u) = \arg\max_{\vec u}
-  f_{\bc Y|\bc U}(\vec y|\vec u)\,f_{\bc U}(\vec u)
+  f_{\bc Y|\bc U}(\vec y_{\text{obs}}|\vec u)\,f_{\bc U}(\vec u)
 \end{equation}
 The notation $\arg\max_{\vec u}$ means that $\tilde{\vec u}$ is the
 value of $\vec u$ that maximizes the expression on the right.
@@ -278,9 +279,9 @@ $\bc Y=\vec y_{\text{obs}}$, because $\tilde{\vec u}$ maximizes the
 conditional density of $\bc U$ given $\bc Y=\vec y_{\text{obs}}$.  The
 location of the maximum can be determined by maximizing the
 unnormalized conditional density because $h(\vec u)$ is just a
-constant multiple of $f_{\bc U|\bc Y}(\vec u|\vec y)$.  The last part
+constant multiple of $f_{\bc U|\bc Y}(\vec u|\vec y_{\text{obs}})$.  The last part
 of (\ref{eq:condMode}) is simply a re-expression of $h(\vec u)$ as the
-product of $f_{\bc Y|\bc U}(\vec y|\vec u)$ and $f_{\bc U}(\vec u)$.
+product of $f_{\bc Y|\bc U}(\vec y_{\text{obs}}|\vec u)$ and $f_{\bc U}(\vec u)$.
 For a linear mixed model these densities are
 \begin{align}
   \label{eq:densYgivenUandU}
@@ -295,13 +296,13 @@ with product
 \begin{equation}
   \label{eq:hudef}
   h(\vec u)=\frac{1}{\left(2\pi\sigma^2\right)^{(n+q)/2}}
-  \exp\left(-\frac{\left\|\vec y-\vec X\vec\beta-\vec Z\Lambda_\theta\vec u\right\|^2+\|\vec u\|^2}{2\sigma^2}\right) .
+  \exp\left(-\frac{\left\|\vec y_{\text{obs}}-\vec X\vec\beta-\vec Z\Lambda_\theta\vec u\right\|^2+\|\vec u\|^2}{2\sigma^2}\right) .
 \end{equation}
 On the deviance scale we have
 \begin{equation}
   \label{eq:devh}
   -2\log\left(h(\vec u)\right)=(n+q)\log(2\pi\sigma^2)
-  +\frac{\left\|\vec y-\vec X\vec\beta-\vec Z\Lambda_\theta\vec
+  +\frac{\left\|\vec y_{\text{obs}}-\vec X\vec\beta-\vec Z\Lambda_\theta\vec
       u\right\|^2+\|\vec u\|^2}{\sigma^2} .
 \end{equation}
 Because (\ref{eq:devh}) describes the negative log density,
@@ -313,14 +314,14 @@ $\vec u$ is the numerator of the second term.  Thus
 \begin{equation}
   \label{eq:PLSsol}
   \tilde{\vec u}=\arg\min_{\vec u} \left\|
-    \vec y-\vec X\vec\beta-\vec Z\Lambda_\theta\vec u\right\|^2+
+    \vec y_{\text{obs}}-\vec X\vec\beta-\vec Z\Lambda_\theta\vec u\right\|^2+
   \|\vec u\|^2.
 \end{equation}
 The expression to be minimized, called the \emph{objective function},
 is described as a \emph{penalized residual sum of squares} (PRSS) and
 the minimizer, $\tilde{\vec u}$, is called the \emph{penalized least
   squares} (PLS) solution.  They are given these names because the
-first term in the objective, $\left\| \vec y-\vec X\vec\beta-\vec
+first term in the objective, $\left\| \vec y_{\text{obs}}-\vec X\vec\beta-\vec
   Z\Lambda_\theta\vec u\right\|^2$, is a sum of squared residuals, and
 the second term, $\|\vec u\|^2$, is a penalty on the length, $\|\vec
 u\|$, of $\vec u$.  Larger values of $\vec u$ (in the sense of greater
@@ -339,7 +340,7 @@ its minimum value as
 \begin{equation}
   \label{eq:r2thetabeta}
   r^2_{\theta,\beta}=\min_{\vec u} \left\|
-    \vec y-\vec X\vec\beta-\vec Z\Lambda_\theta\vec u\right\|^2+ \|\vec u\|^2.
+    \vec y_{\text{obs}}-\vec X\vec\beta-\vec Z\Lambda_\theta\vec u\right\|^2+ \|\vec u\|^2.
 \end{equation}
 Notice that $\vec\beta$ only enters the right hand side of
 (\ref{eq:r2thetabeta}) through the linear predictor expression.  We
@@ -350,7 +351,7 @@ without iterating.  We write this minimum value as
 \begin{equation}
   \label{eq:r2theta}
   r^2_\theta=\min_{\vec u,\vec\beta} \left\|
-    \vec y-\vec X\vec\beta-\vec Z\Lambda_\theta\vec u\right\|^2+ \|\vec u\|^2.
+    \vec y_{\text{obs}}-\vec X\vec\beta-\vec Z\Lambda_\theta\vec u\right\|^2+ \|\vec u\|^2.
 \end{equation}
 The value of $\vec\beta$ at the minimum is called the conditional
 estimate of $\vec\beta$ given $\vec\theta$, written
@@ -363,7 +364,7 @@ $\widehat{\vec\beta}_\theta$.
 One way of expressing a penalized least squares problem like
 (\ref{eq:r2thetabeta}) is by incorporating the penalty as
 ``pseudo-data'' in a standard least squares problem.  We extend the
-``response vector'', which is $\vec y-\vec X\vec\beta$ when we
+``response vector'', which is $\vec y_{\text{obs}}-\vec X\vec\beta$ when we
 minimize with respect to $\vec u$ only, with $q$ responses that are 0
 and we extend the predictor expression, $\vec Z\Lambda_\theta\vec u$
 with $\vec I_q\vec u$.  Writing this as a least squares problem
@@ -372,7 +373,7 @@ produces
   \label{eq:PLSLMM}
   \tilde{\vec u}=\arg\min_{\vec u}\left\|
     \begin{bmatrix}
-      \vec y-\vec X\vec\beta\\
+      \vec y_{\text{obs}}-\vec X\vec\beta\\
       \vec 0
     \end{bmatrix} -
     \begin{bmatrix}
@@ -385,7 +386,7 @@ with a solution that satisfies
   \label{eq:LMMPLSsol}
   \left(\Lambda_\theta\trans\vec Z\trans\vec Z\Lambda_\theta+\vec
     I_q\right)\tilde{\vec u}
-  =\Lambda_\theta\trans\vec Z\trans\left[\vec y-\vec X\vec\beta\right]
+  =\Lambda_\theta\trans\vec Z\trans\left(\vec y_{\text{obs}}-\vec X\vec\beta\right)
 \end{equation}
 
 To evaluate $\tilde{\vec u}$ we form the \emph{sparse Cholesky
@@ -413,22 +414,35 @@ problems.  We write the effect of the permutation as multiplication by
 a $q\times q$ \emph{permutation matrix}, $\vec P$, although in
 practice we apply the permutation without ever constructing $\vec
 P$.  That is, the matrix $\vec P$ is only a notational convenience
-only.  The permutation is determined from the structure of
-$\Lambda_\theta\trans\vec Z\trans\vec Z\Lambda_\theta+\vec I_q$ for
-some initial value of $\vec\theta$ in the optimization of the profiled
-deviance.  The particular value of $\vec\theta$ used to determine the
-fill-reducing permutation does not affect the result as long as
-$\vec\theta$ is not on the boundary of the parameter space (i.e. the
-values of $\vec\theta$ the generate singular $\Lambda_\theta$
-matrices).
+only.
 
-Therefore, we redefine the sparse Cholesky factor, $\vec L_\theta$, to
-be the sparse lower triangular $q\times q$ matrix that satisfies
+The matrix $\vec P$ consists of permuted columns of the identity
+matrix, $\vec I_q$, and it is easy to establish that the inverse
+permutation corresponds to multiplication by $\vec P\trans$.  Because
+multiplication by $\vec P$ or by $\vec P\trans$ simply re-orders the
+components of a vector, the length of the vector is unchanged.  Thus,
+\begin{equation}
+  \label{eq:orthogonalP}
+  \|\vec P\vec u\|^2= \|\vec u\|^2 = \|\vec P\trans\vec u\|^2
+\end{equation}
+and we can express the penalty in (\ref{eq:r2theta}) in any of these
+three forms.  The properties of $\vec P$ that it preserves lengths of
+vectors and that its transpose is its inverse are summarized by
+stating that $\vec P$ is an \emph{orthogonal matrix}.
+
+The permutation represented by $\vec P$ is determined from the
+structure of $\Lambda_\theta\trans\vec Z\trans\vec
+Z\Lambda_\theta+\vec I_q$ for some initial value of $\vec\theta$.  The
+particular value of $\vec\theta$ does not affect the result because
+the permutation depends only the positions of the non-zeros, not the
+numerical values at these positions.
+
+Taking into account the permutation, the sparse Cholesky factor, $\vec
+L_\theta$, is defined to be the sparse, lower triangular, $q\times q$
+matrix that satisfies
 \begin{equation}
   \label{eq:sparseCholeskyP}
   \vec L_\theta\vec L_\theta\trans=
-   \vec P\Lambda_\theta\trans\vec Z\trans\vec Z\Lambda_\theta\vec P\trans
-   +\vec I_q
    = \vec P\left(\Lambda_\theta\trans\vec Z\trans\vec Z\Lambda_\theta
    +\vec I_q\right)\vec P\trans.
 \end{equation}
@@ -458,24 +472,18 @@ a ``post-ordering'' is applied.  This has the effect of concentrating
 the non-zeros near the diagonal of the factor. See
 \citet{davis06:csparse_book} for details.
 
-The transpose of a permutation matrix like $\vec P$ is its inverse.
-That is $\vec P\trans\vec P=\vec P\vec P\trans=\vec I_q$.
-Applying the permutation corresponds to multiplying a vector or matrix
-by $\vec P$.  Applying the inverse permutation corresponds to
-multiplication by $\vec P\trans$.
-
 The pseudo-data representation of the PLS problem, (\ref{eq:PLSLMM}),
 becomes
 \begin{equation}
   \label{eq:PLSLMMP}
   \tilde{\vec u}=\arg\min_{\vec u}\left\|
     \begin{bmatrix}
-      \vec y-\vec X\vec\beta\\
+      \vec y_{\text{obs}}-\vec X\vec\beta\\
       \vec 0
     \end{bmatrix} -
     \begin{bmatrix}
       \vec Z\Lambda_\theta\vec P\trans\\
-      \vec I_q
+      \vec P\trans
     \end{bmatrix}\vec P\vec u\right\|^2
 \end{equation}
 and the system of linear equations satisfied by $\tilde{\vec u}$ is
@@ -484,32 +492,34 @@ and the system of linear equations satisfied by $\tilde{\vec u}$ is
   \vec L_\theta\vec L_\theta\trans\vec P\tilde{\vec u}=
   \vec P\left(\Lambda_\theta\trans\vec Z\trans\vec Z\Lambda_\theta+\vec
     I_q\right)\vec P\trans\vec P\tilde{\vec u}
-  =\vec P\Lambda_\theta\trans\vec Z\trans\left(\vec y-\vec X\vec\beta\right) .
+  =\vec P\Lambda_\theta\trans\vec Z\trans\left(\vec y_{\text{obs}}-\vec X\vec\beta\right) .
 \end{equation}
-
-
-\subsection{Solving for $\tilde{\vec u}$}
-\label{sec:solvingtildeu}
 
 Obtaining the Cholesky factor, $\vec L_\theta$, may not seem to be
 great progress toward determining $\tilde{\vec u}$ because we still
-must solve (\ref{eq:LMMPLSsolP}) for $\tilde{\vec u}$.  However, this
-is the key step in computational methods in the \package{lme4}
+must solve (\ref{eq:LMMPLSsolP}) for $\tilde{\vec u}$.  However, it
+is the key to the computational methods in the \package{lme4}
 package. The ability to evaluate $\vec L_\theta$ rapidly for many
 different values of $\vec\theta$ is what makes the computational
 methods in \package{lme4} feasible, even when applied to very large
 data sets with complex structure.  Once we evaluate $\vec L_\theta$ it
 is straightforward to solve (\ref{eq:LMMPLSsolP}) for $\tilde{\vec u}$
-because $\vec L_\theta$ is triangular.  In Sect.~\ref{sec:stepByStep}
-we will describe the steps in determining this solution.
+because $\vec L_\theta$ is triangular.
 
+In Sect.~\ref{sec:stepByStep} we will describe the steps in
+determining this solution.  First, though, we should show that the
+solution, $\tilde{\vec u}$, and the value of the objective at the
+solution, $r^2_{\theta,\beta}$, do allow us to evaluate the deviance.
+
+\subsection{The Value of the Deviance and Profiled Deviance}
+\label{sec:solvingtildeu}
 After evaluating $\vec L_\theta$ and using that to solve for
 $\tilde{\vec u}$, which also produces $r^2_{\beta,\theta}$, we can
 write the PRSS for a general $\vec u$ as
 \begin{equation}
   \label{eq:PRSSwithL}
 \left\|
-    \vec y-\vec X\vec\beta-\vec Z\Lambda_\theta\vec u\right\|^2+ \|\vec u\|^2=
+    \vec y_{\text{obs}}-\vec X\vec\beta-\vec Z\Lambda_\theta\vec u\right\|^2+ \|\vec u\|^2=
   r^2_{\theta,\beta}+\|\vec L_\theta\trans(\vec u-\tilde{\vec u})\|^2
 \end{equation}
 which finally allows us to evaluate the likelihood.  We plug the right
@@ -529,7 +539,13 @@ The determinant of the Jacobian of this transformation,
 is required for the change of variable in the integral.  We use the
 letter $\vec z$ for the transformed value because we will rearrange
 the integral to have the form of the integral of the density of the
-standard multivariate normal distribution.
+standard multivariate normal distribution.  That is, we will use the
+result
+\begin{equation}
+  \label{eq:stdnormint}
+   \int_{\mathbb{R}^q}\frac{e^{-\|\vec z\|^2/2}}{(2\pi)^{q/2}}\,d\vec
+   z = 1.
+\end{equation}
 
 Putting all this together gives
 \begin{equation}
@@ -555,10 +571,10 @@ Putting all this together gives
   \end{aligned}
 \end{equation}
 
-The deviance, which is negative twice the (natural)
-logarithm of the likelihood, can now be expressed as
+The deviance can now be expressed as
 \begin{displaymath}
-  d(\vec\theta,\vec\beta,\sigma|\vec y)
+  d(\vec\theta,\vec\beta,\sigma|\vec y_{\text{obs}})=
+  -2\log\left(L(\vec\theta,\vec\beta,\sigma|\vec y_{\text{obs}})\right)
   =n\log(2\pi\sigma^2)+\log(|\vec L_\theta|^2)+
   \frac{r^2_{\beta,\theta}}{\sigma^2},
 \end{displaymath}
@@ -567,6 +583,15 @@ of the parameters are those that minimize this deviance.  Note that
 evaluating the determinant, $|\vec L_\theta|$, which may seem
 formidable, is not. Because $\vec L_\theta$ is triangular, its
 determinant is simply the product of its diagonal elements.
+Technically, it is the absolute value of $|\vec L_\theta|$ that should
+be used in (\ref{eq:tranJac}) and (\ref{eq:hintegral}) but $\vec
+L_\theta$ is evaluated in such a way that the diagonal elements are
+all positive and hence its determinant is positive.  The determinant
+of $\vec L_\theta$ cannot be zero because $\vec L_\theta$ is the
+factor of a positive semidefinite matrix plus the identity and, as
+such, must be non-singular.  The more important question, which is
+whether it stays safely non-singular computationally, is also answered
+in the affirmative.
 
 Equation (\ref{eq:LMMdeviance}) is a remarkably compact expression,
 considering that the class of models to which it applies is very large
@@ -584,16 +609,16 @@ given value of $r^2_\theta$, then the \emph{profiled deviance}, which
 is a function of $\vec\theta$ only, is
 \begin{equation}
   \label{eq:LMMprofdeviance}
-  \tilde{d}(\vec\theta|\vec y)
+  \tilde{d}(\vec\theta|\vec y_{\text{obs}})
   =\log(|\vec L_\theta|^2)+n\left[1 +
     \log\left(\frac{2 \pi r^2_\theta}{n}\right)\right].
 \end{equation}
 
-Numerical optimization of $\tilde{d}(\vec\theta|\vec y)$ with respect
-to $\vec\theta$ determines the MLE, $\widehat{\vec\theta}$.  The
-MLEs for the other parameters, $\widehat{\vec\beta}$ and
-$\widehat{\sigma}$, are the corresponding conditional estimates
-evaluated at $\widehat{\vec\theta}$.
+Numerical optimization (minimization) of $\tilde{d}(\vec\theta|\vec
+y_{\text{obs}})$ with respect to $\vec\theta$ determines the MLE,
+$\widehat{\vec\theta}$.  The MLEs for the other parameters,
+$\widehat{\vec\beta}$ and $\widehat{\sigma}$, are the corresponding
+conditional estimates evaluated at $\widehat{\vec\theta}$.
 
 \subsection{Determining $r^2_\theta$ and $\widehat{\vec\beta}_\theta$}
 \label{sec:betahat}
@@ -609,7 +634,7 @@ simultaneously we rearrange the terms in (\ref{eq:PLSLMMP}) as
   =\arg\min_{\vec u,\vec\beta}
   \left\|
     \begin{bmatrix}
-      \vec y\\
+      \vec y_{\text{obs}}\\
       \vec 0
     \end{bmatrix} -
     \begin{bmatrix}
@@ -637,8 +662,8 @@ the solutions to
     \widehat{\vec\beta}_\theta
   \end{bmatrix}=
   \begin{bmatrix}
-    \vec P\Lambda_\theta\trans\vec Z\trans\vec y\\
-    \vec X\trans\vec y .
+    \vec P\Lambda_\theta\trans\vec Z\trans\vec y_{\text{obs}}\\
+    \vec X\trans\vec y_{\text{obs}} .
   \end{bmatrix}
 \end{equation}
 To evaluate these solutions we decompose the system
@@ -688,6 +713,15 @@ factor of a dense positive-definite matrix is returned as the right
 factor, whereas the sparse Cholesky factor is returned as the left
 factor.
 
+One other technical point that should be addressed is whether $\vec
+X\trans\vec X-\vec R_{ZX}\trans\vec R_{ZX}$ is positive definite.  In
+theory, if $\vec X$ has full column rank, so that $\vec X\trans\vec X$
+is positive definite, then the downdated matrix, $\vec X\trans\vec
+X-\vec R_{ZX}\trans\vec R_{ZX}$, must also be positive definite (see
+Problem~\ref{prob:downdate}).  In practice, the downdated matrix can
+become computationally singular in ill-conditioned problems, in which
+case an error is reported.
+
 The extended decomposition (\ref{eq:bigdecomp}) not only provides for
 the evaluation of the profiled deviance function,
 $\tilde{d}(\vec\theta)$, (\ref{eq:LMMprofdeviance}) but also allows
@@ -709,40 +743,40 @@ the REML criterion by considering a linear regression model,
 in which we typically estimate $\sigma^2$ by
 \begin{equation}
   \label{eq:21}
-  \widehat{\sigma^2_R}=\frac{\|\vec y-\vec X\widehat{\vec\beta}\|^2}{n-p}
+  \widehat{\sigma^2_R}=\frac{\|\vec y_{\text{obs}}-\vec X\widehat{\vec\beta}\|^2}{n-p}
 \end{equation}
 even though the maximum likelihood estimate of $\sigma^2$ is
 \begin{equation}
   \label{eq:22}
-  \widehat{\sigma^2_{L}}=\frac{\|\vec y-\vec
+  \widehat{\sigma^2_{L}}=\frac{\|\vec y_{\text{obs}}-\vec
     X\widehat{\vec\beta}\|^2}{n} .
 \end{equation}
 
 The argument for preferring $\widehat{\sigma^2_R}$ to
 $\widehat{\sigma^2_{L}}$ as an estimate of $\sigma^2$ is that the
 numerator in both estimates is the sum of squared residuals at
-$\widehat{\vec\beta}$ and, although the residual vector $\vec y-\vec
+$\widehat{\vec\beta}$ and, although the residual vector $\vec y_{\text{obs}}-\vec
 X\vec\beta$ is an $n$-dimensional vector, the residual at
 $\widehat{\vec\theta}$ satisfies $p$ linearly independent constraints,
-$\vec X\trans(\vec y-\vec X\widehat{\vec\beta})=\vec 0$. That is, the
+$\vec X\trans(\vec y_{\text{obs}}-\vec X\widehat{\vec\beta})=\vec 0$. That is, the
 residual at $\widehat{\vec\theta}$ is the projection of the observed
-response vector, $\vec y$, into an $(n-p)$-dimensional linear subspace
+response vector, $\vec y_{\text{obs}}$, into an $(n-p)$-dimensional linear subspace
 of the $n$-dimensional response space.  The estimate
 $\widehat{\sigma^2_R}$ takes into account the fact that $\sigma^2$ is
 estimated from residuals that have only $n-p$ \emph{degrees of
   freedom}.
 
-Another argument often put forward is that $\widehat{\sigma^2_R}$ is
-an \emph{unbiased} estimate of $\sigma^2$, in the sense that the
-expected value of the estimator is equal to the value of the
-parameter.  However, determining the expected value of an estimator
-involves integrating with respect to the density of the estimator and
-we have seen that densities of estimators of variances will be skewed,
-often highly skewed.  It is not clear why we should be interested in
-the expected value of a highly skewed estimator.  If we were to
-transform to a more symmetric scale, such as the estimator of the
-standard deviation or the estimator of the logarithm of the standard
-deviation, the REML estimator would no longer be unbiased.
+Another argument often put forward for REML estimation is that
+$\widehat{\sigma^2_R}$ is an \emph{unbiased} estimate of $\sigma^2$,
+in the sense that the expected value of the estimator is equal to the
+value of the parameter.  However, determining the expected value of an
+estimator involves integrating with respect to the density of the
+estimator and we have seen that densities of estimators of variances
+will be skewed, often highly skewed.  It is not clear why we should be
+interested in the expected value of a highly skewed estimator.  If we
+were to transform to a more symmetric scale, such as the estimator of
+the standard deviation or the estimator of the logarithm of the
+standard deviation, the REML estimator would no longer be unbiased.
 Furthermore, this property of unbiasedness of variance estimators does
 not generalize from the linear regression model to linear mixed
 models.  This is all to say that the distinction between REML and ML
@@ -760,11 +794,11 @@ Although not usually derived in this way, the REML criterion (on the
 deviance scale) can be expressed as
 \begin{equation}
   \label{eq:23}
-  d_R(\vec\theta,\sigma|\vec y)=-2\log
-  \int_{\mathbb{R}^p}L(\vec\theta,\vec\beta,\sigma|\vec y)\,d\vec\beta .
+  d_R(\vec\theta,\sigma|\vec y_{\text{obs}})=-2\log
+  \int_{\mathbb{R}^p}L(\vec\theta,\vec\beta,\sigma|\vec y_{\text{obs}})\,d\vec\beta .
 \end{equation}
 The REML estimates $\widehat{\vec\theta}_R$ and $\widehat{\sigma_R^2}$
-minimize $d_R(\vec\theta,\sigma|\vec y)$.
+minimize $d_R(\vec\theta,\sigma|\vec y_{\text{obs}})$.
 
 To evaluate this integral we form an expansion, similar to
 (\ref{eq:PRSSwithL}), of $r^2_{\theta,\beta}$ about
@@ -785,7 +819,7 @@ integral in (\ref{eq:hintegral}), we can derive
 corresponding to a REML criterion on the deviance scale of
 \begin{equation}
   \label{eq:REMLdev}
-  d_R(\vec\theta,\sigma|\vec y)=(n-p)\log(2\pi\sigma^2)+
+  d_R(\vec\theta,\sigma|\vec y_{\text{obs}})=(n-p)\log(2\pi\sigma^2)+
   \log\left(|\vec L_\theta|^2|\vec
     R_X|^2\right)+\frac{r^2_\theta}{\sigma^2} .
 \end{equation}
@@ -794,7 +828,7 @@ $\widehat{\sigma^2}_R=r^2_\theta/(n-p)$ provides the profiled REML
 criterion
 \begin{equation}
   \label{eq:24}
-  \tilde{d}_R(\vec\theta|\vec y)=
+  \tilde{d}_R(\vec\theta|\vec y_{\text{obs}})=
   \log\left(|\vec L_\theta|^2|\vec R_X|^2\right)+(n-p)
   \left[1+\log\left(\frac{2\pi r^2_\theta}{n-p}\right)\right]
 \end{equation}
@@ -802,7 +836,7 @@ criterion
 The REML estimate of $\vec\theta$ is
 \begin{equation}
   \label{eq:31}
-  \widehat{\vec\theta}_R=\arg\min_{\vec\theta}\tilde{d}_R(\vec\theta|\vec y) ,
+  \widehat{\vec\theta}_R=\arg\min_{\vec\theta}\tilde{d}_R(\vec\theta|\vec y_{\text{obs}}) ,
 \end{equation}
 and the REML estimate of $\sigma^2$ is the conditional REML estimate of
 $\sigma^2$ at $\widehat{\vec\theta}_R$,
@@ -831,8 +865,8 @@ for those who may want to program modifications of this approach.
 
 Consider our model \code{fm8}, fit as
 <<fm8reduxshow,eval=FALSE>>=
-fm8 <- lmer(Reaction ~ 1 + Days + (1 + Days|Subject),
-            sleepstudy, REML = 0, verbose = TRUE)
+fm8 <- lmer(Reaction ~ 1 + Days + (1 + Days|Subject), sleepstudy,
+            REML = 0, verbose = TRUE)
 @ 
 <<fm8redux,echo=FALSE>>=
 cat(paste(capture.output(fm8 <- lmer(Reaction ~ 1 + Days + (1 + Days|Subject),
@@ -840,17 +874,18 @@ cat(paste(capture.output(fm8 <- lmer(Reaction ~ 1 + Days + (1 + Days|Subject),
                                      verbose = TRUE))[1:4],
           collapse = "\n"), "\n...\n")
 @
-The environment of the model contains the converged parameter vector,
-$\vec\theta$, (\code{theta}), the relative covariance factor,
+          
+The environment of the model contains the converged parameter
+vector, $\vec\theta$, (\code{theta}), the relative covariance factor,
 $\Lambda_\theta$ (\code{Lambda}), the sparse Cholesky factor, $\vec
 L_\theta$ (\code{L}), the matrices $\vec R_{ZX}$ (\code{RZX}) and
 $\vec R_X$ (\code{RX}), the conditional mode, $\tilde{\vec u}$
 (\code{u}) and the conditional estimate, $\widehat{\vec\beta}_\theta$
-(\code{fixef}).  The permutation represented by $\vec P$ is part of
-the representation of $\vec L$.
+(\code{fixef}).  The permutation represented by $\vec P$ is contained
+in the sparse Cholesky representation, \code{L}.
 
 Although the model matrices, $\vec X$ (\code{X}) and $\vec Z\trans$
-(\code{Zt}), and the response vector, $\vec y$ (\code{y}), are
+(\code{Zt}), and the response vector, $\vec y_{\text{obs}}$ (\code{y}), are
 available in the environment, many of the products that involve only
 these fixed values are precomputed and stored separately under the
 names \code{XtX} ($\vec X\trans\vec X$), \code{Xty}, \code{ZtX}
@@ -862,25 +897,25 @@ attach it to the search path.
 attach(env(fm8))
 @
 Please note that this is done here for illustration only.  The
-practice of attaching a list or a data frame or, less commonly, and
+practice of attaching a list or a data frame or, less commonly, an
 environment in an \R{} session is overused, somewhat dangerous
 (because of the potential of forgetting to detach it later) and
-discouraged.  The better practice is to use the \code{with} function
+discouraged.  The preferred practice is to use the \code{with} function
 to gain access to names in such composite objects.  For this section
 of code, however, using \code{with} or \code{within} would quickly
-become very tedious.
+become very tedious and, in this case, we use \code{attach} instead.
 
-To update the matrix $\Lambda_\theta$ to a new value
-of $\vec\theta$ we need to know which of the non-zeros in
-$\Lambda$ are updated from which elements of $\vec\theta$.  Recall
-that the dimension of $\vec\theta$ is small (3, in this case) but
-$\Lambda$ is potentially large ($18\times18$ with $54$ non-zeros).
-The environment \code{rho} contains an integer vector \code{Lind} that
-maps the elements of \code{theta} to the non-zeros in \code{Lambda}.
+To update the matrix $\Lambda_\theta$ to a new value of $\vec\theta$
+we need to know which of the non-zeros in $\Lambda$ are updated from
+which elements of $\vec\theta$.  Recall that the dimension of
+$\vec\theta$ is small (3, in this case) but $\Lambda$ is potentially
+large ($18\times18$ with $54$ non-zeros).  The environment contains an
+integer vector \code{Lind} that maps the elements of \code{theta} to
+the non-zeros in \code{Lambda}.
 
 Suppose we wish to recreate the evaluation of the profiled deviance at
 the initial value of $\vec\theta=(1,0,1)$.  We begin by updating
-$\Lambda$ and forming the product
+$\Lambda_\theta$ and forming the product
 $\vec U\trans=\Lambda_\theta\trans\vec Z\trans$
 <<updateLambda>>=
 str(Lambda)
@@ -915,8 +950,8 @@ $\widehat{\vec\beta}_\theta$ is done in stages.  Writing $\vec c_u$ and $\vec c_
     \vec c_u\\\vec c_\beta
   \end{bmatrix}=
   \begin{bmatrix}
-    \vec P\Lambda_\theta\trans\vec Z\trans\vec y\\
-    \vec X\trans\vec y .
+    \vec P\Lambda_\theta\trans\vec Z\trans\vec y_{\text{obs}}\\
+    \vec X\trans\vec y_{\text{obs}} .
   \end{bmatrix}
 \end{equation}
 we evaluate
@@ -943,108 +978,200 @@ The next set of equations to solve is
 <<stage2>>=
 fixef <- as.vector(solve(RX, cbeta))
 u <- solve(L, solve(L, cu - RZX %*% fixef, sys = "Lt"), sys = "Pt")
+@ 
+We can now create the conditional mean, \code{mu}, the penalized
+residual sum of squares, \code{prss}, the logarithm of the square
+of the determinant of $\vec L$, \code{ldL2}, and the profiled
+deviance, which, fortuitously, equals the value shown earlier.
+<<wrapup>>=
 mu <- gamma <- as.vector(crossprod(Ut, u) + X %*% fixef)
 prss <- sum(c(y - mu, as.vector(u))^2)
 ldL2 <- 2 * as.vector(determinant(L)$mod)
 (deviance <- ldL2 + nobs * (1 + log(2 * pi * prss/nobs)))
+@ %$
+
+The last step is detach the environment of \code{fm8} from the search list
+<<detachenv>>=
 detach()
 @ 
+to avoid later name clashes.
+<<cleanup,echo=FALSE,results=hide>>=
+rm(deviance, fixef, gamma, L, Lambda, ldL2, mu, prss, RX, RZX, u, Ut)
+@ 
+
+In terms of the calculations performed, these steps describe exactly
+the evaluation of the profiled deviance in \code{lmer}.  The actual
+function for evaluating the deviance, accessible as
+\code{fm8@setPars}, is a slightly modified version of what is shown
+above.  However, the modifications are only to avoid creating copies
+of potentially large objects and to allow for cases where the model
+matrix, $\vec X$, is sparse.  In practice, unless the optional
+argument \code{compDev = FALSE} is given, the profiled deviance is
+evaluated in compiled code, providing a speed boost, but the \R{} code
+can be used if desired.  This allows for checking the results from the
+compiled code and can also be used as a template for extending the
+computational methods to other types of models.
 
 \section{Generalizing to Other Forms of Mixed Models}
 \label{sec:general}
 
-The \package{lme4} package provides \code{R} functions to fit and analyze
-linear mixed models, generalized linear mixed models and nonlinear
-mixed models.  These models are called \emph{mixed-effects models} or,
-more simply, \emph{mixed models} because they incorporate both
-\emph{fixed-effects} parameters, which apply to an entire population
-or to certain well-defined and repeatable subsets of a population, and
-\emph{random effects}, which apply to the particular experimental
-units or observational units in the study.  Such models are also
-called \emph{multilevel} models because the random effects represent
-levels of variation in addition to the per-observation noise term that
-is incorporated in common statistical models such as linear
-regression models, generalized linear models and nonlinear regression
-models.
+In later chapters we cover the theory and practice of generalized
+linear mixed models (GLMMs), nonlinear mixed models (NLMMs) and
+generalized nonlinear mixed models (GNLMMs).  Because quite a bit of
+the theoretical and computational methodology covered in this chapter
+extends to those models we will cover the common aspects here.
 
-We begin by describing common properties of these mixed models and the
-general computational approach used in the \package{lme4} package. The
-estimates of the parameters in a mixed model are determined as the
-values that optimize an objective function --- either the likelihood
-of the parameters given the observed data, for maximum likelihood
-(ML) estimates, or a related objective function called the REML
-criterion.  Because this objective function must be evaluated at many
-different values of the model parameters during the optimization
-process, we focus on the evaluation of the objective function and a
-critical computation in this evalution --- determining the solution to a
-penalized, weighted least squares (PWLS) problem.
+\subsection{Descriptions of the Model Forms}
+\label{sec:modelForms}
 
-The dimension of the solution of the PWLS problem can be very large,
-perhaps in the millions.  Furthermore, such problems must be solved
-repeatedly during the optimization process to determine parameter
-estimates.  The whole approach would be infeasible were it not for the
-fact that the matrices determining the PWLS problem are sparse and we
-can use sparse matrix storage formats and sparse matrix computations
-\citep{davis06:csparse_book}. In particular, the whole computational
-approach hinges on the extraordinarily efficient methods for
-determining the Cholesky decomposition of sparse, symmetric,
-positive-definite matrices embodied in the CHOLMOD library of C
-functions \citep{Cholmod}.
+We apply the name ``generalized'' to models in which the conditional
+distribution, $(\bc Y|\bc U=\vec u)$, is not required to be Gaussian
+but does preserve some of the properties of the spherical Gaussian
+conditional distribution
+\begin{displaymath}
+  (\bc Y|\bc U=\vec u)\sim\mathcal{N}
+  (\vec Z\Lambda_\theta\vec u+\vec X\vec\beta,\sigma^2\vec I_n)
+\end{displaymath}
+from the linear mixed model.  In particular, the components of $\bc Y$
+are \emph{conditionally independent}, given $\bc U=\vec u$.
+Furthermore, $\vec u$ affects the distribution only through the
+conditional mean, which we will continue to write as $\vec\mu$, and it
+affects the conditional mean only through the linear predictor,
+$\vec\gamma=\vec Z\Lambda_\theta\vec u+\vec X\vec\beta$.  
+
+Typically we do not have $\vec\mu=\vec\gamma$, however.  The elements
+of the linear predictor, $\vec\gamma$, can be positive or negative or
+zero.  Theoretically they can take on any value between $-\infty$ and
+$\infty$.  But many distributional forms used in GLMMs put constraints
+on the value of the mean.  For example, the mean of a Bernoulli random
+variable, modeling a binary response, must be in the range $0<\mu<1$
+and the mean of a Poisson random variable, modeling a count, must be
+positive.  To achieve these constraints we write the conditional mean,
+$\vec\mu$ as a transformation of the unbounded predictor, written
+$\vec\eta$.  For historical, and some theoretical, reasons the inverse
+of this transformation is called the \emph{link function}, written
+\begin{equation}
+  \label{eq:linkfunction}
+  \vec\eta=\vec g(\vec\mu) ,
+\end{equation}
+and the transformation we want is called the \emph{inverse link},
+writted $\vec g^{-1}$.
+
+Both $\vec g$ and $\vec g^{-1}$ are determined by scalar functions,
+$g$ and $g^{-1}$, respectively, applied to the individual components
+of the vector argument.  That is, $\vec\eta$ must be $n$-dimensional
+and the vector-valued function $\vec\mu=\vec g^{-1}(\vec\eta)$ is
+defined by the component functions
+$\mu_i=g^{-1}(\eta_i),\,i=1,\dots,n$.  Among other things, this means
+that the Jacobian matrix of the inverse link,
+$\frac{d\vec\mu}{d\vec\eta}$, will be diagonal.
+
+Because the link function, $\vec g$, and the inverse link, $\vec
+g^{-1}$, are nonlinear functions (there would be no purpose in using a
+linear link function) many people use the terms ``generalized linear
+mixed model'' and ``nonlinear mixed model'' interchangably.  We
+reserve the term ``nonlinear mixed model'' for the type of models
+used, for example, in pharmacokinetics and pharmacodynamics, where the
+conditional distribution is a spherical multivariate Gaussian
+\begin{equation}
+  \label{eq:NLMMconddist}
+  (\bc Y|\bc U=\vec u)\sim\mathcal{N}(\vec\mu, \sigma^2\vec I_n)
+\end{equation}
+but $\vec\mu$ depends nonlinearly on $\vec\gamma$.  For NLMMs the
+length of the linear predictor, $\vec\gamma$, is a multiple, $ns$, of
+$n$, the length of $\vec\mu$.
+
+Like the map from $\vec\eta$ to $\vec\mu$, the map from
+$\vec\gamma$ to $\vec\mu$ has a ``diagonal'' property, which we now
+describe.  If we use $\vec\gamma$ to fill the columns of an $n\times
+s$ matrix, $\Gamma$, then $\mu_i$ depends only on the $i$th row of
+$\Gamma$.  In fact, $\mu_i$ is determined by a nonlinear
+model function, $f$, applied to the $i$ row of $\Gamma$.  Writing
+$\vec\mu=\vec f(\vec\gamma)$ based on the component function $f$, we
+see that the Jacobian of $\vec f$, $\frac{d\vec\mu}{d\vec\gamma}$, will
+be the vertical concatenation of $s$ diagonal $n\times n$ matrices.
+
+Because we will allow for generalized nonlinear mixed models (GNLMMs),
+in which the mapping from $\vec\gamma$ to $\vec\mu$ has the form
+\begin{equation}
+  \label{eq:GammaEtaMu}
+  \vec\gamma\;\rightarrow\;\vec\eta\;\rightarrow\;\vec\mu ,
+\end{equation}
+we will use (\ref{eq:GammaEtaMu}) in our definitions.
+
+\subsection{Determining the Conditional Mode, $\tilde{\vec u}$}
+\label{sec:conditionalmode}
+
+For all these types of mixed models, the conditional distribution,
+$(\bc U|\bc Y=\vec y_{\text{obs}})$ is a continuous distribution for
+which we can determine the unscaled conditional density, $h(\vec u)$.
+As for linear mixed models, we define the conditional mode,
+$\tilde{\vec u}$ as the value that maximizes the unscaled condtional
+density.
+
+
+Determining the conditional mode, $\tilde{\vec u}$, in a nonlinear
+mixed model is a penalized nonlinear least squares (PNLS) problem
+\begin{equation}
+  \label{eq:PNLSprob}
+  \tilde{\vec u}=\arg\min_{\vec u}\|\vec y_{\text{obs}}-\vec\mu\|^2+\|\vec u\|^2
+\end{equation}
+which we solve by adapting the iterative techniques, such as the
+Gauss-Newton method~\citep[Sect.~2.2.1]{bateswatts88:_nonlin}, used
+for nonlinear least squares. Starting at an initial value, $\vec
+u^{(0)}$, (the bracketed superscript denotes the iteration number)
+with conditional mean, $\vec\mu^{(0)}$, we determine an increment
+$\vec\delta^{(1)}$ by solving the penalized linear least squares
+problem,
+\begin{equation}
+  \label{eq:PNLSiter}
+  \vec\delta^{(1)}=\arg\min_{\vec\delta}\left\|
+    \begin{bmatrix}
+      \vec y_{\text{obs}}-\vec\mu^{(0)}\\
+      \vec 0-\vec u^{(0)}
+    \end{bmatrix} -
+    \begin{bmatrix}
+      \vec U^{(0)}\\
+      \vec I_q
+    \end{bmatrix}\vec\delta\right\|^2
+\end{equation}
+where
+\begin{equation}
+  \label{eq:Udef}
+  \vec U^{(0)}=\left.\frac{d\vec\mu}{d\vec u}\right|_{\vec u^{(0)}} .
+\end{equation}
+Naturally, we use the sparse Cholesky decomposition, $\vec
+L_\theta^{(0)}$, satisfying
+\begin{equation}
+  \label{eq:sparseCholPNLS}
+  \vec L_\theta^{(0)}\left(\vec L_\theta^{(0)}\right)=
+  \vec P\left[\left(\vec U^{(0)}\right)\trans\vec U^{(0)}+\vec I_q\right]
+  \vec P\trans
+\end{equation}
+to determine this increment.  The next iteration begins at
+\begin{equation}
+  \label{eq:u1}
+  \vec u^{(1)} = \vec u^{(0)} + k \vec\delta^{(1)} 
+\end{equation}
+where $k$ is the step factor chosen, perhaps by
+step-halving~\citep[Sect.~2.2.1]{bateswatts88:_nonlin}, to ensure that
+the penalized residual sum of squares decreases at each iteration.
+Convergence is declared when the orthogonality convergence
+criterion~\citep[Sect.~2.2.3]{bateswatts88:_nonlin} is below some
+pre-specified tolerance.
+
+The \emph{Laplace approximation} to the deviance is
+\begin{equation}
+  \label{eq:Laplace}
+  d(\vec\theta,\vec\beta,\sigma|\vec y_{\text{obs}})\approx
+  =n\log(2\pi\sigma^2)+\log(|\vec L_{\theta,\beta}|^2)+
+  \frac{r^2_{\theta,\beta}}{\sigma^2},
+\end{equation}
+where the Cholesky factor, $\vec L_{\theta,\beta}$, and the penalized
+residual sum of squares, $r^2_{\theta,\beta}$, are both evaluated at
+the conditional mode, $\tilde{\vec u}$.  The Cholesky factor depends
+on $\vec\theta$, $\vec\beta$ and $\vec u$ for these models but
+typically the dependence on $\vec\beta$ and $\vec u$ is weak.
 
 \section{Chapter Summary}
 \label{sec:lmmsummary}
-
-A linear mixed model is characterized by the conditional distribution
-\begin{equation}
-  \label{eq:lmmcond}
-  (\bc Y|\bc U=\vec u)\sim\mathcal{N}(\vec\gamma(\vec
-  u,\vec\theta,\vec\beta),\sigma^2\vec I_n)\text{ where }
-  \vec\gamma(\vec u,\vec\theta,\vec\beta)=\vec Z\Lambda(\vec\theta)\vec
-  u+\vec X\vec\beta
-\end{equation}
-and the unconditional distribution
-$\bc U\sim\mathcal{N}(\vec 0,\sigma^2\vec I_q)$.  The discrepancy
-function,
-\begin{displaymath}
-  d(\vec u|\vec y,\vec\theta,\vec\beta)=
-  \left\|\vec y-\vec\gamma(\vec u,\vec\theta,\vec\beta)\right\|^2+\|\vec u\|^2,
-\end{displaymath}
-is minimized at the conditional mode, $\tilde{\vec u}(\vec\theta)$, and
-the conditional estimate, $\tilde{\vec\beta}(\vec\theta)$, which are the
-solutions to the sparse, positive-definite linear system
-\begin{displaymath}
-  \begin{bmatrix}
-    \Lambda\trans(\vec\theta)\vec Z\trans\vec Z\Lambda(\theta)
-    +\vec I_q&\Lambda\trans(\vec\theta)\vec Z\trans\vec X\\
-    \vec X\trans\vec Z\Lambda(\theta) &\vec X\trans\vec X
-  \end{bmatrix}
-  \begin{bmatrix}
-    \tilde{\vec u}(\vec\theta)\\\tilde{\vec\beta}(\vec\theta)
-  \end{bmatrix} =
-  \begin{bmatrix}
-    \Lambda\trans(\vec\theta)\vec Z\trans\vec y\\
-    \vec X\trans\vec y
-  \end{bmatrix} .
-\end{displaymath}
-In the process of solving this system we create the sparse left
-Cholesky factor, $L_{\vec Z}(\vec\theta)$, which is a lower triangular
-sparse matrix satisfying
-\begin{displaymath}
-  \vec L_{\vec Z}(\vec\theta)\vec L_{\vec Z}(\vec\theta)\trans=\vec P_{\vec
-    Z}\left(\Lambda\trans(\vec\theta)\vec Z\trans\vec
-    Z\Lambda(\theta)+\vec I_q\right)\vec P_{\vec Z}\trans
-\end{displaymath}
-where $\vec P_{\vec Z}$ is a permutation matrix representing a
-fill-reducing permutation formed from the pattern of nonzeros in $\vec
-Z\Lambda(\vec\theta)$ for any $\vec\theta$ not on the boundary of the
-parameter region.  (The values of the nonzeros depend on $\vec\theta$
-but the pattern doesn't.)
-
-The profiled log-likelihood, $\tilde{\ell}(\vec\theta|\vec y)$, is
-\begin{displaymath}
-    -2\tilde{\ell}(\vec\theta|\vec y)=
-  \log(|\vec L_{\vec Z}(\vec\theta)|^2)+
-  n\left(1+\log\left(\frac{2\pi\tilde{d}(\vec y,\vec\theta)}{n}\right)\right)
-\end{displaymath}
-where $\tilde{d}(\vec y,\vec\theta)=d(\tilde{\vec u}(\vec\theta)|\vec
-y,\tilde{\vec\beta}(\vec\theta),\vec\theta)$.
