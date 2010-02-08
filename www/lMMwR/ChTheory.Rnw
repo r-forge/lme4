@@ -1273,5 +1273,5 @@ computational results.
       \vec 0 & \vec R_X
     \end{bmatrix}
   \end{displaymath}
-  is positive definite and, hence, $\vec R_X$ is non-singular.
+  is positive definite and, hence, $\vec R_X$ is non-singular.)
 \end{prob}
