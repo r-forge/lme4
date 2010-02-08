@@ -13,7 +13,7 @@ library(Matrix)
 library(lme4a)
 @
 
-\chapter{Computational Methods for Linear Mixed Models}
+\chapter{Computational Methods for Mixed Models}
 \label{chap:computational}
 \abstract*{
   The \package{lme4} package provides R functions to fit and analyze
@@ -270,7 +270,7 @@ Cholesky factor, $\vec L_\theta$, and the conditional mode,
   f_{\bc Y|\bc U}(\vec y_{\text{obs}}|\vec u)\,f_{\bc U}(\vec u)
 \end{equation}
 The notation $\arg\max_{\vec u}$ means that $\tilde{\vec u}$ is the
-value of $\vec u$ that maximizes the expression on the right.
+value of $\vec u$ that maximizes the expression that follows.
 
 In general, the \emph{mode} of a continuous distribution is the value
 of the random variable that maximizes the density.  The value
@@ -363,7 +363,7 @@ $\widehat{\vec\beta}_\theta$.
 
 One way of expressing a penalized least squares problem like
 (\ref{eq:r2thetabeta}) is by incorporating the penalty as
-``pseudo-data'' in a standard least squares problem.  We extend the
+``pseudo-data'' in an ordinary least squares problem.  We extend the
 ``response vector'', which is $\vec y_{\text{obs}}-\vec X\vec\beta$ when we
 minimize with respect to $\vec u$ only, with $q$ responses that are 0
 and we extend the predictor expression, $\vec Z\Lambda_\theta\vec u$
@@ -439,13 +439,20 @@ numerical values at these positions.
 
 Taking into account the permutation, the sparse Cholesky factor, $\vec
 L_\theta$, is defined to be the sparse, lower triangular, $q\times q$
-matrix that satisfies
+matrix with positive diagonal elements satisfying
 \begin{equation}
   \label{eq:sparseCholeskyP}
-  \vec L_\theta\vec L_\theta\trans=
+  \vec L_\theta\vec L_\theta\trans
    = \vec P\left(\Lambda_\theta\trans\vec Z\trans\vec Z\Lambda_\theta
    +\vec I_q\right)\vec P\trans.
 \end{equation}
+Note that we now require that the diagonal elements of
+$\Lambda_\theta$ be positive.  Problems~\ref{pr:th:posdef} and
+\ref{pr:th:posdiag} indicate why we can require this.
+Because the diagonal elements of $\Lambda_\theta$ are positive, its
+determinant, $|\Lambda_\theta|$, which, for a triangular matrix such as
+$\Lambda_\theta$, is simply the product of its diagonal elements, is
+also positive.
 
 Many sparse matrix methods, including the sparse Cholesky
 decomposition, are performed in two stages: the \emph{symbolic phase}
@@ -455,7 +462,7 @@ positions are evaluated.  The symbolic phase for the decomposition
 (\ref{eq:sparseCholeskyP}), which includes determining the
 permutation, $\vec P$, need only be done once.  Evaluation of $\vec
 L_\theta$ for subsequent values of $\vec\theta$ requires only the
-numeric phase, which is often much faster than the symbolic phase.
+numeric phase, which typically is much faster than the symbolic phase.
 
 The permutation, $\vec P$, serves two purposes.  The first and most
 important purpose is to reduce the number of non-zeros in the factor,
@@ -547,7 +554,7 @@ result
    z = 1.
 \end{equation}
 
-Putting all this together gives
+Putting all these pieces together gives
 \begin{equation}
   \label{eq:hintegral}
   \begin{aligned}
@@ -575,42 +582,30 @@ The deviance can now be expressed as
 \begin{displaymath}
   d(\vec\theta,\vec\beta,\sigma|\vec y_{\text{obs}})=
   -2\log\left(L(\vec\theta,\vec\beta,\sigma|\vec y_{\text{obs}})\right)
-  =n\log(2\pi\sigma^2)+\log(|\vec L_\theta|^2)+
+  =n\log(2\pi\sigma^2)+2\log|\vec L_\theta|+
   \frac{r^2_{\beta,\theta}}{\sigma^2},
 \end{displaymath}
 as stated in (\ref{eq:LMMdeviance}).  The maximum likelihood estimates
-of the parameters are those that minimize this deviance.  Note that
-evaluating the determinant, $|\vec L_\theta|$, which may seem
-formidable, is not. Because $\vec L_\theta$ is triangular, its
-determinant is simply the product of its diagonal elements.
-Technically, it is the absolute value of $|\vec L_\theta|$ that should
-be used in (\ref{eq:tranJac}) and (\ref{eq:hintegral}) but $\vec
-L_\theta$ is evaluated in such a way that the diagonal elements are
-all positive and hence its determinant is positive.  The determinant
-of $\vec L_\theta$ cannot be zero because $\vec L_\theta$ is the
-factor of a positive semidefinite matrix plus the identity and, as
-such, must be non-singular.  The more important question, which is
-whether it stays safely non-singular computationally, is also answered
-in the affirmative.
+of the parameters are those that minimize this deviance.
 
 Equation (\ref{eq:LMMdeviance}) is a remarkably compact expression,
 considering that the class of models to which it applies is very large
 indeed.  However, we can do better than this if we notice that
 $\vec\beta$ affects (\ref{eq:LMMdeviance}) only through
-$r^2_{\beta,\theta}$, and, for any value of
-$\vec\theta$, minimizing this expression with respect to $\vec\beta$
-is just an extension of the penalized least squares problem.  Let
-$\widehat{\vec\beta}_\theta$ be the value of $\vec\beta$ that
-minimizes the PRSS simultaneously with respect to
-$\vec\beta$ and $\vec u$ and let $r^2_\theta$ be the minimum PRSS.
-Furthermore, if we set $\widehat{\sigma^2}_\theta=r^2_\theta/n$,
-which is the value of $\sigma^2$ that minimizes the deviance for a
-given value of $r^2_\theta$, then the \emph{profiled deviance}, which
-is a function of $\vec\theta$ only, is
+$r^2_{\beta,\theta}$, and, for any value of $\vec\theta$, minimizing
+this expression with respect to $\vec\beta$ is just an extension of
+the penalized least squares problem.  Let $\widehat{\vec\beta}_\theta$
+be the value of $\vec\beta$ that minimizes the PRSS simultaneously
+with respect to $\vec\beta$ and $\vec u$ and let $r^2_\theta$ be the
+PRSS at these minimizing values.  If, in addition, we set
+$\widehat{\sigma^2}_\theta=r^2_\theta/n$, which is the value of
+$\sigma^2$ that minimizes the deviance for a given value of
+$r^2_\theta$, then the \emph{profiled deviance}, which is a function
+of $\vec\theta$ only, becomes
 \begin{equation}
   \label{eq:LMMprofdeviance}
   \tilde{d}(\vec\theta|\vec y_{\text{obs}})
-  =\log(|\vec L_\theta|^2)+n\left[1 +
+  =2\log|\vec L_\theta|+n\left[1 +
     \log\left(\frac{2 \pi r^2_\theta}{n}\right)\right].
 \end{equation}
 
@@ -639,7 +634,7 @@ simultaneously we rearrange the terms in (\ref{eq:PLSLMMP}) as
     \end{bmatrix} -
     \begin{bmatrix}
       \vec Z\Lambda_\theta\vec P\trans & \vec X\\
-      \vec I_q &\vec 0
+      \vec P\trans &\vec 0
     \end{bmatrix}
     \begin{bmatrix}
       \vec P\vec u\\
@@ -652,8 +647,8 @@ the solutions to
 \begin{equation}
   \label{eq:bigPLS}
   \begin{bmatrix}
-    \vec P\Lambda_\theta\trans\vec Z\trans\vec Z\Lambda_\theta\vec
-    P\trans+\vec I_q &
+    \vec P\left(\Lambda_\theta\trans\vec Z\trans\vec
+      Z\Lambda_\theta+\vec I_q\right)\vec P\trans &
     \vec P\Lambda_\theta\trans\vec Z\trans\vec X\\
     \vec X\trans\vec Z\Lambda_\theta\vec P\trans & \vec X\trans\vec X
   \end{bmatrix}
@@ -671,8 +666,8 @@ matrix as
 \begin{equation}
   \label{eq:bigdecomp}
   \begin{bmatrix}
-    \vec P\Lambda_\theta\trans\vec Z\trans\vec Z\Lambda_\theta\vec
-    P\trans+\vec I_q &
+    \vec P\left(\Lambda_\theta\trans\vec Z\trans\vec
+      Z\Lambda_\theta+\vec I_q\right)\vec P\trans &
     \vec P\Lambda_\theta\trans\vec Z\trans\vec X\\
     \vec X\trans\vec Z\Lambda_\theta\vec P\trans & \vec X\trans\vec X
   \end{bmatrix}
@@ -718,7 +713,7 @@ X\trans\vec X-\vec R_{ZX}\trans\vec R_{ZX}$ is positive definite.  In
 theory, if $\vec X$ has full column rank, so that $\vec X\trans\vec X$
 is positive definite, then the downdated matrix, $\vec X\trans\vec
 X-\vec R_{ZX}\trans\vec R_{ZX}$, must also be positive definite (see
-Problem~\ref{prob:downdate}).  In practice, the downdated matrix can
+Prob.~\ref{pr:th:downdate}).  In practice, the downdated matrix can
 become computationally singular in ill-conditioned problems, in which
 case an error is reported.
 
@@ -740,7 +735,7 @@ the REML criterion by considering a linear regression model,
   \label{eq:20}
   \bc Y\sim\mathcal{N}(\vec X\vec\beta,\sigma^2\vec I_n),
 \end{equation}
-in which we typically estimate $\sigma^2$ by
+in which we typically estimate $\sigma^2$ as
 \begin{equation}
   \label{eq:21}
   \widehat{\sigma^2_R}=\frac{\|\vec y_{\text{obs}}-\vec X\widehat{\vec\beta}\|^2}{n-p}
@@ -755,13 +750,14 @@ even though the maximum likelihood estimate of $\sigma^2$ is
 The argument for preferring $\widehat{\sigma^2_R}$ to
 $\widehat{\sigma^2_{L}}$ as an estimate of $\sigma^2$ is that the
 numerator in both estimates is the sum of squared residuals at
-$\widehat{\vec\beta}$ and, although the residual vector $\vec y_{\text{obs}}-\vec
-X\vec\beta$ is an $n$-dimensional vector, the residual at
-$\widehat{\vec\theta}$ satisfies $p$ linearly independent constraints,
-$\vec X\trans(\vec y_{\text{obs}}-\vec X\widehat{\vec\beta})=\vec 0$. That is, the
-residual at $\widehat{\vec\theta}$ is the projection of the observed
-response vector, $\vec y_{\text{obs}}$, into an $(n-p)$-dimensional linear subspace
-of the $n$-dimensional response space.  The estimate
+$\widehat{\vec\beta}$ and, although the residual vector, $\vec
+y_{\text{obs}}-\vec X\widehat{\vec\beta}$, is an $n$-dimensional vector,
+the residual at $\widehat{\vec\theta}$ satisfies $p$ linearly
+independent constraints, $\vec X\trans(\vec y_{\text{obs}}-\vec
+X\widehat{\vec\beta})=\vec 0$. That is, the residual at
+$\widehat{\vec\theta}$ is the projection of the observed response
+vector, $\vec y_{\text{obs}}$, into an $(n-p)$-dimensional linear
+subspace of the $n$-dimensional response space.  The estimate
 $\widehat{\sigma^2_R}$ takes into account the fact that $\sigma^2$ is
 estimated from residuals that have only $n-p$ \emph{degrees of
   freedom}.
@@ -820,16 +816,15 @@ corresponding to a REML criterion on the deviance scale of
 \begin{equation}
   \label{eq:REMLdev}
   d_R(\vec\theta,\sigma|\vec y_{\text{obs}})=(n-p)\log(2\pi\sigma^2)+
-  \log\left(|\vec L_\theta|^2|\vec
-    R_X|^2\right)+\frac{r^2_\theta}{\sigma^2} .
+  2\log\left(|\vec L_\theta||\vec R_X|\right)+\frac{r^2_\theta}{\sigma^2} .
 \end{equation}
 Plugging in the conditional REML estimate,
-$\widehat{\sigma^2}_R=r^2_\theta/(n-p)$ provides the profiled REML
+$\widehat{\sigma^2}_R=r^2_\theta/(n-p)$, provides the profiled REML
 criterion
 \begin{equation}
   \label{eq:24}
   \tilde{d}_R(\vec\theta|\vec y_{\text{obs}})=
-  \log\left(|\vec L_\theta|^2|\vec R_X|^2\right)+(n-p)
+  2\log\left(|\vec L_\theta||\vec R_X|\right)+(n-p)
   \left[1+\log\left(\frac{2\pi r^2_\theta}{n-p}\right)\right]
 \end{equation}
 
@@ -848,7 +843,7 @@ It is not entirely clear how one would define a ``REML estimate'' of
 $\vec\beta$ because the REML criterion, $d_R(\vec\theta,\sigma|\vec
 y)$, defined in (\ref{eq:REMLdev}), does not depend on $\vec\beta$.
 However, it is customary (and not unreasonable) to use
-$\widehat{\vec\beta}_R=\tilde{\vec\beta}(\widehat{\vec\theta}_R)$ as
+$\widehat{\vec\beta}_R=\widehat{\vec\beta}_{\widehat{\vec\theta}_R}$ as
 the REML estimate of $\vec\beta$.
 
 \section{Step-by-step Evaluation of the Profiled Deviance}
@@ -876,11 +871,11 @@ cat(paste(capture.output(fm8 <- lmer(Reaction ~ 1 + Days + (1 + Days|Subject),
 @
           
 The environment of the model contains the converged parameter
-vector, $\vec\theta$, (\code{theta}), the relative covariance factor,
+vector, $\vec\theta$ (\code{theta}), the relative covariance factor,
 $\Lambda_\theta$ (\code{Lambda}), the sparse Cholesky factor, $\vec
 L_\theta$ (\code{L}), the matrices $\vec R_{ZX}$ (\code{RZX}) and
 $\vec R_X$ (\code{RX}), the conditional mode, $\tilde{\vec u}$
-(\code{u}) and the conditional estimate, $\widehat{\vec\beta}_\theta$
+(\code{u}), and the conditional estimate, $\widehat{\vec\beta}_\theta$
 (\code{fixef}).  The permutation represented by $\vec P$ is contained
 in the sparse Cholesky representation, \code{L}.
 
@@ -900,10 +895,11 @@ Please note that this is done here for illustration only.  The
 practice of attaching a list or a data frame or, less commonly, an
 environment in an \R{} session is overused, somewhat dangerous
 (because of the potential of forgetting to detach it later) and
-discouraged.  The preferred practice is to use the \code{with} function
-to gain access to names in such composite objects.  For this section
-of code, however, using \code{with} or \code{within} would quickly
-become very tedious and, in this case, we use \code{attach} instead.
+discouraged.  The preferred practice is to use the \code{with}
+function to gain access by name to components of such composite
+objects.  For this section of code, however, using \code{with} or
+\code{within} would quickly become very tedious and we use
+\code{attach} instead.
 
 To update the matrix $\Lambda_\theta$ to a new value of $\vec\theta$
 we need to know which of the non-zeros in $\Lambda$ are updated from
@@ -1164,7 +1160,7 @@ The \emph{Laplace approximation} to the deviance is
 \begin{equation}
   \label{eq:Laplace}
   d(\vec\theta,\vec\beta,\sigma|\vec y_{\text{obs}})\approx
-  =n\log(2\pi\sigma^2)+\log(|\vec L_{\theta,\beta}|^2)+
+  =n\log(2\pi\sigma^2)+2\log|\vec L_{\theta,\beta}|+
   \frac{r^2_{\theta,\beta}}{\sigma^2},
 \end{equation}
 where the Cholesky factor, $\vec L_{\theta,\beta}$, and the penalized
@@ -1175,3 +1171,107 @@ typically the dependence on $\vec\beta$ and $\vec u$ is weak.
 
 \section{Chapter Summary}
 \label{sec:lmmsummary}
+
+The definitions and the computational results for maximum likelihood
+estimation of the parameters in linear mixed models were summarized in
+Sect.~\ref{sec:definitions}.  A key computation is evaluation of the
+sparse Cholesky factor, $\Lambda_\theta$, satisfying
+eqn.~\ref{eq:sparseCholeskyP},
+\begin{displaymath}
+    \vec L_\theta\vec L_\theta\trans
+   = \vec P\left(\Lambda_\theta\trans\vec Z\trans\vec Z\Lambda_\theta
+   +\vec I_q\right)\vec P\trans.
+\end{displaymath}
+where $\vec P$ represents the fill-reducing permutation determined
+during the symbolic phase of the sparse Cholesky decomposition.
+
+An extended decomposition (eqn.~\ref{eq:bigdecomp}) provides the
+$q\times p$ matrix $\vec R_{ZX}$ and the $p\times p$ upper triangular
+$\vec R_X$ that are used to determine the conditional mode
+$\tilde{\vec u}_\theta$, the conditional estimate
+$\widehat{\vec\beta}_\theta$ and the minimum penalized residual sum of
+squares, $r^2_\theta$ from which the profiled deviance 
+\begin{displaymath}
+  \tilde{d}(\vec\theta|\vec y_{\text{obs}})
+  =2\log|\vec L_\theta|+n\left[1 +
+    \log\left(\frac{2 \pi r^2_\theta}{n}\right)\right].
+\end{displaymath}
+or the profile REML criterion
+\begin{displaymath}
+  \tilde{d}_R(\vec\theta|\vec y_{\text{obs}})=
+  2\log\left(|\vec L_\theta||\vec R_X|\right)+(n-p)
+  \left[1+\log\left(\frac{2\pi r^2_\theta}{n-p}\right)\right]
+\end{displaymath}
+can be evaluated and optimized (minimized) with respect to
+$\vec\theta$.
+
+\section*{Exercises}
+\addcontentsline{toc}{section}{Exercises}
+
+Unlike the exercises in other chapters, these exercises establish
+theoretical results, which do not always apply exactly to the
+computational results.
+
+\begin{prob}
+  \label{pr:th:posdef}
+  Show that the matrix $\vec A_\theta=\vec P\Lambda_\theta\trans\vec
+  Z\trans \vec Z\Lambda_\theta\vec P\trans + \vec I_q$ is positive
+  definite.  That is, $\vec b\trans\vec A\vec b>0,\,\forall\vec
+  b\ne\vec 0$.
+\end{prob}
+\begin{prob}
+  \label{pr:th:posdiag}
+  \begin{compactenum}[(a)]
+  \item Show that $\Lambda_\theta$ can be defined to have non-negative
+    diagonal elements.  (Hint: Show that the product
+    $\Lambda_\theta\vec D$ where $\vec D$ is a diagonal matrix with
+    diagonal elements of $\pm1$ is also a Cholesky factor.  Thus the
+    signs of the diagonal elements can be chosen however we want.)
+  \item Use the result of Prob.~\ref{pr:th:posdef} to show that the
+    diagonal elements of $\Lambda_\theta$ must be non-zero.
+    (Hint: Suppose that the first zero on the diagonal of
+    $\Lambda_\theta$ is in the $i$th position.  Show that there is a
+    solution $\vec x$ to $\Lambda_\theta\trans\vec x=\vec 0$
+    with $x_i=1$ and $x_j=0,\,j=i+1,\dots,q$ and that this $\vec x$
+    contradicts the positive definite condition.)
+  \end{compactenum}
+\end{prob}
+\begin{prob}
+  \label{pr:th:XtXposdef}
+  Show that if $\vec X$ has full column rank, which means that there
+  does not exist a $\vec\beta\ne\vec0$ for which
+  $\vec X\vec\beta=\vec0$, then $\vec X\trans\vec X$ is positive
+  definite.
+\end{prob}
+\begin{prob}
+  \label{pr:th:downdate}
+  Show that if $\vec X$ has full column rank then
+  \begin{displaymath}
+    \begin{bmatrix}
+      \vec Z\Lambda_\theta\vec P\trans & \vec X\\
+      \vec P\trans &\vec 0
+    \end{bmatrix}
+  \end{displaymath}
+  also must have full column rank. (Hint: First show that $\vec u$
+  must be zero in any vector $\begin{bmatrix}\vec
+    u\\\vec\beta\end{bmatrix}$ satisfying
+  \begin{displaymath}
+    \begin{bmatrix}
+      \vec Z\Lambda_\theta\vec P\trans & \vec X\\
+      \vec P\trans &\vec 0
+    \end{bmatrix}
+    \begin{bmatrix}\vec u\\\vec\beta\end{bmatrix}=\vec0 .
+  \end{displaymath}
+  Use this result and (\ref{eq:bigdecomp}) to show that 
+  \begin{displaymath}
+    \begin{bmatrix}
+      \vec L_\theta & \vec 0\\
+      \vec R_{ZX}\trans & \vec R_X\trans
+    \end{bmatrix}
+    \begin{bmatrix}
+      \vec L_\theta\trans & \vec R_{ZX}\\
+      \vec 0 & \vec R_X
+    \end{bmatrix}
+  \end{displaymath}
+  is positive definite and, hence, $\vec R_X$ is non-singular.
+\end{prob}
