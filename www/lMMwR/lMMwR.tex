@@ -12,7 +12,10 @@
 % in the Reference Guide
 \usepackage{amsmath,amsfonts,bm,url,Sweave,paralist}
 % For hyperlinks in PDF [but *not* for final / Springer]:
-%\usepackage{hyper-lMMwR}
+\usepackage{hyper-lMMwR}
+% use "ugly boxes" around hyperlinks -- these do *NOT* print, nor show in lrgprt.pdf !!
+\hypersetup{colorlinks={false}}
+
 \bibliographystyle{plainnat}
 \input{DMBmacros}
 \makeindex             % used for the subject index
