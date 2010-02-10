@@ -1138,20 +1138,10 @@ setMethod("summary", signature(object = "summary.mer"), function(object) object)
 
 plot.coef.mer <- function(x, y, ...)
 {
-    varying <- unique(do.call("c",
-                              lapply(x, function(el)
-                                     names(el)[sapply(el,
-                                                      function(col)
-                                                      any(col != col[1]))])))
-    gf <- do.call("rBind", lapply(x, "[", j = varying))
-    gf$.grp <- factor(rep(names(x), sapply(x, nrow)))
-    switch(min(length(varying), 3),
-           qqmath(eval(substitute(~ x | .grp,
-                                  list(x = as.name(varying[1])))), gf, ...),
-           xyplot(eval(substitute(y ~ x | .grp,
-                                  list(y = as.name(varying[1]),
-                                       x = as.name(varying[2])))), gf, ...),
-           splom(~ gf | .grp, ...))
+    ## remove non-varying columns from frames
+    reduced <- lapply(x, function(el)
+                      el[, !sapply(el, function(cc) all(cc == cc[1]))])
+    plot.ranef.mer(reduced, ...)
 }
 
 plot.ranef.mer <- function(x, y, ...)
