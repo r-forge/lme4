@@ -51,10 +51,10 @@ lMMwR.idx:
 
 clean:
 	$(RM) -f *.aux *.bbl *.blg *.idx *.ilg *.log *.ind *.toc *.lof *.lot
-	$(RM) -f Rplots.* figs/*.pdf
+	$(RM) -f Rplots.*
 
 realclean: clean
-	$(RM) -f *~ $(RNW:=.tex) *.pdf *.rda lrgprt.tex figs/*.png
+	$(RM) -f *~ $(RNW:=.tex) *.pdf *.rda lrgprt.tex figs/*.pdf figs/*.png
 
 ## TODO?  Use 'dist: clean' or 'dist: realclean'  and maybe *some* extra?
 dist:
