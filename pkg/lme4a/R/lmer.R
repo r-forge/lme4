@@ -63,7 +63,7 @@ derived_mats <- function(rho) {
         rho$RZX <- new("dgeMatrix", Dim = qz, Dimnames = Zt@Dimnames)
     } else {
         ## Create crossproduct and check for full column rank
-        rho$Xty <- unname(as.vector(crossprod(X, yy))) 
+        rho$Xty <- unname(as.vector(crossprod(X, yy)))
         rho$ZtX <- Zt %*% X
         rho$RZX <- solve(rho$L, solve(rho$L, crossprod(rho$Lambda,
                                                        rho$ZtX),
@@ -173,9 +173,6 @@ makeZt <- function(bars, fr, rho) {
     attr(fl, "assign") <- asgn
     rho$flist <- fl
 
-    ## Need .f during transition of determinant(L) definition
-    rho$.f <- if(package_version(packageDescription("Matrix")$Version) >=
-                 "0.999375-31") 2 else 1
     NULL
 }
 
@@ -248,7 +245,7 @@ lmer <-
 
     rho$compDev <- compDev
     rho$call <- mc
-    
+
     sP <- function(x) {
 ### FIXME: weights are not yet incorporated (needed here?)
         if (compDev) {
@@ -274,7 +271,7 @@ lmer <-
                 (crossprod(Ut, u) + X %*% fixef)@x
             mu[] <<- gamma
             pwrss <<- sum(c(y - mu, u)^2) # penalized residual sum of squares
-            ldL2[] <<- .f * determinant(L)$mod
+            ldL2[] <<- 2 * determinant(L)$mod
             ldRX2[] <<- 2 * determinant(RX)$mod
             if (!REML) return(ldL2 + nobs * (1 + log(2 * pi * pwrss/nobs)))
             ldL2 + ldRX2 + nmp * (1 + log(2 * pi * pwrss/nmp))
@@ -363,7 +360,7 @@ function(formula, data, family = gaussian, sparseX = FALSE,
     eval(family$initialize, rho)
     rho$weights <- unname(rho$weights)
     mustart <- unname(as.numeric(rho$mustart))
-    etastart <- unname(as.numeric(rho$etastart))    
+    etastart <- unname(as.numeric(rho$etastart))
     rho$etastart <- rho$mustart <- NULL
     stopifnot(length(etastart) == n || length(mustart) == n)
     if (length(etastart) == n) {
@@ -608,8 +605,8 @@ devcomp <- function(x, ...) {
     stopifnot(is(x, "lmerenv"))
     with(env(x),
          list(cmp = c(ldL2 = ldL2, ldRX2 = ldRX2, pwrss = pwrss,
-              deviance = ldL2 + nobs * (1 + log(2 * pi * pwrss/nobs)),
-              REML = ldL2 + ldRX2 + nmp * (1 + log(2 * pi * pwrss/nmp))),
+		deviance = ldL2 + nobs * (1 + log(2 * pi * pwrss/nobs)),
+		REML = ldL2 + ldRX2 + nmp * (1 + log(2 * pi * pwrss/nmp))),
               dims = c(n = nobs, p = length(fixef), nmp = nmp, q = nrow(Zt))))
 }
 
@@ -626,7 +623,7 @@ MLfit <- function(x) {
     if (!env(x)$REML) return(x)
     update(x, REML = FALSE)
 }
-    
+
 setMethod("anova", signature(object = "lmerenv"),
 	  function(object, ...)
       {
@@ -717,7 +714,10 @@ setMethod("vcov", signature(object = "lmerenv"),
 	  function(object, ...)
       {
           en <- env(object)
-          rr <- as(sigma(object)^2 * chol2inv(en$RX), "dpoMatrix")
+          V <- sigma(object)^2 * chol2inv(en$RX)
+          if(is.null(rr <- tryCatch(as(V, "dpoMatrix"),
+                                    error = function(e) NULL)))
+	      stop("Computed variance-covariance matrix is not positive definite")
           nms <- colnames(en$X)
           dimnames(rr) <- list(nms, nms)
           rr@factors$correlation <- as(rr, "corMatrix")
@@ -804,6 +804,29 @@ printMerenv <- function(x, digits = max(3, getOption("digits") - 3),
 	}
     }
     invisible(x)
+}## printMerenv()
+
+##' <description>
+##' Compute standard errors of fixed effects from an lmer()
+##'
+##' <details>
+##' @title
+##' @param object "lmerenv" object,
+##' @param RX the Cholesky factor (CHMfactor) L of ...
+##' @return numeric vector of length length(fixef(.))
+##' @author Doug Bates & Martin Maechler
+##' currently *not* exported on purpose
+unscaledVar <- function(object, RX = env(object)$RX)
+{
+    p <- ncol(RX)
+    p1 <- p - 1L
+    ei <- as(c(1, rep.int(0, p1)), "sparseMatrix")
+    DI <- function(i) {
+	ei@i <- i
+	sum(solve(RX, ei, sys = "L")@x^2)
+    }
+    as.vector(solve(RX, unlist(lapply(0:p1, DI)),
+		    system = "Pt"))
 }
 
 setMethod("summary", signature(object = "lmerenv"),
@@ -813,9 +836,10 @@ setMethod("summary", signature(object = "lmerenv"),
           rho <- env(object)
           REML <- rho$REML
           fcoef <- fixef(object)
-          vcov <- vcov(object)
-          corF <- vcov@factors$correlation
-          coefs <- cbind("Estimate" = fcoef, "Std. Error" = corF@sd)
+          vcov <- tryCatch(vcov(object), error = function(e) NULL)
+          corF <- if(!is.null(vcov)) vcov@factors$correlation # else NULL
+	  coefs <- cbind("Estimate" = fcoef,
+			 "Std. Error" = unscaledVar(RX = rho$RX))
           llik <- logLik(object, REML)
           mName <- paste("Linear mixed model fit by",
                          if (REML) "REML" else "maximum likelihood")

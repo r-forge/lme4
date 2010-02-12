@@ -1,6 +1,8 @@
 library(lme4a)
 options(show.signif.stars = FALSE)
 
+source(system.file("test-tools.R", package = "Matrix"))# identical3() etc
+
 (fm1 <- lmer(Reaction ~ Days + (Days|Subject), sleepstudy))
 (fm1a <- lmer(Reaction ~ Days + (Days|Subject), sleepstudy, REML = FALSE))
 (fm2 <- lmer(Reaction ~ Days + (1|Subject) + (0+Days|Subject), sleepstudy))
@@ -173,11 +175,18 @@ stopifnot(identical(ranef(m0), ranef(m1)),
 Pm1 <- lmer(strength ~ (1|batch) + (1|sample), Pastes, doFit = FALSE)
 Pm2 <- lmer(strength ~ (1|sample) + (1|batch), Pastes, doFit = FALSE)
 ## The environments of Pm1 and Pm2 should be identical except for
-## "call" and "frame"
-trunclist <- function(x) {
-    ll <- as.list(env(x))
-    ll[-match(c("call", "frame"), names(ll))]
+## "call" and "frame":
+if(exists("all.equal.X")) {
+    all.equal.notCall <- function(x,y,...)
+    all.equal.X(env(x), env(y), except = c("call", "frame"), ...)
+} else {
+    trunclist <- function(x) {
+	ll <- as.list(env(x))
+	ll[-match(c("call", "frame"), names(ll))]
+    }
+    all.equal.notCall <- function(x,y,...)
+        all.equal(trunclist(x), trunclist(x), ...)
 }
-stopifnot(all.equal(trunclist(Pm1), trunclist(Pm2)))
+stopifnot(all.equal.notCall(Pm1, Pm2))
 
 cat('Time elapsed: ', proc.time(),'\n') # for ``statistical reasons''

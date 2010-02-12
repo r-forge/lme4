@@ -41,6 +41,7 @@
 	  inst/doc/Theory.pdf, src/Syms.h, src/init.c, src/lmer.c, src/lmer.h:
 	  Incorporate AGQ code from Bin Dai; Fold verbose indicator into dims;
 	  add mxit and mxfn to dims
+
 2008-08-20  Martin Maechler  <maechler@stat.math.ethz.ch>
 
 	* NAMESPACE: importFrom(stats, AIC) + comments on import(stats)
