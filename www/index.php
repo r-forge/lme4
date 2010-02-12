@@ -49,7 +49,14 @@ echo $contents; } ?>
 
 <p> <strong>References to articles and other research using nlme or lme4</strong> can be found <a href="bib/lme4bib.html"><strong>here</strong></a>. The LaTeX bibliography file can be accessed from <a href="bib/lme4bib.bib">here</a>. If you would like to add your work to this database, please email vasishth.shravan at gmail dot com</p>
 
-<p> <strong>Slides</strong> from short courses on lme4 <a href="./slides/"><strong>here</strong></a>. </p>
+<p>
+<strong>Slides</strong> from short courses on lme4 are
+<a href="./slides/"><strong>here</strong></a>.
+</p>
 
+<p> <strong>Chapter drafts</strong> of the book <em>lme4:
+Mixed-effects Modeling with R</em> are available <a
+href="./book/"><strong>here</strong></a>.
+</p>
 </body>
 </html>
