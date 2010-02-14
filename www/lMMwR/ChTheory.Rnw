@@ -1099,7 +1099,7 @@ we will use (\ref{eq:GammaEtaMu}) in our definitions.
 \label{sec:conditionalmode}
 
 For all these types of mixed models, the conditional distribution,
-$(\bc U|\bc Y=\vec y_{\text{obs}})$ is a continuous distribution for
+$(\bc U|\bc Y=\vec y_{\text{obs}})$, is a continuous distribution for
 which we can determine the unscaled conditional density, $h(\vec u)$.
 As for linear mixed models, we define the conditional mode,
 $\tilde{\vec u}$ as the value that maximizes the unscaled condtional

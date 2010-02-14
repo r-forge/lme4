@@ -217,8 +217,19 @@ print(qrr2[[2]], pos = c(0,0.65,1,1))
   \label{fig:fm2ranef}
 \end{figure}
 confirm that the conditional distribution of the random effects for
-\code{sample} has much less variability than does the conditional
-distribution of the random effects for \code{sample}.
+\code{plate} has much less variability than does the conditional
+distribution of the random effects for \code{plate}, in the sense that
+the dots in the bottom panel have less variability than those in the
+top panel. (Note the different horizontal axes for the two panels.)
+However, the conditional distribution of the random effect for a
+particular \code{sample}, say sample F, has less variability than the
+conditional distribution of the random effect for a particular plate,
+say plate m.  That is, the lines in the bottom panel are wider than
+the lines in the top panel, even after taking the different axis
+scales into account.  This is because the conditional distribution of
+the random effect for a particular sample depends on 24 responses
+while the conditional distribution of the random effect for a
+particular plate depends on only 6 responses.
 
 In chapter~\ref{chap:ExamLMM} we saw that a model with a single,
 simple, scalar random-effects term generated a random-effects model
@@ -1053,8 +1064,8 @@ data(ergoStool, package = "MEMSS")
 \begin{prob}\label{pr2.1.1}
   Check the documentation, the structure (\code{str}) and a summary of
   the \code{ergoStool} data from the \package{MEMSS} package.  (If you
-  are a Star Trek fan, you can speculate about what, exactly, the
-  ``Borg scale'' is.)  Use
+  are a fan of the Star Trek television series and movies, you can
+  speculate about what, exactly, the ``Borg scale'' is.)  Use
 <<xtabsergo,eval=FALSE,results=hide>>=
 xtabs(~ Type + Subject, ergoStool)
 @

@@ -33,11 +33,12 @@ begin by describing what mixed-effects models are and by exploring a
 very simple example of one type of mixed model, the \emph{linear mixed
   model}.
 
-%% FIXME: Review this paragraph once the chapter is complete
 This simple example allows us to illustrate the use of the \code{lmer}
 function in the \package{lme4} package for fitting such models and
-analyzing the fitted model.  Building from the example we describe the
-general form of linear mixed models that can be fit using \code{lmer}.
+for analyzing the fitted model.  We describe methods of assessing the
+precision of the parameter estimates and of visualizing the
+conditional distribution of the random effects, given the observed
+data.
 
 \section{Mixed-effects Models}
 \label{sec:memod}
@@ -115,7 +116,7 @@ parameters.  We use the observed values of the response and the
 covariates to estimate these parameters and to make inferences about
 them.
 
-That the big picture.  Now let's make this more concrete by describing
+That's the big picture.  Now let's make this more concrete by describing
 a particular, versatile class of mixed models called linear mixed
 models and by studying a simple example of such a model.  First we
 will describe the data in the example.
@@ -505,10 +506,10 @@ Notice that the estimate of $\sigma$ from the linear model (called the
 \code{Residual standard error} in the output corresponds to the
 estimate in the REML fit (\code{fm2}) but not that from the ML fit
 (\code{fm2ML}). The fact that the REML estimates of variance
-components generalize the estimate of the variance used in linear
-models, in the sense that they correspond in the degenerate case, is
-part of the motivation for the use of the REML criterion for fitting
-mixed-effects models.
+components in mixed models generalize the estimate of the variance
+used in linear models, in the sense that these estimates coincide in
+the degenerate case, is part of the motivation for the use of the REML
+criterion for fitting mixed-effects models.
 
 \subsection{Further Assessment of the Fitted Models}
 \label{sec:furtherassess}
@@ -1318,7 +1319,7 @@ to display the documentation for it.
 \end{prob}
 \begin{prob}
   Create the profile zeta plot for this model.  For which parameters
-  there good normal approximations?
+  are there good normal approximations?
 \end{prob}
 \begin{prob}
   Create a profile pairs plot for this model.  Does the shape of the
