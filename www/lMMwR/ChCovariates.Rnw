@@ -3,7 +3,8 @@
 \SweaveOpts{prefix=TRUE,prefix.string=figs/Covariates,include=TRUE}
 \setkeys{Gin}{width=\textwidth}
 <<preliminaries,echo=FALSE,print=FALSE,results=hide>>=
-options(lattice.theme = function() canonical.theme("pdf", color = FALSE),
+options(show.signif.stars = FALSE,
+        lattice.theme = function() canonical.theme("pdf", color = FALSE),
         str = strOptions(strict.width = "cut"))
 library(splines)
 library(lattice)
