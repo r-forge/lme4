@@ -4,13 +4,15 @@
 \setkeys{Gin}{width=\textwidth}
 
 <<preliminaries,echo=FALSE,print=FALSE,results=hide>>=
-options(width=80, show.signif.stars = FALSE,
-        lattice.theme = function() canonical.theme("pdf", color = FALSE))
+options(width=74, show.signif.stars = FALSE,
+        lattice.theme = function() canonical.theme("pdf", color = FALSE),
+        str = strOptions(strict.width = "cut"))
 library(splines)
 library(lattice)
 library(Matrix)
 library(lme4a)
-fm9 <- lmer(Reaction ~ Days + (1|Subject) + (0+Days|Subject), sleepstudy, REML = 0)
+fm9 <- lmer(Reaction ~ Days + (1|Subject) + (0+Days|Subject),
+            sleepstudy, REML = 0)
 if (file.exists("pr9.rda")) {
     load("pr9.rda")
 } else {
@@ -121,22 +123,22 @@ ordering of the panels. Instead we use a characteristic of the data to
 determine the ordering of the panels, thereby enhancing our ability to
 compare across panels.  For example, a question of interest to the
 experimenters is whether a subject's rate of change in reaction time
-is related to the subject's initial reaction time.  If this is the
-case then we would expect that the slopes would show an increasing
-trend (or, less likely, a decreasing trend) in the left to right,
-bottom to top ordering.
+is related to the subject's initial reaction time.  If this were the
+case we would expect that the slopes would show an increasing trend
+(or, less likely, a decreasing trend) in the left to right, bottom to
+top ordering.
 
 There is little evidence in Fig.~\ref{fig:sleepxyplot} of such a
 systematic relationship between the subject's initial reaction time
 and their rate of change in reaction time per day of sleep
-deprivation.  We do see that for all the subjects, except 335,
-reaction time increases, more-or-less linearly, with days of sleep
-deprivation.  However, there is considerable variation both in the
-initial reaction time and in the daily rate of increase in reaction
-time.  We can also see that these data are balanced, both with respect
-to the number of observations on each subject, and with respect to the
-times at which these observations were taken.  This can be confirmed
-with a cross-tabulation of \code{Subject} by \code{Days}.
+deprivation.  We do see that for each subject, except 335, reaction
+time increases, more-or-less linearly, with days of sleep deprivation.
+However, there is considerable variation both in the initial reaction
+time and in the daily rate of increase in reaction time.  We can also
+see that these data are balanced, both with respect to the number of
+observations on each subject, and with respect to the times at which
+these observations were taken.  This can be confirmed by
+cross-tabulating \code{Subject} and \code{Days}.
 <<xtabssleep>>=
 xtabs(~ Subject + Days, sleepstudy)
 @
@@ -147,10 +149,13 @@ linear) we may want to examine coefficients from within-subject
 fixed-effects fits.  However, because the subjects constitute a sample
 from the population of interest and we wish to drawn conclusions about
 typical patterns in the population and the subject-to-subject
-variablity of these patterns, we will eventually want to fit mixed
-models so we begin doing so.
+variability of these patterns, we will eventually want to fit mixed
+models and we begin by doing so.  In section~\ref{sec:fm9re} we will
+compare estimates from a mixed-effects model with those from the
+within-subject fixed-effects fits.
 
-\section{Mixed-effects Models For the \texttt{sleepstudy} Data}
+\section{Mixed-effects Models For the
+  \texttt{sleepstudy} Data}
 \label{sec:SleepMixed}
 
 Based on our preliminary graphical exploration of these data, we fit a
@@ -159,57 +164,42 @@ and slope of the linear time trend for the population, and two random
 effects for each subject.  The random effects for a particular subject
 are the deviations in intercept and slope of that subject's time trend
 from the population values.
+
+We will fit two linear mixed models to these data.  One model,
+\code{fm8}, allows for correlation (in the unconditional distribution)
+of the random effects for the same subject.  That is, we allow for the
+possibility that, for example, subjects with higher initial reaction
+times may, on average, be more strongly affected by sleep deprivation.
+The second model provides independent (again, in the unconditional
+distribution) random effects for intercept and slope for each subject.
+
+\subsection{A Model With Correlated Random Effects }
+\label{sec:correlatedre}
+
+The first model is fit as
 <<fm8>>=
-(fm8 <- lmer(Reaction ~ Days + (Days|Subject), sleepstudy))
+(fm8 <- lmer(Reaction ~ 1 + Days + (1 + Days|Subject), sleepstudy,
+             REML = 0))
+@ 
+From the display we see that this model incorporates both an
+intercept and a slope (with respect to \code{Days}) in the fixed
+effects and in the random effects.  Extracting the conditional modes
+of the random effects
+<<modesfm8>>=
+head(ranef(fm8)[["Subject"]])
+@ 
+confirms that these are \emph{vector-valued} random effects.  There
+are a total of $q=36$ random effects, two for each of the 18 subjects.
+
+The random effects section of the model display,
+<<fm8reshow,echo=FALSE>>=
+cat(paste(capture.output(print(fm8))[8:11], collapse = "\n"), "\n")
 @
-
-From the display we see that this model incorporates both an intercept
-and a slope (w.r.t. \code{Days}) in the fixed effects and in the
-random effects.  In linear model formulas the intercept term is
-implicit.  If we had written the formula as
-<<formulafm8,echo=FALSE>>=
-Reaction ~ 1 + Days + (1 + Days|Subject)
-@
-the fitted model would be the same.  Many people prefer to include
-the intercept explicitly in the formula to emphasize the relationship
-between terms in the formula and coefficients or random effects in the
-model.  Others omit these implicit terms to economize on the amount
-of typing required.
-
-As this is the first time we have seen a random effects term other
-than for a simple, scalar random effect we should discuss the general
-form of such terms.  As previously described, the expression on the
-right hand side of the vertical bar is evaluated as a factor, the
-\emph{grouping factor} for the term.  The expression on the left hand
-side is evaluated as a linear model formula, producing a model matrix.
-Because the left hand side of \code{(1 + Days|Subject)} produces a
-model matrix with two columns, there will be two random effects
-associated with each level of \code{Subject}.  That is, there is a
-total of 36 random effects generated by this term.  We say that we
-have a \emph{vector-valued random effect}, an intercept effect and a
-slope effect, for each level of the \code{Subject} factor.
-\begin{figure}[tbp]
-  \centering
-<<fm8Zt,fig=TRUE,echo=FALSE,results=hide,height=3,width=8>>=
-print(image(env(fm8)$Zt, sub = NULL, xlab = NULL, ylab = NULL))
-@
-  \caption{Image of $\vec Z\trans$ for model \code{fm8}}
-  \label{fig:fm8Zt}
-\end{figure}
-
-As shown in Fig.~\ref{fig:fm8Zt}, the 36 columns of $\vec Z$ (rows of
-$\vec Z\trans$ in the figure) can be regarded as 18 pairs, one pair
-for each level of \code{Subject}. The first column in each pair is the
-indicator for that level of \code{Subject}.  The second column in
-each pair is the value of the \code{Days} variable but only for the
-measurements on that subject.
-
-One way to imagine the process of generating $\vec Z$ is to start with
-the $180\times2$ model matrix for the linear model formula \code{1 +
-  Days} and the $180\times18$ indicator matrix for the levels of
-\code{Subject}.
-%% FIXME: More explanation needed here.
-
+indicates that there will be a random effect for the intercept and a
+random effect for the slope with respect to \code{Days} at each level
+of \code{Subject} and, furthermore, the unconditional distribution of
+these random effects, $\bc B\sim\mathcal{N}(\vec 0,\Sigma)$, allows
+for correlation of the random effects for the same subject.
 \begin{figure}[tbp]
   \centering
 <<fm8LambdaL,fig=TRUE,echo=FALSE,results=hide,height=3,width=8>>=
@@ -227,73 +217,34 @@ print(image(get("L", envir = env(fm8)),
   \label{fig:fm8LambdaL}
 \end{figure}
 
-The images of $\Lambda$, $\Sigma$ and $\vec L$ for this model
-(Fig.~\ref{fig:fm8LambdaL}) show 18 triangular blocks of size 2 along
-the diagonal of $\Lambda$, generating 18 square, symmetric blocks of
-size 2 along the diagonal of $\Sigma$.  The 18 symmetric blocks on the
-diagonal of $\Sigma$ are identical, although this may not be obvious
-from the figure.  Overall we estimate two standard deviations and a
-correlation for the vector-valued random effect of size 2, as shown in
-the model summary.
+We can confirm the potential for correlation of random effects within
+subject in the images of $\Lambda$, $\Sigma$ and $\vec L$ for this
+model (Fig.~\ref{fig:fm8LambdaL}).  The matrix $\Lambda$ has 18
+triangular blocks of size 2 along the diagonal, generating 18 square,
+symmetric blocks of size 2 along the diagonal of $\Sigma$.  The 18
+symmetric blocks on the diagonal of $\Sigma$ are identical.  Overall
+we estimate two standard deviations and a correlation for a
+vector-valued random effect of size 2, as shown in the model summary.
 
 Often the variances and the covariance of random effects are quoted,
 rather than the standard deviations and the correlation shown here.
 We have already seen that the variance of a random effect is a poor
 scale on which to quote the estimate because confidence intervals on
 the variance are so badly skewed.  It is more sensible to assess the
-estimates of the standard deviations of random effects or possibly the
-logarithms of the standard deviations, when we can be confident that 0
+estimates of the standard deviations of random effects or, possibly, the
+logarithms of the standard deviations if we can be confident that 0
 is outside the region of interest.  We do display the estimates of the
 variances of the random effects but mostly so that the user can
 compare these estimates to those from other software or for cases
-where an estimated of a variance is expected (sometimes even required)
+where an estimate of a variance is expected (sometimes even required)
 to be given when reporting a mixed model fit.
 
 We do not quote estimates of covariances of vector-valued random
-effects because the covariance is a difficult scale to interpret.  We
-know that a correlation must be between $-1$ and $1$.  A
-correlation estimate close to those extremes indicates that
-$\Sigma$ is close to singular and the model is not well formulated.
-
-
-To specify a model with independent random effects by subject for the
-intercept and the slope we will use two random-effects terms and write
-the formula as
-<<formulafm9,echo=FALSE>>=
-Reaction ~ Days + (1|Subject) + (0+Days|Subject)
-@
-
-In this formula the random effects for the intercept and the random
-effects for the slope are modeled as independent random variables
-because they are declared in different expressions.  Note that to
-specify a random intercept given subject we must explicitly include
-the intercept term \code{1} in \code{(1|Subject)} because there are no
-other terms.  Similarly in the second expression we suppress the
-implicit intercept term by using \code{(0+Days|Subject)}, read as ``no
-intercept and \code{Days} by \code{Subject}''.  An alternative
-expression for \code{Days} without an intercept by \code{Subject} is
-\code{(Days - 1 | Subject)}.
-
-We delay further discussion on the mathematical form of the model and
-the interpretation of the model formulae until Sect.~\ref{sec:model_form}.
-At this point let us fit these models and examine the parameter
-estimates.
-
-We can fit the first model, store the result as \code{fm8}
-(sleepstudy model 1), and ask for a brief display of the results with
-<<fm8>>=
-(fm8 <- lmer(Reaction ~ Days + (Days|Subject), sleepstudy))
-@
-(The extra set of parentheses surrounding the assignment causes the
-fitted model to display itself.  Normally the result of an assignment
-is not displayed.)
-
-This brief display includes information on the criterion used to fit
-the model (restricted maximum likelihood or REML, see \S\ref{sec:REML}
-for a formal definiton), the model formula and the data to which it
-was fit, some information on the quality of the fit and information on
-the parameter estimates.  For the moment we will concentrate on the
-parameter estimates.
+effects because the covariance is a difficult scale to interpret
+whereas a correlation has a fixed scale.  A correlation must be
+between $-1$ and $1$, allowing us to conclude that a correlation
+estimate close to those extremes indicates that $\Sigma$ is close to
+singular and the model is not well formulated.
 
 The estimates of the fixed effects parameters are
 $\widehat{\vec\beta}=(251.41,10.467)\trans$. These represent a typical
@@ -301,18 +252,6 @@ initial reaction time (i.e. without sleep deprivation) in the
 population of about 250 milliseconds, or 1/4 sec., and a typical
 increase in reaction time of a little more than 10 milliseconds per
 day of sleep deprivation.
-
-The estimated variance-covariance matrix for the random effects is
-displayed by giving the variances of these random variables, the
-corresponding standard deviations and any estimated correlations.
-Note that the columns labeled \code{Variance} and
-\code{Std.Dev.} in this section are redundant in that each entry in
-the \code{Std.Dev.} column is simply the square root of the corresponding
-variance estimate.  These estimates are expressed in both the variance
-scale and the standard deviation scale because both are useful in
-interpretation.  (Some readers may be tempted to interpret the
-elements of the \code{Std.Dev.} column as standard errors of the
-variance estimates.  Don't do that. These are not standard errors.)
 
 The estimated subject-to-subject variation in the intercept
 corresponds to a standard deviation of about 25 ms. A 95\% prediction
@@ -324,8 +263,8 @@ lines shown in Figure~\ref{fig:sleepxyplot}.
 
 Similarly, the estimated subject-to-subject variation in the slope
 corresponds to a standard deviation of about 6 ms./day so we would not
-be surprised by slopes as low as $10.5 - 2\cdot 6=-1.5$ ms./day or as
-high as $10.5 + 2\cdot 6=22.5$ ms./day.  Again, the conclusions from
+be surprised by slopes as low as $10.5 - 2\cdot 5.7=-0.9$ ms./day or as
+high as $10.5 + 2\cdot 6=21.9$ ms./day.  Again, the conclusions from
 these rough, ``back of the envelope'' calculations are consistent with
 our observations from Fig.~\ref{fig:sleepxyplot}.
 
@@ -338,45 +277,237 @@ may have more.
 
 Finally, we see the estimated within-subject correlation of the random
 effect for the intercept and the random effect for the slope is very
-low, $0.066$, confirming our impression that there is little evidence
+low, $0.081$, confirming our impression that there is little evidence
 of a systematic relationship between these quantities.  In other
 words, observing a subject's initial reaction time does not give us
 much information for predicting whether their reaction time will be
 strongly affected by each day of sleep deprivation or not.
+It seems reasonable that we could get nearly as good a fit from a
+model that does not allow for correlation, which we describe next.
 
-By fitting model \code{fm9} with independent random effects for
-intercept and slope and comparing this fitted model to \code{fm8} we
-can assess this claim using a statistical hypothesis test.
-<<fm9>>=
-(fm9 <- lmer(Reaction ~ Days + (1|Subject) + (0+Days|Subject), sleepstudy))
-anova(fm9, fm8)
+\subsection{A Model With Uncorrelated Random Effects}
+\label{sec:uncorrelatedre}
+
+In a model with uncorrelated random effects we have
+$\bc B\sim\mathcal{N}(\vec 0,\Sigma)$ where $\Sigma$ is diagonal.  We
+have seen models like this in previous chapters but those models had
+simple scalar random effects for all the grouping factors.  Here
+we want to have a simple scalar random effect for \code{Subject} and a
+random effect for the slope with respect to \code{Days}, also indexed
+by \code{Subject}.  We accomplish this by specifying two
+random-effects terms.  The first, \code{(1|Subject)}, is a simple
+scalar term.  The second has \code{Days} on the left hand side of the
+vertical bar.
+
+It seems that the model formula we want should be
+<<formulafm9bad,echo=FALSE>>=
+Reaction ~ 1 + Days + (1|Subject) + (Days|Subject)
 @
+but it is not.  Because the intercept is implicit in linear models,
+the second random effects term is equivalent to
+\code{(1+Days|Subject)} and will, by itself, produce correlated,
+vector-valued random effects.
 
-We can see that the fitted model \code{fm9} is quite similar to
-\code{fm8} except for the obvious difference that there is no
-within-subject correlation of the random effects in \code{fm9}.  The
-estimates of all the other parameters, which are common to the two
-models, are practically unchanged.
+We must suppress the implicit intercept in the second random-effects
+term which we do by writing it as \code{(0+Days|Subject)}, read as
+``no intercept and \code{Days} by \code{Subject}''.  An alternative
+expression for \code{Days} without an intercept by \code{Subject} is
+\code{(Days - 1 | Subject)}.  Using the first form we have
+<<fm9>>=
+(fm9 <- lmer(Reaction ~ 1 + Days + (1|Subject) + (0+Days|Subject),
+             sleepstudy, REML = 0))
+@ 
+As in model \code{fm8}, there are two random effects for each subject
+<<modesfm9>>=
+head(ranef(fm9)[["Subject"]])
+@ 
+but no correlation has been estimated
+<<fm9reshow,echo=FALSE>>=
+cat(paste(capture.output(print(fm9))[8:11], collapse = "\n"), "\n")
+@
+The \code{Subject} factor is repeated in the ``Groups'' column because
+there were two distinct terms generating these random effects and
+these two terms had the same grouping factor.
+\begin{figure}[tbp]
+  \centering
+<<fm9LambdaL,fig=TRUE,echo=FALSE,results=hide,height=3,width=8>>=
+print(image(env(fm9)$Lambda, sub = NULL, xlab = expression(Lambda),
+            ylab = NULL),
+      split = c(1,1,3,1), more = TRUE)
+print(image(tcrossprod(env(fm9)$Lambda), sub = NULL,
+            xlab = expression(Sigma), ylab = NULL),
+      split = c(2,1,3,1), more = TRUE)
+print(image(get("L", envir = env(fm9)),
+            sub = NULL, xlab = "L", ylab = NULL),
+      split = c(3,1,3,1))
+@
+\caption[Images of $\Lambda$, $\Sigma$ and $\vec L$ for model
+\code{fm9}]{Images of $\Lambda$, the relative covariance factor,
+  $\Sigma$, the variance-covariance matrix of the random effects, and
+  $\vec L$, the sparse Cholesky factor, in model \code{fm9}}
+  \label{fig:fm9LambdaL}
+\end{figure}
 
-The call to \code{anova} compares the two fitted models using a
-likelihood ratio test, which evaluates the change in the quality of
-the fits, as measured by the deviance (defined in
-Sect~\ref{sec:definitions}), relative to the change in the number of
-parameters.  The results of this test indicate that the model
-\code{fm8} does not fit significantly better than the model \code{fm9}
-and hence we prefer the model \code{fm9} which has fewer parameters.
+Images of the matrices $\Lambda$, $\Sigma$ and $\vec L$
+(Fig.~\ref{fig:fm9LambdaL}) show that $\Sigma$ is indeed diagonal.
+The order of the random effects in $\Sigma$ and $\Lambda$ for model
+\code{fm9} is different from the order in model \code{fm8}.  In model
+\code{fm8} the two random effects for a particular subject were
+adjacent.  In model \code{fm9} all the intercept random effects occur
+first then all the \code{Days} random effects.  The sparse Cholesky
+decomposition, $\vec L$, has the same form in both models because the
+fill-reducing permutation (described in
+Sect.~\ref{sec:fill-reducingP}) calculated for model \code{fm9}
+provides a post-ordering to group random effects with similar
+structure in $\vec Z$.
+\begin{figure}[tbp]
+  \centering
+<<fm89Zt,fig=TRUE,echo=FALSE,results=hide,height=4,width=8>>=
+print(image(env(fm8)$Zt, sub = NULL, xlab = NULL, ylab = NULL,
+            scales = list(x = list(labels = NULL))),
+      pos = c(0,0.38,1,1), more = TRUE)
+print(image(env(fm9)$Zt, sub = NULL, xlab = NULL, ylab = NULL,
+            scales = list(x = list(labels = NULL))),
+      pos = c(0,0,1,0.62))
+@
+\caption[Images of $\vec Z\trans$ for models \code{fm8} and
+\code{fm9}]{Images of $\vec Z\trans$ for models \code{fm8} (upper
+  panel) and \code{fm9} (lower panel)}
+\label{fig:fm89Zt}
+\end{figure}
 
-We conclude that there is significant variation between subjects in
-both the initial reaction time and in the rate of change in reaction
-time with respect to days of sleep deprivation but that these changes
-are not correlated.  That is knowing a person's initial reaction time
-does not help us to predict their response to sleep deprivation.
+Images of $\vec Z\trans$ for these two models (Fig.~\ref{fig:fm89Zt})
+shows that the columns of $\vec Z$ (rows of $\vec Z\trans$) from one
+model are the same those from the other model but in a different
+order.
+
+\subsection{Generating $\vec Z$ and $\Lambda$ From Random-effects Terms}
+\label{sec:GeneratingZLambda}
+
+Let us consider these columns in more detail, starting with the columns
+of $\vec Z$ for model \code{fm9}.  The first 18 columns (rows in the
+bottom panel of Fig.~\ref{fig:fm89Zt}) are the indicator columns for
+the \code{Subject} factor, as we would expect from the simple, scalar
+random-effects term \code{(1|Subject)}.  The pattern of zeros and
+non-zeros in the second group of 18 columns is determined by the
+indicators of the grouping factor, \code{Subject}, and the values of
+the non-zeros are determined by the \code{Days} factor.  In other
+words, these columns are formed by the \emph{interaction} of the
+numeric covariate, \code{Days}, and the categorical covariate,
+\code{Subject}.
+
+The non-zero values in the model matrix $\vec Z$ for model \code{fm8}
+are the same as those for model \code{fm8} but the columns are in a
+different order.  Pairs of columns associated with the same level of
+the grouping factor are adjacent.  One way to think of the process of
+generating these columns is to extend the idea of an interaction
+between a single covariate and the grouping factor to generating an
+``interaction'' of a model matrix and the levels of the grouping
+factor.  In other words, we begin with the two columns of the model
+matrix for the expression \code{1 + Days} and the 18 columns of
+indicators for the \code{Subject} factor.  The result will have 36
+columns that are considered as 18 adjacent pairs.  The values within
+each of these pairs of columns are the values of the \code{1 + Days}
+columns, when the indicator is 1, otherwise they are zero.
+
+We can now describe the general process of creating the model matrix,
+$\vec Z$, and the relative covariance factor, $\Lambda$ from the
+random-effects terms in the model formula.  Each random-effects term
+is of the form \code{(expr|fac)}.  The expression \code{expr} is
+evaluated as a linear model formula, producing a model matrix with $s$
+columns.  The expression \code{fac} is evaluated as a factor.  Let $k$
+be the number of levels in this factor, after eliminating unused
+levels, if any.  The $i$th term generates $s_ik_i$ columns in the
+model matrix, $\vec Z$, and a diagonal block of size $s_ik_i$ in the
+relative covariance factor, $\Lambda$.  The $s_ik_i$ columns in $\vec
+Z$ have the pattern of the interaction of the $s_i$ columns from the
+$i$th \code{expr} with the $k$ indicator columns for the factor
+\code{fac}.  The diagonal block in $\Lambda$ is itself block diagonal,
+consisting of $k_i$ blocks, each a lower triangular matrix of size
+$s_i$.  In fact, these inner blocks are repetitions of the same lower
+triangular $s_i\times s_i$ matrix.  The $i$ term contributes
+$s_i(s_i+1)/2$ elements to the variance-component parameter,
+$\vec\theta$, and these are the elements in the lower triangle of this
+$s_i\times s_i$ template matrix.
+
+Note that when counting the columns in a model matrix we must take
+into account the implicit intercept term.  For example, we could write
+the formula for model \code{fm8} as
+<<formulafm8,echo=FALSE>>=
+Reaction ~ Days + (Days|Subject)
+@
+realizing that the linear model expression, \code{Days}, actually
+generates two columns because of the implicit intercept.  
+
+Whether or not to include an explicit intercept term in a model
+formula is a matter of personal taste.  Many people prefer to write
+the intercept explicitly in the formula so as to emphasize the
+relationship between terms in the formula and coefficients or random
+effects in the model.  Others omit these implicit terms so as to
+economize on the amount of typing required.  Either approach can be
+used.  The important point to remember is that the intercept must be
+explicitly suppressed when you don't want it in a term.
+
+Also, the intercept term must be explicit when it is the only term
+in the expression.  That is, a simple, scalar random-effects term must
+be written as \code{(1|fac)} because a term like \code{(|fac)} is not
+syntactically correct.  However, we can omit the intercept from the
+fixed-effects part of the model formula if we have any random-effects
+terms.  That is, we could write the formula for model \code{fm1} in
+Chap.~\ref{chap:ExamLMM} as 
+<<fm1redux,echo=FALSE>>=
+Yield ~ (1|Batch)
+@ 
+or even
+<<fm1redux,echo=FALSE>>=
+Yield ~ 1|Batch
+@
+although omitting the parentheses around a random-effects term is
+risky.  Because of operator precedence, the vertical bar operator,
+\code{|}, takes essentially everything in the expression to the left
+of it as its first operand.  It is advisable always to enclose such
+terms in parentheses so the scope of the operands to the \code{|}
+operator is clearly defined.
+
+\subsection{Comparing Models \code{fm9} and \code{fm8}}
+\label{sec:comparingfm8fm9}
+
+Returning to models \code{fm8} and \code{fm9} for the
+\code{sleepstudy} data, it is easy to see that these are nested models
+because \code{fm8} is reduced to \code{fm9} by constraining the
+within-group correlation of random effects to be zero (which is
+equivalent to constraining the element below the diagonal in the
+$2\times 2$ lower triangular blocks of $\Lambda$ in
+Fig.~\ref{fig:fm8LambdaL} to be zero).
+
+We can use a likelihood ratio test to compare these fitted models.
+<<anovafm9fm8>>=
+anova(fm9, fm8)
+@ 
+The value of the $\chi^2$ statistic, $0.0639$, is very small,
+corresponding to a p-value of $0.80$ and indicating that the extra
+parameter in model \code{fm8} relative to \code{fm9} does not produce
+a significantly better fit.  By the principal of parsimony we prefer
+the reduced model, \code{fm9}.
+
+This conclusion is consistent with the visual impression provided by
+Fig.~\ref{fig:sleepxyplot}.  There does not appear to be a strong
+relationship between a subject's initial reaction time and the extent
+to which his or her reaction time is affected by sleep deprivation.
+
+In this likelihood ratio test the value of the parameter being tested,
+a correlation of zero, is not on the boundary of the parameter space.
+We can be confident that the p-value from the LRT adequately reflects
+the underlying situation.  
+
+(\textbf{Note}: It is possible to extend profiling to the correlation
+parameters and we will do so but that has not been done yet.)
 
 \section{Assessing the Precision of the Parameter Estimates}
 \label{sec:assess-prec-param}
 
-Plots of the profile $\zeta$ (Figure~\ref{fig:pr9plt})
-\begin{figure}[ht]
+Plots of the profile $\zeta$
+\begin{figure}[tbp]
   \centering
 <<pr9plt,fig=TRUE,echo=FALSE,height=3.5>>=
 print(xyplot(pr9, aspect = 1.3, layout = c(5,1)))
@@ -388,8 +519,9 @@ print(xyplot(pr9, aspect = 1.3, layout = c(5,1)))
   parameter.}
   \label{fig:pr9plt}
 \end{figure}
-show that confidence intervals $\sigma_1$ and $\sigma_2$ will be
-slightly skewed; those for $\log(\sigma)$ will be symmetric and
+for the parameters in model \code{fm9} (Fig.~\ref{fig:pr9plt})show
+that confidence intervals on $\sigma_1$ and $\sigma_2$ will be slightly
+skewed; those for $\log(\sigma)$ will be symmetric and
 well-approximated by methods based on quantiles of the standard normal
 distribution and those for the fixed-effects parameters, $\beta_1$ and
 $\beta_2$ will be symmetric and slightly over-dispersed relative to
@@ -399,8 +531,8 @@ intervals are
 confint(pr9)
 @
 
-The profile pairs plot (Figure~\ref{fig:pr9pairs})
-\begin{figure}[ht]
+The profile pairs plot (Fig.~\ref{fig:pr9pairs})
+\begin{figure}[tbp]
   \centering
 <<pr9pairs,fig=TRUE,echo=FALSE,height=8>>=
 print(splom(pr9))
@@ -413,96 +545,190 @@ print(splom(pr9))
   the diagonal represent the original parameters.}
   \label{fig:pr9pairs}
 \end{figure}
+shows, for the most part, the usual patterns.  First, consider the
+panels below the diagonal, which are on the $(\zeta_i,\zeta_j)$
+scales.  The $\zeta$ pairs for $\log(\sigma)$ and $\beta_0$, in the
+$(4,3)$ panel, and for $\log(\sigma)$ and $\beta_1$, in the $(5,3)$
+panel, show the ideal pattern.  The profile traces are straight and
+orthogonal, producing interpolated contours on the $\zeta$ scale that
+are concentric circles centered at the origin.  When mapped back to
+the scales of $\log(\sigma)$ and $\beta_0$ or $\beta_1$, in panels
+$(3,4)$ and $(3,5)$, these circles become slightly distorted, but this
+is only due to the moderate nonlinearity in the profile $\zeta$ plots
+for these parameters.
 
+Examining the profile traces on the $\zeta$ scale for $\log(\sigma)$
+versus $\sigma_1$, the $(3,1)$ panel, or versus $\sigma_2$, the
+$(3,2)$ panel, and for $\sigma_1$ versus $\sigma_2$, the $(2,1)$ panel,
+we see that close to the estimate the traces are orthogonal but as one
+variance component becomes small there is usually an increase in the
+others.  In some sense the total variability in the response will be
+partitioned across the contribution of the fixed effects and the
+variance components.  In each of these panels the fixed-effects
+parameters are at their optimal values, conditional on the values of
+the variance components, and the variance components must compensate
+for each other.  If one is made smaller then the others must become
+larger to compensate.
 
-\section{Examining the Random Effects}
+The patterns in the $(4,1)$ panel ($\sigma_1$ versus $\beta_0$, on the
+$\zeta$ scale) and the $(5,2)$ panel ($\sigma_2$ versus $\beta_1$, on
+the $\zeta$ scale) are what we have come to expect.  As the
+fixed-effects parameter is moved from its estimate, the standard
+deviation of the corresponding random effect increases to compensate.
+The $(5,1)$ and $(4,2)$ panels show that changing the value of a fixed
+effect doesn't change the estimate of the standard deviation of the
+random effects corresponding to the other fixed effect, which makes
+sense although the perfect orthogonality shown here will probably not
+be exhibited in models fit to unbalanced data.
 
-  \begin{itemize}
-  \item Although the random effects $\vec b$ behave like parameters in
-    the linear predictor, technically they are not parameters in the
-    model.
-  \item Instead of referring to ``estimates'' of the random effects it
-    is customary to refer to ``predictors'' - in particular, the best
-    linear unbiased predictors or BLUPs.
-  \item These values are also the modes of the conditional
-    distribution (i.e. given the data $\vec y$ and the estimates of
-    $\vec\beta$, $\sigma^2$ and $\Sigma$) of $\vec b$.
-  \item For linear mixed model the conditional
-    distribution $[\vec b|\vec y,\sigma^2,\Sigma]$ is normal (Gaussian)
-    hence the modes are also the conditional means.
-  \item The \code{ranef} extractor function returns these conditional
-    modes evaluated at the parameter estimates.
-  \end{itemize}
+In some ways the most interesting panels are those for the pair of
+fixed-effects parameters: $(5,4)$ on the $\zeta$ scale and $(4,5)$ on
+the original scale.  The traces are not orthogonal.  In fact the
+slopes of the traces at the origin of the $(5,4)$ ($\zeta$ scale)
+panel are the correlation of the fixed-effects estimators ($-0.194$
+for this model) and its inverse.  However, as we move away from the
+origin on one of the traces in the $(5,4)$ panel it curves back toward
+the horizontal axis (for the horizontal trace) or the vertical axis
+(for the vertical trace).  In the $\zeta$ scale the individual
+contours are still concentric ellipses but their eccentricity changes
+from contour to contour.  The innermost contours have greater
+eccentricity than the outermost contours.  That is, the outermost
+contours are more like circles than are the innermost contours.
+
+In a fixed-effects model the shapes of projections of deviance
+contours onto pairs of fixed-effects parameters are consistent. In a
+fixed-effects model the profile traces in the original scale will
+always be straight lines.  For mixed models these traces can fail to
+be linear, as we see here, contradicting the widely-held belief that
+inferences for the fixed-effects parameters in linear mixed models,
+based on T or F distributions with suitably adjusted degrees of
+freedom, will be completely accurate.  The actual patterns of deviance
+contours are more complex than that.
+
+\section{Examining the Random Effects and Predictions}
+\label{sec:fm9re}
+The result of applying \code{ranef} to fitted linear mixed model is a
+list of data frames.  The components of the list correspond to the
+grouping factors in the random-effects terms, not to the terms
+themselves.  Model \code{fm9} is the first model we have fit with more
+than one term for the same grouping factor where we can see the
+combination of random effects from more than one term.
 <<rr1>>=
-(rr1 <- ranef(fm8))
+str(rr1 <- ranef(fm9))
 @
-
-  \begin{itemize}
-  \item For this model we can combine the BLUPs of the random effects
+The \code{plot} method
 \begin{figure}[tbp]
   \centering
-<<rr1plot,echo=FALSE,fig=TRUE,results=hide,height=7,width=7>>=
-print(plot(rr1, aspect = 1, type = c("g", "p")))
-@
-\caption[Conditional modes of the random effects for model
-\code{fm8}]{Scatterplot of the conditional modes, or BLUPs, of the
-  random effects for model \code{fm8}.  Each point represents the mode
-  of the distribution of the random effects for the intercept and
-  slope associated with one of the subjects.}
-  \label{fig:rr1plot}
+<<ranefcoeffm9,fig=TRUE,echo=FALSE,height=4>>=
+print(plot(rr1, type = c("g","p"), aspect = 1)$Subject,
+      split = c(1,1,2,1), more = TRUE)
+print(plot(coef(fm9), type = c("g","p"), aspect = 1)$Subject,
+      split = c(2,1,2,1))
+@ 
+  \caption{Plot of the conditional modes of the random effects for model \code{fm9} (left panel) and the corresponding subject-specific coefficients (right panel)}
+  \label{fig:ranefcoeffm9}
 \end{figure}
-    and the estimates of the fixed effects to get BLUPs for the
-    within-subject coefficients.
-  \item These BLUPs will be ``shrunken'' towards the fixed-effects
-    estimates relative to the estimated coefficients from only that
-    subjects data.  John Tukey called this ``borrowing strength''
-    between subjects.
-  \item Plotting the shrinkage of the within-subject coefficients
-    shows that some of the coefficients are considerably shrunken
-    toward the fixed-effects estimates.
-  \item However, comparing the within-group and mixed model fitted
-    lines shows that large changes in coefficients occur in the noisy
-    data.  Precisely estimated within-group coefficients are not
-    changed substantially.
-  \end{itemize}
+for \code{"ranef.mer"} objects produces one plot for each grouping
+factor. For scalar random effects the plot is a normal probability
+plot.  For two-dimensional random effects, including the case of two
+scalar terms for the same grouping factor, as in this model, the plot
+is a scatterplot.  For three or more random effects per level level of
+the grouping factor, the plot is a scatterplot matrix.  The left hand panel in Fig.~\ref{fig:ranefcoeffm9} was created with \code{plot(ranef(fm9))}.
+
+The \code{coef} method for a fitted \code{lmer} model combines the
+fixed-effects estimates and the conditional modes of the random
+effects, whenever the column names of the random effects correspond to
+the names of coefficients.  For model \code{fm9} the fixed-effects
+coefficients are \code{(Intercept)} and \code{Days} and the columns of
+the random effects match these names.  Thus we can calculate some kind
+of per-subject ``estimates'' of the slope and intercept and plot them,
+as in the right hand panel of Fig.~\ref{fig:ranefcoeffm9}.  By comparing
+the two panels in Fig.~\ref{fig:ranefcoeffm9} we can see that the
+result of the \code{coef} method is simply the conditional modes of
+the random effects shifted by the coefficient estimates.
+
+It is not entirely clear how we should interpret these values.  They
+are a combination of parameter estimates with the modal values of
+random variables and, as such, are in a type of ``no man's land'' in
+the probability model.  (In the Bayesian
+approach~\citep{box73:_bayes_infer_statis_analy} to inference,
+however, both the parameters and the random effects are random
+variables and the interpretation of these values is straightforward.)
+Despite the difficulties of interpretation in the probability model,
+these values are of interest because they determine the fitted
+response for each subject.
 \begin{figure}[tbp]
   \centering
 <<shrinkage,echo=FALSE,fig=TRUE,height=7,width=7>>=
 df <- coef(lmList(Reaction ~ Days | Subject, sleepstudy))
-cc1 <- as.data.frame(coef(fm8)$Subject)
+fclow <- subset(df, `(Intercept)` < 251)
+fchigh <- subset(df, `(Intercept)` > 251)
+cc1 <- as.data.frame(coef(fm9)$Subject)
 names(cc1) <- c("A", "B")
 df <- cbind(df, cc1)
+ff <- fixef(fm9)
 with(df,
      print(xyplot(`(Intercept)` ~ Days, aspect = 1,
-            x1 = B, y1 = A,
-            panel = function(x, y, x1, y1, subscripts, ...) {
-                panel.grid(h = -1, v = -1)
-                x1 <- x1[subscripts]
-                y1 <- y1[subscripts]
-                panel.arrows(x, y, x1, y1, type = "closed", length = 0.1,
-                             angle = 15, ...)
-                panel.points(x, y,
-                             pch = trellis.par.get("superpose.symbol")$pch[2],
-                             col = trellis.par.get("superpose.symbol")$col[2])
-                panel.points(x1, y1,
-                             pch = trellis.par.get("superpose.symbol")$pch[1],
-                             col = trellis.par.get("superpose.symbol")$col[1])
-            },
-                   key = list(space = "top", columns = 2,
-                   text = list(c("Mixed model", "Within-group")),
-                   points = list(col = trellis.par.get("superpose.symbol")$col[1:2],
-                   pch = trellis.par.get("superpose.symbol")$pch[1:2]))
+                  x1 = B, y1 = A,
+                  panel = function(x, y, x1, y1, subscripts, ...) {
+                      panel.grid(h = -1, v = -1)
+                      x1 <- x1[subscripts]
+                      y1 <- y1[subscripts]
+                      larrows(x, y, x1, y1, type = "closed", length = 0.1,
+                              angle = 15, ...)
+                      lpoints(x, y,
+                              pch = trellis.par.get("superpose.symbol")$pch[2],
+                              col = trellis.par.get("superpose.symbol")$col[2])
+                      lpoints(x1, y1,
+                              pch = trellis.par.get("superpose.symbol")$pch[1],
+                              col = trellis.par.get("superpose.symbol")$col[1])
+                      lpoints(ff[2], ff[1], 
+                              pch = trellis.par.get("superpose.symbol")$pch[3],
+                              col = trellis.par.get("superpose.symbol")$col[3])
+                      ltext(fclow[,2], fclow[,1], row.names(fclow),
+                            adj = c(0.5, 1.7))
+                      ltext(fchigh[,2], fchigh[,1], row.names(fchigh),
+                            adj = c(0.5, -0.6))
+                  },
+                  key = list(space = "top", columns = 3,
+                  text = list(c("Mixed model", "Within-group", "Population")),
+                   points = list(col = trellis.par.get("superpose.symbol")$col[1:3],
+                   pch = trellis.par.get("superpose.symbol")$pch[1:3]))
                )))
 @ %$
 \caption[Comparison of within-subject estimates and conditional modes
-for \code{fm8}]{Comparison of the within-subject estimates of the
+for \code{fm9}]{Comparison of the within-subject estimates of the
   intercept and slope for each subject and the conditional modes of
   the per-subject intercept and slope.  Each pair of points joined by
   an arrow are the within-subject and conditional mode estimates for
   the same subject.  The arrow points from the within-subject estimate
-  to the conditional mode for the mixed-effects model.}
+  to the conditional mode for the mixed-effects model.  The subject
+  identifier number is at the head of each arrow.}
   \label{fig:shrinkage}
 \end{figure}
+
+Because responses for each individual are recorded on each of ten days
+we can determine the within-subject estimates of the slope and
+intercept (that is, the slope and intercept of each of the lines in
+Fig.~\ref{fig:sleepxyplot}).  In Fig.~\ref{fig:shrinkage} we compare
+the within-subject least squares estimates to the per-subject slope
+and intercept calculated from model \code{fm9}.  We see that, in
+general, the per-subject slopes and intercepts from the mixed-effects
+model are closer to the population estimates than are the
+within-subject least squares estimates.  This pattern is sometimes
+described as a \emph{shrinkage} of coefficients toward the population
+values.
+
+The term ``shrinkage'' may have negative connotations.  John Tukey
+preferred to refer to the process as the estimates for individual
+subjects ``borrowing strength'' from each other.  This is a
+fundamental difference in the models underlying mixed-effects models
+versus strictly fixed-effects models.  In a mixed-effects model we
+assume that the levels of a grouping factor are a selection from a
+population and, as a result, can be expected to share characteristics
+to some degree.  Consequently, the predictions from a mixed-effects
+model are attenuated relative to those from strictly fixed-effects
+models.
 \begin{figure}[tbp]
   \centering
 <<shrinkfit,echo=FALSE,fig=TRUE,height=7,width=7>>=
@@ -515,78 +741,109 @@ print(xyplot(Reaction ~ Days | Subject, sleepstudy, aspect = "xy",
                               col.line = trellis.par.get("superpose.line")$col[2],
                               lty = trellis.par.get("superpose.line")$lty[2]
                               )
+                 panel.abline(fixef(fm9),
+                              col.line = trellis.par.get("superpose.line")$col[4],
+                              lty = trellis.par.get("superpose.line")$lty[4]
+                              )
              },
              index.cond = function(x,y) coef(lm(y ~ x))[1],
              xlab = "Days of sleep deprivation",
              ylab = "Average reaction time (ms)",
-             key = list(space = "top", columns = 2,
-             text = list(c("Mixed model", "Within-group")),
-             lines = list(col = trellis.par.get("superpose.line")$col[2:1],
-             lty = trellis.par.get("superpose.line")$lty[2:1]))))
+             key = list(space = "top", columns = 3,
+             text = list(c("Within-subject", "Mixed model", "Population")),
+             lines = list(col = trellis.par.get("superpose.line")$col[c(1:2,4)],
+             lty = trellis.par.get("superpose.line")$lty[c(1:2,4)]))))
 @
 \caption[Comparison of predictions from separate fits and
-\code{fm8}]{Comparison of the predictions from the within-subject fits
+\code{fm9}]{Comparison of the predictions from the within-subject fits
   with those from the conditional modes of the subject-specific
   parameters in the mixed-effects model.}
   \label{fig:shrinkfit}
 \end{figure}
 
-\subsection{Prediction Intervals on the Random Effects}
-\label{sec:pred-interv-rand}
+The predictions from model \code{fm9} and from the within-subject
+least squares fits for each subject are shown in
+Fig.~\ref{fig:shrinkfit}.  In may seem that the shrinkage from the
+per-subject estimates toward the population estimates depends only on
+how far the per-subject estimates (solid lines) are from the
+population estimates (dot-dashed lines). However, careful examination
+of this figure shows that there is more at work here than a simple
+shrinkage toward the population estimates proportional to the distance
+of the per-subject estimates from the population estimates.
 
-  \begin{itemize}
-  \item For the linear mixed model we can calculate both the means and
-    the variances of the random-effects conditional on the estimated
-    values of the model parameters, which allows us to calculate
-    prediction intervals on the values of individual random
-    effects.
-  \item We plot the prediction intervals as
-    a normal probabity plot so we can see the overall shape of the
-    distribution of the means and which of the random effects are
-    ``significantly different'' from zero.
-  \item Note that failure of the conditional means of the random
-    effects to look like a normal (Gaussian) distribution is not
-    terribly alarming.  It is the ``prior'' distribution of the random
-    effects that is assumed to be normal.  The conditional means or
-    BLUPs are strongly influenced by the data and may appear non-normal.
-  \end{itemize}
+It is true that the mixed model estimates for a particular subject are
+``between'' the within-subject estimates and the population estimates,
+in the sense that the arrows in Fig.~\ref{fig:shrinkage} all point
+somewhat in the direction of the population estimate.  However, the
+extent of the attenuation of the within-subject estimates toward the
+population estimates is not simply related to the distance between
+those two sets of estimates.  Consider the two panels, labeled 330 and
+337, at the top right of Fig.~\ref{fig:shrinkfit}.  The within-subject
+estimates for 337 are quite unlike the population estimates but the
+mixed-model estimates are very close to these within-subject
+estimates.  That is, the solid line and the dashed line in that panel
+are nearly coincident and both are a considerable distance from the
+dot-dashed line.  For subject 330, however, the dashed line is
+more-or-less an average of the solid line and the dot-dashed line,
+even though the solid and dot-dashed lines are not nearly as far apart
+as they are for subject 337.
+
+The difference between these two cases is that the within-subject
+estimates for 337 are very well determined.  Even though this subject
+had an unusually large intercept and slope, the overall pattern of the
+responses is very close to a straight line.  In contrast, the overall
+pattern for 330 is not close to a straight line so the within-subject
+coefficients are not well determined.  The multiple $R^2$ for the
+solid line in the 337 panel is $93.3\%$ but in the 330 panel it is
+only $15.8\%$.  The mixed model can pull the predictions in the 330
+panel, where the data are quite noisy, closer to the population line
+without increasing the residual sum of squares substantially.  When
+the within-subject coefficients are precisely estimated, as in the 337
+panel, very little shrinkage takes place.
+
+We see from Fig.~\ref{fig:shrinkfit} that the mixed-effects model
+smooths out the between-subject differences in the predictions by
+bringing them closer to a common set of predictions, but not at the
+expense of dramatically increasing the sum of squared residuals.  That
+is, the predictions are determined so as to balance fidelity to the
+data, measured by the residual sum of squares, with simplicity of the
+model.  The simplest model would use the same prediction in each panel
+(the dot-dashed line) and the most complex model, based on linear
+relationships in each panel, would correspond to the solid lines.  The
+dashed lines are between these two extremes.  We will return to this
+view of the predictions from mixed models balancing complexity versus
+fidelity in Sec.~\ref{sec:IntegratingH}, where we make the
+mathematical nature of this balance explicit.
+
+We should also examine
 \begin{figure}[tbp]
+%% FIXME: ranef(fm9, postVar = TRUE) currently throws an error.  
   \centering
-<<caterpillar,fig=TRUE,echo=FALSE,results=hide,height=4,width=7>>=
-#print(qqmath(ranef(fm8,post=TRUE))[[1]])
+<<caterpillar,fig=TRUE,echo=FALSE,results=hide,height=4>>=
+print(dotplot(ranef(fm8,post=TRUE),
+              scales = list(x = list(relation = "free")))[[1]])
 @
-  \caption{Prediction intervals on the random effects per subject.}
+  \caption{Prediction intervals on the random effects for model \code{fm9}.}
   \label{fig:caterpillar}
 \end{figure}
+the prediction intervals on the random effects
+(Fig.~\ref{fig:caterpillar}) where we see that many prediction
+intervals overlap zero but there are several that do not..  In this
+plot the subjects are ordered from bottom to top according to
+increasing conditional mode of the random effect for
+\code{(Intercept)}.  The resulting pattern in the conditional modes of
+the random effect for \code{Days} reinforces our conclusion that the
+model \code{fm9}, which does not allow for correlation of the random
+effects for \code{(Intercept)} and \code{Days}, is suitable.
 
 \section{Chapter Summary}
-
-  \begin{itemize}
-  \item Carefully plotting the data is enormously helpful in
-    formulating the model.
-  \item It is relatively easy to fit and evaluate models to data like
-    these, from a balanced designed experiment.
-  \item For a linear mixed model the estimates of the fixed effects
-    typically have a symmetric distribution close to a Gaussian distribution.
-  \item The distribution of the variance components or the covariances
-    are not symmetric, which is why we transform these parameters to a
-    symmetric scale.
-  \item We use the MCMC sample to create confidence (actually HPD)
-    intervals on the fixed-effects parameters.  We could also use the
-    parameter estimates and standard errors.
-  \item The ``estimates'' (actually BLUPs) of the random effects can
-    be considered as penalized estimates of these parameters in that
-    they are shrunk towards the origin.
-  \item Most of the prediction intervals for the random effects
-    overlap zero.
-  \end{itemize}
 
 \section*{Problems}
 \addcontentsline{toc}{section}{Problems}
 \begin{prob}\label{probL1}
-    Check the structure of documentation, structure and a summary of
-  the \code{Orthodont} data set.
-  \begin{enumerate}
+  Check the structure of documentation, structure and a summary of the
+  \code{Orthodont} data set from the \package{MEMSS} package.
+  \begin{compactenum}[(a)]
   \item Create an \code{xyplot} of the \code{distance} versus
     \code{age} by \code{Subject} for the female subjects
     only.  You can use the optional argument \code{subset = Sex ==
@@ -624,11 +881,11 @@ print(xyplot(distance ~ age|Subject, Orthodont, subset = Sex == "Female",
     represents.  What will happen if you center the ages by
     subtracting 8 (the baseline year) or 11 (the middle of the age range)?
   \item Repeat for the data from the male subjects.
-  \end{enumerate}
+  \end{compactenum}
 \end{prob}
 \begin{prob}
 \item Fit a model to both the female and the male subjects in the
-  \code{Orthodont} allowing for differences by sex in the
+  \code{Orthodont} data set, allowing for differences by sex in the
   fixed-effects for intercept (probably with respect to the centered
   age range) and slope.
 \end{prob}
