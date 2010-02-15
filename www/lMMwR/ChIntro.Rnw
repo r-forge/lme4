@@ -103,10 +103,12 @@ mixed model.
 
 We characterize the statistical model in terms of two random
 variables: a $q$-dimensional vector of random effects represented by
-the random variable $\bc B$ and an $n$-dimensional response
-vector represented by the random variable $\bc Y$.  We
-observe the value, $\vec y$, of $\bc Y$.  We do not observe
-the value of $\bc B$.
+the random variable $\bc B$ and an $n$-dimensional response vector
+represented by the random variable $\bc Y$.  (We use upper-case
+``script'' characters to denote random variables.  The corresponding
+lower-case upright letter denotes a particular value of the random
+variable.) We observe the value, $\vec y$, of $\bc Y$.  We do not
+observe the value of $\bc B$.
 
 When formulating the model we describe the unconditional distribution
 of $\bc B$ and the conditional distribution, $(\bc
