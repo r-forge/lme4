@@ -253,6 +253,7 @@ setMethod("profile", "lmerenv",
                   backSpline(forspl[[thisnm]] <- interpSpline(form, bres))
           }
           ans <- do.call(rbind, ans)
+          ans$.par <- factor(ans$.par)
           attr(ans, "forward") <- forspl
           attr(ans, "backward") <- bakspl
           row.names(ans) <- NULL
@@ -519,3 +520,40 @@ splom.thpr <-
 
     splom(~ pfr, lower.panel = lp, upper.panel = up, diag.panel = dp, ...)
 }
+
+##' Transform an lmer profile to the logarithm scale
+
+##' Transform an lmer profile to the scale of the logarithm of the
+##' standard deviation of the random effects.
+
+##' @param x an object that inherits from class "thpr"
+##' @param base the base of the logarithm.  Defaults to natural
+##'        logarithms 
+
+##' @return an lmer profile like x with all the .sigNN parameters
+##'      replaced by .lsigNN.  The forward and backward splines for
+##'      these parameters are recalculated.
+
+log.thpr <- function (x, base = exp(1))
+{
+    cn <- colnames(x)
+    sigs <- grep("^\\.sig[0-9][0-9]", cn)
+    if (length(sigs)) {
+        colnames(x) <- sub("^\\.sig", ".lsig", cn)
+        levels(x$.par) <- sub("^\\.sig", ".lsig", levels(x$.par))
+        names(attr(x, "backward")) <- 
+            names(attr(x, "forward")) <-
+                sub("^\\.sig", ".lsig", names(attr(x, "forward")))
+        for (nm in colnames(x)[sigs]) {
+            x[[nm]] <- log(x[[nm]], base = base)
+            fr <- subset(x, .par == nm & is.finite(x[[nm]]))
+            form <- eval(substitute(.zeta ~ nm, list(nm = as.name(nm))))
+            attr(x, "forward")[[nm]] <- interpSpline(form, fr)
+            attr(x, "backward")[[nm]] <- backSpline(attr(x, "forward")[[nm]])
+        }
+        ## eliminate rows the produced non-finite logs
+        x <- x[apply(is.finite(as.matrix(x[, sigs])), 1, all),]
+    }
+    x
+}
+
