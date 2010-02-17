@@ -1061,24 +1061,24 @@ or load just the one data set
 <<loadRail,eval=FALSE>>=
 data(ergoStool, package = "MEMSS")
 @ 
-\begin{prob}\label{pr2.1.1}
+\begin{prob}\label{pr:2ergoexamine}
   Check the documentation, the structure (\code{str}) and a summary of
   the \code{ergoStool} data from the \package{MEMSS} package.  (If you
-  are a fan of the Star Trek television series and movies, you can
-  speculate about what, exactly, the ``Borg scale'' is.)  Use
+  are familiar with the Star Trek television series and movies, you may
+  want to speculate about what, exactly, the ``Borg scale'' is.)  Use
 <<xtabsergo,eval=FALSE,results=hide>>=
 xtabs(~ Type + Subject, ergoStool)
 @
 to determine if these factors are nested, partially crossed or
 completely crossed.  Is this a replicated or an unreplicated design?
 \end{prob}
-\begin{prob}  %% Give hints on this question.
+\begin{prob}\label{pr:2ergoplot}  %% Give hints on this question.
   Create a plot, similar to Fig.~\ref{fig:Penicillindot}, showing the
   effort by subject with lines connecting points corresponding to the
   same stool types.  Order the levels of the \code{Subject} factor by
   increasing average \code{effort}.  
 \end{prob}
-\begin{prob}
+\begin{prob}\label{pr:2ergofitre}
   The experimenters are interested in comparing these specific stool
   types.  In the next chapter we will fit a model with fixed-effects
   for the \code{Type} factor and random effects for \code{Subject},
