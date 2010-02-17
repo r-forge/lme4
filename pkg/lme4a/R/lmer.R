@@ -818,7 +818,10 @@ printMerenv <- function(x, digits = max(3, getOption("digits") - 3),
 ##' currently *not* exported on purpose
 unscaledVar <- function(object, RX = env(object)$RX)
 {
+    if (is(RX, "Cholesky")) return(diag(chol2inv(RX)))
+    stopifnot(is(RX, "CHMfactor"))
     p <- ncol(RX)
+    if (p < 1) return(numeric(0))
     p1 <- p - 1L
     ei <- as(c(1, rep.int(0, p1)), "sparseMatrix")
     DI <- function(i) {
@@ -836,10 +839,11 @@ setMethod("summary", signature(object = "lmerenv"),
           rho <- env(object)
           REML <- rho$REML
           fcoef <- fixef(object)
+          sig <- sigma(object)
           vcov <- tryCatch(vcov(object), error = function(e) NULL)
           corF <- if(!is.null(vcov)) vcov@factors$correlation # else NULL
 	  coefs <- cbind("Estimate" = fcoef,
-			 "Std. Error" = unscaledVar(RX = rho$RX))
+			 "Std. Error" = sig * sqrt(unscaledVar(RX = rho$RX)))
           llik <- logLik(object, REML)
           mName <- paste("Linear mixed model fit by",
                          if (REML) "REML" else "maximum likelihood")
