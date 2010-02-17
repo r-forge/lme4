@@ -6,6 +6,7 @@
 #include <cstdio>
 #include <cmath>
 #include <cstring>
+#include <cstdarg>
 #endif 
 
 #include <R.h>
