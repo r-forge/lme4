@@ -142,27 +142,33 @@ print(splom(pr2))
 
 
 ###################################################
-### chunk number 15: strsumPastes
+### chunk number 15: fm2lprpairs
+###################################################
+print(splom(log(pr2)))
+
+
+###################################################
+### chunk number 16: strsumPastes
 ###################################################
 str(Pastes)
 summary(Pastes)
 
 
 ###################################################
-### chunk number 16: imagextabsPastes
+### chunk number 17: imagextabsPastes
 ###################################################
 print(image(xtabs(~ batch + sample, Pastes, sparse = TRUE),
             sub = NULL, xlab = "sample", ylab = "batch"))
 
 
 ###################################################
-### chunk number 17: xtabsPastes
+### chunk number 18: xtabsPastes
 ###################################################
 xtabs(~ batch + sample, Pastes, drop = TRUE, sparse = TRUE)
 
 
 ###################################################
-### chunk number 18: Pastesplot
+### chunk number 19: Pastesplot
 ###################################################
 pp <- Pastes
 pp <- within(pp, bb <- reorder(batch, strength))
@@ -176,31 +182,31 @@ print(dotplot(ss ~ strength | bb, pp, pch = 21,
 
 
 ###################################################
-### chunk number 19: Pastesxtab
+### chunk number 20: Pastesxtab
 ###################################################
 xtabs(~ cask + batch, Pastes)
 
 
 ###################################################
-### chunk number 20: nested1
+### chunk number 21: nested1
 ###################################################
 Pastes$sample <- with(Pastes, factor(batch:cask))
 
 
 ###################################################
-### chunk number 21: nested2
+### chunk number 22: nested2
 ###################################################
 Pastes <- within(Pastes, sample <- factor(batch:cask))
 
 
 ###################################################
-### chunk number 22: fm3
+### chunk number 23: fm3
 ###################################################
 (fm3 <- lmer(strength ~ 1 + (1|sample) + (1|batch), Pastes, REML=0))
 
 
 ###################################################
-### chunk number 23: fm3LambdaLimage
+### chunk number 24: fm3LambdaLimage
 ###################################################
 print(image(env(fm3)$Lambda, sub=NULL,xlab=expression(Lambda),ylab=NULL),
       split=c(1,1,3,1), more=TRUE)
@@ -211,7 +217,7 @@ print(image(env(fm3)$L, sub=NULL,xlab="L",ylab=NULL,colorkey=FALSE),
 
 
 ###################################################
-### chunk number 24: stddev
+### chunk number 25: stddev
 ###################################################
 f3 <- "%.3f"
 f4 <- "%.4f"
@@ -221,7 +227,7 @@ stddev <- unname(c(sapply(vc3, function(el) attr(el, "stddev")),
 
 
 ###################################################
-### chunk number 25: fm3ranef
+### chunk number 26: fm3ranef
 ###################################################
 qrr3 <- dotplot(ranef(fm3, postVar = TRUE), strip = FALSE)
 print(qrr3[[1]], pos = c(0,0,1,0.75), more = TRUE)
@@ -229,44 +235,44 @@ print(qrr3[[2]], pos = c(0,0.65,1,1))
 
 
 ###################################################
-### chunk number 26: fm3prplot
+### chunk number 27: fm3prplot
 ###################################################
 print(xyplot(pr3, absVal=0, aspect=1.3, layout=c(4,1)))
 
 
 ###################################################
-### chunk number 27: fm3a
+### chunk number 28: fm3a
 ###################################################
 (fm3a <- lmer(strength ~ 1 + (1|sample), Pastes, REML=0)) 
 
 
 ###################################################
-### chunk number 28: anovafm3
+### chunk number 29: anovafm3
 ###################################################
 anova(fm3a, fm3)
 
 
 ###################################################
-### chunk number 29: fm3aprplot
+### chunk number 30: fm3aprplot
 ###################################################
 print(xyplot(pr3a, aspect=1.3, layout=c(3,1)))
 
 
 ###################################################
-### chunk number 30: confintfm3
+### chunk number 31: confintfm3
 ###################################################
 confint(pr3)
 confint(pr3a)
 
 
 ###################################################
-### chunk number 31: fm3aprpairs
+### chunk number 32: fm3aprpairs
 ###################################################
 print(splom(pr3a))
 
 
 ###################################################
-### chunk number 32: strInstEval
+### chunk number 33: strInstEval
 ###################################################
 ## the default  strict.width is "no" for back-compatibility
 ## instead, we could also *globally* set
@@ -276,112 +282,112 @@ str(InstEval)
 
 
 ###################################################
-### chunk number 33: xtabsy
+### chunk number 34: xtabsy
 ###################################################
 xtabs(~ y, InstEval)
 
 
 ###################################################
-### chunk number 34: fm4show eval=FALSE
+### chunk number 35: fm4show eval=FALSE
 ###################################################
 ## (fm4 <- lmer(y ~ 1 + (1|s) + (1|d)+(1|dept:service), InstEval, REML=0))
 
 
 ###################################################
-### chunk number 35: fm4
+### chunk number 36: fm4
 ###################################################
 fm4
 
 
 ###################################################
-### chunk number 36: fm4ranef
+### chunk number 37: fm4ranef
 ###################################################
 print(dotplot(rr4, strip = FALSE))
 
 
 ###################################################
-### chunk number 37: LRTshow eval=FALSE
+### chunk number 38: LRTshow eval=FALSE
 ###################################################
 ## fm4a <- lmer(y ~ 1 + (1|s) + (1|d), InstEval, REML=0)
 ## anova(fm4a,fm4)
 
 
 ###################################################
-### chunk number 38: LRTfm4
+### chunk number 39: LRTfm4
 ###################################################
 anova(fm4a,fm4)
 
 
 ###################################################
-### chunk number 39: fm4Lstats
+### chunk number 40: fm4Lstats
 ###################################################
 object.size(env(fm4)$L)
 unclass(round(object.size(env(fm4)$L)/2^20, 3))  # size in megabytes
 
 
 ###################################################
-### chunk number 40: fm4densestats
+### chunk number 41: fm4densestats
 ###################################################
 (8 * (4128 * 4129)/2)/2^20   # size in megabytes
 
 
 ###################################################
-### chunk number 41: fm4densestats
+### chunk number 42: fm4densestats
 ###################################################
 (8 * 4128^2)/2^20   # size in megabytes
 
 
 ###################################################
-### chunk number 42: nnzero
+### chunk number 43: nnzero
 ###################################################
 nnzero(as(env(fm4)$L, "sparseMatrix"))
 
 
 ###################################################
-### chunk number 43: badformula
+### chunk number 44: badformula
 ###################################################
 strength ~ 1 + (1|cask) + (1|batch)
 
 
 ###################################################
-### chunk number 44: slashform
+### chunk number 45: slashform
 ###################################################
 strength ~ 1 + (1|batch/cask)
 
 
 ###################################################
-### chunk number 45: expandedform
+### chunk number 46: expandedform
 ###################################################
 strength ~ 1 + (1|batch) + (1|batch:cask)
 
 
 ###################################################
-### chunk number 46: attMEMSS eval=FALSE
+### chunk number 47: attMEMSS eval=FALSE
 ###################################################
 ## library(MEMSS)
 
 
 ###################################################
-### chunk number 47: loadRail eval=FALSE
+### chunk number 48: loadergo eval=FALSE
 ###################################################
 ## data(ergoStool, package = "MEMSS")
 
 
 ###################################################
-### chunk number 48: xtabsergo eval=FALSE
+### chunk number 49: xtabsergo eval=FALSE
 ###################################################
 ## xtabs(~ Type + Subject, ergoStool)
 
 
 ###################################################
-### chunk number 49: plotexam eval=FALSE
+### chunk number 50: plotexam eval=FALSE
 ###################################################
 ## dotplot(ranef(fm, which = "Type", postVar = TRUE), aspect = 0.2,
 ##         strip = FALSE)
 
 
 ###################################################
-### chunk number 50: xtabsPairsStorage eval=FALSE
+### chunk number 51: xtabsPairsStorage eval=FALSE
 ###################################################
 ## xtabs(~ Pair + Storage, Meat)
 
