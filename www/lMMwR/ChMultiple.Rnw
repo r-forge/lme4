@@ -373,8 +373,21 @@ non-elliptical.  However, the distortion of the contours is not due to
 these parameter estimates depending strongly on each other.  It is almost
 entirely due to the choice of scale for $\sigma_1$ and $\sigma_2$.  When we
 plot the contours on the scale of $\log(\sigma_1)$ and
-$\log(\sigma_2)$ instead (Fig.~\ref{fig:toBeConstructed}) they are
-much closer to the elliptical pattern.
+$\log(\sigma_2)$ instead (Fig.~\ref{fig:lpr2pairs})
+\begin{figure}[tbp]
+  \centering
+<<fm2lprpairs,fig=TRUE,echo=FALSE,height=8>>=
+print(splom(log(pr2)))
+@   
+  \caption[Profile pairs plot for model \code{fm2} (log scale)]
+  {Profile pairs plot for the parameters in model \code{fm2} fit to
+    the \code{Penicillin} data.  In this plot the parameters
+    $\sigma_1$ and $\sigma_2$ are on the scale of the natural
+    logarithm, as is the parameter $\sigma$ in this and other profile
+    pairs plots.}
+  \label{fig:lpr2pairs}
+\end{figure}
+they are much closer to the elliptical pattern.
 
 Conversely, if we tried to plot contours on the scale of $\sigma_1^2$
 and $\sigma_2^2$ (not shown), they would be hideously distorted.
@@ -689,19 +702,20 @@ be zero, resulting in a simpler model incorporating random effects for
 \subsection{Testing $H_0:\sigma_2=0$ Versus $H_a:\sigma_2>0$}
 \label{sec:TestingSig2is0}
 
-One of the many famous statements by Albert Einstein is ``Everything
-should be made as simple as possible, but not simpler.''  In
-statistical modeling this \emph{principal of parsimony} is embodied in
-hypothesis tests comparing two models, one of which contains the other
-as a special case.  Typically, one or more of the parameters in the
-more general model, which we call the \emph{alternative hypothesis},
-is constrained in some way, resulting in the restricted model, which
-we call the \emph{null hypothesis}.  Although we phrase the hypothesis
-test in terms of the parameter restriction, it is important to realize
-that we are comparing the quality of fits obtained with two nested
-models.  That is, we are not assessing parameter values per se; we are
-comparing the model fit obtainable with some constraints on parameter
-values to that without the constraints.
+One of the many famous statements attributed to Albert Einstein is
+``Everything should be made as simple as possible, but not simpler.''
+In statistical modeling this \emph{principal of parsimony} is embodied
+in hypothesis tests comparing two models, one of which contains the
+other as a special case.  Typically, one or more of the parameters in
+the more general model, which we call the \emph{alternative
+  hypothesis}, is constrained in some way, resulting in the restricted
+model, which we call the \emph{null hypothesis}.  Although we phrase
+the hypothesis test in terms of the parameter restriction, it is
+important to realize that we are comparing the quality of fits
+obtained with two nested models.  That is, we are not assessing
+parameter values per se; we are comparing the model fit obtainable
+with some constraints on parameter values to that without the
+constraints.
 
 Because the more general model, $H_a$, must provide a fit that is at
 least as good as the restricted model, $H_0$, our purpose is to
@@ -1058,9 +1072,16 @@ the package
 library(MEMSS)
 @ 
 or load just the one data set
-<<loadRail,eval=FALSE>>=
+<<loadergo,eval=FALSE>>=
 data(ergoStool, package = "MEMSS")
 @ 
+
+We begin with exercises using the \code{ergoStool} data from the
+\package{MEMSS} package.  The analysis and graphics in these exercises
+is performed in Chap.~\ref{chap:Covariates}.  The purpose of these
+exercises is to see if you can use the material from this chapter to
+anticipate the results quoted in the next chapter.
+
 \begin{prob}\label{pr:2ergoexamine}
   Check the documentation, the structure (\code{str}) and a summary of
   the \code{ergoStool} data from the \package{MEMSS} package.  (If you
