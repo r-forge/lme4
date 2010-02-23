@@ -11,19 +11,19 @@ library(lattice)
 library(Matrix)
 library(lme4a)
 data(ergoStool, package = "MEMSS")
-fm5 <- lmer(effort ~ 1 + (1|Subject) + (1|Type), ergoStool, REML=0)
-if (file.exists("pr5.rda")) {
-    load("pr5.rda")
+fm06 <- lmer(effort ~ 1 + (1|Subject) + (1|Type), ergoStool, REML=0)
+if (file.exists("pr06.rda")) {
+    load("pr06.rda")
 } else {
-    pr5 <- profile(fm5)
-    save(pr5, file = "pr5.rda")
+    pr06 <- profile(fm06)
+    save(pr06, file = "pr06.rda")
 }
-fm6 <- lmer(effort ~ 1 + Type + (1|Subject), ergoStool, REML = 0)
-if (file.exists("pr6.rda")) {
-    load("pr6.rda")
+fm07 <- lmer(effort ~ 1 + Type + (1|Subject), ergoStool, REML = 0)
+if (file.exists("pr07.rda")) {
+    load("pr07.rda")
 } else {
-    pr6 <- profile(fm6)
-    save(pr6, file = "pr6.rda")
+    pr07 <- profile(fm07)
+    save(pr07, file = "pr07.rda")
 }
 f7 <- "%.7f"
 f3 <- "%.3f"
@@ -73,7 +73,7 @@ specification of an intercept, or overall mean response, only.
 
 It is common in practice to have several fixed-effects terms involving
 one or more covariates in the specification of a linear mixed model.
-Indeed, often the purpose of fitting a linear mixed model is to draw
+Indeed, the purpose of fitting a linear mixed model is often to draw
 inferences about the effects of the covariates while appropriately
 accounting for different sources of variability in the responses.
 
@@ -113,7 +113,7 @@ exertion.
 
 From Fig.~\ref{fig:ergoplot} we can see that all nine subjects
 rated type \code{T1} or type \code{T4} as requiring the least
-exertion and rated type \code{T4} as requiring the most exertion.
+exertion and rated type \code{T2} as requiring the most exertion.
 Type \code{T3} was perceived as requiring comparatively little
 exertion by some subjects (H and E) and comparatively greater exertion
 by others (F, C and G).
@@ -135,30 +135,29 @@ model with random effects for both \code{Subject} and \code{Type}.
 \label{sec:SubjTypeRE}
 
 A model with random effects for both \code{Subject} and \code{Type} is
-fit in the same way that we fit models with random effects for
-multiple grouping factors in Chap.~\ref{chap:Multiple},
-<<fm5>>=
-(fm5 <- lmer(effort ~ 1 + (1|Subject) + (1|Type), ergoStool, REML=0))
+fit in the same way that we fit such in Chap.~\ref{chap:Multiple},
+<<fm06>>=
+(fm06 <- lmer(effort ~ 1 + (1|Subject) + (1|Type), ergoStool, REML=0))
 @
 from which we determine that the mean effort to arise, across stool
-types and across subjects, is \Sexpr{sprintf(f3, fixef(fm5))} on this
+types and across subjects, is \Sexpr{sprintf(f3, fixef(fm06))} on this
 scale, with standard deviations of
-\Sexpr{sprintf(f3, attr(VarCorr(fm5)[["Subject"]], "stddev"))}
+\Sexpr{sprintf(f3, attr(VarCorr(fm06)[["Subject"]], "stddev"))}
 for the random-effects for the \code{Subject} factor and
-\Sexpr{sprintf(f3, attr(VarCorr(fm5)[["Type"]], "stddev"))}
+\Sexpr{sprintf(f3, attr(VarCorr(fm06)[["Type"]], "stddev"))}
 for the \code{Type} factor.
 
 One question we would want to address is whether there are
 ``significant'' differences between stool types, taking into account
 the differences between subjects.  We could approach this question by
 fitting a reduced model, without random effects for \code{Type}, and
-comparing this fit to model \code{fm5} using a likelihood-ratio test.
-<<fm5a>>=
-fm5a <- lmer(effort ~ 1 + (1|Subject), ergoStool, REML=0)
-anova(fm5a, fm5)
+comparing this fit to model \code{fm06} using a likelihood-ratio test.
+<<fm06a>>=
+fm06a <- lmer(effort ~ 1 + (1|Subject), ergoStool, REML=0)
+anova(fm06a, fm06)
 @
 The p-value in this test is very small, indicating that the more
-complex model, \code{fm5}, which allows for differences in the effort
+complex model, \code{fm06}, which allows for differences in the effort
 to arise for the different stool types, provides a significantly
 better fit to the observed data.
 
@@ -168,70 +167,71 @@ the parameter space, the p-value for this likelihood ratio test
 statistic calculated using a $\chi^2_1$ reference distribution will be
 conservative.  That is, the p-value one would obtain by, say,
 simulation from the null distribution, would be even smaller than the
-p-value, \Sexpr{sprintf(f7, anova(fm5a, fm5)[["Pr(>Chisq)"]][2])},
+p-value, \Sexpr{sprintf(f7, anova(fm06a, fm06)[["Pr(>Chisq)"]][2])},
 reported by this test, which is already very small.
 
 Thus the evidence against the null hypothesis ($H_0:\sigma_2 = 0$) and
 in favor of the alternative, richer model ($H_a:\sigma_2>0$) is very strong.
 
 Another way of addressing the question of whether it is
-reasonable for $\sigma_2$ to be zero is to profile \code{fm5} and
-examine profile zeta plots (Fig.~\ref{fig:pr5zeta})
+reasonable for $\sigma_2$ to be zero is to profile \code{fm06} and
+examine profile zeta plots (Fig.~\ref{fig:pr06zeta})
 \begin{figure}[tbp]
   \centering
-<<pr5zeta,fig=TRUE,echo=FALSE,height=3.5>>=
-print(xyplot(pr5, aspect=1.3, layout=c(4,1)))
+<<pr06zeta,fig=TRUE,echo=FALSE,height=3.5>>=
+print(xyplot(pr06, aspect=1.3, layout=c(4,1)))
 @   
-\caption[Profile zeta plot for the parameters in model \code{fm5}]
-{Profile zeta plot for the parameters in model \code{fm5} fit to the
+\caption[Profile zeta plot for the parameters in model \code{fm06}]
+{Profile zeta plot for the parameters in model \code{fm06} fit to the
   \code{ergoStool} data}
-  \label{fig:pr5zeta}
+  \label{fig:pr06zeta}
 \end{figure}
-and the corresponding profile pairs plot (Fig.~\ref{fig:pr5pairs}).
+and the corresponding profile pairs plot (Fig.~\ref{fig:pr06pairs}).
 \begin{figure}[tbp]
   \centering
-<<pr5pairs,fig=TRUE,echo=FALSE,height=8>>=
-print(splom(pr5))
+<<pr06pairs,fig=TRUE,echo=FALSE,height=8>>=
+print(splom(pr06))
 @   
-\caption[Profile pairs plot for the parameters in model \code{fm5}]
-{Profile pairs plot for the parameters in model \code{fm5} fit to the
+\caption[Profile pairs plot for the parameters in model \code{fm06}]
+{Profile pairs plot for the parameters in model \code{fm06} fit to the
   \code{ergoStool} data}
-  \label{fig:pr5pairs}
+  \label{fig:pr06pairs}
 \end{figure}
 
-We can see from the profile zeta plot (Fig.~\ref{fig:pr5zeta}) that
-although $\sigma_2$, the standard deviation of the random effect for
-\code{Type}, is safely non-zero, it is very poorly determined.  That
-is, a 95\% profile-based confidence interval on this parameter,
-obtained as
-<<fm5confint>>=
-confint(pr5)[".sig02",]
+We can see from the profile zeta plot (Fig.~\ref{fig:pr06zeta}) that
+both $\sigma_1$, the standard deviation of the \code{Subject} random
+effects, and, $\sigma_2$, the standard deviation of the \code{Type}
+random effects, are safely non-zero.  We also see that $\sigma_2$ is
+very poorly determined.  That is, a 95\% profile-based confidence
+interval on this parameter, obtained as
+<<fm06confint>>=
+confint(pr06)[".sig02",]
 @
 is very wide.  The upper end point of this 95\% confidence interval,
-\Sexpr{sprintf(f3,confint(pr5)[2,2])}, is more than twice as large as
+\Sexpr{sprintf(f3,confint(pr06)[2,2])}, is more than twice as large as
 the estimate, $\widehat{\sigma_2}=$ 
-\Sexpr{sprintf(f3, attr(VarCorr(fm5)[["Type"]], "stddev"))}
+\Sexpr{sprintf(f3, attr(VarCorr(fm06)[["Type"]], "stddev"))}.
 
 A plot 
 \begin{figure}[tbp]
   \centering
-<<fm5dot,fig=TRUE,echo=FALSE,height=2>>=
-print(dotplot(ranef(fm5, postVar = TRUE), strip=FALSE)[["Type"]])
+<<fm06dot,fig=TRUE,echo=FALSE,height=2>>=
+print(dotplot(ranef(fm06, postVar = TRUE), strip=FALSE)[["Type"]])
 @   
 \caption[Prediction intervals on the random effects for stool
 type]{95\% prediction intervals on the random effects for \code{Type}
-  from model \code{fm5} fit to the \code{ergoStool} data}
-  \label{fig:fm5dot}
+  from model \code{fm06} fit to the \code{ergoStool} data}
+  \label{fig:fm06dot}
 \end{figure}
 of the prediction intervals on the random effects for \code{Type}
-(Fig.~\ref{fig:fm5dot}) confirms the impression from
+(Fig.~\ref{fig:fm06dot}) confirms the impression from
 Fig.~\ref{fig:ergoplot} regarding the stool types.  Type \code{T2}
 requires the greatest effort and type \code{T1} requires the least
 effort.  There is considerable overlap of the prediction intervals for
 types \code{T1} and \code{T4} and somewhat less overlap between types
 \code{T4} and \code{T3} and between types \code{T3} and \code{T2}.
 
-Typically in an analysis like this we begin by asking if there are any
+In an analysis like this we begin by asking if there are any
 significant differences between the stool types, which we answered for
 this model by testing the hypothesis $H_0:\sigma_2=0$ versus
 $H_a:\sigma_2>0$.  If we reject $H_0$ in favor of $H_a$ --- that is, if
@@ -240,26 +240,26 @@ we conclude that the more complex model including random effects for
 model --- then usually we want to follow up with the question, ``Which
 stool types are significantly different from each other?''.  It is
 possible, though not easy, to formulate an answer to that question
-from a model fit such as \code{fm5} in which the stool types are
+from a model fit such as \code{fm06} in which the stool types are
 modeled with random effects, but it is more straightforward to address
 that question when we model the stool types as fixed-effects
 parameters, which we do next.
 
-\subsection{Fixed-effects for \texttt{Type}, Random Effects for \texttt{Subject}}
+\subsection{Fixed Effects for \texttt{Type}, Random for \texttt{Subject}}
 \label{sec:ergoSubjRE}
 
 To incorporate the \code{Type} factor in the fixed-effects parameters,
 instead of as a grouping factor for random effects, we remove the
 random-effects term, \code{(1|Type)}, and add \code{Type} to the
 fixed-effects specification.
-<<fm6>>=
-(fm6 <- lmer(effort ~ 1 + Type + (1|Subject), ergoStool, REML = 0))
+<<fm07>>=
+(fm07 <- lmer(effort ~ 1 + Type + (1|Subject), ergoStool, REML = 0))
 @ 
 
 It appears that the last three levels of the \code{Type} factor are
-now modeled as fixed-effects parameters in addition to the
+now modeled as fixed-effects parameters, in addition to the
 \code{(Intercept)} parameter, whose estimate has decreased markedly
-from that in model \code{fm5}.  Furthermore, the estimates of the
+from that in model \code{fm06}.  Furthermore, the estimates of the
 fixed-effects parameters labeled \code{TypeT2}, \code{TypeT3} and
 \code{TypeT4}, while positive, are very much smaller than would be
 indicated by the average responses for these types.
@@ -269,14 +269,14 @@ by a factor covariate do not correspond to the overall mean and the
 effect for each level of the covariate.  Although a model for an
 experiment such as this is sometimes written in a form like
 \begin{equation}
-  \label{eq:fm6formula}
+  \label{eq:fm07formula}
   y_{ij}=\mu + \alpha_i + b_j + \epsilon_{ij},\quad
   i=1,\dots,4,\;j=1,\dots 9
 \end{equation}
 where $i$ indexes the stool type and $j$ indexes the subject, the
 parameters $\left\{\mu,\alpha_1,\alpha_2,\alpha_3,\alpha_4\right\}$,
 representing the overall mean and the effects of each of the stool
-types, are redundant.  If we have a set of estimates for these
+types, are redundant.  Given a set of estimates for these
 parameters we would not change the predictions from the model if, for
 example, we added one to $\mu$ and subtracted one from all the
 $\alpha$'s.  In statistical terminology we say that this set of
@@ -285,8 +285,8 @@ conditions on them.  The estimability condition
 $\sum_{i=1}^4\alpha_i=0$ is often used in introductory texts.
 
 The approach taken in \R{} is not based on redundant parameters that
-are subject to estimability conditions.  While this approach may seem
-reasonable initially, in complex models it quickly becomes
+are subject to estimability conditions.  While this approach may
+initially seem reasonable, in complex models it quickly becomes
 unnecessarily complex to need to use constrained optimization for
 parameter estimation.  Instead we incorporate the constraints into the
 parameters that we estimate.  That is, we reduce the redundant set of
@@ -309,7 +309,7 @@ global setting with
 getOption("contrasts")
 @ 
 
-Because these were the contrasts in effect when model \code{fm6} was
+Because these were the contrasts in effect when model \code{fm07} was
 fit, the particular contrasts used for the \code{Type}
 factor, which has four levels, correspond to
 <<contr.treatment4>>=
@@ -325,8 +325,8 @@ head(ergoStool)
 @
 combined with the contrasts produce the model matrix $\vec X$, whose
 first few rows are
-<<headfm6X>>=
-head(with(env(fm6), X))
+<<headfm07X>>=
+head(with(env(fm07), X))
 @
 We see that the rows of $\vec X$ for observations on stool type \code{T1}
 have zeros in the last three columns; the rows for observations on stool
@@ -337,8 +337,8 @@ column of 1's.
 When we evaluate $\vec X\vec\beta$ in the linear predictor expression,
 $\vec X\vec\beta+\vec Z\vec b$, we take the $p$ elements of the
 fixed-effects parameter vector, $\vec\beta$, whose estimate is
-<<fixeffm6>>=
-fixef(fm6)
+<<fixeffm07>>=
+fixef(fm07)
 @
 and the $p$ elements of a row of the matrix $\vec X$, multiply
 corresponding components and sum the resulting products.  For example,
@@ -362,8 +362,8 @@ the \code{Type} factor.
 Similarly, the fixed-effects predictions for the \code{T3} and
 \code{T4} levels of \code{Type} are $8.5556+2.2222=10.7778$ and
 $8.5556+0.6667=9.2222$, respectively, as can be verified from
-<<fixeffm6>>=
-with(env(fm6), head(as.vector(X %*% fixef)))
+<<fixeffm07>>=
+with(env(fm07), head(as.vector(X %*% fixef)))
 @ 
 
 The fact that the parameter labeled \code{TypeT2} is the difference
@@ -389,51 +389,51 @@ Because some of the contrasts that are of interest to us correspond to
 fixed-effects parameter values, we can profile the fitted model
 \begin{figure}[tbp]
   \centering
-<<pr6zeta,fig=TRUE,echo=FALSE,height=3.5>>=
-print(xyplot(pr6, aspect=1.3, layout=c(6,1)))
+<<pr07zeta,fig=TRUE,echo=FALSE,height=3.5>>=
+print(xyplot(pr07, aspect=1.3, layout=c(6,1)))
 @   
-\caption[Profile zeta plot for the parameters in model \code{fm5}]
-{Profile zeta plot for the parameters in model \code{fm5} fit to the
+\caption[Profile zeta plot for the parameters in model \code{fm06}]
+{Profile zeta plot for the parameters in model \code{fm06} fit to the
   \code{ergoStool} data}
-  \label{fig:pr6zeta}
+  \label{fig:pr07zeta}
 \end{figure}
-(Fig.~\ref{fig:pr6zeta}) and check, say, the confidence intervals on
+(Fig.~\ref{fig:pr07zeta}) and check, say, the confidence intervals on
 these parameters.
-<<confintfm6>>=
-confint(pr6, c("TypeT2", "TypeT3", "TypeT4"))
+<<confintfm07>>=
+confint(pr07, c("TypeT2", "TypeT3", "TypeT4"))
 @ 
 According to these intervals, and from what we see from
-Fig.~\ref{fig:pr6zeta}, types \code{T2} and \code{T3} are
+Fig.~\ref{fig:pr07zeta}, types \code{T2} and \code{T3} are
 significantly different from type {T1} (the intervals do not contain
 zero) but type \code{T4} is not (the confidence interval on this
 contrast contains zero).
 
-However, this process must be modified in two ways in two ways to
-provide a suitable answer.  The most important modification is to take
-into account the fact that we are performing \emph{multiple
-  comparisons} simultaneously.  We describe what this means and how to
-accomodate for it in the next subsection.  The other problem is that 
-this process only allows us to evaluate contrasts of the
-reference level, \code{T1}, with the other levels and the reference
-level is essentially arbitrary.  For completeness we should evaluate
-all six possible contrasts of pairs of levels.
+However, this process must be modified in two ways to provide a
+suitable answer.  The most important modification is to take into
+account the fact that we are performing \emph{multiple comparisons}
+simultaneously.  We describe what this means and how to accomodate for
+it in the next subsection.  The other problem is that this process
+only allows us to evaluate contrasts of the reference level,
+\code{T1}, with the other levels and the reference level is
+essentially arbitrary.  For completeness we should evaluate all six
+possible contrasts of pairs of levels.
 
 We can do this by refitting the model with a difference reference
 level for the \code{Type} factor and profiling the modified model
 fit.  The \code{relevel} function allows us to change the reference
 level of a factor.
-<<fm6ab>>=
-pr6a <- profile(lmer(effort ~ 1 + Type + (1|Subject),
+<<fm07ab>>=
+pr07a <- profile(lmer(effort ~ 1 + Type + (1|Subject),
                      within(ergoStool, Type <- relevel(Type, "T2")),
                      REML = 0))
-pr6b <- profile(lmer(effort ~ 1 + Type + (1|Subject),
+pr07b <- profile(lmer(effort ~ 1 + Type + (1|Subject),
                      within(ergoStool, Type <- relevel(Type, "T3")),
                      REML = 0))
 @ 
 The other constrasts of interest are
-<<confintpr6ab>>=
-confint(pr6a, c("TypeT3", "TypeT4"))
-confint(pr6b, "TypeT4")
+<<confintpr07ab>>=
+confint(pr07a, c("TypeT3", "TypeT4"))
+confint(pr07b, "TypeT4")
 @
 from which would conclude that type \code{T2} requires significantly
 greater effort than any of the other types at the 5\% level (because
@@ -493,9 +493,9 @@ intervals are chosen to have coverage of
 or a little more than 99\%.  We can specify this coverage level for
 the individual intervals to ensure a family-wise coverage of at least 95\%.
 <<newint>>=
-rbind(confint(pr6, c("TypeT2","TypeT3","TypeT4"), covrge),
-      confint(pr6a, c("TypeT3","TypeT4"), covrge),
-      confint(pr6b, "TypeT4", covrge))
+rbind(confint(pr07, c("TypeT2","TypeT3","TypeT4"), covrge),
+      confint(pr07a, c("TypeT3","TypeT4"), covrge),
+      confint(pr07b, "TypeT4", covrge))
 @ 
 
 We again reach the conclusion that the only pair of stool types for
@@ -512,7 +512,7 @@ The easiest way to apply other multiple comparison adjustment methods
 is to model both the \code{Type} and the \code{Subject} factors with
 fixed effects, which we do next.
 
-\subsection{Fixed-effects for both \code{Type} and \code{Subject}}
+\subsection{Fixed Effects for \texttt{Type} and \texttt{Subject}}
 \label{sec:ergofe}
 
 Even though the subjects in this study are chosen as representatives
@@ -533,10 +533,108 @@ function.  These two functions produce exactly the same model fit but
 the \code{aov} function returns an object of class \code{"aov"} which
 extends the class \code{"lm"}, providing more options for examining
 the fitted model.
-<<fm7>>=
-summary(fm7 <- aov(effort ~ Subject + Type, ergoStool))
+<<fm08>>=
+summary(fm08 <- aov(effort ~ Subject + Type, ergoStool))
 @ 
 
+As seen above, the \code{summary} method for objects of class
+\code{"aov"} provides an analysis of variance table.  The order in
+which the terms are listed in the model formula can affect the results
+in this table, if the data are unbalanced, and we should be cautious
+to list the terms in the model in the appropriate order, even for
+a balanced data set like the \code{ergoStool}.  The rule is that
+blocking factors should precede experimental factors because the
+contributions of the terms are assessed sequentially.  Thus we read
+the rows in this table as measuring the variability due to the
+\code{Subject} factor and due to the \code{Type} factor after taking
+into account the \code{Subject}.  We want to assess the experimental
+factor after having removed the variability due to the blocking
+factor.
+
+If desired we can assess individual coefficients by applying the
+summary method for \code{"lm"} objects, called \code{summary.lm} to
+this fitted model.  For example, the coefficients table is available as
+<<coeffm08>>=
+coef(summary.lm(fm08))
+@
+but often the individual coefficients are of less interest than the
+net effect of the variability due to the levels of the factor, as
+shown in the analysis of variance table.  For example, in the summary
+of the coefficients shown above the \code{(Intercept)} coefficient is
+the predicted response for the reference subject (subject A) on the
+reference stool type (type T1).  Other coefficients generated by the
+\code{Subject} term are the differences from the reference subject to
+other subjects.  It is not clear why we would want to compare all the
+other subjects to subject A.
+
+One of the multiple comparison methods that we can apply to
+\code{fm08} is Tukey's Honest Significant Difference (HSD) method
+<<Tukeyfm08>>=
+TukeyHSD(fm08, which = "Type")
+@
+from which we reach essentially the same conclusions as before,
+although perhaps less arduously.
+
+\subsection{Fixed Effects Versus Random Effects for \texttt{Subject}}
+\label{sec:fevsreSubj}
+
+These three analyses provoke the question of whether to use
+fixed-effects parameters or random effects for the \code{Subject}
+factor.  That is, should \code{Subject} be treated as a blocking
+factor or as a sample of levels from a population.  If the sole
+purpose of the experiment is to rate the stool types relative to each
+other then it may be more convenient to consider \code{Subject} as a
+blocking factor in the experiment and incorporate it as the first term
+in a fixed-effects model for this completely balanced data set from a
+designed experiment.  Strictly speaking, the inferences about the
+stool types that we would draw apply to these particular nine subjects
+only, not to a general population, but in practice it is not too much
+of a stretch to think of them as applying to a population
+\emph{unless} we want to predict the score that a general member of
+the population would give to a particular stool type.  We can
+formulate the prediction but assessing the variability in the
+prediction is difficult when using fixed-effects models.
+
+Random effects are preferred, perhaps even necessary, if we wish to
+make inferences that apply to the population of potential users.
+Also, when we have unbalanced data or large samples, the flexibility
+of mixed models becomes important in stabilizing the estimation of
+parameters.  The estimation of parameters in fixed-effects models by
+least squares is somewhat rigid.  In theory it requires that the
+columns of the model matrix, $\vec X$, are linearly independent.  In
+practice, it is very difficult to determine if the columns of a large
+model matrix are indeed linear independent or, equivalently, if the
+rank of $\vec X$ is exactly $p$.  The best we can do is determine if
+the condition number, $\kappa$, of $\vec X$ (the ratio of the largest
+to smallest singular values --- see \code{?kappa}) is sufficiently
+small to trust the numerical linear algebra results.  One way of
+thinking of $\kappa$ is as a ``magnification factor'' for numerical
+perturbations.  In the worst-case scenario, perturbations of relative
+size $\epsilon$ in the elements of $\vec y$ results in perturbations
+of relative size $\kappa\epsilon$ in the coefficients
+$\widehat{\beta}$.
+
+When the number of columns, $p$, of $\vec X$ is small the condition
+number tends to be small.
+<<kappafm08>>=
+kappa(fm08, exact = TRUE)
+@ 
+However, when $p$ is large the condition number of $\vec X$ tends to
+become very large and evaluation of fixed-effects parameter
+estimates and their standard errors is an ill-conditioned problem.
+
+Calculations involving the random effects model matrix, $\vec Z$, are
+not as sensitive to ill-conditioning.  The numerical accuracy is
+determined by the condition number of the sparse Cholesky factor,
+$\vec L_\theta$, defined in (\ref{eq:sparseCholesky1}) which is less
+than the condition number of $\Lambda_\theta\trans\vec Z\trans\vec
+Z\Lambda_\theta$, even when $\Lambda_\theta$ is singular.
+<<kappafm06>>=
+kappa.tri(as(as(env(fm06)$L, "sparseMatrix"), "matrix"), exact = TRUE)
+@ 
+The evaluation of $\vec L_\theta$ is an example of
+\emph{regularization} methods for solving ill-posed problems or to
+prevent overfitting.
 
 \section{Covariates Affecting Mathematics Score Gain}
 \label{sec:mathgain}
@@ -555,6 +653,54 @@ several schools.
 <<classroom>>=
 str(classroom)
 @ 
+
+The response modeled in Chap.~4 of \citet{west07:_linear_mixed_model}
+is \code{mathgain}, the difference between a student's mathematics
+score at the end of grade one and at the end of kindergarten.  To
+allow comparisons with the results in
+\citet{west07:_linear_mixed_model} we will use that response in this section.
+
+There is one observation per student. In the terminology of the
+multilevel modeling literature the levels of variability correspond to
+student (level 1), classroom (level 2) and school (level 3) with the
+assumption that classroom is nested within school.  The concept of
+``levels'' can only be applied to models and data sets in which the
+grouping factors of the random effects form a nested sequence.  In
+crossed or partially crossed configurations there are no clearly
+defined levels.
+
+At this point we should check if there is implicit nesting.  That is,
+are the levels of the \code{classid} factor nested within
+\code{schoolid} factor.  We could simply create the interaction factor
+to avoid the possibility of implicit nesting but it saves a bit of
+trouble if we check before doing so
+<<isnested>>=
+with(classroom, lme4a:::isNested(classid, schoolid))
+@
+
+A model with simple, scalar random effects and without any
+fixed-effects terms (other than the implicit intercept) is called the ``unconditional model'' in the multilevel modeling literature.  We fit it as
+<<fm09>>=
+(fm09 <- lmer(mathgain ~ (1|classid) + (1|schoolid), classroom))
+@ 
+The results from this model fit using the REML criterion can be
+compared to Table 4.6 (page 156) of
+\citet{west07:_linear_mixed_model}.
+
+It seems that the \code{housepov} value is a property of the school.  
+We can check this by considering the number of unique combinations of
+\code{housepov} and \code{schoolid} and comparing that to the number
+of levels of \code{schoolid}.  For safety we check the number of
+levels of \code{factor(schoolid)} in case there are unused levels in
+\code{schoolid}.
+<<schoolidhousepov>>=
+with(classroom, length(levels(factor(schoolid))))
+nrow(unique(subset(classroom, select = c(schoolid, housepov))))
+@ 
+
+In some formulations of multilevel models or hierarchical linear
+models it is important to associate covariates with different levels
+in the hierarchy.
 
 <<fm7>>=
 (fm7 <- lmer(mathgain ~ 1 + I(mathkind-450) + sex + minority + ses
