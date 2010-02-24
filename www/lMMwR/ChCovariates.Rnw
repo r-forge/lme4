@@ -677,15 +677,38 @@ trouble if we check before doing so
 <<isnested>>=
 with(classroom, lme4a:::isNested(classid, schoolid))
 @
-
+\begin{figure}[tbp]
+  \centering
+<<classroomdot,fig=TRUE,echo=FALSE,height=8>>=
+lsch <- names(which(xtabs(~ schoolid, unique(subset(classroom, select=c(schoolid,classid)))) == 5))
+funiq <- function(x) if(is.factor(x)) factor(x) else x
+cl <- within(do.call(data.frame,lapply(subset(classroom, schoolid %in% lsch),
+                                       funiq)),
+         {
+             sch <- reorder(schoolid, mathgain)
+             cls <- reorder(reorder(classid, mathgain), as.numeric(schoolid))
+         })
+print(dotplot(cls ~ mathgain | sch, cl, pch = 21,
+              strip = FALSE, strip.left = TRUE, layout = c(1, 12),
+              scales = list(y = list(relation = "free")),
+              ylab = "Classroom within school", type = c("p", "a"),
+              xlab = "Gain in Mathematics score from kindergarten to first grade",
+              jitter.y = TRUE))
+@   
+  \caption{Comparative dotplots of gain in the mathematics scores in classrooms within schools.}
+  \label{fig:classroomdot}
+\end{figure}
 A model with simple, scalar random effects and without any
-fixed-effects terms (other than the implicit intercept) is called the ``unconditional model'' in the multilevel modeling literature.  We fit it as
+fixed-effects terms (other than the implicit intercept) is called the
+``unconditional model'' in the multilevel modeling literature.  We fit
+it as
 <<fm09>>=
 (fm09 <- lmer(mathgain ~ (1|classid) + (1|schoolid), classroom))
 @ 
 The results from this model fit using the REML criterion can be
 compared to Table 4.6 (page 156) of
 \citet{west07:_linear_mixed_model}.
+
 
 It seems that the \code{housepov} value is a property of the school.  
 We can check this by considering the number of unique combinations of

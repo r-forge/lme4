@@ -604,6 +604,7 @@ is a direct (i.e. non-iterative) computation for which we calculate
 the \emph{sparse Cholesky factor}, $\vec L_\theta$, which is a lower
 triangular $q\times q$ matrix satisfying
 \begin{equation}
+  \label{eq:sparseCholesky1}
   \vec L_\theta\vec L_\theta\trans=
   \Lambda_\theta\trans\vec Z\trans\vec Z\Lambda_\theta+\vec I_q .
 \end{equation}
