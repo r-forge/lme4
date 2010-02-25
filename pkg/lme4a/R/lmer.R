@@ -112,6 +112,10 @@ makeZt <- function(bars, fr, rho) {
     }
     blist <- lapply(bars, mkBlist)
     nl <- sapply(blist, "[[", "nl")     # no. of levels per term
+    n <- nrow(fr)
+    if(any(nl >= n))
+	stop("Number of levels of a grouping factor for the random effects\n",
+	     "must be less than the number of observations")
     ## order terms stably by decreasing number of levels in the factor
     if (any(diff(nl)) > 0) {
         ord <- rev(order(nl))
@@ -126,7 +130,7 @@ makeZt <- function(bars, fr, rho) {
     rho$cnms <- lapply(blist, "[[", "cnms")
     nc <- sapply(rho$cnms, length)      # no. of columns per term
     nth <- as.integer((nc * (nc+1))/2)  # no. of parameters per term
-    nb <- nc * nl                     # no. of random effects per term
+    nb <- nc * nl                       # no. of random effects per term
     stopifnot(sum(nb) == q)
 
     rho$u <- numeric(q)

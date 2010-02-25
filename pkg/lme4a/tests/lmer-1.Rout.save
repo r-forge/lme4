@@ -131,7 +131,7 @@ Fixed effects:
 > ## generalized linear mixed model
 > (m1 <- glmer(cbind(incidence, size - incidence) ~ period + (1 | herd),
 +              family = binomial, data = cbpp))
-<environment: 0x849f048>
+<environment: 0x6fccaf8>
 > if(FALSE)#not yet
 + stopifnot(is(m1,"merenv"), is((cm1 <- coef(m1)), "coef.mer"),
 + 	  dim(cm1$herd) == c(15,4),
@@ -335,17 +335,16 @@ lagoon3 0.000  0.000
 lagoon4 0.000  0.000  0.000 
 > 
 > ## Failure to specify a random effects term - used to give an obscure message
-> ## Desired is
-> ##>>  Error in evalbars(formula, rho$frame, contrasts) :
-> ##>>    No random effects terms specified in formula
-> ##-- however, that is *again* no longer the case __ FIXME __
+> ## Ensure *NON*-translated message; works on Linux,... :
+> Sys.setlocale("LC_MESSAGES", "C")
+[1] "C"
 > tc <- tryCatch(
-+                m2 <- glmer(incidence / size ~ period, weights = size,
-+                            family = binomial, data = cbpp)
-+                , error = function(.) .)
-> stopifnot(inherits(tc, "error"))
-> ## TODO: *check* the error message -- assuming it is *not* translated
-> 
++ 	       m2 <- glmer(incidence / size ~ period, weights = size,
++ 			   family = binomial, data = cbpp)
++ 	       , error = function(.) .)
+> stopifnot(inherits(tc, "error"),
++ 	  identical(tc$message,
++ 		    "No random effects terms specified in formula"))
 > 
 > ### mcmcsamp() :
 > ## From: Andrew Gelman <gelman@stat.columbia.edu>
@@ -389,37 +388,9 @@ lagoon4 0.000  0.000  0.000
 > tstDF <- data.frame(group = letters[1:5], y = 1:5)
 > var(tstDF$y) # == 2.5
 [1] 2.5
-> ## Now throws an error -- not anymore in lme4a -- FIXME <<
-> try(f.oops <- lmer(y ~ 1 + (1|group), data = tstDF))
-> f.oops
-Linear mixed model fit by REML 
-Formula: y ~ 1 + (1 | group) 
-   Data: tstDF 
- REML 
-16.63 
-
-Random effects:
- Groups   Name        Variance Std.Dev.
- group    (Intercept) 1.25     1.1180  
- Residual             1.25     1.1180  
-Number of obs: 5, groups: group, 5
-
-Fixed effects:
-            Estimate Std. Error t value
-(Intercept)   3.0000     0.7071   4.243
-> ##  summary(f.oops) ## or print(Matrix:::formatVC(VarCorr(f.oops)), quote = FALSE)
-> ## ...
-> ##   Groups   Name        Variance Std.Dev.
-> ##   group    (Intercept) 1.81818  1.34840
-> ##   Residual             0.68182  0.82572
-> ## ...
-> ##
-> ##SG>	 This is ... silly, because there are zero degrees of freedom
-> ##SG> to distinguish "group" from Residual.  It is comforting that the sum of
-> ##SG> the variances sum to the variance of "y", ......
-> ##SG>	 However, I would prefer to have the multilevel software catch this
-> ##SG> case and optionally return an error or drop the redundant group
-> ##SG> with a warning.
+> ## Now throws an error
+> assertError(lmer(y ~ 1 + (1|group), data = tstDF))
+> 
 > 
 > ## Wrong formula gave a seg.fault at times:
 > D <-  data.frame(y= rnorm(20,10), ff = gl(4,5),
@@ -454,5 +425,5 @@ In Ops.factor(ff, x1) : + not meaningful for factors
 > stopifnot(all.equal.notCall(Pm1, Pm2))
 > 
 > cat('Time elapsed: ', proc.time(),'\n') # for ``statistical reasons''
-Time elapsed:  10.046 0.257 10.586 0 0 
+Time elapsed:  9.978 0.198 10.425 0 0 
 > 
