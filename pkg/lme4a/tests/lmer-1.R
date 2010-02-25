@@ -124,17 +124,15 @@ stopifnot(all.equal(fixef(r2), fixef(r2.), tol= 1e-14),
 r2.
 
 ## Failure to specify a random effects term - used to give an obscure message
-## Desired is
-##>>  Error in evalbars(formula, rho$frame, contrasts) :
-##>>    No random effects terms specified in formula
-##-- however, that is *again* no longer the case __ FIXME __
+## Ensure *NON*-translated message; works on Linux,... :
+Sys.setlocale("LC_MESSAGES", "C")
 tc <- tryCatch(
-               m2 <- glmer(incidence / size ~ period, weights = size,
-                           family = binomial, data = cbpp)
-               , error = function(.) .)
-stopifnot(inherits(tc, "error"))
-## TODO: *check* the error message -- assuming it is *not* translated
-
+	       m2 <- glmer(incidence / size ~ period, weights = size,
+			   family = binomial, data = cbpp)
+	       , error = function(.) .)
+stopifnot(inherits(tc, "error"),
+	  identical(tc$message,
+		    "No random effects terms specified in formula"))
 
 ### mcmcsamp() :
 ## From: Andrew Gelman <gelman@stat.columbia.edu>
@@ -173,26 +171,13 @@ if (FALSE) {  # mcmcsamp still needs work
     rG2 <- mcmcsamp(m1, n = 3, verbose = TRUE)
 }
 
-## Spencer Graves' example (from a post to S-news, 2006-08-03): ----------------
-## FIXME?
+## Spencer Graves' example (from a post to S-news, 2006-08-03) ----------------
+## it should give an error, rather than silent non-sense:
 tstDF <- data.frame(group = letters[1:5], y = 1:5)
-var(tstDF$y) # == 2.5
-## Now throws an error -- not anymore in lme4a -- FIXME <<
-try(f.oops <- lmer(y ~ 1 + (1|group), data = tstDF))
-f.oops
-##  summary(f.oops) ## or print(Matrix:::formatVC(VarCorr(f.oops)), quote = FALSE)
-## ...
-##   Groups   Name        Variance Std.Dev.
-##   group    (Intercept) 1.81818  1.34840
-##   Residual             0.68182  0.82572
-## ...
-##
-##SG>	 This is ... silly, because there are zero degrees of freedom
-##SG> to distinguish "group" from Residual.  It is comforting that the sum of
-##SG> the variances sum to the variance of "y", ......
-##SG>	 However, I would prefer to have the multilevel software catch this
-##SG> case and optionally return an error or drop the redundant group
-##SG> with a warning.
+assertError(## Now throws an error, as desired :
+            lmer(y ~ 1 + (1|group), data = tstDF)
+            )
+
 
 ## Wrong formula gave a seg.fault at times:
 D <-  data.frame(y= rnorm(20,10), ff = gl(4,5),
