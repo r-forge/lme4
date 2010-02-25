@@ -313,17 +313,22 @@ xyplot.thpr <-
        }, ...)
 }
 
-confint.thpr <- function(object, parm, level = 0.95, ...)
+confint.thpr <- function(object, parm, level = 0.95, zeta, ...)
 {
     bak <- attr(object, "backward")
     bnms <- names(bak)
     if (missing(parm)) parm <- bnms
     else if (is.numeric(parm)) parm <- bnms[parm]
     parm <- intersect(as.character(parm), bnms)
-    a <- (1 - level)/2
-    a <- c(a, 1 - a)
-    ci <- t(sapply(parm, function(nm) predy(bak[[nm]], qnorm(a))))
-    colnames(ci) <- stats:::format.perc(a, 3)
+    cn <- NULL
+    if (missing(zeta)) {
+        a <- (1 - level)/2
+        a <- c(a, 1 - a)
+        zeta <- qnorm(a)
+        cn <- stats:::format.perc(a, 3)
+    }
+    ci <- t(sapply(parm, function(nm) predy(bak[[nm]], zeta)))
+    colnames(ci) <- cn
     ci
 }
 
@@ -546,6 +551,30 @@ log.thpr <- function (x, base = exp(1))
                 sub("^\\.sig", ".lsig", names(attr(x, "forward")))
         for (nm in colnames(x)[sigs]) {
             x[[nm]] <- log(x[[nm]], base = base)
+            fr <- subset(x, .par == nm & is.finite(x[[nm]]))
+            form <- eval(substitute(.zeta ~ nm, list(nm = as.name(nm))))
+            attr(x, "forward")[[nm]] <- interpSpline(form, fr)
+            attr(x, "backward")[[nm]] <- backSpline(attr(x, "forward")[[nm]])
+        }
+        ## eliminate rows the produced non-finite logs
+        x <- x[apply(is.finite(as.matrix(x[, sigs])), 1, all),]
+    }
+    x
+}
+
+## FIXME - change this so it uses .sigsq too
+varpr <- function (x)
+{
+    cn <- colnames(x)
+    sigs <- grep("^\\.sig[0-9][0-9]", cn)
+    if (length(sigs)) {
+        colnames(x) <- sub("^\\.sig", ".sigsq", cn)
+        levels(x$.par) <- sub("^\\.sig", ".sigsq", levels(x$.par))
+        names(attr(x, "backward")) <- 
+            names(attr(x, "forward")) <-
+                sub("^\\.sig", ".sigsq", names(attr(x, "forward")))
+        for (nm in colnames(x)[sigs]) {
+            x[[nm]] <- x[[nm]]^2
             fr <- subset(x, .par == nm & is.finite(x[[nm]]))
             form <- eval(substitute(.zeta ~ nm, list(nm = as.name(nm))))
             attr(x, "forward")[[nm]] <- interpSpline(form, fr)
