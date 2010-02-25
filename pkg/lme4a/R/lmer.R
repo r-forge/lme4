@@ -69,7 +69,7 @@ derived_mats <- function(rho) {
                                                        rho$ZtX),
                                       sys = "P"), sys = "L")
         rho$RX <- if (is(rho$XtX <- crossprod(X), "dsparseMatrix"))
-            Cholesky(rho$XtX - crossprod(rho$RZX)) else chol(rho$XtX)
+            Cholesky(rho$XtX - crossprod(rho$RZX), LDL = FALSE) else chol(rho$XtX)
     }
 }
 
