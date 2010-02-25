@@ -82,35 +82,35 @@ derived_mats <- function(rho) {
 ##' @rho an environment that is modified by this function
 ##' @return NULL - the side effect of the function is to modify rho
 makeZt <- function(bars, fr, rho) {
-    stopifnot(is.list(bars), all(sapply(bars, is.language)),
-              inherits(fr, "data.frame"), is.environment(rho))
     if (!length(bars))
         stop("No random effects terms specified in formula")
+    stopifnot(is.list(bars), all(sapply(bars, is.language)),
+              inherits(fr, "data.frame"), is.environment(rho))
     names(bars) <- unlist(lapply(bars, function(x) deparse(x[[3]])))
-    blist <- lapply(bars,
-                    function(x)
-                {
-                    ff <- eval(substitute(factor(fac), list(fac = x[[3]])), fr)
-                    if (all(is.na(ff)))
-                        stop("Invalid grouping factor specification,",
-                             x[[3]])
-                    nl <- length(levels(ff))
-                    mm <- model.matrix(eval(substitute( ~ foo,
-                                                       list(foo = x[[2]]))), fr)
-                    nc <- ncol(mm)
-                    nseq <- seq_len(nc)
-                    sm <- as(ff, "sparseMatrix")
-                    if (nc  > 1)
-                        sm <- do.call(rBind, lapply(nseq, function(i) sm))
-                    sm@x[] <- t(mm[])
-                    ## When nc > 1 switch the order of the rows of sm
-                    ## so the random effects for the same level of the
-                    ## grouping factor are adjacent.
-                    if (nc > 1)
-                        sm <- sm[as.vector(matrix(seq_len(nc * nl),
-                                                  nc = nl, byrow = TRUE)),]
-                    list(ff = ff, sm = sm, nl = nl, cnms = colnames(mm))
-                })
+    ## auxiliary {named, for easier inspection}:
+    mkBlist <- function(x) {
+	ff <- eval(substitute(factor(fac), list(fac = x[[3]])), fr)
+	if (all(is.na(ff)))
+	    stop("Invalid grouping factor specification, ",
+		 deparse(x[[3]]))
+	nl <- length(levels(ff))
+	mm <- model.matrix(eval(substitute( ~ foo,
+					   list(foo = x[[2]]))), fr)
+	nc <- ncol(mm)
+	nseq <- seq_len(nc)
+	sm <- as(ff, "sparseMatrix")
+	if (nc	> 1)
+	    sm <- do.call(rBind, lapply(nseq, function(i) sm))
+	sm@x[] <- t(mm[])
+	## When nc > 1 switch the order of the rows of sm
+	## so the random effects for the same level of the
+	## grouping factor are adjacent.
+	if (nc > 1)
+	    sm <- sm[as.vector(matrix(seq_len(nc * nl),
+				      nc = nl, byrow = TRUE)),]
+	list(ff = ff, sm = sm, nl = nl, cnms = colnames(mm))
+    }
+    blist <- lapply(bars, mkBlist)
     nl <- sapply(blist, "[[", "nl")     # no. of levels per term
     ## order terms stably by decreasing number of levels in the factor
     if (any(diff(nl)) > 0) {
@@ -174,7 +174,7 @@ makeZt <- function(bars, fr, rho) {
     rho$flist <- fl
 
     NULL
-}
+} ## {makeZt}
 
 lmer <-
     function(formula, data, REML = TRUE, sparseX = FALSE,
@@ -183,10 +183,27 @@ lmer <-
              contrasts = NULL, ...)
 {
     mf <- mc <- match.call()
-    if (!is.null(list(...)$family)) {      # call glmer if family specified
-        mc[[1]] <- as.name("glmer")
-        eval(mc, parent.frame())
+### '...' handling up front, safe-guarding against typos ("familiy") :
+    if(length(l... <- list(...))) {
+        if (!is.null(l...$family)) {  # call glmer if family specified
+            mc[[1]] <- as.name("glmer")
+            eval(mc, parent.frame())
+        }
+        ## Check for method argument which is no longer used
+        if (!is.null(method <- l...$method)) {
+            msg <- paste("Argument", sQuote("method"),
+                         "is deprecated.\nUse", sQuote("nAGQ"),
+                         "to choose AGQ.  PQL is not available.")
+            if (match.arg(method, c("Laplace", "AGQ")) == "Laplace") {
+                warning(msg)
+                l... <- l...[names(l...) != "method"]
+            } else stop(msg)
+        }
+        if(length(l...))
+            warning("extra arguments ", paste(names(l...), sep=", "),
+                    " are disregarded")
     }
+
     stopifnot(length(formula <- as.formula(formula)) == 3)
     if (missing(data)) data <- environment(formula)
                                         # environment for deviance evaluation
@@ -210,7 +227,7 @@ lmer <-
     fe.form[[3]] <- nb
     X <- if (sparseX) {
         sparse.model.matrix(fe.form, fr, contrasts)
-    } else as(model.matrix(fe.form, fr, contrasts), "dgeMatrix")
+    } else as( model.matrix(fe.form, fr, contrasts), "dgeMatrix")
     rownames(X) <- NULL
     rho$X <- X
     rho$sparseX <- sparseX
@@ -220,16 +237,6 @@ lmer <-
     fixef <- numeric(p)
     names(fixef) <- colnames(X)
     rho$fixef <- fixef
-
-    ## Check for method argument which is no longer used
-    if (!is.null(method <- list(...)$method)) {
-        msg <- paste("Argument", sQuote("method"),
-                     "is deprecated.\nUse", sQuote("nAGQ"),
-                     "to choose AGQ.  PQL is not available.")
-        if (match.arg(method, c("Laplace", "AGQ")) == "Laplace") {
-            warning(msg)
-        } else stop(msg)
-    }
 
     makeZt(expandSlash(findbars(formula[[3]])), fr, rho)
     rho$L <- Cholesky(tcrossprod(rho$Zt), LDL = FALSE, Imult = 1)
@@ -299,20 +306,27 @@ function(formula, data, family = gaussian, sparseX = FALSE,
          offset, contrasts = NULL, nAGQ = 1, mustart, etastart, ...)
 {
     mf <- mc <- match.call()
-    if (missing(family)) {
-        mc[[1]] <- as.name("lmer")
-        eval(mc, parent.frame())
+    if (missing(family)) { ## divert using lmer()
+	mc[[1]] <- as.name("lmer")
+	eval(mc, parent.frame())
+    }
+### '...' handling up front, safe-guarding against typos ("familiy") :
+    if(length(l... <- list(...))) {
+	## Check for invalid specifications
+	if (!is.null(method <- list(...)$method)) {
+	    msg <- paste("Argument", sQuote("method"),
+			 "is deprecated.\nUse", sQuote("nAGQ"),
+			 "to choose AGQ.  PQL is not available.")
+	    if (match.arg(method, c("Laplace", "AGQ")) == "Laplace") {
+		warning(msg)
+		l... <- l...[names(l...) != "method"]
+	    } else stop(msg)
+	}
+	if(length(l...))
+	    warning("extra arguments ", paste(names(l...), sep=", "),
+		    " are disregarded")
     }
 
-    ## Check for invalid specifications
-    if (!is.null(method <- list(...)$method)) {
-        msg <- paste("Argument", sQuote("method"),
-                     "is deprecated.\nUse", sQuote("nAGQ"),
-                     "to choose AGQ.  PQL is not available.")
-        if (match.arg(method, c("Laplace", "AGQ")) == "Laplace") {
-            warning(msg)
-        } else stop(msg)
-    }
     if (!(all(1 == (nAGQ <- as.integer(nAGQ)))))
         warning("nAGQ > 1 has not been implemented, using Laplace")
     stopifnot(length(formula <- as.formula(formula)) == 3)
@@ -532,6 +546,8 @@ nlmer2 <- function(formula, data, family = gaussian, start = NULL,
 
 #    merFinalize(rho)
 }
+
+setMethod("formula", "merenv", function(x, ...) formula(env(x)$call, ...))
 
 setMethod("fixef", "merenv", function(object, ...) env(object)$fixef)
 
@@ -811,7 +827,7 @@ setMethod("anova", signature(object = "lmerenv"),
               table <- data.frame(df, ss, ms, f)
               dimnames(table) <-
                   list(nmeffects,
-                                        #			c("Df", "Sum Sq", "Mean Sq", "Denom", "F value", "Pr(>F)"))
+                       ## c("Df", "Sum Sq", "Mean Sq", "Denom", "F value", "Pr(>F)"))
                        c("Df", "Sum Sq", "Mean Sq", "F value"))
               if ("(Intercept)" %in% nmeffects)
                   table <- table[-match("(Intercept)", nmeffects), ]
@@ -894,7 +910,10 @@ printMerenv <- function(x, digits = max(3, getOption("digits") - 3),
 		     digits = digits, signif.stars = signif.stars)
 	if(correlation) {
 	    corF <- so$vcov@factors$correlation
-	    if (!is.null(corF)) {
+	    if (is.null(corF)) {
+		cat("\nCorrelation of Fixed Effets is not available\n")
+	    }
+	    else {
 		p <- ncol(corF)
 		if (p > 1) {
 		    rn <- rownames(so$coefficients)
@@ -958,6 +977,8 @@ setMethod("summary", signature(object = "lmerenv"),
           corF <- if(!is.null(vcov)) vcov@factors$correlation # else NULL
 	  coefs <- cbind("Estimate" = fcoef,
 			 "Std. Error" = sig * sqrt(unscaledVar(RX = rho$RX)))
+          if (nrow(coefs) > 0)
+              coefs <- cbind(coefs, "t value" = coefs[,1]/coefs[,2])
           llik <- logLik(object, REML)
           mName <- paste("Linear mixed model fit by",
                          if (REML) "REML" else "maximum likelihood")
@@ -967,14 +988,12 @@ setMethod("summary", signature(object = "lmerenv"),
                      deviance = unname(dc$cmp["deviance"]), row.names = "")
           varcor <- VarCorr(object)
           REmat <- formatVC(varcor)
-          if (nrow(coefs) > 0)
-              coefs <- cbind(coefs, "t value" = coefs[,1]/coefs[,2])
           ans <- list(methTitle = mName,
                       devcomp = dc,
                       logLik = llik,
                       ngrps = sapply(rho$flist, function(x) length(levels(x))),
-                      sigma = sigma(object),
                       coefficients = coefs,
+                      sigma = sig,
                       vcov = vcov,
                       REmat = REmat,
                       AICtab= AICframe,
@@ -1045,7 +1064,6 @@ setMethod("show", "lmerenv", function(object) printMerenv(object))
 setMethod("coef", signature(object = "merenvtrms"),
 	  function(object, ...)
       {
-          
           if (length(list(...)))
               warning(paste('arguments named "',
                             paste(names(list(...)), collapse = ", "),
