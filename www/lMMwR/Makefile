@@ -1,5 +1,7 @@
-R_PROG = R-devel
-#R_PROG = R
+R = R-devel
+#R = R
+R_CMD = LC_ALL=C $(R) CMD
+
 FRONT = DMBmacros.tex acronym.tex dedication.tex preface.tex # acknow.tex foreword.tex
 CHAPTERS = ChIntro ChMultiple ChCovariates ChLongitudinal ChTheory
 APPENDICES =
@@ -20,17 +22,19 @@ all:  $(CHAPTERS:=.tex) $(RNW:=.R) $(RNW:=.tex) lMMwR.pdf lrgprt.pdf
 #		*.aux *.log *.toc *.nav *.snm *.vrb *.dvi
 
 %.tex: %.Rnw
-	${R_PROG} CMD Sweave $<
+	$(R_CMD) Sweave $<
 
 %.R: %.Rnw
-	${R_PROG} CMD Stangle $<
+	$(R_CMD) Stangle $<
 
 %.pdf : %.tex
-	${R_PROG} CMD texi2pdf $<
+	$(R_CMD) texi2pdf $<
 
 %.png: %.pdf
 	convert $< $@
 
+%.Rout: %.R
+	$(R_CMD) BATCH $<
 
 lMMwR.pdf: lMMwR.tex lMMwR.bib lMMwR.ind $(FRONT) $(RNW:=.tex) $(smlGRAPHS)
 
@@ -48,13 +52,15 @@ lMMwR.ind: lMMwR.idx
 lMMwR.idx:
 	touch lMMwR.idx
 
+Rscripts:: $(RNW:=.R)
+Routs:: $(RNW:=.Rout)
 
 clean:
 	$(RM) -f *.aux *.bbl *.blg *.idx *.ilg *.log *.ind *.toc *.lof *.lot
 	$(RM) -f Rplots.*
 
 realclean: clean
-	$(RM) -f *~ $(RNW:=.tex) *.pdf *.rda lrgprt.tex figs/*.pdf figs/*.png
+	$(RM) -f *~ $(RNW:=.tex) $(RNW:=.Rout) *.pdf *.rda lrgprt.tex figs/*.pdf figs/*.png
 
 ## TODO?  Use 'dist: clean' or 'dist: realclean'  and maybe *some* extra?
 dist:
