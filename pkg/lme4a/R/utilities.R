@@ -32,7 +32,8 @@ nobars <- function(term)
     term
 }
 
-#' Substitute the '+' function for the '|' function
+##' "Sub[stitute] Bars" :
+##'  Substitute the '+' function for the '|' function
 subbars <- function(term)
 {
     if (is.name(term) || !is.language(term)) return(term)

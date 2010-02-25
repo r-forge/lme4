@@ -7,6 +7,12 @@ source(system.file("test-tools.R", package = "Matrix"))# identical3() etc
 (fm1a <- lmer(Reaction ~ Days + (Days|Subject), sleepstudy, REML = FALSE))
 (fm2 <- lmer(Reaction ~ Days + (1|Subject) + (0+Days|Subject), sleepstudy))
 
+(fm3 <- lmer(Yield ~ 1|Batch, Dyestuff2))
+stopifnot(all.equal(coef(summary(fm3)),
+		    array(c(5.6656, 0.67838803150, 8.3515624346),
+			  c(1,3), dimnames = list("(Intercept)",
+				  c("Estimate", "Std. Error", "t value")))))
+
 ## transformed vars should work[even if non-sensical as here;failed in 0.995-1]
 fm2l <- lmer(log(Reaction) ~ log(Days+1) + (log(Days+1)|Subject),
              data = sleepstudy, REML = FALSE)
@@ -17,9 +23,8 @@ stopifnot(is(fm1, "merenv"), is(fm2l, "merenv"),
           TRUE)
 
 ## generalized linear mixed model
-## (m1 <- glmer(cbind(incidence, size - incidence) ~ period + (1 | herd),
-##             family = binomial, data = cbpp))
-## warnings() ## << FIXME
+(m1 <- glmer(cbind(incidence, size - incidence) ~ period + (1 | herd),
+             family = binomial, data = cbpp))
 if(FALSE)#not yet
 stopifnot(is(m1,"merenv"), is((cm1 <- coef(m1)), "coef.mer"),
 	  dim(cm1$herd) == c(15,4),
@@ -83,24 +88,53 @@ if (require('MASS', quietly = TRUE)) {
 
 ## Invalid factor specification -- used to seg.fault:
 set.seed(1)
-dat <- data.frame(y = round(10*rnorm(100)), lagoon = factor(rep(1:4,each = 25)),
-                  habitat = factor(rep(1:20, each = 5)))
-r1  <- lmer(y ~ habitat + (1|habitat:lagoon), data = dat) # ok
-stopifnot(all.equal(unname(fixef(r1)),
-		    c(1.4, 0, -1, 3.2, -0.6, -5.2, -1, 0.6, -1.2, 1.2,
-		      -0.6, 0.8, 3.4, 3.2, -5, -2.6, -2.2, 2.2, 7, -7.4)))
+dat <- within(data.frame(lagoon = factor(rep(1:4,each = 25)),
+                         habitat = factor(rep(1:20, each = 5))),
+          {
+              y <- round(10*rnorm(100, m = 10*as.numeric(lagoon)))
+          })
 
-if (FALSE) {   # back to segfaulting again  ----- FIXME !!!!
-    try(
-        reg <- lmer(y ~ habitat + (1|habitat*lagoon), data = dat) # did seg.fault
-        ) # now gives error                 ^- should be ":"
-}
+try(reg <- lmer(y ~ habitat + (1|habitat*lagoon), data = dat) # did seg.fault
+    ) # now gives error                 ^- should be ":"
+r1  <- lmer(y ~ 0+habitat + (1|habitat:lagoon), data = dat) # ok, but senseless
+r1b <- lmer(y ~ 0+habitat + (1|habitat), data = dat) # same model, clearly indeterminable
+## "TODO" :  summary(r1)  should ideally warn the user
+stopifnot(all.equal(fixef(r1), fixef(r1b), tol= 1e-15),
+          all.equal(ranef(r1), ranef(r1b), tol= 1e-15, check.attributes=FALSE))
+
+## Use a more sensible model:
+r2.0 <- lmer(y ~ 0+lagoon + (1|habitat:lagoon), data = dat) # ok
+r2   <- lmer(y ~ 0+lagoon + (1|habitat), data = dat) # ok, and more clear
+stopifnot(all.equal(fixef(r2), fixef(r2.0), tol= 1e-15),
+          all.equal(ranef(r2), ranef(r2.0), tol= 1e-15, check.attributes=FALSE))
+V2 <- vcov(r2)
+assert.EQ.mat(V2, diag(x = 9.9833/3, nr = 4))
+stopifnot(all.equal(unname(fixef(r2)) - (1:4)*100,
+		    c(1.72, 0.28, 1.76, 0.8), tol = 1e-13))
+
+## sparseX version should give same numbers:
+r2.  <- lmer(y ~ 0+lagoon + (1|habitat), data = dat,
+             sparseX = TRUE, verbose = TRUE)
+stopifnot(all.equal(fixef(r2), fixef(r2.), tol= 1e-14),
+          Matrix:::isDiagonal(vcov(r2.)),# ok
+          TRUE ##all.equal(diag(vcov(r2.)), rep.int(V2[1,1], 4), tol= 1e-13)
+          ,## FIXME FIXME ^^^^ currently fails...
+	  all(vcov(r2.)@factors$correlation == diag(4)),
+          TRUE)
+r2.
 
 ## Failure to specify a random effects term - used to give an obscure message
-##try(
-##m2 <- glmer(incidence / size ~ period, weights = size,
-##            family = binomial, data = cbpp)
-##)
+## Desired is
+##>>  Error in evalbars(formula, rho$frame, contrasts) :
+##>>    No random effects terms specified in formula
+##-- however, that is *again* no longer the case __ FIXME __
+tc <- tryCatch(
+               m2 <- glmer(incidence / size ~ period, weights = size,
+                           family = binomial, data = cbpp)
+               , error = function(.) .)
+stopifnot(inherits(tc, "error"))
+## TODO: *check* the error message -- assuming it is *not* translated
+
 
 ### mcmcsamp() :
 ## From: Andrew Gelman <gelman@stat.columbia.edu>
@@ -143,8 +177,9 @@ if (FALSE) {  # mcmcsamp still needs work
 ## FIXME?
 tstDF <- data.frame(group = letters[1:5], y = 1:5)
 var(tstDF$y) # == 2.5
-## Now throws an error
+## Now throws an error -- not anymore in lme4a -- FIXME <<
 try(f.oops <- lmer(y ~ 1 + (1|group), data = tstDF))
+f.oops
 ##  summary(f.oops) ## or print(Matrix:::formatVC(VarCorr(f.oops)), quote = FALSE)
 ## ...
 ##   Groups   Name        Variance Std.Dev.
