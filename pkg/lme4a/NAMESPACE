@@ -13,7 +13,10 @@ importFrom(stats, AIC, anova, coef, confint, deviance, fitted, formula,
 export(HPDinterval, VarCorr, devcomp, env, getBounds, getPars, glmer,
        lmList, lmer, lmer2, mcmcsamp, nlmer, refit, setPars, sigma)
 
-exportClasses(ST, lmList, mer, merMCMC, summary.mer, optenv)
+exportClasses(ST, lmList, mer, merMCMC, summary.mer,
+	      ## export all super classes of e.g., "lmerenv",
+	      ## so users can query the class system :
+	      optenv, merenv, merenvtrms, lmerenv)
 
 exportMethods(BIC, HPDinterval, VarCorr, anova, as.matrix, as.data.frame,
               chol, coef, coerce, confint, densityplot, deviance, expand,
