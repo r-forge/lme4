@@ -7,7 +7,7 @@ extern "C" {
 #endif
 
     SEXP glmer_IRLS(SEXP rho);
-    SEXP glmer_PIRLS(SEXP rho, SEXP pars);
+    SEXP glmer_PIRLS(SEXP rho);
     SEXP glmer_PIRLSbeta(SEXP rho);
     SEXP glmer_update_sqrtrwt(SEXP rho);
     
@@ -18,6 +18,8 @@ extern "C" {
 
     SEXP lmerold_validate(SEXP rho);
     SEXP lmerold_deviance(SEXP rho, SEXP newth);
+
+    SEXP merenv_update_Lambda_Ut(SEXP rho, SEXP newth);
 
     SEXP merenvtrms_condVar(SEXP rho, SEXP scale);
     SEXP merenvtrms_show(SEXP rho);

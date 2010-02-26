@@ -71,6 +71,7 @@ merenv::merenv(SEXP rho)
     sqrtrwt = VAR_REAL_NULL(rho, install("sqrtrwt"), n, TRUE);
     sqrtXwt = VAR_REAL_NULL(rho, install("sqrtXwt"), n, TRUE);
     offset = VAR_REAL_NULL(rho, lme4_offsetSym, N, TRUE);
+    verbose = asInteger(findVarBound(rho, install("verbose")));
     if ((sparseX = asLogical(findVarBound(rho, install("sparseX"))))) {
 	Xp = new CHM_rs(VAR_CHM_SP(rho, lme4_XSym, N, p));
 	RXp = new Cholesky_rs(VAR_CHM_FR(rho, lme4_RXSym, p));
@@ -394,7 +395,7 @@ double glmer::update_wtres() {
 
 static const int CM_MAXITER = 300;
 static const double CM_SMIN = 0.001;
-static const double CM_TOL = 0.001;
+static const double CM_TOL = 0.0001;
 
 /**
  * Determine the Euclidean distance between two vectors relative to the
@@ -417,7 +418,14 @@ static double compare_vec(const double *v1, const double *v2, int n) {
     return num/sqrt(d1 * d2);
 }
 
-double glmer::PIRLS(SEXP pars) {
+double glmer::Laplace() {
+    devResid();
+    *ldL2 = M_chm_factor_ldetL2(L);
+    return devres + sqr_length(u, q) + *ldL2;
+}
+
+// Should PIRLS update the parameters too?  Do that separately.
+double glmer::PIRLS() {
     static double one[] = {1,0}, zero[] = {0,0};
     CHM_DN cwtres = N_AS_CHM_DN(wtres, n, 1), deltau,
 	cu = M_cholmod_allocate_dense((size_t)q, (size_t)1, (size_t)q,
@@ -426,11 +434,7 @@ double glmer::PIRLS(SEXP pars) {
     double *uold = new double[q], *varold = new double[n],
 	crit, step, wrss0, wrss1;
     
-    update_Lambda_Ut(pars);
-    if (LENGTH(pars) != nth + p)
-	error(_("%s: length of pars is %d, should be nth + p = %d"),
-	      "glmer::PIRLS", LENGTH(pars), nth + p);
-    dble_cpy(fixef, REAL(pars) + nth, p);
+    dble_zero(u, q);
     update_sqrtrwt();		// var and sqrtrwt
     crit = 10. * CM_TOL;
     for (int i = 0; crit >= CM_TOL && i < CM_MAXITER; i++) { 
@@ -447,7 +451,7 @@ double glmer::PIRLS(SEXP pars) {
 	deltau = M_cholmod_solve(CHOLMOD_A, L, cu, &c);
 	M_cholmod_free_sparse(&Utsc, &c);
 
-	showdbl((double*)deltau->x, "deltau", p);
+	if (verbose > 1) showdbl((double*)deltau->x, "deltau", q);
 	wrss1 = wrss0;		// force one evaluation of the loop
 	for (step = 1.; wrss0 <= wrss1 && step > CM_SMIN; step /= 2.) {
 	    for (int k = 0; k < q; k++)
@@ -455,18 +459,20 @@ double glmer::PIRLS(SEXP pars) {
 	    update_gamma();
 	    linkinv();
 	    wrss1 = update_wtres();
-	    Rprintf("step = %g, wrss0 = %g; wrss1 = %g\n",
-		    step, wrss0, wrss1, fixef[0]);
-	    showdbl(u, "u", q);
+	    if (verbose > 1) {
+		Rprintf("step = %g, wrss0 = %g; wrss1 = %g\n",
+			step, wrss0, wrss1, u[0]);
+		showdbl(u, "u", q);
+	    }
 	}
 	update_sqrtrwt();
 	crit = compare_vec(varold, var, n);
-	Rprintf("convergence criterion: %g\n", crit);
+	if (verbose > 1) Rprintf("convergence criterion: %g\n", crit);
 	M_cholmod_free_dense(&deltau, &c);
     }
     delete[] uold; delete[] varold;
     M_cholmod_free_dense(&cu, &c);
-    return deviance();
+    return Laplace();
 }
 
 double glmer::PIRLSbeta() {
@@ -491,11 +497,6 @@ double glmer::PIRLSbeta() {
     return 1;
 }
 
-double glmer::deviance() {
-    devResid();
-    return devres + sqr_length(u, q);
-}
-    
 double glmer::IRLS() {
     CHM_r *V, *VtV;    
     CHM_DN cwtres = N_AS_CHM_DN(wtres, n, 1), deltaf,
@@ -519,7 +520,7 @@ double glmer::IRLS() {
 
 	V->drmult(1/*transpose*/, 1, 0, cwtres, Vtwr);
 	deltaf = RXp->solveA(Vtwr);
-	showdbl((double*)deltaf->x, "deltaf", p);
+	if (verbose > 1) showdbl((double*)deltaf->x, "deltaf", p);
 	wrss1 = wrss0;		// force one evaluation of the loop
 	for (step = 1.; wrss0 <= wrss1 && step > CM_SMIN; step /= 2.) {
 	    for (int k = 0; k < p; k++)
@@ -527,20 +528,23 @@ double glmer::IRLS() {
 	    update_gamma();
 	    linkinv();
 	    wrss1 = update_wtres();
-	    Rprintf("step = %g, wrss0 = %g; wrss1 = %g\n",
-		    step, wrss0, wrss1, fixef[0]);
-	    showdbl(fixef, "fixef", p);
+	    if (verbose > 1) {
+		Rprintf("step = %g, wrss0 = %g; wrss1 = %g\n",
+			step, wrss0, wrss1, fixef[0]);
+		showdbl(fixef, "fixef", p);
+	    }
 	}
 	update_sqrtrwt();
 	crit = compare_vec(varold, var, n);
-	Rprintf("convergence criterion: %g\n", crit);
+	if (verbose > 1) Rprintf("convergence criterion: %g\n", crit);
 	VtV->freeA(); delete VtV;
 	V->freeA(); delete V;
 	M_cholmod_free_dense(&deltaf, &c);
     }
     delete[] betaold; delete[] varold;
     M_cholmod_free_dense(&Vtwr, &c);
-    return deviance();
+    devResid();
+    return *devres;
 }
 
 #if 0
@@ -678,31 +682,16 @@ double glmerold::PIRLSbeta() {
     return update_dev();
     return 0;
 }
-
-double glmerold::PIRLS() {
-    update_sqrtrwt();		// update variance and sqrtrwt
-    return 0;
-}
-
-double glmerold::IRLS() {
-    double *betaold = new double[p], *varold = new double[n];
-    update_sqrtrwt();		// update variance and sqrtrwt
-    for (int ii = 0; ii < CM_MAXITER; ii++) {
-	dble_cpy(varold, var, n);
-	for (int i = 0; i < CM_MAXITER; i++) {
-	    dble_cpy(betaold, fixef, p);
-	}
-    }	
-    delete[] betaold;
-    delete[] varold;
-    return 0;
-}
 #endif
 
 extern "C" {
+    SEXP merenv_update_Lambda_Ut(SEXP rho, SEXP thnew) {
+	merenv(rho).update_Lambda_Ut(thnew);
+	return R_NilValue;
+    }
 
-    SEXP glmer_PIRLS(SEXP rho, SEXP pars) {
-	return ScalarReal(glmer(rho).PIRLS(pars));
+    SEXP glmer_PIRLS(SEXP rho) {
+	return ScalarReal(glmer(rho).PIRLS());
     }
 
     SEXP glmer_IRLS(SEXP rho) {
