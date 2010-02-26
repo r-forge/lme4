@@ -64,7 +64,9 @@ public:
 	p,		/**< number of fixed effects */
 	q,		/**< number of random effects */
 	diagonalLambda,
-	sparseX;
+	sparseX,
+	verbose;
+    
     double
 	*fixef,	      /**< fixed-effects parameters */
 	*gam,	      /**< linear predictor (not called gamma b/c
@@ -123,10 +125,10 @@ public:
 	*wtres,			/**< weighted residuals */
 	devres;
     GLfamily fam;               /**< GLM family of functions */
-    double PIRLS(SEXP);		/**< deviance at updated u */
+    double PIRLS();		/**< deviance at updated u */
     double PIRLSbeta();		/**< deviance at updated u and beta */
     double IRLS();		/**< deviance at updated beta */
-    double deviance();
+    double Laplace();		/**< Laplace approximation to the deviance */
     void update_sqrtrwt();
     void update_sqrtXwt();
     double update_wtres();
