@@ -36,10 +36,10 @@ check_y_weights <- function(fr, rho, muetastart = FALSE) {
     }
 }
 
-##' Install derived matrices in the environment.  The y vector is
-##' passed separately so that it can incorporate an offset.
+##' Install derived matrices in the environment.
 ##'
 ##' @param rho an lmer environment
+##' @fixme Modify for glmer, nlmer, etc. where products are not stored?
 derived_mats <- function(rho) {
     stopifnot(is.environment(rho),
               is(X <- rho$X, "Matrix"),
@@ -47,6 +47,7 @@ derived_mats <- function(rho) {
     n <- nrow(X)
     p <- ncol(X)
     off <- rho$offset
+### The effective y vector has the offset, if present, subtracted
     yy <- rho$y - if (length(off)) off else 0
     stopifnot(ncol(Zt) == n, length(yy) == n)
 
@@ -182,7 +183,7 @@ makeZt <- function(bars, fr, rho) {
 
 lmer <-
     function(formula, data, REML = TRUE, sparseX = FALSE,
-             control = list(), start = NULL, verbose = FALSE, doFit = TRUE,
+             control = list(), start = NULL, verbose = 0, doFit = TRUE,
              compDev = TRUE, subset, weights, na.action, offset,
              contrasts = NULL, ...)
 {
@@ -256,7 +257,12 @@ lmer <-
 
     rho$compDev <- compDev
     rho$call <- mc
-
+### The meaning of verbose has changed.
+###    verbose == 0 => no iteration output
+###    verbose == 1 => iteration output from optimizer but not PIRLS
+###    verbose == 2 => iteration output from optimizer and PIRLS        
+    rho$verbose <- as.integer(verbose)[1]
+    
     sP <- function(x) {
 ### FIXME: weights are not yet incorporated (needed here?)
         if (compDev) {
@@ -306,7 +312,7 @@ lmer <-
 glmer <-
 function(formula, data, family = gaussian, sparseX = FALSE,
          compDev = TRUE, control = list(), start = NULL,
-         verbose = FALSE, doFit = TRUE, subset, weights, na.action,
+         verbose = 0, doFit = TRUE, subset, weights, na.action,
          offset, contrasts = NULL, nAGQ = 1, mustart, etastart, ...)
 {
     mf <- mc <- match.call()
@@ -366,6 +372,7 @@ function(formula, data, family = gaussian, sparseX = FALSE,
     fixef <- numeric(p)
     names(fixef) <- colnames(X)
     rho$fixef <- fixef
+### FIXME: Should decide on the form of the start argument and how it is used
     rho$start <- numeric(p);            # needed for family$initialize
 
     ## evaluate, check and initialize family
@@ -406,6 +413,7 @@ function(formula, data, family = gaussian, sparseX = FALSE,
     rho$L <- Cholesky(tcrossprod(rho$Zt), LDL = FALSE, Imult = 1)
     derived_mats(rho)
     rho$compDev <- compDev
+    rho$verbose <- as.integer(verbose)[1]
     rho
 }
 
