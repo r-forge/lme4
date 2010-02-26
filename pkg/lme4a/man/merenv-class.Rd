@@ -28,11 +28,11 @@
 \description{
   The \code{\link{class}} \code{"merenv"} is extending (aka
   \sQuote{inheriting from}) \code{"\linkS4class{optenv}"}, an S4 class
-  of functions.  The functions, which
-  are the slots of the class, share a common environment in which the
-  state of the system being. Apart from the optimization state, it has
-  objects in the environment representing \bold{m}ixed-\bold{e}ffects
-  models in \R, hence \dQuote{mer}.
+  of functions.  The functions, which are the slots of the class, share
+  a common environment representing the state of the system being
+  optimized. Apart from the optimization state, it has objects in the
+  environment representing \bold{m}ixed-\bold{e}ffects models in \R,
+  hence \dQuote{mer}.
 }
 \section{Objects from the Class}{
   \code{"merenv"} is a virtual class.  Objects of (\dQuote{actual})
