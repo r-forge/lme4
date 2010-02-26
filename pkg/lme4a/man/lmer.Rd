@@ -12,7 +12,7 @@
 }
 \usage{
 lmer(formula, data, REML = TRUE, sparseX = FALSE,
-      control = list(), start = NULL, verbose = FALSE,
+      control = list(), start = NULL, verbose = 0,
       doFit = TRUE, compDev = TRUE, subset, weights,
        na.action, offset, contrasts = NULL, \dots)
 lmer2(formula, data, family = gaussian, REML = TRUE,
@@ -21,10 +21,10 @@ lmer2(formula, data, family = gaussian, REML = TRUE,
      contrasts = NULL, mustart, etastart, \dots)
 glmer(formula, data, family = gaussian, sparseX = FALSE,
       compDev = TRUE, control = list(), start = NULL,
-      verbose = FALSE, doFit = TRUE, subset, weights,
+      verbose = 0, doFit = TRUE, subset, weights,
       na.action, offset, contrasts = NULL, nAGQ = 1,
       mustart, etastart, \dots)
-nlmer(formula, data, family = gaussian, start = NULL, verbose = FALSE, nAGQ = 1,
+nlmer(formula, data, family = gaussian, start = NULL, verbose = 0, nAGQ = 1,
       doFit = TRUE, subset, weights, na.action, mustart, etastart,
       contrasts = NULL, control = list(), \dots)
 }
@@ -75,8 +75,10 @@ nlmer(formula, data, family = gaussian, start = NULL, verbose = FALSE, nAGQ = 1,
   \item{mustart, etastart}{optional starting values on the scale of the
     conditional mean or the unbounded predictor as in
     \code{\link[stats]{glm}}; see there for details.}
-  \item{verbose}{logical scalar.  If \code{TRUE} verbose output is
-    generated during the optimization of the parameter estimates.}
+  \item{verbose}{integer scalar.  If \code{> 0} verbose output is
+    generated during the optimization of the parameter estimates.  If
+    \code{> 1} verbose output is generated during the individual PIRLS
+    steps.}
   \item{\dots}{other potential arguments.  A \code{method} argument was
     used in earlier versions of the package. Its functionality has been
     replaced by the \code{REML} and \code{nAGQ} arguments.}
