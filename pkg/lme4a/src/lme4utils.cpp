@@ -1,6 +1,108 @@
 #include "lme4utils.h"
 #include "lme4utils.hpp"
 
+/**
+ * Generate zeros and weights of Hermite polynomial of order N, for
+ * the AGQ method.
+ *
+ * Derived from Fortran code in package 'glmmML'
+ *
+ * @param N order of the Hermite polynomial
+ * @param x zeros of the polynomial, abscissas for AGQ
+ * @param w weights used in AGQ
+ */
+
+static void internal_ghq(int N, double *x, double *w)
+{
+    const double GHQ_EPS = 1e-15;
+    const int GHQ_MAXIT = 40;
+    int NR, IT, I, K, J;
+    double Z = 0, HF = 0, HD = 0;
+    double Z0, F0, F1, P, FD, Q, WP, GD, R, R1, R2;
+    double HN = 1/(double)N;
+    double *X = Calloc(N + 1, double), *W = Calloc(N + 1, double);
+
+    for(NR = 1; NR <= N / 2; NR++){
+	if(NR == 1)
+	    Z = -1.1611 + 1.46 * sqrt((double)N);
+	else
+	    Z -= HN * (N/2 + 1 - NR);
+	for (IT = 0; IT <= GHQ_MAXIT; IT++) {
+	    Z0 = Z;
+	    F0 = 1.0;
+	    F1 = 2.0 * Z;
+	    for(K = 2; K <= N; ++K){
+		HF = 2.0 * Z * F1 - 2.0 * (double)(K - 1.0) * F0;
+		HD = 2.0 * K * F1;
+		F0 = F1;
+		F1 = HF;
+	    }
+	    P = 1.0;
+	    for(I = 1; I <= NR-1; ++I){
+		P *= (Z - X[I]);
+	    }
+	    FD = HF / P;
+	    Q = 0.0;
+	    for(I = 1; I <= NR - 1; ++I){
+		WP = 1.0;
+		for(J = 1; J <= NR - 1; ++J){
+		    if(J != I) WP *= ( Z - X[J] );
+		}
+		Q += WP;
+	    }
+	    GD = (HD-Q*FD)/P;
+	    Z -= (FD/GD);
+	    if (fabs((Z - Z0) / Z) < GHQ_EPS) break;
+	}
+
+	X[NR] = Z;
+	X[N+1-NR] = -Z;
+	R=1.0;
+	for(K = 1; K <= N; ++K){
+	    R *= (2.0 * (double)K );
+	}
+	W[N+1-NR] = W[NR] = 3.544907701811 * R / (HD*HD);
+    }
+
+    if( N % 2 ){
+	R1=1.0;
+	R2=1.0;
+	for(J = 1; J <= N; ++J){
+	    R1=2.0*R1*J;
+	    if(J>=(N+1)/2) R2 *= J;
+	}
+	W[N/2+1]=0.88622692545276*R1/(R2*R2);
+	X[N/2+1]=0.0;
+    }
+
+    dble_cpy(x, X + 1, N);
+    dble_cpy(w, W + 1, N);
+
+    if(X) Free(X);
+    if(W) Free(W);
+}
+
+/**
+ * Return zeros and weights of Hermite polynomial of order n as a list
+ *
+ * @param np pointer to a scalar integer SEXP
+ * @return a list with two components, the abscissas and the weights.
+ *
+ */
+SEXP lme4_ghq(SEXP np)
+{
+    int n = asInteger(np);
+    SEXP ans = PROTECT(allocVector(VECSXP, 2));
+
+    if (n < 1) n = 1;
+    SET_VECTOR_ELT(ans, 0, allocVector(REALSXP, n ));
+    SET_VECTOR_ELT(ans, 1, allocVector(REALSXP, n ));
+    
+    internal_ghq(n, REAL(VECTOR_ELT(ans, 0)), REAL(VECTOR_ELT(ans, 1)));
+    UNPROTECT(1);
+    return ans;
+}
+
 SEXP CHM_SP2SEXP(CHM_SP A, const char *cls)
 { 
     return CHM_SP2SEXP(A, cls, (char*)NULL, (char*)NULL);
