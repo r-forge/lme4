@@ -134,8 +134,8 @@ public:
     double update_wtres();
     void link() {fam.lnk->link(gam, mu, n);}
     void linkinv() {fam.lnk->linkinv(mu, muEta, gam, n);}
-    void devResid() {fam.var->devResid(&devres, mu, weights, y,
-				      (int*)0, n);}
+    void devResid() {devres = 0;
+	fam.var->devResid(&devres, mu, weights, y, (int*)0, n);}
     void varFunc() {fam.var->varFunc(var, mu, n);}
 };
 
