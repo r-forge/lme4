@@ -544,7 +544,7 @@ double glmer::IRLS() {
     delete[] betaold; delete[] varold;
     M_cholmod_free_dense(&Vtwr, &c);
     devResid();
-    return *devres;
+    return devres;
 }
 
 #if 0
