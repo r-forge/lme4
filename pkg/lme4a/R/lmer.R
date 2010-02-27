@@ -164,6 +164,7 @@ makeZt <- function(bars, fr, rho) {
     lower <- -Inf * (rho$theta + 1)
     lower[unique(diag(rho$Lambda))] <- 0
     rho$lower <- lower
+    rho$theta[] <- is.finite(lower)
                                         # massage the factor list
     fl <- lapply(blist, "[[", "ff")
     asgn <- seq_along(fl)
@@ -300,10 +301,8 @@ lmer <-
     environment(sP) <- environment(gP) <- environment(gB) <- rho
     me <- new("lmerenv", setPars = sP, getPars = gP, getBounds = gB)
     if (doFit) {                        # perform the optimization
-### FIXME: Allow for selecting an optimizer.  Use optimize for scalar
-### problems
         if (verbose) control$trace <- 1
-        nlminb(is.finite(rho$lower), me@setPars, lower = rho$lower,
+        nlminb(me@getPars(), me@setPars, lower = rho$lower,
                control = control)
     }
     me
@@ -414,7 +413,30 @@ function(formula, data, family = gaussian, sparseX = FALSE,
     derived_mats(rho)
     rho$compDev <- compDev
     rho$verbose <- as.integer(verbose)[1]
-    rho
+    rho$u[] <- 0                        # for the IRLS step
+
+    .Call(glmer_IRLS, rho)              # optimize the fixed-effect model
+    
+    sP <- function(x) {
+        rho <- parent.env(environment())
+        sat <- seq_along(rho$theta)
+        stopifnot(is.numeric(x),
+                  length(x) == length(sat) + length(rho$fixef))
+        .Call("merenv_update_Lambda_Ut", rho, x[sat], PACKAGE = "lme4a")
+        rho$fixef[] <- x[-sat]
+        .Call("glmer_PIRLS", rho, PACKAGE = "lme4a")
+    }
+    gP <- function() c(theta, fixef)
+    gB <- function() cbind(lower = c(lower, rep(-Inf, length(fixef))),
+                           upper = rep.int(Inf, length(theta)+length(fixef)))
+    environment(sP) <- environment(gP) <- environment(gB) <- rho
+    me <- new("glmerenv", setPars = sP, getPars = gP, getBounds = gB)
+    if (doFit) {                        # perform the optimization
+        if (verbose) control$trace <- 1
+        nlminb(me@getPars(), me@setPars, lower = rho$lower,
+               control = control)
+    }
+    me
 }
 
 ##' Fit a nonlinear mixed-effects model
@@ -445,7 +467,7 @@ function(formula, data, family = gaussian, sparseX = FALSE,
 
 ##' @return if doFit is FALSE an environment, otherwise an object of S4 class "mer"
 nlmer2 <- function(formula, data, family = gaussian, start = NULL,
-                   verbose = FALSE, nAGQ = 1, doFit = TRUE, subset,
+                   verbose = 0, nAGQ = 1, doFit = TRUE, subset,
                    weights, na.action, mustart, etastart,
                    contrasts = NULL, control = list(), ...)
 {
