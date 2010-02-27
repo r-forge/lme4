@@ -11,25 +11,23 @@ importFrom(stats, AIC, anova, coef, confint, deviance, fitted, formula,
            resid, residuals, simulate, terms, vcov)
 
 export(HPDinterval, VarCorr, devcomp, env, getBounds, getPars, glmer,
-       lmList, lmer, lmer2, mcmcsamp, nlmer, refit, setPars, sigma)
+       lmList, lmer, nlmer, refit, setPars, sigma)
 
-exportClasses(ST, lmList, mer, merMCMC, summary.mer,
+exportClasses(lmList,
 	      ## export all super classes of e.g., "lmerenv",
 	      ## so users can query the class system :
-	      optenv, merenv, merenvtrms, lmerenv)
+	      optenv, merenv, merenvtrms, lmerenv, glmerenv)
 
-exportMethods(BIC, HPDinterval, VarCorr, anova, as.matrix, as.data.frame,
-              chol, coef, coerce, confint, densityplot, deviance, expand,
-              fitted, fixef, formula, getBounds, getPars, head, logLik,
-              mcmcsamp, model.frame, model.matrix, plot, print, profile,
-              qqmath, ranef, refit, resid, residuals, setPars, show, sigma,
-              simulate, summary, tail, terms, update, vcov, with, xyplot)
+exportMethods(BIC, HPDinterval, VarCorr, anova, as.matrix,
+              chol, coef, coerce, confint, deviance, expand,
+              fixef, formula, getBounds, getPars, head, logLik,
+              model.frame, model.matrix, plot, print, profile,
+              ranef, refit, setPars, show, sigma,
+              summary, tail, terms, update, vcov)
 
 S3method(plot, coef.mer)
-S3method(print, coef.mer)
 S3method(dotplot, coef.mer)
 S3method(plot, ranef.mer)
-S3method(print, ranef.mer)
 S3method(qqmath, ranef.mer)
 S3method(dotplot, ranef.mer)
 S3method(xyplot, thpr)
