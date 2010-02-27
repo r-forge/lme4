@@ -4,6 +4,7 @@
 \alias{merenv-class}
 \alias{merenvtrms-class}
 \alias{lmerenv-class}
+\alias{glmerenv-class}
 %
 %\alias{fixef,merenv-method} -> ./fixef.Rd
 %\alias{ranef,merenv-method} -> ./ranef.Rd
