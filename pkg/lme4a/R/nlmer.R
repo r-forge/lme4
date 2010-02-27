@@ -25,7 +25,7 @@
 ##'    defaults are given in the (hidden) function \code{lmerControl}.
 
 ##' @return if doFit is FALSE an environment, otherwise an object of S4 class "mer"
-nlmer <- function(formula, data, family = gaussian, start = NULL, verbose = FALSE,
+nlmer <- function(formula, data, family = gaussian, start = NULL, verbose = 0,
                   nAGQ = 1, doFit = TRUE, subset, weights, na.action, mustart, etastart,
                   contrasts = NULL, control = list(), ...)
 {
