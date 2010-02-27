@@ -19,6 +19,7 @@
 %%\VignetteDepends{lattice}
 \begin{document}
 \SweaveOpts{engine=R,eps=FALSE,pdf=TRUE,width=5,height=3,strip.white=TRUE}
+\SweaveOpts{keep.source=TRUE}
 \SweaveOpts{prefix=TRUE,prefix.string=figs/f,include=FALSE}
 \setkeys{Gin}{width=\textwidth}
 \title{\textbf{\textsf{lmer} for \textsf{SAS PROC MIXED} Users}}
@@ -32,7 +33,7 @@ library(SASmixed)
 library(lattice)
 library(Matrix)
 library(lme4)
-@ 
+@
 \section{Introduction}
 \label{sec:intro}
 
@@ -76,7 +77,7 @@ $\mathrm{Var}(\beps_i)=\sigma^2\bI$ can be relaxed using additional
 arguments in the model fitting.
 
 The basic specification of the model requires a linear model
-expression for the fixed effects and a linear model expression for the 
+expression for the fixed effects and a linear model expression for the
 random effects.  In \code{SAS PROC MIXED} the fixed-effects part is
 specified in the \code{model} statement and the random-effects
 part in the \code{random} statement.  In \code{lmer} the fixed effects
@@ -114,7 +115,7 @@ compared between any models fit to the same data.  That is, these
 quality-of-fit criteria can be used to evaluate different
 fixed-effects specifications or different random-effects
 specifications or different specifications of both fixed effects and
-random effects.  
+random effects.
 
 We encourage developing and testing the model using likelihood ratio
 tests or the \textsf{AIC} and \textsf{BIC} criteria.  Once a form
@@ -166,7 +167,7 @@ animal <- within(read.table("animal.dat", header = TRUE),
              })
 \end{Sinput}
 \end{Schunk}
-In general it is a good idea to check the types of variables in a data 
+In general it is a good idea to check the types of variables in a data
 frame before working with it.  One way of doing this is to apply
 the function \textsf{data.class} to each variable in turn using the
 \code{sapply} function.
@@ -181,7 +182,7 @@ str(Animal)
 Designs with nested grouping factors are indicated differently in the
 two languages.  An example of such an experimental design is the
 semiconductor experiment described in section 2.2 of
-\citet{litt:mill:stro:wolf:1996} where twelve wafers are 
+\citet{litt:mill:stro:wolf:1996} where twelve wafers are
 assigned to four experimental treatments with three wafers per
 treatment.  The levels for the wafer factor are \code{1}, \code{2}, and
 \code{3} but the wafer factor is only meaningful within the same level
@@ -205,17 +206,17 @@ or, equivalently
 \end{Example}
 
 In this case, however, there would not usually be any random effects
-associated with the ``experimental treatment'' or \code{ET} factor.  The 
+associated with the ``experimental treatment'' or \code{ET} factor.  The
 only random effects are at the \code{Wafer} level.  It is necessary to
 create a factor that will have unique levels for each \code{Wafer}
 within each level of \code{ET}.  One way to do this is to assign
 <<semiconductorGrp>>=
 Semiconductor <- within(Semiconductor, Grp <- factor(ET:Wafer))
-@ 
+@
 after which we could specify a random effects term of \code{(1 |
   Grp)}.  Alternatively, we can use the explicit term
 \begin{Example}
-  (1 | ET:Wafer)  
+  (1 | ET:Wafer)
 \end{Example}
 
 \subsection{General approach}
@@ -247,9 +248,9 @@ used to define the effects of factors.  In \textsf{SAS} a model with
 an intercept and a qualitative factor is defined in terms of the
 intercept and the indicator variables for all but the last level of
 the factor.  The default behaviour in \s{} is to use the Helmert
-contrasts for the factor.  On a balanced factor these provide a set of 
+contrasts for the factor.  On a balanced factor these provide a set of
 orthogonal contrasts.  In \R{} the default is the ``treatment''
-contrasts which are almost the same as the SAS parameterization except 
+contrasts which are almost the same as the SAS parameterization except
 that they drop the indicator of the first level, not the last level.
 
 When in doubt, check which contrasts are being used with the
@@ -258,7 +259,7 @@ When in doubt, check which contrasts are being used with the
 To make comparisons easier, you may find it worthwhile to declare
 <<contrasts,echo=TRUE,eval=FALSE>>=
 options(contrasts = c(factor = "contr.SAS", ordered = "contr.poly"))
-@ 
+@
 at the beginning of your session.
 
 \bibliography{Usinglmer}
@@ -272,7 +273,7 @@ print(xyplot(adg ~ Treatment | Block, AvgDailyGain, type = c("g", "p", "r"),
        xlab = "Treatment (amount of feed additive)",
        ylab = "Average daily weight gain (lb.)", aspect = "xy",
        index.cond = function(x, y) coef(lm(y ~ x))[1]))
-@ 
+@
 \begin{figure}[tbp]
   \centering
   \includegraphics{figs/f-adg1}
@@ -287,7 +288,7 @@ anova(fm1Adg)   # checking significance of terms
 (fm2Adg <- lmer(adg ~ InitWt + Treatment + (1 | Block), AvgDailyGain))
 anova(fm2Adg)
 (fm3Adg <- lmer(adg ~ InitWt + Treatment - 1 + (1 | Block), AvgDailyGain))
-@ 
+@
 
 
 \section{BIB}
@@ -296,7 +297,7 @@ anova(fm2Adg)
 print(xyplot(y ~ x | Block, BIB, groups = Treatment, type = c("g", "p"),
              aspect = "xy", auto.key = list(points = TRUE, space = "right",
              lines = FALSE)))
-@ 
+@
 \begin{figure}[tbp]
   \centering
   \includegraphics{figs/f-bib1}
@@ -310,7 +311,7 @@ anova(fm1BIB)     # strong evidence of different slopes
 ## compare with Output 5.9, p. 193
 (fm2BIB <- lmer(y ~ Treatment + x:Grp + (1|Block), BIB))
 anova(fm2BIB)
-@ 
+@
 
 
 \section{Bond}
@@ -334,7 +335,7 @@ anova(fm1Cult)
 anova(fm2Cult)
 (fm3Cult <- lmer(drywt ~ Inoc + (1|Block) + (1|Cult), Cultivation))
 anova(fm3Cult)
-@ 
+@
 
 
 
@@ -346,7 +347,7 @@ anova(fm3Cult)
 (fm1Demand <-
  lmer(log(d) ~ log(y) + log(rd) + log(rt) + log(rs) + (1|State) + (1|Year),
       Demand))
-@ 
+@
 
 \section{HR}
 \label{sec:HR}
@@ -360,7 +361,7 @@ anova(fm3HR)
 ## remove Drug term
 (fm4HR <- lmer(HR ~ Time + baseHR + (Time|Patient), HR))
 anova(fm4HR)
-@ 
+@
 
 
 \section{Mississippi}
@@ -377,7 +378,7 @@ VarCorr(fm1Miss)          # compare to output 4.7, p. 148
 ## compare to output 4.8 and 4.9, pp. 150-152
 (fm2Miss <- lmer(y ~ Type + (1 | influent), Mississippi))
 anova(fm2Miss)
-@ 
+@
 
 \section{Multilocation}
 \label{sec:Multilocation}
@@ -401,11 +402,11 @@ anova(fm2Mult)
 \section{PBIB}
 \label{sec:PBIB}
 
-<<PBIB>>= 
+<<PBIB>>=
 str(PBIB)
 ## compare with output 1.7  pp. 24-25
 (fm1PBIB <- lmer(response ~ Treatment + (1 | Block), PBIB))
-@ 
+@
 
 
 \section{SIMS}
@@ -415,10 +416,10 @@ str(PBIB)
 str(SIMS)
 ## compare to output 7.4, p. 262
 (fm1SIMS <- lmer(Gain ~ Pretot + (Pretot | Class), SIMS))
-@ 
+@
 \end{document}
 
-%%% Local Variables: 
+%%% Local Variables:
 %%% mode: latex
 %%% TeX-master: t
-%%% End: 
+%%% End:
