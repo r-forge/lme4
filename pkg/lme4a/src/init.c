@@ -1,6 +1,4 @@
 #include "merenv.h"
-#include "mer.h"
-#include "ST.h"
 #include <R_ext/Rdynload.h>
 #include "Matrix.h"
 #include "Syms.h" 
@@ -9,19 +7,6 @@
 
 static R_CallMethodDef CallEntries[] = {
   
-    CALLDEF(ST_Lambda, 1),
-    CALLDEF(ST_Tmatrix, 1),
-    CALLDEF(ST_bounds, 1),
-    CALLDEF(ST_chol, 1),
-    CALLDEF(ST_create_A, 2),
-    CALLDEF(ST_create_ranef, 3),
-    CALLDEF(ST_getPars, 1),
-    CALLDEF(ST_initialize, 2),
-    CALLDEF(ST_postVar, 5),
-    CALLDEF(ST_setPars, 3),
-    CALLDEF(ST_update_A, 2),
-    CALLDEF(ST_validate, 1),
-
     CALLDEF(glmer_IRLS, 1),
     CALLDEF(glmer_PIRLS, 1),
     CALLDEF(glmer_PIRLSbeta, 1),
@@ -32,13 +17,6 @@ static R_CallMethodDef CallEntries[] = {
 
     CALLDEF(lmer_deviance, 2),
     CALLDEF(lmer_validate, 1),
-    
-    CALLDEF(mer_A_to_U, 1),
-    CALLDEF(mer_MCMCsamp, 2),
-    CALLDEF(mer_PIRLS, 1),
-    CALLDEF(mer_update_dev, 1),
-    CALLDEF(mer_update_mu, 1),
-    CALLDEF(mer_validate, 1),
 
     CALLDEF(merenv_update_Lambda_Ut, 2),
 
@@ -69,33 +47,22 @@ void R_init_lme4a(DllInfo *dll)
     M_R_cholmod_start(&c);
     c.final_ll = 1;	    /* LL' form of simplicial factorization */
 
-    lme4_ASym = install("A");
     lme4_DimSym = install("Dim");
-    lme4_GpSym = install("Gp");
     lme4_LSym = install("L");
     lme4_LambdaSym = install("Lambda");
     lme4_LindSym = install("Lind");
     lme4_RXSym = install("RX");
     lme4_RZXSym = install("RZX");
-    lme4_STSym = install("ST");
     lme4_UtSym = install("Ut");
     lme4_XSym = install("X");
     lme4_ZtSym = install("Zt");
-    lme4_devianceSym = install("deviance");
-    lme4_dimsSym = install("dims");
-    lme4_etaGammaSym = install("etaGamma");
-    lme4_etaSym = install("eta");
     lme4_fixefSym = install("fixef");
-    lme4_fl1Sym = install("fl1");
     lme4_flistSym = install("flist");
     lme4_ghwSym = install("ghw");
     lme4_ghxSym = install("ghx");
-    lme4_gradientSym = install("gradient");
     lme4_iSym = install("i");
-    lme4_merSym = install("mer");
     lme4_muEtaSym = install("muEta");
     lme4_muSym = install("mu");
-    lme4_nlenvSym = install("nlenv");
     lme4_nlmodelSym = install("nlmodel");
     lme4_offsetSym = install("offset");
     lme4_pSym = install("p");
@@ -103,7 +70,6 @@ void R_init_lme4a(DllInfo *dll)
     lme4_permSym = install("perm");
     lme4_ranefSym = install("ranef");
     lme4_residSym = install("resid");
-    lme4_rhoSym = install("rho");
     lme4_sigmaSym = install("sigma");
     lme4_sqrtrWtSym = install("sqrtrWt");
     lme4_startSym = install("start");
