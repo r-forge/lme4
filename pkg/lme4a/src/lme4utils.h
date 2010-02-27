@@ -197,6 +197,8 @@ inline double y_log_y(double y, double mu)
     return (y) ? (y * log(y/mu)) : 0;
 }
 
+SEXP lme4_ghq(SEXP np);
+
 #ifdef	__cplusplus
 }
 #endif 
