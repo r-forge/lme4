@@ -466,7 +466,7 @@ function(formula, data, family = gaussian, sparseX = FALSE,
 ##'    defaults are given in the (hidden) function \code{lmerControl}.
 
 ##' @return if doFit is FALSE an environment, otherwise an object of S4 class "mer"
-nlmer2 <- function(formula, data, family = gaussian, start = NULL,
+nlmer <- function(formula, data, family = gaussian, start = NULL,
                    verbose = 0, nAGQ = 1, doFit = TRUE, subset,
                    weights, na.action, mustart, etastart,
                    contrasts = NULL, control = list(), ...)
@@ -514,8 +514,6 @@ nlmer2 <- function(formula, data, family = gaussian, start = NULL,
     if(is.character(family))
         family <- get(family, mode = "function", envir = parent.frame(2))
     if(is.function(family)) family <- family()
-    ft <- famType(family)
-    rho$dims[names(ft)] <- ft
     rho$family <- family
 
     ## these allow starting values to be expressed in terms of other vars.
@@ -551,15 +549,15 @@ nlmer2 <- function(formula, data, family = gaussian, start = NULL,
     rho$start <- numeric(p)  # must be careful that these are distinct
     rho$start[] <- rho$fixef <- qr.coef(qrX, unlist(lapply(pnames, get, envir = rho$nlenv)))
     rho$RX <- qr.R(qrX)
-    eb <- evalbars(formula, fr, contrasts, TRUE) # flist, trms, nest
-    rho$dims["nest"] <- eb$nest
-    rho$flist <- eb$flist
-    lmerFactorList(eb$trms, rho)
+#    eb <- evalbars(formula, fr, contrasts, TRUE) # flist, trms, nest
+#    rho$dims["nest"] <- eb$nest
+#    rho$flist <- eb$flist
+#    lmerFactorList(eb$trms, rho)
 
     q <- length(rho$u)
     rho$u0 <- numeric(q)
                                         # evaluate the control argument
-    control <- do.call(lmerControl, as.list(control))
+#    control <- do.call(lmerControl, as.list(control))
     if (!missing(verbose)) control$trace <- as.integer(verbose[1])
     rho$dims["verb"] <- control$trace
     control$trace <- abs(control$trace) # negative values give PIRLS output
@@ -997,6 +995,39 @@ unscaledVar <- function(object, RX = env(object)$RX)
     }
     as.vector(solve(RX, unlist(lapply(0:p1, DI)),
 		    system = "Pt"))
+}
+
+formatVC <- function(varc, digits = max(3, getOption("digits") - 2))
+### "format()" the 'VarCorr' matrix of the random effects -- for show()ing
+{
+    sc <- unname(attr(varc, "sc"))
+    recorr <- lapply(varc, attr, "correlation")
+    reStdDev <- c(lapply(varc, attr, "stddev"), list(Residual = sc))
+    reLens <- unlist(c(lapply(reStdDev, length)))
+    nr <- sum(reLens)
+    reMat <- array('', c(nr, 4),
+		   list(rep.int('', nr),
+			c("Groups", "Name", "Variance", "Std.Dev.")))
+    reMat[1+cumsum(reLens)-reLens, 1] <- names(reLens)
+    reMat[,2] <- c(unlist(lapply(varc, colnames)), "")
+    reMat[,3] <- format(unlist(reStdDev)^2, digits = digits)
+    reMat[,4] <- format(unlist(reStdDev), digits = digits)
+    if (any(reLens > 1)) {
+	maxlen <- max(reLens)
+	corr <-
+	    do.call("rBind",
+		    lapply(recorr,
+			   function(x, maxlen) {
+			       x <- as(x, "matrix")
+			       cc <- format(round(x, 3), nsmall = 3)
+			       cc[!lower.tri(cc)] <- ""
+			       nr <- dim(cc)[1]
+			       if (nr >= maxlen) return(cc)
+			       cbind(cc, matrix("", nr, maxlen-nr))
+			   }, maxlen))
+	colnames(corr) <- c("Corr", rep.int("", maxlen - 1))
+	cbind(reMat, rBind(corr, rep.int("", ncol(corr))))
+    } else reMat
 }
 
 setMethod("summary", signature(object = "lmerenv"),
