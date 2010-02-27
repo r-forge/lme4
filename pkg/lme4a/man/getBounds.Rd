@@ -4,17 +4,14 @@
 \alias{getBounds-methods}
 \alias{getBounds,environment-method}
 \alias{getBounds,optenv-method}
-\alias{getBounds,ST-method}
 \alias{getPars}
 \alias{getPars-methods}
 \alias{getPars,environment-method}
 \alias{getPars,optenv-method}
-\alias{getPars,ST-method}
 \alias{setPars}
 \alias{setPars-methods}
 \alias{setPars,environment,numeric-method}
 \alias{setPars,optenv,numeric-method}
-\alias{setPars,ST,ANY-method}
 \alias{env}
 \alias{env,optenv-method}
 \title{
@@ -60,9 +57,7 @@ env(x, \dots)
 \describe{
   \item{x = "environment"}{\code{getBounds} or \code{getPars} method}
   \item{x = "optenv"}{\code{getBounds} or \code{getPars} or \code{env} method}
-  \item{x = "ST"}{\code{getBounds} or \code{getPars} method}
   \item{x = "environment", pars = "numeric"}{\code{setPars} method}
   \item{x = "optenv", pars = "numeric"}{\code{setPars} method}
-  \item{x = "ST", pars = "ANY"}{\code{setPars} method}
 }}
 \keyword{methods}

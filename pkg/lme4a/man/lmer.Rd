@@ -46,6 +46,7 @@ nlmer(formula, data, family = gaussian, start = NULL, verbose = 0, nAGQ = 1,
     approximation.  Values greater than 1 produce greater accuracy in
     the evaluation of the log-likelihood at the expense of speed.}
   \item{control}{a list of control parameters. See below for details.}
+%% Fix this description
   \item{start}{a named list of starting values for the parameters in the
     model. If the list is of the same form as the \code{ST} slot, it is
     becomes the starting values of the \code{ST} slot.  If the list
