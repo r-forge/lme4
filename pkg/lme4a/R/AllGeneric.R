@@ -64,9 +64,11 @@ setMethod("BIC", "logLik",
 setGeneric("HPDinterval",
            function(object, prob = 0.95, ...) standardGeneric("HPDinterval"))
 
+if (FALSE) {
 setGeneric("mcmcsamp",
            function(object, n = 1, verbose = FALSE, ...)
            standardGeneric("mcmcsamp"))
+}
 
 #setGeneric("pooledSD", function(x, ...) standardGeneric("pooledSD"))
 
