@@ -15,10 +15,6 @@ lmer(formula, data, REML = TRUE, sparseX = FALSE,
       control = list(), start = NULL, verbose = 0,
       doFit = TRUE, compDev = TRUE, subset, weights,
        na.action, offset, contrasts = NULL, \dots)
-lmer2(formula, data, family = gaussian, REML = TRUE,
-     control = list(), start = NULL, verbose = FALSE,
-     doFit = TRUE, subset, weights, na.action, offset,
-     contrasts = NULL, mustart, etastart, \dots)
 glmer(formula, data, family = gaussian, sparseX = FALSE,
       compDev = TRUE, control = list(), start = NULL,
       verbose = 0, doFit = TRUE, subset, weights,
