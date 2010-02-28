@@ -18,8 +18,9 @@ extern
 #include "Syms.h"
 extern	       /** cholmod_common struct initialized in R_init_lme4 */
 cholmod_common c;
-#include <Rmath.h>	      /* for dnorm5, etc. */
-#include <R_ext/Lapack.h>     /* for Lapack (dpotrf, etc.) and BLAS */
+#include <Rmath.h>	   // for dnorm5, etc. 
+#include <R_ext/Lapack.h>  // for Lapack (dpotrf, etc.) and BLAS 
+#include <R_ext/Boolean.h> // for R version of TRUE and FALSE
 
 #ifdef ENABLE_NLS	/** Allow for translation of error messages */
 #include <libintl.h>
@@ -39,47 +40,6 @@ cholmod_common c;
 /* this is necessary (and sufficient) for Solaris 10 and AIX 6: */
 # include <alloca.h>
 #endif
-
-#include <R_ext/Boolean.h> // ensure that the R version of TRUE and FALSE are used
-
-/** alloca n elements of type t */
-#define Alloca(n, t)   (t *) alloca( (size_t) ( (n) * sizeof(t) ) )
-
-/** zero an array */
-#define AZERO(x, n) {int _I_, _SZ_ = (n); for(_I_ = 0; _I_ < _SZ_; _I_++) (x)[_I_] = 0;}
-
-/** positions in the deviance vector */
-enum devP {
-    ML_POS=0,			/**<Maximum likelihood estimation criterion  */
-    REML_POS,			/**<REML criterion */
-    ldL2_POS,			/**<2*log-determinant of L */
-    ldRX2_POS,			/**<2*log-determinant of RX */
-    sigmaML_POS,		/**<current ML estimate of sigma */
-    sigmaREML_POS,		/**<current REML estimate of sigma */
-    pwrss_POS,			/**<penalized weighted residual sum of squares */
-    disc_POS,			/**<discrepancy */
-    usqr_POS,			/**<squared length of u */
-    wrss_POS,			/**<weighted residual sum of squares  */
-    dev_POS,			/**<deviance - defined for quasi families  */
-    llik_POS,			/**<log-likelihood - undefined for quasi families  */
-    NULLdev_POS			/**<null deviance */
-};
-
-/** positions in the dims vector */
-enum dimP {
-    LMM_POS=0,			/**<is the model a linear mixed model? */
-    isREML_POS,			/**<indicator of REML estimation */
-    fTyp_POS,			/**<family type for generalized model */
-    lTyp_POS,			/**<link type for generalized model */
-    vTyp_POS,			/**<variance type for generalized model */
-    nest_POS,			/**<indicator of nested grouping factors */
-    useSc_POS,			/**<does the family use a separate scale parameter */
-    nAGQ_POS,			/**<number of adaptive Gauss-Hermite quadrature pts */
-    verb_POS,			/**<verbose output in mer_optimize? */
-    mxit_POS,			/**<maximum # of iterations in mer_optimize */
-    mxfn_POS,			/**<maximum # of function evaluations in mer_optimize */
-    cvg_POS			/**<convergence indictor from port optimization  */
-};
 
 // Inlined utilties
 
@@ -129,21 +89,6 @@ static inline double *dble_zero(double *dest, int nn)
 {
     for (int i = 0; i < nn; i++)
 	dest[i] = 0.;
-    return dest;
-}
-
-/**
- * Zero the first nn elements of int pointer dest
- *
- * @param dest vector
- * @param nn number of elements in dest
- *
- * @return dest
- */
-static inline int *int_zero(int *dest, int nn)
-{
-    for (int i = 0; i < nn; i++)
-	dest[i] = 0;
     return dest;
 }
 

@@ -1,6 +1,121 @@
 #if 0
 /* Stand-alone utility functions (sorted by function name) */
 
+SEXP CHM_SP2SEXP(CHM_SP A, const char *cls)
+{ 
+    return CHM_SP2SEXP(A, cls, (char*)NULL, (char*)NULL);
+}
+
+SEXP CHM_SP2SEXP(CHM_SP A, const char *cls, const char *uplo)
+{ 
+    return CHM_SP2SEXP(A, cls, uplo, (char*)NULL);
+}
+
+SEXP CHM_SP2SEXP(CHM_SP A, const char *cls, const char *uplo, const char *diag)
+{
+    SEXP ans = PROTECT(NEW_OBJECT(MAKE_CLASS(cls)));
+    int *dims = INTEGER(ALLOC_SLOT(ans, lme4_DimSym, INTSXP, 2));
+    dims[0] = (int)(A->nrow);
+    dims[1] = (int)(A->ncol);
+    int nnz = M_cholmod_nnz(A, &c);
+    Memcpy(INTEGER(ALLOC_SLOT(ans, lme4_pSym, INTSXP, A->ncol + 1)),
+	   (int*)(A->p), A->ncol + 1);
+    Memcpy(INTEGER(ALLOC_SLOT(ans, lme4_iSym, INTSXP, nnz)),
+	   (int*)(A->i), nnz);
+    Memcpy(REAL(ALLOC_SLOT(ans, lme4_xSym, REALSXP, nnz)),
+	   (double*)(A->x), nnz);
+    if (uplo) SET_SLOT(ans, install("uplo"), mkString(uplo));
+    if (diag) SET_SLOT(ans, install("diag"), mkString(diag));
+    UNPROTECT(1);
+    return ans;
+}
+
+
+CHM_SP CHM_SP_copy_in_place(CHM_SP dest, CHM_SP src) {
+    size_t m = dest->nrow, n = dest->ncol;
+    int nnzd = M_cholmod_nnz(dest, &c);
+    if (m != src->nrow ||
+	n != src->ncol ||
+	dest->xtype != src->xtype ||
+	dest->stype != src->stype ||
+	!dest->packed || !src->packed ||
+	nnzd != M_cholmod_nnz(src, &c) ||
+	!compare_int_vecs((int*)dest->p, (int*)src->p, n+1) ||
+	!compare_int_vecs((int*)dest->i, (int*)src->i, nnzd))
+	error(_("incompatible CHM_SP objects for copy"));
+    dble_cpy((double*)dest->x, (double*)src->x, nnzd);
+    return dest;
+}
+
+
+/**
+ * Zero the first nn elements of int pointer dest
+ *
+ * @param dest vector
+ * @param nn number of elements in dest
+ *
+ * @return dest
+ */
+static inline int *int_zero(int *dest, int nn)
+{
+    for (int i = 0; i < nn; i++)
+	dest[i] = 0;
+    return dest;
+}
+
+/* When appropriate, alloca is cleaner than malloc/free.  The storage
+ * is freed automatically on return from a function. When using gcc the
+ * builtin version is much faster. */
+
+#ifdef __GNUC__
+# undef alloca
+# define alloca(x) __builtin_alloca((x))
+#elif defined(__sun) || defined(_AIX)
+/* this is necessary (and sufficient) for Solaris 10 and AIX 6: */
+# include <alloca.h>
+#endif
+
+/** alloca n elements of type t */
+#define Alloca(n, t)   (t *) alloca( (size_t) ( (n) * sizeof(t) ) )
+
+/** zero an array */
+#define AZERO(x, n) {int _I_, _SZ_ = (n); for(_I_ = 0; _I_ < _SZ_; _I_++) (x)[_I_] = 0;}
+
+#if 0
+/** positions in the deviance vector */
+enum devP {
+    ML_POS=0,			/**<Maximum likelihood estimation criterion  */
+    REML_POS,			/**<REML criterion */
+    ldL2_POS,			/**<2*log-determinant of L */
+    ldRX2_POS,			/**<2*log-determinant of RX */
+    sigmaML_POS,		/**<current ML estimate of sigma */
+    sigmaREML_POS,		/**<current REML estimate of sigma */
+    pwrss_POS,			/**<penalized weighted residual sum of squares */
+    disc_POS,			/**<discrepancy */
+    usqr_POS,			/**<squared length of u */
+    wrss_POS,			/**<weighted residual sum of squares  */
+    dev_POS,			/**<deviance - defined for quasi families  */
+    llik_POS,			/**<log-likelihood - undefined for quasi families  */
+    NULLdev_POS			/**<null deviance */
+};
+
+/** positions in the dims vector */
+enum dimP {
+    LMM_POS=0,			/**<is the model a linear mixed model? */
+    isREML_POS,			/**<indicator of REML estimation */
+    fTyp_POS,			/**<family type for generalized model */
+    lTyp_POS,			/**<link type for generalized model */
+    vTyp_POS,			/**<variance type for generalized model */
+    nest_POS,			/**<indicator of nested grouping factors */
+    useSc_POS,			/**<does the family use a separate scale parameter */
+    nAGQ_POS,			/**<number of adaptive Gauss-Hermite quadrature pts */
+    verb_POS,			/**<verbose output in mer_optimize? */
+    mxit_POS,			/**<maximum # of iterations in mer_optimize */
+    mxfn_POS,			/**<maximum # of function evaluations in mer_optimize */
+    cvg_POS			/**<convergence indictor from port optimization  */
+};
+#endif
+
 /* Constants */
     
 #ifndef BUF_SIZE

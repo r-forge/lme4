@@ -34,7 +34,7 @@ merenv::merenv(SEXP rho)
 	error(_("u vector must be numeric (double)"));
     u = REAL(sl);
 
-    sl = findVarBound(rho, install("theta"));
+    sl = findVarBound(rho, lme4_thetaSym);
     if (!(nth = LENGTH(sl)) || !isReal(sl)) // nth = length of theta
 	error(_("theta vector must be numeric (double)"));
     theta = REAL(sl);
@@ -63,13 +63,13 @@ merenv::merenv(SEXP rho)
     if (nnz != nLind)
 	error(_("length(Lind) = %d should be  %d"), nLind, nnz);
 
-    gam = VAR_REAL_NULL(rho, install("gamma"), N);
+    gam = VAR_REAL_NULL(rho, lme4_gammaSym, N);
     mu = VAR_REAL_NULL(rho, lme4_muSym, N);
-    ldL2 = VAR_REAL_NULL(rho, install("ldL2"), 1);
-    pwrss = VAR_REAL_NULL(rho, install("pwrss"), 1);
-    weights = VAR_REAL_NULL(rho, install("weights"), n, TRUE);
-    sqrtrwt = VAR_REAL_NULL(rho, install("sqrtrwt"), n, TRUE);
-    sqrtXwt = VAR_REAL_NULL(rho, install("sqrtXwt"), n, TRUE);
+    ldL2 = VAR_REAL_NULL(rho, lme4_ldL2Sym, 1);
+    pwrss = VAR_REAL_NULL(rho, lme4_pwrssSym, 1);
+    weights = VAR_REAL_NULL(rho, lme4_weightsSym, n, TRUE);
+    sqrtrwt = VAR_REAL_NULL(rho, lme4_sqrtrwtSym, n, TRUE);
+    sqrtXwt = VAR_REAL_NULL(rho, lme4_sqrtXwtSym, n, TRUE);
     offset = VAR_REAL_NULL(rho, lme4_offsetSym, N, TRUE);
     verbose = asInteger(findVarBound(rho, install("verbose")));
     if ((sparseX = asLogical(findVarBound(rho, install("sparseX"))))) {
@@ -368,8 +368,8 @@ double lmer::update_dev(SEXP thnew) {
 }    
 
 glmer::glmer(SEXP rho) : merenv(rho) {
-    muEta = VAR_REAL_NULL(rho, install("muEta"), n);
-    var = VAR_REAL_NULL(rho, install("var"), n);
+    muEta = VAR_REAL_NULL(rho, lme4_muEtaSym, n);
+    var = VAR_REAL_NULL(rho, lme4_varSym, n);
     wtres = VAR_REAL_NULL(rho, install("wtres"), n);
     fam.initGL(rho);
 }

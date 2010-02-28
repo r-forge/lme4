@@ -28,7 +28,7 @@ void GLfamily::initGL(SEXP rho) {
 	vpts["poisson"] = &muvr;
     }
     
-    family = findVarBound(rho, install("family"));
+    family = findVarBound(rho, lme4_familySym);
     SEXP nms = getAttrib(family, R_NamesSymbol);
     if (!isNewList(family) ||!isString(nms) ||
 	LENGTH(nms) != LENGTH(family))

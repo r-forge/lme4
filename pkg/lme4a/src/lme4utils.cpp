@@ -103,34 +103,6 @@ SEXP lme4_ghq(SEXP np)
     return ans;
 }
 
-SEXP CHM_SP2SEXP(CHM_SP A, const char *cls)
-{ 
-    return CHM_SP2SEXP(A, cls, (char*)NULL, (char*)NULL);
-}
-
-SEXP CHM_SP2SEXP(CHM_SP A, const char *cls, const char *uplo)
-{ 
-    return CHM_SP2SEXP(A, cls, uplo, (char*)NULL);
-}
-
-SEXP CHM_SP2SEXP(CHM_SP A, const char *cls, const char *uplo, const char *diag)
-{
-    SEXP ans = PROTECT(NEW_OBJECT(MAKE_CLASS(cls)));
-    int *dims = INTEGER(ALLOC_SLOT(ans, lme4_DimSym, INTSXP, 2));
-    dims[0] = (int)(A->nrow);
-    dims[1] = (int)(A->ncol);
-    int nnz = M_cholmod_nnz(A, &c);
-    Memcpy(INTEGER(ALLOC_SLOT(ans, lme4_pSym, INTSXP, A->ncol + 1)),
-	   (int*)(A->p), A->ncol + 1);
-    Memcpy(INTEGER(ALLOC_SLOT(ans, lme4_iSym, INTSXP, nnz)),
-	   (int*)(A->i), nnz);
-    Memcpy(REAL(ALLOC_SLOT(ans, lme4_xSym, REALSXP, nnz)),
-	   (double*)(A->x), nnz);
-    if (uplo) SET_SLOT(ans, install("uplo"), mkString(uplo));
-    if (diag) SET_SLOT(ans, install("diag"), mkString(diag));
-    UNPROTECT(1);
-    return ans;
-}
 
 double *VAR_REAL_NULL(SEXP rho, SEXP nm, int len, int nullOK, int absentOK)
 {
@@ -227,22 +199,6 @@ double *VAR_dMatrix_x(SEXP rho, SEXP nm, int nrow, int ncol) {
 	error(_("object named '%s' should be %d by %d"),
 	      CHAR(PRINTNAME(nm)), nrow, ncol);
     return REAL(GET_SLOT(var, lme4_xSym));
-}
-
-CHM_SP CHM_SP_copy_in_place(CHM_SP dest, CHM_SP src) {
-    size_t m = dest->nrow, n = dest->ncol;
-    int nnzd = M_cholmod_nnz(dest, &c);
-    if (m != src->nrow ||
-	n != src->ncol ||
-	dest->xtype != src->xtype ||
-	dest->stype != src->stype ||
-	!dest->packed || !src->packed ||
-	nnzd != M_cholmod_nnz(src, &c) ||
-	!compare_int_vecs((int*)dest->p, (int*)src->p, n+1) ||
-	!compare_int_vecs((int*)dest->i, (int*)src->i, nnzd))
-	error(_("incompatible CHM_SP objects for copy"));
-    dble_cpy((double*)dest->x, (double*)src->x, nnzd);
-    return dest;
 }
 
 SEXP getListElement(SEXP list, SEXP names, const char *str)
