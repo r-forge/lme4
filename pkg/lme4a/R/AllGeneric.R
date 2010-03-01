@@ -61,8 +61,10 @@ setMethod("BIC", "logLik",
           -2 * (c(object) - attr(object, "df") * log(attr(object, "nobs"))/2)
           )
 
+if (FALSE) {
 setGeneric("HPDinterval",
            function(object, prob = 0.95, ...) standardGeneric("HPDinterval"))
+}
 
 if (FALSE) {
 setGeneric("mcmcsamp",
@@ -78,4 +80,6 @@ setGeneric("VarCorr", function(x, ...) standardGeneric("VarCorr"))
 
 setGeneric("traceplot", function(x, ...) standardGeneric("traceplot"))
 
+if (FALSE) {
 setGeneric("refit", function(object, newresp, ...) standardGeneric("refit"))
+}
