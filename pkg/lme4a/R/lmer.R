@@ -244,7 +244,7 @@ lmer <-
     names(fixef) <- colnames(X)
     rho$fixef <- fixef
 
-    makeZt(expandSlash(findbars(formula[[3]])), fr, rho)
+    makeZt(findbars(formula[[3]]), fr, rho)
     rho$L <- Cholesky(tcrossprod(rho$Zt), LDL = FALSE, Imult = 1)
     derived_mats(rho)
 
@@ -408,7 +408,7 @@ function(formula, data, family = gaussian, sparseX = FALSE,
     rho$sqrtXwt <- numeric(n)
     rho$wtres <- numeric(n)
 
-    makeZt(expandSlash(findbars(formula[[3]])), fr, rho)
+    makeZt(findbars(formula[[3]]), fr, rho)
     rho$L <- Cholesky(tcrossprod(rho$Zt), LDL = FALSE, Imult = 1)
     derived_mats(rho)
     rho$compDev <- compDev

@@ -1,5 +1,6 @@
 #' Optimization-related methods for the environment class
 
+if (FALSE) {
 setMethod("getPars", representation(x = "environment"),
           function(x, ...)
       {
@@ -45,7 +46,7 @@ setMethod("setPars", representation(x = "environment", pars = "numeric"),
           }
           sum(unlist(lapply(acseq, ff)))
       })
-
+}
 setMethod("getPars", "optenv", function(x, ...) x@getPars())
 
 setMethod("getBounds", "optenv", function(x, ...) x@getBounds())
@@ -53,6 +54,7 @@ setMethod("getBounds", "optenv", function(x, ...) x@getBounds())
 setMethod("setPars", representation(x = "optenv", pars = "numeric"), function(x, pars, ...) x@setPars(pars))
 
 setMethod("env", "optenv", function(x, ...) environment(x@getPars))
+if (FALSE) {
 setMethod("ranef", signature(object = "environment"),
           function(object, postVar = FALSE, drop = FALSE, whichel = names(ans), ...)
       {
@@ -102,3 +104,5 @@ setMethod("ranef", signature(object = "environment"),
           class(ans) <- "ranef.mer"
           ans
       })
+}
+

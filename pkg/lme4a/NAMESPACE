@@ -1,29 +1,37 @@
 useDynLib(lme4a, .registration=TRUE)
 
-import(Matrix)
 import(grid)
 import(lattice)
 import(splines)
-
 importFrom(graphics, plot)
-importFrom(stats, AIC, anova, coef, confint, deviance, fitted, formula,
-           logLik, model.frame, model.matrix, predict, profile,
-           resid, residuals, simulate, terms, vcov)
+importFrom(stats4, BIC)
+importFrom(stats, AIC,  coef, confint, logLik, profile, vcov,
+           anova, deviance, formula,
+           model.frame, model.matrix, predict,
+           resid, residuals, simulate, terms)
+#importFrom(Matrix, Cholesky)
+importClassesFrom(Matrix, dgeMatrix, dgCMatrix, dsCMatrix, dpoMatrix,
+	      dCHMsuper, dCHMsimpl, corMatrix)
 
-export(HPDinterval, VarCorr, devcomp, env, getBounds, getPars, glmer,
-       lmList, lmer, nlmer, refit, setPars, sigma)
+importMethodsFrom(Matrix, coerce, chol, "%*%", crossprod, tcrossprod,
+                  Cholesky, determinant, diag, as.vector, solve,
+                  chol2inv, diag, summary, update)
+
+
+export(VarCorr, devcomp, env, findbars, getBounds, getPars, glmer,
+       isNested, lmList, lmer, nlmer, nobars, setPars, sigma,
+       subbars)
 
 exportClasses(lmList,
 	      ## export all super classes of e.g., "lmerenv",
 	      ## so users can query the class system :
 	      optenv, merenv, merenvtrms, lmerenv, glmerenv)
 
-exportMethods(BIC, HPDinterval, VarCorr, anova, as.matrix,
-              chol, coef, coerce, confint, deviance, expand,
-              fixef, formula, getBounds, getPars, head, logLik,
+exportMethods(BIC, VarCorr, anova, coef, confint, deviance,
+              fixef, formula, getBounds, getPars, logLik,
               model.frame, model.matrix, plot, print, profile,
-              ranef, refit, setPars, show, sigma,
-              summary, tail, terms, update, vcov)
+              ranef, setPars, show, sigma,
+              summary, terms, update, vcov)
 
 S3method(plot, coef.mer)
 S3method(dotplot, coef.mer)
