@@ -8,7 +8,10 @@ source(system.file("test-tools.R", package = "Matrix"))# identical3() etc
 (fm2 <- lmer(Reaction ~ Days + (1|Subject) + (0+Days|Subject), sleepstudy))
 
 (fm3 <- lmer(Yield ~ 1|Batch, Dyestuff2))
-stopifnot(all.equal(coef(summary(fm3)),
+stopifnot(all.equal(fixef(fm1), fixef(fm2), tol= 1e-13),
+	  all.equal(unname(fixef(fm1)),
+		    c(251.405104848485, 10.467285959595), tol = 1e-13),
+	  all.equal(coef(summary(fm3)),
 		    array(c(5.6656, 0.67838803150, 8.3515624346),
 			  c(1,3), dimnames = list("(Intercept)",
 				  c("Estimate", "Std. Error", "t value")))))
@@ -20,6 +23,7 @@ if(FALSE)# no need for an expand method now
 xfm2 <- expand(fm2l)
 stopifnot(is(fm1, "merenv"), is(fm2l, "merenv"),
           dim(ranef(fm2l)[[1]]) == c(18, 2),
+          is((c3 <- coef(fm3)), "coef.mer"), all(fixef(fm3) == c3$Batch),
           TRUE)
 
 ## generalized linear mixed model
@@ -57,14 +61,14 @@ stopifnot(all.equal(fixef(fit.1), c("(Intercept)" = 1.571312129)),
 rr <- ranef(fm1)
 stopifnot(is.list(rr), length(rr) == 1, class(rr[[1]]) == "data.frame")
 print(plot(rr))
-cc <- coef(fm1)
-stopifnot(is.list(cc), length(cc) == 1, class(cc[[1]]) == "data.frame")
+stopifnot(is(cc <- coef(fm1), "coef.mer"),
+	  is.list(cc), length(cc) == 1, class(cc[[1]]) == "data.frame")
 print(plot(cc))
 rr <- ranef(fm2)
 stopifnot(is.list(rr), length(rr) == 1, class(rr[[1]]) == "data.frame")
 print(plot(rr))
-cc <- coef(fm2)
-stopifnot(is.list(cc), length(cc) == 1, class(cc[[1]]) == "data.frame")
+stopifnot(is(cc <- coef(fm2), "coef.mer"),
+	  is.list(cc), length(cc) == 1, class(cc[[1]]) == "data.frame")
 print(plot(cc))
 
 if (require('MASS', quietly = TRUE)) {
@@ -115,10 +119,18 @@ stopifnot(all.equal(unname(fixef(r2)) - (1:4)*100,
 ## sparseX version should give same numbers:
 r2.  <- lmer(y ~ 0+lagoon + (1|habitat), data = dat,
              sparseX = TRUE, verbose = TRUE)
-stopifnot(all.equal(fixef(r2), fixef(r2.), tol= 1e-14),
+
+## the summary() components we do want to compare 'dense X' vs 'sparse X':
+nmsSumm <- c("methTitle", "devcomp", "logLik", "ngrps", "coefficients",
+             "sigma", "REmat", "AICtab")
+sr2  <- summary(r2)
+sr2. <- summary(r2.)
+
+stopifnot(all.equal(sr2[nmsSumm], sr2.[nmsSumm], tol= 1e-14),
+          all.equal(ranef(r2), ranef(r2.), tol= 1e-14),
           Matrix:::isDiagonal(vcov(r2.)),# ok
-          TRUE ##all.equal(diag(vcov(r2.)), rep.int(V2[1,1], 4), tol= 1e-13)
-          ,## FIXME FIXME ^^^^ currently fails...
+          all.equal(diag(vcov(r2.)), rep.int(V2[1,1], 4), tol= 1e-13)
+          ,
 	  all(vcov(r2.)@factors$correlation == diag(4)),
           TRUE)
 r2.

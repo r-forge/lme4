@@ -43,7 +43,7 @@ merenv::merenv(SEXP rho)
     if (!(nLind = LENGTH(sl)) || !isInteger(sl))
 	error(_("Lind vector must be integer"));
     Lind = INTEGER(sl);
-    
+
     // allow for Z and X to have a multiple of n rows.
     Zt = VAR_CHM_SP(rho, lme4_ZtSym, q, 0);
     N = (int)Zt->ncol;
@@ -80,7 +80,7 @@ merenv::merenv(SEXP rho)
 	Xp = new CHM_rd(VAR_CHM_DN(rho, lme4_XSym, N, p));
 	RXp = new Cholesky_rd(findVarBound(rho, lme4_RXSym), p);
 	RZXp = new CHM_rd(VAR_CHM_DN(rho, lme4_RZXSym, q, p));
-    }	
+    }
 }
 
 merenv::~merenv(){
@@ -247,11 +247,11 @@ void merenvtrms::show() {
     for (int i = 0; i < ntrm; i++) Rprintf(" %d", nc[i]);
     Rprintf("\n");
 }
-    
+
 SEXP merenvtrms::condVar(double scale) {
     SEXP ans = PROTECT(allocVector(VECSXP, nfac));
     int offset = 0;
-    
+
     if (scale < 0 || !R_FINITE(scale))
 	error(_("scale must be non-negative and finite"));
 
@@ -265,7 +265,7 @@ SEXP merenvtrms::condVar(double scale) {
 	    cumcol[j + 1] = cumcol[j] + (ncol[j] = nc[api + j]);
 	int nct = cumcol[ntrm];
 	int *cset = new int[nct], nct2 = nct * nct;
-	
+
 	SET_VECTOR_ELT(ans, i, alloc3DArray(REALSXP, nct, nct, nli));
 	double *ai = REAL(VECTOR_ELT(ans, i));
 
@@ -363,9 +363,9 @@ double lmer::update_dev(SEXP thnew) {
     if (REML) {
 	double nmp = (double)(n - p);
 	return *ldL2 + *ldRX2 + nmp * (1 + log(2 * PI * (*pwrss)/nmp));
-    }				       
+    }
     return *ldL2 + n * (1 + log(2 * PI * (*pwrss)/((double)n)));
-}    
+}
 
 glmer::glmer(SEXP rho) : merenv(rho) {
     muEta = VAR_REAL_NULL(rho, lme4_muEtaSym, n);
@@ -433,16 +433,16 @@ double glmer::PIRLS() {
     CHM_SP Utsc;
     double *uold = new double[q], *varold = new double[n],
 	crit, step, wrss0, wrss1;
-    
+
     dble_zero(u, q);
     update_sqrtrwt();		// var and sqrtrwt
     crit = 10. * CM_TOL;
-    for (int i = 0; crit >= CM_TOL && i < CM_MAXITER; i++) { 
+    for (int i = 0; crit >= CM_TOL && i < CM_MAXITER; i++) {
 	dble_cpy(varold, var, n);
 	dble_cpy(uold, u, q);
 	update_gamma();		// linear predictor
 	linkinv();		// mu and muEta
-	wrss0 = update_wtres(); 
+	wrss0 = update_wtres();
 	update_sqrtXwt();
 	Utsc = M_cholmod_copy_sparse(Ut, &c);
 	M_cholmod_scale(N_AS_CHM_DN(sqrtXwt,n,1), CHOLMOD_COL, Utsc, &c);
@@ -473,7 +473,7 @@ double glmer::PIRLS() {
     delete[] uold; delete[] varold;
     M_cholmod_free_dense(&cu, &c);
     return Laplace();
-}
+} // PIRLS
 
 double glmer::PIRLSbeta() {
     int cvg = 1;//, info;
@@ -488,32 +488,32 @@ double glmer::PIRLSbeta() {
 //    CHM_SP U;
 //    R_CheckStack();
     if (!cvg) error(_("Convergence failure in PIRLS"));
-    
+
 //    delete[] V;
     delete[] betaold; delete[] cbeta;
-    delete[] tmp; delete[] uold; 
-    if (var) delete[] varold; 
+    delete[] tmp; delete[] uold;
+    if (var) delete[] varold;
 
     return 1;
 }
 
 double glmer::IRLS() {
-    CHM_r *V, *VtV;    
+    CHM_r *V, *VtV;
     CHM_DN cwtres = N_AS_CHM_DN(wtres, n, 1), deltaf,
 	Vtwr = M_cholmod_allocate_dense((size_t)p, (size_t)1, (size_t)p,
 				       CHOLMOD_REAL, &c);
     double *betaold = new double[p], *varold = new double[n],
 	crit, step, wrss0, wrss1;
-    
+
     update_sqrtrwt();		// var and sqrtrwt
     crit = 10. * CM_TOL;
-    for (int i = 0; crit >= CM_TOL && i < CM_MAXITER; i++) { 
+    for (int i = 0; crit >= CM_TOL && i < CM_MAXITER; i++) {
 	dble_cpy(varold, var, n);
 	dble_cpy(betaold, fixef, p);
 	update_gamma();		// linear predictor
 	linkinv();		// mu and muEta
 	update_sqrtXwt();
-	wrss0 = update_wtres(); 
+	wrss0 = update_wtres();
 	V = Vp();		// derive V from X
 	VtV = V->AtA();		// crossproduct
 	RXp->update(VtV);	// factor
@@ -545,7 +545,7 @@ double glmer::IRLS() {
     M_cholmod_free_dense(&Vtwr, &c);
     devResid();
     return devres;
-}
+} // IRLS
 
 #if 0
 double glmerold::PIRLSbeta() {
@@ -565,7 +565,7 @@ double glmerold::PIRLSbeta() {
     // reset u to initial values.  This can result in more
     // iterations but it gives a repeatable function evaluation for
     // the optimizer.
-    dble_zero(u, q); 
+    dble_zero(u, q);
     dble_zero(fixef, p);
 
     V = new double[n * p];
@@ -598,7 +598,7 @@ double glmerold::PIRLSbeta() {
 	    F77_CALL(dpotrf)("U", &p, RX, &p, &info);
 	    if (info)
 		error(_("Downdated V'V is not positive definite, %d."), info);
-				// tmp := U %*% wtdResid 
+				// tmp := U %*% wtdResid
 	    M_cholmod_sdmult(U, 0, // no transpose
 			     d1, d0, cwtres, ctmp, &c);
 	    for (int j = 0; j < q; j++) tmp[j] -= u[j]; // tmp := tmp - u
@@ -618,7 +618,7 @@ double glmerold::PIRLSbeta() {
 	    double cul2 = sqr_length(tmp, q), cbetal2 = sqr_length(cbeta, p);
 	    crit = cfac * (cul2 + cbetal2)/ pwrss_old;
 //	    if (verb < 0) Rprintf("cul2 = %g, cbetal2 = %g\n", cul2, cbetal2);
-	    if (crit < CM_TOL) {	// don't do needless evaluations 
+	    if (crit < CM_TOL) {	// don't do needless evaluations
 		cvg = TRUE;
 		break;
 	    }
@@ -631,8 +631,8 @@ double glmerold::PIRLSbeta() {
 		error(_("cholmod_solve (CHOLMOD_Lt) failed"));
 	    dble_cpy(tmp, (double*)(SOL->x), q);
 	    M_cholmod_free_dense(&SOL, &c);
-	    
-	    for (step = 1; step > CM_SMIN; step /= 2) { // step halving 
+
+	    for (step = 1; step > CM_SMIN; step /= 2) { // step halving
 		for (int j = 0; j < q; j++)
 		    u[j] = uold[j] + step * tmp[j];
 		for (int j = 0; j < p; j++)
@@ -665,20 +665,20 @@ double glmerold::PIRLSbeta() {
 			      ii, crit, var[0], var[1], varold[0], varold[1]);
 	if (crit < CM_TOL) break;
     }
-    
+
     if (!cvg) error(_("Convergence failure in PIRLS"));
-    
+
     delete[] V; delete[] betaold; delete[] cbeta;
     delete[] tmp; delete[] uold; delete[]wtres;
-    if (var) delete[] varold; 
-    
+    if (var) delete[] varold;
+
     d[ldRX2_POS] = 0;
     for (int j = 0; j < p; j++) d[ldRX2_POS] += 2 * log(RX[j * (p + 1)]);
     d[ldL2_POS] = M_chm_factor_ldetL2(L);
     d[sigmaML_POS] = sqrt(d[pwrss_POS]/(srwt ? sqr_length(srwt, n) : (double) n));
     d[sigmaREML_POS] = (etaGamma || muEta) ? NA_REAL :
 	d[sigmaML_POS] * sqrt((((double) n)/((double)(n - p))));
-    
+
     return update_dev();
     return 0;
 }
@@ -701,7 +701,7 @@ extern "C" {
     SEXP glmer_PIRLSbeta(SEXP rho) {
 	return ScalarReal(glmer(rho).PIRLSbeta());
     }
-	
+
     SEXP glmer_update_sqrtrwt(SEXP rho) {
 	glmer(rho).update_sqrtrwt();
 	return R_NilValue;
@@ -758,6 +758,6 @@ extern "C" {
 	merenvtrms(rho).show();
 	return R_NilValue;
     }
-	
+
 }
 
