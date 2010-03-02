@@ -1,4 +1,5 @@
 \name{merenv-class}
+\title{Class "merenv" - environments from lmer() etc}
 \Rdversion{1.1}
 \docType{class}
 \alias{merenv-class}
@@ -10,22 +11,25 @@
 %\alias{ranef,merenv-method} -> ./ranef.Rd
 \alias{formula,merenv-method}
 \alias{update,merenv-method}
-% subclasses methods
-\alias{anova,lmerenv-method}
+\alias{model.frame,merenv-method}
+\alias{model.matrix,merenv-method}
+\alias{terms,merenv-method}
+%
 \alias{coef,merenvtrms-method}
+% *lmerenv methods: typically lmerenv and merenv (= non-lmerenv)
+\alias{anova,lmerenv-method}
+\alias{deviance,lmerenv-method}
 \alias{deviance,lmerenv-method}
 \alias{logLik,lmerenv-method}
-\alias{model.frame,lmerenv-method}
-\alias{model.matrix,lmerenv-method}
+\alias{logLik,merenv-method}
 \alias{print,lmerenv-method}
 \alias{profile,lmerenv-method}
 \alias{show,lmerenv-method}
 \alias{summary,lmerenv-method}
-\alias{terms,lmerenv-method}
+\alias{summary,glmerenv-method}% for now
 \alias{VarCorr,lmerenv-method}
 \alias{vcov,lmerenv-method}
-
-\title{Class "merenv" - environments from lmer() etc}
+%
 \description{
   The \code{\link{class}} \code{"merenv"} is extending (aka
   \sQuote{inheriting from}) \code{"\linkS4class{optenv}"}, an S4 class
@@ -39,8 +43,8 @@
   \code{"merenv"} is a virtual class.  Objects of (\dQuote{actual})
   subclasses can be created however, by calls of the form
   \code{new("lmerenv", ...)}.
-  However, typically, these are are created directly, e.g., from
-  \code{\link{lmer}()}.
+  However, typically, these are are created directly, from
+  \code{\link{lmer}()},  \code{\link{glmer}()}, etc.
 }
 \section{Slots}{
   All slots are inherited from \code{"\linkS4class{optenv}"}.
@@ -74,7 +78,11 @@
     \item{profile}{\code{signature(fitted = "lmerenv")}: ... }
     \item{show}{\code{signature(object = "lmerenv")}: ... }
     \item{sigma}{\code{signature(object = "lmerenv")}: ... }
-    \item{summary}{\code{signature(object = "lmerenv")}: ... }
+    \item{summary}{\code{signature(object = "lmerenv")} and additional
+      argument \code{varcov = FALSE}:  The resulting (S3 class)
+      \code{"summary.lmer"} object is \code{\link{list}}-like, with a
+      non-\code{NULL} component \code{vcov} only when explicitly requested
+      by \code{summary(..., varcov = TRUE)}.}
     \item{terms}{\code{signature(x = "lmerenv")}: ... }
     \item{VarCorr}{\code{signature(x = "lmerenv")}: ... }
     \item{vcov}{\code{signature(object = "lmerenv")}: ... }

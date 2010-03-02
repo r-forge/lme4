@@ -1,5 +1,5 @@
 
-R version 2.10.1 Patched (2010-02-24 r51172)
+R version 2.10.1 Patched (2010-02-25 r51180)
 Copyright (C) 2010 The R Foundation for Statistical Computing
 ISBN 3-900051-07-0
 
@@ -40,8 +40,8 @@ REML
 
 Random effects:
  Groups   Name        Variance Std.Dev. Corr  
- Subject  (Intercept) 612.091  24.7405        
-          Days         35.072   5.9221  0.066 
+ Subject  (Intercept) 612.090  24.7405        
+          Days         35.071   5.9221  0.066 
  Residual             654.941  25.5918        
 Number of obs: 180, groups: Subject, 18
 
@@ -62,7 +62,7 @@ Formula: Reaction ~ Days + (Days | Subject)
 
 Random effects:
  Groups   Name        Variance Std.Dev. Corr  
- Subject  (Intercept) 565.516  23.7806        
+ Subject  (Intercept) 565.514  23.7805        
           Days         32.682   5.7168  0.081 
  Residual             654.941  25.5918        
 Number of obs: 180, groups: Subject, 18
@@ -131,7 +131,7 @@ Fixed effects:
 > ## generalized linear mixed model
 > (m1 <- glmer(cbind(incidence, size - incidence) ~ period + (1 | herd),
 +              family = binomial, data = cbpp))
-<environment: 0x6fccaf8>
+<environment: 0xc9caac4>
 > if(FALSE)#not yet
 + stopifnot(is(m1,"merenv"), is((cm1 <- coef(m1)), "coef.mer"),
 + 	  dim(cm1$herd) == c(15,4),
@@ -298,8 +298,8 @@ In Ops.factor(habitat, lagoon) : * not meaningful for factors
   2:     709.74472:  0.00000
 > stopifnot(all.equal(fixef(r2), fixef(r2.), tol= 1e-14),
 +           Matrix:::isDiagonal(vcov(r2.)),# ok
-+           TRUE ##all.equal(diag(vcov(r2.)), rep.int(V2[1,1], 4), tol= 1e-13)
-+           ,## FIXME FIXME ^^^^ currently fails...
++           all.equal(diag(vcov(r2.)), rep.int(V2[1,1], 4), tol= 1e-13)
++           ,
 + 	  all(vcov(r2.)@factors$correlation == diag(4)),
 +           TRUE)
 Note: Method with signature "dpoMatrix#generalMatrix" chosen for function "coerce",
@@ -323,10 +323,10 @@ Number of obs: 100, groups: habitat, 20
 
 Fixed effects:
         Estimate Std. Error t value
-lagoon1  101.720      9.121   11.15
-lagoon2  200.280      9.121   21.96
-lagoon3  301.760      9.121   33.08
-lagoon4  400.800      9.121   43.94
+lagoon1  101.720      1.824   55.76
+lagoon2  200.280      1.824  109.79
+lagoon3  301.760      1.824  165.42
+lagoon4  400.800      1.824  219.71
 
 Correlation of Fixed Effects:
         lagon1 lagon2 lagon3
@@ -383,13 +383,12 @@ lagoon4 0.000  0.000  0.000
 +     rG2 <- mcmcsamp(m1, n = 3, verbose = TRUE)
 + }
 > 
-> ## Spencer Graves' example (from a post to S-news, 2006-08-03): ----------------
-> ## FIXME?
+> ## Spencer Graves' example (from a post to S-news, 2006-08-03) ----------------
+> ## it should give an error, rather than silent non-sense:
 > tstDF <- data.frame(group = letters[1:5], y = 1:5)
-> var(tstDF$y) # == 2.5
-[1] 2.5
-> ## Now throws an error
-> assertError(lmer(y ~ 1 + (1|group), data = tstDF))
+> assertError(## Now throws an error, as desired :
++             lmer(y ~ 1 + (1|group), data = tstDF)
++             )
 > 
 > 
 > ## Wrong formula gave a seg.fault at times:
@@ -425,5 +424,5 @@ In Ops.factor(ff, x1) : + not meaningful for factors
 > stopifnot(all.equal.notCall(Pm1, Pm2))
 > 
 > cat('Time elapsed: ', proc.time(),'\n') # for ``statistical reasons''
-Time elapsed:  9.978 0.198 10.425 0 0 
+Time elapsed:  11.397 0.202 11.826 0 0 
 > 

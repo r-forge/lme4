@@ -47,9 +47,6 @@
 % \source{
 %  not public; anonymized on purpose
 % }
-% \references{
-% %%  ~~ possibly secondary sources and usages ~~
-% }
 \examples{
 str(InstEval)
 
