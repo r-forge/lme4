@@ -20,12 +20,14 @@
 \alias{coef,merenvtrms-method}
 % *lmerenv methods: typically lmerenv and merenv (= non-lmerenv)
 \alias{anova,lmerenv-method}
-\alias{deviance,lmerenv-method}
+\alias{deviance,merenv-method}
 \alias{deviance,lmerenv-method}
 \alias{logLik,lmerenv-method}
 \alias{logLik,merenv-method}
+\alias{print,merenv-method}
 \alias{print,lmerenv-method}
 \alias{profile,lmerenv-method}
+\alias{show,merenv-method}
 \alias{show,lmerenv-method}
 \alias{summary,lmerenv-method}
 \alias{summary,glmerenv-method}% for now
