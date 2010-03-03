@@ -306,7 +306,7 @@ lmer <-
                control = control)
     }
     me
-}
+} ## lmer()
 
 glmer <-
 function(formula, data, family = gaussian, sparseX = FALSE,
@@ -372,13 +372,16 @@ function(formula, data, family = gaussian, sparseX = FALSE,
     names(fixef) <- colnames(X)
     rho$fixef <- fixef
 ### FIXME: Should decide on the form of the start argument and how it is used
-    rho$start <- numeric(p);            # needed for family$initialize
+    rho$start <- numeric(p)            # needed for family$initialize
 
     ## evaluate, check and initialize family
     if(is.character(family))
         family <- get(family, mode = "function", envir = parent.frame(2))
     if(is.function(family)) family <- family()
     rho$family <- family
+    ## use scale, whenever not  binomial or poisson :
+    rho$useSc <- !match(family$family, c("binomial", "poisson"), nomatch = 0L)
+
     n <- rho$nobs
     if (!length(rho$weights)) rho$weights <- rep.int(1, n)
     eval(family$initialize, rho)
@@ -437,7 +440,7 @@ function(formula, data, family = gaussian, sparseX = FALSE,
                control = control)
     }
     me
-}
+} ## glmer()
 
 ##' Fit a nonlinear mixed-effects model
 ##'
@@ -769,28 +772,36 @@ devcomp <- function(x, ...)
     Cl <- getClass(cl <- class(x))
     stopifnot(extends(Cl, "merenv"))
     switch(cl,
-           "lmerenv" =
-           with(env(x),
-		list(cmp = c(ldL2 = ldL2, ldRX2 = ldRX2, pwrss = pwrss,
-		     deviance = ldL2 + nobs * (1 + log(2 * pi * pwrss/nobs)),
-		     REML = ldL2 + ldRX2 + nmp * (1 + log(2 * pi * pwrss/nmp))),
-		     dims = c(n = nobs, p = length(fixef), nmp = nmp, q = nrow(Zt)))),
-           "glmerenv" =
-           with(env(x),
-		list(cmp = c(ldL2 = ldL2, ldRX2 = ldRX2, pwrss = pwrss,
-                     deviance = ldL2 + nobs * (1 + log(2 * pi * pwrss/nobs))),
-		     dims = c(n = nobs, p = length(fixef), q = nrow(Zt)))),
-           ## "otherwise":
-           stop(sprintf("class '%s' not yet supported", cl))
-           )
+	   "lmerenv" =
+	   with(env(x),
+		list(cmp =
+		     c(ldL2 = ldL2, ldRX2 = ldRX2, pwrss = pwrss,
+		       deviance = ldL2 + nobs * (1 + log(2 * pi * pwrss/nobs)),
+		       REML = ldL2 + ldRX2 + nmp * (1 + log(2 * pi * pwrss/nmp))),
+		     dims =
+		     c(n = nobs, p = length(fixef), nmp = nmp, q = nrow(Zt),
+		       useSc = TRUE))),
+	   "glmerenv" =
+	   with(env(x),
+		list(cmp =
+		     c(ldL2 = ldL2, ldRX2 = ldRX2, pwrss = pwrss,
+		       deviance = ldL2 + nobs * (1 + log(2 * pi * pwrss/nobs))),
+		     dims =
+		     c(n = nobs, p = length(fixef), q = nrow(Zt),
+		       useSc = useSc))),
+	   ## "otherwise":
+	   stop(sprintf("class '%s' not yet supported", cl))
+	   )
 }
 
-setMethod("sigma", signature(object = "lmerenv"),
-          function (object, ...) {
-              dc <- devcomp(object)
-              unname(sqrt(dc$cmp["pwrss"]/
-                          dc$dims[if (env(object)$REML) "nmp" else "n"]))
-          })
+setMethod("sigma", signature(object = "merenv"),
+	  function (object, ...) {
+	      dc <- devcomp(object)
+	      if(dc$dims["useSc"])
+		  unname(sqrt(dc$cmp["pwrss"]/
+			      dc$dims[if (env(object)$REML) "nmp" else "n"]))
+	      else 1
+	  })
 
 ## Obtain the ML fit of the model parameters
 MLfit <- function(x) {
@@ -885,8 +896,8 @@ setMethod("anova", signature(object = "lmerenv"),
 
 ##' Extract the conditional variance-covariance matrix of the fixed
 ##' effects
-setMethod("vcov", signature(object = "lmerenv"),
-	  function(object, ...)
+setMethod("vcov", signature(object = "merenv"),
+	  function(object, correlation = TRUE, ...)
       {
           en <- env(object)
           V <- sigma(object)^2 * chol2inv(en$RX)
@@ -895,12 +906,13 @@ setMethod("vcov", signature(object = "lmerenv"),
 	      stop("Computed variance-covariance matrix is not positive definite")
           nms <- colnames(en$X)
           dimnames(rr) <- list(nms, nms)
-          rr@factors$correlation <- as(rr, "corMatrix")
+	  if(correlation)
+	      rr@factors$correlation <- as(rr, "corMatrix")
           rr
       })
 
 ##' Create the VarCorr object of variances and covariances
-setMethod("VarCorr", signature(x = "lmerenv"),
+setMethod("VarCorr", signature(x = "merenv"),
 	  function(x, ...)
       {
           sc <- sigma(x)
@@ -1059,7 +1071,7 @@ summaryMerenv <- function(object, varcov = FALSE, ...)
     if (nrow(coefs) > 0)
         coefs <- cbind(coefs, "t value" = coefs[,1]/coefs[,2])
     llik <- logLik(object, REML)
-    mName <- paste("Linear mixed model fit by",
+    mName <- paste(if(!isLmer) "Generalized" , "Linear mixed model fit by",
                    if (REML) "REML" else "maximum likelihood")
     AICframe <- if (REML) dc$cmp["REML"] else
     data.frame(AIC = AIC(llik), BIC = BIC(llik),
