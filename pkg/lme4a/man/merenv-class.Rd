@@ -9,11 +9,13 @@
 %
 %\alias{fixef,merenv-method} -> ./fixef.Rd
 %\alias{ranef,merenv-method} -> ./ranef.Rd
+\alias{VarCorr,merenv-method}
 \alias{formula,merenv-method}
-\alias{update,merenv-method}
 \alias{model.frame,merenv-method}
 \alias{model.matrix,merenv-method}
 \alias{terms,merenv-method}
+\alias{update,merenv-method}
+\alias{vcov,merenv-method}
 %
 \alias{coef,merenvtrms-method}
 % *lmerenv methods: typically lmerenv and merenv (= non-lmerenv)
@@ -27,8 +29,6 @@
 \alias{show,lmerenv-method}
 \alias{summary,lmerenv-method}
 \alias{summary,glmerenv-method}% for now
-\alias{VarCorr,lmerenv-method}
-\alias{vcov,lmerenv-method}
 %
 \description{
   The \code{\link{class}} \code{"merenv"} is extending (aka
@@ -62,8 +62,14 @@
 \section{Methods}{
   \describe{
     %% merenv :
+    \item{VarCorr}{\code{signature(x = "merenv")}: ... }
     \item{formula}{\code{signature(x = "merenv")}: ... }
+    \item{model.frame}{\code{signature(formula = "merenv")}: ... }
+    \item{model.matrix}{\code{signature(object = "merenv")}: ... }
+    \item{sigma}{\code{signature(object = "merenv")}: ... }
+    \item{terms}{\code{signature(x = "merenv")}: ... }
     \item{update}{\code{signature(object = "merenv")}: ... }
+    \item{vcov}{\code{signature(object = "merenv")}: ... }
 
     %% merenvtrms :
     \item{coef}{\code{signature(object = "merenvtrms")}: ... }
@@ -72,20 +78,14 @@
     \item{anova}{\code{signature(object = "lmerenv")}: ... }
     \item{deviance}{\code{signature(object = "lmerenv")}: ... }
     \item{logLik}{\code{signature(object = "lmerenv")}: ... }
-    \item{model.frame}{\code{signature(formula = "lmerenv")}: ... }
-    \item{model.matrix}{\code{signature(object = "lmerenv")}: ... }
     \item{print}{\code{signature(x = "lmerenv")}: ... }
     \item{profile}{\code{signature(fitted = "lmerenv")}: ... }
     \item{show}{\code{signature(object = "lmerenv")}: ... }
-    \item{sigma}{\code{signature(object = "lmerenv")}: ... }
     \item{summary}{\code{signature(object = "lmerenv")} and additional
       argument \code{varcov = FALSE}:  The resulting (S3 class)
       \code{"summary.lmer"} object is \code{\link{list}}-like, with a
       non-\code{NULL} component \code{vcov} only when explicitly requested
       by \code{summary(..., varcov = TRUE)}.}
-    \item{terms}{\code{signature(x = "lmerenv")}: ... }
-    \item{VarCorr}{\code{signature(x = "lmerenv")}: ... }
-    \item{vcov}{\code{signature(object = "lmerenv")}: ... }
   }
 }
 % \references{ ~put references to the literature/web site here ~ }
