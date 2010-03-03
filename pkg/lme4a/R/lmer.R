@@ -406,7 +406,6 @@ function(formula, data, family = gaussian, sparseX = FALSE,
     rho$y <- unname(as.double(rho$y))   # must be done after initialize
     rho$pwrss <- numeric(1)
     rho$ldL2 <- numeric(1)
-    rho$ldRX2 <- numeric(1)
     rho$sqrtrwt <- numeric(n)
     rho$sqrtXwt <- numeric(n)
     rho$wtres <- numeric(n)
@@ -417,7 +416,7 @@ function(formula, data, family = gaussian, sparseX = FALSE,
     rho$compDev <- compDev
     rho$verbose <- as.integer(verbose)[1]
     rho$u[] <- 0                        # for the IRLS step
-
+    rho$lower <- unname(c(rho$lower, rep(-Inf, p)))
     .Call(glmer_IRLS, rho)              # optimize the fixed-effect model
 
     sP <- function(x) {
@@ -427,17 +426,17 @@ function(formula, data, family = gaussian, sparseX = FALSE,
                   length(x) == length(sat) + length(rho$fixef))
         .Call("merenv_update_Lambda_Ut", rho, x[sat], PACKAGE = "lme4a")
         rho$fixef[] <- x[-sat]
-        .Call("glmer_PIRLS", rho, PACKAGE = "lme4a")
+        return(rho$deviance <- .Call("glmer_PIRLS", rho, PACKAGE = "lme4a"))
     }
     gP <- function() c(theta, fixef)
-    gB <- function() cbind(lower = c(lower, rep(-Inf, length(fixef))),
-                           upper = rep.int(Inf, length(theta)+length(fixef)))
+    gB <- function() cbind(lower = lower,
+                           upper = rep.int(Inf, length(lower)))
     environment(sP) <- environment(gP) <- environment(gB) <- rho
     me <- new("glmerenv", setPars = sP, getPars = gP, getBounds = gB)
     if (doFit) {                        # perform the optimization
         if (verbose) control$trace <- 1
-        nlminb(me@getPars(), me@setPars, lower = rho$lower,
-               control = control)
+        nlminb(me@getPars(), me@setPars,
+               lower = me@getBounds()[,"lower"], control = control)
     }
     me
 } ## glmer()
@@ -777,18 +776,17 @@ devcomp <- function(x, ...)
 		list(cmp =
 		     c(ldL2 = ldL2, ldRX2 = ldRX2, pwrss = pwrss,
 		       deviance = ldL2 + nobs * (1 + log(2 * pi * pwrss/nobs)),
-		       REML = ldL2 + ldRX2 + nmp * (1 + log(2 * pi * pwrss/nmp))),
+		       REML = ldL2 + ldRX2 +
+                       nmp * (1 + log(2 * pi * pwrss/nmp))),
 		     dims =
 		     c(n = nobs, p = length(fixef), nmp = nmp, q = nrow(Zt),
 		       useSc = TRUE))),
 	   "glmerenv" =
 	   with(env(x),
 		list(cmp =
-		     c(ldL2 = ldL2, ldRX2 = ldRX2, pwrss = pwrss,
-		       deviance = ldL2 + nobs * (1 + log(2 * pi * pwrss/nobs))),
-		     dims =
-		     c(n = nobs, p = length(fixef), q = nrow(Zt),
-		       useSc = useSc))),
+		     c(ldL2 = ldL2, deviance = deviance),
+		     dims = c(n = nobs, p = length(fixef), q = nrow(Zt),
+                     useSc = useSc))),
 	   ## "otherwise":
 	   stop(sprintf("class '%s' not yet supported", cl))
 	   )
