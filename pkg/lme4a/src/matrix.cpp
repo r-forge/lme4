@@ -52,6 +52,15 @@ CHM_r* CHM_rd::crossprod_SP(CHM_SP Lam) {
     return ans;
 }
 
+CHM_r* CHM_rd::rprod_SP(CHM_SP Ut) {
+    static double one[] = {1,0}, zero[] = {0,0};
+    CHM_rd *ans =
+	new CHM_rd(M_cholmod_allocate_dense(Ut->nrow, A->ncol,
+					    Ut->nrow, CHOLMOD_REAL, &c));
+    M_cholmod_sdmult(Ut, 0/*no transpose*/, one, zero, A, ans->A, &c);
+    return ans;
+}
+
 CHM_r* CHM_rd::AtA() {
     static double one[] = {1,0}, zero[] = {0,0};
     int nc = (int)A->ncol, nr = (int)A->nrow;
@@ -205,6 +214,12 @@ CHM_r* CHM_rs::crossprod_SP(CHM_SP Lam) {
 			 TRUE/*sorted*/, &c));
     M_cholmod_free_sparse(&Lamtr, &c);
     return ans;
+}
+
+CHM_r* CHM_rs::rprod_SP(CHM_SP Ut) {
+    return new CHM_rs(
+	M_cholmod_ssmult(Ut, A, 0/*stype*/, TRUE/*values*/,
+			 TRUE/*sorted*/, &c));
 }
 
 CHM_r* CHM_rs::AtA() {

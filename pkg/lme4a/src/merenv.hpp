@@ -26,6 +26,13 @@ public:
  * @return updated penalized residual sum-of-squares.
  */
     double update_pwrss();
+
+/** 
+ * Update RZX in place
+ *
+ * @param CP the cross-product of the random- and fixed-effects model matrices
+ */
+    void update_RZX(CHM_r *CP);
 /** 
  * Create the crossproduct of Lambda and src in ans.
  * 
@@ -58,9 +65,9 @@ public:
     CHM_r *Vp(); /**< return pointer to a copy of X with rows scaled by sqrtXwt */
 
     int
-	N,		/**< length of gamma (can be a multiple of n) */
-	n,		/**< number of observations */
-	nth,		/**< number of elements of theta */
+    N,		///< length of gamma (can be a multiple of n)
+	n,		///< number of observations
+	nth,		///< number of elements of theta
 	p,		/**< number of fixed effects */
 	q,		/**< number of random effects */
 	diagonalLambda,
@@ -131,6 +138,7 @@ public:
     double Laplace();		/**< Laplace approximation to the deviance */
     void update_sqrtrwt();
     void update_sqrtXwt();
+    void update_RX();
     double update_wtres();
     void link() {fam.lnk->link(gam, mu, n);}
     void linkinv() {fam.lnk->linkinv(mu, muEta, gam, n);}

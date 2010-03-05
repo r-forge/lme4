@@ -17,6 +17,7 @@ public:
     virtual CHM_r* solveCHM_FR(CHM_FR L, int sys) = 0;
     virtual void copy_contents(CHM_r *src) = 0;
     virtual CHM_r* crossprod_SP(CHM_SP) = 0;
+    virtual CHM_r* rprod_SP(CHM_SP) = 0;
     virtual void show(const char*) = 0;
     virtual CHM_r* AtA() = 0;
 };
@@ -33,6 +34,7 @@ public:
     virtual CHM_r* solveCHM_FR(CHM_FR L, int sys);
     virtual void copy_contents(CHM_r *src);
     virtual CHM_r* crossprod_SP(CHM_SP);
+    virtual CHM_r* rprod_SP(CHM_SP);
     virtual void show(const char*);
     virtual CHM_r* AtA();	
 
@@ -51,6 +53,7 @@ public:
     virtual CHM_r* solveCHM_FR(CHM_FR, int);
     virtual void copy_contents(CHM_r*);
     virtual CHM_r* crossprod_SP(CHM_SP);
+    virtual CHM_r* rprod_SP(CHM_SP);
     virtual void show(const char*);
     virtual CHM_r* AtA();
 
@@ -94,9 +97,13 @@ public:
     CHM_FR F;
 };
 
+/// \bug I think this class is a bad idea.  It is being defined
+///      for one specific application (the dense XtX matrix in lmer
+///      objects with dense X) and is not sufficiently general.
 class dpoMatrix : public dMatrix {
 public:
-    dpoMatrix(SEXP x);
+    dpoMatrix(SEXP);
+    dpoMatrix(CHM_rs);
     virtual int ncol() {return n;}
     virtual int nrow() {return n;}
     const char* uplo;

@@ -9,7 +9,7 @@ extern "C" {
     SEXP glmer_IRLS(SEXP rho);
     SEXP glmer_PIRLS(SEXP rho);
     SEXP glmer_PIRLSbeta(SEXP rho);
-    SEXP glmer_update_sqrtrwt(SEXP rho);
+    SEXP glmer_update_RX(SEXP rho);
     
     SEXP lme4_dup_env_contents(SEXP dest, SEXP src, SEXP nms);
 
