@@ -151,6 +151,15 @@ void merenv::update_Lambda_Ut(SEXP thnew) {
     tmp->freeA(); delete tmp; delete Utp;
 }
 
+void merenv::update_RZX(CHM_r *CP)
+{
+    CHM_r *tmp1, *tmp2 = CP->solveCHM_FR(L, CHOLMOD_P);
+    tmp1 = tmp2->solveCHM_FR(L, CHOLMOD_L);
+    tmp2->freeA(); delete tmp2;
+    RZXp->copy_contents(tmp1);
+    tmp1->freeA(); delete tmp1;
+}
+
 CHM_DN merenv::crossprod_Lambda(CHM_DN rhs, CHM_DN ans) {
     static double one[] = {1,0}, zero[] = {0,0};
     M_cholmod_sdmult(Lambda, 1/*transpose*/, one, zero, rhs, ans, &c);
@@ -334,11 +343,7 @@ double lmer::update_dev(SEXP thnew) {
     cu = solvePL(N_AS_CHM_DN(Zty, q, 1));
     if (p) {
 	CHM_r *tmp1 = ZtXp->crossprod_SP(Lambda);
-	CHM_r *tmp2 = tmp1->solveCHM_FR(L, CHOLMOD_P);
-	tmp1->freeA(); delete tmp1;
-	tmp1 = tmp2->solveCHM_FR(L, CHOLMOD_L);
-	tmp2->freeA(); delete tmp2;
-	RZXp->copy_contents(tmp1);
+	update_RZX(tmp1);
 	tmp1->freeA(); delete tmp1;
 	RXp->downdate(RZXp, -1.0, XtXp, 1.0);
 	*ldRX2 = RXp->ldet2();
@@ -435,6 +440,8 @@ double glmer::PIRLS() {
     double *uold = new double[q], *varold = new double[n],
 	crit, step, pwrss0, pwrss1;
 
+// Resetting the random effects to zero appears to be necessary for
+// optimization by nlminb but not by minqa.
     dble_zero(u, q);
     update_sqrtrwt();		// var and sqrtrwt
     crit = 10. * CM_TOL;
@@ -477,10 +484,38 @@ double glmer::PIRLS() {
     }
     delete[] uold; delete[] varold;
     M_cholmod_free_dense(&cu, &c);
-// FIXME: Update the RX matrix here.
     return Laplace();
 } // PIRLS
 
+void glmer::update_RX() {
+    CHM_r *V = Vp();
+    CHM_r *VtV = V->AtA();
+    CHM_SP Utsc = M_cholmod_copy_sparse(Ut, &c);
+    CHM_DN csqrtXwt = N_AS_CHM_DN(sqrtXwt, n, 1);
+    M_cholmod_scale(csqrtXwt, CHOLMOD_COL, Utsc, &c);
+    CHM_r *UtV = V->rprod_SP(Utsc);
+    M_cholmod_free_sparse(&Utsc, &c);
+    V->freeA(); delete V;
+    update_RZX(UtV);
+    UtV->freeA(); delete UtV;
+// The messiness here is a result of Cholesky_rd::downdate assuming
+// that the second matrix is a dpoMatrix object.  It would be better
+// to use a CHM_rd object except that you can't define a symmetric
+// CHM_DN object.
+    if (sparseX) {
+	error("code for sparseX in glmer not yet written");
+    } else {
+	CHM_rd *RZXt = (dynamic_cast<CHM_rd*>(RZXp->AtA()));
+	CHM_rd *Vt = (dynamic_cast<CHM_rd*>(VtV));
+	double *rr = (double*)(RZXt->A)->x, *vv = (double*)(Vt->A)->x;
+	for (int i = 0; i < p*p; i++) vv[i] -= rr[i];
+	RZXt->freeA(); delete RZXt;
+    }
+    RXp->update(VtV);
+    VtV->freeA(); delete VtV;
+}
+
+    
 double glmer::PIRLSbeta() {
     int cvg = 1;//, info;
     double *betaold = new double[p], *varold = (double*)NULL,
@@ -553,143 +588,6 @@ double glmer::IRLS() {
     return devres;
 } // IRLS
 
-#if 0
-double glmerold::PIRLSbeta() {
-    int cvg, info;
-    double *betaold = new double[p], *varold = (double*)NULL,
-	*cbeta = new double[p],
-	*tmp = new double[q], *uold = new double[q],
-	*wtres = new double[n],
-	cfac = ((double)n)/((double)(q+p)), crit, pwrss_old,
-	step;
-    static double d1[2] = {1,0}, d0[2] = {0,0}, dm1[2] = {-1,0};
-    CHM_DN SOL, cRZX = N_AS_CHM_DN(RZX, q, p), cV,
-	cwtres = N_AS_CHM_DN(wtres, n, 1), ctmp = N_AS_CHM_DN(tmp, q, 1);
-    CHM_SP U;
-    R_CheckStack();
-
-    // reset u to initial values.  This can result in more
-    // iterations but it gives a repeatable function evaluation for
-    // the optimizer.
-    dble_zero(u, q);
-    dble_zero(fixef, p);
-
-    V = new double[n * p];
-    cV = N_AS_CHM_DN(V, n, p);
-
-    cvg = FALSE;
-
-    for (int ii = 0; ii < CM_MAXITER; ii++)
-    {
-	for (int i = 0; i < CM_MAXITER; i++) {
-	    dble_cpy(uold, u, q); // record current coefficients
-	    dble_cpy(betaold, fixef, p);
-
-	    pwrss_old = update_mu();
-	    U = A_to_U();	// create U
-	    if (!M_cholmod_factorize_p(U, d1, (int*)NULL, 0 /*fsize*/, L, &c))
-		error(_("cholmod_factorize_p failed: status %d, minor %d from ncol %d"),
-		      c.status, L->minor, L->n);
-	    X_to_V();			// update V
-	    if (!M_cholmod_sdmult(U, 0,	// no transpose
-				  d1, d0, cV, cRZX, &c))
-		error(_("cholmod_sdmult failed: status %d"), c.status);
-	    if (!(SOL = M_cholmod_solve(CHOLMOD_L, L, cRZX, &c)))
-		error(_("cholmod_solve (CHOLMOD_L) failed: status %d"), c.status);
-	    dble_cpy(RZX, (double*)(SOL->x), q * p);
-	    M_cholmod_free_dense(&SOL, &c);
-				// solve for RX in downdated V'V
-	    F77_CALL(dsyrk)("U", "T", &p, &n, d1, V, &n, d0, RX, &p); //V'V
-	    F77_CALL(dsyrk)("U", "T", &p, &q, dm1, RZX, &q, d1, RX, &p);
-	    F77_CALL(dpotrf)("U", &p, RX, &p, &info);
-	    if (info)
-		error(_("Downdated V'V is not positive definite, %d."), info);
-				// tmp := U %*% wtdResid
-	    M_cholmod_sdmult(U, 0, // no transpose
-			     d1, d0, cwtres, ctmp, &c);
-	    for (int j = 0; j < q; j++) tmp[j] -= u[j]; // tmp := tmp - u
-	    M_cholmod_free_sparse(&U, &c);
-				// solve L %*% tmp = tmp
-	    if (!(SOL = M_cholmod_solve(CHOLMOD_L, L, ctmp, &c)))
-		error(_("cholmod_solve (CHOLMOD_L) failed"));
-	    dble_cpy(tmp, (double*)(SOL->x), q);
-	    M_cholmod_free_dense(&SOL, &c);
-				// solve RX'cbeta = V'wtres - RZX'cu
-	    F77_CALL(dgemv)("T", &n, &p, d1, V, &n, wtres, &i1,
-			    d0, cbeta, &i1);
-	    F77_CALL(dgemv)("T", &q, &p, dm1, RZX, &q, tmp, &i1,
-			    d1, cbeta, &i1);
-	    F77_CALL(dtrsv)("U", "T", "N", &p, RX, &p, cbeta, &i1);
-				// evaluate convergence criterion
-	    double cul2 = sqr_length(tmp, q), cbetal2 = sqr_length(cbeta, p);
-	    crit = cfac * (cul2 + cbetal2)/ pwrss_old;
-//	    if (verb < 0) Rprintf("cul2 = %g, cbetal2 = %g\n", cul2, cbetal2);
-	    if (crit < CM_TOL) {	// don't do needless evaluations
-		cvg = TRUE;
-		break;
-	    }
-				// solve for delta-beta
-	    F77_CALL(dtrsv)("U", "N", "N", &p, RX, &p, cbeta, &i1);
-				// solve t(L) %*% SOL = tmp - RZX cbeta
-	    F77_CALL(dgemv)("N", &q, &p, dm1, RZX, &q, cbeta, &i1,
-			    d1, tmp, &i1);
-	    if (!(SOL = M_cholmod_solve(CHOLMOD_Lt, L, ctmp, &c)))
-		error(_("cholmod_solve (CHOLMOD_Lt) failed"));
-	    dble_cpy(tmp, (double*)(SOL->x), q);
-	    M_cholmod_free_dense(&SOL, &c);
-
-	    for (step = 1; step > CM_SMIN; step /= 2) { // step halving
-		for (int j = 0; j < q; j++)
-		    u[j] = uold[j] + step * tmp[j];
-		for (int j = 0; j < p; j++)
-		    fixef[j] = betaold[j] + step * cbeta[j];
-		d[pwrss_POS] = update_mu();
-		if (verb < 0)
-		    Rprintf("%2d,%8.6f,%12.4g: %15.6g %15.6g %15.6g %15.6g %15.6g\n",
-	    showdbl((double*)deltaf->x, p);
-			    i, step, crit, d[pwrss_POS], pwrss_old, fixef[0], u[0], u[1]);
-		if (d[pwrss_POS] < pwrss_old) {
-		    pwrss_old = d[pwrss_POS];
-		    break;
-		}
-	    }
-	    if (step <= CM_SMIN) break;
-	    if (!(muEta || etaGamma)) { // Gaussian linear mixed models require
-		cvg = TRUE;		// only 1 iteration
-		break;
-	    }
-	}
-	if (!cvg) break;
-	if (!var) break;
-	eval_varFunc();
-	crit = 0;
-	for (int j = 0; j < n; j++) {
-	    double diff = varold[j] - var[j];
-	    crit += (diff * diff)/(var[j]*var[j] + varold[j]*varold[j]);
-	}
-	if (verb < 0) Rprintf("%2d,%8.6f %15.6g %15.6g %15.6g %15.6g\n",
-			      ii, crit, var[0], var[1], varold[0], varold[1]);
-	if (crit < CM_TOL) break;
-    }
-
-    if (!cvg) error(_("Convergence failure in PIRLS"));
-
-    delete[] V; delete[] betaold; delete[] cbeta;
-    delete[] tmp; delete[] uold; delete[]wtres;
-    if (var) delete[] varold;
-
-    d[ldRX2_POS] = 0;
-    for (int j = 0; j < p; j++) d[ldRX2_POS] += 2 * log(RX[j * (p + 1)]);
-    d[ldL2_POS] = M_chm_factor_ldetL2(L);
-    d[sigmaML_POS] = sqrt(d[pwrss_POS]/(srwt ? sqr_length(srwt, n) : (double) n));
-    d[sigmaREML_POS] = (etaGamma || muEta) ? NA_REAL :
-	d[sigmaML_POS] * sqrt((((double) n)/((double)(n - p))));
-
-    return update_dev();
-    return 0;
-}
-#endif
-
 extern "C" {
     SEXP merenv_update_Lambda_Ut(SEXP rho, SEXP thnew) {
 	merenv(rho).update_Lambda_Ut(thnew);
@@ -708,11 +606,10 @@ extern "C" {
 	return ScalarReal(glmer(rho).PIRLSbeta());
     }
 
-    SEXP glmer_update_sqrtrwt(SEXP rho) {
-	glmer(rho).update_sqrtrwt();
+    SEXP glmer_update_RX(SEXP rho) {
+	glmer(rho).update_RX();
 	return R_NilValue;
     }
-
 
     SEXP lmer_validate(SEXP rho) {
 	return ScalarLogical(lmer(rho).validate());

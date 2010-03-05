@@ -86,9 +86,10 @@ nobars <- function(term)
 ##' Substitute the '+' function for the '|' function in a mixed-model
 ##' formula.  This provides a formula suitable for the current
 ##' model.frame function.
-##' @param term the right-hand side of a mixed-model formula
+##' @param form a mixed-model formula
 
 ##' @return the formula with all | operators replaced by +
+##' @note this function is called recursively
 subbars <- function(term)
 {
     if (is.name(term) || !is.language(term)) return(term)
@@ -101,44 +102,6 @@ subbars <- function(term)
 	term[[1]] <- as.name('+')
     for (j in 2:length(term)) term[[j]] <- subbars(term[[j]])
     term
-}
-
-##' Expand slashes in grouping factors
-
-##' Expand any slashes in the grouping factors returned by fb
-##' @param bb a list of terms returned by fb
-
-##' @return a list of pairs of expressions that generate
-##'    random-effects terms with slashes expanded.
-expandSlash <- function(bb)
-{
-    ## Create the interaction terms for nested effects
-    makeInteraction <- function(x)
-    {
-        if (length(x) < 2) return(x)
-        trm1 <- makeInteraction(x[[1]])
-        trm11 <- if(is.list(trm1)) trm1[[1]] else trm1
-        list(substitute(foo:bar, list(foo=x[[2]], bar = trm11)), trm1)
-    }
-    ## Return the list of '/'-separated terms
-    slashTerms <- function(x)
-    {
-        if (!("/" %in% all.names(x))) return(x)
-        if (x[[1]] != as.name("/"))
-            stop("unparseable formula for grouping factor")
-        list(slashTerms(x[[2]]), slashTerms(x[[3]]))
-    }
-
-    if (!is.list(bb)) return(expandSlash(list(bb)))
-    ## lapply(unlist(... - unlist returns a flattened list
-    unlist(lapply(bb, function(x) {
-        if (length(x) > 2 && is.list(trms <- slashTerms(x[[3]])))
-            return(lapply(unlist(makeInteraction(trms)),
-                          function(trm) substitute(foo|bar,
-                                                   list(foo = x[[2]],
-                                                        bar = trm))))
-        x
-    }))
 }
 
 ##' Is f1 nested within f2?

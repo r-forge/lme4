@@ -437,6 +437,7 @@ function(formula, data, family = gaussian, sparseX = FALSE,
         if (verbose) control$trace <- 1
         nlminb(me@getPars(), me@setPars,
                lower = me@getBounds()[,"lower"], control = control)
+        .Call(glmer_update_RX, rho)
     }
     me
 } ## glmer()
