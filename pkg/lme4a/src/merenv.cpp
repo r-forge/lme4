@@ -443,7 +443,10 @@ double glmer::PIRLS() {
 	dble_cpy(uold, u, q);
 	update_gamma();		// linear predictor
 	linkinv();		// mu and muEta
-	pwrss0 = update_pwrss();
+	// calculation of pwrss0 must update the wtres vector for use
+	// in cholmod_sdmult below.  FIXME: Is it a good idea to have
+	// both update_pwrss and update_wtres?
+	pwrss0 = update_wtres() + sqr_length(u, q);
 	update_sqrtXwt();
 	Utsc = M_cholmod_copy_sparse(Ut, &c);
 	M_cholmod_scale(csqrtXwt, CHOLMOD_COL, Utsc, &c);
