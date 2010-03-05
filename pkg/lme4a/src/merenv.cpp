@@ -426,13 +426,14 @@ double glmer::Laplace() {
 
 // Should PIRLS update the parameters too?  Do that separately.
 double glmer::PIRLS() {
-    static double one[] = {1,0}, zero[] = {0,0};
-    CHM_DN cwtres = N_AS_CHM_DN(wtres, n, 1), deltau,
+    static double mone[] = {-1,0}, one[] = {1,0};
+    CHM_DN csqrtXwt = N_AS_CHM_DN(sqrtXwt, n, 1),
+	cwtres = N_AS_CHM_DN(wtres, n, 1), deltau,
 	cu = M_cholmod_allocate_dense((size_t)q, (size_t)1, (size_t)q,
 				      CHOLMOD_REAL, &c);
     CHM_SP Utsc;
     double *uold = new double[q], *varold = new double[n],
-	crit, step, wrss0, wrss1;
+	crit, step, pwrss0, pwrss1;
 
     dble_zero(u, q);
     update_sqrtrwt();		// var and sqrtrwt
@@ -442,26 +443,27 @@ double glmer::PIRLS() {
 	dble_cpy(uold, u, q);
 	update_gamma();		// linear predictor
 	linkinv();		// mu and muEta
-	wrss0 = update_wtres();
+	pwrss0 = update_pwrss();
 	update_sqrtXwt();
 	Utsc = M_cholmod_copy_sparse(Ut, &c);
-	M_cholmod_scale(N_AS_CHM_DN(sqrtXwt,n,1), CHOLMOD_COL, Utsc, &c);
+	M_cholmod_scale(csqrtXwt, CHOLMOD_COL, Utsc, &c);
 	M_cholmod_factorize_p(Utsc, one, (int*)NULL, (size_t)0, L, &c);
-	M_cholmod_sdmult(Utsc, 0/*no trans*/, one, zero, cwtres, cu, &c);
+	dble_cpy((double*)cu->x, u, q);
+	M_cholmod_sdmult(Utsc, 0/*no trans*/, one, mone, cwtres, cu, &c);
 	deltau = M_cholmod_solve(CHOLMOD_A, L, cu, &c);
 	M_cholmod_free_sparse(&Utsc, &c);
 
 	if (verbose > 1) showdbl((double*)deltau->x, "deltau", q);
-	wrss1 = wrss0;		// force one evaluation of the loop
-	for (step = 1.; wrss0 <= wrss1 && step > CM_SMIN; step /= 2.) {
+	pwrss1 = pwrss0;	// force one evaluation of the loop
+	for (step = 1.; pwrss0 <= pwrss1 && step > CM_SMIN; step /= 2.) {
 	    for (int k = 0; k < q; k++)
 		u[k] = uold[k] + step * ((double*)deltau->x)[k];
 	    update_gamma();
 	    linkinv();
-	    wrss1 = update_wtres();
+	    pwrss1 = update_pwrss();
 	    if (verbose > 1) {
-		Rprintf("step = %g, wrss0 = %g; wrss1 = %g\n",
-			step, wrss0, wrss1, u[0]);
+		Rprintf("step = %g, pwrss0 = %g; pwrss1 = %g\n",
+			step, pwrss0, pwrss1, u[0]);
 		showdbl(u, "u", q);
 	    }
 	}
@@ -472,6 +474,7 @@ double glmer::PIRLS() {
     }
     delete[] uold; delete[] varold;
     M_cholmod_free_dense(&cu, &c);
+// FIXME: Update the RX matrix here.
     return Laplace();
 } // PIRLS
 
