@@ -7,10 +7,15 @@ source(system.file("test-tools.R", package = "Matrix"))# identical3() etc
 (fm1a <- lmer(Reaction ~ Days + (Days|Subject), sleepstudy, REML = FALSE))
 (fm2 <- lmer(Reaction ~ Days + (1|Subject) + (0+Days|Subject), sleepstudy))
 
+fm1. <- glmer(Reaction ~ Days + (Days|Subject), sleepstudy)
+## default family=gaussian -> automatically calls  lmer()
+stopifnot(all.equal(env(fm1), env(fm1.)))
+
 (fm3 <- lmer(Yield ~ 1|Batch, Dyestuff2))
 stopifnot(all.equal(fixef(fm1), fixef(fm2), tol= 1e-13),
 	  all.equal(unname(fixef(fm1)),
 		    c(251.405104848485, 10.467285959595), tol = 1e-13),
+	  all.equal(cov2cor(vcov(fm1))["(Intercept)", "Days"], -0.137553792, tol=1e-7),
 	  all.equal(coef(summary(fm3)),
 		    array(c(5.6656, 0.67838803150, 8.3515624346),
 			  c(1,3), dimnames = list("(Intercept)",
@@ -19,8 +24,7 @@ stopifnot(all.equal(fixef(fm1), fixef(fm2), tol= 1e-13),
 ## transformed vars should work[even if non-sensical as here;failed in 0.995-1]
 fm2l <- lmer(log(Reaction) ~ log(Days+1) + (log(Days+1)|Subject),
              data = sleepstudy, REML = FALSE)
-if(FALSE)# no need for an expand method now
-xfm2 <- expand(fm2l)
+## no need for an expand method now : xfm2 <- expand(fm2)
 stopifnot(is(fm1, "merenv"), is(fm2l, "merenv"),
           dim(ranef(fm2l)[[1]]) == c(18, 2),
           is((c3 <- coef(fm3)), "coef.mer"), all(fixef(fm3) == c3$Batch),
@@ -76,10 +80,9 @@ if (require('MASS', quietly = TRUE)) {
         structure(contr.sdif(3),
                   dimnames = list(NULL, c("diag", "encourage")))
     print(fm5 <- glmer(y ~ trt + wk2 + (1|ID), bacteria, binomial))
-###? the same?  We will discourage this practice.  Call glmer to fit GLMMs
-###    print(fm6 <- lmer(y ~ trt + wk2 + (1|ID), bacteria, binomial))
+    ## momentarily "fails": nlminb() stuck at theta=1
 
-       ## numbers from 'lme4' ("old"):
+    if(FALSE) ## numbers from 'lme4' ("old"):
     stopifnot(all.equal(logLik(fm5),
                         structure(c(ML = -96.13069), nobs = c(n = 220), nall = c(n = 220),
                                   df = c(p = 5), REML = FALSE, class = "logLik")),

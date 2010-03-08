@@ -193,7 +193,7 @@ lmer <-
     if(length(l... <- list(...))) {
         if (!is.null(l...$family)) {  # call glmer if family specified
             mc[[1]] <- as.name("glmer")
-            eval(mc, parent.frame())
+            return( eval(mc, parent.frame()) )
         }
         ## Check for method argument which is no longer used
         if (!is.null(method <- l...$method)) {
@@ -317,7 +317,7 @@ function(formula, data, family = gaussian, sparseX = FALSE,
     mf <- mc <- match.call()
     if (missing(family)) { ## divert using lmer()
 	mc[[1]] <- as.name("lmer")
-	eval(mc, parent.frame())
+	return(eval(mc, parent.frame()))
     }
 ### '...' handling up front, safe-guarding against typos ("familiy") :
     if(length(l... <- list(...))) {
@@ -946,13 +946,15 @@ printMerenv <- function(x, digits = max(3, getOption("digits") - 3),
 {
     so <- summary(x)
     cat(so$methTitle, "\n")
-    if (!is.null(so$call$formula))
-        cat("Formula:", deparse(so$call$formula),"\n")
-    if (!is.null(so$call$data))
-        cat("   Data:", deparse(so$call$data), "\n")
-    if (!is.null(so$call$subset))
-        cat(" Subset:",
-            deparse(asOneSidedFormula(x$call$subset)[[2]]),"\n")
+    if (!is.null(f <- env(x)$family))
+	cat(" Family:", f$family,"\n")
+    if (!is.null(cc <- so$call$formula))
+	cat("Formula:", deparse(cc),"\n")
+    if (!is.null(cc <- so$call$data))
+	cat("   Data:", deparse(cc), "\n")
+    if (!is.null(cc <- so$call$subset))
+	cat(" Subset:", deparse(asOneSidedFormula(cc)[[2]]),"\n")
+    ## MM would like:    cat("\n")
     print(so$AICtab, digits = digits)
     cat("\nRandom effects:\n")
     print(formatVC(so$varcor, digits = digits, useScale = so$useScale),
