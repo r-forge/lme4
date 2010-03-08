@@ -15,7 +15,7 @@ stopifnot(all.equal(env(fm1), env(fm1.)))
 stopifnot(all.equal(fixef(fm1), fixef(fm2), tol= 1e-13),
 	  all.equal(unname(fixef(fm1)),
 		    c(251.405104848485, 10.467285959595), tol = 1e-13),
-	  all.equal(cov2cor(vcov(fm1))["(Intercept)", "Days"], -0.137553792, tol=1e-7),
+	  all.equal(cov2cor(vcov(fm1))["(Intercept)", "Days"], -0.13755, tol=1e-4),
 	  all.equal(coef(summary(fm3)),
 		    array(c(5.6656, 0.67838803150, 8.3515624346),
 			  c(1,3), dimnames = list("(Intercept)",
