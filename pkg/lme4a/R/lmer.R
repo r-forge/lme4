@@ -401,6 +401,7 @@ function(formula, data, family = gaussian, sparseX = FALSE,
     rho$mu <- mustart
     rho$var <- family$variance(mustart)
     rho$muEta <- family$mu.eta(etastart)
+    rho$call <- mc
 
     ## enforce modes
     rho$y <- unname(as.double(rho$y))   # must be done after initialize
@@ -954,7 +955,8 @@ printMerenv <- function(x, digits = max(3, getOption("digits") - 3),
             deparse(asOneSidedFormula(x$call$subset)[[2]]),"\n")
     print(so$AICtab, digits = digits)
     cat("\nRandom effects:\n")
-    print(so$REmat, quote = FALSE, digits = digits, ...)
+    print(formatVC(so$varcor, digits = digits, useScale = so$useScale),
+	  quote = FALSE, digits = digits, ...)
 
     ngrps <- so$ngrps
     cat(sprintf("Number of obs: %d, groups: ", so$devcomp$dims["n"]))
@@ -1022,19 +1024,20 @@ unscaledVar <- function(object, RX = env(object)$RX)
 		    system = "Pt"))
 }
 
-formatVC <- function(varc, digits = max(3, getOption("digits") - 2))
+formatVC <- function(varc, digits = max(3, getOption("digits") - 2),
+                     useScale)
 ### "format()" the 'VarCorr' matrix of the random effects -- for show()ing
 {
     sc <- unname(attr(varc, "sc"))
     recorr <- lapply(varc, attr, "correlation")
-    reStdDev <- c(lapply(varc, attr, "stddev"), list(Residual = sc))
+    reStdDev <- c(lapply(varc, attr, "stddev"), if(useScale) list(Residual = sc))
     reLens <- unlist(c(lapply(reStdDev, length)))
     nr <- sum(reLens)
     reMat <- array('', c(nr, 4),
 		   list(rep.int('', nr),
 			c("Groups", "Name", "Variance", "Std.Dev.")))
     reMat[1+cumsum(reLens)-reLens, 1] <- names(reLens)
-    reMat[,2] <- c(unlist(lapply(varc, colnames)), "")
+    reMat[,2] <- c(unlist(lapply(varc, colnames)), if(useScale) "")
     reMat[,3] <- format(unlist(reStdDev)^2, digits = digits)
     reMat[,4] <- format(unlist(reStdDev), digits = digits)
     if (any(reLens > 1)) {
@@ -1061,10 +1064,11 @@ summaryMerenv <- function(object, varcov = FALSE, ...)
     isLmer <- is(object, "lmerenv")
 
     dc <- devcomp(object)
+    useSc <- as.logical(dc$dims["useSc"])
     rho <- env(object)
     REML <- if(isLmer) rho$REML else FALSE
     fcoef <- fixef(object)
-    sig <- if(isLmer) sigma(object) else 1.0 # <- FIXME
+    sig <- if(useSc) sigma(object) else 1.0
     coefs <- cbind("Estimate" = fcoef,
                    "Std. Error" = sig * sqrt(unscaledVar(RX = rho$RX)))
     if (nrow(coefs) > 0)
@@ -1077,15 +1081,14 @@ summaryMerenv <- function(object, varcov = FALSE, ...)
                logLik = c(llik),
                deviance = unname(dc$cmp["deviance"]), row.names = "")
     varcor <- VarCorr(object)
-    REmat <- formatVC(varcor)
     ans <- list(methTitle = mName,
-                devcomp = dc,
+                devcomp = dc, isLmer = isLmer, useScale = useSc,
                 logLik = llik,
                 ngrps = sapply(rho$flist, function(x) length(levels(x))),
                 coefficients = coefs,
                 sigma = sig,
                 vcov = if(varcov) vcov(object),
-                REmat = REmat,
+                varcor = varcor,# and use formatVC(.) for printing.
                 AICtab= AICframe,
                 call = rho$call
                 )
