@@ -30,6 +30,12 @@ public:
     GLvar *var;
 };
 
+class inverselink : public GLlink {
+public:
+    void link(double *eta, const double* mu, int n);
+    void linkinv(double *mu, double *muEta, const double* eta, int n);
+};
+
 class logitlink : public GLlink {
 public:
     void link(double *eta, const double* mu, int n);

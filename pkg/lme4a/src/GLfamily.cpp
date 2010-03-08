@@ -3,6 +3,7 @@
 
 static clogloglink clogloglnk;
 static identitylink identitylnk;
+static inverselink inverselnk;
 static logitlink logitlnk;
 static loglink loglnk;
 static probitlink probitlnk;
@@ -18,6 +19,7 @@ void GLfamily::initGL(SEXP rho) {
     static std::map<std::string, GLvar*> vpts;
     if (!lpts.count("identity")) { // initialize the map contents
 	lpts["identity"] = &identitylnk;
+	lpts["inverse"] = &inverselnk;
 	lpts["logit"] = &logitlnk;
 	lpts["probit"] = &probitlnk;
 	lpts["sqrt"] = &probitlnk;
@@ -123,6 +125,19 @@ void loglink::linkinv(double *mu, double *muEta, const double* eta, int n)
     for (int i = 0; i < n; i++) {
 	double tmp = exp(eta[i]);
 	muEta[i] = mu[i] = (tmp < DOUBLE_EPS) ? DOUBLE_EPS : tmp;
+    }
+}
+
+void inverselink::link(double *eta, const double* mu, int n) {
+    for (int i = 0; i < n; i++) eta[i] = 1./mu[i];
+}
+
+void inverselink::linkinv(double *mu, double *muEta, const double* eta, int n)
+{
+    for (int i = 0; i < n; i++) {
+	double tmp = 1./eta[i];
+	mu[i] = tmp;
+	muEta[i] = -tmp * tmp;
     }
 }
 

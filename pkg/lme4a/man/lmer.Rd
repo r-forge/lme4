@@ -1,6 +1,5 @@
 \name{lmer}
 \alias{lmer}
-\alias{lmer2}
 \alias{glmer}
 \alias{nlmer}
 \concept{GLMM}% << so it's found
@@ -141,10 +140,8 @@ nlmer(formula, data, family = gaussian, start = NULL, verbose = 0, nAGQ = 1,
 (fm2 <- lmer(Reaction ~ Days + (1|Subject) + (0+Days|Subject), sleepstudy))
 anova(fm1, fm2)
 ## generalized linear mixed model
-\dontrun{
 (gm1 <- glmer(cbind(incidence, size - incidence) ~ period + (1 | herd),
-              family = binomial, data = cbpp))
-}
+              data = cbpp, family = binomial))
 ## nonlinear mixed models
 \dontrun{
 (nm1 <- nlmer(circumference ~ SSlogis(age, Asym, xmid, scal) ~
