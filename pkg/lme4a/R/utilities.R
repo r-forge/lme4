@@ -6,7 +6,7 @@
 ##' determine the pairs of expressions that are separated by the
 ##' vertical bar operator.
 
-##' @param term the right-hand side of a mixed-model formula
+##' @param expr the right-hand side of a mixed-model formula
 
 ##' @return pairs of expressions that were separated by vertical bars
 findbars <- function(expr)
@@ -40,7 +40,7 @@ findbars <- function(expr)
                 stop("unparseable formula for grouping factor")
             list(slashTerms(x[[2]]), slashTerms(x[[3]]))
         }
-        
+
         if (!is.list(bb)) return(expandSlash(list(bb)))
         ## lapply(unlist(... - unlist returns a flattened list
         unlist(lapply(bb, function(x) {
@@ -86,7 +86,7 @@ nobars <- function(term)
 ##' Substitute the '+' function for the '|' function in a mixed-model
 ##' formula.  This provides a formula suitable for the current
 ##' model.frame function.
-##' @param form a mixed-model formula
+##' @param term a mixed-model formula
 
 ##' @return the formula with all | operators replaced by +
 ##' @note this function is called recursively
@@ -121,11 +121,11 @@ isNested <- function(f1, f2)
     f1 <- as.factor(f1)
     f2 <- as.factor(f2)
     stopifnot(length(f1) == length(f2))
+    k <- length(levels(f1))
     sm <- as(new("ngTMatrix",
-                 i = as.integer(f2) - 1L,
-                 j = as.integer(f1) - 1L,
-                 Dim = c(length(levels(f2)),
-                 length(levels(f1)))),
+		 i = as.integer(f2) - 1L,
+		 j = as.integer(f1) - 1L,
+		 Dim = c(length(levels(f2)), k)),
              "CsparseMatrix")
-    all(diff(sm@p) < 2)
+    all(sm@p[2:(k+1L)] - sm@p[1:k] <= 1L)
 }

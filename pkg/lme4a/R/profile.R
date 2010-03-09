@@ -1,9 +1,9 @@
-##' Create a deep copy of an lmerenv object.
+##' Create a deep copy of an merenv object.
 ##' @param x an lmerenv object to copy
 
 ##' @return a copy of x
-copylmer <- function(x) {
-    stopifnot(is(x, "lmerenv"))
+copyMerenv <- function(x) {
+    stopifnot(is(x, "merenv"))
     gb <- x@getBounds
     gp <- x@getPars
     sp <- x@setPars
@@ -78,7 +78,7 @@ update_dr_env <- function(rho, fw) {
 devfun <- function(fm)
 {
     stopifnot(is(fm, "lmerenv"))
-    fm1 <- copylmer(fm)
+    fm1 <- copyMerenv(fm)
     rm(fm)
     rho <- env(fm1)
     if (rho$REML) rho$REML <- FALSE
@@ -127,7 +127,7 @@ setMethod("profile", "lmerenv",
           p <- length(rr$fixef)
 
           ans <- lapply(opt <- attr(dd, "optimum"), function(el) NULL)
-          bakspl <- forspl <- ans    
+          bakspl <- forspl <- ans
 
           nptot <- length(opt)
           nvp <- nptot - p    # number of variance-covariance pars
@@ -152,7 +152,7 @@ setMethod("profile", "lmerenv",
               num <- diff(pvals)
               max(lower, pvals[2] + sign(num) * absstep * num / denom)
           }
-          
+
           ## mkpar generates the parameter vector of theta and
           ## log(sigma) from the values being profiled in position w
           mkpar <- function(np, w, pw, pmw) {
@@ -165,7 +165,7 @@ setMethod("profile", "lmerenv",
           ## fillmat fills the third and subsequent rows of the matrix
           ## using nextpar and zeta
 ### FIXME:  add code to evaluate more rows near the minimum if that
-###        constraint was active.          
+###        constraint was active.
           fillmat <- function(mat, lowcut, zetafun, cc) {
               nr <- nrow(mat)
               i <- 2L
@@ -181,7 +181,7 @@ setMethod("profile", "lmerenv",
           seqnvp <- seq_len(nvp)
           lowvp <- lower[seqnvp]
           form <- .zeta ~ foo           # pattern for interpSpline formula
-          
+
           for (w in seqnvp) {
               wp1 <- w + 1L
               start <- opt[seqnvp][-w]
@@ -192,18 +192,18 @@ setMethod("profile", "lmerenv",
                                  function(x) dd(mkpar(nvp, w, xx, x)),
                                  lower = lowvp[-w],
                                  control = list(trace = tr))
-### FIXME: check res for convergence 
+### FIXME: check res for convergence
                   zz <- sign(xx - pw) * sqrt(ores$objective - base)
                   c(zz, mkpar(nvp, w, xx, ores$par), rr$fixef)
               }
-              
+
 ### FIXME: The starting values for the conditional optimization should
 ### be determined from recent starting values, not always the global
 ### optimum values.
-              
+
 ### Can do this by taking the change in the other parameter values at
 ### the two last points and extrapolating.
-              
+
               ## intermediate storage for pos. and neg. increments
               pres <- nres <- res
               ## assign one row, determined by inc. sign, from a small shift
@@ -376,10 +376,10 @@ splom.thpr <-
     spl <- attr(x, "forward")
     frange <- sapply(spl, function(x) range(x$knots))
     bsp <- attr(x, "backward")
-    brange <- sapply(bsp, function(x) range(x$knots))    
+    brange <- sapply(bsp, function(x) range(x$knots))
     pfr <- do.call(cbind, lapply(bsp, predy, c(-mlev, mlev)))
     pfr[1, ] <- pmax.int(pfr[1, ], frange[1, ], na.rm = TRUE)
-    pfr[2, ] <- pmin.int(pfr[2, ], frange[2, ], na.rm = TRUE)    
+    pfr[2, ] <- pmin.int(pfr[2, ], frange[2, ], na.rm = TRUE)
     nms <- names(spl)
     ## Create data frame fr of par. vals in zeta coordinates
     fr <- x[, -1]
@@ -425,7 +425,7 @@ splom.thpr <-
         pts <- ll$pts
         limits <- current.panel.limits()
         psij <- predict(tr$sij)
-        psji <- predict(tr$sji)        
+        psji <- predict(tr$sji)
         ## do the actual plotting
         panel.grid(h = -1, v = -1)
         llines(predy(bsp[[i]], psij$x), predy(bsp[[j]], psij$y), ...)
@@ -433,7 +433,7 @@ splom.thpr <-
         for (k in seq_along(levels))
             llines(predy(bsp[[i]], pts[k, , 2]),
                    predy(bsp[[j]], pts[k, , 1]), ...)
-    }        
+    }
     dp <- function(x = NULL,            # diagonal panel
                    varname = NULL, limits, at = NULL, lab = NULL,
                    draw = TRUE,
@@ -444,14 +444,14 @@ splom.thpr <-
                    varname.font = add.text$font,
                    varname.fontfamily = add.text$fontfamily,
                    varname.fontface = add.text$fontface,
-                   
+
                    axis.text.col = axis.text$col,
                    axis.text.alpha = axis.text$alpha,
                    axis.text.cex = axis.text$cex,
                    axis.text.font = axis.text$font,
                    axis.text.fontfamily = axis.text$fontfamily,
                    axis.text.fontface = axis.text$fontface,
-                   
+
                    axis.line.col = axis.line$col,
                    axis.line.alpha = axis.line$alpha,
                    axis.line.lty = axis.line$lty,
@@ -472,7 +472,7 @@ splom.thpr <-
                            fontface = lattice:::chooseFace(varname.fontface,
                            varname.font),
                            fontfamily = varname.fontfamily))
-        if (draw)    
+        if (draw)
         {
             at <- pretty(limits)
             sides <- c("left", "top")
@@ -485,16 +485,16 @@ splom.thpr <-
                            tick = TRUE,
                            check.overlap = TRUE,
                            half = side == "top" && j > 1,
-                           
-                           tck = 1, rot = 0, 
-                           
+
+                           tck = 1, rot = 0,
+
                            text.col = axis.text.col,
                            text.alpha = axis.text.alpha,
                            text.cex = axis.text.cex,
                            text.font = axis.text.font,
                            text.fontfamily = axis.text.fontfamily,
                            text.fontface = axis.text.fontface,
-                           
+
                            line.col = axis.line.col,
                            line.alpha = axis.line.alpha,
                            line.lty = axis.line.lty,
@@ -514,7 +514,7 @@ splom.thpr <-
                        text.font = axis.text.font,
                        text.fontfamily = axis.text.fontfamily,
                        text.fontface = axis.text.fontface,
-                           
+
                        line.col = axis.line.col,
                        line.alpha = axis.line.alpha,
                        line.lty = axis.line.lty,
@@ -533,7 +533,7 @@ splom.thpr <-
 
 ##' @param x an object that inherits from class "thpr"
 ##' @param base the base of the logarithm.  Defaults to natural
-##'        logarithms 
+##'        logarithms
 
 ##' @return an lmer profile like x with all the .sigNN parameters
 ##'      replaced by .lsigNN.  The forward and backward splines for
@@ -546,7 +546,7 @@ log.thpr <- function (x, base = exp(1))
     if (length(sigs)) {
         colnames(x) <- sub("^\\.sig", ".lsig", cn)
         levels(x$.par) <- sub("^\\.sig", ".lsig", levels(x$.par))
-        names(attr(x, "backward")) <- 
+        names(attr(x, "backward")) <-
             names(attr(x, "forward")) <-
                 sub("^\\.sig", ".lsig", names(attr(x, "forward")))
         for (nm in colnames(x)[sigs]) {
@@ -570,7 +570,7 @@ varpr <- function (x)
     if (length(sigs)) {
         colnames(x) <- sub("^\\.sig", ".sigsq", cn)
         levels(x$.par) <- sub("^\\.sig", ".sigsq", levels(x$.par))
-        names(attr(x, "backward")) <- 
+        names(attr(x, "backward")) <-
             names(attr(x, "forward")) <-
                 sub("^\\.sig", ".sigsq", names(attr(x, "forward")))
         for (nm in colnames(x)[sigs]) {

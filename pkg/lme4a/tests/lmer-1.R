@@ -32,7 +32,7 @@ stopifnot(is(fm1, "merenv"), is(fm2l, "merenv"),
 
 ## generalized linear mixed model
 (m1 <- glmer(cbind(incidence, size - incidence) ~ period + (1 | herd),
-             family = binomial, data = cbpp))
+             family = binomial, data = cbpp, verbose=1))
 stopifnot(is(m1,"merenv"), is((cm1 <- coef(m1)), "coef.mer"),
 	  dim(cm1$herd) == c(15,4),
           TRUE ## FIXME -- not at all :
