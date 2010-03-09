@@ -18,9 +18,9 @@ importMethodsFrom(Matrix, coerce, chol, "%*%", crossprod, tcrossprod,
                   chol2inv, diag, summary, update)
 
 
-export(VarCorr, devcomp, env, findbars, getBounds, getPars, glmer,
-       isNested, lmList, lmer, nlmer, nobars, setPars, sigma,
-       subbars)
+export(VarCorr, copyMerenv, devcomp, env, getBounds, getPars, glmer,
+       lmList, lmer, nlmer, setPars, sigma,
+       findbars, nobars, subbars, isNested)
 
 exportClasses(lmList,
 	      ## export all super classes of e.g., "lmerenv",
