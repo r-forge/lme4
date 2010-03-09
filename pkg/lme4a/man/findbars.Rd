@@ -40,5 +40,16 @@ subbars(term)
  \code{\link{model.frame}}, \code{\link{model.matrix}}.
 }
 \examples{
+findbars(f1 <- Reaction ~ Days + (Days|Subject))
+## => list( Days | Subject )
+findbars(y ~ Days + (1|Subject) + (0+Days|Subject))
+## => list of length 2:  list ( 1 | Subject ,  0+Days|Subject)
+
+nobars(f1)  ## Reaction ~ Days
+subbars(f1) ## Reaction ~ Days + (Days + Subject)
+\dontshow{
+stopifnot(identical(findbars(f1),
+                    list(expression(Days | Subject)[[1]])))
+}
 }
 \keyword{models}

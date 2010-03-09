@@ -1,5 +1,5 @@
 
-R version 2.10.1 Patched (2010-02-25 r51180)
+R version 2.10.1 Patched (2010-03-03 r51201)
 Copyright (C) 2010 The R Foundation for Statistical Computing
 ISBN 3-900051-07-0
 
@@ -18,31 +18,21 @@ Type 'q()' to quit R.
 > library(lme4a)
 Loading required package: Matrix
 Loading required package: lattice
-Matrix_NS: <environment: namespace:Matrix>
-
-Attaching package: 'Matrix'
-
-
-	The following object(s) are masked from package:base :
-
-	 det 
-
 > options(show.signif.stars = FALSE)
 > 
 > source(system.file("test-tools.R", package = "Matrix"))# identical3() etc
 > 
 > (fm1 <- lmer(Reaction ~ Days + (Days|Subject), sleepstudy))
-Linear mixed model fit by REML 
+Linear mixed model fit by REML  
 Formula: Reaction ~ Days + (Days | Subject) 
    Data: sleepstudy 
-REML 
-1744 
+[1] 1744
 
 Random effects:
  Groups   Name        Variance Std.Dev. Corr  
- Subject  (Intercept) 612.090  24.7405        
-          Days         35.071   5.9221  0.066 
- Residual             654.941  25.5918        
+ Subject  (Intercept) 612.09   24.740         
+          Days         35.07    5.922   0.066 
+ Residual             654.94   25.592         
 Number of obs: 180, groups: Subject, 18
 
 Fixed effects:
@@ -54,17 +44,17 @@ Correlation of Fixed Effects:
      (Intr)
 Days -0.138
 > (fm1a <- lmer(Reaction ~ Days + (Days|Subject), sleepstudy, REML = FALSE))
-Linear mixed model fit by maximum likelihood 
+Linear mixed model fit by maximum likelihood  
 Formula: Reaction ~ Days + (Days | Subject) 
    Data: sleepstudy 
-  AIC  BIC logLik deviance
- 1764 1783   -876     1752
+     AIC      BIC   logLik deviance 
+    1764     1783     -876     1752 
 
 Random effects:
  Groups   Name        Variance Std.Dev. Corr  
- Subject  (Intercept) 565.514  23.7805        
-          Days         32.682   5.7168  0.081 
- Residual             654.941  25.5918        
+ Subject  (Intercept) 565.51   23.781         
+          Days         32.68    5.717   0.081 
+ Residual             654.94   25.592         
 Number of obs: 180, groups: Subject, 18
 
 Fixed effects:
@@ -76,17 +66,16 @@ Correlation of Fixed Effects:
      (Intr)
 Days -0.138
 > (fm2 <- lmer(Reaction ~ Days + (1|Subject) + (0+Days|Subject), sleepstudy))
-Linear mixed model fit by REML 
+Linear mixed model fit by REML  
 Formula: Reaction ~ Days + (1 | Subject) + (0 + Days | Subject) 
    Data: sleepstudy 
-REML 
-1744 
+[1] 1744
 
 Random effects:
  Groups   Name        Variance Std.Dev.
- Subject  (Intercept) 627.569  25.0513 
- Subject  Days         35.858   5.9882 
- Residual             653.584  25.5653 
+ Subject  (Intercept) 627.57   25.051  
+ Subject  Days         35.86    5.988  
+ Residual             653.58   25.565  
 Number of obs: 180, groups: Subject, 18
 
 Fixed effects:
@@ -98,23 +87,30 @@ Correlation of Fixed Effects:
      (Intr)
 Days -0.184
 > 
+> fm1. <- glmer(Reaction ~ Days + (Days|Subject), sleepstudy)
+> ## default family=gaussian -> automatically calls  lmer()
+> stopifnot(all.equal(env(fm1), env(fm1.)))
+> 
 > (fm3 <- lmer(Yield ~ 1|Batch, Dyestuff2))
-Linear mixed model fit by REML 
+Linear mixed model fit by REML  
 Formula: Yield ~ 1 | Batch 
    Data: Dyestuff2 
- REML 
-161.8 
+[1] 161.8
 
 Random effects:
  Groups   Name        Variance Std.Dev.
- Batch    (Intercept)  0.000   0.0000  
- Residual             13.806   3.7157  
+ Batch    (Intercept)  0.00    0.000   
+ Residual             13.81    3.716   
 Number of obs: 30, groups: Batch, 6
 
 Fixed effects:
             Estimate Std. Error t value
 (Intercept)   5.6656     0.6784   8.352
-> stopifnot(all.equal(coef(summary(fm3)),
+> stopifnot(all.equal(fixef(fm1), fixef(fm2), tol= 1e-13),
++ 	  all.equal(unname(fixef(fm1)),
++ 		    c(251.405104848485, 10.467285959595), tol = 1e-13),
++ 	  all.equal(cov2cor(vcov(fm1))["(Intercept)", "Days"], -0.13755, tol=1e-4),
++ 	  all.equal(coef(summary(fm3)),
 + 		    array(c(5.6656, 0.67838803150, 8.3515624346),
 + 			  c(1,3), dimnames = list("(Intercept)",
 + 				  c("Estimate", "Std. Error", "t value")))))
@@ -122,18 +118,51 @@ Fixed effects:
 > ## transformed vars should work[even if non-sensical as here;failed in 0.995-1]
 > fm2l <- lmer(log(Reaction) ~ log(Days+1) + (log(Days+1)|Subject),
 +              data = sleepstudy, REML = FALSE)
-> if(FALSE)# no need for an expand method now
-+ xfm2 <- expand(fm2l)
+> ## no need for an expand method now : xfm2 <- expand(fm2)
 > stopifnot(is(fm1, "merenv"), is(fm2l, "merenv"),
 +           dim(ranef(fm2l)[[1]]) == c(18, 2),
++           is((c3 <- coef(fm3)), "coef.mer"), all(fixef(fm3) == c3$Batch),
 +           TRUE)
 > 
 > ## generalized linear mixed model
 > (m1 <- glmer(cbind(incidence, size - incidence) ~ period + (1 | herd),
-+              family = binomial, data = cbpp))
-<environment: 0xc9caac4>
-> if(FALSE)#not yet
-+ stopifnot(is(m1,"merenv"), is((cm1 <- coef(m1)), "coef.mer"),
++              family = binomial, data = cbpp, verbose=1))
+  0:     103.64097:  1.00000 -1.26902 -1.17076 -1.30141 -1.78228
+  1:     103.64095:  1.00000 -1.26902 -1.17076 -1.30140 -1.78228
+  2:     100.56004: 0.615233 -1.27251 -0.959292 -1.12479 -1.65541
+  3:     100.20954: 0.610582 -1.40036 -0.926470 -1.07457 -1.58632
+  4:     100.17421: 0.610882 -1.39431 -0.957224 -1.08640 -1.53232
+  5:     100.15066: 0.637524 -1.39839 -0.938900 -1.14074 -1.52755
+  6:     100.11983: 0.666951 -1.39931 -0.974648 -1.11355 -1.56152
+  7:     100.11005: 0.651880 -1.40315 -0.968869 -1.10483 -1.55001
+  8:     100.11004: 0.651227 -1.40329 -0.968713 -1.10422 -1.54972
+  9:     100.11004: 0.651244 -1.40329 -0.968724 -1.10422 -1.54973
+ 10:     100.11004: 0.651245 -1.40329 -0.968724 -1.10422 -1.54973
+Generalized linear mixed model fit by maximum likelihood (Laplace Approximation) 
+ Family: binomial 
+Formula: cbind(incidence, size - incidence) ~ period + (1 | herd) 
+   Data: cbpp 
+     AIC      BIC   logLik deviance 
+  110.11   120.24   -50.06   100.11 
+
+Random effects:
+ Groups Name        Variance Std.Dev.
+ herd   (Intercept) 0.4241   0.6512  
+Number of obs: 56, groups: herd, 15
+
+Fixed effects:
+            Estimate Std. Error z value
+(Intercept)  -1.4033     0.2299  -6.103
+period2      -0.9687     0.3046  -3.180
+period3      -1.1042     0.3249  -3.398
+period4      -1.5497     0.4259  -3.639
+
+Correlation of Fixed Effects:
+        (Intr) perid2 perid3
+period2 -0.352              
+period3 -0.329  0.271       
+period4 -0.250  0.205  0.190
+> stopifnot(is(m1,"merenv"), is((cm1 <- coef(m1)), "coef.mer"),
 + 	  dim(cm1$herd) == c(15,4),
 +           TRUE ## FIXME -- not at all :
 + 	  ## all.equal(fixef(m1),
@@ -164,9 +193,11 @@ $group.id
 9    1.2121809
 10   4.9433572
 
+attr(,"class")
+[1] "coef.mer"
 > (sf1 <- summary(fit.1)) # show() is as without summary()
 $methTitle
-[1] "Linear mixed model fit by REML"
+[1] "Linear mixed model fit by REML "
 
 $devcomp
 $devcomp$cmp
@@ -174,9 +205,15 @@ $devcomp$cmp
 26.8452812  0.3112042 12.6874321 74.5004151 73.4034352 
 
 $devcomp$dims
-  n   p nmp   q 
- 20   1  19  10 
+    n     p   nmp     q useSc 
+   20     1    19    10     1 
 
+
+$isLmer
+[1] TRUE
+
+$useScale
+[1] TRUE
 
 $logLik
 'log Lik.' -36.70172 (df=3)
@@ -193,24 +230,30 @@ $sigma
 [1] 0.8171656
 
 $vcov
-1 x 1 Matrix of class "dpoMatrix"
-            (Intercept)
-(Intercept)   0.4891768
+NULL
 
-$REmat
- Groups     Name          Variance  Std.Dev. 
- "group.id" "(Intercept)" "4.55789" "2.13492"
- "Residual" ""            "0.66776" "0.81717"
+$varcor
+$varcor$group.id
+            (Intercept)
+(Intercept)    4.557889
+attr(,"stddev")
+(Intercept) 
+   2.134921 
+attr(,"correlation")
+            (Intercept)
+(Intercept)           1
+
+attr(,"sc")
+[1] 0.8171656
 
 $AICtab
-    REML 
-73.40344 
+[1] 73.40344
 
 $call
 lmer(formula = y ~ 1 + (1 | group.id))
 
 attr(,"class")
-[1] "summary.lmer"
+[1] "summary.merenv"
 > stopifnot(all.equal(fixef(fit.1), c("(Intercept)" = 1.571312129)),
 + 	  all.equal(ranef(fit.1)[["group.id"]][,"(Intercept)"],
 + 		   c(1.80469, -1.80977, 1.61465, 1.54083, -0.1332,
@@ -225,8 +268,8 @@ attr(,"class")
 > print(plot(rr))
 $Subject
 
-> cc <- coef(fm1)
-> stopifnot(is.list(cc), length(cc) == 1, class(cc[[1]]) == "data.frame")
+> stopifnot(is(cc <- coef(fm1), "coef.mer"),
++ 	  is.list(cc), length(cc) == 1, class(cc[[1]]) == "data.frame")
 > print(plot(cc))
 $Subject
 
@@ -235,8 +278,8 @@ $Subject
 > print(plot(rr))
 $Subject
 
-> cc <- coef(fm2)
-> stopifnot(is.list(cc), length(cc) == 1, class(cc[[1]]) == "data.frame")
+> stopifnot(is(cc <- coef(fm2), "coef.mer"),
++ 	  is.list(cc), length(cc) == 1, class(cc[[1]]) == "data.frame")
 > print(plot(cc))
 $Subject
 
@@ -246,19 +289,41 @@ $Subject
 +     contrasts(bacteria$trt) <-
 +         structure(contr.sdif(3),
 +                   dimnames = list(NULL, c("diag", "encourage")))
-+ ##    print(fm5 <- glmer(y ~ trt + wk2 + (1|ID), bacteria, binomial))
-+ ###? the same?
-+ ###? print(fm6 <- lmer(y ~ trt + wk2 + (1|ID), bacteria, binomial))
++     print(fm5 <- glmer(y ~ trt + wk2 + (1|ID), bacteria, binomial))
++     ## momentarily "fails": nlminb() stuck at theta=1
 + 
-+ #   if(FALSE) ## FIXME -- binomial  ? -- why the difference?
-+        ## numbers from 'lme4' ("old"):
-+ #    stopifnot(all.equal(logLik(fm5),
-+ #                        structure(c(ML = -96.13069), nobs = c(n = 220), nall = c(n = 220),
-+ #                                  df = c(p = 5), REML = FALSE, class = "logLik")),
-+ #              all.equal(fixef(fm5),
-+ #			c("(Intercept)"= 2.831609490, "trtdiag"= -1.366722631,
-+ #			  "trtencourage"=0.5840147802, "wk2TRUE"=-1.598591346)))
++     if(FALSE) ## numbers from 'lme4' ("old"):
++     stopifnot(all.equal(logLik(fm5),
++                         structure(c(ML = -96.13069), nobs = c(n = 220), nall = c(n = 220),
++                                   df = c(p = 5), REML = FALSE, class = "logLik")),
++               all.equal(fixef(fm5),
++ 			c("(Intercept)"= 2.831609490, "trtdiag"= -1.366722631,
++ 			  "trtencourage"=0.5840147802, "wk2TRUE"=-1.598591346)))
 + }
+Generalized linear mixed model fit by maximum likelihood (Laplace Approximation) 
+ Family: binomial 
+Formula: y ~ trt + wk2 + (1 | ID) 
+   Data: bacteria 
+     AIC      BIC   logLik deviance 
+  204.05   221.02   -97.02   194.05 
+
+Random effects:
+ Groups Name        Variance Std.Dev.
+ ID     (Intercept) 1        1       
+Number of obs: 220, groups: ID, 50
+
+Fixed effects:
+             Estimate Std. Error z value
+(Intercept)    2.2479     0.3804   5.909
+trtdiag       -1.1187     0.5645  -1.982
+trtencourage   0.4815     0.5863   0.821
+wk2TRUE       -1.2949     0.4095  -3.162
+
+Correlation of Fixed Effects:
+            (Intr) trtdig trtncr
+trtdiag     -0.029              
+trtencourag  0.058 -0.500       
+wk2TRUE     -0.787  0.059 -0.047
 > 
 > ## Invalid factor specification -- used to seg.fault:
 > set.seed(1)
@@ -296,7 +361,15 @@ In Ops.factor(habitat, lagoon) : * not meaningful for factors
   0:     727.74191:  1.00000
   1:     709.74472:  0.00000
   2:     709.74472:  0.00000
-> stopifnot(all.equal(fixef(r2), fixef(r2.), tol= 1e-14),
+> 
+> ## the summary() components we do want to compare 'dense X' vs 'sparse X':
+> nmsSumm <- c("methTitle", "devcomp", "logLik", "ngrps", "coefficients",
++              "sigma", "REmat", "AICtab")
+> sr2  <- summary(r2)
+> sr2. <- summary(r2.)
+> 
+> stopifnot(all.equal(sr2[nmsSumm], sr2.[nmsSumm], tol= 1e-14),
++           all.equal(ranef(r2), ranef(r2.), tol= 1e-14),
 +           Matrix:::isDiagonal(vcov(r2.)),# ok
 +           all.equal(diag(vcov(r2.)), rep.int(V2[1,1], 4), tol= 1e-13)
 +           ,
@@ -309,16 +382,15 @@ Note: Method with signature "dpoMatrix#dgeMatrix" chosen for function "coerce",
  target signature "corMatrix#dgeMatrix".
  "ddenseMatrix#dgeMatrix" would also be valid
 > r2.
-Linear mixed model fit by REML 
+Linear mixed model fit by REML  
 Formula: y ~ 0 + lagoon + (1 | habitat) 
    Data: dat 
- REML 
-709.7 
+[1] 709.7
 
 Random effects:
  Groups   Name        Variance Std.Dev.
- habitat  (Intercept)  0.000   0.000   
- Residual             83.194   9.121   
+ habitat  (Intercept)  0.0     0.000   
+ Residual             83.2     9.121   
 Number of obs: 100, groups: habitat, 20
 
 Fixed effects:
@@ -424,5 +496,5 @@ In Ops.factor(ff, x1) : + not meaningful for factors
 > stopifnot(all.equal.notCall(Pm1, Pm2))
 > 
 > cat('Time elapsed: ', proc.time(),'\n') # for ``statistical reasons''
-Time elapsed:  11.397 0.202 11.826 0 0 
+Time elapsed:  9.16 0.252 10.204 0 0 
 > 

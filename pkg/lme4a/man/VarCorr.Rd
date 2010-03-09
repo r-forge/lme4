@@ -4,10 +4,12 @@
 \alias{VarCorr}
 % Methods
 \alias{VarCorr,mer-method}
+\alias{VarCorr,merenv-method}
 \alias{VarCorr,merMCMC-method}
 \title{Extract variance and correlation components}
 \usage{
 \S4method{VarCorr}{mer}(x, \dots)
+\S4method{VarCorr}{merenv}(x, \dots)
 \S4method{VarCorr}{merMCMC}(x, type = c("raw", "varcov", "sdcorr", "logs"), \dots)
 }
 \arguments{

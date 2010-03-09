@@ -80,8 +80,10 @@ derived_mats <- function(rho) {
 ##'
 ##' @param bars a list of parsed random-effects terms
 ##' @param fr a model frame in which to evaluate these terms
-##' @rho an environment that is modified by this function
-##' @return NULL - the side effect of the function is to modify rho
+##' @param rho an environment that is modified by this function
+##' @return NULL - the side effect of the function is to modify rho, adding
+##'   'Zt', 'Ut', 'Lambda', 'Lind', 'cnms', 'diagonalLambda',
+##'   'flist', 'lower', 'theta', 'u'
 makeZt <- function(bars, fr, rho) {
     if (!length(bars))
         stop("No random effects terms specified in formula")
@@ -197,9 +199,7 @@ lmer <-
         }
         ## Check for method argument which is no longer used
         if (!is.null(method <- l...$method)) {
-            msg <- paste("Argument", sQuote("method"),
-                         "is deprecated.\nUse", sQuote("nAGQ"),
-                         "to choose AGQ.  PQL is not available.")
+	    msg <- paste("Argument", sQuote("method"), "is deprecated.")
             if (match.arg(method, c("Laplace", "AGQ")) == "Laplace") {
                 warning(msg)
                 l... <- l...[names(l...) != "method"]
@@ -215,13 +215,13 @@ lmer <-
                                         # environment for deviance evaluation
     rho <- new.env(parent = environment(formula))
     rho$REML <- as.logical(REML)[1]
-                                        # evaluate and install the model frame
+    ## evaluate and install the model frame :
     m <- match(c("data", "subset", "weights", "na.action", "offset"),
                names(mf), 0)
     mf <- mf[c(1, m)]
     mf$drop.unused.levels <- TRUE
     mf[[1]] <- as.name("model.frame")
-    fr.form <- subbars(formula)
+    fr.form <- subbars(formula) # substituted "|" by "+" -
     environment(fr.form) <- environment(formula)
     mf$formula <- fr.form
     check_y_weights(fr <- eval(mf, parent.frame()), rho)
@@ -238,8 +238,8 @@ lmer <-
     rho$X <- X
     rho$sparseX <- sparseX
 
-    p <- ncol(X)
-    stopifnot((rho$nmp <- rho$nobs - p) > 0)
+    rho$p <- p <- ncol(X)
+    stopifnot((rho$nmp <- rho$nobs - p) > 0)# nmp := n m[inus] p
     fixef <- numeric(p)
     names(fixef) <- colnames(X)
     rho$fixef <- fixef
@@ -261,7 +261,7 @@ lmer <-
 ### The meaning of verbose has changed.
 ###    verbose == 0 => no iteration output
 ###    verbose == 1 => iteration output from optimizer but not PIRLS
-###    verbose == 2 => iteration output from optimizer and PIRLS
+###    verbose >= 2 => iteration output from optimizer and PIRLS
     rho$verbose <- as.integer(verbose)[1]
 
     sP <- function(x) {
@@ -271,6 +271,7 @@ lmer <-
                   PACKAGE = "lme4a")
         } else {
             stopifnot(length(x) == length(theta))
+            ## new theta := x
             theta <<- as.numeric(x)
             Lambda@x[] <<- theta[Lind]           # update Lambda
             Ut <<- crossprod(Lambda, Zt)
@@ -290,9 +291,12 @@ lmer <-
             mu[] <<- gamma
             pwrss <<- sum(c(y - mu, u)^2) # penalized residual sum of squares
             ldL2[] <<- 2 * determinant(L)$mod
-            ldRX2[] <<- 2 * determinant(RX)$mod
-            if (!REML) return(ldL2 + nobs * (1 + log(2 * pi * pwrss/nobs)))
-            ldL2 + ldRX2 + nmp * (1 + log(2 * pi * pwrss/nmp))
+	    if (REML) {
+		ldRX2[] <<- 2 * determinant(RX)$mod
+		ldL2 + ldRX2 + nmp * (1 + log(2 * pi * pwrss/nmp ))
+	    }
+	    else
+		ldL2	    + nobs * (1 + log(2 * pi * pwrss/nobs))
         }
     }
     gP <- function() theta
@@ -420,13 +424,15 @@ function(formula, data, family = gaussian, sparseX = FALSE,
     rho$lower <- unname(c(rho$lower, rep(-Inf, p)))
     .Call(glmer_IRLS, rho)              # optimize the fixed-effect model
 
+    ## This is the one that will be minimized
     sP <- function(x) {
         rho <- parent.env(environment())
-        sat <- seq_along(rho$theta)
-        stopifnot(is.numeric(x),
-                  length(x) == length(sat) + length(rho$fixef))
+        m <- length(rho$theta)
+        sat <- seq_len(m)
+        stopifnot(is.numeric(x), length(x) == m + length(fixef))
         .Call("merenv_update_Lambda_Ut", rho, x[sat], PACKAGE = "lme4a")
         rho$fixef[] <- x[-sat]
+        ## return value:
         return(rho$deviance <- .Call("glmer_PIRLS", rho, PACKAGE = "lme4a"))
     }
     gP <- function() c(theta, fixef)
@@ -797,9 +803,9 @@ devcomp <- function(x, ...)
 setMethod("sigma", signature(object = "merenv"),
 	  function (object, ...) {
 	      dc <- devcomp(object)
-	      if(dc$dims["useSc"])
-		  unname(sqrt(dc$cmp["pwrss"]/
-			      dc$dims[if (env(object)$REML) "nmp" else "n"]))
+	      if(dc$dims[["useSc"]])
+		  sqrt(dc$cmp[["pwrss"]]/
+		       dc$dims[[if (env(object)$REML) "nmp" else "n"]])
 	      else 1
 	  })
 
@@ -865,7 +871,7 @@ setMethod("anova", signature(object = "lmerenv"),
 	  }
 	  else { ## ------ single model ---------------------
               dc <- devcomp(object)
-              p <- dc$dims["p"]
+              p <- dc$dims[["p"]]
               ss <- fixef(object)
               stop("assign attribute not currently available")
               asgn <- attr(object@X, "assign")
@@ -961,7 +967,7 @@ printMerenv <- function(x, digits = max(3, getOption("digits") - 3),
 	  quote = FALSE, digits = digits, ...)
 
     ngrps <- so$ngrps
-    cat(sprintf("Number of obs: %d, groups: ", so$devcomp$dims["n"]))
+    cat(sprintf("Number of obs: %d, groups: ", so$devcomp$dims[["n"]]))
     cat(paste(paste(names(ngrps), ngrps, sep = ", "), collapse = "; "))
     cat("\n")
     if (nrow(so$coefficients) > 0) {
@@ -1063,7 +1069,10 @@ formatVC <- function(varc, digits = max(3, getOption("digits") - 2),
 summaryMerenv <- function(object, varcov = FALSE, ...)
 {
     ## Compute  'vcov' only when  'varcov = TRUE', no longer by default
-    isLmer <- is(object, "lmerenv")
+
+    cld <- getClass(cl <- class(object))
+    isLmer <- extends(cld, "lmerenv")
+    isGLmer <- extends(cld, "glmerenv")
 
     dc <- devcomp(object)
     useSc <- as.logical(dc$dims["useSc"])
@@ -1073,15 +1082,19 @@ summaryMerenv <- function(object, varcov = FALSE, ...)
     sig <- if(useSc) sigma(object) else 1.0
     coefs <- cbind("Estimate" = fcoef,
                    "Std. Error" = sig * sqrt(unscaledVar(RX = rho$RX)))
-    if (nrow(coefs) > 0)
-        coefs <- cbind(coefs, "t value" = coefs[,1]/coefs[,2])
+    if (nrow(coefs) > 0) {
+        coefs <- cbind(coefs, coefs[,1]/coefs[,2], deparse.level=0)
+        colnames(coefs)[3] <- paste(if(useSc) "t" else "z", "value")
+    }
     llik <- logLik(object, REML)
-    mName <- paste(if(!isLmer) "Generalized" , "Linear mixed model fit by",
-                   if (REML) "REML" else "maximum likelihood")
-    AICframe <- if (REML) dc$cmp["REML"] else
-    data.frame(AIC = AIC(llik), BIC = BIC(llik),
-               logLik = c(llik),
-               deviance = unname(dc$cmp["deviance"]), row.names = "")
+    mName <- paste(if(isLmer) "Linear" else if(isGLmer) "Generalized linear"
+                   else "Nonlinear (?)",# TODO: nonlinear / generalized nonlin
+                   "mixed model fit by",
+                   if (REML) "REML" else "maximum likelihood",
+                   if(isGLmer) "(Laplace Approximation)")
+    AICstats <- if (REML) dc$cmp[["REML"]] else
+    c(AIC = AIC(llik), BIC = BIC(llik), logLik = c(llik),
+      deviance = dc$cmp[["deviance"]])
     varcor <- VarCorr(object)
     ans <- list(methTitle = mName,
                 devcomp = dc, isLmer = isLmer, useScale = useSc,
@@ -1091,7 +1104,7 @@ summaryMerenv <- function(object, varcov = FALSE, ...)
                 sigma = sig,
                 vcov = if(varcov) vcov(object),
                 varcor = varcor,# and use formatVC(.) for printing.
-                AICtab= AICframe,
+                AICtab= AICstats,
                 call = rho$call
                 )
     class(ans) <- "summary.merenv" # use S3 class for now
@@ -1116,11 +1129,11 @@ setMethod("deviance", signature(object="lmerenv"),
       {
           if (missing(REML) || is.null(REML) || is.na(REML[1]))
               REML <- env(object)$REML
-          devcomp(object)$cmp[if(REML) "REML" else "deviance"]
+	  devcomp(object)$cmp[[if(REML) "REML" else "deviance"]]
       })
 ## The non-lmerenv case:
 setMethod("deviance", signature(object="merenv"),
-	  function(object, ...) devcomp(object)$cmp["deviance"])
+	  function(object, ...) devcomp(object)$cmp[["deviance"]])
 
 
 ##' Extract the log-likelihood or restricted log-likelihood
@@ -1132,7 +1145,7 @@ setMethod("logLik", signature(object="lmerenv"),
               REML <- rho$REML
           val <- -deviance(object, REML = REML)/2
           attr(val, "nall") <- attr(val, "nobs") <- length(rho$y)
-          attr(val, "df") <- length(rho$fixef) + length(rho$theta) + 1L
+	  attr(val, "df") <- length(rho$fixef) + length(rho$theta) + 1L
           attr(val, "REML") <-  as.logical(REML)
           class(val) <- "logLik"
           val
@@ -1141,9 +1154,10 @@ setMethod("logLik", signature(object="lmerenv"),
 setMethod("logLik", signature(object="merenv"), function(object, ...)
       {
 	  rho <- env(object)
+          stopifnot(is.logical(useSc <- rho$useSc))# required for non-lmerenv
 	  val <- -deviance(object)/2
 	  attr(val, "nall") <- attr(val, "nobs") <- length(rho$y)
-	  attr(val, "df") <- length(rho$fixef) + length(rho$theta) + 1L
+	  attr(val, "df") <- length(rho$fixef) + length(rho$theta) + useSc
 	  class(val) <- "logLik"
 	  val
       })

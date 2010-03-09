@@ -5,6 +5,7 @@ setClass("lmList",
                         pool = "logical"),
          contains = "list")
 
+## TODO: export
 setClass("lmList.confint", contains = "array")
 
 ## -------------------- lmer-related Classes --------------------------------
@@ -19,7 +20,7 @@ setOldClass("logLik")
 
 ##' Optimization environment class.
 
-setClass("optenv", representation(setPars = "function", 
+setClass("optenv", representation(setPars = "function",
                                   getPars = "function",
                                   getBounds = "function"))
 
@@ -29,7 +30,7 @@ setClass("optenv", representation(setPars = "function",
 ##' The shared environment should contain objects y, X, Zt, Ut, fixef,
 ##' u, Lambda, Lind, theta, L and ldL2.
 ##'
-setClass("merenv", representation("VIRTUAL"), contains = "optenv", 
+setClass("merenv", representation("VIRTUAL"), contains = "optenv",
          validity = function(object)
      {
          rho <- env(object)
@@ -84,9 +85,9 @@ setClass("merenv", representation("VIRTUAL"), contains = "optenv",
 ##' In this class the random effects are associated with a set of
 ##' terms with grouping factors in the list flist.  The number of
 ##' columns in each term is available in the nc vector.
-##' 
 ##'
-setClass("merenvtrms", representation("VIRTUAL"), contains = "merenv", 
+##'
+setClass("merenvtrms", representation("VIRTUAL"), contains = "merenv",
          validity = function(object) .Call(merenvtrms_validate, env(object)))
      ## {
      ##     rho <- env(object)
@@ -108,10 +109,10 @@ setClass("merenvtrms", representation("VIRTUAL"), contains = "merenv",
 
 ##' Linear mixed-effects model representation.
 ##'
-##' 
-##' 
 ##'
-setClass("lmerenv", contains = "merenvtrms", 
+##'
+##'
+setClass("lmerenv", contains = "merenvtrms",
          validity = function(object)
      {
          rho <- env(object)
@@ -139,7 +140,7 @@ setClass("lmerenv", contains = "merenvtrms",
          TRUE
      })
 
-setClass("glmerenv", contains = "merenvtrms", 
+setClass("glmerenv", contains = "merenvtrms",
          validity = function(object)
      {
          rho <- env(object)
