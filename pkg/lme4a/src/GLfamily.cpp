@@ -14,18 +14,32 @@ static mu2var mu2vr;
 static mu3var mu3vr;
 static muvar muvr;
 
+/**
+ * Evaluate y * log(y/mu) with the correct limiting value at y = 0.
+ *
+ * @param y 
+ * @param mu
+ *
+ * @return y * log(y/mu) for y > 0, 0 for y == 0.
+ */
+static inline double y_log_y(double y, double mu)
+{
+    return (y) ? (y * log(y/mu)) : 0;
+}
+
 void GLfamily::initGL(SEXP rho) {
     static std::map<std::string, GLlink*> lpts;
     static std::map<std::string, GLvar*> vpts;
     if (!lpts.count("identity")) { // initialize the map contents
 	lpts["identity"] = &identitylnk;
 	lpts["inverse"] = &inverselnk;
+	lpts["log"] = &loglnk;
 	lpts["logit"] = &logitlnk;
 	lpts["probit"] = &probitlnk;
 	lpts["sqrt"] = &probitlnk;
-	vpts["gaussian"] = &constvr;
-	vpts["binomial"] = &mu1muvr;
 	vpts["Gamma"] = &mu2vr;
+	vpts["binomial"] = &mu1muvr;
+	vpts["gaussian"] = &constvr;
 	vpts["inverse.gaussian"] = &mu3vr;
 	vpts["poisson"] = &muvr;
     }

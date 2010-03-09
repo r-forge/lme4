@@ -115,33 +115,6 @@ static inline SEXP findVarBound(SEXP rho, SEXP nm) {
     return var;
 }
 
-static inline SEXP
-ALLOC_SLOT(SEXP obj, SEXP nm, SEXPTYPE type, int length)
-{
-    SEXP val = allocVector(type, length);
-    SET_SLOT(obj, nm, val);
-    return val;
-}
-
-static inline int compare_int_vecs(int *dest, int *src, int n) {
-    for (int i = 0; i < n; i++)
-	if (dest[i] != src[i]) return 0;
-    return 1;
-}
-
-/**
- * Evaluate y * log(y/mu) with the correct limiting value at y = 0.
- *
- * @param y 
- * @param mu
- *
- * @return y * log(y/mu) for y > 0, 0 for y == 0.
- */
-inline double y_log_y(double y, double mu)
-{
-    return (y) ? (y * log(y/mu)) : 0;
-}
-
 SEXP lme4_ghq(SEXP np);
 
 #ifdef	__cplusplus
