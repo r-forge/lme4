@@ -4,7 +4,7 @@ import(grid)
 import(lattice)
 import(splines)
 importFrom(graphics, plot)
-importFrom(stats4, BIC)
+importFrom(nlme, BIC, fixef, ranef, VarCorr)
 importFrom(stats, AIC,  coef, confint, logLik, profile, vcov,
            anova, deviance, formula,
            model.frame, model.matrix, predict,
@@ -27,7 +27,7 @@ exportClasses(lmList,
 	      ## so users can query the class system :
 	      optenv, merenv, merenvtrms, lmerenv, glmerenv)
 
-exportMethods(BIC, VarCorr, anova, coef, confint, deviance,
+exportMethods(VarCorr, anova, coef, confint, deviance,
               fixef, formula, getBounds, getPars, logLik,
               model.frame, model.matrix, plot, print, profile,
               ranef, setPars, show, sigma,

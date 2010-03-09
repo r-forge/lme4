@@ -913,7 +913,7 @@ setMethod("vcov", signature(object = "merenv"),
 
 ##' Create the VarCorr object of variances and covariances
 setMethod("VarCorr", signature(x = "merenv"),
-	  function(x, ...)
+	  function(x)
       {
           sc <- sigma(x)
           rho <- env(x)
