@@ -12,8 +12,10 @@
 \usage{
 lmer(formula, data, REML = TRUE, sparseX = FALSE,
       control = list(), start = NULL, verbose = 0,
-      doFit = TRUE, compDev = TRUE, subset, weights,
-       na.action, offset, contrasts = NULL, \dots)
+      doFit = TRUE, compDev = TRUE,
+      optimizer = c("nlminb", "bobyqa", "optimize"),
+      subset, weights, na.action, offset,
+      contrasts = NULL, \dots)
 glmer(formula, data, family = gaussian, sparseX = FALSE,
       compDev = TRUE, control = list(), start = NULL,
       verbose = 0, doFit = TRUE, subset, weights,
@@ -65,6 +67,13 @@ nlmer(formula, data, family = gaussian, start = NULL, verbose = 0, nAGQ = 1,
     model is fit immediately.}
   \item{compDev}{logical - should compiled code be used for the deviance
     evaluation during the optimization of the parameters estimates?}
+  \item{optimizer}{character - the name of the optimizer to use in
+    determining the parameter estimates.  The default is
+    \code{\link{nlminb}} from the \code{stats} package.  In some cases
+    the \code{bobyqa} optimizer from the \pkg{minqa} package has
+    proven faster and/or more reliable than \code{\link{nlminb}}.  For
+    one-dimensional problems (a single, simple, scalar random-effects
+    term), the \code{\link{optimize}} function can be used.}
   \item{subset, weights, na.action, offset, contrasts}{further model
     specification arguments as in \code{\link[stats]{lm}}; see there for
     details.}

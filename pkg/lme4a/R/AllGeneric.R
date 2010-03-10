@@ -3,6 +3,7 @@ setGeneric("lmList",
                     na.action, offset, pool, ...)
            standardGeneric("lmList"))
 
+if (FALSE) {
 #' returns the parameter bounds
 setGeneric("getBounds", function(x, ...) standardGeneric("getBounds"),
            valueClass = "matrix")
@@ -12,6 +13,7 @@ setGeneric("getPars", function(x, ...) standardGeneric("getPars"), valueClass = 
 
 #' sets the parameter values
 setGeneric("setPars", function(x, pars, ...) standardGeneric("setPars"), valueClass = "numeric")
+}
 
 #' extract the environment associated with an object
 setGeneric("env", function(x, ...) standardGeneric("env"),

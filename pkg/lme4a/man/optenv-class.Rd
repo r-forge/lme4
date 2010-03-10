@@ -2,7 +2,9 @@
 \Rdversion{1.1}
 \docType{class}
 \alias{optenv-class}% --> ./merenv-class.Rd now has those subclasses
-
+\alias{bobyqa,optenv-method}
+\alias{nlminb,optenv-method}
+\alias{optimize,optenv-method}
 \title{Class "optenv" - an optimization environment}
 \description{
   The \code{\link{class}} \code{"optenv"} is an S4 class of functions
@@ -21,11 +23,9 @@
 \section{Slots}{
   \describe{
     \item{\code{setPars}:}{A function that sets new parameter values in
-      the object and returns the new value of the objective.  See
-      \code{\link{setPars}} for details.}
+      the object and returns the new value of the objective.}
     \item{\code{getPars}:}{A function that returns the current value of
-      the parameters are a numeric vector.  See \code{\link{getPars}}
-      for details.}
+      the parameters are a numeric vector.}
     \item{\code{getBounds}:}{A function that returns the bounds on the
       parameter values as a numeric matrix with 2 columns,
       \code{"lower"} and \code{"upper"}.  The number of rows must be the
@@ -34,20 +34,17 @@
 }
 \section{Methods}{
   \describe{
-    \item{getBounds}{\code{signature(x = "optenv")}: method for
-      optimization environments.  It simply calls \code{x@getBounds()}.}
-    \item{getPars}{\code{signature(x = "optenv")}: method for
-      optimization environments.  It simply calls \code{x@getPars()}.}
-    \item{setPars}{\code{signature(x = "optenv", pars = "numeric")}:
-      method for optimization environments.  It simply calls
-      \code{x@getPars(pars)}.}
+    \item{bobyqa}{\code{signature(par = "optenv")}: optimize the
+      objective using \code{bobyqa} from the \code{minqa} package.}
+    \item{nlminb}{\code{signature(start = "optenv")}: optimize the
+      objective using \code{\link{nlminb}}.}
+    \item{optimize}{\code{signature(f = "optenv")}: optimize the
+      objective using \code{\link{optimize}}. This method only applies
+      to functions of a scalar argument.}
   }
 }
-%\references{}
-%\author{}
-%\note{}
 \seealso{
-  \code{\link{getPars}}, \code{\link{getBounds}} and \code{\link{setPars}};
+  \code{\link{nlminb}}, \code{\link{optimize}};
   subclasses of \code{"optenv"}: \code{\linkS4class{merenv}}, etc.
 }
 \examples{

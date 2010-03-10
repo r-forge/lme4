@@ -15,6 +15,7 @@
 \alias{terms,merenv-method}
 \alias{update,merenv-method}
 \alias{vcov,merenv-method}
+\alias{VarCorr,merenv-method}
 %
 \alias{coef,merenvtrms-method}
 % *lmerenv methods: typically lmerenv and merenv (= non-lmerenv)
@@ -69,7 +70,10 @@
     \item{sigma}{\code{signature(object = "merenv")}: ... }
     \item{terms}{\code{signature(x = "merenv")}: ... }
     \item{update}{\code{signature(object = "merenv")}: ... }
-    \item{vcov}{\code{signature(object = "merenv")}: ... }
+    \item{VarCorr}{\code{signature(object = "merenv")}: Returns a
+  summary of the variance-component parameters. }
+    \item{vcov}{\code{signature(object = "merenv")}: Returns the
+  variance-covariance matrix of the fixed-effects parameters. }
 
     %% merenvtrms :
     \item{coef}{\code{signature(object = "merenvtrms")}: ... }
@@ -92,8 +96,7 @@
 \seealso{
   \code{\link{env}()} as a shortcut access to the environment with all the
   objects.
-  \code{\link{getPars}}, \code{\link{getBounds}} and
-    \code{\link{setPars}}; the \code{\link{VarCorr}} method.
+  the \code{\link{VarCorr}} method.
 }
 \examples{
 showClass("merenv") # note its subclasses
