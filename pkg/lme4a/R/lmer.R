@@ -81,10 +81,10 @@ derived_mats <- function(rho) {
 ##' @param bars a list of parsed random-effects terms
 ##' @param fr a model frame in which to evaluate these terms
 ##' @param rho an environment that is modified by this function
-##' @return NULL - the side effect of the function is to modify rho, adding
-##'   'Zt', 'Ut', 'Lambda', 'Lind', 'cnms', 'diagonalLambda',
-##'   'flist', 'lower', 'theta', 'u'
-makeZt <- function(bars, fr, rho) {
+##' @param checknl logical - should the number of levels be checked
+##' 
+##' @return NULL - the side effect of the function is to modify rho
+makeZt <- function(bars, fr, rho, checknl = TRUE) {
     if (!length(bars))
         stop("No random effects terms specified in formula")
     stopifnot(is.list(bars), all(sapply(bars, is.language)),
@@ -116,7 +116,7 @@ makeZt <- function(bars, fr, rho) {
     blist <- lapply(bars, mkBlist)
     nl <- sapply(blist, "[[", "nl")     # no. of levels per term
     n <- nrow(fr)
-    if(any(nl >= n))
+    if(checknl && any(nl >= n))
 	stop("Number of levels of a grouping factor for the random effects\n",
 	     "must be less than the number of observations")
     ## order terms stably by decreasing number of levels in the factor
@@ -415,7 +415,8 @@ function(formula, data, family = gaussian, sparseX = FALSE,
     rho$sqrtXwt <- numeric(n)
     rho$wtres <- numeric(n)
 
-    makeZt(findbars(formula[[3]]), fr, rho)
+    checknl <- !(family$family %in% c("binomial", "poisson"))
+    makeZt(findbars(formula[[3]]), fr, rho, checknl)
     rho$L <- Cholesky(tcrossprod(rho$Zt), LDL = FALSE, Imult = 1)
     derived_mats(rho)
     rho$compDev <- compDev
