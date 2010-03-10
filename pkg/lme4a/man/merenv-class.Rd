@@ -9,7 +9,6 @@
 %
 %\alias{fixef,merenv-method} -> ./fixef.Rd
 %\alias{ranef,merenv-method} -> ./ranef.Rd
-\alias{VarCorr,merenv-method}
 \alias{formula,merenv-method}
 \alias{model.frame,merenv-method}
 \alias{model.matrix,merenv-method}
@@ -64,7 +63,6 @@
 \section{Methods}{
   \describe{
     %% merenv :
-    \item{VarCorr}{\code{signature(x = "merenv")}: ... }
     \item{formula}{\code{signature(x = "merenv")}: ... }
     \item{model.frame}{\code{signature(formula = "merenv")}: ... }
     \item{model.matrix}{\code{signature(object = "merenv")}: ... }
@@ -91,11 +89,11 @@
   }
 }
 % \references{ ~put references to the literature/web site here ~ }
-% \author{ ~~who you are~~ }
 \seealso{
   \code{\link{env}()} as a shortcut access to the environment with all the
   objects.
-  \code{\link{getPars}}, \code{\link{getBounds}} and \code{\link{setPars}}.
+  \code{\link{getPars}}, \code{\link{getBounds}} and
+    \code{\link{setPars}}; the \code{\link{VarCorr}} method.
 }
 \examples{
 showClass("merenv") # note its subclasses
