@@ -2,39 +2,52 @@
 \alias{findbars}
 \alias{nobars}
 \alias{subbars}
-\title{Determine Random-Effects Expressions from a Formula}
+\title{Utilities for random-effects terms in formulas}
 \description{
-  \code{findbars}:\cr
-  From the right hand side of a formula for a mixed-effects model,
-  determine the pairs of expressions that are separated by the
-  vertical bar operator.
-
-  \code{nobars}:\cr
-  Omit terms separated by vertical bars in a formula, i.e.,
-  remove the random-effects terms from a mixed-effects formula,
-  thereby producing the fixed-effects formula.
-
-  \code{subbars}:\cr
-  \dQuote{Sub[stitute] Bars}:
-  Substitute the \code{+} function for the \code{|} function in a
-  mixed-model formula.  This provides a formula suitable for the current
-  \code{\link{model.frame}} function.
+  \describe{
+    \item{\code{findbars}}{Extracts the pairs of expressions that are
+      separated by the vertical bar operator, expanding the slash operator
+      as necessary.}
+    \item{\code{subbars}}{\dQuote{Sub[stitute] Bars}: Replaces \code{|}
+      operators with \code{+} operators.}
+    \item{\code{nobars}}{Omits the random-effects expressions.}
+  }
 }
 \usage{
-findbars(expr)
+findbars(term)
 nobars(term)
 subbars(term)
 }
 \arguments{
-  \item{expr, term}{the right-hand side of a mixed-model formula}
+  \item{term}{a mixed-effects model formula}
 }
-% \details{
-% %%  ~~ If necessary, more details than the description above ~~
-% }
+\section{Note}{All these functions are called recursively on individual
+  terms in the model, which is why the argument is called \code{term}
+  and not a name like \code{form}, indicating a formula.}
 \value{
- a \code{\link{formula}}
+  \describe{
+    \item{\code{findbars}}{A list of pairs of expressions that were
+      separated by vertical bars.}
+   \item{\code{nobars}}{The expression with the random effects removed.}
+   \item{\code{subbars}}{The expression with all \code{|} operators
+     replaced by \code{+} operators.}
+   }
 }
-%\author{Douglas Bates}
+\details{
+  These three functions extend the range of formulas allowed by
+  the \code{\link{model.frame}} and \code{\link{model.matrix}} functions
+  to those with random-effects terms.
+
+  \code{subbars} is applied to the model formula before it is passed to
+  the \code{\link{model.frame}} function.  (Note: It is likely that a
+  trivial extension to the \code{model.frame} function would make this
+  unnecessary.)
+  
+  The result of \code{nobars} is passed to \code{\link{model.matrix}} to
+  evaluate the fixed-effects model matrix and the result of
+  \code{findbars} is used to construct the random-effects model matrix
+  and the relative covariance factor.
+}
 \seealso{
  \code{\link{formula}},
  \code{\link{model.frame}}, \code{\link{model.matrix}}.
@@ -53,3 +66,4 @@ stopifnot(identical(findbars(f1),
 }
 }
 \keyword{models}
+\keyword{utilities}

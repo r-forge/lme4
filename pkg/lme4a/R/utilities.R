@@ -6,10 +6,10 @@
 ##' determine the pairs of expressions that are separated by the
 ##' vertical bar operator.
 
-##' @param expr the right-hand side of a mixed-model formula
+##' @param term a mixed-model formula
 
 ##' @return pairs of expressions that were separated by vertical bars
-findbars <- function(expr)
+findbars <- function(term)
 {
     ## Recursive function applied to individual terms
     fb <- function(term)
@@ -52,7 +52,7 @@ findbars <- function(expr)
             x
         }))
     }
-    expandSlash(fb(expr))
+    expandSlash(fb(term))
 }
 
 ##' Omit terms separated by vertical bars in a formula

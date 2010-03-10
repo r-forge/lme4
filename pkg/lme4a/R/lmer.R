@@ -187,7 +187,8 @@ makeZt <- function(bars, fr, rho, checknl = TRUE) {
 lmer <-
     function(formula, data, REML = TRUE, sparseX = FALSE,
              control = list(), start = NULL, verbose = 0, doFit = TRUE,
-             compDev = TRUE, subset, weights, na.action, offset,
+             compDev = TRUE, optimizer = c("nlminb", "bobyqa", "optimize"),
+             subset, weights, na.action, offset,
              contrasts = NULL, ...)
 {
     mf <- mc <- match.call()
@@ -305,9 +306,18 @@ lmer <-
     environment(sP) <- environment(gP) <- environment(gB) <- rho
     me <- new("lmerenv", setPars = sP, getPars = gP, getBounds = gB)
     if (doFit) {                        # perform the optimization
-        if (verbose) control$trace <- 1
-        nlminb(me@getPars(), me@setPars, lower = rho$lower,
-               control = control)
+        opt <- match.arg(optimizer)
+        if (verbose) {
+            switch(opt,
+                   bobyqa = control <- do.call(bobyqa.control,
+                   c(as.list(control), list(iprint = 2))),
+                   nlminb = control$trace <- 1,
+                   optimize = warning("verbose argument ignored with optimize"))
+        }
+        switch(opt,
+               bobyqa = bobyqa(me, control = control),
+               nlminb = nlminb(me, control = control),
+               optimize = optimize(me))
     }
     me
 } ## lmer()

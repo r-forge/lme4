@@ -18,19 +18,13 @@ copyMerenv(x)
 \arguments{
   \item{x}{an object of class \code{\linkS4class{merenv}}.}
 }
-% \details{
-% %%  ~~ If necessary, more details than the description above ~~
-% }
 \value{
   an object \code{\link{identical}} to \code{x}, but with objects as
   content that are true \emph{copies} of those in \code{x}.
 }
-% \references{
-% %% ~put references to the literature/web site here ~
-% }
 \seealso{
   \code{\link{lmer}}, \code{\linkS4class{merenv}}.
 }
-\examples{
-}
+%\examples{
+%}
 \keyword{utilities}

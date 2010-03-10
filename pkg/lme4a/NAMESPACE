@@ -6,10 +6,10 @@ import(splines)
 importFrom(graphics, plot)
 importFrom(nlme, BIC, fixef, ranef, VarCorr)
 importFrom(stats, AIC,  coef, confint, logLik, profile, vcov,
-           anova, deviance, formula,
-           model.frame, model.matrix, predict,
-           resid, residuals, simulate, terms)
-#importFrom(Matrix, Cholesky)
+           anova, deviance, formula, model.frame, model.matrix,
+           nlminb, optimize, predict, resid, residuals, simulate,
+           terms)
+importFrom(minqa, bobyqa, bobyqa.control)
 importClassesFrom(Matrix, dgeMatrix, dgCMatrix, dsCMatrix, dpoMatrix,
 	      dCHMsuper, dCHMsimpl, corMatrix)
 
@@ -18,20 +18,20 @@ importMethodsFrom(Matrix, coerce, chol, "%*%", crossprod, tcrossprod,
                   chol2inv, diag, summary, update)
 
 
-export(VarCorr, copyMerenv, devcomp, env, getBounds, getPars, glmer,
-       lmList, lmer, nlmer, setPars, sigma,
-       findbars, nobars, subbars, isNested)
+export(VarCorr, copyMerenv, devcomp, env, # getBounds, getPars,
+       glmer, lmList, lmer, nlmer, # setPars,
+       sigma, findbars, nobars, subbars, isNested)
 
 exportClasses(lmList,
 	      ## export all super classes of e.g., "lmerenv",
 	      ## so users can query the class system :
 	      optenv, merenv, merenvtrms, lmerenv, glmerenv)
 
-exportMethods(VarCorr, anova, coef, confint, deviance,
-              fixef, formula, getBounds, getPars, logLik,
-              model.frame, model.matrix, plot, print, profile,
-              ranef, setPars, show, sigma,
-              summary, terms, update, vcov)
+exportMethods(VarCorr, anova, bobyqa, coef, confint, deviance,
+              fixef, formula, #getBounds, getPars,
+              logLik, model.frame, model.matrix, nlminb,
+              optimize, plot, print, profile, ranef, #setPars,
+              show, sigma, summary, terms, update, vcov)
 
 S3method(plot, coef.mer)
 S3method(dotplot, coef.mer)
