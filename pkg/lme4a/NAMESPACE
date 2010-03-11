@@ -9,7 +9,7 @@ importFrom(stats, AIC,  coef, confint, logLik, profile, vcov,
            anova, deviance, formula, model.frame, model.matrix,
            nlminb, optimize, predict, resid, residuals, simulate,
            terms)
-importFrom(minqa, bobyqa, bobyqa.control)
+importFrom(minqa, bobyqa)
 importClassesFrom(Matrix, dgeMatrix, dgCMatrix, dsCMatrix, dpoMatrix,
 	      dCHMsuper, dCHMsimpl, corMatrix)
 
