@@ -308,11 +308,10 @@ lmer <-
     if (doFit) {                        # perform the optimization
         opt <- match.arg(optimizer)
         if (verbose) {
-            switch(opt,
-                   bobyqa = control <- do.call(bobyqa.control,
-                   c(as.list(control), list(iprint = 2))),
-                   nlminb = control$trace <- 1,
-                   optimize = warning("verbose argument ignored with optimize"))
+            if (opt == "nlminb") control$trace <- 1
+            if (opt == "bobyqa") control$iprint <- 2            
+            if (opt == "optimize")
+                warning("verbose argument ignored with optimize")
         }
         switch(opt,
                bobyqa = bobyqa(me, control = control),

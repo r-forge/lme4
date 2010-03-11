@@ -13,7 +13,8 @@ setMethod("env", "optenv", function(x, ...) environment(x@getPars))
 setMethod("nlminb", signature(start = "optenv"),
           function(start, ...)
       {
-          control <- as.list(list(...)$control)
+          ## the argument name 'control' is matched from the generic
+          control <- as.list(control)
           bb <- start@getBounds()
           nlminb(start@getPars(), start@setPars, lower = bb[,"lower"],
                  upper = bb[, "upper"], control = control)
@@ -22,10 +23,11 @@ setMethod("nlminb", signature(start = "optenv"),
 setMethod("bobyqa", signature(par = "optenv"),
           function(par, ...)
       {
-          control <- do.call(bobyqa.control, as.list(list(...)$control))
+          ## the argument name 'control' is matched from the generic
+          control <- as.list(control)
           bb <- par@getBounds()
           bobyqa(par@getPars(), par@setPars, lower = bb[,"lower"],
-                 upper = bb[, "upper"])
+                 upper = bb[, "upper"], control = control)
       })
 
 setMethod("optimize", signature(f = "optenv"),
