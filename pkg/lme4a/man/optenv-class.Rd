@@ -52,5 +52,27 @@ showClass("optenv")
 %% Consider mentioning that different subclasses have different validity
 %% methods :
 %%  str( getValidity(getClass("merenv")) )
+
+fm1 <- lmer(Reaction ~ Days + (Days|Subject), sleepstudy)
+fm1.s <- copyMerenv(fm1)# save it
+str(n.fm1 <- nlminb(fm1, control= list(trace=TRUE, rel.tol = 1e-11)))
+## but did not really get better:
+all.equal(fm1@getPars(), n.fm1$par, tol=0)
+   # -> *no* difference on [64b AMD Linux 2.6.30]
+
+## copy back:
+fm1 <- copyMerenv(fm1.s)
+
+stopifnot(require("minqa")) ## works as we depend on it ..
+
+str(b1.fm1 <- bobyqa(fm1))
+b2.fm1 <- bobyqa(fm1, control= list(rhoend = 1e-13, iprint = 1))
+
+stopifnot(  all.equal(b1.fm1[["par"]],  b2.fm1[["par"]],  tol = 1e-6)
+          , all.equal(b1.fm1[["fval"]], b2.fm1[["fval"]], tol = 1e-15)
+          , b1.fm1$feval < b2.fm1$feval
+          , all.equal(b1.fm1$fval, fm1@setPars(b1.fm1$par), tol= 1e-15)
+          , all.equal(b2.fm1$fval, fm1@setPars(b2.fm1$par), tol= 1e-15)
+          , TRUE)
 }
 \keyword{classes}
