@@ -1,19 +1,23 @@
 useDynLib(lme4a, .registration=TRUE)
 
-import(grid)
-import(lattice)
-import(splines)
-importFrom(graphics, plot)
-importFrom(nlme, BIC, fixef, ranef, VarCorr)
-importFrom(stats, AIC,  coef, confint, logLik, profile, vcov,
+import("grid")
+import("lattice")
+import("splines")
+importFrom("graphics", plot)
+importFrom("nlme", BIC, fixef, ranef, VarCorr)
+importFrom("stats", AIC,  coef, confint, logLik, profile, vcov,
            anova, deviance, formula, model.frame, model.matrix,
            nlminb, optimize, predict, resid, residuals, simulate,
            terms)
-importFrom(minqa, bobyqa)
-importClassesFrom(Matrix, dgeMatrix, dgCMatrix, dsCMatrix, dpoMatrix,
-	      dCHMsuper, dCHMsimpl, corMatrix)
+importFrom("minqa", bobyqa
+           #  needed for older versions of minqa, only:
+           # , bobqya.control
+           )
+importClassesFrom("Matrix",
+                  dgeMatrix, dgCMatrix, dsCMatrix, dpoMatrix,
+                  dCHMsuper, dCHMsimpl, corMatrix)
 
-importMethodsFrom(Matrix, coerce, chol, "%*%", crossprod, tcrossprod,
+importMethodsFrom("Matrix", coerce, chol, "%*%", crossprod, tcrossprod,
                   Cholesky, determinant, diag, as.vector, solve,
                   chol2inv, diag, summary, update)
 

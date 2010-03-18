@@ -13,6 +13,7 @@
 lmer(formula, data, REML = TRUE, sparseX = FALSE,
       control = list(), start = NULL, verbose = 0,
       doFit = TRUE, compDev = TRUE,
+%% MM: I would add optim() too; it did not get stuck initially like nlminb
       optimizer = c("nlminb", "bobyqa", "optimize"),
       subset, weights, na.action, offset,
       contrasts = NULL, \dots)
@@ -69,7 +70,7 @@ nlmer(formula, data, family = gaussian, start = NULL, verbose = 0, nAGQ = 1,
     evaluation during the optimization of the parameters estimates?}
   \item{optimizer}{character - the name of the optimizer to use in
     determining the parameter estimates.  The default is
-    \code{\link{nlminb}} from the \code{stats} package.  In some cases
+    \code{\link{nlminb}} from the \pkg{stats} package.  In some cases
     the \code{bobyqa} optimizer from the \pkg{minqa} package has
     proven faster and/or more reliable than \code{\link{nlminb}}.  For
     one-dimensional problems (a single, simple, scalar random-effects
