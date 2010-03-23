@@ -3,10 +3,13 @@
 #include "Matrix.h"
 #include "Syms.h" 
 
+extern SEXP family_show(SEXP);
+
 #define CALLDEF(name, n)  {#name, (DL_FUNC) &name, n}
 
 static R_CallMethodDef CallEntries[] = {
-  
+    CALLDEF(family_show, 1),
+
     CALLDEF(glmer_IRLS, 1),
     CALLDEF(glmer_PIRLS, 1),
     CALLDEF(glmer_PIRLSbeta, 1),
