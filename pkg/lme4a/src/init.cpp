@@ -1,14 +1,14 @@
 #include "merenv.h"
-#include <R_ext/Rdynload.h>
 #include "Matrix.h"
 #include "Syms.h" 
+#include <R_ext/Rdynload.h>
 
-extern SEXP family_show(SEXP);
+//extern SEXP family_show(SEXP);
 
 #define CALLDEF(name, n)  {#name, (DL_FUNC) &name, n}
 
 static R_CallMethodDef CallEntries[] = {
-    CALLDEF(family_show, 1),
+//    CALLDEF(family_show, 1),
 
     CALLDEF(glmer_IRLS, 1),
     CALLDEF(glmer_PIRLS, 1),
@@ -38,13 +38,11 @@ cholmod_common c;
  *  Initialize CHOLMOD and require the LL' form of the factorization.
  *  Install the symbols to be used by functions in the package.
  */
-#ifdef HAVE_VISIBILITY_ATTRIBUTE
-__attribute__ ((visibility ("default")))
-#endif
+extern "C"
 void R_init_lme4a(DllInfo *dll)
 {
     R_registerRoutines(dll, NULL, CallEntries, NULL, NULL);
-    R_useDynamicSymbols(dll, FALSE);
+    R_useDynamicSymbols(dll, (Rboolean)FALSE);
 
 
     M_R_cholmod_start(&c);
@@ -86,6 +84,7 @@ void R_init_lme4a(DllInfo *dll)
 /** Finalizer for lme4 called upon unloading the package.
  *
  */
+extern "C"
 void R_unload_lme4(DllInfo *dll){
     M_cholmod_finish(&c);
 }
