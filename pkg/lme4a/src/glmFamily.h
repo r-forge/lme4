@@ -1,3 +1,4 @@
+// -*- mode: C++; c-indent-level: 4; c-basic-offset: 4; tab-width: 8 -*-
 #ifndef LME4_GLMFAMILY_H
 #define LME4_GLMFAMILY_H
 
@@ -7,12 +8,6 @@ typedef std::map<std::string, double(*)(double)> fmap;
 
 /// generalized linear model family
 class glmFamily {
-    static fmap
-	lnks,			//< scalar link functions
-	linvs,			//< scalar linkinv functions
-	muEtas,			//< scalar muEta functions
-	varFuncs;		//< scalar variance functions
-    Rcpp::List lst;
 public:
     glmFamily(Rcpp::List);
     void linkFun(Rcpp::NumericVector eta, const Rcpp::NumericVector mu);
@@ -25,6 +20,19 @@ public:
     SEXP show();
     
     std::string family, link;
+private:
+    static fmap
+	lnks,			//< scalar link functions
+	linvs,			//< scalar linkinv functions
+	muEtas,			//< scalar muEta functions
+	varFuncs;		//< scalar variance functions
+    Rcpp::List lst;
+    static double epsilon;
+    static double sqrf(double x) {return x * x;}
+    static double twoxf(double x) {return 2 * x;}
+    static double identf(double x) {return x;}
+    static double onef(double x) {return 1;}
+    
 };
 
 #endif /* LME4_GLMFAMILY_H */
