@@ -3,12 +3,16 @@
 #include "Syms.h" 
 #include <R_ext/Rdynload.h>
 
-//extern SEXP family_show(SEXP);
+extern "C" SEXP family_show(SEXP);
+extern "C" SEXP family_link(SEXP,SEXP);
+extern "C" SEXP family_linkinv(SEXP,SEXP);
 
 #define CALLDEF(name, n)  {#name, (DL_FUNC) &name, n}
 
 static R_CallMethodDef CallEntries[] = {
-//    CALLDEF(family_show, 1),
+    CALLDEF(family_link, 2),
+    CALLDEF(family_linkinv, 2),
+    CALLDEF(family_show, 1),
 
     CALLDEF(glmer_IRLS, 1),
     CALLDEF(glmer_PIRLS, 1),

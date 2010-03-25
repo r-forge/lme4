@@ -11,32 +11,32 @@ fmap glmFamily::lnks = fmap();
 fmap glmFamily::muEtas = fmap();
 fmap glmFamily::varFuncs = fmap();
 
-glmFamily::glmFamily(List ll) : lst(ll) {
-    if (as<std::string>(ll.attr("class")) != "family")
+glmFamily::glmFamily(SEXP ll) : lst(ll) {
+    if (as<std::string>(lst.attr("class")) != "family")
 	Rf_error("glmFamily only from list of (S3) class \"family\"");
-    CharacterVector fam = ll["family"], llink = ll["link"];
+
+    CharacterVector fam = lst["family"], llink = lst["link"];
     char *pt = fam[0]; family = std::string(pt);
     pt = llink[0]; link = std::string(pt);
-//     Rprintf("Assigned fam of length %d %d\n", fam.size());
-//     if (fam.size() > 0) Rprintf("fam[0] = %s", fpt);
-//    std::string ff( fam[0] ), lll( llink[0] );
-//     std::cout << "fam length = " << fam.size() << 
-// 	", fam[0] = " << ff << std::endl;
-//     std::cout << "llink length = " << llink.size() <<
-// 	", llink[0] = " << lll << std::endl;
-//     family = ff;
-//     link = lll;
-//     std::cout << family << " " << link << std::endl;
 
     if (!lnks.count("identity")) { // initialize the static maps
+
 	lnks["log"] = &log;
 	muEtas["log"] = linvs["log"] = &exp;
+
 	lnks["sqrt"] = &sqrt;
 	linvs["sqrt"] = &sqrf;
 	muEtas["sqrt"] = &twoxf;
+
 	lnks["identity"] = linvs["identity"] = &identf;
 	muEtas["identity"] = &onef;
+
+	lnks["inverse"] = linvs["inverse"] = &inversef;
+	muEtas["inverse"] = &invderivf;
+	
+	varFuncs["gamma"] = &sqrf;
 	varFuncs["gaussian"] = &onef;
+	varFuncs["poisson"] = &identf;
     }
 }
 
@@ -85,6 +85,7 @@ double glmFamily::devResid(const NumericVector mu, NumericVector weights,
     return 0;
 }
 
+
 SEXP glmFamily::show() {
     return wrap(List::create(
 		    _["family"] = family,
@@ -92,13 +93,29 @@ SEXP glmFamily::show() {
 		    _["compiledLink"] = bool(lnks.count(link)),
 		    _["compiledLinv"] = bool(linvs.count(link)),
 		    _["compiledmuEta"] = bool(muEtas.count(link)),
-		    _["compiledVar"] = bool(varFuncs.count(link))
+		    _["compiledVar"] = bool(varFuncs.count(family))
 		    ));
+}
+
+extern "C" SEXP 
+family_link(SEXP family, SEXP pmu) {
+    NumericVector mu(pmu);
+    NumericVector eta(mu.size());
+
+    glmFamily(family).linkFun(eta, mu);
+    return eta;
+}
+
+extern "C" SEXP 
+family_linkinv(SEXP family, SEXP peta) {
+    NumericVector eta(peta);
+    NumericVector mu(eta.size());
+
+    glmFamily(family).linkInv(mu, eta);
+    return mu;
 }
 
 extern "C" SEXP
 family_show(SEXP family) {
-    List ll(family);
-    glmFamily ff(ll);
-    return ff.show();
+    return glmFamily(family).show();
 }
