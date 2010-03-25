@@ -9,7 +9,7 @@ typedef std::map<std::string, double(*)(double)> fmap;
 /// generalized linear model family
 class glmFamily {
 public:
-    glmFamily(Rcpp::List);
+    glmFamily(SEXP);
     void linkFun(Rcpp::NumericVector eta, const Rcpp::NumericVector mu);
     void linkInv(Rcpp::NumericVector mu, const Rcpp::NumericVector eta);
     void muEta(Rcpp::NumericVector mueta, const Rcpp::NumericVector eta);
@@ -32,6 +32,8 @@ private:
     static double twoxf(double x) {return 2 * x;}
     static double identf(double x) {return x;}
     static double onef(double x) {return 1;}
+    static double inversef(double x) {return 1/x;}
+    static double invderivf(double x) {return -1/(x * x);}
     
 };
 
