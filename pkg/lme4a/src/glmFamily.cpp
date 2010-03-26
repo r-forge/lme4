@@ -20,7 +20,6 @@ glmFamily::glmFamily(SEXP ll) : lst(ll) {
     pt = llink[0]; link = std::string(pt);
 
     if (!lnks.count("identity")) { // initialize the static maps
-
 	lnks["log"] = &log;
 	muEtas["log"] = linvs["log"] = &exp;
 
@@ -40,61 +39,69 @@ glmFamily::glmFamily(SEXP ll) : lst(ll) {
     }
 }
 
-void glmFamily::linkFun(NumericVector eta, const NumericVector mu) {
+void
+glmFamily::linkFun(NumericVector& eta, const NumericVector& mu) {
     if (lnks.count(link)) {
 	std::transform(mu.begin(), mu.end(), eta.begin(), lnks[link]);
     } else {
 	Function linkfun = lst["linkfun"];
-	NumericVector ans(linkfun(mu));
+	NumericVector ans = linkfun(mu);
 	std::copy(ans.begin(), ans.end(), eta.begin());
     }
 }
 
-void glmFamily::linkInv(NumericVector mu, const NumericVector eta) {
+void
+glmFamily::linkInv(NumericVector& mu, const NumericVector& eta) {
     if (linvs.count(link)) {
 	std::transform(eta.begin(), eta.end(), mu.begin(), linvs[link]);
     } else {
 	Function linkinv = lst["linkinv"];
-	NumericVector ans(linkinv(eta));
+	NumericVector ans = linkinv(eta);
 	std::copy(ans.begin(), ans.end(), mu.begin());
     }
 }
 
-void glmFamily::muEta(NumericVector mueta, const NumericVector eta) {
+void
+glmFamily::muEta(NumericVector& mueta, const NumericVector& eta) {
     if (muEtas.count(link)) {
 	std::transform(eta.begin(), eta.end(), mueta.begin(), muEtas[link]);
     } else {
 	Function mm = lst["mu.eta"];
-	NumericVector ans(mm(eta));
+	NumericVector ans = mm(eta);
 	std::copy(ans.begin(), ans.end(), mueta.begin());
     }
 }
 
-void glmFamily::variance(NumericVector vv, const NumericVector eta) {
+void
+glmFamily::variance(NumericVector& vv, const NumericVector& eta) {
     if (varFuncs.count(link)) {
 	std::transform(eta.begin(), eta.end(), vv.begin(), varFuncs[link]);
     } else {
 	Function mm = lst["variance"];
-	NumericVector ans(mm(eta));
+	NumericVector ans = mm(eta);
 	std::copy(ans.begin(), ans.end(), vv.begin());
     }
 }
 
-double glmFamily::devResid(const NumericVector mu, NumericVector weights,
-			   const NumericVector y) {
-    return 0;
+double
+glmFamily::devResid(const NumericVector& mu, const NumericVector& weights,
+		    const NumericVector& y) {
+    Function devres = lst["dev.resids"];
+    NumericVector dd = devres(y, mu, weights);
+    return std::accumulate(dd.begin(), dd.end(), double());
 }
 
 
-SEXP glmFamily::show() {
-    return wrap(List::create(
-		    _["family"] = family,
-		    _["link"] = link,
-		    _["compiledLink"] = bool(lnks.count(link)),
-		    _["compiledLinv"] = bool(linvs.count(link)),
-		    _["compiledmuEta"] = bool(muEtas.count(link)),
-		    _["compiledVar"] = bool(varFuncs.count(family))
-		    ));
+SEXP
+glmFamily::show() {
+    return List::create(
+	_["family"] = family,
+	_["link"] = link,
+	_["compiledLink"] = bool(lnks.count(link)),
+	_["compiledLinv"] = bool(linvs.count(link)),
+	_["compiledmuEta"] = bool(muEtas.count(link)),
+	_["compiledVar"] = bool(varFuncs.count(family))
+	);
 }
 
 extern "C" SEXP 
