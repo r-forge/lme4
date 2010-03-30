@@ -82,7 +82,7 @@ derived_mats <- function(rho) {
 ##' @param fr a model frame in which to evaluate these terms
 ##' @param rho an environment that is modified by this function
 ##' @param checknl logical - should the number of levels be checked
-##' 
+##'
 ##' @return NULL - the side effect of the function is to modify rho
 makeZt <- function(bars, fr, rho, checknl = TRUE) {
     if (!length(bars))
@@ -309,7 +309,7 @@ lmer <-
         opt <- match.arg(optimizer)
         if (verbose) {
             if (opt == "nlminb") control$trace <- 1
-            if (opt == "bobyqa") control$iprint <- 2            
+            if (opt == "bobyqa") control$iprint <- 2
             if (opt == "optimize")
                 warning("verbose argument ignored with optimize")
         }
@@ -1102,9 +1102,11 @@ summaryMerenv <- function(object, varcov = FALSE, ...)
                    "mixed model fit by",
                    if (REML) "REML" else "maximum likelihood",
                    if(isGLmer) "(Laplace Approximation)")
-    AICstats <- if (REML) dc$cmp[["REML"]] else
-    c(AIC = AIC(llik), BIC = BIC(llik), logLik = c(llik),
-      deviance = dc$cmp[["deviance"]])
+    AICstats <- {
+        if (REML) dc$cmp["REML"] # do *not* show likelihood stats here
+        else c(AIC = AIC(llik), BIC = BIC(llik), logLik = c(llik),
+               deviance = dc$cmp[["deviance"]])
+    }
     varcor <- VarCorr(object)
     ans <- list(methTitle = mName,
                 devcomp = dc, isLmer = isLmer, useScale = useSc,
