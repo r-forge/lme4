@@ -36,9 +36,10 @@ setMethod("bobyqa", signature(par = "optenv"),
 setMethod("optimize", signature(f = "optenv"),
           function(f, ...)
       {
+          ## the argument name 'tol' is matched from the generic
           stopifnot(length(f@getPars()) == 1)
           bb <- f@getBounds()
-          optimize(f@setPars, lower = bb[,"lower"], upper = bb[,"upper"])
+          optimize(f@setPars, lower = bb[,"lower"], upper = bb[,"upper"], tol=tol)
       })
 
 } else {## R <= 2.10.x -- need correct (full) argument list in method
@@ -47,7 +48,6 @@ setMethod("nlminb", signature(start = "optenv"),
           function (start, objective, gradient = NULL, hessian = NULL, ...,
                     scale = 1, control = list(), lower = -Inf, upper = Inf)
       {
-          ## the argument name 'control' is matched from the generic
           control <- as.list(control)
           bb <- start@getBounds()
           nlminb(start@getPars(), start@setPars, lower = bb[,"lower"],
@@ -57,7 +57,6 @@ setMethod("nlminb", signature(start = "optenv"),
 setMethod("bobyqa", signature(par = "optenv"),
           function(par, fn, lower = -Inf, upper = Inf, control = bobyqa.control(), ...)
       {
-          ## the argument name 'control' is matched from the generic
           control <- as.list(control)
           bb <- par@getBounds()
           bobyqa(par@getPars(), par@setPars, lower = bb[,"lower"],
@@ -70,7 +69,7 @@ setMethod("optimize", signature(f = "optenv"),
       {
           stopifnot(length(f@getPars()) == 1)
           bb <- f@getBounds()
-          optimize(f@setPars, lower = bb[,"lower"], upper = bb[,"upper"])
+          optimize(f@setPars, lower = bb[,"lower"], upper = bb[,"upper"], tol=tol)
       })
 
 }## if( R >= 2.11.0 ) .... else ....

@@ -16,8 +16,7 @@
 }
 \usage{
 ranef(object, \dots)
-\S4method{ranef}{mer}(object, postVar = FALSE, drop = FALSE,
-   whichel = names(ans), \dots)
+\S4method{ranef}{mer}(object, postVar = FALSE, drop = FALSE, \dots)
 \S4method{ranef}{merenv}(object, \dots)
 \S4method{ranef}{merenvtrms}(object, postVar = FALSE, drop = FALSE,
    whichel = names(ans), \dots)

@@ -1,6 +1,6 @@
 #include "merenv.h"
 #include "Matrix.h"
-#include "Syms.h" 
+#include "Syms.h"
 #include <R_ext/Rdynload.h>
 
 extern "C" SEXP family_show(SEXP);
@@ -75,8 +75,8 @@ void R_init_lme4a(DllInfo *dll)
     lme4_offsetSym = install("offset");
     lme4_pSym = install("p");
     lme4_pwrssSym = install("pwrss");
-    lme4_sqrtrwtSym = install("sqrtrwt");
-    lme4_sqrtXwtSym = install("sqrtXwt");
+    lme4_sqrtrwtSym = install("sqrtrWt");/* capital 'W' - as 'always' in "mer" class */
+    lme4_sqrtXwtSym = install("sqrtXWt");
     lme4_thetaSym = install("theta");
     lme4_uSym = install("u");
     lme4_varSym = install("var");

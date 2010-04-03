@@ -9,10 +9,8 @@ importFrom("stats", AIC,  coef, confint, logLik, profile, vcov,
            anova, deviance, formula, model.frame, model.matrix,
            nlminb, optimize, predict, resid, residuals, simulate,
            terms)
-importFrom("minqa", bobyqa
-           #  needed for older versions of minqa, only:
-           # , bobqya.control
-           )
+importFrom("minqa", bobyqa)
+
 importClassesFrom("Matrix",
                   dgeMatrix, dgCMatrix, dsCMatrix, dpoMatrix,
                   dCHMsuper, dCHMsimpl, corMatrix)
@@ -29,9 +27,12 @@ export(VarCorr, copyMerenv, devcomp, env, # getBounds, getPars,
 exportClasses(lmList,
 	      ## export all super classes of e.g., "lmerenv",
 	      ## so users can query the class system :
-	      optenv, merenv, merenvtrms, lmerenv, glmerenv)
+	      optenv, merenv, merenvtrms, lmerenv, glmerenv,
+              mer, lmer, glmer
+              )
 
-exportMethods(VarCorr, anova, bobyqa, coef, confint, deviance,
+exportMethods(VarCorr, anova, bobyqa, coef, coerce, confint, deviance,
+              devcomp,
               fixef, formula, #getBounds, getPars,
               logLik, model.frame, model.matrix, nlminb,
               optimize, plot, print, profile, ranef, #setPars,
@@ -42,6 +43,7 @@ S3method(dotplot, coef.mer)
 S3method(plot, ranef.mer)
 S3method(qqmath, ranef.mer)
 S3method(dotplot, ranef.mer)
+## profile() related:
 S3method(xyplot, thpr)
 S3method(confint, thpr)
 S3method(splom, thpr)

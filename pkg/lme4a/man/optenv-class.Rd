@@ -35,7 +35,7 @@
 \section{Methods}{
   \describe{
     \item{bobyqa}{\code{signature(par = "optenv")}: optimize the
-      objective using \code{bobyqa} from the \code{minqa} package.}
+      objective using \code{bobyqa} from the \pkg{minqa} package.}
     \item{nlminb}{\code{signature(start = "optenv")}: optimize the
       objective using \code{\link{nlminb}}.}
     \item{optimize}{\code{signature(f = "optenv")}: optimize the
@@ -53,7 +53,9 @@ showClass("optenv")
 %% methods :
 %%  str( getValidity(getClass("merenv")) )
 
-fm1 <- lmer(Reaction ~ Days + (Days|Subject), sleepstudy)
+fm1 <- lmer(Reaction ~ Days + (Days|Subject), sleepstudy,
+            doFit = FALSE) #- so we get the "merenv" (before optimization)
+nlminb(fm1) # optimze it --> *does* change the 'fm1' object !!!!!
 fm1.s <- copyMerenv(fm1)# save it
 str(n.fm1 <- nlminb(fm1, control= list(trace=TRUE, rel.tol = 1e-11)))
 ## but did not really get better:

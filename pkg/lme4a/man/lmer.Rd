@@ -149,6 +149,21 @@ nlmer(formula, data, family = gaussian, start = NULL, verbose = 0, nAGQ = 1,
 (fm1 <- lmer(Reaction ~ Days + (Days|Subject), sleepstudy))
 (fm2 <- lmer(Reaction ~ Days + (1|Subject) + (0+Days|Subject), sleepstudy))
 anova(fm1, fm2)
+
+## dense vs sparse X  --------------------------
+## use more sensical example !!
+fm1.s <- lmer(Reaction ~ Days + (Days|Subject), sleepstudy, sparseX=TRUE)
+for(FUN in list(coef, fixef, ranef, sigma))
+  stopifnot(all.equal(FUN(fm1), FUN(fm1.s), tol = 1e-6))
+
+fm3.d <- lmer(Yield ~ 1|Batch, Dyestuff2)
+fm3.s <- lmer(Yield ~ 1|Batch, Dyestuff2, sparseX=TRUE)#-> warning
+## check "equality"
+stopifnot(all.equal( coef(fm3.d), coef(fm3.s), tol = 1e-14),
+          all.equal(sigma(fm3.d),sigma(fm3.s), tol = 1e-14),
+          TRUE)
+
+
 ## generalized linear mixed model
 (gm1 <- glmer(cbind(incidence, size - incidence) ~ period + (1 | herd),
               data = cbpp, family = binomial))
