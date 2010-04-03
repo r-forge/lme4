@@ -15,9 +15,18 @@ setGeneric("getPars", function(x, ...) standardGeneric("getPars"), valueClass = 
 setGeneric("setPars", function(x, pars, ...) standardGeneric("setPars"), valueClass = "numeric")
 }
 
-#' extract the environment associated with an object
+##' extract the environment associated with an object
 setGeneric("env", function(x, ...) standardGeneric("env"),
            valueClass = "environment")
+
+##' extract the deviance components
+setGeneric("devcomp", function(x, ...) standardGeneric("devcomp"))
+
+## utilities, *not* exported
+setGeneric("isREML", function(x) standardGeneric("isREML"),
+	   valueClass = "logical")
+setGeneric("getCall", function(x) standardGeneric("getCall"),
+	   valueClass = "call")
 
 fixed.effects <- function(object, ...) {
     ## fixed.effects was an alternative name for fixef

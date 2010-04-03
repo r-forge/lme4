@@ -10,10 +10,8 @@ setClass("lmList.confint", contains = "array")
 
 ## -------------------- lmer-related Classes --------------------------------
 
-setOldClass("data.frame")
 setOldClass("family")
-setOldClass("logLik")
-
+## and  "data.frame', "logLik", "environment" are already defined
 
 ### Environment-based classes.  These will eventually replace the
 ### previous classes
@@ -21,8 +19,9 @@ setOldClass("logLik")
 ##' Optimization environment class.
 
 setClass("optenv", representation(setPars = "function",
-                                  getPars = "function",
-                                  getBounds = "function"))
+				  getPars = "function",
+				  getBounds = "function"),
+	 contains = "environment")
 
 
 ##' Basic properties of a mixed-effects representation.
@@ -86,7 +85,6 @@ setClass("merenv", representation("VIRTUAL"), contains = "optenv",
 ##' terms with grouping factors in the list flist.  The number of
 ##' columns in each term is available in the nc vector.
 ##'
-##'
 setClass("merenvtrms", representation("VIRTUAL"), contains = "merenv",
          validity = function(object) .Call(merenvtrms_validate, env(object)))
      ## {
@@ -140,6 +138,113 @@ setClass("lmerenv", contains = "merenvtrms",
          TRUE
      })
 
+## Either a dense _or_ sparse Cholesky factorization
+setClassUnion("CholKind",
+              members = c("Cholesky", "CHMfactor"))
+
+if(is.null(getClassDef("dsymmetricMatrix"))) ## not very latest version of 'Matrix':
+## Virtual class of numeric symmetric matrices -- new (2010-04) - for lme4
+setClass("dsymmetricMatrix", representation("VIRTUAL"),
+	 contains = c("dMatrix", "symmetricMatrix"))
+
+## Some __NON-exported__ classes just for auto-validity checking:
+setClassUnion("dgC_or_diMatrix", members = c("dgCMatrix", "ddiMatrix"))
+setClassUnion("dsC_or_dpoMatrix", members = c("dsCMatrix", "dpoMatrix"))
+
+### FIXME?  This is currently modelled after "old-lme4"
+### ----- following  g?l?merenv, should rather have *common* slots here,
+##  and also define "lmer" , "glmer" etc  *classes* with the specific slots?
+## __ FIXME __
+setClass("mer",
+	 representation(
+			env = "merenv",
+			frame = "data.frame",# model frame (or empty frame)
+			call = "call",	 # matched call
+			sparseX = "logical",
+			X = "dMatrix", # fixed effects model matrix (sparse or dense)
+			## Xst = "dgCMatrix", # sparse fixed effects model matrix
+			Lambda = "dgC_or_diMatrix", # ddi- or dgC-Matrix"
+			Zt = "dgCMatrix",# sparse form of Z'
+			ZtX = "dMatrix", # [dge- or dgC-Matrix]
+			Zty = "dgeMatrix",
+			pWt = "numeric",# prior weights,   __ FIXME? __
+			offset = "numeric", # length 0 -> no offset
+			y = "numeric",	 # response vector
+			# Gp = "integer",  # pointers to row groups of Zt
+
+			devcomp = "list", ## list(cmp = ...,  dims = ...)
+                        ## this *replaces* (?) previous 'dims' and 'deviance'
+			##-- deviance = "numeric", # ML and REML deviance and components
+			dims = "integer",# dimensions and indicators
+			##-- dims : old-lme4's lmer(): named vector of length 18, names :
+                        ## --> ../../lme4/R/lmer.R 'dimsNames' & 'dimsDefaults'
+                        ## c("nt", "n", "p", "q", "s", "np", "LMM", "REML",
+                        ##   "fTyp", "lTyp", "vTyp", "nest", "useSc", "nAGQ",
+                        ##   "verb", "mxit", "mxfn", "cvg")
+
+			##--- slots that vary during optimization------------
+
+			V = "matrix",	 # gradient matrix
+			Ut = "dgCMatrix", #
+			L = "CHMfactor", # Cholesky factor of weighted P(.. + I)P'
+			Lind = "integer",
+			fixef = "numeric" ,# fixed effects (length p)
+			ranef = "numeric",# random effects (length q)
+			u = "numeric",	 # orthogonal random effects (q)
+			theta = "numeric",# parameter for Sigma or Lambda
+			mu = "numeric",	 # fitted values at current beta and b
+			gamma = "numeric",#  for NLME - otherwise == mu (?)
+			##? resid = "numeric",# raw residuals at current beta and b
+			sqrtrWt = "numeric",# sqrt of weights used with residuals
+			sqrtXWt = "numeric",# sqrt of model matrix row weights
+			RZX = "dMatrix", # dgeMatrix or dgCMatrix
+			RX = "CholKind",  # "Cholesky" (dense) or "dCHMsimpl" (sparse)
+			XtX = "dsC_or_dpoMatrix", # "dsymmetricMatrix", # dpo* or dsC*
+			Xty = "numeric"
+			),
+	 validity = function(object) TRUE ## FIXME .Call(mer_validate, object)
+	 )
+
+setClass("merTrms",
+         representation(
+                        flist = "data.frame", # list of grouping factors
+                        cnms = "list",        # of character - column names
+                        ncTrms = "integer"    # := sapply(cnms, length)
+                        ),
+         contains = "mer")
+setClass("lmer", representation(),# <-- those that are unique to lmer() case
+         contains = "merTrms")
+
+setClass("glmer",
+	 representation(# slots	 unique to glmer() :
+			eta = "numeric", # unbounded predictor			- GLM
+			muEta = "numeric",# d mu/d eta evaluated at current eta - GLM
+			var = "numeric"	 # conditional variances of Y		- GLM
+			## ghx = "numeric", # zeros of Hermite polynomial
+			## ghw = "numeric", # weights used for AGQ
+			),
+	 contains = "merTrms")
+
+setClass("nlmer",
+	 representation(nlmodel = "call" # nonlinear model call
+			),
+	 contains = "merTrms")
+
+
+setClass("summary.mer", # Additional slots in a summary object
+         representation(
+			methTitle = "character",
+			logLik= "logLik",
+			ngrps = "integer",
+			sigma = "numeric", # scale, non-negative number
+			coefs = "matrix",
+			## vcov = "dpoMatrixorNULL", was  vcov = "dpoMatrix",
+			REmat = "matrix",
+			AICtab= "data.frame"),
+         contains = "mer")
+## FIXME -- need differentiate summary.lmer, summary.glmer, .... ?
+
+
 setClass("glmerenv", contains = "merenvtrms",
          validity = function(object)
      {
@@ -151,8 +256,8 @@ setClass("glmerenv", contains = "merenvtrms",
              return("environment must contain a numeric vector \"muEta\"")
          if (!(is.numeric(rho$var) && length(rho$var) == n))
              return("environment must contain a numeric vector \"var\"")
-         if (!(is.numeric(rho$sqrtrwt) && length(rho$sqrtrwt) == n))
-             return("environment must contain a numeric vector \"sqrtrwt\"")
+         if (!(is.numeric(rho$sqrtrWt) && length(rho$sqrtrWt) == n))
+             return("environment must contain a numeric vector \"sqrtrWt\"")
          if (!(is.list(family <- rho$family)))
              return("environment must contain a list \"family\"")
          if (!(is.character(family$family) && length(family$family) == 1))
