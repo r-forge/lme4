@@ -69,8 +69,11 @@ derived_mats <- function(rho) {
         rho$RZX <- solve(rho$L, solve(rho$L, crossprod(rho$Lambda,
                                                        rho$ZtX),
                                       sys = "P"), sys = "L")
-        rho$RX <- if (is(rho$XtX <- crossprod(X), "dsparseMatrix"))
-            Cholesky(rho$XtX, LDL = FALSE) else chol(rho$XtX)
+        if (is(rho$XtX <- crossprod(X), "dsparseMatrix")) {
+            rho$RX <- Cholesky(rho$XtX - crossprod(rho$RZX))
+        } else {
+            rho$RX <- chol(rho$XtX)
+        }
     }
 }
 
@@ -277,6 +280,8 @@ lmer <-
 
     makeZt(findbars(formula[[3]]), fr, rho)
     rho$L <- Cholesky(tcrossprod(rho$Zt), LDL = FALSE, Imult = 1)
+
+    rho$Lambda@x[] <- rho$theta[rho$Lind]
     derived_mats(rho)
 
     rho$mu <- numeric(rho$nobs)
