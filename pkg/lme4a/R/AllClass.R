@@ -267,3 +267,36 @@ setClass("glmerenv", contains = "merenvtrms",
          TRUE
      })
 
+setClass("reweightable", representation("VIRTUAL"))
+setClass("reModule",
+         representation(L = "CHMfactor",
+                        Lambda = "dgCMatrix",
+                        LambdatZt = "dgCMatrix",
+                        Lind = "integer",
+                        Zt = "dgCMatrix",
+                        theta = "numeric",
+                        u = "numeric"),
+         validity = function(object)
+     {
+         q <- nrow(Zt)
+         if (!all(dim(Lambda) == q))
+             return("Lambda must be q by q where q = nrow(Zt)")
+         if (!all(dim(Zt) == dim(LambdatZt)))
+             return("Dimensions of Zt and LambdatZt must match")
+         if (length(Lind) != q || length(u) != q)
+             return("length(Lind) and length(u) must be q = nrow(Zt)")
+         if (!all(Lind %*% seq_along(theta)))
+             return("elements of Lind must be in 1:length(theta)")
+     })
+
+setClass("rwReMod",               # reweightable random effects module
+         representation(sqrtXwt = "numeric",
+                        ubase = "numeric"),
+         contains = c("reModule", "reweightable"),
+         validity = function(object)
+     {
+         if (length(ubase) != nrow(Zt))
+             return("length(ubase) != q = nrow(Zt)")
+         if (length(sqrtXwt) != ncol(Zt))
+             return("length(sqrtXwt) != N = ncol(Zt)")
+     })
