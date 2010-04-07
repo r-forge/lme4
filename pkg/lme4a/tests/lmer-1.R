@@ -153,13 +153,6 @@ stopifnot(all.equal(sr2[nmsSumm], sr2.[nmsSumm], tol= 1e-14),
           TRUE)
 r2.
 
-## ergoStool example was segfaulting with sparseX
-if (data(ergoStool, package = "MEMSS") == "ergoStool") {
-    e1 <- lmer(effort ~ Type + (1|Subject), data = ergoStool)
-    e1. <- lmer(effort ~ Type + (1|Subject), data = ergoStool, sparseX = TRUE)
-    print(all.equal(coef(summary(e1))[, 2], coef(summary(e1.))[, 2]))
-}
-
 ## Failure to specify a random effects term - used to give an obscure message
 ## Ensure *NON*-translated message; works on Linux,... :
 Sys.setlocale("LC_MESSAGES", "C")
