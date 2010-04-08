@@ -1,10 +1,13 @@
 #include "glmFamily.h"
 #include <cmath>
-#include <iostream>
+#include <limits>
 
 using namespace Rcpp;
 
-double glmFamily::epsilon = 1.e-14;
+double glmFamily::epsilon = std::numeric_limits<double>::epsilon();
+double glmFamily::INVEPS = 1. / glmFamily::epsilon;
+double glmFamily::LTHRESH = 30.;
+double glmFamily::MLTHRESH = -30.;
 
 fmap glmFamily::linvs = fmap();
 fmap glmFamily::lnks = fmap();
@@ -32,7 +35,15 @@ glmFamily::glmFamily(SEXP ll) : lst(ll) {
 
 	lnks["inverse"] = linvs["inverse"] = &inversef;
 	muEtas["inverse"] = &invderivf;
-	
+
+	lnks["logit"] = &logitLink;
+	linvs["logit"] = &logitLinkInv;
+	muEtas["logit"] = &logitMuEta;
+
+	lnks["probit"] = &probitLink;
+	linvs["probit"] = &probitLinkInv;
+	muEtas["probit"] = &probitMuEta;
+
 	varFuncs["gamma"] = &sqrf;
 	varFuncs["gaussian"] = &onef;
 	varFuncs["poisson"] = &identf;
@@ -120,6 +131,15 @@ family_linkinv(SEXP family, SEXP peta) {
 
     glmFamily(family).linkInv(mu, eta);
     return mu;
+}
+
+extern "C" SEXP 
+family_muEta(SEXP family, SEXP peta) {
+    NumericVector eta(peta);
+    NumericVector muEta(eta.size());
+
+    glmFamily(family).muEta(muEta, eta);
+    return muEta;
 }
 
 extern "C" SEXP
