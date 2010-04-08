@@ -55,7 +55,7 @@ setMethod("nlminb", signature(start = "optenv"),
       })
 
 setMethod("bobyqa", signature(par = "optenv"),
-          function(par, fn, lower = -Inf, upper = Inf, control = bobyqa.control(), ...)
+          function(par, fn, lower = -Inf, upper = Inf, control = list(), ...)
       {
           control <- as.list(control)
           bb <- par@getBounds()
