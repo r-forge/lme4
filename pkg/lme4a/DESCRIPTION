@@ -6,8 +6,8 @@ Author: Douglas Bates <bates@stat.wisc.edu> and
         Martin Maechler <maechler@R-project.org>
 Maintainer: Douglas Bates <bates@stat.wisc.edu>
 Description: Fit linear and generalized linear mixed-effects models.
-Depends: methods, R(>= 2.10.0), Matrix(>= 0.999375-38), lattice, stats, minqa(>= 1.1.3), Rcpp(>= 0.7.11)
-LinkingTo: Matrix
+Depends: methods, R(>= 2.10.0), Matrix(>= 0.999375-38), lattice, stats, minqa(>= 1.1.3), Rcpp(>= 0.7.11.2)
+LinkingTo: Matrix, Rcpp
 Imports: graphics, grid, nlme, splines
 Suggests: mlmRev, MEMSS
 LazyLoad: yes
