@@ -105,6 +105,7 @@ setClass("merenvtrms", representation("VIRTUAL"), contains = "merenv",
      ##         return("list of column names, cnms, must match asgn attribute in length")
      ## })
 
+
 ##' Linear mixed-effects model representation.
 ##'
 ##'
@@ -143,9 +144,9 @@ setClassUnion("CholKind",
               members = c("Cholesky", "CHMfactor"))
 
 if(is.null(getClassDef("dsymmetricMatrix"))) ## not very latest version of 'Matrix':
-## Virtual class of numeric symmetric matrices -- new (2010-04) - for lme4
-setClass("dsymmetricMatrix", representation("VIRTUAL"),
-	 contains = c("dMatrix", "symmetricMatrix"))
+    ## Virtual class of numeric symmetric matrices -- new (2010-04) - for lme4
+    setClass("dsymmetricMatrix", representation("VIRTUAL"),
+             contains = c("dMatrix", "symmetricMatrix"))
 
 ## Some __NON-exported__ classes just for auto-validity checking:
 setClassUnion("dgC_or_diMatrix", members = c("dgCMatrix", "ddiMatrix"))
@@ -170,7 +171,7 @@ setClass("mer",
 			pWt = "numeric",# prior weights,   __ FIXME? __
 			offset = "numeric", # length 0 -> no offset
 			y = "numeric",	 # response vector
-			# Gp = "integer",  # pointers to row groups of Zt
+                                        # Gp = "integer",  # pointers to row groups of Zt
 
 			devcomp = "list", ## list(cmp = ...,  dims = ...)
                         ## this *replaces* (?) previous 'dims' and 'deviance'
@@ -246,57 +247,328 @@ setClass("summary.mer", # Additional slots in a summary object
 
 
 setClass("glmerenv", contains = "merenvtrms",
-         validity = function(object)
-     {
-         rho <- env(object)
-         n <- length(rho$y)
-         if (!(is.numeric(rho$mu) && length(rho$mu) == n))
-             return("environment must contain a numeric vector \"mu\"")
-         if (!(is.numeric(rho$muEta) && length(rho$muEta) == n))
-             return("environment must contain a numeric vector \"muEta\"")
-         if (!(is.numeric(rho$var) && length(rho$var) == n))
-             return("environment must contain a numeric vector \"var\"")
-         if (!(is.numeric(rho$sqrtrWt) && length(rho$sqrtrWt) == n))
-             return("environment must contain a numeric vector \"sqrtrWt\"")
-         if (!(is.list(family <- rho$family)))
-             return("environment must contain a list \"family\"")
-         if (!(is.character(family$family) && length(family$family) == 1))
-             return("family list must contain a character variable \"family\"")
-         if (!(is.character(family$link) && length(family$link) == 1))
-             return("family list must contain a character variable \"link\"")
-         TRUE
-     })
+         validity = function(object) {
+             rho <- env(object)
+             n <- length(rho$y)
+             if (!(is.numeric(rho$mu) && length(rho$mu) == n))
+                 return("environment must contain a numeric vector \"mu\"")
+             if (!(is.numeric(rho$muEta) && length(rho$muEta) == n))
+                 return("environment must contain a numeric vector \"muEta\"")
+             if (!(is.numeric(rho$var) && length(rho$var) == n))
+                 return("environment must contain a numeric vector \"var\"")
+             if (!(is.numeric(rho$sqrtrWt) && length(rho$sqrtrWt) == n))
+                 return("environment must contain a numeric vector \"sqrtrWt\"")
+             if (!(is.list(family <- rho$family)))
+                 return("environment must contain a list \"family\"")
+             if (!(is.character(family$family) && length(family$family) == 1))
+                 return("family list must contain a character variable \"family\"")
+             if (!(is.character(family$link) && length(family$link) == 1))
+                 return("family list must contain a character variable \"link\"")
+             TRUE
+         })
 
-setClass("reweightable", representation("VIRTUAL"))
+##' Random-effects module.
+##'
+##' Zt is the transpose of the sparse model matrix.  The number of
+##' rows in Zt may be a multiple of the number of columns in Ut.
+
 setClass("reModule",
          representation(L = "CHMfactor",
                         Lambda = "dgCMatrix",
-                        LambdatZt = "dgCMatrix",
                         Lind = "integer",
+                        Ut = "dgCMatrix",
                         Zt = "dgCMatrix",
+                        lower = "numeric",
                         theta = "numeric",
                         u = "numeric"),
+         validity = function(object) {
+             q <- nrow(object@Zt)
+             if (!all(dim(object@Lambda) == q))
+                 return("Lambda must be q by q where q = nrow(Zt)")
+             if (nrow(object@Ut) != q || nrow(object@L) != q)
+                 return("Number of rows in Zt, L and Ut must match")
+             if (length(object@u) != q)
+                 return("length(u) must be q = nrow(Zt)")
+             if (length(object@Lind) != length(object@Lambda@x))
+                 return("length(Lind) != length(Lambda@x)")
+             if (!all(object@Lind %in% seq_along(object@theta)))
+                 return("elements of Lind must be in 1:length(theta)")
+             if (isLDL(object@L))
+                 return("L must be an LL factor, not LDL")
+             if (length(object@lower) != length(object@theta))
+                 return("lengths of lower and theta must match")
+             TRUE
+         })
+
+##' Reweightable random-effects module
+setClass("rwReMod",
+         representation(sqrtXwt = "dgeMatrix",
+                        ubase = "numeric"),
+         contains = c("reModule"),
+         validity = function(object) {
+             if (length(object@ubase) != nrow(object@Zt))
+                 return("length(ubase) != q = nrow(Zt)")
+             dd <- dim(sqrtXwt)
+             if (dd[1] != ncol(object@Ut))
+                 return("nrow(sqrtXwt) != n = ncol(Ut)")
+             if (prod(dd) != ncol(object@Zt))
+                 return("prod(dim(sqrtXwt)) != N = ncol(Zt)")
+             TRUE
+         })
+
+##' Fixed-effects module
+setClass("feModule",
+         representation(beta = "numeric"))
+
+##' Dense fixed-effects module
+setClass("deFeMod",
+         representation(X = "dgeMatrix",
+                        RZX = "dgeMatrix",
+                        RX = "Cholesky"),
+         contains = "feModule",
+         validity = function(object) {
+             p <- ncol(object@X)
+             if (ncol(object@RZX) != p || ncol(object@RX) != p)
+                 return("Number of columns in X, RZX and RX must match")
+             TRUE
+         })
+
+##' Sparse fixed-effects module
+setClass("spFeMod",
+         representation(X = "dgCMatrix",
+                        RZX = "dgCMatrix",
+                        RX = "CHMfactor"),
+         contains = "feModule",
+         validity = function(object) {
+             p <- ncol(object@X)
+             if (ncol(object@RZX) != p || ncol(object@RX) != p)
+                 return("Number of columns in X, RZX and RX must match")
+             if (isLDL(object@RX))
+                 return("RX must be an LL factor, not LDL")
+             TRUE
+         })
+
+##' lmer dense fixed-effects module
+##'
+##' An lmer fixed-effects module is not reweightable so products ZtX
+##' and XtX are pre-computed and stored
+##'
+setClass("lmerDeFeMod",
+         representation(ZtX = "dgeMatrix",
+                        XtX = "dpoMatrix"),
+         contains = "deFeMod",
+         validity = function(object) {
+             if (any(dim(object@ZtX) != dim(object@RZX)))
+                 return("dimensions of ZtX and RZX must match")
+             if (any(dim(object@XtX) != dim(object@RX)))
+                 return("dimensions of XtX and RX must match")
+             TRUE
+         })
+
+##' lmer sparse fixed-effects module
+##'
+setClass("lmerSpFeMod",
+         representation(ZtX = "dgCMatrix",
+                        XtX = "dsCMatrix"),
+         contains = "spFeMod",
+         validity = function(object) {
+             if (any(dim(object@ZtX) != dim(object@RZX)))
+                 return("dimensions of ZtX and RZX must match")
+             if (any(dim(object@XtX) != dim(object@RX)))
+                 return("dimensions of XtX and RX must match")
+             TRUE
+         })
+
+
+##' reweightable dense fixed-effects module
+##'
+##' a reweightable fixed-effects module contains V, a weighted version
+##' of X but no precomputed products.  The number of rows in X can be
+##' multiple of the number of rows in V
+setClass("rwDeFeMod",
+         representation(V = "dgeMatrix",
+                        sqrtXwt = "dgeMatrix",
+                        betabase = "numeric"),
+         contains = "deFeMod",
+         validity = function(object) {
+             if (ncol(object@V) != ncol(object@X))
+                 return("number of columns in X and V must match")
+             dd <- dim(sqrtXwt)
+             if (prod(dd) != nrow(object@X))
+                 return("prod(dim(sqrtXwt)) != nrow(X)")
+             if (nrow(object@V) != nrow(sqrtXwt))
+                 return("nrow(V) and nrow(sqrtXwt) must match")
+             TRUE
+         })
+
+##' reweightable sparse fixed-effects module
+##'
+setClass("rwSpFeMod",
+         representation(V = "dgCMatrix",
+                        sqrtXwts = "numeric",
+                        betabase = "numeric"),
+         contains = "spFeMod",
+         validity = function(object) {
+             if (ncol(object@V) != ncol(object@X))
+                 return("number of columns in X and V must match")
+             if (length(object@sqrtXwts) != nrow(object@X))
+                 return("length(sqrtXwts) != nrow(X)")
+             if (nrow(object@X) %% nrow(object@V))
+                 return("nrow(X) must be a multiple of nrow(V)")
+             TRUE
+         })
+
+##' mer response module
+##' y, offset and mu are as expected
+##' wrss is the scalar weigthed residual sum of squares
+##'
+##' Utr is the q-dimensional product of Ut (reModule) and the weighted
+##' residual sum of squares.
+##'
+##' Vtr is the p-dimension crossproduct of V (reweightable feModule)
+##' or X (lmer feModule) and the weighted residual, which initially is
+##' in the lmer case.
+##'
+##' cu is the intermediate solution for u, cbeta for beta
+setClass("merResp",
+         representation(y = "numeric",
+                        weights = "numeric", # prior weights
+                        offset = "numeric",
+                        mu = "numeric",
+                        resid = "numeric",
+                        wrss = "numeric",
+                        Utr = "numeric",
+                        Vtr = "numeric",
+                        cu = "numeric",
+                        cbeta = "numeric"),
+         validity = function(object) {
+             n <- length(object@y)
+             if (!(length(object@offset) %in% c(0L, n)))
+                 return("length offset must be 0 or length(y)")
+             if (!(length(object@weights) %in% c(0L, n)))
+                 return("length weights must be 0 or length(y)")
+             if (length(object@mu) != n || length(object@resid) != n)
+                 return("lengths of mu and resid must match length(y)")
+             if (length(object@wrss) != 1L)
+                 return("length of wrss must be 1")
+             if (length(object@Utr) != length(object@cu))
+                 return("lengths of Utr and cu must match")
+             if (length(object@Vtr) != length(object@cbeta))
+                 return("lengths of Vtr and cbeta must match")
+             TRUE
+         })
+
+##' lmer response module
+setClass("lmerResp", contains = "merResp")
+
+##' reweightable response module
+##'
+##' gamma is the linear predictor, which is transformed to mu
+setClass("rwResp",
+         representation(gamma = "numeric",
+                        sqrtrwts = "numeric",
+                        sqrtXwts = "numeric"),
+         contains = "merResp",
+         validity = function(object) {
+             lg <- length(object@gamma)
+             n <- length(object@y)
+             if (lg < 1 || lg %% n)
+                 return("length(gamma) must be a positive multiple of length(y)")
+             if (length(object@sqrtXwts) != lg)
+                 return("length(sqrtXwts) != length(gamma)")
+             if (length(object@sqrtrwts) != n)
+                 return("length(sqrtrwts) != length(y)")
+             TRUE
+         })
+
+##' glmer response module
+setClass("glmerResp",
+         representation(family = "family",
+                        muEta = "numeric",
+                        var = "numeric"), # variances of responses
+         contains = "rwResp",
+         validity = function(object) {
+             n <- length(object@y)
+             lXwt <- length(object@sqrtXwts)
+             if (lXwt < 1L || lXwt %% n)
+                 return("length(sqrtXwts) must be a positive multiple of length(y)")
+             if (length(object@muEta) != n || length(object@var) != n)
+                 return("lengths of muEta and var must match length(y)")
+             if (!(length(object@pwts) %in% c(0L, n)))
+                 return("length(pwts), the prior weights, must be 0 or length(y)")
+         })
+
+##' nlmer response module
+setClass("nlmerResp",
+         representation(nlenv = "environment",
+                        gradient = "matrix"),
+         contains = "rwResp",
+         validity = function(object) {
+             n <- length(object@y)
+             N <- length(object@gamma)
+             s <- N %/% n
+             if (dim(gradient) != c(n, s))
+                 return("dimension mismatch on gradient, y and gamma")
+         })
+
+##' nglmer response module
+setClass("nglmerResp", contains = c("glmerResp", "nlmerResp"))
+
+##' Mixed-effects model random-effects terms object
+##'
+##' In general an mer object does not associate components of the
+##' random-effects vector, b, with particular terms in a formula. That
+##' association is represented separately by this class.
+##' 
+##'
+setClass("merTrms",
+         representation(flist = "list", cnms = "list"),
          validity = function(object)
      {
-         q <- nrow(Zt)
-         if (!all(dim(Lambda) == q))
-             return("Lambda must be q by q where q = nrow(Zt)")
-         if (!all(dim(Zt) == dim(LambdatZt)))
-             return("Dimensions of Zt and LambdatZt must match")
-         if (length(Lind) != q || length(u) != q)
-             return("length(Lind) and length(u) must be q = nrow(Zt)")
-         if (!all(Lind %*% seq_along(theta)))
-             return("elements of Lind must be in 1:length(theta)")
+         flLen <- length(flist <- object@flist)
+         if (flLen < 1 && !all(sapply(flist, is.factor)))
+             return("flist must be a non-empty list of factors")
+         l1 <- length(flist[[1]])
+         if (!all(sapply(flist, function(el) length(el) == l1)))
+             return("all factors in flist must have the same length")
+         flseq <- seq_along(flist)
+         if (!(is.integer(asgn <- attr(flist, "assign")) &&
+               all(flseq %in% asgn) &&
+               all(asgn %in% flseq)))
+             return("asgn attribute of flist missing or malformed")
+         if (!all(sapply(cnms <- object@cnms, is.character)) &&
+             all(sapply(cnms, length) > 0) &&
+             length(cnms) == length(asgn))
+             return("list of column names, cnms, must match asgn attribute in length")
+         TRUE
      })
 
-setClass("rwReMod",               # reweightable random effects module
-         representation(sqrtXwt = "numeric",
-                        ubase = "numeric"),
-         contains = c("reModule", "reweightable"),
+setClass("lmer2",
+         representation(re = "reModule",
+                        fe = "feModule",
+                        resp = "merResp",
+                        REML = "logical"),
          validity = function(object)
      {
-         if (length(ubase) != nrow(Zt))
-             return("length(ubase) != q = nrow(Zt)")
-         if (length(sqrtXwt) != ncol(Zt))
-             return("length(sqrtXwt) != N = ncol(Zt)")
+         fe <- object@fe
+         if (is(object@re, "rwReMod") || is(object@resp, "rwResp") ||
+             !(is(fe, "lmerDeFeMod") || is(fe, "lmerSpFe")))
+             return("lmer modules cannot be reweightable")
      })
+
+setClass("lmerTrms2",
+         representation(trms = "merTrms"),
+         contains = "lmer2",
+         validity = function(object)
+     {
+         fl <- object@trms@flist
+         nlev <- sapply(fl, function(fac) length(levels(fac)))
+         nc <- sapply(object@trms@cnms, length)
+         asgn <- attr(fl, "assign")
+         q <- nrow(object@re@Zt)
+         if (sum(nc * nlev[asgn]) != q)
+             return("inconsistent dimensions in trms and re slots")
+         TRUE
+     })
+
+
