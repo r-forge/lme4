@@ -264,3 +264,55 @@ lmer2 <-
     new("lmerTrms2", trms = reList$Trms, re = reList$reMod,
         fe = feMod, resp = respMod, REML = REML)
 }
+
+S4toEnv <- function(from) {
+    stopifnot(isS4(from))
+    ans <- new.env()
+    for (nm in slotNames(from)) {
+        sl <- slot(from, nm)
+        for (nnm in slotNames(sl)) assign(nnm, slot(sl, nnm), envir = ans)
+    }
+    ans
+}
+
+setAs("lmer2", "optenv", function (from)
+  {
+      rho <- S4toEnv(from)
+      rho$ldL2 <- numeric(1)
+      rho$ldRX2 <- numeric(1)
+      n <- length(rho$y)
+      rho$nobs <- n
+      rho$REML <- from@REML
+      rho$nmp <- n - length(rho$beta)
+      sP <- function(x) {
+          stopifnot(length(x) == length(theta))
+          ## new theta := x
+          theta <<- as.numeric(x)
+          Lambda@x[] <<- theta[Lind]           # update Lambda
+          Ut <<- crossprod(Lambda, Zt)
+          Matrix:::destructive_Chol_update(L, Ut, Imult = 1)
+          cu <- solve(L, solve(L, crossprod(Lambda, Utr), sys = "P"), sys = "L")
+          RZX <<- solve(L, solve(L, crossprod(Lambda, ZtX), sys = "P"), sys = "L")
+          if (is(X, "sparseMatrix")) {
+              RX <<- update(RX, XtX - crossprod(RZX))
+              beta[] <<- solve(RX, Xty - crossprod(RZX, cu))
+          } else {
+              RX <<- chol(XtX - crossprod(RZX))
+              beta[] <<- solve(RX, solve(t(RX), Vtr - crossprod(RZX, cu)))@x
+          }
+          u[] <<- solve(L, solve(L, cu - RZX %*% beta, sys = "Lt"), sys = "Pt")@x
+          mu[] <<- (if(length(offset)) offset else 0) + (crossprod(Ut, u) + X %*% beta)@x
+          pwrss <<- sum(c(y - mu, u)^2) # penalized residual sum of squares
+          ldL2[] <<- 2 * determinant(L)$mod
+          if (REML) {
+              ldRX2[] <<- 2 * determinant(RX)$mod
+              return(ldL2 + ldRX2 + nmp * (1 + log(2 * pi * pwrss/nmp )))
+          }
+          ldL2 + nobs * (1 + log(2 * pi * pwrss/nobs))
+      }
+      gP <- function() theta
+      gB <- function() cbind(lower = lower,
+                             upper = rep.int(Inf, length(theta)))
+      environment(sP) <- environment(gP) <- environment(gB) <- rho
+      new("optenv", setPars = sP, getPars = gP, getBounds = gB)
+  })
