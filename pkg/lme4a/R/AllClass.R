@@ -571,4 +571,4 @@ setClass("lmerTrms2",
          TRUE
      })
 
-
+setClass("lmerenv2", contains = "optenv")
