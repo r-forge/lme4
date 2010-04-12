@@ -570,5 +570,3 @@ setClass("lmerTrms2",
              return("inconsistent dimensions in trms and re slots")
          TRUE
      })
-
-setClass("lmerenv2", contains = "optenv")
