@@ -12,23 +12,55 @@ importFrom("stats", AIC,  coef, confint, logLik, profile, vcov,
 importFrom("minqa", bobyqa)
 
 importClassesFrom("Matrix",
-                  dgeMatrix, dgCMatrix, dsCMatrix, dpoMatrix,
-                  dCHMsuper, dCHMsimpl, corMatrix)
+                  CHMfactor,
+                  CHMsimpl,
+                  CHMsuper,
+                  Cholesky,
+                  Matrix,
+                  corMatrix,
+                  dCHMsimpl,
+                  dCHMsuper,
+                  dMatrix,
+                  ddiMatrix,
+                  dgCMatrix,
+                  dgeMatrix,
+                  dpoMatrix,
+                  dsCMatrix,
+                  nCHMsimpl,
+                  nCHMsuper,
+                  symmetricMatrix)
 
-importMethodsFrom("Matrix", coerce, chol, "%*%", crossprod, tcrossprod,
-                  Cholesky, determinant, diag, as.vector, solve,
-                  chol2inv, diag, summary, update)
+importMethodsFrom("Matrix",
+                  "%*%",
+                  Cholesky,
+                  as.vector,
+                  chol,
+                  chol2inv,
+                  coerce,
+                  crossprod,
+                  determinant,
+                  diag,
+                  diag,
+                  solve,
+                  summary,
+                  t,
+                  tcrossprod,
+                  update)
 
 
 export(VarCorr, copyMerenv, devcomp, env, # getBounds, getPars,
-       glmer, lmList, lmer, nlmer, # setPars,
+       glmer, lmList, lmer, lmer2, nlmer, # setPars,
        sigma, findbars, nobars, subbars, isNested)
 
 exportClasses(lmList,
 	      ## export all super classes of e.g., "lmerenv",
 	      ## so users can query the class system :
 	      optenv, merenv, merenvtrms, lmerenv, glmerenv,
-              mer, lmer, glmer
+              mer, lmer, glmer,
+              reModule, rwReMod, feModule, deFeMod, spFeMod,
+              lmerDeFeMod, lmerSpFeMod, rwDeFeMod, rwSpFeMod,
+              merResp, lmerResp, rwResp, glmerResp, nlmerResp,
+              nglmerResp, merTrms, lmer2, lmerTrms2
               )
 
 exportMethods(VarCorr, anova, bobyqa, coef, coerce, confint, deviance,
