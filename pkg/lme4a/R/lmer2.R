@@ -108,6 +108,7 @@ mkReModule <- function(bars, fr, rwt = FALSE, s = 1L) {
         ll$Class <- "reReMod"
     }
     ll$L <- Cholesky(tcrossprod(ll$Ut), LDL = FALSE, Imult = 1)
+    ll$ldL2 <- numeric(1)
                                         # massage the factor list
     fl <- lapply(blist, "[[", "ff")
     asgn <- seq_along(fl)
@@ -165,6 +166,7 @@ mkFeModule <-
     } else {                            # lmer model (the only non-reweightable type)
         ll$ZtX <- ll$RZX
         ll$XtX <- crossprod(ll$X)
+        ll$ldR2 <- numeric(1)
     }
     do.call("new", ll)
 }
@@ -278,8 +280,6 @@ S4toEnv <- function(from) {
 setAs("lmer2", "optenv", function (from)
   {
       rho <- S4toEnv(from)
-      rho$ldL2 <- numeric(1)
-      rho$ldRX2 <- numeric(1)
       n <- length(rho$y)
       rho$nobs <- n
       rho$REML <- from@REML

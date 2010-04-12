@@ -280,7 +280,8 @@ setClass("reModule",
                         Zt = "dgCMatrix",
                         lower = "numeric",
                         theta = "numeric",
-                        u = "numeric"),
+                        u = "numeric",
+                        ldL2 = "numeric"),
          validity = function(object) {
              q <- nrow(object@Zt)
              if (!all(dim(object@Lambda) == q))
@@ -297,6 +298,8 @@ setClass("reModule",
                  return("L must be an LL factor, not LDL")
              if (length(object@lower) != length(object@theta))
                  return("lengths of lower and theta must match")
+             if (length(object@ldL2) != 1L)
+                 return("ldL2 must have length 1")
              TRUE
          })
 
@@ -355,13 +358,16 @@ setClass("spFeMod",
 ##'
 setClass("lmerDeFeMod",
          representation(ZtX = "dgeMatrix",
-                        XtX = "dpoMatrix"),
+                        XtX = "dpoMatrix",
+                        ldR2 = "numeric"),
          contains = "deFeMod",
          validity = function(object) {
              if (any(dim(object@ZtX) != dim(object@RZX)))
                  return("dimensions of ZtX and RZX must match")
              if (any(dim(object@XtX) != dim(object@RX)))
                  return("dimensions of XtX and RX must match")
+             if (length(object@ldR2) != 1L)
+                 return("ldR2 must have length 1")
              TRUE
          })
 
@@ -369,13 +375,16 @@ setClass("lmerDeFeMod",
 ##'
 setClass("lmerSpFeMod",
          representation(ZtX = "dgCMatrix",
-                        XtX = "dsCMatrix"),
+                        XtX = "dsCMatrix",
+                        ldR2 = "numeric"),
          contains = "spFeMod",
          validity = function(object) {
              if (any(dim(object@ZtX) != dim(object@RZX)))
                  return("dimensions of ZtX and RZX must match")
              if (any(dim(object@XtX) != dim(object@RX)))
                  return("dimensions of XtX and RX must match")
+             if (length(object@ldR2) != 1L)
+                 return("ldR2 must have length 1")
              TRUE
          })
 
