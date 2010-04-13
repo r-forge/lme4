@@ -107,7 +107,8 @@ namespace mer{
 		       theta.size(), nt.size());
 	std::copy(nt.begin(), nt.end(), theta.begin());
 	double *LamxP = Lambda.x.begin();
-	for (int *Li = Lind.begin(); Li < Lind.end(); Li++) *LamxP++ = nt[*Li];
+	for (int *Li = Lind.begin(); Li < Lind.end(); Li++)
+	    *LamxP++ = nt[(*Li) - 1];
 	CHM_SP LamTr = ::M_cholmod_transpose(Lambda.sp, 1/*values*/, &c);
 	CHM_SP LamTrZt = ::M_cholmod_ssmult(LamTr, Zt.sp, 0/*stype*/,
 					    1/*values*/, 1/*sorted*/, &c);
