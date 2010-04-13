@@ -3,22 +3,20 @@
 #include "Syms.h"
 #include <R_ext/Rdynload.h>
 
-//extern "C" SEXP cross1(SEXP);
-//extern "C" SEXP cross2(SEXP);
-//extern "C" SEXP tcross1(SEXP);
-//extern "C" SEXP tcross2(SEXP);
 extern "C" SEXP family_show(SEXP);
 extern "C" SEXP family_link(SEXP,SEXP);
 extern "C" SEXP family_linkinv(SEXP,SEXP);
 extern "C" SEXP family_muEta(SEXP,SEXP);
+extern "C" SEXP check_resp(SEXP);
+extern "C" SEXP check_dgCMatrix(SEXP);
+extern "C" SEXP update_reModule(SEXP,SEXP);
 
 #define CALLDEF(name, n)  {#name, (DL_FUNC) &name, n}
 
 static R_CallMethodDef CallEntries[] = {
-//    CALLDEF(cross1, 1),
-//    CALLDEF(cross2, 1),
-//    CALLDEF(tcross1, 1),
-//    CALLDEF(tcross2, 1),
+    CALLDEF(check_dgCMatrix, 1),
+    CALLDEF(update_reModule, 2),
+    CALLDEF(check_resp, 1),
 
     CALLDEF(family_link, 2),
     CALLDEF(family_linkinv, 2),
