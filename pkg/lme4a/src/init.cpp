@@ -8,13 +8,11 @@ extern "C" SEXP family_link(SEXP,SEXP);
 extern "C" SEXP family_linkinv(SEXP,SEXP);
 extern "C" SEXP family_muEta(SEXP,SEXP);
 extern "C" SEXP check_resp(SEXP);
-extern "C" SEXP check_dgCMatrix(SEXP);
 extern "C" SEXP update_reModule(SEXP,SEXP);
 
 #define CALLDEF(name, n)  {#name, (DL_FUNC) &name, n}
 
 static R_CallMethodDef CallEntries[] = {
-    CALLDEF(check_dgCMatrix, 1),
     CALLDEF(update_reModule, 2),
     CALLDEF(check_resp, 1),
 

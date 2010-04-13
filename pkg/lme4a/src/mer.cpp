@@ -31,64 +31,6 @@ namespace mer{
 	    ::Rf_error("weights slot must have length 0 or n");
     }
 
-    dgCMatrix::dgCMatrix(S4 xp) :
-	i(SEXP(xp.slot("i"))),
-	p(SEXP(xp.slot("p"))),
-	Dim(SEXP(xp.slot("Dim"))),
-	Dimnames(SEXP(xp.slot("Dim"))),
-	factors(SEXP(xp.slot("Dim"))),
-	x(SEXP(xp.slot("x")))
-    {
-	int nnz = p[Dim[1]];
-	if (i.size() != nnz || x.size() != nnz)
-	    Rf_error("size of i and x must match p[Dim[2] + 1]");
-	sp = new cholmod_sparse;
-	sp->nrow = (size_t)Dim[0];
-	sp->ncol = (size_t)Dim[1];
-	sp->nzmax = (size_t)nnz;
-	sp->p = (void*)(&p[0]);
-	sp->i = (void*)(&i[0]);
-	sp->x = (void*)(&x[0]);
-	sp->stype = 0;
-	sp->itype = CHOLMOD_LONG;
-	sp->xtype = CHOLMOD_REAL;
-	sp->dtype = 0;  // CHOLMOD_DOUBLE
-	sp->packed = (int)true;
-	sp->sorted = (int)true;
-    }
-
-    SEXP dgCMatrix::dims() const {
-	return wrap(clone(Dim));
-    }
- 
-    static inline
-    void chk_mismatch(int a, int b, std::string compNm, std::string methNm) {
-	if (a != b)
-	    Rf_error("%s: %s mismatch, %d != %d",
-		     methNm.c_str(), compNm.c_str(), a, b);
-    }
-
-    void dgCMatrix::update(CHM_SP nn) {
-	chk_mismatch(sp->nrow, nn->nrow, "nrow", "dgCMatrix::update");
-	chk_mismatch(sp->ncol, nn->ncol, "ncol", "dgCMatrix::update");
-	chk_mismatch(sp->stype, nn->stype, "stype", "dgCMatrix::update");
-	chk_mismatch(sp->itype, nn->itype, "itype", "dgCMatrix::update");
-	chk_mismatch(sp->xtype, nn->xtype, "itype", "dgCMatrix::update");
-	chk_mismatch(sp->dtype, nn->dtype, "dtype", "dgCMatrix::update");
-	chk_mismatch(sp->packed, nn->packed, "packed", "dgCMatrix::update");
-	chk_mismatch(sp->sorted, nn->sorted, "sorted", "dgCMatrix::update");
-	int nnz = ::M_cholmod_nnz(sp, &c);
-	chk_mismatch(nnz, ::M_cholmod_nnz(nn, &c), "nnz", "dgCMatrix::update");
-	int *spP = (int*)sp->p;
-	if (!std::equal(spP, spP + sp->ncol + 1, (int*)nn->p))
-	    Rf_error("%s: inconsistency in %s", "dgCMatrix::update", "p");
-	spP = (int*)sp->i;
-	if (!std::equal(spP, spP + nnz, (int*)nn->i))
-	    Rf_error("%s: inconsistency in %s", "dgCMatrix::update", "i");
-	double *nnX = (double*)nn->x;
-	std::copy(nnX, nnX + nnz, (double*)sp->x);
-    }
-
     reModule::reModule(S4 xp) :
 	L(S4(SEXP(xp.slot("L")))),
 	Lambda(S4(SEXP(xp.slot("Lambda")))),
@@ -102,41 +44,23 @@ namespace mer{
     }
 
     void reModule::updateTheta(NumericVector nt) {
-	Rprintf("In reModule::updateTheta");
 	if (nt.size() != theta.size())
 	    ::Rf_error("length(theta) = %d != length(newtheta) = %d",
 		       theta.size(), nt.size());
-	Rprintf("size comparison of theta and nt okay\n");
 	std::copy(nt.begin(), nt.end(), theta.begin());
-	Rprintf("copy operation okay, theta[1] = %g\n", theta[0]);
 	double *LamxP = (Lambda.x).begin();
-	Rprintf("Extracted LamxP, x[1] = %g\n", *LamxP);
 	for (int *Li = Lind.begin(); Li < Lind.end(); Li++)
 	    *LamxP++ = nt[(*Li) - 1];
-	Rprintf("Updated Lambda.x, x[1] = %g\n", *(Lambda.x).begin());
 
 	CHM_SP LamTr = ::M_cholmod_transpose(Lambda.sp, 1/*values*/, &c);
-	Rprintf("Created transpose\n");
 	CHM_SP LamTrZt = ::M_cholmod_ssmult(LamTr, Zt.sp, 0/*stype*/,
 					    1/*values*/, 1/*sorted*/, &c);
-	Rprintf("Created product\n");
 	::M_cholmod_free_sparse(&LamTr, &c);
 	Ut.update(LamTrZt);
-	Rprintf("Updated Ut\n");
 	::M_cholmod_free_sparse(&LamTrZt, &c);
-	//FIXME: Define a CHMfactor class and update L
+	L.update(Ut.sp, 1.);
+	*(ldL2.begin()) = ::M_chm_factor_ldetL2(L.fa);
     }
-}
-
-extern "C"
-SEXP check_dgCMatrix(SEXP xp) {
-    S4 x4(xp);
-    CharacterVector cls = x4.attr("class");
-    std::string cl(cls[0]);
-    if (cl != "dgCMatrix")
-	Rf_error("incorrect class, %s, to %s", cl.c_str(), "check_dgCMatrix");
-    mer::dgCMatrix rr(x4);
-    return rr.dims();
 }
 
 extern "C"
