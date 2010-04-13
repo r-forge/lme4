@@ -102,18 +102,27 @@ namespace mer{
     }
 
     void reModule::updateTheta(NumericVector nt) {
+	Rprintf("In reModule::updateTheta");
 	if (nt.size() != theta.size())
 	    ::Rf_error("length(theta) = %d != length(newtheta) = %d",
 		       theta.size(), nt.size());
+	Rprintf("size comparison of theta and nt okay\n");
 	std::copy(nt.begin(), nt.end(), theta.begin());
-	double *LamxP = Lambda.x.begin();
+	Rprintf("copy operation okay, theta[1] = %g\n", theta[0]);
+	double *LamxP = (Lambda.x).begin();
+	Rprintf("Extracted LamxP, x[1] = %g\n", *LamxP);
 	for (int *Li = Lind.begin(); Li < Lind.end(); Li++)
 	    *LamxP++ = nt[(*Li) - 1];
+	Rprintf("Updated Lambda.x, x[1] = %g\n", *(Lambda.x).begin());
+
 	CHM_SP LamTr = ::M_cholmod_transpose(Lambda.sp, 1/*values*/, &c);
+	Rprintf("Created transpose\n");
 	CHM_SP LamTrZt = ::M_cholmod_ssmult(LamTr, Zt.sp, 0/*stype*/,
 					    1/*values*/, 1/*sorted*/, &c);
+	Rprintf("Created product\n");
 	::M_cholmod_free_sparse(&LamTr, &c);
 	Ut.update(LamTrZt);
+	Rprintf("Updated Ut\n");
 	::M_cholmod_free_sparse(&LamTrZt, &c);
 	//FIXME: Define a CHMfactor class and update L
     }
@@ -143,5 +152,6 @@ SEXP update_reModule(SEXP xp, SEXP ntheta) {
     mer::reModule rr(x4);
     NumericVector nt(ntheta);
     rr.updateTheta(nt);
+    return R_NilValue;
 }
 
