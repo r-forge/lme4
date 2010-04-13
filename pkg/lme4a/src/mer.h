@@ -3,6 +3,7 @@
 #define LME4_MER_H
 
 #include <Rcpp.h>
+#include <Matrix.h>
 
 namespace mer {
     
@@ -17,16 +18,20 @@ namespace mer {
     class dgCMatrix {
     public:
 	dgCMatrix(Rcpp::S4);
-	SEXP dims();
+	~dgCMatrix(){delete sp;}
+	SEXP dims() const;
+	void update(CHM_SP);
 	
 	Rcpp::IntegerVector i, p, Dim;
 	Rcpp::List Dimnames, factors;
 	Rcpp::NumericVector x;
+	CHM_SP sp;
     };
     
     class reModule {
     public:
 	reModule(Rcpp::S4);
+	void updateTheta(Rcpp::NumericVector);
 
 	Rcpp::S4 L;
 	dgCMatrix Lambda, Ut, Zt;
