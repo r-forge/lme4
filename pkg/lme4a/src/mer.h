@@ -3,7 +3,7 @@
 #define LME4_MER_H
 
 #include <Rcpp.h>
-#include <Matrix.h>
+#include "Matrix_ns.h"
 
 namespace mer {
     
@@ -15,28 +15,39 @@ namespace mer {
 	    cu, mu, offset, resid, weights, wrss, y; 
     };
 
-    class dgCMatrix {
-    public:
-	dgCMatrix(Rcpp::S4);
-	~dgCMatrix(){delete sp;}
-	SEXP dims() const;
-	void update(CHM_SP);
-	
-	Rcpp::IntegerVector i, p, Dim;
-	Rcpp::List Dimnames, factors;
-	Rcpp::NumericVector x;
-	CHM_SP sp;
-    };
-    
     class reModule {
     public:
 	reModule(Rcpp::S4);
 	void updateTheta(Rcpp::NumericVector);
 
-	Rcpp::S4 L;
-	dgCMatrix Lambda, Ut, Zt;
+	Matrix::dCHMfactor L;
+	Matrix::dgCMatrix Lambda, Ut, Zt;
 	Rcpp::IntegerVector Lind;
 	Rcpp::NumericVector lower, theta, u, ldL2;
+    };
+
+    class feModule {
+    public:
+	feModule(Rcpp::S4);
+	
+	Rcpp::NumericVector beta;
+    };
+    
+    class deFeMod : public feModule {
+    public:
+	deFeMod(Rcpp::S4);
+	
+	Matrix::dgeMatrix X, RZX;
+	Matrix::Cholesky RX;
+    };
+
+    class lmerDeFeMod : public deFeMod {
+    public:
+	lmerDeFeMod(Rcpp::S4);
+	
+	Matrix::dgeMatrix ZtX;
+//	Matrix::dpoMatrix XtX;
+	Rcpp::NumericVector ldR2;
     };
 
 }
