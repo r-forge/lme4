@@ -6,24 +6,25 @@
 #include "Matrix_ns.h"
 
 namespace mer {
-    
-    class merResp {
-    public:
-	merResp(Rcpp::S4);
-	
-	Rcpp::NumericVector Utr, Vtr, cbeta,
-	    cu, mu, offset, resid, weights, wrss, y; 
-    };
-
     class reModule {
     public:
 	reModule(Rcpp::S4);
-	void updateTheta(Rcpp::NumericVector);
+	void updateTheta(const Rcpp::NumericVector&);
+	double sqLenU();	// squared length of u
 
 	Matrix::dCHMfactor L;
 	Matrix::dgCMatrix Lambda, Ut, Zt;
 	Rcpp::IntegerVector Lind;
 	Rcpp::NumericVector lower, theta, u, ldL2;
+    };
+    
+    class merResp {
+    public:
+	merResp(Rcpp::S4);
+	void updateL(reModule&);  // FIXME: see comments in mer.cpp
+	
+	Rcpp::NumericVector Utr, Vtr, cbeta,
+	    cu, mu, offset, resid, weights, wrss, y; 
     };
 
     class feModule {
@@ -44,12 +45,32 @@ namespace mer {
     class lmerDeFeMod : public deFeMod {
     public:
 	lmerDeFeMod(Rcpp::S4);
+	void updateL(const reModule&);
 	
 	Matrix::dgeMatrix ZtX;
-//	Matrix::dpoMatrix XtX;
+	Matrix::dpoMatrix XtX;
 	Rcpp::NumericVector ldR2;
     };
 
+    class lmer {
+    public:
+	lmer(Rcpp::S4);
+	double deviance();
+
+	reModule re;
+	merResp resp;
+	Rcpp::LogicalVector REML;
+	bool reml;
+    };
+	
+    class lmerDe : public lmer {
+    public:
+	lmerDe(Rcpp::S4);
+	double REMLcrit();
+	double updateTheta(const Rcpp::NumericVector&);
+
+	lmerDeFeMod fe;
+    };
 }
 
 #endif

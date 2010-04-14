@@ -16,32 +16,44 @@ namespace Matrix{
 	x(SEXP(xp.slot("x"))) {
     }
 
-    ddenseMatrix::ddenseMatrix(S4 xp) :
-	dMatrix(xp) {
+// Check this: Do the dspMatrix and dtpMatrix classes pass this check?
+    ddenseMatrix::ddenseMatrix(S4 xp) : dMatrix(xp) {
 	if (!x.size() == Dim[0] * Dim[1])
 	    ::Rf_error("%s: Dim = (%d, %d) is inconsistent with x.size() = %d",
 		       "dgeMatrix::dgeMatrix", Dim[0], Dim[1], x.size());
     }
     
-    dgeMatrix::dgeMatrix(S4 xp) :
-	ddenseMatrix(xp),
-	factors(SEXP(xp.slot("factors"))) {
+    compMatrix::compMatrix(S4 xp) : factors(SEXP(xp.slot("factors"))) {
+    }
+
+    generalMatrix::generalMatrix(S4 xp) : compMatrix(xp) {
     }
 
     triangularMatrix::triangularMatrix(S4 xp) :
-	Matrix(xp),		// not sure if this is what I want
 	uplo(SEXP(xp.slot("uplo"))),
 	diag(SEXP(xp.slot("diag"))) {
     }
 
-    dtrMatrix::dtrMatrix(S4 xp) :
-	ddenseMatrix(xp),
-	triangularMatrix(xp) {
+    symmetricMatrix::symmetricMatrix(S4 xp) :
+	compMatrix(xp),
+	uplo(SEXP(xp.slot("uplo"))) {
+    }
+
+    dgeMatrix::dgeMatrix(S4 xp) : ddenseMatrix(xp), generalMatrix(xp) {
+    }
+
+    dtrMatrix::dtrMatrix(S4 xp) : ddenseMatrix(xp), triangularMatrix(xp) {
     }
     
-    Cholesky::Cholesky(S4 xp) :
-	dtrMatrix(xp) {
+    dsyMatrix::dsyMatrix(S4 xp) : ddenseMatrix(xp), symmetricMatrix(xp) {
     }
+
+    Cholesky::Cholesky(S4 xp) : dtrMatrix(xp) {
+    }
+
+    dpoMatrix::dpoMatrix(S4 xp) : dsyMatrix(xp) {
+    }
+
 				//! This class is just a wrapper for a CHM_FR struct
     dCHMfactor::dCHMfactor(S4 xp) :
 	Dim(SEXP(xp.slot("Dim"))),
@@ -165,4 +177,15 @@ namespace Matrix{
 	std::copy(nnX, nnX + nnz, (double*)sp->x);
     }
 
+    chmDn::chmDn(double *x, int nr, int nc) {
+	dn = new cholmod_dense;
+	dn->nrow = (size_t) nr;
+	dn->ncol = (size_t) nc;
+	dn->nzmax = (size_t) nr * nc;
+	dn->d = (size_t) nr;
+	dn->x = (void*) x;
+	dn->z = (void*) NULL;
+	dn->xtype = CHOLMOD_REAL;
+	dn->dtype = 0;  // CHOLMOD_DOUBLE
+    }
 }
