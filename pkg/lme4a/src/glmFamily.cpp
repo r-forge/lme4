@@ -44,9 +44,11 @@ glmFamily::glmFamily(SEXP ll) : lst(ll) {
 	linvs["probit"] = &probitLinkInv;
 	muEtas["probit"] = &probitMuEta;
 
-	varFuncs["gamma"] = &sqrf;
-	varFuncs["gaussian"] = &onef;
-	varFuncs["poisson"] = &identf;
+	varFuncs["Gamma"] = &sqrf;             // x^2
+	varFuncs["binomial"] = &x1mxf;         // x * (1 - x)
+	varFuncs["inverse.gaussian"] = &cubef; // x^3
+	varFuncs["gaussian"] = &onef;	       // 1
+	varFuncs["poisson"] = &identf;	       // x
     }
 }
 
@@ -94,12 +96,12 @@ glmFamily::variance(NumericVector& vv, const NumericVector& eta) {
     }
 }
 
-double
+NumericVector
 glmFamily::devResid(const NumericVector& mu, const NumericVector& weights,
 		    const NumericVector& y) {
     Function devres = lst["dev.resids"];
     NumericVector dd = devres(y, mu, weights);
-    return std::accumulate(dd.begin(), dd.end(), double());
+    return dd;
 }
 
 
