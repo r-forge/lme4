@@ -19,14 +19,17 @@ public:
 	       const Rcpp::NumericVector& eta);
     void variance(Rcpp::NumericVector& vv,
 		  const Rcpp::NumericVector& eta);
-    double devResid(const Rcpp::NumericVector& mu,
-		    const Rcpp::NumericVector& weights,
-		    const Rcpp::NumericVector& y);
+    Rcpp::NumericVector devResid(
+	const Rcpp::NumericVector& mu,
+	const Rcpp::NumericVector& weights,
+	const Rcpp::NumericVector& y);
+
     SEXP show();
     
     std::string family, link;
 private:
     static fmap
+	devs,			//< scalar deviance functions
 	lnks,			//< scalar link functions
 	linvs,			//< scalar linkinv functions
 	muEtas,			//< scalar muEta functions
@@ -35,33 +38,41 @@ private:
     
     static double epsilon, INVEPS, LTHRESH, MLTHRESH;
 
+    static double cubef(double x) {return x * x * x;}
+    static double identf(double x) {return x;}
+    static double invderivf(double x) {return -1/(x * x);}
+    static double inversef(double x) {return 1/x;}
+    static double onef(double x) {return 1;}
     static double sqrf(double x) {return x * x;}
     static double twoxf(double x) {return 2 * x;}
-    static double identf(double x) {return x;}
-    static double onef(double x) {return 1;}
-    static double inversef(double x) {return 1/x;}
-    static double invderivf(double x) {return -1/(x * x);}
-
-    static double safeExp(double x) {
-	return (x < MLTHRESH) ? epsilon : ((x > LTHRESH) ? INVEPS : exp(x));
+    static double x1mxf(double x) {return std::min(epsilon, x * (1 - x));}
+    
+    static double finitePos(double x) { // truncate to (0, Infinity)
+	return std::max(epsilon, std::min(INVEPS, x));
     }
+    static double finite01(double x) { // truncate to (0, 1)
+	return std::max(epsilon, std::min(1. - epsilon, x));
+    }
+
     static double logitLinkInv(double x) {
-	double tmp = safeExp(x);
+	double tmp = finitePos(exp(x));
 	return tmp/(1 + tmp);
     }
-    static double logitLink(double x) {return log(x/(1 - x));}
+    static double logitLink(double x) {
+	return log(finitePos(x / (1 - x)));
+    }
     static double logitMuEta(double x) {
-	double tmp = safeExp(x);
-	double mu = tmp / (1 + tmp);
-	return mu * (1 - mu);
+	return x1mxf(logitLinkInv(x));
     }
 
-    static double probitLink(double x) {return Rf_qnorm5(x, 0, 1, 1, 0);}
+    static double probitLink(double x) {
+	return Rf_qnorm5(x, 0, 1, 1, 0);
+    }
     static double probitLinkInv(double x) {
-	return std::max(std::min(Rf_pnorm5(x, 0, 1, 1, 0), 1. - epsilon), epsilon);
+	return finite01(Rf_pnorm5(x, 0, 1, 1, 0));
     }
     static double probitMuEta(double x) {
-	return std::max(Rf_dnorm4(x, 0, 1, 0), epsilon);
+	return finitePos(Rf_dnorm4(x, 0, 1, 0));
     }
 };
 
