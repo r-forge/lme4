@@ -1,9 +1,11 @@
 #include "mer.h"
-#include <cstring>
 
 using namespace Rcpp;
+using namespace Matrix;
 
 extern cholmod_common c;
+
+static double M_2PI = 6.283185307179586476925286766559;
 
 namespace mer{
 
@@ -31,6 +33,23 @@ namespace mer{
 	    ::Rf_error("weights slot must have length 0 or n");
     }
 
+    static void updateL(reModule &re, chmDn &src, chmDn &dest) {
+	double one[] = {1, 0}, zero[] = {0, 0};
+	int sz = (src.dn)->nrow * (src.dn)->ncol;
+
+	M_cholmod_sdmult(re.Lambda.sp, 1/*trans*/, one, zero, src.dn, dest.dn, &c);
+	CHM_DN t1 = M_cholmod_solve(CHOLMOD_P, re.L.fa, desy.dn, &c);
+	CHM_DN t2 = M_cholmod_solve(CHOLMOD_L, re.L.fa, t1, &c);
+	M_cholmod_free_dense(&t1, &c);
+	std::copy((double*)t2->x, (double*)((t2->x) + .size()), cu.begin());
+	M_cholmod_free_dense(&t2, &c);
+    }
+
+    void merResp::updateL(reModule &re) {
+	chmDn uu(Utr), cuu(cu);
+	updateL(re, uu, cuu);
+    }
+
     reModule::reModule(S4 xp) :
 	L(S4(SEXP(xp.slot("L")))),
 	Lambda(S4(SEXP(xp.slot("Lambda")))),
@@ -43,7 +62,7 @@ namespace mer{
 	ldL2(SEXP(xp.slot("ldL2"))) {
     }
 
-    void reModule::updateTheta(NumericVector nt) {
+    void reModule::updateTheta(const NumericVector &nt) {
 	if (nt.size() != theta.size())
 	    ::Rf_error("length(theta) = %d != length(newtheta) = %d",
 		       theta.size(), nt.size());
@@ -60,6 +79,56 @@ namespace mer{
 	::M_cholmod_free_sparse(&LamTrZt, &c);
 	L.update(Ut.sp, 1.);
 	*(ldL2.begin()) = ::M_chm_factor_ldetL2(L.fa);
+    }
+
+    double reModule::sqLenU() {
+	return std::inner_product(u.begin(), u.end(), u.begin(), double());
+    }
+
+    feModule::feModule(S4 xp) : beta(SEXP(xp.slot("beta"))) {
+    }
+
+    deFeMod::deFeMod(S4 xp) :
+	feModule(xp),
+	X(S4(SEXP(xp.slot("X")))),
+	RZX(S4(SEXP(xp.slot("RZX")))),
+	RX(S4(SEXP(xp.slot("RX")))) {
+    }
+
+    lmerDeFeMod::lmerDeFeMod(S4 xp) :
+	deFeMod(xp),
+	ZtX(S4(SEXP(xp.slot("ZtX")))),
+	XtX(S4(SEXP(xp.slot("XtX")))),
+	ldR2(SEXP(xp.slot("ldR2"))) {
+    }
+    
+    void lmerDeFeMod::updateL(reModule &re) {
+	chmDn ztx(ZtX), rzx(RZX);
+	updateL(re, ztx, rzx);
+    }
+
+    lmer::lmer(S4 xp) :
+	re(S4(SEXP(xp.slot("re")))),
+	resp(S4(SEXP(xp.slot("resp")))),
+	REML(SEXP(xp.slot("REML"))) {
+	reml = (bool)*REML.begin();
+    }
+    
+    lmerDe::lmerDe(S4 xp) :
+	lmer(xp),
+	fe(S4(SEXP(xp.slot("fe")))) {
+    }
+
+    double lmer::deviance() {
+	return re.ldL2 + log(M_2PI * (re.sqLenU() + resp.wrss)) +
+	    1./((double)resp.y.size());
+    }
+
+    double lmerDe::updateTheta(const NumericVector &nt) {
+	re.updateTheta(nt);
+	fe.updateL(re);
+	resp.updateL(re);
+	return 0.;
     }
 }
 
