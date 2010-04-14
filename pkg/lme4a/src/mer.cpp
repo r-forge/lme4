@@ -33,7 +33,8 @@ namespace mer{
 	    ::Rf_error("weights slot must have length 0 or n");
     }
 
-    static void updateL1(reModule &re, chmDn &src, chmDn &dest) {
+    // update dense src and dest objects with Lambda and L
+    static void DupdateL1(reModule &re, chmDn &src, chmDn &dest) {
 	double one[] = {1, 0}, zero[] = {0, 0};
 	Rprintf("update1: L of size %d\n", (re.L.fa)->n);
 	Rprintf("Lambda(%d,%d), src(%d,%d), dest(%d,%d)\n",
@@ -54,8 +55,7 @@ namespace mer{
     }
 
     void merResp::updateL(reModule &re) {
-	chmDn uu(Utr), cuu(cu);
-	updateL1(re, uu, cuu);
+	DupdateL1(re, chmDn(uu), chmDn(cuu));
     }
 
     reModule::reModule(S4 xp) :
@@ -111,8 +111,7 @@ namespace mer{
     }
     
     void lmerDeFeMod::updateL(reModule &re) {
-	chmDn ztx(ZtX), rzx(RZX);
-	updateL1(re, ztx, rzx);
+	DupdateL(chmDn(ZtX), chmDn(RZX));
     }
 
     lmer::lmer(S4 xp) :
