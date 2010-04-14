@@ -3,7 +3,7 @@
 #define LME4_MER_H
 
 #include <Rcpp.h>
-#include "Matrix_ns.h"
+#include "MatrixNs.h"
 
 namespace mer {
     class reModule {
@@ -12,8 +12,8 @@ namespace mer {
 	void updateTheta(const Rcpp::NumericVector&);
 	double sqLenU();	// squared length of u
 
-	Matrix::dCHMfactor L;
-	Matrix::dgCMatrix Lambda, Ut, Zt;
+	MatrixNs::dCHMfactor L;
+	MatrixNs::dgCMatrix Lambda, Ut, Zt;
 	Rcpp::IntegerVector Lind;
 	Rcpp::NumericVector lower, theta, u, ldL2;
     };
@@ -38,17 +38,17 @@ namespace mer {
     public:
 	deFeMod(Rcpp::S4);
 	
-	Matrix::dgeMatrix X, RZX;
-	Matrix::Cholesky RX;
+	MatrixNs::dgeMatrix X, RZX;
+	MatrixNs::Cholesky RX;
     };
 
     class lmerDeFeMod : public deFeMod {
     public:
 	lmerDeFeMod(Rcpp::S4);
-	void updateL(const reModule&);
+	void updateL(reModule&);
 	
-	Matrix::dgeMatrix ZtX;
-	Matrix::dpoMatrix XtX;
+	MatrixNs::dgeMatrix ZtX;
+	MatrixNs::dpoMatrix XtX;
 	Rcpp::NumericVector ldR2;
     };
 

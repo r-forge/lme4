@@ -1,7 +1,7 @@
 #include "mer.h"
 
 using namespace Rcpp;
-using namespace Matrix;
+using namespace MatrixNs;
 
 extern cholmod_common c;
 
@@ -33,21 +33,29 @@ namespace mer{
 	    ::Rf_error("weights slot must have length 0 or n");
     }
 
-    static void updateL(reModule &re, chmDn &src, chmDn &dest) {
+    static void updateL1(reModule &re, chmDn &src, chmDn &dest) {
 	double one[] = {1, 0}, zero[] = {0, 0};
-	int sz = (src.dn)->nrow * (src.dn)->ncol;
+	Rprintf("update1: L of size %d\n", (re.L.fa)->n);
+	Rprintf("Lambda(%d,%d), src(%d,%d), dest(%d,%d)\n",
+		(re.Lambda.sp)->nrow, (re.Lambda.sp)->ncol,
+		src.nr(), src.nc(), dest.nr(), dest.nc());
+	int sz = src.nr() * src.nc();
 
-	M_cholmod_sdmult(re.Lambda.sp, 1/*trans*/, one, zero, src.dn, dest.dn, &c);
-	CHM_DN t1 = M_cholmod_solve(CHOLMOD_P, re.L.fa, desy.dn, &c);
-	CHM_DN t2 = M_cholmod_solve(CHOLMOD_L, re.L.fa, t1, &c);
-	M_cholmod_free_dense(&t1, &c);
-	std::copy((double*)t2->x, (double*)((t2->x) + .size()), cu.begin());
-	M_cholmod_free_dense(&t2, &c);
+	::M_cholmod_sdmult(re.Lambda.sp, 1/*trans*/, one, zero, &src, &dest, &c);
+	Rprintf("Before solve P\n");
+	CHM_DN t1 = ::M_cholmod_solve(CHOLMOD_P, re.L.fa, &dest, &c);
+	Rprintf("Before solve L\n");
+	CHM_DN t2 = ::M_cholmod_solve(CHOLMOD_L, re.L.fa, t1, &c);
+	::M_cholmod_free_dense(&t1, &c);
+	Rprintf("Before copy, sz = %d\n", sz);
+	double *t2b = (double*)t2->x, *db = (double*)(dest.x);
+	std::copy(t2b, t2b + sz, db);
+	::M_cholmod_free_dense(&t2, &c);
     }
 
     void merResp::updateL(reModule &re) {
 	chmDn uu(Utr), cuu(cu);
-	updateL(re, uu, cuu);
+	updateL1(re, uu, cuu);
     }
 
     reModule::reModule(S4 xp) :
@@ -67,9 +75,9 @@ namespace mer{
 	    ::Rf_error("length(theta) = %d != length(newtheta) = %d",
 		       theta.size(), nt.size());
 	std::copy(nt.begin(), nt.end(), theta.begin());
-	double *LamxP = (Lambda.x).begin();
-	for (int *Li = Lind.begin(); Li < Lind.end(); Li++)
-	    *LamxP++ = nt[(*Li) - 1];
+	double *Lamx = (Lambda.x).begin(), *nnt = nt.begin();
+	int *Li = Lind.begin();
+	for (int i = 0; i < Lind.size(); i++) Lamx[i] = nnt[Li[i] - 1];
 
 	CHM_SP LamTr = ::M_cholmod_transpose(Lambda.sp, 1/*values*/, &c);
 	CHM_SP LamTrZt = ::M_cholmod_ssmult(LamTr, Zt.sp, 0/*stype*/,
@@ -104,7 +112,7 @@ namespace mer{
     
     void lmerDeFeMod::updateL(reModule &re) {
 	chmDn ztx(ZtX), rzx(RZX);
-	updateL(re, ztx, rzx);
+	updateL1(re, ztx, rzx);
     }
 
     lmer::lmer(S4 xp) :
@@ -120,31 +128,27 @@ namespace mer{
     }
 
     double lmer::deviance() {
-	return re.ldL2 + log(M_2PI * (re.sqLenU() + resp.wrss)) +
-	    1./((double)resp.y.size());
+	double prss = re.sqLenU() + *(resp.wrss.begin());
+	return *(re.ldL2.begin()) + log(M_2PI * prss) + 1./((double)resp.y.size());
     }
 
     double lmerDe::updateTheta(const NumericVector &nt) {
+	Rprintf("begin re.updateTheta\n");
 	re.updateTheta(nt);
-	fe.updateL(re);
+	Rprintf("begin resp.updateL\n");
 	resp.updateL(re);
+	Rprintf("begin fe.updateL\n");
+	fe.updateL(re);
 	return 0.;
     }
 }
 
 extern "C"
-SEXP check_resp(SEXP xp) {
+SEXP update_lmer2(SEXP xp, SEXP ntheta) {
     S4 x4(xp);
-    mer::merResp rr(x4);
-    return Rf_ScalarLogical(1);
-}
-
-extern "C"
-SEXP update_reModule(SEXP xp, SEXP ntheta) {
-    S4 x4(xp);
-    mer::reModule rr(x4);
     NumericVector nt(ntheta);
-    rr.updateTheta(nt);
-    return R_NilValue;
+    mer::lmerDe lm(x4);
+
+    return Rf_ScalarReal(lm.updateTheta(nt));
 }
 
