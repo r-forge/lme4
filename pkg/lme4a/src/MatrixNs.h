@@ -13,6 +13,8 @@ namespace MatrixNs {
     class Matrix {
     public:
 	Matrix(Rcpp::S4);
+	int nrow(){return *(Dim.begin());}
+	int ncol(){return Dim[1];}
 	
 	Rcpp::IntegerVector Dim;
 	Rcpp::List Dimnames;
@@ -110,16 +112,19 @@ namespace MatrixNs {
 	CHM_SP sp;
     };
 
-    class chmDn {		// wrapper for cholmod_dense structure
+    class chmDn : public cholmod_dense { // wrapper for cholmod_dense structure
     public:
 	chmDn(double*, int, int);
-	chmDn(std::vector<double> x){chmDn(&x[0], x.size(), 1);}
-	chmDn(Rcpp::NumericVector x){chmDn(x.begin(), x.size(), 1);}
-	chmDn(Rcpp::NumericMatrix x){chmDn(x.begin(), x.nrow(), x.ncol());}
-	chmDn(ddenseMatrix mm){chmDn(mm.x.begin(), mm.Dim[0], mm.Dim[1]);}
-	~chmDn(){delete dn;}
+	chmDn(std::vector<double>);
+	chmDn(Rcpp::NumericVector);
+	chmDn(Rcpp::NumericMatrix);
+	chmDn(ddenseMatrix);
 
-	CHM_DN dn;
+	int nr() const { return nrow; }
+	int nc() const { return ncol; }
+
+    private:
+	void init(double*, int, int);
     };
 }
 
