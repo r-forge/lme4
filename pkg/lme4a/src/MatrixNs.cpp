@@ -1,10 +1,10 @@
-#include "Matrix_ns.h"
+#include "MatrixNs.h"
 
 using namespace Rcpp;
 
 extern cholmod_common c;
 
-namespace Matrix{
+namespace MatrixNs{
     
     Matrix::Matrix(S4 xp) :
 	Dim(SEXP(xp.slot("Dim"))),
@@ -73,6 +73,10 @@ namespace Matrix{
 	fa->is_ll = (type[1] ? 1 : 0);
 	fa->is_super = 0;
 	fa->is_monotonic = (type[3] ? 1 : 0);
+	fa->xtype = CHOLMOD_REAL;
+	fa->itype = CHOLMOD_LONG;
+	fa->dtype = 0;  // CHOLMOD_DOUBLE
+	fa->z = (void*)NULL;
 	if (cl == "dCHMsimpl") { //FIXME: check is(xp, "dCHMsimpl") instead
 	    IntegerVector
 		colcount(SEXP(xp.slot("colcount"))),
@@ -177,15 +181,35 @@ namespace Matrix{
 	std::copy(nnX, nnX + nnz, (double*)sp->x);
     }
 
-    chmDn::chmDn(double *x, int nr, int nc) {
-	dn = new cholmod_dense;
-	dn->nrow = (size_t) nr;
-	dn->ncol = (size_t) nc;
-	dn->nzmax = (size_t) nr * nc;
-	dn->d = (size_t) nr;
-	dn->x = (void*) x;
-	dn->z = (void*) NULL;
-	dn->xtype = CHOLMOD_REAL;
-	dn->dtype = 0;  // CHOLMOD_DOUBLE
+    void chmDn::init(double *X, int r, int c) {
+	z = (void*)NULL;
+	xtype = CHOLMOD_REAL;
+	dtype = 0;		// CHOLMOD_DOUBLE
+	nrow = (size_t) r;
+	ncol = (size_t) c;
+	nzmax = (size_t) r * c;
+	d = (size_t) r;
+	x = (void*) X;
     }
+
+    chmDn::chmDn(double *xx, int nr, int nc) : cholmod_dense() {
+	this->init(xx, nr, nc);
+    }
+    
+    chmDn::chmDn(std::vector<double> v) : cholmod_dense() {
+	this->init(&v[0], v.size(), 1);
+    }
+
+    chmDn::chmDn(NumericVector v) : cholmod_dense() {
+	this->init(v.begin(), v.size(), 1);
+    }
+
+    chmDn::chmDn(NumericMatrix m) : cholmod_dense() {
+	this->init(m.begin(), m.nrow(), m.ncol());
+    }
+    
+    chmDn::chmDn(ddenseMatrix m) : cholmod_dense() {
+	this->init(m.x.begin(), m.nrow(), m.ncol());
+    }
+
 }
