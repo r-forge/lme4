@@ -25,6 +25,7 @@ namespace mer {
 	
 	Rcpp::NumericVector Utr, Vtr, cbeta,
 	    cu, mu, offset, resid, weights, wrss, y; 
+	MatrixNs::chmDn cUtr, ccu;
     };
 
     class feModule {
@@ -40,6 +41,7 @@ namespace mer {
 	
 	MatrixNs::dgeMatrix X, RZX;
 	MatrixNs::Cholesky RX;
+	MatrixNs::chmDn cRZX;
     };
 
     class lmerDeFeMod : public deFeMod {
@@ -50,6 +52,7 @@ namespace mer {
 	MatrixNs::dgeMatrix ZtX;
 	MatrixNs::dpoMatrix XtX;
 	Rcpp::NumericVector ldR2;
+	MatrixNs::chmDn cZtX;
     };
 
     class lmer {

@@ -19,7 +19,9 @@ namespace mer{
 	resid(SEXP(xp.slot("resid"))),
 	weights(SEXP(xp.slot("weights"))),
 	wrss(SEXP(xp.slot("wrss"))),
-	y(SEXP(xp.slot("y")))
+	y(SEXP(xp.slot("y"))),
+	ccu(cu),
+	cUtr(Utr)
     {
 	int n = y.size(), ws = weights.size();
 	
@@ -34,7 +36,7 @@ namespace mer{
     }
 
     // update dense src and dest objects with Lambda and L
-    static void DupdateL1(reModule &re, chmDn &src, chmDn &dest) {
+    static void DupdateL(reModule &re, chmDn &src, chmDn &dest) {
 	double one[] = {1, 0}, zero[] = {0, 0};
 	Rprintf("update1: L of size %d\n", (re.L.fa)->n);
 	Rprintf("Lambda(%d,%d), src(%d,%d), dest(%d,%d)\n",
@@ -55,7 +57,7 @@ namespace mer{
     }
 
     void merResp::updateL(reModule &re) {
-	DupdateL1(re, chmDn(uu), chmDn(cuu));
+	DupdateL(re, cUtr, ccu);
     }
 
     reModule::reModule(S4 xp) :
@@ -100,18 +102,20 @@ namespace mer{
 	feModule(xp),
 	X(S4(SEXP(xp.slot("X")))),
 	RZX(S4(SEXP(xp.slot("RZX")))),
-	RX(S4(SEXP(xp.slot("RX")))) {
+	RX(S4(SEXP(xp.slot("RX")))),
+	cRZX(RZX) {
     }
 
     lmerDeFeMod::lmerDeFeMod(S4 xp) :
 	deFeMod(xp),
 	ZtX(S4(SEXP(xp.slot("ZtX")))),
 	XtX(S4(SEXP(xp.slot("XtX")))),
-	ldR2(SEXP(xp.slot("ldR2"))) {
+	ldR2(SEXP(xp.slot("ldR2"))),
+	cZtX(ZtX) {
     }
     
     void lmerDeFeMod::updateL(reModule &re) {
-	DupdateL(chmDn(ZtX), chmDn(RZX));
+	DupdateL(re, cZtX, cRZX);
     }
 
     lmer::lmer(S4 xp) :
