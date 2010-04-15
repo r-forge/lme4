@@ -6,6 +6,7 @@ extern cholmod_common c;
 
 namespace MatrixNs{
 
+// A function like this should be part of the Rcpp::S4 class
     static bool isClass(S4 x, std::string clname) {
 	CharacterVector cl = x.attr("class");
 	SEXP pkg = cl.attr("package");
@@ -25,6 +26,7 @@ namespace MatrixNs{
 	Dimnames(SEXP(xp.slot("Dimnames"))) {
     }
 
+// These should be templated
     dMatrix::dMatrix(S4 xp) :
 	Matrix(xp),
 	x(SEXP(xp.slot("x"))) {
@@ -171,12 +173,47 @@ namespace MatrixNs{
 
     chmSp::chmSp(S4 xp) : cholmod_sparse() {
 	// Determine if the object inherits from CsparseMatrix
-	stype = 0;
-	itype = CHOLMOD_LONG;
-	xtype = CHOLMOD_REAL;
+	CharacterVector cl(SEXP(xp.attr("class")));
+	char *clnm = cl[0];
+	if (!isClass(xp, "CsparseMatrix"))
+	    Rf_error("Class %s object passed to %s is not a %s",
+		     clnm, "chmSp::chmSp", "CsparseMatrix");
+	IntegerVector
+	    Dim(SEXP(xp.slot("Dim"))),
+	    pp(SEXP(xp.slot("p"))),
+	    ii(SEXP(xp.slot("i")));
+	nrow = Dim[0];
+	ncol = Dim[1];
+	p = (void*)pp.begin();
+	i = (void*)ii.begin();
 	dtype = 0;  // CHOLMOD_DOUBLE
+	stype = 0;
+	if (!isClass(xp, "generalMatrix")) {
+	    if (isClass(xp, "symmetricMatrix")) {
+		CharacterVector uplo(SEXP(xp.slot("uplo")));
+		char *UL = uplo[0];
+		stype = 1;
+		if (*UL == 'L' || *UL == 'l') stype = -1;
+	    }
+	}
+	int nzmax = ((int*)p)[ncol];
+	if (ii.size() != nzmax)
+	    Rf_error("size of i must match p[Dim[2] + 1]");
+	itype = CHOLMOD_LONG;
 	packed = (int)true;
 	sorted = (int)true;
+	xtype = -1;
+	if (isClass(xp, "dsparseMatrix")) {
+	    NumericVector xx(SEXP(xp.slot("x")));
+	    x = xx.begin();
+	    xtype = CHOLMOD_REAL;
+	}
+	if (isClass(xp, "nsparseMatrix")) xtype = CHOLMOD_PATTERN;
+	if (isClass(xp, "zsparseMatrix")) {
+	    xtype = CHOLMOD_COMPLEX;
+	    Rf_error("Not yet defined zsparseMatrix?");
+	}
+	if (xtype == -1) Rf_error("Unknown (logical?) sparse Matrix type");
     }
 
     static inline
@@ -186,12 +223,32 @@ namespace MatrixNs{
 		     methNm.c_str(), compNm.c_str(), a, b);
     }
 
+    void chmSp::update(CHM_SP nn) {
+	chk_mismatch(nrow, nn->nrow, "nrow", "dgCMatrix::update");
+	chk_mismatch(ncol, nn->ncol, "ncol", "dgCMatrix::update");
+	chk_mismatch(stype, nn->stype, "stype", "dgCMatrix::update");
+	chk_mismatch(itype, nn->itype, "itype", "dgCMatrix::update");
+	chk_mismatch(xtype, nn->xtype, "xtype", "dgCMatrix::update");
+	chk_mismatch(dtype, nn->dtype, "dtype", "dgCMatrix::update");
+	chk_mismatch(packed, nn->packed, "packed", "dgCMatrix::update");
+	chk_mismatch(sorted, nn->sorted, "sorted", "dgCMatrix::update");
+	int nnz = ::M_cholmod_nnz(this, &c);
+	chk_mismatch(nnz, ::M_cholmod_nnz(nn, &c), "nnz", "dgCMatrix::update");
+	int *ii = (int*)i, *pp = (int*)p;
+	if (!std::equal(pp, pp + ncol + 1, (int*)nn->p))
+	    Rf_error("%s: inconsistency in %s", "dgCMatrix::update", "p");
+	if (!std::equal(ii, ii + nnz, (int*)nn->i))
+	    Rf_error("%s: inconsistency in %s", "dgCMatrix::update", "i");
+	double *nnX = (double*)nn->x;
+	std::copy(nnX, nnX + nnz, (double*)x);
+    }
+
     void dgCMatrix::update(CHM_SP nn) {
 	chk_mismatch(sp->nrow, nn->nrow, "nrow", "dgCMatrix::update");
 	chk_mismatch(sp->ncol, nn->ncol, "ncol", "dgCMatrix::update");
 	chk_mismatch(sp->stype, nn->stype, "stype", "dgCMatrix::update");
 	chk_mismatch(sp->itype, nn->itype, "itype", "dgCMatrix::update");
-	chk_mismatch(sp->xtype, nn->xtype, "itype", "dgCMatrix::update");
+	chk_mismatch(sp->xtype, nn->xtype, "xtype", "dgCMatrix::update");
 	chk_mismatch(sp->dtype, nn->dtype, "dtype", "dgCMatrix::update");
 	chk_mismatch(sp->packed, nn->packed, "packed", "dgCMatrix::update");
 	chk_mismatch(sp->sorted, nn->sorted, "sorted", "dgCMatrix::update");
@@ -237,5 +294,4 @@ namespace MatrixNs{
     chmDn::chmDn(ddenseMatrix m) : cholmod_dense() {
 	this->init(m.x.begin(), m.nrow(), m.ncol());
     }
-
 }

@@ -13,7 +13,7 @@ namespace mer {
 	double sqLenU();	// squared length of u
 
 	MatrixNs::dCHMfactor L;
-	MatrixNs::dgCMatrix Lambda, Ut, Zt;
+	MatrixNs::chmSp Lambda, Ut, Zt;
 	Rcpp::IntegerVector Lind;
 	Rcpp::NumericVector lower, theta, u, ldL2;
     };

@@ -40,17 +40,14 @@ namespace mer{
 	double one[] = {1, 0}, zero[] = {0, 0};
 	Rprintf("update1: L of size %d\n", (re.L.fa)->n);
 	Rprintf("Lambda(%d,%d), src(%d,%d), dest(%d,%d)\n",
-		(re.Lambda.sp)->nrow, (re.Lambda.sp)->ncol,
+		re.Lambda.nrow, re.Lambda.ncol,
 		src.nr(), src.nc(), dest.nr(), dest.nc());
 	int sz = src.nr() * src.nc();
 
-	::M_cholmod_sdmult(re.Lambda.sp, 1/*trans*/, one, zero, &src, &dest, &c);
-	Rprintf("Before solve P\n");
+	::M_cholmod_sdmult(&(re.Lambda), 1/*trans*/, one, zero, &src, &dest, &c);
 	CHM_DN t1 = ::M_cholmod_solve(CHOLMOD_P, re.L.fa, &dest, &c);
-	Rprintf("Before solve L\n");
 	CHM_DN t2 = ::M_cholmod_solve(CHOLMOD_L, re.L.fa, t1, &c);
 	::M_cholmod_free_dense(&t1, &c);
-	Rprintf("Before copy, sz = %d\n", sz);
 	double *t2b = (double*)t2->x, *db = (double*)(dest.x);
 	std::copy(t2b, t2b + sz, db);
 	::M_cholmod_free_dense(&t2, &c);
@@ -77,17 +74,17 @@ namespace mer{
 	    ::Rf_error("length(theta) = %d != length(newtheta) = %d",
 		       theta.size(), nt.size());
 	std::copy(nt.begin(), nt.end(), theta.begin());
-	double *Lamx = (Lambda.x).begin(), *nnt = nt.begin();
+	double *Lamx = (double*)Lambda.x, *nnt = nt.begin();
 	int *Li = Lind.begin();
 	for (int i = 0; i < Lind.size(); i++) Lamx[i] = nnt[Li[i] - 1];
 
-	CHM_SP LamTr = ::M_cholmod_transpose(Lambda.sp, 1/*values*/, &c);
-	CHM_SP LamTrZt = ::M_cholmod_ssmult(LamTr, Zt.sp, 0/*stype*/,
+	CHM_SP LamTr = ::M_cholmod_transpose(&Lambda, 1/*values*/, &c);
+	CHM_SP LamTrZt = ::M_cholmod_ssmult(LamTr, &Zt, 0/*stype*/,
 					    1/*values*/, 1/*sorted*/, &c);
 	::M_cholmod_free_sparse(&LamTr, &c);
 	Ut.update(LamTrZt);
 	::M_cholmod_free_sparse(&LamTrZt, &c);
-	L.update(Ut.sp, 1.);
+	L.update(&Ut, 1.);
 	*(ldL2.begin()) = ::M_chm_factor_ldetL2(L.fa);
     }
 
