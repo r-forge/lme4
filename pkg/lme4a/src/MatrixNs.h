@@ -115,9 +115,7 @@ namespace MatrixNs {
     class chmSp : public cholmod_sparse { // wrapper for cholmod_sparse structure
     public:
 	chmSp(Rcpp::S4);
-
-    private:
-//	void init(double*, int, int);
+	void update(CHM_SP);
     };
 
     class chmDn : public cholmod_dense { // wrapper for cholmod_dense structure
