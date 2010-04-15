@@ -147,7 +147,7 @@ public:
     void devResid() {
 	Rcpp::NumericVector devs = fam.devResid(RcMu, RcWeights, RcY);
 	devres = std::accumulate(devs.begin(), devs.end(), double());}
-    void varFunc() {fam.variance(RcVar, RcGam);}
+    void varFunc() {fam.variance(RcVar, RcMu);}
 };
 
 class merenvtrms : public merenv {

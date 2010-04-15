@@ -46,7 +46,7 @@ m2 <- glmer(incidence / size ~ period + (1 | herd), weights = size,
            cbpp, binomial, verbose = TRUE)
 
 ## Confirm that these are equivalent:
-stopifnot(all.equal(coef(m1), coef(m2)),
-          all.equal(ranef(m1), ranef(m2)))
+stopifnot(all.equal(fixef(m1), fixef(m2), tol = 1e-7),
+          all.equal(ranef(m1), ranef(m2), tol = 1e-7))
 }
 \keyword{datasets}

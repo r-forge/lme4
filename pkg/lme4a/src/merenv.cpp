@@ -51,7 +51,7 @@ merenv::merenv(SEXP rho)
     N = (int)Zt->ncol;
     Ut = VAR_CHM_SP(rho, lme4_UtSym, q, N);
     L = VAR_CHM_FR(rho, lme4_LSym, q);
-				// versions of Lambda
+    // versions of Lambda
 ///FIXME: Use S4 class to determine diagonalLambda
     diagonalLambda = asLogical(findVarBound(rho, install("diagonalLambda")));
     if (diagonalLambda) {
@@ -139,14 +139,14 @@ double merenv::update_pwrss() {
 }
 
 void merenv::update_Lambda_Ut(SEXP thnew) {
-				// check and copy thnew
+    // check and copy thnew
     if (!isReal(thnew) || LENGTH(thnew) < nth)
 	error(_("theta must be numeric and of length at least %d"), nth);
     dble_cpy(theta, REAL(thnew), nth);
-				// update Lambda
+    // update Lambda
     double *Lambdax = (double*)Lambda->x;
     for (int i = 0; i < nLind; i++) Lambdax[i] = theta[Lind[i] - 1];
-				// update Ut from Lambda and Zt
+    // update Ut from Lambda and Zt
     CHM_r *tmp = new CHM_rs(spcrossprod_Lambda(Zt));
     CHM_rs *Utp = new CHM_rs(Ut);
     Utp->copy_contents(tmp);
@@ -232,7 +232,7 @@ merenvtrms::merenvtrms(SEXP rho) : merenv(rho) {
 		  i + 1, LENGTH(ff), n);
 	nl[i] = LENGTH(getAttrib(ff, R_LevelsSymbol));
     }
-				// check range in assign, store nc and apt
+    // check range in assign, store nc and apt
     for (int i = 0; i < ntrm; i++) {
 	int ii = assign[i];
 	if (ii < 1 || nfac < ii)
@@ -553,11 +553,12 @@ double glmer::IRLS() {
     CHM_r *V, *VtV;
     CHM_DN cwtres = N_AS_CHM_DN(wtres, n, 1), deltaf,
 	Vtwr = M_cholmod_allocate_dense((size_t)p, (size_t)1, (size_t)p,
-				       CHOLMOD_REAL, &c);
+					CHOLMOD_REAL, &c);
     double *betaold = new double[p], *varold = new double[n],
 	crit, step, wrss0, wrss1;
 
     update_sqrtrwt();		// var and sqrtrwt
+
     crit = 10. * CM_TOL;
     for (int i = 0; crit >= CM_TOL && i < CM_MAXITER; i++) {
 	dble_cpy(varold, var, n);

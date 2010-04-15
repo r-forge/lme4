@@ -86,12 +86,12 @@ glmFamily::muEta(NumericVector& mueta, const NumericVector& eta) {
 }
 
 void
-glmFamily::variance(NumericVector& vv, const NumericVector& eta) {
+glmFamily::variance(NumericVector& vv, const NumericVector& mu) {
     if (varFuncs.count(link)) {
-	std::transform(eta.begin(), eta.end(), vv.begin(), varFuncs[link]);
+	std::transform(mu.begin(), mu.end(), vv.begin(), varFuncs[link]);
     } else {
 	Function mm = lst["variance"];
-	NumericVector ans = mm(eta);
+	NumericVector ans = mm(mu);
 	std::copy(ans.begin(), ans.end(), vv.begin());
     }
 }

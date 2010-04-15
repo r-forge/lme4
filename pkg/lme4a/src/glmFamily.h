@@ -11,14 +11,10 @@ typedef std::map<std::string, double(*)(double)> fmap;
 class glmFamily {
 public:
     glmFamily(SEXP);
-    void linkFun(Rcpp::NumericVector& eta,
-		 const Rcpp::NumericVector& mu);
-    void linkInv(Rcpp::NumericVector& mu,
-		 const Rcpp::NumericVector& eta);
-    void muEta(Rcpp::NumericVector& mueta,
-	       const Rcpp::NumericVector& eta);
-    void variance(Rcpp::NumericVector& vv,
-		  const Rcpp::NumericVector& eta);
+    void linkFun(Rcpp::NumericVector& eta, const Rcpp::NumericVector& mu);
+    void linkInv(Rcpp::NumericVector& mu, const Rcpp::NumericVector& eta);
+    void muEta(Rcpp::NumericVector& mueta, const Rcpp::NumericVector& eta);
+    void variance(Rcpp::NumericVector& vv, const Rcpp::NumericVector& mu);
     Rcpp::NumericVector devResid(
 	const Rcpp::NumericVector& mu,
 	const Rcpp::NumericVector& weights,
@@ -45,7 +41,7 @@ private:
     static double onef(double x) {return 1;}
     static double sqrf(double x) {return x * x;}
     static double twoxf(double x) {return 2 * x;}
-    static double x1mxf(double x) {return std::min(epsilon, x * (1 - x));}
+    static double x1mxf(double x) {return std::max(epsilon, x * (1 - x));}
     
     static double finitePos(double x) { // truncate to (0, Infinity)
 	return std::max(epsilon, std::min(INVEPS, x));
