@@ -5,7 +5,21 @@ using namespace Rcpp;
 extern cholmod_common c;
 
 namespace MatrixNs{
-    
+
+    static bool isClass(S4 x, std::string clname) {
+	CharacterVector cl = x.attr("class");
+	SEXP pkg = cl.attr("package");
+	if (as<std::string>(cl) == clname) return true;
+	Function clDef("getClassDef");
+	S4 cld = clDef(cl);
+	List exts = cld.attr("contains");
+	Function ssc(".selectSuperClasses");
+	CharacterVector nms = ssc(exts, false, true, false);
+	for (int i = 0; i < nms.size(); i++)
+	    if (std::string(nms[i]) == clname) return true;
+	return false;
+    }
+
     Matrix::Matrix(S4 xp) :
 	Dim(SEXP(xp.slot("Dim"))),
 	Dimnames(SEXP(xp.slot("Dimnames"))) {
@@ -138,6 +152,8 @@ namespace MatrixNs{
 	int nnz = p[Dim[1]];
 	if (i.size() != nnz || x.size() != nnz)
 	    Rf_error("size of i and x must match p[Dim[2] + 1]");
+	Rprintf("isClass(xp, \"CsparseMatrix\") = %d\n",
+		isClass(xp, "CsparseMatrix"));
 	sp = new cholmod_sparse;
 	sp->nrow = (size_t)Dim[0];
 	sp->ncol = (size_t)Dim[1];
@@ -151,6 +167,16 @@ namespace MatrixNs{
 	sp->dtype = 0;  // CHOLMOD_DOUBLE
 	sp->packed = (int)true;
 	sp->sorted = (int)true;
+    }
+
+    chmSp::chmSp(S4 xp) : cholmod_sparse() {
+	// Determine if the object inherits from CsparseMatrix
+	stype = 0;
+	itype = CHOLMOD_LONG;
+	xtype = CHOLMOD_REAL;
+	dtype = 0;  // CHOLMOD_DOUBLE
+	packed = (int)true;
+	sorted = (int)true;
     }
 
     static inline
