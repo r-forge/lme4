@@ -118,20 +118,22 @@ public:
     CHM_r *ZtXp;
 };
 
-#include "GLfamily.hpp"
+#include "glmFamily.h"
 
 /// generalized linear mixed models
 
 class glmer : public merenv {
 public:
     glmer(SEXP rho);		/**< initialize from an environment */
-    SEXP family;
+    Rcpp::Environment Rho;
+    Rcpp::NumericVector RcGam, RcWeights, RcMu, RcY, RcVar, RcMuEta;
     double 
 	*muEta,			/**< diagonal of d mu/d eta */
 	*var,			/**< conditional variances of response */
 	*wtres,			/**< weighted residuals */
 	devres;
-    GLfamily fam;               /**< GLM family of functions */
+//    GLfamily fam;               /**< GLM family of functions */
+    glmFamily fam;
     double PIRLS();		/**< deviance at updated u */
     double PIRLSbeta();		/**< deviance at updated u and beta */
     double IRLS();		/**< deviance at updated beta */
@@ -140,11 +142,12 @@ public:
     void update_sqrtXwt();
     void update_RX();
     double update_wtres();
-    void link() {fam.lnk->link(gam, mu, n);}
-    void linkinv() {fam.lnk->linkinv(mu, muEta, gam, n);}
-    void devResid() {devres = 0;
-	fam.var->devResid(&devres, mu, weights, y, (int*)0, n);}
-    void varFunc() {fam.var->varFunc(var, mu, n);}
+    void link() {fam.linkFun(RcGam, RcMu);}
+    void linkinv() {fam.linkInv(RcMu, RcGam); fam.muEta(RcMuEta, RcGam);}
+    void devResid() {
+	Rcpp::NumericVector devs = fam.devResid(RcMu, RcWeights, RcY);
+	devres = std::accumulate(devs.begin(), devs.end(), double());}
+    void varFunc() {fam.variance(RcVar, RcGam);}
 };
 
 class merenvtrms : public merenv {
