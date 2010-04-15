@@ -19,8 +19,6 @@ public:
 	const Rcpp::NumericVector& mu,
 	const Rcpp::NumericVector& weights,
 	const Rcpp::NumericVector& y);
-
-    SEXP show();
     
     std::string family, link;
 private:
