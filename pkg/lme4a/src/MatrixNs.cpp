@@ -1,18 +1,16 @@
 #include "MatrixNs.h"
-#include <cctype>		// for toupper
 #include <R_ext/Lapack.h>
 
 using namespace Rcpp;
-
-extern cholmod_common c;
 
 namespace MatrixNs{
 
 // A function like this should be part of the Rcpp::S4 class
     static bool isClass(S4 x, std::string clname) {
 	CharacterVector cl = x.attr("class");
-	SEXP pkg = cl.attr("package");
 	if (as<std::string>(cl) == clname) return true;
+
+	SEXP pkg = cl.attr("package");
 	Function clDef("getClassDef");
 	S4 cld = clDef(cl);
 	List exts = cld.attr("contains");
@@ -23,52 +21,18 @@ namespace MatrixNs{
 	return false;
     }
 
-    Matrix::Matrix(S4 &xp) :
-	Dim(SEXP(xp.slot("Dim"))),
-	Dimnames(SEXP(xp.slot("Dimnames"))) {
-    }
-
-// These should be templated
-    dMatrix::dMatrix(S4 &xp) :
-	Matrix(xp),
-	x(SEXP(xp.slot("x"))) {
-    }
-
 // Check this: Do the dspMatrix and dtpMatrix classes pass this check?
     ddenseMatrix::ddenseMatrix(S4 &xp) : dMatrix(xp) {
 	if (!x.size() == Dim[0] * Dim[1])
 	    ::Rf_error("%s: Dim = (%d, %d) is inconsistent with x.size() = %d",
 		       "ddenseMatrix::ddenseMatrix", Dim[0], Dim[1], x.size());
     }
-    
-    compMatrix::compMatrix(S4 &xp) : factors(SEXP(xp.slot("factors"))) {
-    }
 
-    generalMatrix::generalMatrix(S4 &xp) : compMatrix(xp) {
-    }
-
-    triangularMatrix::triangularMatrix(S4 &xp) :
-	uplo(SEXP(xp.slot("uplo"))),
-	diag(SEXP(xp.slot("diag"))) {
-    }
-
-    symmetricMatrix::symmetricMatrix(S4 &xp) :
-	compMatrix(xp),
-	uplo(SEXP(xp.slot("uplo"))) {
-    }
-
-    static inline char trCan(char tt) { // canonical trans character
-	char ans = toupper(tt);
-	if (ans != 'C' || ans != 'N' || ans != 'T')
-	    Rf_error("invalid trans specification %c", ans);
-	return ans;
-    }
-
-    void dgeMatrix::dgemv(const char* trans,
+    void dgeMatrix::dgemv(Trans Tr,
 			  double alpha, const NumericVector &X,
 			  double beta, NumericVector &Y) {
 	int i1 = 1;
-	char tr = trCan(*trans);
+	char tr = Tr.TR;
 	bool NTR = tr == 'N';
 	if (X.size() != Dim[NTR ? 1 : 0] || Y.size() != Dim[NTR ? 0 : 1])
 	    Rf_error("dgemv \"%c\", dim mismatch (%d, %d), X(%d), Y(%d)",
@@ -77,11 +41,11 @@ namespace MatrixNs{
 			X.begin(), &i1, &beta, Y.begin(), &i1);
     }
 
-    void dgeMatrix::dgemm(const char* transA, const char* transB,
+    void dgeMatrix::dgemm(Trans TrA, Trans TrB,
 			  double alpha, const dgeMatrix &B,
 			  double beta, dgeMatrix &C) {
 	int i1 = 1;
-	char trA = trCan(*transA), trB = trCan(*transB);
+	char trA = TrA.TR, trB = TrB.TR;
 	bool NTA = trA == 'N', NTB = trB == 'N';
 	Dimension Bd(B.Dim), Cd(C.Dim);
 	int M = Dim[NTA ? 0 : 1], N = Bd[NTB ? 1 : 0], K = Dim[NTA ? 1 : 0];
@@ -92,85 +56,59 @@ namespace MatrixNs{
 			B.x.begin(), &Bd[0], &beta, C.x.begin(), &Cd[0]);
     }
 
-				//! This class is just a wrapper for a CHM_FR struct
-    dCHMfactor::dCHMfactor(S4 xp) :
-	Dim(SEXP(xp.slot("Dim"))),
-	ColCount(SEXP(xp.slot("colcount"))),
-	perm(SEXP(xp.slot("perm"))),
-	type(SEXP(xp.slot("type"))),
-	x(SEXP(xp.slot("x")))
-    {
-	CharacterVector cls = xp.attr("class");
-	std::string cl(cls[0]);
-	fa = new cholmod_factor;
-	fa->minor = fa->n = (size_t)*(Dim.begin());
-	fa->Perm = (void*)perm.begin();
-	fa->ColCount = (void*)ColCount.begin();
-	fa->x = (void*)x.begin();
-	fa->ordering = type[0];
-	fa->is_ll = (type[1] ? 1 : 0);
-	fa->is_super = 0;
-	fa->is_monotonic = (type[3] ? 1 : 0);
-	fa->xtype = CHOLMOD_REAL;
-	fa->itype = CHOLMOD_LONG;
-	fa->dtype = 0;  // CHOLMOD_DOUBLE
-	fa->z = (void*)NULL;
-	if (cl == "dCHMsimpl") { //FIXME: check is(xp, "dCHMsimpl") instead
-	    IntegerVector
-		colcount(SEXP(xp.slot("colcount"))),
-		i(SEXP(xp.slot("i"))),
-		nxt(SEXP(xp.slot("nxt"))),
-		nz(SEXP(xp.slot("nz"))),
-		p(SEXP(xp.slot("p"))),
-		prv(SEXP(xp.slot("prv")));
-	    NumericVector x(SEXP(xp.slot("x")));
-	    
-	    if (fa->is_super)
-		::Rf_error("conflict between type[2] = %d and class %s",
-			 type[2], cl.c_str());
-	    fa->nzmax = (size_t) x.size();
-	    fa->p = (void*) p.begin();
-	    fa->i = (void*) i.begin();
-	    fa->x = (void*) x.begin();
-	    fa->nz = (void*) nz.begin();
-	    fa->next = (void*) nxt.begin();
-	    fa->prev = (void*) prv.begin();
-	    return;
-	}
-	if (cl == "dCHMsuper") { //FIXME: check is(xp, "dCHMsuper") instead
-	    IntegerVector
-		pi(SEXP(xp.slot("pi"))),
-		super(SEXP(xp.slot("super"))),
-		s(SEXP(xp.slot("s")));
-	    NumericVector px(SEXP(xp.slot("px")));
-
-	    if (!(fa->is_super))
-		::Rf_error("conflict between type[2] = %d and class %s",
-			 type[2], cl.c_str());
-	    fa->xsize = (size_t) x.size();
-	    fa->ssize = (size_t) s.size();
-	    fa->maxcsize = (size_t) type[4];
-	    fa->maxesize = (size_t) type[5];
-	    fa->nsuper = super.size() - 1;
-	    fa->super = (void*)super.begin();
-	    fa->pi = (void*)pi.begin();
-	    fa->s = (void*)s.begin();
-	    fa->px = (void*)px.begin();
-	    return;
-	}
-	::Rf_error("Class %s is not suitable for dCHMfactor", cl.c_str());
+    void Cholesky::update(const dpoMatrix &A) {
+	Dimension Ad(A.Dim);
+	if (Dim[0] != Ad[0])
+	    Rf_error("%s dimension mismatch, (%d,%d) vs A(%d,%d)",
+		     "Cholesky::update(dpoMatrix)", Dim[0], Dim[1],
+		     Ad[0], Ad[1]);
+	uplo = A.uplo;
+	std::copy(A.x.begin(), A.x.end(), x.begin());
+	int info;
+	F77_CALL(dpotrf)(&(uplo.UL), &Dim[0], x.begin(), &Dim[0], &info);
+	if (!info)
+	    Rf_error("Lapack routine %s returned error code %d",
+		     "dpotrf", info);
     }
 
-    void dCHMfactor::update(CHM_SP A, double Imult) {
-	::M_cholmod_factorize_p(A, &Imult, (int*)NULL, (size_t)0, fa, &c);
+    void Cholesky::update(Trans Tr, double alpha, const dgeMatrix &A,
+			  double beta, const dsyMatrix &C) {
+	const char tr = Tr.TR;
+	const bool NTR = tr == 'N';
+	Dimension Ad(A.Dim), Cd(C.Dim);
+	if (Dim[0] != Cd[0] || Ad[NTR ? 0 : 1] != Dim[0])
+	    Rf_error("%s(\"%c\") dimension mismatch, (%d,%d), A(%d,%d), C(%d,%d)",
+		     "Cholesky::update(dpoMatrix, dgeMatrix)", tr,
+		     Dim[0], Dim[1], Ad[0], Ad[1], Cd[0], Cd[1]);
+	uplo = C.uplo;
+	std::copy(C.x.begin(), C.x.end(), x.begin());
+	F77_CALL(dsyrk)(&(uplo.UL), &tr, &Dim[0], &Ad[NTR ? 1 : 0], &alpha,
+			A.x.begin(), &Ad[0], &beta, x.begin(), &Dim[0]);
+	int info;
+	F77_CALL(dpotrf)(&(uplo.UL), &Dim[0], x.begin(), &Dim[0], &info);
+	if (info)
+	    Rf_error("Lapack routine %s returned error code %d",
+		     "dpotrf", info);
     }
-    
+
+    void Cholesky::dpotrs(NumericVector &v) {
+	int info, i1 = 1, vs = v.size();
+	if (vs != Dim[0])
+	    Rf_error("%s (%d, %d) dimension mismatch (%d, %d)",
+		     "Cholesky::dpotrs", Dim[0], Dim[1], vs, 1);
+	F77_CALL(dpotrs)(&uplo.UL, &Dim[0], &i1, x.begin(), &Dim[0],
+			 v.begin(), &vs, &info);
+	if (info)
+	    Rf_error("Lapack routine %s returned error code %d",
+		     "dpotrs", info);
+    }
+
     chmFa::chmFa(S4 xp) : cholmod_factor() {
 	CharacterVector cl(SEXP(xp.attr("class")));
 	char *clnm = cl[0];
-	if (!isClass(xp, "dCHMfactor"))
+	if (!isClass(xp, "CHMfactor"))
 	    ::Rf_error("Class %s object passed to %s is not a %s",
-		       clnm, "chmFa::chmFa", "dCHMfactor");
+		       clnm, "chmFa::chmFa", "CHMfactor");
 	Dimension Dim(SEXP(xp.slot("Dim")));
 	IntegerVector colcount(SEXP(xp.slot("colcount"))),
 	    perm(SEXP(xp.slot("perm"))),
@@ -273,29 +211,29 @@ namespace MatrixNs{
     }
 
     static inline
-    void chk_mismatch(int a, int b, std::string compNm, std::string methNm) {
+    void chk_mismatch(int a, int b, const std::string compNm, const std::string methNm) {
 	if (a != b)
 	    Rf_error("%s: %s mismatch, %d != %d",
 		     methNm.c_str(), compNm.c_str(), a, b);
     }
 
-    void chmSp::update(CHM_SP nn) {
-	chk_mismatch(nrow, nn->nrow, "nrow", "chmSp::update");
-	chk_mismatch(ncol, nn->ncol, "ncol", "chmSp::update");
-	chk_mismatch(stype, nn->stype, "stype", "chmSp::update");
-	chk_mismatch(itype, nn->itype, "itype", "chmSp::update");
-	chk_mismatch(xtype, nn->xtype, "xtype", "chmSp::update");
-	chk_mismatch(dtype, nn->dtype, "dtype", "chmSp::update");
-	chk_mismatch(packed, nn->packed, "packed", "chmSp::update");
-	chk_mismatch(sorted, nn->sorted, "sorted", "chmSp::update");
-	int nnz = ::M_cholmod_nnz(this, &c);
-	chk_mismatch(nnz, ::M_cholmod_nnz(nn, &c), "nnz", "chmSp::update");
+    void chmSp::update(cholmod_sparse &nn) {
+	chk_mismatch(nrow, nn.nrow, "nrow", "chmSp::update");
+	chk_mismatch(ncol, nn.ncol, "ncol", "chmSp::update");
+	chk_mismatch(stype, nn.stype, "stype", "chmSp::update");
+	chk_mismatch(itype, nn.itype, "itype", "chmSp::update");
+	chk_mismatch(xtype, nn.xtype, "xtype", "chmSp::update");
+	chk_mismatch(dtype, nn.dtype, "dtype", "chmSp::update");
+	chk_mismatch(packed, nn.packed, "packed", "chmSp::update");
+	chk_mismatch(sorted, nn.sorted, "sorted", "chmSp::update");
+	int nnz = ::M_cholmod_nnz(this, &c), nnznn = ::M_cholmod_nnz(&nn, &c);
+	chk_mismatch(nnz, nnznn, "nnz", "chmSp::update");
 	int *ii = (int*)i, *pp = (int*)p;
-	if (!std::equal(pp, pp + ncol + 1, (int*)nn->p))
+	if (!std::equal(pp, pp + ncol + 1, (int*)nn.p))
 	    Rf_error("%s: inconsistency in %s", "chmSp::update", "p");
-	if (!std::equal(ii, ii + nnz, (int*)nn->i))
+	if (!std::equal(ii, ii + nnz, (int*)nn.i))
 	    Rf_error("%s: inconsistency in %s", "chmSp::update", "i");
-	double *nnX = (double*)nn->x;
+	double *nnX = (double*)nn.x;
 	std::copy(nnX, nnX + nnz, (double*)x);
     }
 
@@ -308,25 +246,5 @@ namespace MatrixNs{
 	nzmax = (size_t) r * c;
 	d = (size_t) r;
 	x = (void*) X;
-    }
-
-    chmDn::chmDn(double *xx, int nr, int nc) : cholmod_dense() {
-	this->init(xx, nr, nc);
-    }
-    
-    chmDn::chmDn(std::vector<double> v) : cholmod_dense() {
-	this->init(&v[0], v.size(), 1);
-    }
-
-    chmDn::chmDn(NumericVector v) : cholmod_dense() {
-	this->init(v.begin(), v.size(), 1);
-    }
-
-    chmDn::chmDn(NumericMatrix m) : cholmod_dense() {
-	this->init(m.begin(), m.nrow(), m.ncol());
-    }
-    
-    chmDn::chmDn(ddenseMatrix m) : cholmod_dense() {
-	this->init(m.x.begin(), m.nrow(), m.ncol());
     }
 }
