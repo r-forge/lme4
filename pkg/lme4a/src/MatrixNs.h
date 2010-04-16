@@ -95,25 +95,7 @@ namespace MatrixNs {
 	Cholesky(Rcpp::S4 xp) : dtrMatrix(xp) {}
     };
 
-    class dCHMfactor {		// wrapper for CHM_FR struct
-    public:
-	dCHMfactor(Rcpp::S4);
-	~dCHMfactor(){delete fa;}
-	void update(CHM_SP,double);
-	
-	CHM_FR fa;
-                               // slots common to dCHMsimpl and dCHMsuper
-	Rcpp::IntegerVector Dim, ColCount, perm, type; 
-	Rcpp::NumericVector x;
-    };
-
-    class chmSp : public cholmod_sparse { // wrapper for cholmod_sparse structure
-    public:
-	chmSp(Rcpp::S4);
-	void update(CHM_SP);
-    };
-
-    class chmDn : public cholmod_dense { // wrapper for cholmod_dense structure
+    class chmDn : public cholmod_dense {
     public:
 	chmDn(double*, int, int);
 	chmDn(std::vector<double>);
@@ -127,6 +109,34 @@ namespace MatrixNs {
     private:
 	void init(double*, int, int);
     };
+
+    class chmSp : public cholmod_sparse { 
+    public:
+	chmSp(Rcpp::S4);
+	void update(CHM_SP);
+    };
+
+    class chmFa : public cholmod_factor {
+    public:
+	chmFa(Rcpp::S4);
+	void update(chmSp, double);
+    };
+
+    class dCHMfactor {		// wrapper for CHM_FR struct
+    public:
+	dCHMfactor(Rcpp::S4);
+	~dCHMfactor(){delete fa;}
+	void update(CHM_SP,double);
+	
+	CHM_FR fa;
+                               // slots common to dCHMsimpl and dCHMsuper
+	Rcpp::IntegerVector Dim, ColCount, perm, type; 
+	Rcpp::NumericVector x;
+    };
+
 }
+
+
+
 
 #endif

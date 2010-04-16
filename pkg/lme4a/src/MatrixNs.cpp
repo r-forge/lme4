@@ -165,6 +165,69 @@ namespace MatrixNs{
 	::M_cholmod_factorize_p(A, &Imult, (int*)NULL, (size_t)0, fa, &c);
     }
     
+    chmFa::chmFa(S4 xp) : cholmod_factor() {
+	CharacterVector cl(SEXP(xp.attr("class")));
+	char *clnm = cl[0];
+	if (!isClass(xp, "dCHMfactor"))
+	    ::Rf_error("Class %s object passed to %s is not a %s",
+		       clnm, "chmFa::chmFa", "dCHMfactor");
+	Dimension Dim(SEXP(xp.slot("Dim")));
+	IntegerVector colcount(SEXP(xp.slot("colcount"))),
+	    perm(SEXP(xp.slot("perm"))),
+	    type(SEXP(xp.slot("type")));
+	NumericVector X(SEXP(xp.slot("x")));
+
+	minor = n = Dim[0];
+	Perm = perm.begin();
+	ColCount = colcount.begin();
+	x = (void*)X.begin();
+	ordering = type[0];
+	is_ll = (type[1] ? 1 : 0);
+	is_super = type[2];
+	is_monotonic = (type[3] ? 1 : 0);
+	xtype = CHOLMOD_REAL;
+	itype = CHOLMOD_LONG;
+	dtype = 0;  // CHOLMOD_DOUBLE
+	z = (void*)NULL;
+	const char* msg = "dCHMfactor with is_super == %s is not %s";
+	if (is_super) {
+	    IntegerVector
+		Pi(SEXP(xp.slot("pi"))),
+		SUPER(SEXP(xp.slot("super"))),
+		S(SEXP(xp.slot("s")));
+	    NumericVector PX(SEXP(xp.slot("px")));
+
+	    if (!isClass(xp, "dCHMsuper"))
+		::Rf_error(msg, "TRUE", "dCHMsuper");
+	    xsize = X.size();
+	    ssize = S.size();
+	    maxcsize = type[4];
+	    maxesize = type[5];
+	    nsuper = SUPER.size() - 1;
+	    super = (void*)SUPER.begin();
+	    pi = (void*)Pi.begin();
+	    s = (void*)S.begin();
+	    px = (void*)PX.begin();
+	} else {
+	    IntegerVector
+		I(SEXP(xp.slot("i"))),
+		NXT(SEXP(xp.slot("nxt"))),
+		NZ(SEXP(xp.slot("nz"))),
+		P(SEXP(xp.slot("p"))),
+		PRV(SEXP(xp.slot("prv")));
+
+	    if (!isClass(xp, "dCHMsimpl"))
+		::Rf_error(msg, "FALSE", "dCHMsimpl");
+	    nzmax = X.size();
+	    p = (void*)P.begin();
+	    i = (void*)I.begin();
+	    x = (void*)X.begin();
+	    nz = (void*)NZ.begin();
+	    next = (void*)NXT.begin();
+	    prev = (void*)PRV.begin();
+	}
+    }
+
     chmSp::chmSp(S4 xp) : cholmod_sparse() {
 	CharacterVector cl(SEXP(xp.attr("class")));
 	char *clnm = cl[0];
