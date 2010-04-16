@@ -12,24 +12,24 @@ namespace MatrixNs {
 
     class Matrix {
     public:
-	Matrix(Rcpp::S4);
-	int nrow(){return *(Dim.begin());}
+	Matrix(Rcpp::S4&);
+	int nrow(){return Dim[0];}
 	int ncol(){return Dim[1];}
 	
-	Rcpp::IntegerVector Dim;
+	Rcpp::Dimension Dim;
 	Rcpp::List Dimnames;
     };
 
     class dMatrix : public Matrix {
     public:
-	dMatrix(Rcpp::S4);
+	dMatrix(Rcpp::S4&);
 	
 	Rcpp::NumericVector x;
     };
 
     class ddenseMatrix : public dMatrix {
     public:
-	ddenseMatrix(Rcpp::S4);
+	ddenseMatrix(Rcpp::S4&);
     };
 
 // C++ classes mirroring virtual S4 structure classes do not inherit
@@ -39,53 +39,60 @@ namespace MatrixNs {
 
     class compMatrix {		// composite (factorizable) Matrix
     public:
-	compMatrix(Rcpp::S4);
+	compMatrix(Rcpp::S4&);
 	
 	Rcpp::List factors;
     };
 
     class generalMatrix : public compMatrix {
     public:
-	generalMatrix(Rcpp::S4);
+	generalMatrix(Rcpp::S4&);
     };
 
     class triangularMatrix {
     public:
-	triangularMatrix(Rcpp::S4);
+	triangularMatrix(Rcpp::S4&);
 
 	Rcpp::CharacterVector uplo, diag;
     };
     
     class symmetricMatrix : public compMatrix {
     public:
-	symmetricMatrix(Rcpp::S4);
+	symmetricMatrix(Rcpp::S4&);
 
 	Rcpp::CharacterVector uplo;
     };
 	
     class dgeMatrix : public ddenseMatrix, public generalMatrix {
     public:
-	dgeMatrix(Rcpp::S4);
+	dgeMatrix(Rcpp::S4 xp) : ddenseMatrix(xp), generalMatrix(xp) {}
+
+	void dgemv(const char*,double,const Rcpp::NumericVector&,
+		   double,Rcpp::NumericVector&);
+	void dgemm(const char*,const char*,double,const dgeMatrix&,
+		   double,dgeMatrix&);
     };
 
     class dtrMatrix : public ddenseMatrix, public triangularMatrix {
     public:
-	dtrMatrix(Rcpp::S4);
+	dtrMatrix(Rcpp::S4 xp) : ddenseMatrix(xp), triangularMatrix(xp) {}
     };
 
     class dsyMatrix : public ddenseMatrix, public symmetricMatrix {
     public:
-	dsyMatrix(Rcpp::S4);
+	dsyMatrix(Rcpp::S4 xp) : ddenseMatrix(xp), symmetricMatrix(xp) {}
+
+	void dsyrk(dgeMatrix&,double,double);
     };
 
     class dpoMatrix : public dsyMatrix {
     public:
-	dpoMatrix(Rcpp::S4);
+	dpoMatrix(Rcpp::S4 xp) : dsyMatrix(xp) {}
     };
 
     class Cholesky : public dtrMatrix {
     public:
-	Cholesky(Rcpp::S4);
+	Cholesky(Rcpp::S4 xp) : dtrMatrix(xp) {}
     };
 
     class dCHMfactor {		// wrapper for CHM_FR struct
@@ -98,18 +105,6 @@ namespace MatrixNs {
                                // slots common to dCHMsimpl and dCHMsuper
 	Rcpp::IntegerVector Dim, ColCount, perm, type; 
 	Rcpp::NumericVector x;
-    };
-
-    class dgCMatrix {
-    public:
-	dgCMatrix(Rcpp::S4);
-	~dgCMatrix(){delete sp;}
-	void update(CHM_SP);
-	
-	Rcpp::IntegerVector i, p, Dim;
-	Rcpp::List Dimnames, factors;
-	Rcpp::NumericVector x;
-	CHM_SP sp;
     };
 
     class chmSp : public cholmod_sparse { // wrapper for cholmod_sparse structure
