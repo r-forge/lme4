@@ -48,6 +48,7 @@ namespace mer {
     public:
 	lmerDeFeMod(Rcpp::S4);
 	void updateL(reModule&);
+	void updateBeta(merResp&);
 	
 	MatrixNs::dgeMatrix ZtX;
 	MatrixNs::dpoMatrix XtX;

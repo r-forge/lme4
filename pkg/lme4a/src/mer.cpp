@@ -115,6 +115,10 @@ namespace mer{
 	DupdateL(re, cZtX, cRZX);
     }
 
+    void lmerDeFeMod::updateBeta(merResp &resp) {
+	
+    }
+
     lmer::lmer(S4 xp) :
 	re(S4(SEXP(xp.slot("re")))),
 	resp(S4(SEXP(xp.slot("resp")))),
@@ -133,20 +137,18 @@ namespace mer{
     }
 
     double lmerDe::updateTheta(const NumericVector &nt) {
-	Rprintf("begin re.updateTheta\n");
 	re.updateTheta(nt);
-	Rprintf("begin resp.updateL\n");
 	resp.updateL(re);
-	Rprintf("begin fe.updateL\n");
 	fe.updateL(re);
+	fe.updateBeta(resp);
 	return 0.;
     }
 }
 
 extern "C"
 SEXP update_lmer2(SEXP xp, SEXP ntheta) {
-    S4 x4(xp);
-    NumericVector nt(ntheta);
+    Rcpp::S4 x4(xp);
+    Rcpp::NumericVector nt(ntheta);
     mer::lmerDe lm(x4);
 
     return Rf_ScalarReal(lm.updateTheta(nt));
