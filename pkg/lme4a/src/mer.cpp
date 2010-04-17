@@ -5,7 +5,7 @@ using namespace MatrixNs;
 
 extern cholmod_common c;
 
-static double M_2PI = 6.283185307179586476925286766559;
+static double l2PI = log(2. * PI);
 
 namespace mer{
 
@@ -17,8 +17,10 @@ namespace mer{
 	Lind(SEXP(xp.slot("Lind"))),
 	lower(SEXP(xp.slot("lower"))),
 	theta(SEXP(xp.slot("theta"))),
-	u(SEXP(xp.slot("u"))),
-	ldL2(SEXP(xp.slot("ldL2"))) {
+	u(SEXP(xp.slot("u")))
+    {
+	NumericVector ldL2Vec(SEXP(xp.slot("ldL2")));
+	ldL2 = ldL2Vec.begin();
     }
 
     void reModule::updateTheta(const NumericVector &nt) {
@@ -37,14 +39,17 @@ namespace mer{
 	Ut.update(*LamTrZt);
 	::M_cholmod_free_sparse(&LamTrZt, &c);
 	L.update(Ut, 1.);
-	*(ldL2.begin()) = ::M_chm_factor_ldetL2(&L);
+	*ldL2 = ::M_chm_factor_ldetL2(&L);
     }
 
     void reModule::updateU(const merResp &resp) {
-	std::copy(resp.cu.begin(), resp.cu.end(), u.begin());
-	chmDn cu(u);
-	::M_cholmod_solve(CHOLMOD_Lt, &L, &cu, &c);
-	::M_cholmod_solve(CHOLMOD_Pt, &L, &cu, &c);
+	chmDn cu(resp.cu);
+	CHM_DN t1 = L.solve(CHOLMOD_Lt, &cu);
+	CHM_DN t2 = L.solve(CHOLMOD_Pt, t1);
+	::M_cholmod_free_dense(&t1, &c);
+	double *t2b = (double*)t2->x;
+	std::copy(t2b,  t2b + u.size(), u.begin());
+	::M_cholmod_free_dense(&t2, &c);
     }
 
     void reModule::incGamma(NumericVector &gam) {
@@ -53,14 +58,14 @@ namespace mer{
 	::M_cholmod_sdmult(&Ut, 1/*trans*/, one, one, &cu, &gg, &c);
     }
 
-    // Generic update of RZX from ZtX or cu from Zty using an reModule
+    //< Create RZX from ZtX or cu from Zty
     static void DupdateL(reModule &re, chmDn &src, chmDn &dest) {
 	double one[] = {1, 0}, zero[] = {0, 0};
 	int sz = src.nr() * src.nc();
 
 	::M_cholmod_sdmult(&(re.Lambda), 1/*trans*/, one, zero, &src, &dest, &c);
-	CHM_DN t1 = ::M_cholmod_solve(CHOLMOD_P, &(re.L), &dest, &c);
-	CHM_DN t2 = ::M_cholmod_solve(CHOLMOD_L, &(re.L), t1, &c);
+	CHM_DN t1 = re.L.solve(CHOLMOD_P, &dest);
+	CHM_DN t2 = re.L.solve(CHOLMOD_L, t1);
 	::M_cholmod_free_dense(&t1, &c);
 	double *t2b = (double*)t2->x, *db = (double*)(dest.x);
 	std::copy(t2b, t2b + sz, db);
@@ -76,13 +81,15 @@ namespace mer{
 	offset(SEXP(xp.slot("offset"))),
 	resid(SEXP(xp.slot("resid"))),
 	weights(SEXP(xp.slot("weights"))),
-	wrss(SEXP(xp.slot("wrss"))),
 	y(SEXP(xp.slot("y"))),
 	ccu(cu),
 	cUtr(Utr)
     {
+	NumericVector wrssVec(SEXP(xp.slot("wrss")));
+	wrss = wrssVec.begin();
+
 	int n = y.size(), ws = weights.size();
-	
+
 	if (mu.size() != n || resid.size() != n)
 	    ::Rf_error("y, mu and resid slots must have equal lengths");
 	if (cbeta.size() != Vtr.size())
@@ -99,32 +106,38 @@ namespace mer{
 
     void merResp::updateWrss() {
 	int n = y.size();
-	double *mm = mu.begin(), *rr = resid.begin(), *yy = y.begin(),
-	    rss = 0;
+	double *mm = mu.begin(), *rr = resid.begin(), *yy = y.begin();
 	if (weights.size()) Rf_error("At present, weights must be numeric(0)");
+	*wrss = 0;
 	for (int i = 0; i < n; i++) {
 	    rr[i] = yy[i] - mm[i];
-	    rss += rr[i] * rr[i];
 	}
-	*(wrss.begin()) = rss;
+	*wrss = std::inner_product(resid.begin(), resid.end(), resid.begin(), double());
     }
 
     lmerDeFeMod::lmerDeFeMod(S4 xp) :
 	deFeMod(xp),
 	ZtX(S4(SEXP(xp.slot("ZtX")))),
 	XtX(S4(SEXP(xp.slot("XtX")))),
-	ldR2(SEXP(xp.slot("ldR2"))),
-	cZtX(ZtX) {
+	cZtX(ZtX)
+    {
+	NumericVector ldR2Vec(SEXP(xp.slot("ldR2")));
+	ldR2 = ldR2Vec.begin();
     }
     
-    void lmerDeFeMod::updateL(reModule &re) {
+    void lmerDeFeMod::updateRzxRx(reModule &re) {
 	DupdateL(re, cZtX, cRZX);
 	RX.update('T', -1., RZX, 1., XtX);
-// calculate ldR2 here
+/// \bug add a method to the Cholesky class for logdet2
+	int nc = RX.ncol(), stride = RX.nrow() + 1;
+	double *rx = RX.x.begin();
+	*ldR2 = 0.;
+	for (int i = 0; i < nc; i++, rx += stride)
+	    *ldR2 += 2. * log(*rx);
     }
 
     void lmerDeFeMod::updateBeta(merResp &resp) {
-	std::copy(resp.Vtr.begin(), resp.Vtr.end(), beta.begin());
+	std::copy(resp.Vtr.begin(), resp.Vtr.end(), resp.cbeta.begin());
 	RZX.dgemv('T', -1., resp.cu, 1., resp.cbeta);
 	std::copy(resp.cbeta.begin(), resp.cbeta.end(), beta.begin());
 	RX.dpotrs(beta);
@@ -132,14 +145,15 @@ namespace mer{
     }
 
     double lmer::deviance() {
-	double prss = re.sqLenU() + *(resp.wrss.begin());
-	return *(re.ldL2.begin()) + log(M_2PI * prss) + 1./((double)resp.y.size());
+	double nn = (double)resp.y.size(),
+	    prss = re.sqLenU() + *resp.wrss;
+	return *re.ldL2 + nn * (1 + l2PI + log(prss/nn));
     }
 
     double lmerDe::updateTheta(const NumericVector &nt) {
 	re.updateTheta(nt);
 	resp.updateL(re);
-	fe.updateL(re);
+	fe.updateRzxRx(re);
 	fe.updateBeta(resp);
 	re.updateU(resp);
 				// update resp.mu

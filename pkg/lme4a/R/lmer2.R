@@ -219,54 +219,6 @@ mkRespMod <- function(fr, reMod, feMod, family = NULL, nlenv = NULL) {
 }
 
 
-lmer2 <-
-    function(formula, data, REML = TRUE, sparseX = FALSE,
-             control = list(), start = NULL, verbose = 0, doFit = TRUE,
-             compDev = TRUE, optimizer = c("nlminb", "bobyqa", "optimize"),
-             subset, weights, na.action, offset,
-             contrasts = NULL, ...)
-{
-    mf <- mc <- match.call()
-### '...' handling up front, safe-guarding against typos ("familiy") :
-    if(length(l... <- list(...))) {
-        if (!is.null(l...$family)) {  # call glmer if family specified
-            mc[[1]] <- as.name("glmer")
-            return( eval(mc, parent.frame()) )
-        }
-        ## Check for method argument which is no longer used
-        if (!is.null(method <- l...$method)) {
-	    msg <- paste("Argument", sQuote("method"), "is deprecated.")
-            if (match.arg(method, c("Laplace", "AGQ")) == "Laplace") {
-                warning(msg)
-                l... <- l...[names(l...) != "method"]
-            } else stop(msg)
-        }
-        if(length(l...))
-            warning("extra arguments ", paste(names(l...), sep=", "),
-                    " are disregarded")
-    }
-
-    stopifnot(length(formula <- as.formula(formula)) == 3)
-    if (missing(data)) data <- environment(formula)
-                                        # evaluate and install the model frame :
-    m <- match(c("data", "subset", "weights", "na.action", "offset"),
-               names(mf), 0)
-    mf <- mf[c(1, m)]
-    mf$drop.unused.levels <- TRUE
-    mf[[1]] <- as.name("model.frame")
-    fr.form <- subbars(formula) # substituted "|" by "+" -
-    environment(fr.form) <- environment(formula)
-    mf$formula <- fr.form
-    fr <- eval(mf, parent.frame())
-                                        # random effects and terms modules
-    reList <- mkReModule(findbars(formula[[3]]), fr)
-                                        # fixed-effects module
-    feMod <- mkFeModule(formula, fr, contrasts, reList$reMod, sparseX)
-    respMod <- mkRespMod(fr, reList$reMod, feMod)
-    new("lmerTrms2", trms = reList$Trms, re = reList$reMod,
-        fe = feMod, resp = respMod, REML = REML)
-}
-
 S4toEnv <- function(from) {
     stopifnot(isS4(from))
     ans <- new.env()
@@ -316,3 +268,62 @@ setAs("lmer2", "optenv", function (from)
       environment(sP) <- environment(gP) <- environment(gB) <- rho
       new("optenv", setPars = sP, getPars = gP, getBounds = gB)
   })
+
+lmer2 <-
+    function(formula, data, REML = TRUE, sparseX = FALSE,
+             control = list(), start = NULL, verbose = 0, doFit = TRUE,
+             subset, weights, na.action, offset,
+             contrasts = NULL, ...)
+{
+    mf <- mc <- match.call()
+### '...' handling up front, safe-guarding against typos ("familiy") :
+    if(length(l... <- list(...))) {
+        if (!is.null(l...$family)) {  # call glmer if family specified
+            mc[[1]] <- as.name("glmer")
+            return( eval(mc, parent.frame()) )
+        }
+        ## Check for method argument which is no longer used
+        if (!is.null(method <- l...$method)) {
+	    msg <- paste("Argument", sQuote("method"), "is deprecated.")
+            if (match.arg(method, c("Laplace", "AGQ")) == "Laplace") {
+                warning(msg)
+                l... <- l...[names(l...) != "method"]
+            } else stop(msg)
+        }
+        if(length(l...))
+            warning("extra arguments ", paste(names(l...), sep=", "),
+                    " are disregarded")
+    }
+
+    stopifnot(length(formula <- as.formula(formula)) == 3)
+    if (missing(data)) data <- environment(formula)
+                                        # evaluate and install the model frame :
+    m <- match(c("data", "subset", "weights", "na.action", "offset"),
+               names(mf), 0)
+    mf <- mf[c(1, m)]
+    mf$drop.unused.levels <- TRUE
+    mf[[1]] <- as.name("model.frame")
+    fr.form <- subbars(formula) # substituted "|" by "+" -
+    environment(fr.form) <- environment(formula)
+    mf$formula <- fr.form
+    fr <- eval(mf, parent.frame())
+                                        # random effects and terms modules
+    reList <- mkReModule(findbars(formula[[3]]), fr)
+                                        # fixed-effects module
+    feMod <- mkFeModule(formula, fr, contrasts, reList$reMod, sparseX)
+    respMod <- mkRespMod(fr, reList$reMod, feMod)
+    ans <- new("lmerTrms2", trms = reList$Trms, re = reList$reMod,
+               fe = feMod, resp = respMod, REML = REML)
+    devfun <- function(th) .Call(update_lmer2, ans, th)
+    if (doFit) {                        # optimize estimates
+        if (length(ans@re@theta) < 2) { # use optimize
+            d0 <- devfun(0)
+            opt <- optimize(devfun, c(0, 10))
+            if (d0 <= opt$objective) devfun(0) # prefer theta == 0 when close
+        } else {
+            if (verbose) control$iprint <- 2L
+            bobyqa(ans@re@theta, devfun, ans@re@lower, control = control)
+        }
+    }
+    ans
+}
