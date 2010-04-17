@@ -42,18 +42,18 @@ namespace MatrixNs {
 // Dimnames slots.  You can get around this for concrete classes but
 // these are pure virtual classes.
 
-    class compMatrix {		// composite (factorizable) Matrix
+    class compMatrix {		//< composite (factorizable) Matrix
     public:
 	Rcpp::List factors;
 	compMatrix(Rcpp::S4 &xp) : factors(SEXP(xp.slot("factors"))) { }
     };
 
-    class generalMatrix : public compMatrix {
+    class generalMatrix : public compMatrix { //< general structure
     public:
 	generalMatrix(Rcpp::S4 &xp) : compMatrix(xp) { }
     };
 
-    class UpLo {		// validate the uplo specification
+    class UpLo {		//< validated uplo char
     private: 
 	char chk (char x) {
 	    if (x == 'L' || x == 'l') return 'L';
@@ -67,7 +67,7 @@ namespace MatrixNs {
 	UpLo(const SEXP x) : UL(chk(*CHAR(Rf_asChar(x)))) {}
     };
 
-    class Diag {		// validate the diag specification
+    class Diag {		//< validated diag char
     private: 
 	char chk (char x) {
 	    if (x == 'N' || x == 'n') return 'N';
@@ -81,13 +81,13 @@ namespace MatrixNs {
 	Diag(const SEXP x) : DD(chk(*CHAR(Rf_asChar(x)))) {};
     };
 
-    class Trans {		// validate the trans specification
+    class Trans {		//< validated trans char
     private: 
 	char chk (char x) {
 	    if (x == 'C' || x == 'c') return 'C';
 	    if (x == 'N' || x == 'n') return 'N';
 	    if (x == 'T' || x == 't') return 'T';
-	    throw std::range_error("diag");
+	    throw std::range_error("trans");
 	}
     public:
 	char TR;
@@ -190,6 +190,8 @@ namespace MatrixNs {
 	}
 	int nr() const { return nrow; }
 	int nc() const { return ncol; }
+	double* begin() {return (double*)x;} // template this
+	double* end() {return begin() + nrow * ncol;}
     };
 
     class chmSp : public cholmod_sparse { 
@@ -205,6 +207,9 @@ namespace MatrixNs {
 	void update(cholmod_sparse &A, double Imult = 0.) {
 	    double ImVec[] = {Imult, 0};
 	    ::M_cholmod_factorize_p(&A, ImVec, (int*)NULL, 0, this, &c);
+	}
+	CHM_DN solve(int sys, CHM_DN b) {
+	    return ::M_cholmod_solve(sys, this, b, &c);
 	}
     };
 }

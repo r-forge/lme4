@@ -13,27 +13,33 @@ namespace mer {
 	reModule(Rcpp::S4);
 
 	void updateTheta(const Rcpp::NumericVector&);
-	double sqLenU() const {	// squared length of u
+	//< Lambda@x[] <- theta[Lind]; Ut <- crossprod(Lambda, Zt); update(L,Ut,1); ldL2 
+	double sqLenU() const {	//< squared length of u
 	    return std::inner_product(u.begin(), u.end(), u.begin(), double());
 	}
 	void updateU(const merResp&);
+	//< u <- solve(L, solve(L, cu - RZX %*% beta, sys = "Lt"), sys = "Pt")
 	void incGamma(Rcpp::NumericVector&);
+	//< gamma += crossprod(Ut, u)
 
 	MatrixNs::chmFa L;
 	MatrixNs::chmSp Lambda, Ut, Zt;
 	Rcpp::IntegerVector Lind;
-	Rcpp::NumericVector lower, theta, u, ldL2;
+	Rcpp::NumericVector lower, theta, u;
+	double *ldL2;
     };
     
     class merResp {
     public:
 	merResp(Rcpp::S4);
 	void updateL(reModule&);
-	void updateWrss();	// resid := y - mu; wrss := sum((sqrtrwts * resid)^2)
+	//<  cu <- solve(L, solve(L, crossprod(Lambda, Utr), sys = "P"), sys = "L")
+	void updateWrss();	//< resid := y - mu; wrss := sum((sqrtrwts * resid)^2)
 	
 	Rcpp::NumericVector Utr, Vtr, cbeta,
-	    cu, mu, offset, resid, weights, wrss, y; 
+	    cu, mu, offset, resid, weights, y; 
 	MatrixNs::chmDn cUtr, ccu;
+	double *wrss;
     };
 
     class feModule {
@@ -59,16 +65,22 @@ namespace mer {
     class lmerDeFeMod : public deFeMod {
     public:
 	lmerDeFeMod(Rcpp::S4);
-	void updateL(reModule&);
+	void updateRzxRx(reModule&);
+	//< RZX <<- solve(L, solve(L, crossprod(Lambda, ZtX), sys = "P"), sys = "L")
+        //< RX <- chol(XtX - crossprod(RZX))
 	void updateBeta(merResp&);
+	//< resp@cbeta <- Vtr - crossprod(RZX, cu)
+	//< beta <- solve(RX, solve(t(RX), resp@cbeta))
+	//< resp@cu <- resp@cu - RZX %*% beta
 	void incGamma(Rcpp::NumericVector &gam) {
 	    X.dgemv('N', 1., beta, 1., gam);
 	}
+	//< gamma += crossprod(Ut, u)
 	
 	MatrixNs::dgeMatrix ZtX;
 	MatrixNs::dpoMatrix XtX;
-	Rcpp::NumericVector ldR2;
 	MatrixNs::chmDn cZtX;
+	double *ldR2;
     };
 
     class lmer {
@@ -81,7 +93,7 @@ namespace mer {
 	}
     
 	double deviance();
-
+	//< ldL2 + nobs *(1 + log(2 * pi * pwrss/nobs))
 	reModule re;
 	merResp resp;
 	Rcpp::LogicalVector REML;
