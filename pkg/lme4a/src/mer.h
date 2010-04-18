@@ -44,8 +44,14 @@ namespace mer {
 
     class feModule {
     public:
+	feModule(Rcpp::S4 xp) :
+	    beta(SEXP(xp.slot("beta"))) {
+	    Rcpp::NumericVector ldR2Vec(SEXP(xp.slot("ldR2")));
+	    ldR2 = ldR2Vec.begin();
+	}
+
+	double *ldR2;
 	Rcpp::NumericVector beta;
-	feModule(Rcpp::S4 xp) : beta(SEXP(xp.slot("beta"))) { }
     };
     
     class deFeMod : public feModule {
@@ -62,9 +68,49 @@ namespace mer {
 	MatrixNs::chmDn cRZX;
     };
 
+    class spFeMod : public feModule {
+    public:
+	spFeMod(Rcpp::S4 xp) :
+	    feModule(xp),
+	    X(Rcpp::S4(SEXP(xp.slot("X")))),
+	    RZX(Rcpp::S4(SEXP(xp.slot("RZX")))),
+	    RX(Rcpp::S4(SEXP(xp.slot("RX")))) { }
+	
+	MatrixNs::chmSp X, RZX;
+	MatrixNs::chmFa RX;
+    };
+
+    class lmerSpFeMod : public spFeMod {
+    public:
+	lmerSpFeMod(Rcpp::S4 xp) :
+	    spFeMod(xp),
+	    ZtX(Rcpp::S4(SEXP(xp.slot("ZtX")))),
+	    XtX(Rcpp::S4(SEXP(xp.slot("XtX")))) { }
+
+	void updateRzxRx(reModule&);
+	//< RZX <<- solve(L, solve(L, crossprod(Lambda, ZtX), sys = "P"), sys = "L")
+        //< RX <- chol(XtX - crossprod(RZX))
+	void updateBeta(merResp&);
+	//< resp@cbeta <- Vtr - crossprod(RZX, cu)
+	//< beta <- solve(RX, solve(t(RX), resp@cbeta))
+	//< resp@cu <- resp@cu - RZX %*% beta
+	void incGamma(Rcpp::NumericVector &gam) {
+	    MatrixNs::chmDn bb(beta), gg(gam);
+	    X.dmult('N', 1., 1., bb, gg);
+	}
+	//< gamma += crossprod(Ut, u)
+	
+	MatrixNs::chmSp ZtX;
+	MatrixNs::chmFa XtX;
+    };
+
     class lmerDeFeMod : public deFeMod {
     public:
-	lmerDeFeMod(Rcpp::S4);
+	lmerDeFeMod(Rcpp::S4 xp) :
+	    deFeMod(xp),
+	    ZtX(Rcpp::S4(SEXP(xp.slot("ZtX")))), cZtX(ZtX),
+	    XtX(Rcpp::S4(SEXP(xp.slot("XtX")))) { }
+
 	void updateRzxRx(reModule&);
 	//< RZX <<- solve(L, solve(L, crossprod(Lambda, ZtX), sys = "P"), sys = "L")
         //< RX <- chol(XtX - crossprod(RZX))
@@ -93,7 +139,8 @@ namespace mer {
 	}
     
 	double deviance();
-	//< ldL2 + nobs *(1 + log(2 * pi * pwrss/nobs))
+	//< ldL2 + n *(1 + log(2 * pi * pwrss/n))
+
 	reModule re;
 	merResp resp;
 	Rcpp::LogicalVector REML;
@@ -106,7 +153,20 @@ namespace mer {
 	    lmer(xp),
 	    fe(Rcpp::S4(SEXP(xp.slot("fe")))) {
 	}
-	double REMLcrit();
+	double reCrit();
+	//< ldL2 + ldR2 + (n - p) * (1 + log(2 * pi * pwrss/(n - p)))
+	double updateTheta(const Rcpp::NumericVector&);
+	lmerDeFeMod fe;
+    };
+
+    class lmerSp : public lmer {
+    public:
+	lmerSp(Rcpp::S4 xp) :
+	    lmer(xp),
+	    fe(Rcpp::S4(SEXP(xp.slot("fe")))) {
+	}
+	double reCrit();
+	//< ldL2 + ldR2 + (n - p) * (1 + log(2 * pi * pwrss/(n - p)))
 	double updateTheta(const Rcpp::NumericVector&);
 	lmerDeFeMod fe;
     };

@@ -190,6 +190,7 @@ namespace MatrixNs {
     	chmDn(ddenseMatrix m) : cholmod_dense() {
 	    this->init(m.x.begin(), m.nrow(), m.ncol());
 	}
+
 	int nr() const { return nrow; }
 	int nc() const { return ncol; }
 	double* begin() {return (double*)x;} // template this
@@ -199,7 +200,7 @@ namespace MatrixNs {
     class chmSp : public cholmod_sparse { 
     public:
 	chmSp(Rcpp::S4);
-	chmSp(cholmod_sparse &sp); //< copies then frees sp
+
 	void update(cholmod_sparse&);
 	CHM_SP transpose(int values = 1) {
 	    return ::M_cholmod_transpose(this, values, &c);

@@ -10,12 +10,10 @@ namespace MatrixNs{
 	CharacterVector cl = x.attr("class");
 	if (as<std::string>(cl) == clname) return true;
 
-//	SEXP pkg = cl.attr("package");
 	Function clDef("getClassDef");
 	S4 cld = clDef(cl);
-	List exts = cld.attr("contains");
-	Function ssc(".selectSuperClasses");
-	CharacterVector nms = ssc(exts, false, true, false);
+	List cont = cld.slot("contains");
+	CharacterVector nms = cont.names();
 	for (int i = 0; i < nms.size(); i++)
 	    if (std::string(nms[i]) == clname) return true;
 	return false;
