@@ -167,6 +167,8 @@ namespace MatrixNs {
 	}
 
 	void dpotrs(Rcpp::NumericVector&);
+
+	double logDet2();
     };
 
     class chmDn : public cholmod_dense {
@@ -197,7 +199,16 @@ namespace MatrixNs {
     class chmSp : public cholmod_sparse { 
     public:
 	chmSp(Rcpp::S4);
+	chmSp(cholmod_sparse &sp); //< copies then frees sp
 	void update(cholmod_sparse&);
+	CHM_SP transpose(int values = 1) {
+	    return ::M_cholmod_transpose(this, values, &c);
+	}
+	int dmult(char tr, double alpha, double beta,
+		  chmDn &src, chmDn &dest) {
+	    return ::M_cholmod_sdmult(this, Trans(tr).TR == 'T', &alpha,
+				      &beta, &src, &dest, &c);
+	}
     };
 
     class chmFa : public cholmod_factor {

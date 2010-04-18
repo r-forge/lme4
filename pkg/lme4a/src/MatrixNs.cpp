@@ -10,7 +10,7 @@ namespace MatrixNs{
 	CharacterVector cl = x.attr("class");
 	if (as<std::string>(cl) == clname) return true;
 
-	SEXP pkg = cl.attr("package");
+//	SEXP pkg = cl.attr("package");
 	Function clDef("getClassDef");
 	S4 cld = clDef(cl);
 	List exts = cld.attr("contains");
@@ -44,7 +44,7 @@ namespace MatrixNs{
     void dgeMatrix::dgemm(Trans TrA, Trans TrB,
 			  double alpha, const dgeMatrix &B,
 			  double beta, dgeMatrix &C) {
-	int i1 = 1;
+//	int i1 = 1;
 	char trA = TrA.TR, trB = TrB.TR;
 	bool NTA = trA == 'N', NTB = trB == 'N';
 	Dimension Bd(B.Dim), Cd(C.Dim);
@@ -101,6 +101,14 @@ namespace MatrixNs{
 	if (info)
 	    Rf_error("Lapack routine %s returned error code %d",
 		     "dpotrs", info);
+    }
+
+    double Cholesky::logDet2() {
+	int nc = ncol(), stride = nrow() + 1;
+	double *rx = x.begin(), ans = 0.;
+	for (int i = 0; i < nc; i++, rx += stride)
+	    ans += 2. * log(*rx);
+	return ans;
     }
 
     chmFa::chmFa(S4 xp) : cholmod_factor() {

@@ -32,7 +32,7 @@ namespace mer{
 	int *Li = Lind.begin();
 	for (int i = 0; i < Lind.size(); i++) Lamx[i] = nnt[Li[i] - 1];
 
-	CHM_SP LamTr = ::M_cholmod_transpose(&Lambda, 1/*values*/, &c);
+	CHM_SP LamTr = Lambda.transpose();
 	CHM_SP LamTrZt = ::M_cholmod_ssmult(LamTr, &Zt, 0/*stype*/,
 					    1/*values*/, 1/*sorted*/, &c);
 	::M_cholmod_free_sparse(&LamTr, &c);
@@ -53,21 +53,19 @@ namespace mer{
     }
 
     void reModule::incGamma(NumericVector &gam) {
-	double one[] = {1, 0}, zero[] = {0, 0};
-	chmDn cu(u), gg(gam);
-	::M_cholmod_sdmult(&Ut, 1/*trans*/, one, one, &cu, &gg, &c);
+	chmDn cu(u), cgam(gam);
+	Ut.dmult('T', 1., 1., cu, cgam);
     }
 
     //< Create RZX from ZtX or cu from Zty
     static void DupdateL(reModule &re, chmDn &src, chmDn &dest) {
-	double one[] = {1, 0}, zero[] = {0, 0};
-	int sz = src.nr() * src.nc();
-
-	::M_cholmod_sdmult(&(re.Lambda), 1/*trans*/, one, zero, &src, &dest, &c);
+	re.Lambda.dmult(1/*trans*/, 1., 0., src, dest);
 	CHM_DN t1 = re.L.solve(CHOLMOD_P, &dest);
 	CHM_DN t2 = re.L.solve(CHOLMOD_L, t1);
 	::M_cholmod_free_dense(&t1, &c);
+
 	double *t2b = (double*)t2->x, *db = (double*)(dest.x);
+	int sz = src.nr() * src.nc();
 	std::copy(t2b, t2b + sz, db);
 	::M_cholmod_free_dense(&t2, &c);
     }
@@ -82,8 +80,8 @@ namespace mer{
 	resid(SEXP(xp.slot("resid"))),
 	weights(SEXP(xp.slot("weights"))),
 	y(SEXP(xp.slot("y"))),
-	ccu(cu),
-	cUtr(Utr)
+	cUtr(Utr),
+	ccu(cu)
     {
 	NumericVector wrssVec(SEXP(xp.slot("wrss")));
 	wrss = wrssVec.begin();
@@ -128,12 +126,7 @@ namespace mer{
     void lmerDeFeMod::updateRzxRx(reModule &re) {
 	DupdateL(re, cZtX, cRZX);
 	RX.update('T', -1., RZX, 1., XtX);
-/// \bug add a method to the Cholesky class for logdet2
-	int nc = RX.ncol(), stride = RX.nrow() + 1;
-	double *rx = RX.x.begin();
-	*ldR2 = 0.;
-	for (int i = 0; i < nc; i++, rx += stride)
-	    *ldR2 += 2. * log(*rx);
+	*ldR2 = RX.logDet2();
     }
 
     void lmerDeFeMod::updateBeta(merResp &resp) {
