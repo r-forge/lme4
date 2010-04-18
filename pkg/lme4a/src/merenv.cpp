@@ -377,13 +377,13 @@ double lmer::update_dev(SEXP thnew) {
 glmer::glmer(SEXP rho) :
     merenv(rho),
     Rho(rho),
-    fam(Rho.get("family")),
     RcGam(Rho.get("gamma")),
     RcWeights(Rho.get("weights")),
     RcMu(Rho.get("mu")),
     RcY(Rho.get("y")),
     RcVar(Rho.get("var")),
-    RcMuEta(Rho.get("muEta"))
+    RcMuEta(Rho.get("muEta")),
+    fam(Rho.get("family"))
 {
     muEta = VAR_REAL_NULL(rho, lme4_muEtaSym, n);
     var = VAR_REAL_NULL(rho, lme4_varSym, n);
