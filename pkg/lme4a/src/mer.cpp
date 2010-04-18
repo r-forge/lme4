@@ -112,16 +112,6 @@ namespace mer{
 	}
 	*wrss = std::inner_product(resid.begin(), resid.end(), resid.begin(), double());
     }
-
-    lmerDeFeMod::lmerDeFeMod(S4 xp) :
-	deFeMod(xp),
-	ZtX(S4(SEXP(xp.slot("ZtX")))),
-	XtX(S4(SEXP(xp.slot("XtX")))),
-	cZtX(ZtX)
-    {
-	NumericVector ldR2Vec(SEXP(xp.slot("ldR2")));
-	ldR2 = ldR2Vec.begin();
-    }
     
     void lmerDeFeMod::updateRzxRx(reModule &re) {
 	DupdateL(re, cZtX, cRZX);
@@ -143,6 +133,18 @@ namespace mer{
 	return *re.ldL2 + nn * (1 + l2PI + log(prss/nn));
     }
 
+    double lmerDe::reCrit() {
+	double nmp = (double)(resp.y.size() - fe.beta.size()),
+	    prss = re.sqLenU() + *resp.wrss;
+	return *re.ldL2 + *fe.ldR2 + nmp * (1 + l2PI + log(prss/nmp));
+    }
+
+    double lmerSp::reCrit() {
+	double nmp = (double)(resp.y.size() - fe.beta.size()),
+	    prss = re.sqLenU() + *resp.wrss;
+	return *re.ldL2 + *fe.ldR2 + nmp * (1 + l2PI + log(prss/nmp));
+    }
+
     double lmerDe::updateTheta(const NumericVector &nt) {
 	re.updateTheta(nt);
 	resp.updateL(re);
@@ -157,16 +159,48 @@ namespace mer{
 	fe.incGamma(resp.mu);
 				// update resp.resid and resp.wrss
 	resp.updateWrss();
-	return deviance();
+	return reml ? reCrit() : deviance();
+    }
+
+//FIXME:: factor out the parts that do not depend on the fe class (or make those virtual functions?)
+    double lmerSp::updateTheta(const NumericVector &nt) {
+	re.updateTheta(nt);
+	resp.updateL(re);
+	fe.updateRzxRx(re);
+	fe.updateBeta(resp);
+	re.updateU(resp);
+				// update resp.mu
+	if (resp.offset.size())	// FIXME: define offset to be rep(0, n) when numeric(0)
+	    std::copy(resp.offset.begin(), resp.offset.end(), resp.mu.begin());
+	else std::fill(resp.mu.begin(), resp.mu.end(), double());
+	re.incGamma(resp.mu);
+	fe.incGamma(resp.mu);
+				// update resp.resid and resp.wrss
+	resp.updateWrss();
+	return reml ? reCrit() : deviance();
     }
 }
 
 extern "C"
-SEXP update_lmer2(SEXP xp, SEXP ntheta) {
-    Rcpp::S4 x4(xp);
-    Rcpp::NumericVector nt(ntheta);
+SEXP update_lmerDe(SEXP xp, SEXP ntheta) {
+    S4 x4(xp);
+    NumericVector nt(ntheta);
     mer::lmerDe lm(x4);
 
     return Rf_ScalarReal(lm.updateTheta(nt));
+}
+
+extern "C"
+SEXP deviance_lmerDe(SEXP xp) {
+    S4 x4(xp);
+    mer::lmerDe lm(x4);
+    return Rf_ScalarReal(lm.deviance());
+}
+
+extern "C"
+SEXP deviance_lmerSp(SEXP xp) {
+    S4 x4(xp);
+    mer::lmerSp lm(x4);
+    return Rf_ScalarReal(lm.deviance());
 }
 
