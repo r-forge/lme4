@@ -552,30 +552,45 @@ setClass("merTrms",
          TRUE
      })
 
-setClass("lmer2",
+setClass("lmerDe",
          representation(re = "reModule",
-                        fe = "feModule",
+                        fe = "lmerDeFeMod",
                         resp = "merResp",
                         REML = "logical"),
          validity = function(object)
      {
-         fe <- object@fe
-         if (is(object@re, "rwReMod") || is(object@resp, "rwResp") ||
-             !(is(fe, "lmerDeFeMod") || is(fe, "lmerSpFe")))
+         if (is(object@re, "rwReMod") || is(object@resp, "rwResp"))
              return("lmer modules cannot be reweightable")
      })
 
-setClass("lmerTrms2",
-         representation(trms = "merTrms"),
-         contains = "lmer2",
+setClass("lmerSp",
+         representation(re = "reModule",
+                        fe = "lmerSpFeMod",
+                        resp = "merResp",
+                        REML = "logical"),
          validity = function(object)
      {
-         fl <- object@trms@flist
-         nlev <- sapply(fl, function(fac) length(levels(fac)))
-         nc <- sapply(object@trms@cnms, length)
-         asgn <- attr(fl, "assign")
-         q <- nrow(object@re@Zt)
-         if (sum(nc * nlev[asgn]) != q)
-             return("inconsistent dimensions in trms and re slots")
-         TRUE
+         if (is(object@re, "rwReMod") || is(object@resp, "rwResp"))
+             return("lmer modules cannot be reweightable")
      })
+
+validTrms <- function(object) {
+    fl <- object@trms@flist
+    nlev <- sapply(fl, function(fac) length(levels(fac)))
+    nc <- sapply(object@trms@cnms, length)
+    asgn <- attr(fl, "assign")
+    q <- nrow(object@re@Zt)
+    if (sum(nc * nlev[asgn]) != q)
+        return("inconsistent dimensions in trms and re slots")
+    TRUE
+}
+
+setClass("lmerTrmsDe",
+         representation(trms = "merTrms"),
+         contains = "lmerDe",
+         validity = validTrms)
+
+setClass("lmerTrmsSp",
+         representation(trms = "merTrms"),
+         contains = "lmerSp",
+         validity = validTrms)
