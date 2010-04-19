@@ -210,9 +210,8 @@ namespace MatrixNs {
 	    return ::M_cholmod_sdmult(this, Trans(tr).TR == 'T', &alpha,
 				      &beta, &src, &dest, &c);
 	}
-	CHM_SP aat() {
-	    return ::M_cholmod_aat(this, (int*)NULL, 0/*fsize*/, 1/*mode*/, &c);
-	}
+	CHM_SP crossprod();
+	CHM_SP tcrossprod();
     };
 
     class chmFa : public cholmod_factor {

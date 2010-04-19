@@ -232,6 +232,12 @@ namespace MatrixNs{
 	chk_mismatch(packed, nn.packed, "packed", "chmSp::update");
 	chk_mismatch(sorted, nn.sorted, "sorted", "chmSp::update");
 	int nnz = ::M_cholmod_nnz(this, &c), nnznn = ::M_cholmod_nnz(&nn, &c);
+	// the special case of nnznn == 0 can occur in lmerSpFeMod::updateRzxRx
+	double *xx = (double*)x;
+	if (nnz > 0 && nnznn == 0) {
+	    std::fill(xx, xx + nnz, double());
+	    return;
+	}
 	chk_mismatch(nnz, nnznn, "nnz", "chmSp::update");
 	int *ii = (int*)i, *pp = (int*)p;
 	if (!std::equal(pp, pp + ncol + 1, (int*)nn.p))
@@ -239,7 +245,23 @@ namespace MatrixNs{
 	if (!std::equal(ii, ii + nnz, (int*)nn.i))
 	    Rf_error("%s: inconsistency in %s", "chmSp::update", "i");
 	double *nnX = (double*)nn.x;
-	std::copy(nnX, nnX + nnz, (double*)x);
+	std::copy(nnX, nnX + nnz, xx);
+    }
+
+    CHM_SP chmSp::crossprod() {
+	CHM_SP t1 = this->transpose();
+	CHM_SP t2 = ::M_cholmod_aat(t1, (int*)NULL, 0/*fsize*/, xtype/*mode*/, &c);
+	::M_cholmod_free_sparse(&t1, &c);
+	t1 = ::M_cholmod_copy(t2, 1/*stype*/, xtype/*mode*/, &c);
+	::M_cholmod_free_sparse(&t2, &c);
+	return t1;
+    }
+
+    CHM_SP chmSp::tcrossprod() {
+	CHM_SP t2 = ::M_cholmod_aat(this, (int*)NULL, 0/*fsize*/, xtype/*mode*/, &c);
+	CHM_SP t1 = ::M_cholmod_copy(t2, 1/*stype*/, xtype/*mode*/, &c);
+	::M_cholmod_free_sparse(&t2, &c);
+	return t1;
     }
 
     void chmDn::init(double *X, int r, int c) {
