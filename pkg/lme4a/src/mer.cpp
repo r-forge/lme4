@@ -59,7 +59,7 @@ namespace mer{
 
     //< Create RZX from ZtX or cu from Zty
     static void DupdateL(reModule &re, chmDn &src, chmDn &dest) {
-	re.Lambda.dmult(1/*trans*/, 1., 0., src, dest);
+	re.Lambda.dmult('T', 1., 0., src, dest);
 	CHM_DN t1 = re.L.solve(CHOLMOD_P, &dest);
 	CHM_DN t2 = re.L.solve(CHOLMOD_L, t1);
 	::M_cholmod_free_dense(&t1, &c);
@@ -127,19 +127,54 @@ namespace mer{
 	RZX.dgemv('N', -1., beta, 1., resp.cu);
     }
 
+    void lmerSpFeMod::updateRzxRx(reModule &re) {
+	double mone[] = {-1.,0}, one[] = {1.,0};
+	CHM_SP t1 = re.Lambda.transpose();
+	CHM_SP t2 = ::M_cholmod_ssmult(t1, &ZtX, 0/*stype*/,
+				       1/*values*/, 1/*sorted*/, &c);
+	::M_cholmod_free_sparse(&t1, &c);
+	t1 = re.L.spsolve(CHOLMOD_P, t2);
+	::M_cholmod_free_sparse(&t2, &c);
+	t2 = re.L.spsolve(CHOLMOD_L, t1);
+	RZX.update(*t2);
+
+	::M_cholmod_free_sparse(&t1, &c);
+	t1 = RZX.transpose();
+	::M_cholmod_free_sparse(&t2, &c);
+	t2 = ::M_cholmod_aat(t1, (int*)NULL, 0/*fsize*/, 1/*mode*/, &c);
+	::M_cholmod_free_sparse(&t1, &c);
+	t1 = ::M_cholmod_add(&XtX, t2, one, mone, 1/*values*/, 1/*sorted*/, &c);
+	::M_cholmod_free_sparse(&t2, &c);
+	RX.update(*t1, 0.);
+	::M_cholmod_free_sparse(&t1, &c);
+	*ldR2 = ::M_chm_factor_ldetL2(&RX);
+    }
+
+    void lmerSpFeMod::updateBeta(merResp &resp) {
+	std::copy(resp.Vtr.begin(), resp.Vtr.end(), resp.cbeta.begin());
+	chmDn ccbeta(resp.cbeta);
+	RZX.dmult('T', -1., 1., resp.ccu, ccbeta);
+	std::copy(resp.cbeta.begin(), resp.cbeta.end(), beta.begin());
+	chmDn cbeta(beta);
+	CHM_DN t1 = RX.solve(CHOLMOD_A, &cbeta);
+	double *t1b = (double*)t1->x;
+	std::copy(t1b,  t1b + beta.size(), beta.begin());
+	RZX.dmult('N', -1., 1., cbeta, resp.ccu);
+    }
+
     double lmer::deviance() {
 	double nn = (double)resp.y.size(),
 	    prss = re.sqLenU() + *resp.wrss;
 	return *re.ldL2 + nn * (1 + l2PI + log(prss/nn));
     }
 
-    double lmerDe::reCrit() {
+    double lmerSp::reCrit() {
 	double nmp = (double)(resp.y.size() - fe.beta.size()),
 	    prss = re.sqLenU() + *resp.wrss;
 	return *re.ldL2 + *fe.ldR2 + nmp * (1 + l2PI + log(prss/nmp));
     }
 
-    double lmerSp::reCrit() {
+    double lmerDe::reCrit() {
 	double nmp = (double)(resp.y.size() - fe.beta.size()),
 	    prss = re.sqLenU() + *resp.wrss;
 	return *re.ldL2 + *fe.ldR2 + nmp * (1 + l2PI + log(prss/nmp));
@@ -186,6 +221,15 @@ SEXP update_lmerDe(SEXP xp, SEXP ntheta) {
     S4 x4(xp);
     NumericVector nt(ntheta);
     mer::lmerDe lm(x4);
+
+    return Rf_ScalarReal(lm.updateTheta(nt));
+}
+
+extern "C"
+SEXP update_lmerSp(SEXP xp, SEXP ntheta) {
+    S4 x4(xp);
+    NumericVector nt(ntheta);
+    mer::lmerSp lm(x4);
 
     return Rf_ScalarReal(lm.updateTheta(nt));
 }
