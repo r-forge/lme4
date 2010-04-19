@@ -146,7 +146,7 @@ mkFeModule <-
         ll <- list(Class = "lmerSpFeMod", X = X,
                    RX = Cholesky(crossprod(X), LDL = FALSE))
     } else {
-        X <- Matrix(model.matrix(form, fr, contrasts))
+        X <- Matrix(model.matrix(form, fr, contrasts), sparse = FALSE)
         ll <- list(Class = "lmerDeFeMod", X = X, RX = chol(crossprod(X)))
     }
     rownames(ll$X) <- NULL
