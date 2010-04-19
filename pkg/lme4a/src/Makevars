@@ -1,1 +1,1 @@
-PKG_LIBS=$(shell Rscript -e "Rcpp:::LdFlags()"|sed /^WARNING/d) $(LAPACK_LIBS) $(BLAS_LIBS) $(FLIBS)
+PKG_LIBS = $(shell $(R_HOME)/bin/Rscript --vanilla -e "Rcpp:::LdFlags()" ) $(LAPACK_LIBS) $(BLAS_LIBS) $(FLIBS)
