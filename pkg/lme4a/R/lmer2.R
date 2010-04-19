@@ -229,7 +229,7 @@ S4toEnv <- function(from) {
     ans
 }
 
-setAs("lmer2", "optenv", function (from)
+setAs("lmerDe", "optenv", function (from)
   {
       rho <- S4toEnv(from)
       n <- length(rho$y)
@@ -312,9 +312,13 @@ lmer2 <-
                                         # fixed-effects module
     feMod <- mkFeModule(formula, fr, contrasts, reList$reMod, sparseX)
     respMod <- mkRespMod(fr, reList$reMod, feMod)
-    ans <- new("lmerTrms2", trms = reList$Trms, re = reList$reMod,
-               fe = feMod, resp = respMod, REML = REML)
-    devfun <- function(th) .Call(update_lmer2, ans, th)
+    ans <- new(ifelse (sparseX, "lmerTrmsSp", "lmerTrmsDe"), trms = reList$Trms,
+               re = reList$reMod, fe = feMod, resp = respMod, REML = REML)
+    devfun <- function(th) {
+        if (is(ans, "lmerSp")) return(.Call(update_lmerSp, ans, th))
+        .Call(update_lmerDe, ans, th)
+    }
+
     if (doFit) {                        # optimize estimates
         if (length(ans@re@theta) < 2) { # use optimize
             d0 <- devfun(0)
