@@ -42,7 +42,6 @@ namespace MatrixNs{
     void dgeMatrix::dgemm(Trans TrA, Trans TrB,
 			  double alpha, const dgeMatrix &B,
 			  double beta, dgeMatrix &C) {
-//	int i1 = 1;
 	char trA = TrA.TR, trB = TrB.TR;
 	bool NTA = trA == 'N', NTB = trB == 'N';
 	Dimension Bd(B.Dim), Cd(C.Dim);
