@@ -56,11 +56,12 @@ exportClasses(lmList,
 	      ## export all super classes of e.g., "lmerenv",
 	      ## so users can query the class system :
 	      optenv, merenv, merenvtrms, lmerenv, glmerenv,
-              mer, lmer, glmer,
+              mer, lmer, glmer, 
               reModule, rwReMod, feModule, deFeMod, spFeMod,
               lmerDeFeMod, lmerSpFeMod, rwDeFeMod, rwSpFeMod,
               merResp, lmerResp, rwResp, glmerResp, nlmerResp,
-              nglmerResp, merTrms, lmer2, lmerTrms2
+              nglmerResp, merTrms, lmerDe, lmerTrmsDe,
+              lmerSp, lmerTrmsSp
               )
 
 exportMethods(VarCorr, anova, bobyqa, coef, coerce, confint, deviance,
