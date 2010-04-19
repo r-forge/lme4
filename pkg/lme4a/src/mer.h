@@ -166,7 +166,7 @@ namespace mer {
 	double reCrit();
 	//< ldL2 + ldR2 + (n - p) * (1 + log(2 * pi * pwrss/(n - p)))
 	double updateTheta(const Rcpp::NumericVector&);
-	lmerDeFeMod fe;
+	lmerSpFeMod fe;
     };
 }
 
