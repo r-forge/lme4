@@ -100,8 +100,7 @@ namespace mer {
 	}
 	//< gamma += crossprod(Ut, u)
 	
-	MatrixNs::chmSp ZtX;
-	MatrixNs::chmFa XtX;
+	MatrixNs::chmSp ZtX, XtX;
     };
 
     class lmerDeFeMod : public deFeMod {
@@ -126,7 +125,6 @@ namespace mer {
 	MatrixNs::dgeMatrix ZtX;
 	MatrixNs::dpoMatrix XtX;
 	MatrixNs::chmDn cZtX;
-	double *ldR2;
     };
 
     class lmer {
