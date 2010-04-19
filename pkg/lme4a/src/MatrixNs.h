@@ -210,6 +210,9 @@ namespace MatrixNs {
 	    return ::M_cholmod_sdmult(this, Trans(tr).TR == 'T', &alpha,
 				      &beta, &src, &dest, &c);
 	}
+	CHM_SP aat() {
+	    return ::M_cholmod_aat(this, (int*)NULL, 0/*fsize*/, 1/*mode*/, &c);
+	}
     };
 
     class chmFa : public cholmod_factor {
@@ -222,6 +225,9 @@ namespace MatrixNs {
 	}
 	CHM_DN solve(int sys, CHM_DN b) {
 	    return ::M_cholmod_solve(sys, this, b, &c);
+	}
+	CHM_SP spsolve(int sys, CHM_SP b) {
+	    return ::M_cholmod_spsolve(sys, this, b, &c);
 	}
     };
 }
