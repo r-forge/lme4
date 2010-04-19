@@ -7,6 +7,20 @@ extern cholmod_common c;
 
 static double l2PI = log(2. * PI);
 
+static void showdbl(const double* x, const char* nm, int n) {
+    int n5 = (n < 5) ? n : 5;
+    Rprintf("%s: %g", nm, x[0]);
+    for (int i = 1; i < n5; i++) Rprintf(", %g", x[i]);
+    Rprintf("\n");
+}
+
+static void showint(const int* x, const char* nm, int n) {
+    int n20 = (n < 20) ? n : 20;
+    Rprintf("%s: %d", nm, x[0]);
+    for (int i = 1; i < n20; i++) Rprintf(", %d", x[i]);
+    Rprintf("\n");
+}
+
 namespace mer{
 
     reModule::reModule(S4 xp) :
@@ -129,13 +143,30 @@ namespace mer{
 
     void lmerSpFeMod::updateRzxRx(reModule &re) {
 	double mone[] = {-1.,0}, one[] = {1.,0};
+	Rprintf("Lambda (%d, %d), nnz = %d\n",
+		re.Lambda.nrow, re.Lambda.ncol, ::M_cholmod_nnz(&(re.Lambda), &c));
 	CHM_SP t1 = re.Lambda.transpose();
+	Rprintf("t(Lambda) (%d, %d), nnz = %d\n",
+		t1->nrow, t1->ncol, ::M_cholmod_nnz(t1, &c));
 	CHM_SP t2 = ::M_cholmod_ssmult(t1, &ZtX, 0/*stype*/,
 				       1/*values*/, 1/*sorted*/, &c);
+	Rprintf("crossprod(Lambda, ZtX) (%d, %d), nnz = %d\n",
+		t2->nrow, t2->ncol, ::M_cholmod_nnz(t2, &c));
+
+	Rprintf("L.n = %d\n", re.L.n);
+	showint((int*)re.L.Perm, "re.L.Perm", re.L.n);
+	showint((int*)t2->p, "t2->p", (t2->ncol) + 1);
 	::M_cholmod_free_sparse(&t1, &c);
-	t1 = re.L.spsolve(CHOLMOD_P, t2);
+//	t1 = re.L.spsolve(CHOLMOD_P, t2);
+	t1 = ::M_cholmod_spsolve(CHOLMOD_P, &(re.L), t2, &c);
+	showint((int*)t1->p, "t1->p", (t1->ncol) + 1);
+	Rprintf("solve(crossprod(Lambda, ZtX), L, \"P\") (%d, %d), nnz = %d\n",
+		t1->nrow, t1->ncol, ::M_cholmod_nnz(t1, &c));
 	::M_cholmod_free_sparse(&t2, &c);
-	t2 = re.L.spsolve(CHOLMOD_L, t1);
+	t2 = ::M_cholmod_spsolve(CHOLMOD_L, &(re.L), t1, &c);
+//	t2 = re.L.spsolve(CHOLMOD_L, t1);
+	Rprintf("solve(crossprod(Lambda, ZtX), L, \"L\") (%d, %d), nnz = %d\n",
+		t2->nrow, t2->ncol, ::M_cholmod_nnz(t2, &c));
 	RZX.update(*t2);
 
 	::M_cholmod_free_sparse(&t1, &c);
