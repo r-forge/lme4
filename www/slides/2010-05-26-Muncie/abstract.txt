@@ -1,0 +1,28 @@
+   A Likelihood Approach for Fitting Nonlinear Mixed-Effects Models
+	     to Pharmacokinetic and Pharmacodynamic Data
+
+			    Douglas Bates
+		       Department of Statistics
+		  University of Wisconsin - Madison
+
+Nonlinear mixed-effects models are widely used in the analysis of
+population pharmacokinetic and pharmacodynamic data, providing
+valuable information for drug development and for evaluation by
+regulatory agencies.  Over the years many algorithms for obtaining the
+parameter estimates in these models have been developed and
+incorporated in various software packages.  Estimates from such
+algorithms are often compared to assess which are the "better" ways of
+determining the estimates.  Unfortunately, concentrating on algorithms
+and estimates provided by them misses the point.  A nonlinear
+mixed-effects model is a statistical model and we define the estimates
+from such a model as those parameter values that optimize a criterion,
+such as the log-likelihood or the posterior density for some prior on
+the parameters.  If we want to compare algorithms that are intended to
+produce maximum likelihood estimates then we should settle on a
+reliable way of evaluating the likelihood for a model/data set
+combination and compare the likelihoods at the estimates provided by
+different algorithms.  More importantly we should evaluate the
+precision of parameter estimates according to the change in the
+likelihood.  I'll describe how this can be done.  Regretably, doing so
+leads to the conclusion that many widely-accepted methods grossly
+underestimate the variability in parameter estimates for such models. 
