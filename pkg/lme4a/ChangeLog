@@ -1,3 +1,8 @@
+2010-04-13  Martin Maechler  <maechler@stat.math.ethz.ch>
+
+	* R/profile.R (ans): replace use of vcov() by unscaledVar() in
+	devfun() used inside profile().
+
 2010-03-18  Martin Maechler  <maechler@stat.math.ethz.ch>
 
 	* DESCRIPTION (Depends): must depend on (not just import) minqa, at
