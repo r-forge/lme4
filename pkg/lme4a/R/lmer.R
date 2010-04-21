@@ -1064,7 +1064,7 @@ setMethod("VarCorr", signature(x = "mer"), function(x)
 ## This is modeled a bit after  print.summary.lm :
 ## Prints *both*  'mer' and 'merenv' - as it uses summary(x) mainly
 printMerenv <- function(x, digits = max(3, getOption("digits") - 3),
-                        correlation = TRUE, symbolic.cor = FALSE,
+                        correlation = NULL, symbolic.cor = FALSE,
                         signif.stars = getOption("show.signif.stars"), ...)
 {
     so <- summary(x)
@@ -1087,10 +1087,21 @@ printMerenv <- function(x, digits = max(3, getOption("digits") - 3),
     cat(sprintf("Number of obs: %d, groups: ", so$devcomp$dims[["n"]]))
     cat(paste(paste(names(ngrps), ngrps, sep = ", "), collapse = "; "))
     cat("\n")
-    if (nrow(so$coefficients) > 0) {
+    p <- nrow(so$coefficients)
+    if (p > 0) {
 	cat("\nFixed effects:\n")
 	printCoefmat(so$coefficients, zap.ind = 3, #, tst.ind = 4
 		     digits = digits, signif.stars = signif.stars)
+	if(!is.logical(correlation)) { # default
+	    correlation <- p <= 20
+	    if(!correlation) {
+		nam <- deparse(substitute(x)) # << TODO: improve if this is called from show()
+		cat(sprintf(paste("\nCorrelation matrix not shown, as p = %d > 20.",
+				  "Use print(%s, correlation=TRUE)  or",
+				  "    vcov(%s)	 if you need it\n", sep="\n"),
+			    p, nam, nam))
+	    }
+	}
 	if(correlation) {
 	    if(is.null(VC <- so$vcov)) VC <- vcov(x)
 	    corF <- VC@factors$correlation
