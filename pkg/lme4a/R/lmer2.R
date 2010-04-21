@@ -94,7 +94,7 @@ mkReModule <- function(bars, fr, rwt = FALSE, s = 1L) {
     ll$theta[] <- is.finite(ll$lower)   # initial values of theta are 0 off-diagonal, 1 on
     Lambda@x[] <- ll$theta[ll$Lind]     # initialize elements of Lambda
     ll$Lambda <- Lambda
-    
+
     ll$Ut <- crossprod(Lambda, Zt)
     ll$Class <- "reModule"
     if (rwt) {                          # different class with more information
@@ -133,7 +133,7 @@ mkReModule <- function(bars, fr, rwt = FALSE, s = 1L) {
 ##' @param reMod the reModule for the model
 ##' @param sparseX Logical indicator of sparse X
 ##' @param rwt Logical indicator of reweightable
-##' 
+##'
 ##' @return an object that inherits from feModule
 mkFeModule <-
     function(form, fr, contrasts, reMod, sparseX, rwt = FALSE, s = 1L) {
@@ -221,62 +221,68 @@ mkRespMod <- function(fr, reMod, feMod, family = NULL, nlenv = NULL) {
 
 S4toEnv <- function(from) {
     stopifnot(isS4(from))
+    ## and we want each to assign each of the slots of the slots
     ans <- new.env()
     for (nm in slotNames(from)) {
-        sl <- slot(from, nm)
-        for (nnm in slotNames(sl)) assign(nnm, slot(sl, nnm), envir = ans)
+	sNms <- slotNames(sl <- slot(from, nm))
+	if(length(sNms)) # assign each of the slots of sl
+	    for (nnm in sNms) assign(nnm, slot(sl, nnm), envir = ans)
+	else ## assign sl itself
+	    assign(nm, sl)
     }
     ans
 }
 
-setAs("lmerDe", "optenv", function (from)
-  {
-      rho <- S4toEnv(from)
-      n <- length(rho$y)
-      rho$nobs <- n
-      rho$REML <- from@REML
-      rho$nmp <- n - length(rho$beta)
-      sP <- function(x) {
-          stopifnot(length(x) == length(theta))
-          ## new theta := x
-          theta <<- as.numeric(x)
-          Lambda@x[] <<- theta[Lind]           # update Lambda
-          Ut <<- crossprod(Lambda, Zt)
-          Matrix:::destructive_Chol_update(L, Ut, Imult = 1)
-          cu <- solve(L, solve(L, crossprod(Lambda, Utr), sys = "P"), sys = "L")
-          RZX <<- solve(L, solve(L, crossprod(Lambda, ZtX), sys = "P"), sys = "L")
-          if (is(X, "sparseMatrix")) {
-              RX <<- update(RX, XtX - crossprod(RZX))
-              beta[] <<- solve(RX, Xty - crossprod(RZX, cu))
-          } else {
-              RX <<- chol(XtX - crossprod(RZX))
-              beta[] <<- solve(RX, solve(t(RX), Vtr - crossprod(RZX, cu)))@x
-          }
-          u[] <<- solve(L, solve(L, cu - RZX %*% beta, sys = "Lt"), sys = "Pt")@x
-          mu[] <<- (if(length(offset)) offset else 0) + (crossprod(Ut, u) + X %*% beta)@x
-          pwrss <<- sum(c(y - mu, u)^2) # penalized residual sum of squares
-          ldL2[] <<- 2 * determinant(L)$mod
-          if (REML) {
-              ldRX2[] <<- 2 * determinant(RX)$mod
-              return(ldL2 + ldRX2 + nmp * (1 + log(2 * pi * pwrss/nmp )))
-          }
-          ldL2 + nobs * (1 + log(2 * pi * pwrss/nobs))
-      }
-      gP <- function() theta
-      gB <- function() cbind(lower = lower,
-                             upper = rep.int(Inf, length(theta)))
-      environment(sP) <- environment(gP) <- environment(gB) <- rho
-      new("optenv", setPars = sP, getPars = gP, getBounds = gB)
-  })
+.lmerDE2env <- function (from, envclass)
+{
+    rho <- S4toEnv(from)
+    n <- length(rho$y)
+    p <- length(rho$beta)
+    rho$nobs <- n
+    rho$nmp <- n - p
+    sP <- function(x) {
+        stopifnot(length(x) == length(theta))
+        ## new theta := x
+        theta <<- as.numeric(x)
+        Lambda@x[] <<- theta[Lind]      # update Lambda
+        Ut <<- crossprod(Lambda, Zt)
+        Matrix:::destructive_Chol_update(L, Ut, Imult = 1)
+        cu <- solve(L, solve(L, crossprod(Lambda, Utr), sys = "P"), sys = "L")
+        RZX <<- solve(L, solve(L, crossprod(Lambda, ZtX), sys = "P"), sys = "L")
+        if (is(X, "sparseMatrix")) {
+            RX <<- update(RX, XtX - crossprod(RZX))
+            beta[] <<- solve(RX, Xty - crossprod(RZX, cu))
+        } else {
+            RX <<- chol(XtX - crossprod(RZX))
+            beta[] <<- solve(RX, solve(t(RX), Vtr - crossprod(RZX, cu)))@x
+        }
+        u[] <<- solve(L, solve(L, cu - RZX %*% beta, sys = "Lt"), sys = "Pt")@x
+        mu[] <<- (if(length(offset)) offset else 0) + (crossprod(Ut, u) + X %*% beta)@x
+        pwrss <<- sum(c(y - mu, u)^2) # penalized residual sum of squares
+        ldL2[] <<- 2 * determinant(L)$mod
+        if (REML) {
+            ldRX2[] <<- 2 * determinant(RX)$mod
+            return(ldL2 + ldRX2 + nmp * (1 + log(2 * pi * pwrss/nmp )))
+        }
+        ldL2 + nobs * (1 + log(2 * pi * pwrss/nobs))
+    }
+    gP <- function() theta
+    gB <- function() cbind(lower = lower,
+                           upper = rep.int(Inf, length(theta)))
+    environment(sP) <- environment(gP) <- environment(gB) <- rho
+    new(envclass, setPars = sP, getPars = gP, getBounds = gB)
+}
+setAs("lmerDe", "optenv", function(from) .lmerDE2env(from, "optenv"))
+## This is currently wrong  (e.g. "beta" instead of "fixef", ...)
+setAs("lmerDe", "lmerenv", function(from) .lmerDE2env(from, "lmerenv"))
 
-lmer2 <-
-    function(formula, data, REML = TRUE, sparseX = FALSE,
-             control = list(), start = NULL, verbose = 0, doFit = TRUE,
-             subset, weights, na.action, offset,
-             contrasts = NULL, ...)
+lmer2 <- function(formula, data, REML = TRUE, sparseX = FALSE,
+                  control = list(), start = NULL, verbose = 0, doFit = TRUE,
+                  subset, weights, na.action, offset,
+                  contrasts = NULL, ...)
 {
     mf <- mc <- match.call()
-### '...' handling up front, safe-guarding against typos ("familiy") :
+    ## '...' handling up front, safe-guarding against typos ("familiy") :
     if(length(l... <- list(...))) {
         if (!is.null(l...$family)) {  # call glmer if family specified
             mc[[1]] <- as.name("glmer")
@@ -312,18 +318,18 @@ lmer2 <-
                                         # fixed-effects module
     feMod <- mkFeModule(formula, fr, contrasts, reList$reMod, sparseX)
     respMod <- mkRespMod(fr, reList$reMod, feMod)
-    ans <- new(ifelse (sparseX, "lmerTrmsSp", "lmerTrmsDe"), trms = reList$Trms,
-               re = reList$reMod, fe = feMod, resp = respMod, REML = REML)
-    devfun <- function(th) {
-        if (is(ans, "lmerSp")) return(.Call(update_lmerSp, ans, th))
-        .Call(update_lmerDe, ans, th)
-    }
-
+    ans <- new(ifelse (sparseX, "lmerTrmsSp", "lmerTrmsDe"), call = mc,
+	       trms = reList$Trms, re = reList$reMod, fe = feMod, resp = respMod,
+	       REML = REML)
     if (doFit) {                        # optimize estimates
+        devfun <- function(th) {
+            if (is(ans, "lmerSp")) return(.Call(update_lmerSp, ans, th))
+            .Call(update_lmerDe, ans, th)
+        }
         if (length(ans@re@theta) < 2) { # use optimize
             d0 <- devfun(0)
             opt <- optimize(devfun, c(0, 10))
-            if (d0 <= opt$objective) devfun(0) # prefer theta == 0 when close
+            if (d0 <= opt$objective) d0 # prefer theta == 0 when close
         } else {
             if (verbose) control$iprint <- 2L
             bobyqa(ans@re@theta, devfun, ans@re@lower, control = control)
