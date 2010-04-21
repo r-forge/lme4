@@ -62,19 +62,20 @@ update_dr_env <- function(rho, fw) {
     NULL
 }
 
-##' Return a function for evaluation of the deviance.
-
+##' <description>
+##'
+##' <details>
+##' @title Return a function for evaluation of the deviance.
+##'
 ##' The deviance is profiled with respect to the fixed-effects
 ##' parameters but not with respect to sigma, which is expressed
 ##' on the logarithmic scale, lsigma. The other parameters are on
 ##' the standard deviation scale, not the theta scale.
-
+##'
 ##' @param fm a fitted model of class lmerenv
-
 ##' @return a function for evaluating the deviance in the extended
 ##'     parameterization.  This is profiled with respect to the
 ##'     fixed-effects but not with respect to sigma.
-
 devfun <- function(fm)
 {
     stopifnot(is(fm, "lmerenv"))
@@ -82,6 +83,7 @@ devfun <- function(fm)
     rm(fm)
     rho <- env(fm1)
     if (rho$REML) rho$REML <- FALSE
+
     nlminb(fm1@getPars(), fm1@setPars, lower = rho$lower)
 ### FIXME: check for convergence
 
@@ -91,22 +93,23 @@ devfun <- function(fm)
     np <- length(rho$theta) + 1L
     ans <- function(pars)
     {
-        stopifnot(is.numeric(pars),
-                  length(pars) == np,
-                  all(pars >= c(rho$lower, -Inf)))
+        stopifnot(is.numeric(pars), length(pars) == np)
+        ## Assumption:  1) last parameter = log(sigma); 2) other pars are on SD-scale
         sigma <- exp(pars[np])
-        fm1@setPars(pars[-np]/sigma)
+        pp <- pars[-np]/sigma
+        stopifnot(all(pp >= rho$lower))
+        fm1@setPars(pp)
         sigsq <- sigma^2
         dc <- devcomp(fm1)
-        unname(dc$cmp["ldL2"] + dc$cmp["pwrss"]/sigsq +
-               dc$dims["n"] * log(2 * pi * sigsq))
+        dc$cmp[["ldL2"]] + dc$cmp[["pwrss"]]/sigsq +
+               dc$dims[["n"]] * log(2 * pi * sigsq)
     }
     opt <- c(sig * rho$theta, lsig)
     names(opt) <- c(sprintf(".sig%02d", seq_along(rho$theta)), ".lsig")
     attr(ans, "optimum") <- c(opt, rho$fixef)
     attr(ans, "basedev") <- basedev
     attr(ans, "thopt") <- rho$theta
-    attr(ans, "stderr") <- vcov(fm1)@factors$correlation@sd
+    attr(ans, "stderr") <- sig * sqrt(unscaledVar(RX = rho$RX))
     class(ans) <- "devfun"
     ans
 }
@@ -260,6 +263,10 @@ setMethod("profile", "lmerenv",
           class(ans) <- c("thpr", "data.frame")
           ans
       })
+
+## A cheap substitute (for now) -- need keep lme4a  working
+setMethod("profile", "lmer", function(fitted, ...) profile(fitted@env, ...))
+
 
 ##' extract only the y component from a prediction
 predy <- function(sp, vv) predict(sp, vv)$y
