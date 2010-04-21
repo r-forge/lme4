@@ -528,7 +528,7 @@ setClass("nglmerResp", contains = c("glmerResp", "nlmerResp"))
 ##' In general an mer object does not associate components of the
 ##' random-effects vector, b, with particular terms in a formula. That
 ##' association is represented separately by this class.
-##' 
+##'
 ##'
 setClass("merTrms",
          representation(flist = "list", cnms = "list"),
@@ -586,11 +586,13 @@ validTrms <- function(object) {
 }
 
 setClass("lmerTrmsDe",
-         representation(trms = "merTrms"),
+         representation(call = "call",	 # matched call
+                        trms = "merTrms"),
          contains = "lmerDe",
          validity = validTrms)
 
 setClass("lmerTrmsSp",
-         representation(trms = "merTrms"),
+         representation(call = "call",	 # matched call
+                        trms = "merTrms"),
          contains = "lmerSp",
          validity = validTrms)

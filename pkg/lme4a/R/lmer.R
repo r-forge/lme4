@@ -225,7 +225,7 @@ lmer <-
              contrasts = NULL, ...)
 {
     mf <- mc <- match.call()
-### '...' handling up front, safe-guarding against typos ("familiy") :
+    ## '...' handling up front, safe-guarding against typos ("familiy") :
     if(length(l... <- list(...))) {
         if (!is.null(l...$family)) {  # call glmer if family specified
             mc[[1]] <- as.name("glmer")
@@ -255,7 +255,7 @@ lmer <-
     mf <- mf[c(1, m)]
     mf$drop.unused.levels <- TRUE
     mf[[1]] <- as.name("model.frame")
-    fr.form <- subbars(formula) # substituted "|" by "+" -
+    fr.form <- subbars(formula)         # substituted "|" by "+" -
     environment(fr.form) <- environment(formula)
     mf$formula <- fr.form
     check_y_weights(fr <- eval(mf, parent.frame()), rho)
@@ -273,7 +273,7 @@ lmer <-
     rho$sparseX <- sparseX
 
     rho$p <- p <- ncol(X)
-    stopifnot((rho$nmp <- rho$nobs - p) > 0)# nmp := n m[inus] p
+    stopifnot((rho$nmp <- rho$nobs - p) > 0) # nmp := n m[inus] p
     fixef <- numeric(p)
     names(fixef) <- colnames(X)
     rho$fixef <- fixef
@@ -312,7 +312,7 @@ lmer <-
             stopifnot(length(x) == length(theta))
             ## new theta := x
             theta <<- as.numeric(x)
-            Lambda@x[] <<- theta[Lind]           # update Lambda
+            Lambda@x[] <<- theta[Lind]  # update Lambda
             Ut <<- crossprod(Lambda, Zt)
             Matrix:::destructive_Chol_update(L, Ut, Imult = 1)
             cu <- solve(L, solve(L, crossprod(Lambda, Zty), sys = "P"),
@@ -320,7 +320,7 @@ lmer <-
             RZX <<- solve(L, solve(L, crossprod(Lambda, ZtX), sys = "P"),
                           sys = "L")
             RX <<- if (sparseX) update(RX, XtX - crossprod(RZX)) else
-                   chol(XtX - crossprod(RZX))
+            chol(XtX - crossprod(RZX))
             fixef[] <<- if (sparseX) solve(RX, Xty - crossprod(RZX, cu))@x
             else solve(RX, solve(t(RX), Xty - crossprod(RZX, cu)))@x
             u[] <<- solve(L, solve(L, cu - RZX %*% fixef, sys = "Lt"),
