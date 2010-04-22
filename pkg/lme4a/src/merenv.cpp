@@ -25,11 +25,11 @@ merenv::merenv(SEXP rho)
 	error(_("Response vector y must be numeric (double) and non-empty"));
     y = REAL(sl);
 
-    sl = findVarBound(rho, lme4_fixefSym);
-    if (!isReal(sl))		// p = length of fixef
-	error(_("fixef vector must be numeric (double)"));
+    sl = findVarBound(rho, lme4_betaSym);
+    if (!isReal(sl))		// p = length of beta
+	error(_("beta vector must be numeric (double)"));
     p = LENGTH(sl);
-    fixef = REAL(sl);
+    beta = REAL(sl);
 
     sl = findVarBound(rho, lme4_uSym);
     if (!(q = LENGTH(sl)) || !isReal(sl)) // q = length of u
@@ -120,13 +120,13 @@ void merenv::update_gamma() {
     static double one[] = {1,0};
     CHM_DN cu = N_AS_CHM_DN(u, q, 1),
 	cgamma = N_AS_CHM_DN(gam, N, 1),
-	cfixef = N_AS_CHM_DN(fixef, p, 1);
+	cbeta = N_AS_CHM_DN(beta, p, 1);
     if (offset)			// initialize to offset if used
 	dble_cpy(gam, offset, N);
     else			// otherwise initialize to zero
 	dble_zero(gam, N);
     M_cholmod_sdmult(Ut, 1/*transpose*/, one, one, cu, cgamma, &c);
-    Xp->drmult(0/*transpose*/, 1, 1, cfixef, cgamma);
+    Xp->drmult(0/*transpose*/, 1, 1, cbeta, cgamma);
 }
 
 double merenv::update_pwrss() {
@@ -353,7 +353,7 @@ double lmer::update_dev(SEXP thnew) {
 	RZXp->drmult(1/*transpose*/, -1.0, 1.0, cu, tt);
 	CHM_DN ff = RXp->solveA(tt);
 	M_cholmod_free_dense(&tt, &c);
-	dble_cpy(fixef, (double*)ff->x, p);
+	dble_cpy(beta, (double*)ff->x, p);
 	RZXp->drmult(0/*no trans*/, -1.0, 1.0, ff, cu);
 	M_cholmod_free_dense(&ff, &c);
     }
@@ -526,7 +526,7 @@ void glmer::update_RX() {
     VtV->freeA(); delete VtV;
 }
 
-    
+
 double glmer::PIRLSbeta() {
     int cvg = 1;//, info;
     double *betaold = new double[p], *varold = (double*)NULL,
@@ -562,7 +562,7 @@ double glmer::IRLS() {
     crit = 10. * CM_TOL;
     for (int i = 0; crit >= CM_TOL && i < CM_MAXITER; i++) {
 	dble_cpy(varold, var, n);
-	dble_cpy(betaold, fixef, p);
+	dble_cpy(betaold, beta, p);
 	update_gamma();		// linear predictor
 	linkinv();		// mu and muEta
 	update_sqrtXwt();
@@ -577,14 +577,14 @@ double glmer::IRLS() {
 	wrss1 = wrss0;		// force one evaluation of the loop
 	for (step = 1.; wrss0 <= wrss1 && step > CM_SMIN; step /= 2.) {
 	    for (int k = 0; k < p; k++)
-		fixef[k] = betaold[k] + step * ((double*)deltaf->x)[k];
+		beta[k] = betaold[k] + step * ((double*)deltaf->x)[k];
 	    update_gamma();
 	    linkinv();
 	    wrss1 = update_wtres();
 	    if (verbose > 1) {
 		Rprintf("step = %g, wrss0 = %g; wrss1 = %g\n",
-			step, wrss0, wrss1, fixef[0]);
-		showdbl(fixef, "fixef", p);
+			step, wrss0, wrss1, beta[0]);
+		showdbl(beta, "beta", p);
 	    }
 	}
 	update_sqrtrwt();

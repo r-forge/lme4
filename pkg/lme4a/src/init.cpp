@@ -59,8 +59,8 @@ void R_init_lme4a(DllInfo *dll)
     lme4_UtSym = install("Ut");
     lme4_XSym = install("X");
     lme4_ZtSym = install("Zt");
+    lme4_betaSym = install("beta");
     lme4_familySym = install("family");
-    lme4_fixefSym = install("fixef");
     lme4_flistSym = install("flist");
     lme4_gammaSym = install("gamma");
     lme4_ghwSym = install("ghw");

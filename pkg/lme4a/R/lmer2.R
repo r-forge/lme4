@@ -233,6 +233,7 @@ S4toEnv <- function(from) {
     ans
 }
 
+## Really need a separate  dense / sparse version of this ????
 .lmerDE2env <- function (from, envclass)
 {
     rho <- S4toEnv(from)
@@ -273,7 +274,7 @@ S4toEnv <- function(from) {
     new(envclass, setPars = sP, getPars = gP, getBounds = gB)
 }
 setAs("lmerDe", "optenv", function(from) .lmerDE2env(from, "optenv"))
-## This is currently wrong  (e.g. "beta" instead of "fixef", ...)
+## This is currently wrong  (e.g. "wrss" instead of "pwrss", ...)
 setAs("lmerDe", "lmerenv", function(from) .lmerDE2env(from, "lmerenv"))
 
 lmer2 <- function(formula, data, REML = TRUE, sparseX = FALSE,
