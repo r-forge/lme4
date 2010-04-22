@@ -56,6 +56,7 @@ setGeneric("mcmcsamp",
 }
 
 setGeneric("sigma", function(object, ...) standardGeneric("sigma"))
+setGeneric("getL", function(x) standardGeneric("getL"))
 
 if (FALSE) {
 setGeneric("refit", function(object, newresp, ...) standardGeneric("refit"))

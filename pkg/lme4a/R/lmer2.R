@@ -166,7 +166,7 @@ mkFeModule <-
     } else {                            # lmer model (the only non-reweightable type)
         ll$ZtX <- ll$RZX
         ll$XtX <- crossprod(ll$X)
-        ll$ldR2 <- numeric(1)
+        ll$ldRX2 <- numeric(1)
     }
     do.call("new", ll)
 }
@@ -250,16 +250,16 @@ S4toEnv <- function(from) {
     rho$verbose <-
         length(v <- as.list(cl)[names(cl) == "verbose"]) && !identical(FALSE, eval(v))
 
-    ## temporary workarounds:
+    ## temporary "workarounds":
+    rho$pwrss <- rho$wrss + sum(rho$u ^ 2)
     rho$sparseX <- FALSE ## <<-- lmerDE* <==> dense
     rho$gamma <- rho$mu ## needed ?
-    ## name change
-    rho$pwrss <- rho$wrss
-    rho$ldRX2 <- rho$ldR2
-    ## not yet started
-    y <- rho$y
-    rho$Xty   <- as.vector(crossprod(rho$X, y))
-    rho$Zty   <- rho$Zt %*% y
+    ## FIXME: (get rid of these ASAP)
+    rho$Xty <- rho$Vtr # as.vector(crossprod(rho$X, y))
+    rho$Zty <- as(cbind(rho$Utr), "Matrix") # rho$Zt %*% y
+
+    ## not yet stored (?)
+    ## y <- rho$y
     rho$sqrtrWt <- sqrt(rho$weights)
     ##  sqrtXWt  :=  sqrt of model matrix row weights
     rho$sqrtXWt <- sqrt(rho$weights)    # to ensure a distinct copy
@@ -282,6 +282,7 @@ S4toEnv <- function(from) {
         }
         u[] <<- solve(L, solve(L, cu - RZX %*% beta, sys = "Lt"), sys = "Pt")@x
         mu[] <<- (if(length(offset)) offset else 0) + (crossprod(Ut, u) + X %*% beta)@x
+
         pwrss <<- sum(c(y - mu, u)^2) # penalized residual sum of squares
         ldL2[] <<- 2 * determinant(L)$mod
         if (REML) {

@@ -48,7 +48,7 @@ importMethodsFrom("Matrix",
                   update)
 
 
-export(VarCorr, copyMerenv, devcomp, env, # getBounds, getPars,
+export(VarCorr, copyMerenv, devcomp, env, getL, # getBounds, getPars,
        glmer, lmList, lmer, lmer2, nlmer, # setPars,
        sigma, findbars, nobars, subbars, isNested)
 
@@ -56,7 +56,7 @@ exportClasses(lmList,
 	      ## export all super classes of e.g., "lmerenv",
 	      ## so users can query the class system :
 	      optenv, merenv, merenvtrms, lmerenv, glmerenv,
-              mer, lmer, glmer, 
+              mer, lmer, glmer,
               reModule, rwReMod, feModule, deFeMod, spFeMod,
               lmerDeFeMod, lmerSpFeMod, rwDeFeMod, rwSpFeMod,
               merResp, lmerResp, rwResp, glmerResp, nlmerResp,
@@ -66,7 +66,7 @@ exportClasses(lmList,
 
 exportMethods(VarCorr, anova, bobyqa, coef, coerce, confint, deviance,
               devcomp,
-              fixef, formula, #getBounds, getPars,
+              fixef, formula, getL, #getBounds, getPars,
               logLik, model.frame, model.matrix, nlminb,
               optimize, plot, print, profile, ranef, #setPars,
               show, sigma, summary, terms, update, vcov)
