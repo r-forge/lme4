@@ -39,6 +39,9 @@ setMethod("optimize", signature(f = "optenv"),
           ## the argument name 'tol' is matched from the generic
           stopifnot(length(f@getPars()) == 1)
           bb <- f@getBounds()
+	  if(any(is.infinite(bb))) ## optimize does not allow '+- Inf' bounds:
+	      bb <- pmin(.Machine$double.xmax,
+			 pmax(.Machine$double.xmin, bb))
           optimize(f@setPars, lower = bb[,"lower"], upper = bb[,"upper"], tol=tol)
       })
 

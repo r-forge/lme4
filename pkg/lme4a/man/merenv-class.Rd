@@ -26,7 +26,6 @@
 \alias{logLik,merenv-method}
 \alias{print,merenv-method}
 \alias{print,lmerenv-method}
-\alias{profile,lmerenv-method}
 \alias{show,merenv-method}
 \alias{show,lmerenv-method}
 \alias{summary,lmerenv-method}
@@ -83,7 +82,6 @@
     \item{deviance}{\code{signature(object = "lmerenv")}: ... }
     \item{logLik}{\code{signature(object = "lmerenv")}: ... }
     \item{print}{\code{signature(x = "lmerenv")}: ... }
-    \item{profile}{\code{signature(fitted = "lmerenv")}: ... }
     \item{show}{\code{signature(object = "lmerenv")}: ... }
     \item{summary}{\code{signature(object = "lmerenv")} and additional
       argument \code{varcov = FALSE}:  The resulting (S3 class)

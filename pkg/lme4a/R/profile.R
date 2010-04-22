@@ -106,7 +106,7 @@ devfun <- function(fm)
     }
     opt <- c(sig * rho$theta, lsig)
     names(opt) <- c(sprintf(".sig%02d", seq_along(rho$theta)), ".lsig")
-    attr(ans, "optimum") <- c(opt, rho$beta)
+    attr(ans, "optimum") <- c(opt, fixef(fm1)) # w/ names()
     attr(ans, "basedev") <- basedev
     attr(ans, "thopt") <- rho$theta
     attr(ans, "stderr") <- sig * sqrt(unscaledVar(RX = rho$RX))
