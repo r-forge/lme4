@@ -13,7 +13,7 @@ namespace mer {
 	reModule(Rcpp::S4);
 
 	void updateTheta(const Rcpp::NumericVector&);
-	//< Lambda@x[] <- theta[Lind]; Ut <- crossprod(Lambda, Zt); update(L,Ut,1); ldL2 
+	//< Lambda@x[] <- theta[Lind]; Ut <- crossprod(Lambda, Zt); update(L,Ut,1); ldL2
 	double sqLenU() const {	//< squared length of u
 	    return std::inner_product(u.begin(), u.end(), u.begin(), double());
 	}
@@ -28,16 +28,16 @@ namespace mer {
 	Rcpp::NumericVector lower, theta, u;
 	double *ldL2;
     };
-    
+
     class merResp {
     public:
 	merResp(Rcpp::S4);
 	void updateL(reModule&);
 	//<  cu <- solve(L, solve(L, crossprod(Lambda, Utr), sys = "P"), sys = "L")
 	void updateWrss();	//< resid := y - mu; wrss := sum((sqrtrwts * resid)^2)
-	
+
 	Rcpp::NumericVector Utr, Vtr, cbeta,
-	    cu, mu, offset, resid, weights, y; 
+	    cu, mu, offset, resid, weights, y;
 	MatrixNs::chmDn cUtr, ccu;
 	double *wrss;
     };
@@ -46,14 +46,14 @@ namespace mer {
     public:
 	feModule(Rcpp::S4 xp) :
 	    beta(SEXP(xp.slot("beta"))) {
-	    Rcpp::NumericVector ldR2Vec(SEXP(xp.slot("ldR2")));
-	    ldR2 = ldR2Vec.begin();
+	    Rcpp::NumericVector l_vec(SEXP(xp.slot("ldRX2")));
+	    ldRX2 = l_vec.begin();
 	}
 
-	double *ldR2;
+	double *ldRX2;
 	Rcpp::NumericVector beta;
     };
-    
+
     class deFeMod : public feModule {
     public:
 	deFeMod(Rcpp::S4 xp) :
@@ -62,7 +62,7 @@ namespace mer {
 	    RZX(Rcpp::S4(SEXP(xp.slot("RZX")))),
 	    RX(Rcpp::S4(SEXP(xp.slot("RX")))),
 	    cRZX(RZX) { }
-	
+
 	MatrixNs::dgeMatrix X, RZX;
 	MatrixNs::Cholesky RX;
 	MatrixNs::chmDn cRZX;
@@ -75,7 +75,7 @@ namespace mer {
 	    X(Rcpp::S4(SEXP(xp.slot("X")))),
 	    RZX(Rcpp::S4(SEXP(xp.slot("RZX")))),
 	    RX(Rcpp::S4(SEXP(xp.slot("RX")))) { }
-	
+
 	MatrixNs::chmSp X, RZX;
 	MatrixNs::chmFa RX;
     };
@@ -99,7 +99,7 @@ namespace mer {
 	    X.dmult('N', 1., 1., bb, gg);
 	}
 	//< gamma += crossprod(Ut, u)
-	
+
 	MatrixNs::chmSp ZtX, XtX;
     };
 
@@ -121,7 +121,7 @@ namespace mer {
 	    X.dgemv('N', 1., beta, 1., gam);
 	}
 	//< gamma += crossprod(Ut, u)
-	
+
 	MatrixNs::dgeMatrix ZtX;
 	MatrixNs::dpoMatrix XtX;
 	MatrixNs::chmDn cZtX;
@@ -135,7 +135,7 @@ namespace mer {
 	    REML(SEXP(xp.slot("REML"))) {
 	    reml = (bool)*REML.begin();
 	}
-    
+
 	double deviance();
 	//< ldL2 + n *(1 + log(2 * pi * pwrss/n))
 
@@ -144,7 +144,7 @@ namespace mer {
 	Rcpp::LogicalVector REML;
 	bool reml;
     };
-	
+
     class lmerDe : public lmer {
     public:
 	lmerDe(Rcpp::S4 xp) :
@@ -152,7 +152,7 @@ namespace mer {
 	    fe(Rcpp::S4(SEXP(xp.slot("fe")))) {
 	}
 	double reCrit();
-	//< ldL2 + ldR2 + (n - p) * (1 + log(2 * pi * pwrss/(n - p)))
+	//< ldL2 + ldRX2 + (n - p) * (1 + log(2 * pi * pwrss/(n - p)))
 	double updateTheta(const Rcpp::NumericVector&);
 	lmerDeFeMod fe;
     };
@@ -164,7 +164,7 @@ namespace mer {
 	    fe(Rcpp::S4(SEXP(xp.slot("fe")))) {
 	}
 	double reCrit();
-	//< ldL2 + ldR2 + (n - p) * (1 + log(2 * pi * pwrss/(n - p)))
+	//< ldL2 + ldRX2 + (n - p) * (1 + log(2 * pi * pwrss/(n - p)))
 	double updateTheta(const Rcpp::NumericVector&);
 	lmerSpFeMod fe;
     };

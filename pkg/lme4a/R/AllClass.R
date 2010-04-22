@@ -359,15 +359,15 @@ setClass("spFeMod",
 setClass("lmerDeFeMod",
          representation(ZtX = "dgeMatrix",
                         XtX = "dpoMatrix",
-                        ldR2 = "numeric"),
+                        ldRX2 = "numeric"),
          contains = "deFeMod",
          validity = function(object) {
              if (any(dim(object@ZtX) != dim(object@RZX)))
                  return("dimensions of ZtX and RZX must match")
              if (any(dim(object@XtX) != dim(object@RX)))
                  return("dimensions of XtX and RX must match")
-             if (length(object@ldR2) != 1L)
-                 return("ldR2 must have length 1")
+             if (length(object@ldRX2) != 1L)
+                 return("ldRX2 must have length 1")
              TRUE
          })
 
@@ -376,15 +376,15 @@ setClass("lmerDeFeMod",
 setClass("lmerSpFeMod",
          representation(ZtX = "dgCMatrix",
                         XtX = "dsCMatrix",
-                        ldR2 = "numeric"),
+                        ldRX2 = "numeric"),
          contains = "spFeMod",
          validity = function(object) {
              if (any(dim(object@ZtX) != dim(object@RZX)))
                  return("dimensions of ZtX and RZX must match")
              if (any(dim(object@XtX) != dim(object@RX)))
                  return("dimensions of XtX and RX must match")
-             if (length(object@ldR2) != 1L)
-                 return("ldR2 must have length 1")
+             if (length(object@ldRX2) != 1L)
+                 return("ldRX2 must have length 1")
              TRUE
          })
 
@@ -552,27 +552,20 @@ setClass("merTrms",
          TRUE
      })
 
-setClass("lmerDe",
+## It will be useful to write methods for this:
+setClass("lmer2",
          representation(re = "reModule",
-                        fe = "lmerDeFeMod",
                         resp = "merResp",
-                        REML = "logical"),
+                        REML = "logical", "VIRTUAL"),
          validity = function(object)
      {
          if (is(object@re, "rwReMod") || is(object@resp, "rwResp"))
              return("lmer modules cannot be reweightable")
      })
 
-setClass("lmerSp",
-         representation(re = "reModule",
-                        fe = "lmerSpFeMod",
-                        resp = "merResp",
-                        REML = "logical"),
-         validity = function(object)
-     {
-         if (is(object@re, "rwReMod") || is(object@resp, "rwResp"))
-             return("lmer modules cannot be reweightable")
-     })
+setClass("lmerDe", representation(fe = "lmerDeFeMod"), contains = "lmer2")
+
+setClass("lmerSp", representation(fe = "lmerSpFeMod"), contains = "lmer2")
 
 validTrms <- function(object) {
     fl <- object@trms@flist
@@ -596,3 +589,7 @@ setClass("lmerTrmsSp",
                         trms = "merTrms"),
          contains = "lmerSp",
          validity = validTrms)
+
+## possibly write methods for this (instead of the above):
+setClassUnion("lmerTrms",
+              members = c("lmerTrmsDe", "lmerTrmsSp"))

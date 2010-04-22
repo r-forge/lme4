@@ -137,7 +137,7 @@ namespace mer{
     void lmerDeFeMod::updateRzxRx(reModule &re) {
 	DupdateL(re, cZtX, cRZX);
 	RX.update('T', -1., RZX, 1., XtX);
-	*ldR2 = RX.logDet2();
+	*ldRX2 = RX.logDet2();
     }
 
     void lmerDeFeMod::updateBeta(merResp &resp) {
@@ -185,7 +185,7 @@ namespace mer{
 	::M_cholmod_free_sparse(&t1, &c);
 	RX.update(*t2, 0.);
 	::M_cholmod_free_sparse(&t2, &c);
-	*ldR2 = ::M_chm_factor_ldetL2(&RX);
+	*ldRX2 = ::M_chm_factor_ldetL2(&RX);
     }
 
     void lmerSpFeMod::updateBeta(merResp &resp) {
@@ -209,13 +209,13 @@ namespace mer{
     double lmerSp::reCrit() {
 	double nmp = (double)(resp.y.size() - fe.beta.size()),
 	    prss = re.sqLenU() + *resp.wrss;
-	return *re.ldL2 + *fe.ldR2 + nmp * (1 + l2PI + log(prss/nmp));
+	return *re.ldL2 + *fe.ldRX2 + nmp * (1 + l2PI + log(prss/nmp));
     }
 
     double lmerDe::reCrit() {
 	double nmp = (double)(resp.y.size() - fe.beta.size()),
 	    prss = re.sqLenU() + *resp.wrss;
-	return *re.ldL2 + *fe.ldR2 + nmp * (1 + l2PI + log(prss/nmp));
+	return *re.ldL2 + *fe.ldRX2 + nmp * (1 + l2PI + log(prss/nmp));
     }
 
     double lmerDe::updateTheta(const NumericVector &nt) {

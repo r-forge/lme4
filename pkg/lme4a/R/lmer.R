@@ -647,6 +647,12 @@ setMethod("formula", "mer", function(x, ...) formula(x@call, ...))
 setMethod("fixef", "mer", function(object, ...)
 	  structure(object@beta, names = dimnames(object@X)[[2]]))
 
+setMethod("formula", "lmerTrms", function(x, ...) formula(x@call, ...))
+setMethod("fixef", "deFeMod", function(object, ...)
+	  structure(object@beta, names = dimnames(object@X)[[2]]))
+setMethod("fixef", "lmerTrms", function(object, ...) fixef(object@fe))
+
+
 if(FALSE) {## These are not used, rather the methods below
 setMethod("ranef", "merenv", function(object, ...)
 	  with(env(object), (Lambda %*% u)@x))
@@ -838,17 +844,39 @@ dotplot.coef.mer <- function(x, data, ...) {
     eval(mc)
 }
 
-setMethod("devcomp", "lmerenv",
-	  function(x, ...)
-	  with(env(x),
+
+
+.devc.lmer <- function(nobs, nmp, ldL2, ldRX2, pwrss) {
+    c(deviance = ldL2        + nobs * (1 + log(2 * pi * pwrss/nobs)),
+      REML     = ldL2 + ldRX2 + nmp * (1 + log(2 * pi * pwrss/nmp)))
+}
+
+setMethod("devcomp", "lmerenv", function(x, ...)
+	  with(env(x),# somewhat "ugly" (need 'lme4a:::' below ...)
 	       list(cmp =
 		    c(ldL2 = ldL2, ldRX2 = ldRX2, pwrss = pwrss,
-		      deviance = ldL2 + nobs * (1 + log(2 * pi * pwrss/nobs)),
-		      REML = ldL2 + ldRX2 +
-		      nmp * (1 + log(2 * pi * pwrss/nmp))),
+                      lme4a:::.devc.lmer(nobs, nmp, ldL2, ldRX2, pwrss)),
 		    dims =
 		    c(n = nobs, p = length(beta), nmp = nmp, q = nrow(Zt),
 		      useSc = TRUE))))
+
+## Cheap for now; not sure if the slot should be kept at all:
+setMethod("devcomp", "mer", function(x, ...) x@devcomp)
+
+setMethod("devcomp", "lmerTrms", function(x, ...)
+      {
+	  n <- nrow  (x@fe @ X)
+	  p <- length(x@fe @ beta)
+	  ldRX2 <-    x@fe @ ldRX2
+	  ldL2 <- x@re @ ldL2
+	  u    <- x@re @ u
+	  pwrss <- x@resp@wrss + sum(u*u)
+	  list(cmp =
+	       c(ldL2 = ldL2, ldRX2 = ldRX2, pwrss = pwrss,
+		 .devc.lmer(n, n-p, ldL2, ldRX2, pwrss)),
+	       dims = c(n = n, p = p, nmp = n-p, q = length(u), useSc = TRUE))
+      })
+
 
 setMethod("devcomp", "glmerenv",
 	  function(x, ...)
@@ -857,12 +885,15 @@ setMethod("devcomp", "glmerenv",
 		    dims = c(n = nobs, p = length(beta), q = nrow(Zt),
 			     useSc = useSc))))
 
-## Cheap for now; not sure if the slot should be kept at all:
-setMethod("devcomp", "mer", function(x, ...) x@devcomp)
 
-
-## I don't think this is used
+if(FALSE) ## I don't think this is used
 setMethod("env", "mer", function(x) env(x@env))
+
+setMethod("getL", "merenv", function(x) env(x)$L)
+setMethod("getL", "mer", function(x) x@L)
+setMethod("getL", "reModule", function(x) x@L)
+setMethod("getL", "lmer2", function(x) x@re@L)
+
 
 setMethod("sigma", signature(object = "merenv"),
 	  function (object, ...) {
@@ -879,6 +910,18 @@ setMethod("sigma", signature(object = "mer"), function (object, ...)
 	      sqrt(object@devcomp$cmp[["pwrss"]]/
 		   dm[[if(dm[["REML"]]) "nmp" else "n"]])
 	  else 1
+      })
+
+setMethod("sigma", signature(object = "lmerTrms"), function (object, ...)
+      {
+	  dc <- devcomp(object)
+	  dm <- dc$dims
+## in general {maybe use, making this into aux.function?
+## 	  if(dm[["useSc"]])
+## 	      sqrt(dc$cmp[["pwrss"]]/
+## 		   dm[[if(dc$cmp[["REML"]]) "nmp" else "n"]])
+## 	  else 1
+          sqrt(dc$cmp[["pwrss"]]/ dm[[if(object@REML) "nmp" else "n"]])
       })
 
 
@@ -1055,10 +1098,16 @@ setMethod("VarCorr", signature(x = "merenv"), function(x) {
 	      theta=rho$theta, flist=rho$flist)
 })
 
-##' Create the VarCorr object of variances and covariances
 setMethod("VarCorr", signature(x = "mer"), function(x)
     mkVarCorr(sigma(x), cnms=x@cnms, nc = x@ncTrms,
 	      theta=x@theta, flist=x@flist))
+
+setMethod("VarCorr", signature(x = "lmerTrms"), function(x) {
+    cnms <- x@trms@cnms
+    nc <- sapply(cnms, length)      # no. of columns per term
+    mkVarCorr(sigma(x), cnms=cnms, nc = nc,
+	      theta=x@re@theta, flist=x@trms@flist)
+})
 
 
 ## This is modeled a bit after  print.summary.lm :
@@ -1271,11 +1320,35 @@ summaryMer <- function(object, varcov = FALSE, ...)
 	     varcov=varcov)
 } ## summaryMer()
 
-setMethod("summary", signature(object = "lmerenv"), summaryMerenv)
-## and the *same* here [just for now?]:
-setMethod("summary", signature(object = "glmerenv"), summaryMerenv)
+summaryMer2 <- function(object, varcov = FALSE, ...)
+{
+    ## Compute	'vcov' only when  'varcov = TRUE', no longer by default
 
-setMethod("summary", signature(object = "mer"), summaryMer)
+    cld <- getClass(cl <- class(object))
+    ## begin{workaround} -- FIXME (later)
+    stopifnot(extends(cld, "lmerTrmsDe"))
+    isG <- FALSE ## extends(cld, "glmer")
+    isLmer <- TRUE
+    ## end{workaround}
+
+    rho <- list(RX = object@fe@RX,
+                ## FIXME : "family" !
+                flist = object@trms@flist,
+                call = object@call)
+    devC <- devcomp(object)
+    .summMer(object, rho=rho, devC = devC,
+	     flags = c(REML = object@REML, isLmer = isLmer, isGLmer= isG),
+	     varcov=varcov)
+} ## summaryMer2()
+
+
+setMethod("summary", "lmerenv", summaryMerenv)
+## and the *same* here [just for now?]:
+setMethod("summary", "glmerenv", summaryMerenv)
+
+setMethod("summary", "mer", summaryMer)
+
+setMethod("summary", "lmerTrms", summaryMer2)
 
 
 setMethod("model.frame", signature(formula = "merenv"),
@@ -1301,10 +1374,13 @@ setMethod("deviance", signature(object="lmerenv"),
               REML <- env(object)$REML
 	  devcomp(object)$cmp[[if(REML) "REML" else "deviance"]]
       })
-## The non-lmerenv case:
-setMethod("deviance", signature(object="merenv"),
-	  function(object, ...) devcomp(object)$cmp[["deviance"]])
-
+setMethod("deviance", signature(object="lmerTrms"),
+	  function(object, REML = NULL, ...)
+      {
+          if (missing(REML) || is.null(REML) || is.na(REML[1]))
+              REML <- object@REML
+	  devcomp(object)$cmp[[if(REML) "REML" else "deviance"]]
+      })
 setMethod("deviance", signature(object="lmer"),
 	  function(object, REML = NULL, ...)
       {
@@ -1312,6 +1388,11 @@ setMethod("deviance", signature(object="lmer"),
 	      REML <- object@dims[["REML"]]
 	  object@devcomp$cmp[[if(REML) "REML" else "deviance"]]
       })
+
+## The non-lmerenv case:
+setMethod("deviance", signature(object="merenv"),
+	  function(object, ...) devcomp(object)$cmp[["deviance"]])
+
 ## The non-lmer case:
 setMethod("deviance", signature(object="mer"),
 	  function(object, ...) object@devcomp$cmp[["deviance"]])
@@ -1348,6 +1429,29 @@ setMethod("logLik", signature(object="lmer"),
 		   n = dm[["n"]], p = dm[["p"]], np = dm[["np"]],
 		   REML = REML, hasScale = 1L)
       })
+setMethod("sigma", signature(object = "lmerTrms"), function (object, ...)
+      {
+	  dc <- devcomp(object)
+	  dm <- dc$dims
+## in general {maybe use, making this into aux.function?
+## 	  if(dm[["useSc"]])
+## 	      sqrt(dc$cmp[["pwrss"]]/
+## 		   dm[[if(dc$cmp[["REML"]]) "nmp" else "n"]])
+## 	  else 1
+          sqrt(dc$cmp[["pwrss"]]/ dm[[if(object@REML) "nmp" else "n"]])
+      })
+
+setMethod("logLik", signature(object="lmerTrms"),
+	  function(object, REML = NULL, ...)
+      {
+	  if (is.null(REML) || is.na(REML[1]))
+	      REML <- object@REML
+	  mkLogLik(deviance(object, REML = REML),
+		   n  = nrow  (object@fe @ X),
+		   p  = length(object@fe @ beta),
+		   np = length(object@re @ theta),
+		   REML = REML, hasScale = 1L)
+      })
 
 ## The non-lmerenv case:
 setMethod("logLik", signature(object="merenv"), function(object, ...)
@@ -1359,6 +1463,16 @@ setMethod("logLik", signature(object="merenv"), function(object, ...)
 		   p = length(rho$beta), np = length(rho$theta),
 		   hasScale = useSc)
       })
+setMethod("logLik", signature(object="mer"),
+	  function(object, REML = NULL, ...)
+      {
+	  dm <- object@dims
+	  stopifnot(is.logical(useSc <- dm[["useSc"]]))# required for non-lmer
+	  mkLogLik(deviance(object),
+		   n = dm[["n"]], p = dm[["p"]], np = dm[["np"]],
+		   hasScale = useSc)
+      })
+
 setMethod("logLik", signature(object="mer"),
 	  function(object, REML = NULL, ...)
       {
