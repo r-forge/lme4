@@ -228,7 +228,7 @@ S4toEnv <- function(from) {
 	if(length(sNms)) # assign each of the slots of sl
 	    for (nnm in sNms) assign(nnm, slot(sl, nnm), envir = ans)
 	else ## assign sl itself
-	    assign(nm, sl)
+	    assign(nm, sl, envir = ans)
     }
     ans
 }
@@ -239,8 +239,31 @@ S4toEnv <- function(from) {
     rho <- S4toEnv(from)
     n <- length(rho$y)
     p <- length(rho$beta)
+    nc <- sapply(rho$cnms, length)      # no. of columns per term
     rho$nobs <- n
     rho$nmp <- n - p
+    rho$ncTrms <- nc
+    rho$diagonalLambda <- all(nc == 1)
+    ## FIXME ? 'verbose' should also be part of one of the class modules (needed in C)
+    cl <- rho$call
+    ## This is only a cheap guess, possibly incorrect e.g., in 'lmer(*, verbose=verbose)':
+    rho$verbose <-
+        length(v <- as.list(cl)[names(cl) == "verbose"]) && !identical(FALSE, eval(v))
+
+    ## temporary workarounds:
+    rho$sparseX <- FALSE ## <<-- lmerDE* <==> dense
+    rho$gamma <- rho$mu ## needed ?
+    ## name change
+    rho$pwrss <- rho$wrss
+    rho$ldRX2 <- rho$ldR2
+    ## not yet started
+    y <- rho$y
+    rho$Xty   <- as.vector(crossprod(rho$X, y))
+    rho$Zty   <- rho$Zt %*% y
+    rho$sqrtrWt <- sqrt(rho$weights)
+    ##  sqrtXWt  :=  sqrt of model matrix row weights
+    rho$sqrtXWt <- sqrt(rho$weights)    # to ensure a distinct copy
+
     sP <- function(x) {
         stopifnot(length(x) == length(theta))
         ## new theta := x
@@ -274,7 +297,6 @@ S4toEnv <- function(from) {
     new(envclass, setPars = sP, getPars = gP, getBounds = gB)
 }
 setAs("lmerDe", "optenv", function(from) .lmerDE2env(from, "optenv"))
-## This is currently wrong  (e.g. "wrss" instead of "pwrss", ...)
 setAs("lmerDe", "lmerenv", function(from) .lmerDE2env(from, "lmerenv"))
 
 lmer2 <- function(formula, data, REML = TRUE, sparseX = FALSE,

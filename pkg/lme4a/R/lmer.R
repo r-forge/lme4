@@ -274,9 +274,7 @@ lmer <-
 
     rho$p <- p <- ncol(X)
     stopifnot((rho$nmp <- rho$nobs - p) > 0) # nmp := n m[inus] p
-    beta <- numeric(p)
-    names(beta) <- colnames(X)
-    rho$beta <- beta
+    rho$beta <- numeric(p) ## without names() [speed]
 
     makeZt(findbars(formula[[3]]), fr, rho)
     rho$L <- Cholesky(tcrossprod(rho$Zt), LDL = FALSE, Imult = 1)
@@ -423,9 +421,8 @@ function(formula, data, family = gaussian, sparseX = FALSE,
     rho$sparseX <- sparseX
 
     p <- ncol(X)
-    beta <- numeric(p)
-    names(beta) <- colnames(X)
-    rho$beta <- beta
+    rho$beta <- numeric(p) ## without names() [speed]
+
 ### FIXME: Should decide on the form of the start argument and how it is used
     rho$start <- numeric(p)            # needed for family$initialize
 
@@ -642,10 +639,13 @@ nlmer <- function(formula, data, family = gaussian, start = NULL,
 }
 
 setMethod("formula", "merenv", function(x, ...) formula(env(x)$call, ...))
-setMethod("fixef", "merenv", function(object, ...) env(object)$beta)
+setMethod("fixef", "merenv", function(object, ...) {
+    e <- env(object)
+    structure(e$beta, names = dimnames(e$X)[[2]]) })
 
 setMethod("formula", "mer", function(x, ...) formula(x@call, ...))
-setMethod("fixef", "mer", function(object, ...) object@beta)
+setMethod("fixef", "mer", function(object, ...)
+	  structure(object@beta, names = dimnames(object@X)[[2]]))
 
 if(FALSE) {## These are not used, rather the methods below
 setMethod("ranef", "merenv", function(object, ...)

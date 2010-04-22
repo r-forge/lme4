@@ -24,8 +24,8 @@ chkLmers <- function(form, data, verbose = FALSE)
 {
     m   <- lmer(form, data = data)  # ok, and more clear
     m.  <- lmer(form, data = data, sparseX = TRUE, verbose = verbose)
-    m2   <- lmer2(form, data = data) # lmem-dense
-    m2.  <- lmer2(form, data = data, sparseX = verbose)
+    m2   <- lmer2(form, data = data, verbose = verbose) # lmem-dense
+    m2.  <- lmer2(form, data = data, verbose = verbose, sparseX = TRUE)
     ##
     stopifnot(## Compare  sparse & dense of the new class results
               identical(slotNames(m2), slotNames(m2.))
@@ -54,6 +54,11 @@ chk1 <- chkLmers(y  ~ 0+lagoon + (1|habitat), data = dat, verbose = TRUE)
 chk2 <- chkLmers(y2 ~ 0+lagoon + (1|habitat), data = dat, verbose = TRUE)
 chk1$m  ## show( lmer() ) -- sigma_a == 0
 chk2$m. ## show( lmer( <sparseX>) ) --
+
+lenv <- as(chk2$m2, "lmerenv") # now "works"
+lenv # "works" - now *with* named coefficients
+stopifnot(all.equal(fixef(chk2$m),
+                    fixef(lenv)))
 
 n <- nrow(dat)
 for(i in 1:20) {
