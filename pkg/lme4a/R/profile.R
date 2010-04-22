@@ -33,9 +33,9 @@ dropX <- function(rho, which, fw) {
     w <- as.integer(which)[1]
     fw <- as.numeric(fw)[1]
     rho$fw <- fw
-    p <- length(rho$fixef)
+    p <- length(rho$beta)
     stopifnot(0 < w, w <= p)
-    rho$fixef <- rho$fixef[-w]
+    rho$beta <- rho$beta[-w]
     rho$Xw <- rho$X[, w, drop = TRUE]
     rho$X <- X <- rho$X[, -w, drop = FALSE]
     ## offset calculated from fixed parameter value
@@ -106,7 +106,7 @@ devfun <- function(fm)
     }
     opt <- c(sig * rho$theta, lsig)
     names(opt) <- c(sprintf(".sig%02d", seq_along(rho$theta)), ".lsig")
-    attr(ans, "optimum") <- c(opt, rho$fixef)
+    attr(ans, "optimum") <- c(opt, rho$beta)
     attr(ans, "basedev") <- basedev
     attr(ans, "thopt") <- rho$theta
     attr(ans, "stderr") <- sig * sqrt(unscaledVar(RX = rho$RX))
@@ -127,7 +127,7 @@ setMethod("profile", "lmerenv",
           rr <- environment(dd)$rho
           X.orig <- rr$X
           n <- length(rr$y)
-          p <- length(rr$fixef)
+          p <- length(rr$beta)
 
           ans <- lapply(opt <- attr(dd, "optimum"), function(el) NULL)
           bakspl <- forspl <- ans
@@ -197,7 +197,7 @@ setMethod("profile", "lmerenv",
                                  control = list(trace = tr))
 ### FIXME: check res for convergence
                   zz <- sign(xx - pw) * sqrt(ores$objective - base)
-                  c(zz, mkpar(nvp, w, xx, ores$par), rr$fixef)
+                  c(zz, mkpar(nvp, w, xx, ores$par), rr$beta)
               }
 
 ### FIXME: The starting values for the conditional optimization should
@@ -232,7 +232,7 @@ setMethod("profile", "lmerenv",
               est <- opt[nvp + j]
               std <- stderr[j]
               rr$X <- X.orig
-              rr$fixef <- fe.orig
+              rr$beta <- fe.orig
               dropX(rr, j, est)
               fe.zeta <- function(fw) {
                   update_dr_env(rr, fw)
@@ -241,7 +241,7 @@ setMethod("profile", "lmerenv",
 ### FIXME: check ores for convergence
                   sig <- sqrt(rr$pwrss / n)
                   c(sign(fw - est) * sqrt(ores$objective - base),
-                    rr$theta * sig, log(sig), mkpar(p, j, fw, rr$fixef))
+                    rr$theta * sig, log(sig), mkpar(p, j, fw, rr$beta))
               }
               nres[1, ] <- pres[2, ] <- fe.zeta(est + delta * std)
               pp <- nvp + 1L + j

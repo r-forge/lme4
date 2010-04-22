@@ -75,7 +75,7 @@ public:
 	verbose;
     
     double
-	*fixef,	      /**< fixed-effects parameters */
+	*beta,	      /**< fixed-effects parameters */
 	*gam,	      /**< linear predictor (not called gamma b/c
 			 of conflicts with the gamma function) */ 
 	*Lambdax,     /**< x slot of Lambda matrix */

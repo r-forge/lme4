@@ -274,9 +274,9 @@ lmer <-
 
     rho$p <- p <- ncol(X)
     stopifnot((rho$nmp <- rho$nobs - p) > 0) # nmp := n m[inus] p
-    fixef <- numeric(p)
-    names(fixef) <- colnames(X)
-    rho$fixef <- fixef
+    beta <- numeric(p)
+    names(beta) <- colnames(X)
+    rho$beta <- beta
 
     makeZt(findbars(formula[[3]]), fr, rho)
     rho$L <- Cholesky(tcrossprod(rho$Zt), LDL = FALSE, Imult = 1)
@@ -321,12 +321,12 @@ lmer <-
                           sys = "L")
             RX <<- if (sparseX) update(RX, XtX - crossprod(RZX)) else
             chol(XtX - crossprod(RZX))
-            fixef[] <<- if (sparseX) solve(RX, Xty - crossprod(RZX, cu))@x
+            beta[] <<- if (sparseX) solve(RX, Xty - crossprod(RZX, cu))@x
             else solve(RX, solve(t(RX), Xty - crossprod(RZX, cu)))@x
-            u[] <<- solve(L, solve(L, cu - RZX %*% fixef, sys = "Lt"),
+            u[] <<- solve(L, solve(L, cu - RZX %*% beta, sys = "Lt"),
                           sys = "Pt")@x
             gamma[] <<- (if(length(offset)) offset else 0) +
-                (crossprod(Ut, u) + X %*% fixef)@x
+                (crossprod(Ut, u) + X %*% beta)@x
             mu[] <<- gamma
             pwrss <<- sum(c(y - mu, u)^2) # penalized residual sum of squares
             ldL2[] <<- 2 * determinant(L)$mod
@@ -423,9 +423,9 @@ function(formula, data, family = gaussian, sparseX = FALSE,
     rho$sparseX <- sparseX
 
     p <- ncol(X)
-    fixef <- numeric(p)
-    names(fixef) <- colnames(X)
-    rho$fixef <- fixef
+    beta <- numeric(p)
+    names(beta) <- colnames(X)
+    rho$beta <- beta
 ### FIXME: Should decide on the form of the start argument and how it is used
     rho$start <- numeric(p)            # needed for family$initialize
 
@@ -481,13 +481,13 @@ function(formula, data, family = gaussian, sparseX = FALSE,
         rho <- parent.env(environment())
         m <- length(rho$theta)
         sat <- seq_len(m)
-        stopifnot(is.numeric(x), length(x) == m + length(fixef))
+        stopifnot(is.numeric(x), length(x) == m + length(beta))
         .Call("merenv_update_Lambda_Ut", rho, x[sat], PACKAGE = "lme4a")
-        rho$fixef[] <- x[-sat]
+        rho$beta[] <- x[-sat]
         ## return value:
         return(rho$deviance <- .Call("glmer_PIRLS", rho, PACKAGE = "lme4a"))
     }
-    gP <- function() c(theta, fixef)
+    gP <- function() c(theta, beta)
     gB <- function() cbind(lower = lower,
                            upper = rep.int(Inf, length(lower)))
     environment(sP) <- environment(gP) <- environment(gB) <- rho
@@ -609,7 +609,7 @@ nlmer <- function(formula, data, family = gaussian, start = NULL,
     if ((qrX <- qr(rho$X))$rank < p)
         stop(gettextf("rank of X = %d < ncol(X) = %d", qrX$rank, p))
     rho$start <- numeric(p)  # must be careful that these are distinct
-    rho$start[] <- rho$fixef <- qr.coef(qrX, unlist(lapply(pnames, get, envir = rho$nlenv)))
+    rho$start[] <- rho$beta <- qr.coef(qrX, unlist(lapply(pnames, get, envir = rho$nlenv)))
     rho$RX <- qr.R(qrX)
 #    eb <- evalbars(formula, fr, contrasts, TRUE) # flist, trms, nest
 #    rho$dims["nest"] <- eb$nest
@@ -634,7 +634,7 @@ nlmer <- function(formula, data, family = gaussian, start = NULL,
     } else {
         setPars(rho, theta0) # one evaluation to check structure
     }
-    rho$beta0[] <- rho$fixef
+    rho$beta0[] <- rho$beta
     rho$u0[] <- rho$u
     if (!doFit) return(rho)
 
@@ -642,10 +642,10 @@ nlmer <- function(formula, data, family = gaussian, start = NULL,
 }
 
 setMethod("formula", "merenv", function(x, ...) formula(env(x)$call, ...))
-setMethod("fixef", "merenv", function(object, ...) env(object)$fixef)
+setMethod("fixef", "merenv", function(object, ...) env(object)$beta)
 
 setMethod("formula", "mer", function(x, ...) formula(x@call, ...))
-setMethod("fixef", "mer", function(object, ...) object@fixef)
+setMethod("fixef", "mer", function(object, ...) object@beta)
 
 if(FALSE) {## These are not used, rather the methods below
 setMethod("ranef", "merenv", function(object, ...)
@@ -847,14 +847,14 @@ setMethod("devcomp", "lmerenv",
 		      REML = ldL2 + ldRX2 +
 		      nmp * (1 + log(2 * pi * pwrss/nmp))),
 		    dims =
-		    c(n = nobs, p = length(fixef), nmp = nmp, q = nrow(Zt),
+		    c(n = nobs, p = length(beta), nmp = nmp, q = nrow(Zt),
 		      useSc = TRUE))))
 
 setMethod("devcomp", "glmerenv",
 	  function(x, ...)
 	  with(env(x),
 	       list(cmp = c(ldL2 = ldL2, deviance = deviance),
-		    dims = c(n = nobs, p = length(fixef), q = nrow(Zt),
+		    dims = c(n = nobs, p = length(beta), q = nrow(Zt),
 			     useSc = useSc))))
 
 ## Cheap for now; not sure if the slot should be kept at all:
@@ -1335,7 +1335,7 @@ setMethod("logLik", signature(object="lmerenv"),
 	      REML <- rho$REML
 	  mkLogLik(deviance(object, REML = REML),
 		   n = length(rho$y),
-		   p = length(rho$fixef), np = length(rho$theta),
+		   p = length(rho$beta), np = length(rho$theta),
 		   REML = REML, hasScale = 1L)
       })
 setMethod("logLik", signature(object="lmer"),
@@ -1356,7 +1356,7 @@ setMethod("logLik", signature(object="merenv"), function(object, ...)
 	  stopifnot(is.logical(useSc <- rho$useSc))# required for non-lmerenv
 	  mkLogLik(deviance(object),
 		   n = length(rho$y),
-		   p = length(rho$fixef), np = length(rho$theta),
+		   p = length(rho$beta), np = length(rho$theta),
 		   hasScale = useSc)
       })
 setMethod("logLik", signature(object="mer"),
