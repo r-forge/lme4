@@ -10,8 +10,6 @@ static void showdbl(const double* x, const char* nm, int n) {
     Rprintf("\n");
 }
 
-//using namespace Rcpp;
-
 // Definition of methods for the merenv class
 merenv::merenv(SEXP rho)
 {
@@ -374,20 +372,11 @@ double lmer::update_dev(SEXP thnew) {
     return *ldL2 + n * (1 + log(2 * PI * (*pwrss)/((double)n)));
 }
 
-glmer::glmer(SEXP rho) :
-    merenv(rho),
-    Rho(rho),
-    RcGam(Rho.get("gamma")),
-    RcWeights(Rho.get("weights")),
-    RcMu(Rho.get("mu")),
-    RcY(Rho.get("y")),
-    RcVar(Rho.get("var")),
-    RcMuEta(Rho.get("muEta")),
-    fam(Rho.get("family"))
-{
+glmer::glmer(SEXP rho) : merenv(rho) {
     muEta = VAR_REAL_NULL(rho, lme4_muEtaSym, n);
     var = VAR_REAL_NULL(rho, lme4_varSym, n);
     wtres = VAR_REAL_NULL(rho, install("wtres"), n);
+    fam.initGL(rho);
 }
 
 void glmer::update_sqrtrwt() {
