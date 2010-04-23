@@ -20,28 +20,30 @@ dat <- within(data.frame(lagoon = factor(rep(1:4, each = 25)),
 ##' @param data
 ##' @param verbose
 ##' @return
-chkLmers <- function(form, data, verbose = FALSE)
+chkLmers <- function(form, data, verbose = FALSE,
+                     tol = 7e-7)
 {
     m   <- lmer(form, data = data)  # ok, and more clear
     m.  <- lmer(form, data = data, sparseX = TRUE, verbose = verbose)
     m2   <- lmer2(form, data = data, verbose = verbose) # lmem-dense
     m2.  <- lmer2(form, data = data, verbose = verbose, sparseX = TRUE)
     ##
+    Eq <- function(x,y) all.equal(x,y, tol = tol)
     stopifnot(## Compare  sparse & dense of the new class results
               identical(slotNames(m2), slotNames(m2.))
               ,
               identical(slotNames(m2@fe), slotNames(m2.@fe))
               ,
-              all.equal(m2@resp, m2.@resp)
+              Eq(m2@resp, m2.@resp)
               ,
-              all.equal(m2@re, m2.@re)
+              Eq(m2@re, m2.@re)
               ,
-              all.equal(m2@fe@beta, m2.@fe@beta)
+              Eq(m2@fe@beta, m2.@fe@beta)
               ,
               ## and now compare with the "old" (class 'mer')
-              all.equal(unname(fixef(m)), m2@fe@beta)
+              Eq(unname(fixef(m)), m2@fe@beta)
               ,
-              all.equal(unname(fixef(m.)), m2.@fe@beta)
+              Eq(unname(fixef(m.)), m2.@fe@beta)
               ,
               ## to do
               ## all.equal(ranef(m)), m2@re)
