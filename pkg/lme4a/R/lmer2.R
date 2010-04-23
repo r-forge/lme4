@@ -234,7 +234,7 @@ S4toEnv <- function(from) {
 }
 
 ## Really need a separate  dense / sparse version of this ????
-.lmerDE2env <- function (from, envclass)
+.lmerM2env <- function (from, envclass, compDev = TRUE)
 {
     rho <- S4toEnv(from)
     n <- length(rho$y)
@@ -244,19 +244,17 @@ S4toEnv <- function(from) {
     rho$nmp <- n - p
     rho$ncTrms <- nc
     rho$diagonalLambda <- all(nc == 1)
+    rho$compDev <- compDev
     ## FIXME ? 'verbose' should also be part of one of the class modules (needed in C)
     cl <- rho$call
     ## This is only a cheap guess, possibly incorrect e.g., in 'lmer(*, verbose=verbose)':
     rho$verbose <-
         length(v <- as.list(cl)[names(cl) == "verbose"]) && !identical(FALSE, eval(v))
+    rho$sparseX <- is(from@fe@X, "sparseMatrix")
 
     ## temporary "workarounds":
     rho$pwrss <- rho$wrss + sum(rho$u ^ 2)
-    rho$sparseX <- FALSE ## <<-- lmerDE* <==> dense
     rho$gamma <- rho$mu ## needed ?
-    ## FIXME: (get rid of these ASAP)
-    rho$Xty <- rho$Vtr # as.vector(crossprod(rho$X, y))
-    rho$Zty <- as(cbind(rho$Utr), "Matrix") # rho$Zt %*% y
 
     ## not yet stored (?)
     ## y <- rho$y
@@ -264,41 +262,15 @@ S4toEnv <- function(from) {
     ##  sqrtXWt  :=  sqrt of model matrix row weights
     rho$sqrtXWt <- sqrt(rho$weights)    # to ensure a distinct copy
 
-    sP <- function(x) {
-        stopifnot(length(x) == length(theta))
-        ## new theta := x
-        theta <<- as.numeric(x)
-        Lambda@x[] <<- theta[Lind]      # update Lambda
-        Ut <<- crossprod(Lambda, Zt)
-        Matrix:::destructive_Chol_update(L, Ut, Imult = 1)
-        cu <- solve(L, solve(L, crossprod(Lambda, Utr), sys = "P"), sys = "L")
-        RZX <<- solve(L, solve(L, crossprod(Lambda, ZtX), sys = "P"), sys = "L")
-        if (is(X, "sparseMatrix")) {
-            RX <<- update(RX, XtX - crossprod(RZX))
-            beta[] <<- solve(RX, Xty - crossprod(RZX, cu))
-        } else {
-            RX <<- chol(XtX - crossprod(RZX))
-            beta[] <<- solve(RX, solve(t(RX), Vtr - crossprod(RZX, cu)))@x
-        }
-        u[] <<- solve(L, solve(L, cu - RZX %*% beta, sys = "Lt"), sys = "Pt")@x
-        mu[] <<- (if(length(offset)) offset else 0) + (crossprod(Ut, u) + X %*% beta)@x
-
-        pwrss <<- sum(c(y - mu, u)^2) # penalized residual sum of squares
-        ldL2[] <<- 2 * determinant(L)$mod
-        if (REML) {
-            ldRX2[] <<- 2 * determinant(RX)$mod
-            return(ldL2 + ldRX2 + nmp * (1 + log(2 * pi * pwrss/nmp )))
-        }
-        ldL2 + nobs * (1 + log(2 * pi * pwrss/nobs))
-    }
+    sP <- .setPars # see ./lmer.R
     gP <- function() theta
     gB <- function() cbind(lower = lower,
                            upper = rep.int(Inf, length(theta)))
     environment(sP) <- environment(gP) <- environment(gB) <- rho
     new(envclass, setPars = sP, getPars = gP, getBounds = gB)
 }
-setAs("lmerDe", "optenv", function(from) .lmerDE2env(from, "optenv"))
-setAs("lmerDe", "lmerenv", function(from) .lmerDE2env(from, "lmerenv"))
+setAs("lmerMod", "optenv",  function(from) .lmerM2env(from, "optenv"))
+setAs("lmerMod", "lmerenv", function(from) .lmerM2env(from, "lmerenv"))
 
 lmer2 <- function(formula, data, REML = TRUE, sparseX = FALSE,
                   control = list(), start = NULL, verbose = 0, doFit = TRUE,

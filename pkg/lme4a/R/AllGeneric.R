@@ -28,6 +28,10 @@ setGeneric("isREML", function(x) standardGeneric("isREML"),
 setGeneric("getCall", function(x) standardGeneric("getCall"),
 	   valueClass = "call")
 
+## utilities, these *exported*:
+setGeneric("getL", function(x) standardGeneric("getL"))
+
+
 fixed.effects <- function(object, ...) {
     ## fixed.effects was an alternative name for fixef
     .Deprecated("fixef")
@@ -44,6 +48,8 @@ random.effects <- function(object, ...) {
     eval(mCall, parent.frame())
 }
 
+setGeneric("sigma", function(object, ...) standardGeneric("sigma"))
+
 if (FALSE) {
 setGeneric("HPDinterval",
            function(object, prob = 0.95, ...) standardGeneric("HPDinterval"))
@@ -54,9 +60,6 @@ setGeneric("mcmcsamp",
            function(object, n = 1, verbose = FALSE, ...)
            standardGeneric("mcmcsamp"))
 }
-
-setGeneric("sigma", function(object, ...) standardGeneric("sigma"))
-setGeneric("getL", function(x) standardGeneric("getL"))
 
 if (FALSE) {
 setGeneric("refit", function(object, newresp, ...) standardGeneric("refit"))
