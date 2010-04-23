@@ -51,20 +51,18 @@ derived_mats <- function(rho) {
     yy <- rho$y - if (length(off)) off else 0
     stopifnot(ncol(Zt) == n, length(yy) == n)
 
-    ## Zty is stored as a Matrix, not a vector because of a
-    ## peculiarity in crossprod(Lambda, Zty) if Lambda is zero
-    rho$Zty = Zt %*% yy
+    rho$Utr = as.vector(Zt %*% yy) ## rho$Zty = Zt %*% yy
     if (p == 0) {
         zz <- c(0L,0L)
         qz <- c(nrow(Zt), 0L)
-        rho$Xty <- numeric(0)
+        rho$Vtr <- numeric(0)
         rho$XtX <- new("dpoMatrix", Dim = zz, uplo = "U")
         rho$RX <- new("Cholesky", Dim = zz, uplo = "U", diag = "N")
         rho$ZtX <- new("dgeMatrix", Dim = qz, Dimnames = Zt@Dimnames)
         rho$RZX <- new("dgeMatrix", Dim = qz, Dimnames = Zt@Dimnames)
     } else {
         ## Create crossproduct and check for full column rank
-        rho$Xty <- unname(as.vector(crossprod(X, yy)))
+        rho$Vtr <- unname(as.vector(crossprod(X, yy)))
         rho$ZtX <- Zt %*% X
         rho$RZX <- solve(rho$L, solve(rho$L, crossprod(rho$Lambda,
                                                        rho$ZtX),
@@ -217,6 +215,48 @@ env2lmer <- function(from) {
 
 setAs("lmerenv", "lmer", env2lmer)
 
+## Namespace hidden, currently used here and for lmer2():
+.setPars <- function(x) {
+### FIXME: weights are not yet incorporated (needed here?)
+    if (compDev) { ## default: be as fast as possible:
+        .Call("lmer_deviance", parent.env(environment()), x,
+              PACKAGE = "lme4a")
+        ## NOTE: currently need .Call("<name>", ... PACKAGE=*) as this is
+        ##	     called from too low-level (optimizers)
+    } else {
+        stopifnot(length(x) == length(theta))
+        ## new theta := x
+        theta <<- as.numeric(x)
+        Lambda@x[] <<- theta[Lind]      # update Lambda
+        Ut <<- crossprod(Lambda, Zt)
+        Matrix:::destructive_Chol_update(L, Ut, Imult = 1)
+        cu <- solve(L, solve(L, crossprod(Lambda, Utr), sys = "P"),
+                    sys = "L")
+        RZX <<- solve(L, solve(L, crossprod(Lambda, ZtX), sys = "P"),
+                      sys = "L")
+        if (sparseX) { ## == is(X, "sparseMatrix")
+            RX <<- update(RX, XtX - crossprod(RZX))
+            beta[] <<- solve(RX, Vtr - crossprod(RZX, cu))@x
+        } else { ## dense X
+            RX <<- chol(XtX - crossprod(RZX))
+            beta[] <<- solve(RX, solve(t(RX), Vtr - crossprod(RZX, cu)))@x
+        }
+        u[] <<- solve(L, solve(L, cu - RZX %*% beta, sys = "Lt"),
+                      sys = "Pt")@x
+        mu[] <<- (if(length(offset)) offset else 0) +
+            (crossprod(Ut, u) + X %*% beta)@x
+        gamma[] <<- mu[]                  # << placeholder, FIXME
+        pwrss <<- sum(c(y - mu, u)^2) # penalized residual sum of squares
+        ldL2[] <<- 2 * determinant(L)$mod
+        if (REML) {
+            ldRX2[] <<- 2 * determinant(RX)$mod
+            ldL2 + ldRX2 + nmp * (1 + log(2 * pi * pwrss/nmp ))
+        }
+        else
+            ldL2	    + nobs * (1 + log(2 * pi * pwrss/nobs))
+    }
+}
+
 lmer <-
     function(formula, data, REML = TRUE, sparseX = FALSE,
              control = list(), start = NULL, verbose = 0, doFit = TRUE,
@@ -299,43 +339,7 @@ lmer <-
 ###    verbose >= 2 => iteration output from optimizer and PIRLS
     rho$verbose <- as.integer(verbose)[1]
 
-    sP <- function(x) {
-### FIXME: weights are not yet incorporated (needed here?)
-        if (compDev) { ## default: be as fast as possible:
-	    ## NOTE: currently need .Call("<name>", ... PACKAGE=*) as this is
-	    ##	     called from too low-level (optimizers)
-            .Call("lmer_deviance", parent.env(environment()), x,
-                  PACKAGE = "lme4a")
-        } else {
-            stopifnot(length(x) == length(theta))
-            ## new theta := x
-            theta <<- as.numeric(x)
-            Lambda@x[] <<- theta[Lind]  # update Lambda
-            Ut <<- crossprod(Lambda, Zt)
-            Matrix:::destructive_Chol_update(L, Ut, Imult = 1)
-            cu <- solve(L, solve(L, crossprod(Lambda, Zty), sys = "P"),
-                        sys = "L")
-            RZX <<- solve(L, solve(L, crossprod(Lambda, ZtX), sys = "P"),
-                          sys = "L")
-            RX <<- if (sparseX) update(RX, XtX - crossprod(RZX)) else
-            chol(XtX - crossprod(RZX))
-            beta[] <<- if (sparseX) solve(RX, Xty - crossprod(RZX, cu))@x
-            else solve(RX, solve(t(RX), Xty - crossprod(RZX, cu)))@x
-            u[] <<- solve(L, solve(L, cu - RZX %*% beta, sys = "Lt"),
-                          sys = "Pt")@x
-            gamma[] <<- (if(length(offset)) offset else 0) +
-                (crossprod(Ut, u) + X %*% beta)@x
-            mu[] <<- gamma
-            pwrss <<- sum(c(y - mu, u)^2) # penalized residual sum of squares
-            ldL2[] <<- 2 * determinant(L)$mod
-	    if (REML) {
-		ldRX2[] <<- 2 * determinant(RX)$mod
-		ldL2 + ldRX2 + nmp * (1 + log(2 * pi * pwrss/nmp ))
-	    }
-	    else
-		ldL2	    + nobs * (1 + log(2 * pi * pwrss/nobs))
-        }
-    }
+    sP <- .setPars
     gP <- function() theta
     gB <- function() cbind(lower = lower,
                            upper = rep.int(Inf, length(theta)))
@@ -639,13 +643,19 @@ nlmer <- function(formula, data, family = gaussian, start = NULL,
 }
 
 setMethod("formula", "merenv", function(x, ...) formula(env(x)$call, ...))
+setMethod("formula", "mer", function(x, ...) formula(x@call, ...))
+setMethod("formula", "lmerTrms", function(x, ...) formula(x@call, ...))
+
+.fixef <- function(object, ...) structure(object@beta, names = dimnames(object@X)[[2]])
+
 setMethod("fixef", "merenv", function(object, ...) {
     e <- env(object)
     structure(e$beta, names = dimnames(e$X)[[2]]) })
+setMethod("fixef", "mer", .fixef) # function(object, ...) .fixef(object@env)
 
-setMethod("formula", "mer", function(x, ...) formula(x@call, ...))
-setMethod("fixef", "mer", function(object, ...)
-	  structure(object@beta, names = dimnames(object@X)[[2]]))
+setMethod("fixef", "deFeMod", .fixef)
+setMethod("fixef", "spFeMod", .fixef)
+setMethod("fixef", "lmerTrms", function(object, ...) .fixef(object@fe))
 
 setMethod("formula", "lmerTrms", function(x, ...) formula(x@call, ...))
 setMethod("fixef", "deFeMod", function(object, ...)
@@ -729,6 +739,11 @@ setMethod("ranef", signature(object = "mer"),
 	  function(object, postVar = FALSE, drop = FALSE, ...)
 	  ranef(object@env, postVar=postVar, drop=drop, ...))
 ##              ----------
+
+## "cheat" too {but never wrong}:
+setMethod("ranef", signature(object = "lmerMod"),
+	  function(object, postVar = FALSE, drop = FALSE, ...)
+	  ranef(as(object, "lmerenv"), postVar=postVar, drop=drop, ...))
 
 dotplot.ranef.mer <- function(x, data, ...)
 {
@@ -892,7 +907,7 @@ setMethod("env", "mer", function(x) env(x@env))
 setMethod("getL", "merenv", function(x) env(x)$L)
 setMethod("getL", "mer", function(x) x@L)
 setMethod("getL", "reModule", function(x) x@L)
-setMethod("getL", "lmer2", function(x) x@re@L)
+setMethod("getL", "lmerMod", function(x) x@re@L)
 
 
 setMethod("sigma", signature(object = "merenv"),
@@ -953,6 +968,7 @@ anovaLmer <- function(object, ...) {
     .sapply <- function(L, FUN, ...) unlist(lapply(L, FUN, ...))
     modp <- {
 	as.logical(.sapply(dots, is, "lmerenv")) |
+	as.logical(.sapply(dots, is, "lmerTrms")) |
 	as.logical(.sapply(dots, is, "lmer")) |
 	as.logical(.sapply(dots, is, "lm")) }
     if (any(modp)) {			# multiple models - form table
@@ -1043,8 +1059,11 @@ setMethod("anova", signature(object = "lmer"), anovaLmer)
 ##'
 ##' <details>
 ##' @title vcov(): Extract conditional covariance matrix of fixed effects
-mkVcov <- function(object, RX, nmsX, correlation = TRUE, ...) {
-    V <- sigma(object)^2 * chol2inv(RX)
+##' @param sigma = sigma(object)
+##' @param correlation
+##' @param ...
+mkVcov <- function(sigma, RX, nmsX, correlation = TRUE, ...) {
+    V <- sigma^2 * chol2inv(RX)
     if(is.null(rr <- tryCatch(as(V, "dpoMatrix"),
                               error = function(e) NULL)))
         stop("Computed variance-covariance matrix is not positive definite")
@@ -1054,20 +1073,22 @@ mkVcov <- function(object, RX, nmsX, correlation = TRUE, ...) {
     rr
 }
 ##' Extract the conditional variance-covariance matrix of the fixed effects
-##' @param object
-##' @param correlation
-##' @param ...
 setMethod("vcov", signature(object = "merenv"),
-	  function(object, correlation = TRUE, ...)
+	  function(object, correlation = TRUE, sigm = sigma(object), ...)
       {
 	  en <- env(object)
-	  mkVcov(object, RX = en$RX, nmsX = colnames(en$X),
+	  mkVcov(sigm, RX = en$RX, nmsX = colnames(en$X),
 		 correlation=correlation, ...)
       })
 
 setMethod("vcov", signature(object = "mer"),
-	  function(object, correlation = TRUE, ...)
-	  mkVcov(object, RX = object@RX, nmsX = colnames(object@X),
+	  function(object, correlation = TRUE, sigm = sigma(object), ...)
+	  mkVcov(sigm, RX = object@RX, nmsX = colnames(object@X),
+		 correlation=correlation, ...))
+
+setMethod("vcov", signature(object = "lmerTrms"),
+	  function(object, correlation = TRUE, sigm = sigma(object), ...)
+	  mkVcov(sigm, RX = object@fe@RX, nmsX = colnames(object@fe@X),
 		 correlation=correlation, ...))
 
 
@@ -1322,11 +1343,9 @@ summaryMer <- function(object, varcov = FALSE, ...)
 
 summaryMer2 <- function(object, varcov = FALSE, ...)
 {
-    ## Compute	'vcov' only when  'varcov = TRUE', no longer by default
-
     cld <- getClass(cl <- class(object))
     ## begin{workaround} -- FIXME (later)
-    stopifnot(extends(cld, "lmerTrmsDe"))
+    stopifnot(extends(cld, "lmerTrms"))
     isG <- FALSE ## extends(cld, "glmer")
     isLmer <- TRUE
     ## end{workaround}
@@ -1509,10 +1528,13 @@ setMethod("update", signature(object = "mer"), updateMer)
 
 
 setMethod("print", "merenv", printMerenv)
-setMethod("show", "merenv", function(object) printMerenv(object))
+setMethod("show",  "merenv", function(object) printMerenv(object))
 
 setMethod("print", "mer", printMerenv)
-setMethod("show", "mer", function(object) printMerenv(object))
+setMethod("show",  "mer", function(object) printMerenv(object))
+
+setMethod("print", "lmerTrms", printMerenv)
+setMethod("show",  "lmerTrms", function(object) printMerenv(object))
 
 coefMer <- function(object, ...)
 {

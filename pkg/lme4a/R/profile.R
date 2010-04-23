@@ -267,6 +267,9 @@ setMethod("profile", "lmerenv",
 ## A cheap substitute (for now) -- need keep lme4a  working
 setMethod("profile", "lmer", function(fitted, ...) profile(fitted@env, ...))
 
+setMethod("profile", "lmerMod",
+          function(fitted, ...) profile(as(fitted,"lmerenv"), ...))
+
 
 ##' extract only the y component from a prediction
 predy <- function(sp, vv) predict(sp, vv)$y

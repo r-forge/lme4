@@ -7,57 +7,57 @@ class merenv {
 public:
     merenv(SEXP rho);
     ~merenv();
-/** 
+/**
  * Update the linear predictor.
- * 
+ *
  * Update the linear predictor using the offset, if present, the fixed
  * effects and the random effects.
  */
     void update_gamma();
-/** 
+/**
  *  Update Lambda, and Ut from theta and sqrtXwt
- * 
+ *
  * @param thnew pointer to a numeric vector or new values for theta
  */
     void update_Lambda_Ut(SEXP thnew);
-/** 
+/**
  * Update the penalized residual sum-of-squares.
  *
  * @return updated penalized residual sum-of-squares.
  */
     double update_pwrss();
 
-/** 
+/**
  * Update RZX in place
  *
  * @param CP the cross-product of the random- and fixed-effects model matrices
  */
     void update_RZX(CHM_r *CP);
-/** 
+/**
  * Create the crossproduct of Lambda and src in ans.
- * 
+ *
  * @param src dense matrix with q rows
  * @param ans matrix of same size as src to be overwritten
  * @return ans, overwritten with the product
  */
     CHM_DN crossprod_Lambda(CHM_DN src, CHM_DN ans);
-/** 
+/**
  * Return the crossproduct of Lambda and src
- * 
+ *
  * @param src sparse matrix with q rows
  * @return crossprod(Lambda, src)
  */
     CHM_SP spcrossprod_Lambda(CHM_SP src);
-/** 
+/**
  * Solve L ans = P src (dense case)
- * 
+ *
  * @param src dense matrix of values on the right hand side
  * @return a dense matrix of the same size as src
  */
     CHM_DN solvePL(CHM_DN src);
-/** 
+/**
  * Solve L ans = P src (sparse case)
- * 
+ *
  * @param src sparse matrix of values on the right hand side
  * @return a sparse matrix of the same size as src
  */
@@ -73,18 +73,18 @@ public:
 	diagonalLambda,
 	sparseX,
 	verbose;
-    
+
     double
 	*beta,	      /**< fixed-effects parameters */
 	*gam,	      /**< linear predictor (not called gamma b/c
-			 of conflicts with the gamma function) */ 
+			 of conflicts with the gamma function) */
 	*Lambdax,     /**< x slot of Lambda matrix */
 	*ldL2,	      /**< log-determinant of L squared */
 	*mu,	      /**< conditional mean response */
 	*offset,      /**< offset of linear predictor (may be NULL) */
 	*pwrss,	      /**< penalized, weighted RSS */
 	*sqrtrwt,     /**< sqrt of residual weights */
-	*sqrtXwt,     /**< sqrt of weights for X->V and U->L */  
+	*sqrtXwt,     /**< sqrt of weights for X->V and U->L */
 	*theta,	      /**< parameters that determine Lambda */
 	*u,	      /**< unit random-effects vector */
 	*weights,     /**< prior weights (may be NULL) */
@@ -109,8 +109,8 @@ public:
     int
 	REML;			/**< logical - use REML? */
     double
-	*Xty,			/**< cross product of X and y */
-	*Zty,			/**< cross product of Z and y */
+        *Vtr,  /** V'r, here X'y "Xty" < cross product of X and y */
+	*Utr,  /** U'r, here Z'y "Zty" < cross product of Z and y */
 	*ldRX2;			/**< log-determinant of RX squared */
     CHM_DN
 	cu;		  /**< Intermediate value in solution for u */
@@ -126,7 +126,7 @@ class glmer : public merenv {
 public:
     glmer(SEXP rho);		/**< initialize from an environment */
     SEXP family;
-    double 
+    double
 	*muEta,			/**< diagonal of d mu/d eta */
 	*var,			/**< conditional variances of response */
 	*wtres,			/**< weighted residuals */
@@ -150,7 +150,7 @@ public:
 class merenvtrms : public merenv {
 public:
     merenvtrms(SEXP rho);  	/**< construct from an environment */
-    
+
     SEXP condVar(double scale);	/**< create the conditional variance array */
     void show();		/**< debugging output */
 

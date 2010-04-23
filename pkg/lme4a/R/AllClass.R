@@ -117,9 +117,8 @@ setClass("lmerenv", contains = "merenvtrms",
          rho <- env(object)
          p <- length(rho$beta)
          q <- length(rho$u)
-         if (!(is(Zty <- rho$Zty, "dMatrix") &&
-               nrow(Zty) == q))
-             return("environment must contain a column Matrix Zty")
+	 if (!(is.numeric(Utr <- rho$Utr) && length(Utr) == q))
+	     return("environment must contain a numeric q-vector Utr")
          if (!(is(ZtX <- rho$ZtX, "dMatrix") &&
                all(dim(ZtX) == c(q, p))))
              return("environment must contain a q by p Matrix ZtX")
@@ -130,8 +129,8 @@ setClass("lmerenv", contains = "merenvtrms",
          if (is(RX, "CHMfactor")) RX <- as(RX, "sparseMatrix")
          if (!(is(RX, "dMatrix") && all(dim(RX) == c(p, p))))
              return("environment must contain a p by p Matrix RX")
-         if (!(is.numeric(Xty <- rho$Xty) && length(Xty) == p))
-             return("environment must contain a numeric p-vector Xty")
+         if (!(is.numeric(Vtr <- rho$Vtr) && length(Vtr) == p))
+             return("environment must contain a numeric p-vector Vtr")
          if (!(is(XtX <- rho$XtX, "dMatrix") &&
                is(XtX, "symmetricMatrix") &&
                all(dim(RZX) == c(q, p))))
@@ -167,7 +166,7 @@ setClass("mer",
 			Lambda = "dgC_or_diMatrix", # ddi- or dgC-Matrix"
 			Zt = "dgCMatrix",# sparse form of Z'
 			ZtX = "dMatrix", # [dge- or dgC-Matrix]
-			Zty = "dgeMatrix",
+			Utr = "numeric", # Zty was "dgeMatrix",
 			pWt = "numeric",# prior weights,   __ FIXME? __
 			offset = "numeric", # length 0 -> no offset
 			y = "numeric",	 # response vector
@@ -201,7 +200,7 @@ setClass("mer",
 			RZX = "dMatrix", # dgeMatrix or dgCMatrix
 			RX = "CholKind",  # "Cholesky" (dense) or "dCHMsimpl" (sparse)
 			XtX = "dsC_or_dpoMatrix", # "dsymmetricMatrix", # dpo* or dsC*
-			Xty = "numeric"
+			Vtr = "numeric"
 			),
 	 validity = function(object) TRUE ## FIXME .Call(mer_validate, object)
 	 )
@@ -553,7 +552,7 @@ setClass("merTrms",
      })
 
 ## It will be useful to write methods for this:
-setClass("lmer2",
+setClass("lmerMod",
          representation(re = "reModule",
                         resp = "merResp",
                         REML = "logical", "VIRTUAL"),
@@ -563,9 +562,9 @@ setClass("lmer2",
              return("lmer modules cannot be reweightable")
      })
 
-setClass("lmerDe", representation(fe = "lmerDeFeMod"), contains = "lmer2")
+setClass("lmerDe", representation(fe = "lmerDeFeMod"), contains = "lmerMod")
 
-setClass("lmerSp", representation(fe = "lmerSpFeMod"), contains = "lmer2")
+setClass("lmerSp", representation(fe = "lmerSpFeMod"), contains = "lmerMod")
 
 validTrms <- function(object) {
     fl <- object@trms@flist

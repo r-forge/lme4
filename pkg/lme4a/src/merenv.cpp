@@ -315,8 +315,8 @@ lmer::lmer(SEXP rho) : merenv(rho) {
 	      N, n);
     REML = asLogical(findVarBound(rho, install("REML")));
     ldRX2 = VAR_REAL_NULL(rho, install("ldRX2"), 1, TRUE);
-    Xty = VAR_REAL_NULL(rho, install("Xty"), p);
-    Zty = VAR_dMatrix_x(rho, install("Zty"), q, 1);
+    Vtr = VAR_REAL_NULL(rho, install("Vtr"), p);
+    Utr = VAR_REAL_NULL(rho, install("Utr"), q);
     if (sparseX) {
 	XtXp = new CHM_rs(VAR_CHM_SP(rho, install("XtX"), p, p));
 	ZtXp = new CHM_rs(VAR_CHM_SP(rho, install("ZtX"), q, p));
@@ -340,14 +340,14 @@ double lmer::update_dev(SEXP thnew) {
     M_cholmod_factorize_p(Ut, one, (int*)NULL, (size_t)0, L, &c);
     *ldL2 = M_chm_factor_ldetL2(L);
     *ldRX2 = 0;			// in case p == 0
-    cu = solvePL(N_AS_CHM_DN(Zty, q, 1));
+    cu = solvePL(N_AS_CHM_DN(Utr, q, 1));
     if (p) {
 	CHM_r *tmp1 = ZtXp->crossprod_SP(Lambda);
 	update_RZX(tmp1);
 	tmp1->freeA(); delete tmp1;
 	RXp->downdate(RZXp, -1.0, XtXp, 1.0);
 	*ldRX2 = RXp->ldet2();
-	CHM_DN tt = M_cholmod_copy_dense(N_AS_CHM_DN(Xty, p, 1), &c);
+	CHM_DN tt = M_cholmod_copy_dense(N_AS_CHM_DN(Vtr, p, 1), &c);
 	RZXp->drmult(1/*transpose*/, -1.0, 1.0, cu, tt);
 	CHM_DN ff = RXp->solveA(tt);
 	M_cholmod_free_dense(&tt, &c);
