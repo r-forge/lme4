@@ -10,7 +10,7 @@ static void showdbl(const double* x, const char* nm, int n) {
     Rprintf("\n");
 }
 
-using namespace Rcpp;
+//using namespace Rcpp;
 
 // Definition of methods for the merenv class
 merenv::merenv(SEXP rho)
