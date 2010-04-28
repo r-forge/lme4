@@ -190,18 +190,35 @@ namespace MatrixNs {
     	chmDn(ddenseMatrix m) : cholmod_dense() {
 	    this->init(m.x.begin(), m.nrow(), m.ncol());
 	}
+//	chmDn(CHM_DN);
+//	~chmDn() {if (pp) ::M_cholmod_free_dense(&pp, &c);}
 
 	int nr() const { return nrow; }
 	int nc() const { return ncol; }
 	double* begin() {return (double*)x;} // template this
 	double* end() {return begin() + nrow * ncol;}
+//    protected:
+//	CHM_DN pp;
     };
+
+// FIXME:  Something is weird with the inclusion of the cholmod.h
+// file from the Matrix package's include directory.  I have tried to
+// declare functions like M_cholmod_transpose with const pointer
+// arguments and I keep getting compile errors indicating that their
+// arguments are not const when I use this property.  Don't know why.
 
     class chmSp : public cholmod_sparse { 
     public:
 	chmSp(Rcpp::S4);
+//	chmSp(CHM_SP);
+//	~chmSp() {if (pp) ::M_cholmod_free_sparse(&pp, &c);}
 
 	void update(cholmod_sparse&);
+
+//	chmSp transpose(int values = 1) const {  // causes compile error
+//	chmSp transpose(int values = 1) {
+//	    return chmSp(::M_cholmod_transpose(this, values, &c));
+//	}
 	CHM_SP transpose(int values = 1) {
 	    return ::M_cholmod_transpose(this, values, &c);
 	}
@@ -211,23 +228,45 @@ namespace MatrixNs {
 				      &beta, &src, &dest, &c);
 	}
 	CHM_SP crossprod();
+	CHM_SP crossprod(chmSp&, int sorted = 1);
+
 	CHM_SP tcrossprod();
+	CHM_SP tcrossprod(chmSp&, int sorted = 1);
+
+	CHM_SP smult(chmSp&,int,int,int);
+//    protected:
+//	CHM_SP pp;
+//	SEXP m_sexp;
     };
 
-    class chmFa : public cholmod_factor {
+    class chmFr : public cholmod_factor {
     public:
-	chmFa(Rcpp::S4);
+	chmFr(Rcpp::S4);
+//	chmFr(CHM_FR);
+//	~chmFr() {if (pp) ::M_cholmod_free_factor(&pp, &c);}
 
 	void update(cholmod_sparse &A, double Imult = 0.) {
 	    double ImVec[] = {Imult, 0};
 	    ::M_cholmod_factorize_p(&A, ImVec, (int*)NULL, 0, this, &c);
 	}
+
 	CHM_DN solve(int sys, CHM_DN b) {
 	    return ::M_cholmod_solve(sys, this, b, &c);
 	}
+	CHM_DN solve(int sys, chmDn b) {
+	    return ::M_cholmod_solve(sys, this, &b, &c);
+	}
+
 	CHM_SP spsolve(int sys, CHM_SP b) {
 	    return ::M_cholmod_spsolve(sys, this, b, &c);
 	}
+	CHM_SP spsolve(int sys, chmSp b) {
+	    return ::M_cholmod_spsolve(sys, this, &b, &c);
+	}
+
+//    protected:
+//	CHM_FR pp;
+//	SEXP m_sexp;
     };
 }
 
