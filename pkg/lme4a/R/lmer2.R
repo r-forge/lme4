@@ -10,7 +10,7 @@ mkSqrtXwt <- function(N, s) {
 ##' @param fr a model frame in which to evaluate these terms
 ##'
 ##' @return a list of an reModule and a merTrms
-mkReModule <- function(bars, fr, rwt = FALSE, s = 1L) {
+mkReTrms <- function(bars, fr, rwt = FALSE, s = 1L) {
     if (!length(bars))
         stop("No random effects terms specified in formula")
     stopifnot(is.list(bars), all(sapply(bars, is.language)),
@@ -96,7 +96,7 @@ mkReModule <- function(bars, fr, rwt = FALSE, s = 1L) {
     ll$Lambda <- Lambda
 
     ll$Ut <- crossprod(Lambda, Zt)
-    ll$Class <- "reModule"
+    ll$Class <- "reTrms"
     if (rwt) {                          # different class with more information
         N <- ncol(Zt)
         ll$sqrtXwt <- mkSqrtXwt(N, s)
@@ -121,9 +121,10 @@ mkReModule <- function(bars, fr, rwt = FALSE, s = 1L) {
     names(fl) <- ufn
     fl <- do.call(data.frame, c(fl, check.names = FALSE))
     attr(fl, "assign") <- asgn
-    list(reMod = do.call("new", ll),
-         Trms = new("merTrms", flist = fl, cnms = cnms))
-} ## {mkReModule}
+    ll$flist <- fl
+    ll$cnms <- cnms
+    do.call("new", ll)
+} ## {mkReTrms}
 
 ##' Create an feModule
 ##'
@@ -310,12 +311,12 @@ lmer2 <- function(formula, data, REML = TRUE, sparseX = FALSE,
     mf$formula <- fr.form
     fr <- eval(mf, parent.frame())
                                         # random effects and terms modules
-    reList <- mkReModule(findbars(formula[[3]]), fr)
+    reTrms <- mkReTrms(findbars(formula[[3]]), fr)
                                         # fixed-effects module
-    feMod <- mkFeModule(formula, fr, contrasts, reList$reMod, sparseX)
-    respMod <- mkRespMod(fr, reList$reMod, feMod)
-    ans <- new(ifelse (sparseX, "lmerTrmsSp", "lmerTrmsDe"), call = mc,
-	       trms = reList$Trms, re = reList$reMod, fe = feMod, resp = respMod,
+    feMod <- mkFeModule(formula, fr, contrasts, reTrms, sparseX)
+    respMod <- mkRespMod(fr, reTrms, feMod)
+    ans <- new(ifelse (sparseX, "lmerSp", "lmerDe"), call = mc,
+	       re = reTrms, fe = feMod, resp = respMod,
 	       REML = REML)
     if (doFit) {                        # optimize estimates
         devfun <- function(th) {
