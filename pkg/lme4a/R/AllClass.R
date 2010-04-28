@@ -302,11 +302,47 @@ setClass("reModule",
              TRUE
          })
 
+##' Random-effects module derived from random-effects terms
+##'
+##' In general an reModule does not associate components of the
+##' random-effects vector, b, with particular terms in a formula. That
+##' association is represented separately by this class.
+##'
+##'
+setClass("reTrms",
+         representation(flist = "list", cnms = "list"),
+         contains = "reModule",
+         validity = function(object)
+     {
+         flLen <- length(flist <- object@flist)
+         if (flLen < 1 && !all(sapply(flist, is.factor)))
+             return("flist must be a non-empty list of factors")
+         l1 <- length(flist[[1]])
+         if (!all(sapply(flist, function(el) length(el) == l1)))
+             return("all factors in flist must have the same length")
+         flseq <- seq_along(flist)
+         if (!(is.integer(asgn <- attr(flist, "assign")) &&
+               all(flseq %in% asgn) &&
+               all(asgn %in% flseq)))
+             return("asgn attribute of flist missing or malformed")
+         if (!all(sapply(cnms <- object@cnms, is.character)) &&
+             all(sapply(cnms, length) > 0) &&
+             length(cnms) == length(asgn))
+             return("list of column names, cnms, must match asgn attribute in length")
+         nlev <- sapply(flist, function(fac) length(levels(fac)))
+         nc <- sapply(object@cnms, length)
+         q <- nrow(object@Zt)
+         if (sum(nc * nlev[asgn]) != q)
+             return("inconsistent dimensions in trms and re slots")
+         TRUE
+     })
+
+
 ##' Reweightable random-effects module
 setClass("rwReMod",
          representation(sqrtXwt = "dgeMatrix",
                         ubase = "numeric"),
-         contains = c("reModule"),
+         contains = "reModule",
          validity = function(object) {
              if (length(object@ubase) != nrow(object@Zt))
                  return("length(ubase) != q = nrow(Zt)")
@@ -317,6 +353,10 @@ setClass("rwReMod",
                  return("prod(dim(sqrtXwt)) != N = ncol(Zt)")
              TRUE
          })
+
+
+##' Reweightable random-effects module based on random-effects terms
+setClass("rwReTrms", contains = c("reTrms", "rwReMod"))
 
 ##' Fixed-effects module
 setClass("feModule",
@@ -522,38 +562,10 @@ setClass("nlmerResp",
 ##' nglmer response module
 setClass("nglmerResp", contains = c("glmerResp", "nlmerResp"))
 
-##' Mixed-effects model random-effects terms object
-##'
-##' In general an mer object does not associate components of the
-##' random-effects vector, b, with particular terms in a formula. That
-##' association is represented separately by this class.
-##'
-##'
-setClass("merTrms",
-         representation(flist = "list", cnms = "list"),
-         validity = function(object)
-     {
-         flLen <- length(flist <- object@flist)
-         if (flLen < 1 && !all(sapply(flist, is.factor)))
-             return("flist must be a non-empty list of factors")
-         l1 <- length(flist[[1]])
-         if (!all(sapply(flist, function(el) length(el) == l1)))
-             return("all factors in flist must have the same length")
-         flseq <- seq_along(flist)
-         if (!(is.integer(asgn <- attr(flist, "assign")) &&
-               all(flseq %in% asgn) &&
-               all(asgn %in% flseq)))
-             return("asgn attribute of flist missing or malformed")
-         if (!all(sapply(cnms <- object@cnms, is.character)) &&
-             all(sapply(cnms, length) > 0) &&
-             length(cnms) == length(asgn))
-             return("list of column names, cnms, must match asgn attribute in length")
-         TRUE
-     })
-
 ## It will be useful to write methods for this:
 setClass("lmerMod",
-         representation(re = "reModule",
+         representation(call = "call",
+                        re = "reModule",
                         resp = "merResp",
                         REML = "logical", "VIRTUAL"),
          validity = function(object)
@@ -565,30 +577,3 @@ setClass("lmerMod",
 setClass("lmerDe", representation(fe = "lmerDeFeMod"), contains = "lmerMod")
 
 setClass("lmerSp", representation(fe = "lmerSpFeMod"), contains = "lmerMod")
-
-validTrms <- function(object) {
-    fl <- object@trms@flist
-    nlev <- sapply(fl, function(fac) length(levels(fac)))
-    nc <- sapply(object@trms@cnms, length)
-    asgn <- attr(fl, "assign")
-    q <- nrow(object@re@Zt)
-    if (sum(nc * nlev[asgn]) != q)
-        return("inconsistent dimensions in trms and re slots")
-    TRUE
-}
-
-setClass("lmerTrmsDe",
-         representation(call = "call",	 # matched call
-                        trms = "merTrms"),
-         contains = "lmerDe",
-         validity = validTrms)
-
-setClass("lmerTrmsSp",
-         representation(call = "call",	 # matched call
-                        trms = "merTrms"),
-         contains = "lmerSp",
-         validity = validTrms)
-
-## possibly write methods for this (instead of the above):
-setClassUnion("lmerTrms",
-              members = c("lmerTrmsDe", "lmerTrmsSp"))
