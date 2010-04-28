@@ -53,10 +53,7 @@ namespace mer{
 	int *Li = Lind.begin();
 	for (int i = 0; i < Lind.size(); i++) Lamx[i] = nnt[Li[i] - 1];
 
-	CHM_SP LamTr = Lambda.transpose();
-	CHM_SP LamTrZt = ::M_cholmod_ssmult(LamTr, &Zt, 0/*stype*/,
-					    1/*values*/, 1/*sorted*/, &c);
-	::M_cholmod_free_sparse(&LamTr, &c);
+	CHM_SP LamTrZt = Lambda.crossprod(Zt);
 	Ut.update(*LamTrZt);
 	::M_cholmod_free_sparse(&LamTrZt, &c);
 	L.update(Ut, 1.);
@@ -135,6 +132,7 @@ namespace mer{
     }
     
     void lmerDeFeMod::updateRzxRx(reModule &re) {
+	chmDn cZtX(ZtX), cRZX(RZX);
 	DupdateL(re, cZtX, cRZX);
 	RX.update('T', -1., RZX, 1., XtX);
 	*ldRX2 = RX.logDet2();

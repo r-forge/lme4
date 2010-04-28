@@ -22,7 +22,7 @@ namespace mer {
 	void incGamma(Rcpp::NumericVector&);
 	//< gamma += crossprod(Ut, u)
 
-	MatrixNs::chmFa L;
+	MatrixNs::chmFr L;
 	MatrixNs::chmSp Lambda, Ut, Zt;
 	Rcpp::IntegerVector Lind;
 	Rcpp::NumericVector lower, theta, u;
@@ -35,6 +35,8 @@ namespace mer {
 	void updateL(reModule&);
 	//<  cu <- solve(L, solve(L, crossprod(Lambda, Utr), sys = "P"), sys = "L")
 	void updateWrss();	//< resid := y - mu; wrss := sum((sqrtrwts * resid)^2)
+	void setGamma(Rcpp::NumericVector&);
+	//< gamma <- if (length(offset)) offset else rep(0, N)
 
 	Rcpp::NumericVector Utr, Vtr, cbeta,
 	    cu, mu, offset, resid, weights, y;
@@ -57,15 +59,40 @@ namespace mer {
     class deFeMod : public feModule {
     public:
 	deFeMod(Rcpp::S4 xp) :
-	    feModule(xp),
-	    X(Rcpp::S4(SEXP(xp.slot("X")))),
-	    RZX(Rcpp::S4(SEXP(xp.slot("RZX")))),
-	    RX(Rcpp::S4(SEXP(xp.slot("RX")))),
-	    cRZX(RZX) { }
+	    feModule(xp)
+	    , X(Rcpp::S4(SEXP(xp.slot("X"))))
+	    , RZX(Rcpp::S4(SEXP(xp.slot("RZX"))))
+	    , RX(Rcpp::S4(SEXP(xp.slot("RX"))))
+//	    , cRZX(RZX)
+	{ }
 
 	MatrixNs::dgeMatrix X, RZX;
 	MatrixNs::Cholesky RX;
-	MatrixNs::chmDn cRZX;
+//	MatrixNs::chmDn cRZX;
+    };
+
+    class lmerDeFeMod : public deFeMod {
+    public:
+	lmerDeFeMod(Rcpp::S4 xp) :
+	    deFeMod(xp),
+	    ZtX(Rcpp::S4(SEXP(xp.slot("ZtX")))), // cZtX(ZtX),
+	    XtX(Rcpp::S4(SEXP(xp.slot("XtX")))) { }
+
+	void updateRzxRx(reModule&);
+	//< RZX <<- solve(L, solve(L, crossprod(Lambda, ZtX), sys = "P"), sys = "L")
+        //< RX <- chol(XtX - crossprod(RZX))
+	void updateBeta(merResp&);
+	//< resp@cbeta <- Vtr - crossprod(RZX, cu)
+	//< beta <- solve(RX, solve(t(RX), resp@cbeta))
+	//< resp@cu <- resp@cu - RZX %*% beta
+	void incGamma(Rcpp::NumericVector &gam) {
+	    X.dgemv('N', 1., beta, 1., gam);
+	}
+	//< gamma += crossprod(Ut, u)
+
+	MatrixNs::dgeMatrix ZtX;
+	MatrixNs::dpoMatrix XtX;
+//	MatrixNs::chmDn cZtX;
     };
 
     class spFeMod : public feModule {
@@ -77,7 +104,7 @@ namespace mer {
 	    RX(Rcpp::S4(SEXP(xp.slot("RX")))) { }
 
 	MatrixNs::chmSp X, RZX;
-	MatrixNs::chmFa RX;
+	MatrixNs::chmFr RX;
     };
 
     class lmerSpFeMod : public spFeMod {
@@ -101,30 +128,6 @@ namespace mer {
 	//< gamma += crossprod(Ut, u)
 
 	MatrixNs::chmSp ZtX, XtX;
-    };
-
-    class lmerDeFeMod : public deFeMod {
-    public:
-	lmerDeFeMod(Rcpp::S4 xp) :
-	    deFeMod(xp),
-	    ZtX(Rcpp::S4(SEXP(xp.slot("ZtX")))), cZtX(ZtX),
-	    XtX(Rcpp::S4(SEXP(xp.slot("XtX")))) { }
-
-	void updateRzxRx(reModule&);
-	//< RZX <<- solve(L, solve(L, crossprod(Lambda, ZtX), sys = "P"), sys = "L")
-        //< RX <- chol(XtX - crossprod(RZX))
-	void updateBeta(merResp&);
-	//< resp@cbeta <- Vtr - crossprod(RZX, cu)
-	//< beta <- solve(RX, solve(t(RX), resp@cbeta))
-	//< resp@cu <- resp@cu - RZX %*% beta
-	void incGamma(Rcpp::NumericVector &gam) {
-	    X.dgemv('N', 1., beta, 1., gam);
-	}
-	//< gamma += crossprod(Ut, u)
-
-	MatrixNs::dgeMatrix ZtX;
-	MatrixNs::dpoMatrix XtX;
-	MatrixNs::chmDn cZtX;
     };
 
     class lmer {
