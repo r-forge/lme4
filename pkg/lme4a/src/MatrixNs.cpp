@@ -108,18 +108,20 @@ namespace MatrixNs{
 	return ans;
     }
 
-    chmFa::chmFa(S4 xp) : cholmod_factor() {
+    chmFr::chmFr(S4 xp) : cholmod_factor()//, m_sexp(SEXP(xp))
+    {
 	CharacterVector cl(SEXP(xp.attr("class")));
 	char *clnm = cl[0];
 	if (!isClass(xp, "CHMfactor"))
 	    ::Rf_error("Class %s object passed to %s is not a %s",
-		       clnm, "chmFa::chmFa", "CHMfactor");
+		       clnm, "chmFr::chmFr", "CHMfactor");
 	Dimension Dim(SEXP(xp.slot("Dim")));
 	IntegerVector colcount(SEXP(xp.slot("colcount"))),
 	    perm(SEXP(xp.slot("perm"))),
 	    type(SEXP(xp.slot("type")));
 	NumericVector X(SEXP(xp.slot("x")));
 
+//	pp = (CHM_FR)NULL;
 	minor = n = Dim[0];
 	Perm = perm.begin();
 	ColCount = colcount.begin();
@@ -171,12 +173,45 @@ namespace MatrixNs{
 	}
     }
 
-    chmSp::chmSp(S4 xp) : cholmod_sparse() {
+    // chmFr::chmFr(CHM_FR xp) : cholmod_factor(), pp(xp) {
+    // 	n = xp->n;
+    // 	minor = xp->minor;
+    // 	Perm = xp->Perm;
+    // 	ColCount = xp->ColCount;
+    // 	nzmax = xp->nzmax;
+    // 	p = xp->p;
+    // 	i = xp->i;
+    // 	x = xp->x;
+    // 	z = xp->z;
+    // 	nz = xp->nz;
+    // 	next = xp->next;
+    // 	prev = xp->prev;
+    // 	nsuper = xp->nsuper;
+    // 	ssize = xp->ssize;
+    // 	xsize = xp->xsize;
+    // 	maxcsize = xp->maxcsize;
+    // 	maxesize = xp->maxesize;
+    // 	super = xp->super;
+    // 	pi = xp->pi;
+    // 	px = xp->px;
+    // 	s = xp->s;
+    // 	ordering = xp->ordering;
+    // 	is_ll = xp->is_ll;
+    // 	is_super = xp->is_super;
+    // 	is_monotonic = xp->is_monotonic;
+    // 	itype = xp->itype;
+    // 	xtype = xp->xtype;
+    // 	dtype = xp->dtype;
+    // }
+		    
+    chmSp::chmSp(S4 xp) : cholmod_sparse()//, m_sexp(SEXP(xp))
+    {
 	CharacterVector cl(SEXP(xp.attr("class")));
 	char *clnm = cl[0];
 	if (!isClass(xp, "CsparseMatrix"))
 	    Rf_error("Class %s object passed to %s is not a %s",
 		     clnm, "chmSp::chmSp", "CsparseMatrix");
+//	pp = (CHM_SP)NULL;
 	IntegerVector
 	    Dim(SEXP(xp.slot("Dim"))),
 	    pp(SEXP(xp.slot("p"))),
@@ -195,9 +230,7 @@ namespace MatrixNs{
 		if (*UL == 'L' || *UL == 'l') stype = -1;
 	    }
 	}
-	int nzmax = ((int*)p)[ncol];
-	if (ii.size() != nzmax)
-	    Rf_error("size of i must match p[Dim[2] + 1]");
+	nzmax = ii.size();
 	itype = CHOLMOD_LONG;
 	packed = (int)true;
 	sorted = (int)true;
@@ -215,54 +248,97 @@ namespace MatrixNs{
 	if (xtype == -1) Rf_error("Unknown (logical?) sparse Matrix type");
     }
 
-    static inline
-    void chk_mismatch(int a, int b, const std::string compNm, const std::string methNm) {
-	if (a != b)
-	    Rf_error("%s: %s mismatch, %d != %d",
-		     methNm.c_str(), compNm.c_str(), a, b);
-    }
+/// Wrap the CHM_SP so the chmSp destructor can call M_cholmod_free_sparse
+    // chmSp::chmSp(CHM_SP xp) : cholmod_sparse(), pp(xp) {
+    // 	nrow = xp->nrow;
+    // 	ncol = xp->ncol;
+    // 	nzmax = xp->nzmax;
+    // 	p = xp->p;
+    // 	i = xp->i;
+    // 	nz = xp->nz;
+    // 	x = xp->x;
+    // 	z = xp->z;
+    // 	stype = xp->stype;
+    // 	itype = xp->itype;
+    // 	xtype = xp->xtype;
+    // 	dtype = xp->dtype;
+    // 	packed = xp->packed;
+    // 	sorted = xp->sorted;
+    // }
 
     void chmSp::update(cholmod_sparse &nn) {
-	chk_mismatch(nrow, nn.nrow, "nrow", "chmSp::update");
-	chk_mismatch(ncol, nn.ncol, "ncol", "chmSp::update");
-	chk_mismatch(stype, nn.stype, "stype", "chmSp::update");
-	chk_mismatch(itype, nn.itype, "itype", "chmSp::update");
-	chk_mismatch(xtype, nn.xtype, "xtype", "chmSp::update");
-	chk_mismatch(dtype, nn.dtype, "dtype", "chmSp::update");
-	chk_mismatch(packed, nn.packed, "packed", "chmSp::update");
-	chk_mismatch(sorted, nn.sorted, "sorted", "chmSp::update");
-	int nnz = ::M_cholmod_nnz(this, &c), nnznn = ::M_cholmod_nnz(&nn, &c);
-	// the special case of nnznn == 0 can occur in lmerSpFeMod::updateRzxRx
-	double *xx = (double*)x;
-	if (nnz > 0 && nnznn == 0) {
-	    std::fill(xx, xx + nnz, double());
-	    return;
+	size_t nnznn = M_cholmod_nnz(&nn, &c);
+	if (nn.ncol != ncol || nnznn > nzmax || xtype != nn.xtype ||
+	    itype != nn.itype || dtype != nn.dtype || packed != nn.packed)
+	    Rf_error("%s: matrices not conformable", "chmSp::update");
+	stype = nn.stype;
+	nrow = nn.nrow;
+	sorted = nn.sorted;
+	int *pp = (int*)p, *nnp = (int*)(nn.p);
+	std::copy(nnp, nnp + ncol + 1, pp);
+	int *ip = (int*)i, *nni = (int*)(nn.i);
+	std::copy(nni, nni + nnznn, ip);
+	switch(xtype) {
+	case CHOLMOD_PATTERN:
+	    break;
+	case CHOLMOD_REAL: {
+	    double *xp = (double*)x, *nnx = (double*)(nn.x);
+	    std::copy(nnx, nnx + nnznn, xp);
+	    break;
 	}
-	chk_mismatch(nnz, nnznn, "nnz", "chmSp::update");
-	int *ii = (int*)i, *pp = (int*)p;
-	if (!std::equal(pp, pp + ncol + 1, (int*)nn.p))
-	    Rf_error("%s: inconsistency in %s", "chmSp::update", "p");
-	if (!std::equal(ii, ii + nnz, (int*)nn.i))
-	    Rf_error("%s: inconsistency in %s", "chmSp::update", "i");
-	double *nnX = (double*)nn.x;
-	std::copy(nnX, nnX + nnz, xx);
+	default:
+	    Rf_error("Unsupported CHOLMOD xtype in %s", "chmSp::update");
+	}
     }
 
     CHM_SP chmSp::crossprod() {
 	CHM_SP t1 = this->transpose();
-	CHM_SP t2 = ::M_cholmod_aat(t1, (int*)NULL, 0/*fsize*/, xtype/*mode*/, &c);
+	CHM_SP t2 = ::M_cholmod_aat(t1, (int*)NULL, 0/*fsize*/,
+				    xtype/*mode*/, &c);
 	::M_cholmod_free_sparse(&t1, &c);
 	t1 = ::M_cholmod_copy(t2, 1/*stype*/, xtype/*mode*/, &c);
 	::M_cholmod_free_sparse(&t2, &c);
 	return t1;
     }
 
-    CHM_SP chmSp::tcrossprod() {
-	CHM_SP t2 = ::M_cholmod_aat(this, (int*)NULL, 0/*fsize*/, xtype/*mode*/, &c);
-	CHM_SP t1 = ::M_cholmod_copy(t2, 1/*stype*/, xtype/*mode*/, &c);
-	::M_cholmod_free_sparse(&t2, &c);
-	return t1;
+    CHM_SP chmSp::crossprod(chmSp &B, int sorted) {
+	CHM_SP t1 = this->transpose();
+	CHM_SP t2 = ::M_cholmod_ssmult(t1, &B, 0/*stype*/, xtype/*values*/,
+				       sorted, &c);
+	::M_cholmod_free_sparse(&t1, &c);
+	return t2;
     }
+
+    CHM_SP chmSp::tcrossprod() {
+	CHM_SP t1 = ::M_cholmod_aat(this, (int*)NULL, 0/*fsize*/,
+				    xtype/*mode*/, &c);
+	CHM_SP t2 = ::M_cholmod_copy(t1, 1/*stype*/, xtype/*mode*/, &c);
+	::M_cholmod_free_sparse(&t1, &c);
+	return t2;
+    }
+
+    CHM_SP chmSp::tcrossprod(chmSp &B, int sorted) {
+	CHM_SP t1 = B.transpose();
+	CHM_SP t2 = ::M_cholmod_ssmult(this, t1, 0/*stype*/, xtype/*values*/,
+				       sorted, &c);
+	::M_cholmod_free_sparse(&t1, &c);
+	return t2;
+    }
+
+    CHM_SP chmSp::smult(chmSp &B, int stype, int values, int sorted) {
+	return ::M_cholmod_ssmult(this, &B, stype, values, sorted, &c);
+    }
+
+    // chmDn::chmDn(CHM_DN xp) : cholmod_dense(), pp(xp) {
+    // 	nrow = pp->nrow;
+    // 	ncol = pp->ncol;
+    // 	nzmax = pp->nzmax;
+    // 	d = pp->d;
+    // 	x = pp->x;
+    // 	z = pp->z;
+    // 	xtype = pp->xtype;
+    // 	dtype = pp->dtype;
+    // }
 
     void chmDn::init(double *X, int r, int c) {
 	z = (void*)NULL;
@@ -273,5 +349,6 @@ namespace MatrixNs{
 	nzmax = (size_t) r * c;
 	d = (size_t) r;
 	x = (void*) X;
+//	pp = (CHM_DN)NULL;
     }
 }
