@@ -104,16 +104,17 @@ namespace mer{
 	NumericVector wrssVec(SEXP(xp.slot("wrss")));
 	wrss = wrssVec.begin();
 
-	int n = y.size(), ws = weights.size();
+	int n = y.size(), os = offset.size();
 
-	if (mu.size() != n || resid.size() != n)
-	    ::Rf_error("y, mu and resid slots must have equal lengths");
+	if (mu.size() != n || resid.size() != n ||
+	    weights.size() != n || offset.size() != n)
+	    ::Rf_error("y, mu, resid and weights slots must have equal lengths");
+	if (os < 1 || os % n)
+	    ::Rf_error("length(offset) must be a positive multiple of length(y)");
 	if (cbeta.size() != Vtr.size())
 	    ::Rf_error("cbeta and Vtr slots must have equal lengths");
 	if (cu.size() != Utr.size())
 	    ::Rf_error("cu and Utr slots must have equal lengths");
-	if (ws && ws != n)
-	    ::Rf_error("weights slot must have length 0 or n");
     }
 
     void merResp::updateL(reModule &re) {
@@ -122,13 +123,12 @@ namespace mer{
 
     void merResp::updateWrss() {
 	int n = y.size();
-	double *mm = mu.begin(), *rr = resid.begin(), *yy = y.begin();
-	if (weights.size()) Rf_error("At present, weights must be numeric(0)");
+	double *mm = mu.begin(), *rr = resid.begin(), *ww = weights.begin(), *yy = y.begin();
 	*wrss = 0;
 	for (int i = 0; i < n; i++) {
 	    rr[i] = yy[i] - mm[i];
+	    *wrss += rr[i] * rr[i] * ww[i];
 	}
-	*wrss = std::inner_product(resid.begin(), resid.end(), resid.begin(), double());
     }
     
     void lmerDeFeMod::updateRzxRx(reModule &re) {
@@ -250,41 +250,78 @@ namespace mer{
 	resp.updateWrss();
 	return reml ? reCrit() : deviance();
     }
+
+    double glmerDe::IRLS() {
+	std::vector<double> varold(resp.var.size());
+#if 0
+	double crit, step, wrss0, wrss1;
+	update_sqrtrwt();		// var and sqrtrwt
+
+	crit = 10. * CM_TOL;
+	for (int i = 0; crit >= CM_TOL && i < CM_MAXITER; i++) {
+	    dble_cpy(varold, var, n);
+	    dble_cpy(betaold, beta, p);
+	    update_gamma();		// linear predictor
+	    linkinv();		// mu and muEta
+	    update_sqrtXwt();
+	    wrss0 = update_wtres();
+	    V = Vp();		// derive V from X
+	    VtV = V->AtA();		// crossproduct
+	    RXp->update(VtV);	// factor
+	    
+	    V->drmult(1/*transpose*/, 1, 0, cwtres, Vtwr);
+	    deltaf = RXp->solveA(Vtwr);
+	    if (verbose > 1) showdbl((double*)deltaf->x, "deltaf", p);
+	    wrss1 = wrss0;		// force one evaluation of the loop
+	    for (step = 1.; wrss0 <= wrss1 && step > CM_SMIN; step /= 2.) {
+		for (int k = 0; k < p; k++)
+		    beta[k] = betaold[k] + step * ((double*)deltaf->x)[k];
+		update_gamma();
+		linkinv();
+		wrss1 = update_wtres();
+		if (verbose > 1) {
+		    Rprintf("step = %g, wrss0 = %g; wrss1 = %g\n",
+			    step, wrss0, wrss1, beta[0]);
+		    showdbl(beta, "beta", p);
+		}
+	    }
+	    update_sqrtrwt();
+	    crit = compare_vec(varold, var, n);
+	    if (verbose > 1) Rprintf("convergence criterion: %g\n", crit);
+	    VtV->freeA(); delete VtV;
+	    V->freeA(); delete V;
+	    M_cholmod_free_dense(&deltaf, &c);
+	}
+	delete[] betaold; delete[] varold;
+	M_cholmod_free_dense(&Vtwr, &c);
+	devResid();
+	return devres;
+#endif 
+	return 0.;
+    } // IRLS
 }
 
-extern "C"
-SEXP update_lmerDe(SEXP xp, SEXP ntheta) {
-    S4 x4(xp);
-    NumericVector nt(ntheta);
-    mer::lmerDe lm(x4);
-
-    return Rf_ScalarReal(lm.updateTheta(nt));
+RCPP_FUNCTION_2(double,lmerDeUpdate,S4 xp, NumericVector nt) {
+    mer::lmerDe lm(xp);
+    return lm.updateTheta(nt);
 }
 
-extern "C"
-SEXP update_lmerSp(SEXP xp, SEXP ntheta) {
-    S4 x4(xp);
-    NumericVector nt(ntheta);
-    mer::lmerSp lm(x4);
-
-    return Rf_ScalarReal(lm.updateTheta(nt));
+RCPP_FUNCTION_2(double,lmerSpUpdate,S4 xp, NumericVector nt) {
+    mer::lmerSp lm(xp);
+    return lm.updateTheta(nt);
 }
 
-extern "C"
-SEXP deviance_lmerDe(SEXP xp) {
-    S4 x4(xp);
-    mer::lmerDe lm(x4);
-    return Rf_ScalarReal(lm.deviance());
+RCPP_FUNCTION_1(double,lmerDeDeviance,S4 xp) {
+    mer::lmerDe lm(xp);
+    return lm.deviance();
 }
 
-extern "C"
-SEXP deviance_lmerSp(SEXP xp) {
-    S4 x4(xp);
-    mer::lmerSp lm(x4);
-    return Rf_ScalarReal(lm.deviance());
+RCPP_FUNCTION_1(double,lmerSpDeviance,S4 xp) {
+    mer::lmerSp lm(xp);
+    return lm.deviance();
 }
 
-RCPP_FUNCTION_1(double,glmerDeIRLS,Rcpp::S4 xp) {
+RCPP_FUNCTION_1(double,glmerDeIRLS,S4 xp) {
     mer::glmerDe glmr(xp);
     return 0.;
 }

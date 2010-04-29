@@ -76,20 +76,19 @@ namespace mer {
 	    , X(Rcpp::S4(SEXP(xp.slot("X"))))
 	    , RZX(Rcpp::S4(SEXP(xp.slot("RZX"))))
 	    , RX(Rcpp::S4(SEXP(xp.slot("RX"))))
-//	    , cRZX(RZX)
 	{ }
 
 	MatrixNs::dgeMatrix X, RZX;
 	MatrixNs::Cholesky RX;
-//	MatrixNs::chmDn cRZX;
     };
 
     class lmerDeFeMod : public deFeMod {
     public:
 	lmerDeFeMod(Rcpp::S4 xp) :
-	    deFeMod(xp),
-	    ZtX(Rcpp::S4(SEXP(xp.slot("ZtX")))), // cZtX(ZtX),
-	    XtX(Rcpp::S4(SEXP(xp.slot("XtX")))) { }
+	    deFeMod(xp)
+	    , ZtX(Rcpp::S4(SEXP(xp.slot("ZtX"))))
+	    , XtX(Rcpp::S4(SEXP(xp.slot("XtX"))))
+	{ }
 
 	void updateRzxRx(reModule&);
 	//< RZX <<- solve(L, solve(L, crossprod(Lambda, ZtX), sys = "P"), sys = "L")
@@ -105,7 +104,6 @@ namespace mer {
 
 	MatrixNs::dgeMatrix ZtX;
 	MatrixNs::dpoMatrix XtX;
-//	MatrixNs::chmDn cZtX;
     };
 
     class spFeMod : public feModule {
@@ -246,6 +244,7 @@ namespace mer {
 	glmerDe(Rcpp::S4 xp) :
 	    glmer(xp),
 	    fe(Rcpp::S4(SEXP(xp.slot("fe")))) {}
+	double IRLS();
 
 	rwDeFeMod fe;
     };
