@@ -5,6 +5,7 @@
 
 extern "C" SEXP update_lmerDe(SEXP,SEXP);
 extern "C" SEXP update_lmerSp(SEXP,SEXP);
+extern "C" SEXP glmerDeIRLS(SEXP);
 
 #define CALLDEF(name, n)  {#name, (DL_FUNC) &name, n}
 
@@ -16,6 +17,8 @@ static R_CallMethodDef CallEntries[] = {
     CALLDEF(glmer_PIRLS, 1),
     CALLDEF(glmer_PIRLSbeta, 1),
     CALLDEF(glmer_update_RX, 1),
+
+    CALLDEF(glmerDeIRLS, 1),
 
     CALLDEF(lme4_ghq, 1),
     CALLDEF(lme4_dup_env_contents, 3),

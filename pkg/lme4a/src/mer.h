@@ -4,6 +4,7 @@
 
 #include <Rcpp.h>
 #include "MatrixNs.h"
+#include "glmFamily.h"
 
 namespace mer {
     class merResp;		// forward declaration
@@ -27,6 +28,18 @@ namespace mer {
 	Rcpp::IntegerVector Lind;
 	Rcpp::NumericVector lower, theta, u;
 	double *ldL2;
+    };
+
+    class rwReMod : public reModule {
+    public:
+	rwReMod(Rcpp::S4 xp) :
+	    reModule(xp),
+	    ubase(SEXP(xp.slot("ubase"))) {}
+	void incGamma(Rcpp::NumericVector&);
+	//< gamma += crossprod(Ut, u + ubase)
+	void updateUt(const merResp&);
+
+	Rcpp::NumericVector ubase;
     };
 
     class merResp {
@@ -171,7 +184,88 @@ namespace mer {
 	double updateTheta(const Rcpp::NumericVector&);
 	lmerSpFeMod fe;
     };
+
+    class rwResp : public merResp {
+    public:
+	rwResp(Rcpp::S4 xp) :
+	    merResp(xp),
+	    gamma(SEXP(xp.slot("gamma"))),
+	    sqrtrwt(SEXP(xp.slot("sqrtrwt"))),
+	    sqrtXwt(Rcpp::S4(SEXP(xp.slot("sqrtXwt")))) {}
+	Rcpp::NumericVector gamma, sqrtrwt;
+	MatrixNs::dgeMatrix sqrtXwt;
+    };
+
+    class glmerResp : public rwResp {
+    public:
+	glmerResp(Rcpp::S4 xp) :
+	    rwResp(xp),
+	    family(SEXP(xp.slot("family"))),
+	    muEta(SEXP(xp.slot("muEta"))),
+	    n(SEXP(xp.slot("n"))),
+	    var(SEXP(xp.slot("var"))) {}
+
+	glmFamily family;
+	Rcpp::NumericVector muEta, n, var;
+    };
+    
+    class rwDeFeMod : public deFeMod {
+    public:
+	rwDeFeMod(Rcpp::S4 xp) :
+	    deFeMod(xp),
+	    V(Rcpp::S4(SEXP(xp.slot("V")))),
+	    betabase(SEXP(xp.slot("betabase"))) {}
+
+	MatrixNs::dgeMatrix V;
+	Rcpp::NumericVector betabase;
+    };
+
+    class rwSpFeMod : public spFeMod {
+    public:
+	rwSpFeMod(Rcpp::S4 xp) :
+	    spFeMod(xp),
+	    V(Rcpp::S4(SEXP(xp.slot("V")))),
+	    betabase(SEXP(xp.slot("betabase"))) {}
+
+	MatrixNs::chmSp V;
+	Rcpp::NumericVector betabase;
+    };
+    
+    class glmer {
+    public:
+	glmer(Rcpp::S4 xp) :
+	    re(Rcpp::S4(SEXP(xp.slot("re")))),
+	    resp(Rcpp::S4(SEXP(xp.slot("resp")))) {}
+	
+	rwReMod re;
+	glmerResp resp;
+    };
+    
+    class glmerDe : public glmer {
+    public:
+	glmerDe(Rcpp::S4 xp) :
+	    glmer(xp),
+	    fe(Rcpp::S4(SEXP(xp.slot("fe")))) {}
+
+	rwDeFeMod fe;
+    };
+
+    class glmerSp : public glmer {
+    public:
+	glmerSp(Rcpp::S4 xp) :
+	    glmer(xp),
+	    fe(Rcpp::S4(SEXP(xp.slot("fe")))) {}
+
+	rwSpFeMod fe;
+    };
+
 }
 
 #endif
+
+
+
+
+
+
 
