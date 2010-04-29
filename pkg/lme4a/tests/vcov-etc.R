@@ -1,5 +1,9 @@
-stopifnot(require(lme4a),
-          data(ergoStool, package="MEMSS") == "ergoStool")
+stopifnot(require(lme4a))
+## "MEMSS" is just 'Suggest' -- must still work, when it's missing:
+if(data(ergoStool, package="MEMSS") != "ergoStool") {
+    cat("'ergoStool' data from package 'MEMSS' is not available --> skipping test\n")
+    quit('no')
+}
 
 fm1   <-  lmer (effort ~ Type + (1|Subject), data = ergoStool)
 fm1.s  <- lmer (effort ~ Type + (1|Subject), data = ergoStool, sparseX=TRUE)

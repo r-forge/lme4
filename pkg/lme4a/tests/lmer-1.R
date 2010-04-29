@@ -11,8 +11,9 @@ fm1. <- glmer(Reaction ~ Days + (Days|Subject), sleepstudy)
 ## default family=gaussian -> automatically calls  lmer()
 stopifnot(all.equal(fm1, fm1.))
 ## Test 'compDev = FALSE' (vs TRUE)
-fm1. <- lmer(Reaction ~ Days + (Days|Subject), sleepstudy,
-             compDev = FALSE)#--> use R code (not C) for deviance computation
+fm1. <- lmer1(Reaction ~ Days + (Days|Subject), sleepstudy,
+              compDev = FALSE)#--> use R code (not C) for deviance computation
+
 setMethod("as.list", "mer",
           function(x, drop.call=FALSE, ...)
       {
@@ -21,8 +22,9 @@ setMethod("as.list", "mer",
           lapply(sn, slot, object=x) })
 L <- function(x) as.list(x, drop.call=TRUE)
 if(FALSE) #fails, and I don't understand how and why
-stopifnot(all.equal(L(fm1), L(fm1.), tol = 1e-7))# don't understand
+stopifnot(all.equal(L(as(fm1,"lmerenv")), L(fm1.), tol = 1e-7))# don't understand
 ## FIXME !
+
 
 (fm3 <- lmer(Yield ~ 1|Batch, Dyestuff2))
 stopifnot(all.equal(fixef(fm1), fixef(fm2), tol= 1e-13),
@@ -38,19 +40,21 @@ stopifnot(all.equal(fixef(fm1), fixef(fm2), tol= 1e-13),
 fm2l <- lmer(log(Reaction) ~ log(Days+1) + (log(Days+1)|Subject),
              data = sleepstudy, REML = FALSE)
 ## no need for an expand method now : xfm2 <- expand(fm2)
-stopifnot(is(fm1, "lmer"), is(fm2l, "lmer"),
-          dim(ranef(fm2l)[[1]]) == c(18, 2),
-          is((c3 <- coef(fm3)), "coef.mer"), all(fixef(fm3) == c3$Batch),
+
+stopifnot(dim(ranef(fm2l)[[1]]) == c(18, 2),
+          is((c3 <- coef(fm3)), "coef.mer"),
+          all(fixef(fm3) == c3$Batch),## <-- IFF  \hat{\sigma^2} == 0
           TRUE)
 
 ## generalized linear mixed model
 m1e <- glmer(cbind(incidence, size - incidence) ~ period + (1 | herd),
              family = binomial, data = cbpp, doFit = FALSE)
+stopifnot(is(m1e,"merenv"))
 ## now
 str(nlminb(m1e, control = list(trace = 1)))
 m1 <- glmer(cbind(incidence, size - incidence) ~ period + (1 | herd),
             family = binomial, data = cbpp, verbose = 1)
-stopifnot(is(m1e,"merenv"), is((cm1 <- coef(m1e)), "coef.mer"),
+stopifnot(is((cm1 <- coef(m1e)), "coef.mer"),
 	  dim(cm1$herd) == c(15,4),
           TRUE ## FIXME -- these were "old-lme4" -- not lme4a (rel.diff. = 0.0166)
 	  ## all.equal(fixef(m1),

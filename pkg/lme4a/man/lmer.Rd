@@ -1,5 +1,7 @@
 \name{lmer}
 \alias{lmer}
+\alias{lmer1}
+\alias{lmer2}
 \alias{glmer}
 \alias{nlmer}
 \concept{GLMM}% << so it's found
@@ -10,13 +12,28 @@
   nonlinear mixed model.
 }
 \usage{
-lmer(formula, data, REML = TRUE, sparseX = FALSE,
+lmer1(formula, data, REML = TRUE, sparseX = FALSE,
       control = list(), start = NULL, verbose = 0,
       doFit = TRUE, compDev = TRUE,
 %% MM: I would add optim() too; it did not get stuck initially like nlminb
       optimizer = c("nlminb", "bobyqa", "optimize"),
       subset, weights, na.action, offset,
       contrasts = NULL, \dots)
+lmer2(formula, data, REML = TRUE, sparseX = FALSE,
+      control = list(), start = NULL, verbose = 0,
+      doFit = TRUE,
+%% TODO ??  add choice of optimizer as well (and compDev = TRUE/FALSE)  ??
+      subset, weights, na.action, offset,
+      contrasts = NULL, \dots)
+
+## lmer() is currently identical to lmer2() :
+lmer(formula, data, REML = TRUE, sparseX = FALSE,
+      control = list(), start = NULL, verbose = 0,
+      doFit = TRUE,
+%% TODO ??  add choice of optimizer as well (and compDev = TRUE/FALSE)  ??
+      subset, weights, na.action, offset,
+      contrasts = NULL, \dots)
+
 glmer(formula, data, family = gaussian, sparseX = FALSE,
       compDev = TRUE, control = list(), start = NULL,
       verbose = 0, doFit = TRUE, subset, weights,
@@ -146,16 +163,37 @@ nlmer(formula, data, family = gaussian, start = NULL, verbose = 0, nAGQ = 1,
 }
 \examples{
 ## linear mixed models
-(fm1 <- lmer(Reaction ~ Days + (Days|Subject), sleepstudy))
-(fm2 <- lmer(Reaction ~ Days + (1|Subject) + (0+Days|Subject), sleepstudy))
+(fm1. <- lmer1(Reaction ~ Days + (Days|Subject), sleepstudy))
+(fm2. <- lmer1(Reaction ~ Days + (1|Subject) + (0+Days|Subject), sleepstudy))
+anova(fm1., fm2.)
+
+(fm1 <- lmer2(Reaction ~ Days + (Days|Subject), sleepstudy))
+(fm2 <- lmer2(Reaction ~ Days + (1|Subject) + (0+Days|Subject), sleepstudy))
 anova(fm1, fm2)
 
 ## dense vs sparse X  --------------------------
-## use more sensical example !!
-fm1.s <- lmer(Reaction ~ Days + (Days|Subject), sleepstudy, sparseX=TRUE)
-for(FUN in list(coef, fixef, ranef, sigma))
-  stopifnot(all.equal(FUN(fm1), FUN(fm1.s), tol = 1e-6))
 
+\dontshow{% this is really a consistency check
+fm1.1s <- lmer1(Reaction ~ Days + (Days|Subject), sleepstudy, sparseX=TRUE)
+fm1.2s <- lmer2(Reaction ~ Days + (Days|Subject), sleepstudy, sparseX=TRUE)
+for(nm in c("coef", "fixef", "ranef", "sigma", "model.matrix")) {
+  ##  "model.frame" , "terms"  [not easily, see ../ToDo ! ]
+  cat(sprintf("\%15s : ", nm))
+  FUN <- get(nm)
+  F.fm1.1s <- FUN(fm1.1s)
+  F.fm1.2s <- FUN(fm1.2s)
+  if(nm == "model.matrix") {
+ 	F.fm1.1s <- as(F.fm1.1s, "denseMatrix")
+ 	F.fm1.2s <- as(F.fm1.2s, "denseMatrix")
+  }
+  stopifnot(all.equal(FUN(fm1.), F.fm1.1s, tol = 1e-6))
+  stopifnot(all.equal(FUN(fm1 ), F.fm1.1s, tol = 9e-6))
+  stopifnot(all.equal(F.fm1.2s,  F.fm1.1s, tol = 1e-6))
+  cat("[Ok]\n")
+}
+}%{dontshow}
+
+## use more sensical example !!
 fm3.d <- lmer(Yield ~ 1|Batch, Dyestuff2)
 fm3.s <- lmer(Yield ~ 1|Batch, Dyestuff2, sparseX=TRUE)#-> warning
 ## check "equality"

@@ -47,9 +47,10 @@ importMethodsFrom("Matrix",
                   tcrossprod,
                   update)
 
+#exportPattern("^[^\\.]")  # for debugging
 
-export(VarCorr, copyMerenv, devcomp, env, getL, # getBounds, getPars,
-       glmer, lmList, lmer, lmer2, nlmer, # setPars,
+export(VarCorr, copyMerenv, devcomp, env, getL,
+       glmer, glmer2, lmList, lmer, lmer1, lmer2, nlmer,
        sigma, findbars, nobars, subbars, isNested)
 
 exportClasses(lmList,
@@ -58,18 +59,20 @@ exportClasses(lmList,
 	      optenv, merenv, merenvtrms, lmerenv, glmerenv,
               mer, lmer, glmer,
               reModule, rwReMod, feModule, deFeMod, spFeMod,
+              reTrms, rwReTrms,
               lmerDeFeMod, lmerSpFeMod, rwDeFeMod, rwSpFeMod,
-              merResp, lmerResp, rwResp, glmerResp, nlmerResp,
-              nglmerResp, merTrms, lmerDe,
-              lmerSp
+              merResp, lmerResp, rwResp, glmerResp, nlmerResp, nglmerResp,
+              lmerMod, lmerDe, lmerSp
               )
 
 exportMethods(VarCorr, anova, bobyqa, coef, coerce, confint, deviance,
               devcomp,
-              fixef, formula, getL, #getBounds, getPars,
-              logLik, model.frame, model.matrix, nlminb,
-              optimize, plot, print, profile, ranef, #setPars,
-              show, sigma, summary, terms, update, vcov)
+## see ./ToDo -- '*merMod' classes currently do not store the model.frame, terms:
+##            model.frame, terms,
+              fixef, formula, getL,
+              logLik, model.matrix, nlminb,
+              optimize, plot, print, profile, ranef,
+              show, sigma, summary, update, vcov)
 
 S3method(plot, coef.mer)
 S3method(dotplot, coef.mer)
