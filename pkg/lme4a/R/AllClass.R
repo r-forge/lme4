@@ -339,6 +339,13 @@ setClass("reTrms",
 
 
 ##' Reweightable random-effects module
+##'
+##' The square root of the X weights is an n by s dgeMatrix where n is
+##' the number of columns in Ut and N = ns is the number of columns in
+##' Zt.
+##' In a reweightable module u represents an increment relative to ubase.
+##'
+##'
 setClass("rwReMod",
          representation(sqrtXwt = "dgeMatrix",
                         ubase = "numeric"),
@@ -346,7 +353,7 @@ setClass("rwReMod",
          validity = function(object) {
              if (length(object@ubase) != nrow(object@Zt))
                  return("length(ubase) != q = nrow(Zt)")
-             dd <- dim(sqrtXwt)
+             dd <- dim(object@sqrtXwt)
              if (dd[1] != ncol(object@Ut))
                  return("nrow(sqrtXwt) != n = ncol(Ut)")
              if (prod(dd) != ncol(object@Zt))
@@ -360,7 +367,7 @@ setClass("rwReTrms", contains = c("reTrms", "rwReMod"))
 
 ##' Fixed-effects module
 setClass("feModule",
-         representation(beta = "numeric"))
+         representation(beta = "numeric", ldRX2 = "numeric", "VIRTUAL"))
 
 ##' Dense fixed-effects module
 setClass("deFeMod",
@@ -397,8 +404,7 @@ setClass("spFeMod",
 ##'
 setClass("lmerDeFeMod",
          representation(ZtX = "dgeMatrix",
-                        XtX = "dpoMatrix",
-                        ldRX2 = "numeric"),
+                        XtX = "dpoMatrix"),
          contains = "deFeMod",
          validity = function(object) {
              if (any(dim(object@ZtX) != dim(object@RZX)))
@@ -414,8 +420,7 @@ setClass("lmerDeFeMod",
 ##'
 setClass("lmerSpFeMod",
          representation(ZtX = "dgCMatrix",
-                        XtX = "dsCMatrix",
-                        ldRX2 = "numeric"),
+                        XtX = "dsCMatrix"),
          contains = "spFeMod",
          validity = function(object) {
              if (any(dim(object@ZtX) != dim(object@RZX)))
@@ -441,10 +446,10 @@ setClass("rwDeFeMod",
          validity = function(object) {
              if (ncol(object@V) != ncol(object@X))
                  return("number of columns in X and V must match")
-             dd <- dim(sqrtXwt)
+             dd <- dim(object@sqrtXwt)
              if (prod(dd) != nrow(object@X))
                  return("prod(dim(sqrtXwt)) != nrow(X)")
-             if (nrow(object@V) != nrow(sqrtXwt))
+             if (nrow(object@V) != dd[1])
                  return("nrow(V) and nrow(sqrtXwt) must match")
              TRUE
          })
@@ -453,16 +458,17 @@ setClass("rwDeFeMod",
 ##'
 setClass("rwSpFeMod",
          representation(V = "dgCMatrix",
-                        sqrtXwts = "numeric",
+                        sqrtXwt = "dgeMatrix",
                         betabase = "numeric"),
          contains = "spFeMod",
          validity = function(object) {
              if (ncol(object@V) != ncol(object@X))
                  return("number of columns in X and V must match")
-             if (length(object@sqrtXwts) != nrow(object@X))
-                 return("length(sqrtXwts) != nrow(X)")
-             if (nrow(object@X) %% nrow(object@V))
-                 return("nrow(X) must be a multiple of nrow(V)")
+             dd <- dim(object@sqrtXwt)
+             if (prod(dd) != nrow(object@X))
+                 return("prod(dim(sqrtXwt)) != nrow(X)")
+             if (nrow(object@V) != dd[1])
+                 return("nrow(V) and nrow(sqrtXwt) must match")
              TRUE
          })
 
@@ -492,9 +498,9 @@ setClass("merResp",
          validity = function(object) {
              n <- length(object@y)
              if (!(length(object@offset) %in% c(0L, n)))
-                 return("length offset must be 0 or length(y)")
+                 return("length(offset) must be 0 or length(y)")
              if (!(length(object@weights) %in% c(0L, n)))
-                 return("length weights must be 0 or length(y)")
+                 return("length(weights) must be 0 or length(y)")
              if (length(object@mu) != n || length(object@resid) != n)
                  return("lengths of mu and resid must match length(y)")
              if (length(object@wrss) != 1L)
@@ -506,26 +512,23 @@ setClass("merResp",
              TRUE
          })
 
-##' lmer response module
-setClass("lmerResp", contains = "merResp")
-
 ##' reweightable response module
 ##'
 ##' gamma is the linear predictor, which is transformed to mu
 setClass("rwResp",
          representation(gamma = "numeric",
-                        sqrtrwts = "numeric",
-                        sqrtXwts = "numeric"),
+                        sqrtrwt = "numeric",
+                        sqrtXwt = "dgeMatrix"),
          contains = "merResp",
          validity = function(object) {
              lg <- length(object@gamma)
              n <- length(object@y)
              if (lg < 1 || lg %% n)
                  return("length(gamma) must be a positive multiple of length(y)")
-             if (length(object@sqrtXwts) != lg)
-                 return("length(sqrtXwts) != length(gamma)")
-             if (length(object@sqrtrwts) != n)
-                 return("length(sqrtrwts) != length(y)")
+             if (length(object@sqrtXwt) != lg)
+                 return("length(sqrtXwt) != length(gamma)")
+             if (length(object@sqrtrwt) != n)
+                 return("length(sqrtrwt) != length(y)")
              TRUE
          })
 
@@ -533,17 +536,16 @@ setClass("rwResp",
 setClass("glmerResp",
          representation(family = "family",
                         muEta = "numeric",
+                        n = "numeric",    # for evaluation of the aic 
                         var = "numeric"), # variances of responses
          contains = "rwResp",
          validity = function(object) {
              n <- length(object@y)
-             lXwt <- length(object@sqrtXwts)
+             lXwt <- length(object@sqrtXwt)
              if (lXwt < 1L || lXwt %% n)
-                 return("length(sqrtXwts) must be a positive multiple of length(y)")
+                 return("length(sqrtXwt) must be a positive multiple of length(y)")
              if (length(object@muEta) != n || length(object@var) != n)
                  return("lengths of muEta and var must match length(y)")
-             if (!(length(object@pwts) %in% c(0L, n)))
-                 return("length(pwts), the prior weights, must be 0 or length(y)")
          })
 
 ##' nlmer response module
@@ -562,7 +564,6 @@ setClass("nlmerResp",
 ##' nglmer response module
 setClass("nglmerResp", contains = c("glmerResp", "nlmerResp"))
 
-## It will be useful to write methods for this:
 setClass("lmerMod",
          representation(call = "call",
                         re = "reModule",
@@ -577,3 +578,13 @@ setClass("lmerMod",
 setClass("lmerDe", representation(fe = "lmerDeFeMod"), contains = "lmerMod")
 
 setClass("lmerSp", representation(fe = "lmerSpFeMod"), contains = "lmerMod")
+
+setClass("glmerMod",
+         representation(call = "call",
+                        re = "rwReTrms",
+                        resp = "glmerResp",
+                        "VIRTUAL"))
+
+setClass("glmerDe", representation(fe = "rwDeFeMod"), contains = "glmerMod")
+
+setClass("glmerSp", representation(fe = "rwSpFeMod"), contains = "glmerMod")
