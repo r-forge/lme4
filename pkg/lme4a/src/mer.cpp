@@ -284,3 +284,7 @@ SEXP deviance_lmerSp(SEXP xp) {
     return Rf_ScalarReal(lm.deviance());
 }
 
+RCPP_FUNCTION_1(double,glmerDeIRLS,Rcpp::S4 xp) {
+    mer::glmerDe glmr(xp);
+    return 0.;
+}
