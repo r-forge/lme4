@@ -105,7 +105,7 @@ mkReTrms <- function(bars, fr, rwt = FALSE, s = 1L) {
                                    function(cols) Ut[, cols]), "+")
         }
         ll$ubase <- ll$u
-        ll$Class <- "reReMod"
+        ll$Class <- "rwReTrms"
     }
     ll$L <- Cholesky(tcrossprod(ll$Ut), LDL = FALSE, Imult = 1)
     ll$ldL2 <- numeric(1)
@@ -134,6 +134,7 @@ mkReTrms <- function(bars, fr, rwt = FALSE, s = 1L) {
 ##' @param reMod the reModule for the model
 ##' @param sparseX Logical indicator of sparse X
 ##' @param rwt Logical indicator of reweightable
+##' @param s number of columns in the sqrtXwts
 ##'
 ##' @return an object that inherits from feModule
 mkFeModule <-
@@ -174,6 +175,7 @@ mkFeModule <-
 
 mkRespMod <- function(fr, reMod, feMod, family = NULL, nlenv = NULL) {
     n <- nrow(fr)
+    N <- nrow(feMod@X)
                                         # components of the model frame
     y <- model.response(fr)
     # avoid problems with 1D arrays, but keep names
@@ -182,41 +184,61 @@ mkRespMod <- function(fr, reMod, feMod, family = NULL, nlenv = NULL) {
         dim(y) <- NULL
         if(!is.null(nm)) names(y) <- nm
     }
-    weights <- as.numeric(model.weights(fr))
-    if (any(weights < 0))
-        stop(gettext("negative weights not allowed", domain = "R-lme4"))
-    loff <- length(offset <- as.numeric(model.offset(fr)))
-    if (loff) {
-        if (loff == 1) {
-            offset <- rep.int(offset, n)
-        } else if (loff != n) {
-            stop(gettextf("number of offsets (%d) should %d (number of observations)",
-                          loff, n), domain = "R-lme4")
-        }
+    if(TRUE) { ## FIXME	 merResp::updateWrss() in ../src/mer.cpp requires
+	weights <- numeric(0)
+    } else { ## NOT yet
+	weights <- model.weights(fr)
+	if (is.null(weights)) weights <- rep.int(1, n)
+	if (any(weights < 0))
+	    stop(gettext("negative weights not allowed", domain = "R-lme4"))
     }
+    offset <- model.offset(fr)
+    if (is.null(offset)) offset <- numeric(N)
+    if (length(offset) == 1) offset <- rep.int(offset, n)
+    if (length(offset) != n)
+        stop(gettextf("number of offsets (%d) should be %d (number of observations)",
+                      loff, n), domain = "R-lme4")
     p <- ncol(feMod@X)
     q <- nrow(reMod@Zt)
-    ll <- list(weights = weights, offset = offset, mu = numeric(n),
-               resid = numeric(n), wrss = numeric(1), Utr = numeric(q),
+    ll <- list(weights = unname(weights), offset = unname(offset),
+               wrss = numeric(1), Utr = numeric(q),
                Vtr = numeric(p), cu = numeric(q), cbeta = numeric(p))
     if (is.null(family) && is.null(nlenv)) { # lmer
         ll$Class <- "lmerResp"
-        y <- as.numeric(y)
-        names(y) <- NULL
-        ll$y <- y
+        ll$y <- y <- unname(as.numeric(y))
+        ll$resid <- numeric(n)
+        ll$mu <- numeric(n)
         ll$Utr <- (reMod@Zt %*% y)@x
         ll$Vtr <- crossprod(feMod@X, y)@x
-        return(do.call("new", ll))
     }
     if (!is.null(family)) {
+        ll$y <- y                       # may get overwritten later
+        rho <- new.env()
+        rho$etastart <- model.extract(fr, "etastart")
+        rho$mustart <- model.extract(fr, "mustart")
+        rho$nobs <- n
         if (is.character(family))
             family <- get(family, mode = "function", envir = parent.frame(3))
         if (is.function(family)) family <- family()
-        etastart <- unname(as.numeric(model.extract(fr, "etastart")))
-        mustart <- unname(as.numeric(model.extract(fr, "mustart")))
-        nobs <- n
-        with(ll, eval(family$initialize))
+        eval(family$initialize, rho)
+        family$initialize <- NULL       # remove clutter from str output
+        ll$mu <- unname(rho$mustart)
+        lr <- as.list(rho)
+        ll[names(lr)] <- lr             # may overwrite y, weights, etc.
+        ll$weights <- unname(ll$weights)
+        ll$y <- unname(ll$y)
+        ll$gamma <- family$linkfun(ll$mu)
+        ll$muEta <- family$mu.eta(ll$gamma)
+        ll$var <- family$variance(ll$mu)
+        ll$resid <- ll$y - ll$mu
+        ll$sqrtrwt <- sqrt(ll$weights/ll$var)
+        ll$sqrtXwt <- Matrix(ll$sqrtrwt * ll$muEta)
+        ll$family <- family
+        ll <- ll[intersect(names(ll), slotNames("glmerResp"))]
+        ll$n <- unname(rho$n)           # for the family$aic function
+        ll$Class <- "glmerResp"
     }
+    do.call("new", ll)
 }
 
 
@@ -273,6 +295,7 @@ S4toEnv <- function(from) {
 setAs("lmerMod", "optenv",  function(from) .lmerM2env(from, "optenv"))
 setAs("lmerMod", "lmerenv", function(from) .lmerM2env(from, "lmerenv"))
 
+
 lmer2 <- function(formula, data, REML = TRUE, sparseX = FALSE,
                   control = list(), start = NULL, verbose = 0, doFit = TRUE,
                   subset, weights, na.action, offset,
@@ -326,11 +349,82 @@ lmer2 <- function(formula, data, REML = TRUE, sparseX = FALSE,
         if (length(ans@re@theta) < 2) { # use optimize
             d0 <- devfun(0)
             opt <- optimize(devfun, c(0, 10))
-            if (d0 <= opt$objective) d0 # prefer theta == 0 when close
+            if (d0 <= opt$objective) { ## prefer theta == 0 when close
+                devfun(0) # -> theta  := 0  and update the rest
+            }
         } else {
             if (verbose) control$iprint <- 2L
             bobyqa(ans@re@theta, devfun, ans@re@lower, control = control)
+            ## FIXME: also here, prefer \hat\sigma^2 == 0 (exactly)
         }
     }
+    ans
+}
+
+## being brave now:
+lmer <- lmer2
+
+glmer2 <- function(formula, data, family = gaussian, sparseX = FALSE,
+                   control = list(), start = NULL, verbose = 0, doFit = TRUE,
+                   subset, weights, na.action, offset,
+                   contrasts = NULL, nAGQ = 1, mustart, etastart, ...)
+{
+    mf <- mc <- match.call()
+    if (missing(family)) { ## divert using lmer2()
+	mc[[1]] <- as.name("lmer2")
+	return(eval(mc, parent.frame()))
+    }
+### '...' handling up front, safe-guarding against typos ("familiy") :
+    if(length(l... <- list(...))) {
+	## Check for invalid specifications
+	if (!is.null(method <- list(...)$method)) {
+	    msg <- paste("Argument", sQuote("method"),
+			 "is deprecated.\nUse", sQuote("nAGQ"),
+			 "to choose AGQ.  PQL is not available.")
+	    if (match.arg(method, c("Laplace", "AGQ")) == "Laplace") {
+		warning(msg)
+		l... <- l...[names(l...) != "method"]
+	    } else stop(msg)
+	}
+	if(length(l...))
+	    warning("extra arguments ", paste(names(l...), sep=", "),
+		    " are disregarded")
+    }
+
+    if (!(all(1 == (nAGQ <- as.integer(nAGQ)))))
+        warning("nAGQ > 1 has not been implemented, using Laplace")
+    stopifnot(length(formula <- as.formula(formula)) == 3)
+    if (missing(data)) data <- environment(formula)
+                                        # evaluate and install the model frame :
+    m <- match(c("data", "subset", "weights", "na.action", "offset",
+                 "mustart", "etastart"), names(mf), 0)
+    mf <- mf[c(1, m)]
+    mf$drop.unused.levels <- TRUE
+    mf[[1]] <- as.name("model.frame")
+    fr.form <- subbars(formula) # substituted "|" by "+" -
+    environment(fr.form) <- environment(formula)
+    mf$formula <- fr.form
+    fr <- eval(mf, parent.frame())
+                             # reweightable random-effects module from terms
+    reTrms <- mkReTrms(findbars(formula[[3]]), fr, TRUE)
+                                        # reweightable fixed-effects module
+    feMod <- mkFeModule(formula, fr, contrasts, reTrms, sparseX, TRUE)
+    respMod <- mkRespMod(fr, reTrms, feMod, family)
+    ans <- new(ifelse (sparseX, "glmerSp", "glmerDe"), call = mc,
+	       re = reTrms, fe = feMod, resp = respMod)
+    ## if (doFit) {                        # optimize estimates
+    ##     devfun <- function(th) {
+    ##         if (is(ans, "lmerSp")) return(.Call(update_lmerSp, ans, th))
+    ##         .Call(update_lmerDe, ans, th)
+    ##     }
+    ##     if (length(ans@re@theta) < 2) { # use optimize
+    ##         d0 <- devfun(0)
+    ##         opt <- optimize(devfun, c(0, 10))
+    ##         if (d0 <= opt$objective) d0 # prefer theta == 0 when close
+    ##     } else {
+    ##         if (verbose) control$iprint <- 2L
+    ##         bobyqa(ans@re@theta, devfun, ans@re@lower, control = control)
+    ##     }
+    ## }
     ans
 }

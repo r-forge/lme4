@@ -36,7 +36,9 @@ Determine what a "coef" function should do for multiple, possibly
   and one with many fixed effects (*) and     print(<lmer>, symbolic.cor = TRUE)
 
 ----------------
-Make fit for lmer2:
+Provide methods for lmer2() aka the "[gln]merMod" classes based one
 
-anova
-isREML
+ o Now done for  anova, coef, isREML, update, model.matrix
+ o However, the *Mod classes don't store the model frame, currently,
+   so   model.frame()  and  terms()
+   cannot easily be provided     ---

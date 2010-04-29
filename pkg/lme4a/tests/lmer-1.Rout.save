@@ -1,5 +1,5 @@
 
-R version 2.11.0 alpha (2010-04-07 r51619)
+R version 2.11.0 Patched (2010-04-28 r51857)
 Copyright (C) 2010 The R Foundation for Statistical Computing
 ISBN 3-900051-07-0
 
@@ -27,7 +27,6 @@ The following object(s) are masked from 'package:base':
     det
 
 Loading required package: minqa
-Loading required package: Rcpp
 > options(show.signif.stars = FALSE)
 > 
 > source(system.file("test-tools.R", package = "Matrix"))# identical3() etc
@@ -175,8 +174,7 @@ Fixed effects:
   9:     100.11004: 0.651244 -1.40329 -0.968724 -1.10422 -1.54973
  10:     100.11004: 0.651247 -1.40329 -0.968723 -1.10423 -1.54973
 List of 6
- $ par        : Named num [1:5] 0.651 -1.403 -0.969 -1.104 -1.55
-  ..- attr(*, "names")= chr [1:5] "" "(Intercept)" "period2" "period3" ...
+ $ par        : num [1:5] 0.651 -1.403 -0.969 -1.104 -1.55
  $ objective  : num 100
  $ convergence: int 0
  $ message    : chr "relative convergence (4)"
@@ -535,5 +533,5 @@ In Ops.factor(ff, x1) : + not meaningful for factors
 > stopifnot(all.equal.notCall(Pm1, Pm2))
 > 
 > cat('Time elapsed: ', proc.time(),'\n') # for ``statistical reasons''
-Time elapsed:  6.588 0.143 7.09 0 0 
+Time elapsed:  6.787 0.149 7.292 0 0 
 > 

@@ -257,7 +257,7 @@ setAs("lmerenv", "lmer", env2lmer)
     }
 }
 
-lmer <-
+lmer1 <-
     function(formula, data, REML = TRUE, sparseX = FALSE,
              control = list(), start = NULL, verbose = 0, doFit = TRUE,
              compDev = TRUE, optimizer = c("nlminb", "bobyqa", "optimize"),
@@ -363,7 +363,10 @@ lmer <-
     }
     else ## the merenv:
         me
-} ## lmer()
+} ## lmer1()
+
+if(FALSE) ## no longer:
+lmer <- lmer1
 
 glmer <-
 function(formula, data, family = gaussian, sparseX = FALSE,
@@ -951,15 +954,17 @@ setMethod("isREML", "lmerenv",	function(x) isTRUE(env(x)$REML))
 setMethod("isREML", "lmer",	function(x) as.logical(x@dims[["REML"]]))
 setMethod("isREML", "merenv",	function(x) FALSE)
 setMethod("isREML", "mer",	function(x) FALSE)
+setMethod("isREML", "lmerMod",	function(x) x@REML)
 
 setMethod("getCall", "merenv",	function(x) env(x)$call)
 setMethod("getCall", "mer",	function(x) x@call)
+setMethod("getCall", "lmerMod",	function(x) x@call)
 
 ##' <description>
 ##'
 ##' <details>
 ##' @title anova() for both  "lmerenv" and "lmer" fitted models
-##' @param object an "lmerenv" or "lmer" - fitted model
+##' @param object an "lmerenv", "lmer" or "lmerMod" - fitted model
 ##' @param ...  further such objects
 ##' @return an "anova" data frame; the traditional (S3) result of anova()
 anovaLmer <- function(object, ...) {
@@ -1054,6 +1059,8 @@ anovaLmer <- function(object, ...) {
 setMethod("anova", signature(object = "lmerenv"), anovaLmer)
 
 setMethod("anova", signature(object = "lmer"), anovaLmer)
+
+setMethod("anova", signature(object = "lmerMod"), anovaLmer)
 
 ##' <description>
 ##'
@@ -1373,21 +1380,35 @@ setMethod("summary", "mer", summaryMer)
 setMethod("summary", "lmerMod", summaryMer2)
 
 
-setMethod("model.frame", signature(formula = "merenv"),
-	  function(formula, ...) env(formula)$frame)
-
+## This is just  "Access the X matrix"
 setMethod("model.matrix", signature(object = "merenv"),
 	  function(object, ...) env(object)$X)
+setMethod("model.matrix", signature(object = "mer"),
+	  function(object, ...) object@X)
+setMethod("model.matrix", signature(object = "lmerMod"),
+	  function(object, ...) object@fe@X)
+setMethod("model.matrix", signature(object = "glmerMod"),
+	  function(object, ...) object@fe@X)
+
+if(FALSE){ ## Not sure if we really need these -- will user want them?
+           ## old-lme4  does provide them though
+setMethod("model.frame", signature(formula = "merenv"),
+	  function(formula, ...) env(formula)$frame)
+setMethod("model.frame", signature(formula = "mer"),
+	  function(formula, ...) formula@frame)
 
 setMethod("terms", signature(x = "merenv"),
 	  function(x, ...) attr(env(x)$frame, "terms"))
-
-setMethod("model.frame", signature(formula = "mer"),
-	  function(formula, ...) formula$frame)
-setMethod("model.matrix", signature(object = "mer"),
-	  function(object, ...) object$X)
 setMethod("terms", signature(x = "mer"),
-	  function(x, ...) attr(x$frame, "terms"))
+	  function(x, ...) attr(x@frame, "terms"))
+
+## 'lmerMod' currently does *not* store the model.frame -- should it? --
+## setMethod("model.frame", signature(formula = "lmerMod"),
+## 	  function(formula, ...) formula@frame)
+## setMethod("terms", signature(x = "lmerMod"),
+## 	  function(x, ...) attr(x@frame, "terms"))
+}
+
 
 setMethod("deviance", signature(object="lmerenv"),
 	  function(object, REML = NULL, ...)
@@ -1505,7 +1526,7 @@ setMethod("logLik", signature(object="mer"),
 		   hasScale = useSc)
       })
 
-##' update()  both for "merenv" and "mer" :
+##' update()  for all kind  "merMod", "merenv", "mer", .. :
 updateMer <- function(object, formula., ..., evaluate = TRUE)
 {
     if (is.null(call <- getCall(object)))
@@ -1528,6 +1549,8 @@ updateMer <- function(object, formula., ..., evaluate = TRUE)
 
 setMethod("update", signature(object = "merenv"), updateMer)
 setMethod("update", signature(object = "mer"), updateMer)
+setMethod("update", signature(object = "lmerMod"), updateMer)
+setMethod("update", signature(object = "glmerMod"), updateMer)
 
 
 setMethod("print", "merenv", printMerenv)
@@ -1539,6 +1562,8 @@ setMethod("show",  "mer", function(object) printMerenv(object))
 setMethod("print", "lmerMod", printMerenv)
 setMethod("show",  "lmerMod", function(object) printMerenv(object))
 
+## coef() method for all kinds of "mer", "*merMod", ... objects
+## ------  should work with fixef() + ranef()  alone
 coefMer <- function(object, ...)
 {
     if (length(list(...)))
@@ -1562,9 +1587,10 @@ coefMer <- function(object, ...)
 } ##  {coefMer}
 
 setMethod("coef", signature(object = "merenvtrms"), coefMer)
-## for now
 setMethod("coef", signature(object = "mer"), coefMer)
+setMethod("coef", signature(object = "lmerMod"), coefMer)
+setMethod("coef", signature(object = "glmerMod"), coefMer)
 
 
-## For Matrix API change (Oct.2009):
+## For Matrix API change (Oct.2009) - silence the warning:
 assign("det_CHMfactor.warn", FALSE, envir = Matrix:::.MatrixEnv)

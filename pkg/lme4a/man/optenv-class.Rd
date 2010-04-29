@@ -53,8 +53,8 @@ showClass("optenv")
 %% methods :
 %%  str( getValidity(getClass("merenv")) )
 
-fm1 <- lmer(Reaction ~ Days + (Days|Subject), sleepstudy,
-            doFit = FALSE) #- so we get the "merenv" (before optimization)
+fm1 <- lmer1(Reaction ~ Days + (Days|Subject), sleepstudy,
+             doFit = FALSE) #- so we get the "merenv" (before optimization)
 nlminb(fm1) # optimze it --> *does* change the 'fm1' object !!!!!
 fm1.s <- copyMerenv(fm1)# save it
 str(n.fm1 <- nlminb(fm1, control= list(trace=TRUE, rel.tol = 1e-11)))
