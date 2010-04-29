@@ -154,6 +154,7 @@ mkFeModule <-
     rownames(ll$X) <- NULL
     ll$RZX <- reMod@Zt %*% ll$X
     ll$beta <- numeric(ncol(ll$X))
+    ll$ldRX2 <- numeric(1)
     if (rwt) {
         ll$V <- ll$X
         N <- nrow(ll$X)
@@ -168,7 +169,6 @@ mkFeModule <-
     } else {                            # lmer model (the only non-reweightable type)
         ll$ZtX <- ll$RZX
         ll$XtX <- crossprod(ll$X)
-        ll$ldRX2 <- numeric(1)
     }
     do.call("new", ll)
 }
@@ -184,14 +184,11 @@ mkRespMod <- function(fr, reMod, feMod, family = NULL, nlenv = NULL) {
         dim(y) <- NULL
         if(!is.null(nm)) names(y) <- nm
     }
-    if(TRUE) { ## FIXME	 merResp::updateWrss() in ../src/mer.cpp requires
-	weights <- numeric(0)
-    } else { ## NOT yet
-	weights <- model.weights(fr)
-	if (is.null(weights)) weights <- rep.int(1, n)
-	if (any(weights < 0))
-	    stop(gettext("negative weights not allowed", domain = "R-lme4"))
-    }
+    ## This part is necessary for glmer!  We can fix the weights for lmer later.
+    weights <- model.weights(fr)
+    if (is.null(weights)) weights <- rep.int(1, n)
+    if (any(weights < 0))
+        stop(gettext("negative weights not allowed", domain = "R-lme4"))
     offset <- model.offset(fr)
     if (is.null(offset)) offset <- numeric(N)
     if (length(offset) == 1) offset <- rep.int(offset, n)
