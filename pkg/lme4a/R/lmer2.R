@@ -201,7 +201,7 @@ mkRespMod <- function(fr, reMod, feMod, family = NULL, nlenv = NULL) {
                wrss = numeric(1), Utr = numeric(q),
                Vtr = numeric(p), cu = numeric(q), cbeta = numeric(p))
     if (is.null(family) && is.null(nlenv)) { # lmer
-        ll$Class <- "lmerResp"
+        ll$Class <- "merResp"
         ll$y <- y <- unname(as.numeric(y))
         ll$resid <- numeric(n)
         ll$mu <- numeric(n)
@@ -340,8 +340,8 @@ lmer2 <- function(formula, data, REML = TRUE, sparseX = FALSE,
 	       REML = REML)
     if (doFit) {                        # optimize estimates
         devfun <- function(th) {
-            if (is(ans, "lmerSp")) return(.Call(update_lmerSp, ans, th))
-            .Call(update_lmerDe, ans, th)
+            if (is(ans, "lmerSp")) return(.Call(lmerSpUpdate, ans, th))
+            .Call(lmerDeUpdate, ans, th)
         }
         if (length(ans@re@theta) < 2) { # use optimize
             d0 <- devfun(0)
