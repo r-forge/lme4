@@ -47,7 +47,7 @@ importMethodsFrom("Matrix",
                   tcrossprod,
                   update)
 
-#exportPattern("^[^\\.]")  # for debugging
+exportPattern("^[^\\.]")  # for debugging
 
 export(VarCorr, copyMerenv, devcomp, env, getL,
        glmer, glmer2, lmList, lmer, lmer1, lmer2, nlmer,
@@ -61,8 +61,8 @@ exportClasses(lmList,
               reModule, rwReMod, feModule, deFeMod, spFeMod,
               reTrms, rwReTrms,
               lmerDeFeMod, lmerSpFeMod, rwDeFeMod, rwSpFeMod,
-              merResp, lmerResp, rwResp, glmerResp, nlmerResp, nglmerResp,
-              lmerMod, lmerDe, lmerSp
+              merResp, rwResp, glmerResp, nlmerResp, nglmerResp,
+              lmerMod, lmerDe, lmerSp, glmerMod, glmerDe, glmerSp
               )
 
 exportMethods(VarCorr, anova, bobyqa, coef, coerce, confint, deviance,
