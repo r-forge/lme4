@@ -24,8 +24,24 @@ static void showCHM_SP(const CHM_SP x, const std::string nm) {
 	    nm.c_str(), x->nrow, x->ncol, x->xtype, x->stype, x->itype, x->dtype);
     int nc = x->ncol, nnz = ::M_cholmod_nnz(x, &c);
     showint((int*)x->p, "p", nc + 1);
-    showint((int*)x->i, "i", nnz);
-    showdbl((double*)x->x, "x", nnz);
+    if (nnz > 0) {
+	showint((int*)x->i, "i", nnz);
+	showdbl((double*)x->x, "x", nnz);
+    } else Rprintf("nnz = 0\n");
+}
+
+static void showCHM_FR(const CHM_FR x, const std::string nm) {
+    Rprintf("%s: n = %d, minor = %d, xtype = %d, itype = %d, dtype = %d\n",
+	    nm.c_str(), x->n, x->minor, x->xtype, x->itype, x->dtype);
+    Rprintf("ordering = %d, is_ll = %d, is_super = %d, is_monotonic = %d, nzmax = %d\n",
+	    x->ordering, x->is_ll, x->is_super, x->is_monotonic, x->nzmax);
+    int *pp = (int*)x->p;
+    showint(pp, "p", (x->n) + 1);
+    showint((int*)x->Perm, "Perm", x->n);
+    if (pp[x->n] > 0) {
+	showint((int*)x->i, "i", x->n);
+	showdbl((double*)x->x, "x", x->n);
+    } else Rprintf("nnz = 0\n");
 }
 
 namespace mer{
@@ -148,40 +164,26 @@ namespace mer{
 
     void lmerSpFeMod::updateRzxRx(reModule &re) {
 	double mone[] = {-1.,0}, one[] = {1.,0};
-//	showCHM_SP(&re.Lambda, "Lambda");
-	CHM_SP t1 = re.Lambda.transpose();
-//	showCHM_SP(t1, "t(Lambda)");
-	CHM_SP t2 = ::M_cholmod_ssmult(t1, &ZtX, 0/*stype*/,
-				       1/*values*/, 1/*sorted*/, &c);
-//	showCHM_SP(t2, "crossprod(Lambda, ZtX)");
-//	Rprintf("L.n = %d\n", re.L.n);
-//	showint((int*)re.L.Perm, "re.L.Perm", re.L.n);
-	::M_cholmod_free_sparse(&t1, &c);
-	t1 = re.L.spsolve(CHOLMOD_P, t2);
-//	showCHM_SP(t1, "solve(L, crossprod(Lambda, ZtX), \"P\"");
 
-//	showint((int*)t1->p, "t1->p", (t1->ncol) + 1);
-//	Rprintf("solve(crossprod(Lambda, ZtX), L, \"P\") (%d, %d), nnz = %d\n",
-//		t1->nrow, t1->ncol, ::M_cholmod_nnz(t1, &c));
+	CHM_SP t2 = re.Lambda.crossprod(ZtX);
+//	showCHM_FR(&(re.L), "L");
+	CHM_SP t1 = re.L.spsolve(CHOLMOD_P, t2);
+//	showCHM_SP(t1, "solve(L, crossprod(Lambda, ZtX), \"P\")");
 	::M_cholmod_free_sparse(&t2, &c);
 	t2 = re.L.spsolve(CHOLMOD_L, t1);
-//	Rprintf("solve(crossprod(Lambda, ZtX), L, \"L\") (%d, %d), nnz = %d\n",
-//		t2->nrow, t2->ncol, ::M_cholmod_nnz(t2, &c));
+//	showCHM_SP(t2, "solve(crossprod(Lambda, ZtX), L, \"L\")");
 	RZX.update(*t2);
-
+	
 	::M_cholmod_free_sparse(&t1, &c);
-	t1 = RZX.transpose();
-	::M_cholmod_free_sparse(&t2, &c);
-	t2 = ::M_cholmod_aat(t1, (int*)NULL, 0/*fsize*/, 1/*mode*/, &c);
-	::M_cholmod_free_sparse(&t1, &c);
-// Need to copy and convert to a symmetric matrix; grumble, grumble.
-	t1 = ::M_cholmod_copy(t2, 1/*stype*/, 1/*mode*/, &c);
-	::M_cholmod_free_sparse(&t2, &c);
-
+	t1 = RZX.crossprod();
+//	showCHM_SP(t1, "RZX.crossprod()");
 	t2 = ::M_cholmod_add(&XtX, t1, one, mone, 1/*values*/, 1/*sorted*/, &c);
-//	showCHM_SP(t1, "t1");
 	::M_cholmod_free_sparse(&t1, &c);
-	RX.update(*t2, 0.);
+//	showCHM_SP(t2, "XtX-RZX.crossprod");
+
+//	showCHM_FR(&RX, "RX before update");
+	RX.update(*t2);
+//	showCHM_FR(&RX, "RX after update");
 	::M_cholmod_free_sparse(&t2, &c);
 	*ldRX2 = ::M_chm_factor_ldetL2(&RX);
     }
