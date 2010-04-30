@@ -215,25 +215,31 @@ namespace MatrixNs {
 
 	void update(cholmod_sparse&);
 
-//	chmSp transpose(int values = 1) const {  // causes compile error
-//	chmSp transpose(int values = 1) {
-//	    return chmSp(::M_cholmod_transpose(this, values, &c));
-//	}
+//	CHM_SP transpose(int values = 1) const {  // causes compile error
 	CHM_SP transpose(int values = 1) {
 	    return ::M_cholmod_transpose(this, values, &c);
 	}
+
+	// int dmult(char tr, double alpha, double beta, 
+	// 	  chmDn const &src, chmDn &dest) const {  // compile error
 	int dmult(char tr, double alpha, double beta,
 		  chmDn &src, chmDn &dest) {
 	    return ::M_cholmod_sdmult(this, Trans(tr).TR == 'T', &alpha,
 				      &beta, &src, &dest, &c);
 	}
+//	CHM_SP crossprod() const; // compile error
 	CHM_SP crossprod();
-	CHM_SP crossprod(chmSp&, int sorted = 1);
+	CHM_SP crossprod(CHM_SP, int sorted = 1);
+	CHM_SP crossprod(chmSp&B, int sorted = 1) {return crossprod(&B, sorted);}
 
 	CHM_SP tcrossprod();
-	CHM_SP tcrossprod(chmSp&, int sorted = 1);
+	CHM_SP tcrossprod(CHM_SP, int sorted = 1);
+	CHM_SP tcrossprod(chmSp& B, int sorted = 1) {return tcrossprod(&B, sorted);}
 
-	CHM_SP smult(chmSp&,int,int,int);
+	CHM_SP smult(chmSp &B, int stype, int values, int sorted) {
+	    return ::M_cholmod_ssmult(this, &B, stype, values, sorted, &c);
+	}
+
 //    protected:
 //	CHM_SP pp;
 //	SEXP m_sexp;
@@ -247,7 +253,7 @@ namespace MatrixNs {
 
 	void update(cholmod_sparse &A, double Imult = 0.) {
 	    double ImVec[] = {Imult, 0};
-	    ::M_cholmod_factorize_p(&A, ImVec, (int*)NULL, 0, this, &c);
+	    ::M_cholmod_factorize_p(&A, ImVec, (int*)NULL, (size_t) 0, this, &c);
 	}
 
 	CHM_DN solve(int sys, CHM_DN b) {
