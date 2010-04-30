@@ -301,9 +301,9 @@ namespace MatrixNs{
 	return t1;
     }
 
-    CHM_SP chmSp::crossprod(chmSp &B, int sorted) {
+    CHM_SP chmSp::crossprod(CHM_SP B, int sorted) {
 	CHM_SP t1 = this->transpose();
-	CHM_SP t2 = ::M_cholmod_ssmult(t1, &B, 0/*stype*/, xtype/*values*/,
+	CHM_SP t2 = ::M_cholmod_ssmult(t1, B, 0/*stype*/, xtype/*values*/,
 				       sorted, &c);
 	::M_cholmod_free_sparse(&t1, &c);
 	return t2;
@@ -317,17 +317,17 @@ namespace MatrixNs{
 	return t2;
     }
 
-    CHM_SP chmSp::tcrossprod(chmSp &B, int sorted) {
-	CHM_SP t1 = B.transpose();
+    CHM_SP chmSp::tcrossprod(CHM_SP B, int sorted) {
+	CHM_SP t1 = ::M_cholmod_transpose(B, xtype/*values*/, &c);
 	CHM_SP t2 = ::M_cholmod_ssmult(this, t1, 0/*stype*/, xtype/*values*/,
 				       sorted, &c);
 	::M_cholmod_free_sparse(&t1, &c);
 	return t2;
     }
 
-    CHM_SP chmSp::smult(chmSp &B, int stype, int values, int sorted) {
-	return ::M_cholmod_ssmult(this, &B, stype, values, sorted, &c);
-    }
+    // CHM_SP chmSp::smult(chmSp &B, int stype, int values, int sorted) {
+    // 	return ::M_cholmod_ssmult(this, &B, stype, values, sorted, &c);
+    // }
 
     // chmDn::chmDn(CHM_DN xp) : cholmod_dense(), pp(xp) {
     // 	nrow = pp->nrow;
