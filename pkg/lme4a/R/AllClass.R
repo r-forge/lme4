@@ -536,7 +536,7 @@ setClass("rwResp",
 setClass("glmerResp",
          representation(family = "family",
                         muEta = "numeric",
-                        n = "numeric",    # for evaluation of the aic 
+                        n = "numeric",    # for evaluation of the aic
                         var = "numeric"), # variances of responses
          contains = "rwResp",
          validity = function(object) {
@@ -566,6 +566,7 @@ setClass("nglmerResp", contains = c("glmerResp", "nlmerResp"))
 
 setClass("lmerMod",
          representation(call = "call",
+			frame = "data.frame", # "model.frame" is not S4-ized yet
                         re = "reModule",
                         resp = "merResp",
                         REML = "logical", "VIRTUAL"),
@@ -580,7 +581,7 @@ setClass("lmerDe", representation(fe = "lmerDeFeMod"), contains = "lmerMod")
 setClass("lmerSp", representation(fe = "lmerSpFeMod"), contains = "lmerMod")
 
 setClass("glmerMod",
-         representation(call = "call",
+         representation(call = "call", frame = "data.frame",
                         re = "rwReTrms",
                         resp = "glmerResp",
                         "VIRTUAL"))

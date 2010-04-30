@@ -174,23 +174,23 @@ anova(fm1, fm2)
 ## dense vs sparse X  --------------------------
 
 \dontshow{% this is really a consistency check
-fm1.1s <- lmer1(Reaction ~ Days + (Days|Subject), sleepstudy, sparseX=TRUE)
-fm1.2s <- lmer2(Reaction ~ Days + (Days|Subject), sleepstudy, sparseX=TRUE)
-for(nm in c("coef", "fixef", "ranef", "sigma", "model.matrix")) {
-  ##  "model.frame" , "terms"  [not easily, see ../ToDo ! ]
-  cat(sprintf("\%15s : ", nm))
-  FUN <- get(nm)
-  F.fm1.1s <- FUN(fm1.1s)
-  F.fm1.2s <- FUN(fm1.2s)
-  if(nm == "model.matrix") {
- 	F.fm1.1s <- as(F.fm1.1s, "denseMatrix")
- 	F.fm1.2s <- as(F.fm1.2s, "denseMatrix")
-  }
-  stopifnot(all.equal(FUN(fm1.), F.fm1.1s, tol = 1e-6))
-  stopifnot(all.equal(FUN(fm1 ), F.fm1.1s, tol = 9e-6))
-  stopifnot(all.equal(F.fm1.2s,  F.fm1.1s, tol = 1e-6))
-  cat("[Ok]\n")
-}
+ fm1.1s <- lmer1(Reaction ~ Days + (Days|Subject), sleepstudy, sparseX=TRUE)
+ fm1.2s <- lmer2(Reaction ~ Days + (Days|Subject), sleepstudy, sparseX=TRUE)
+ for(nm in c("coef", "fixef", "ranef", "sigma",
+	     "model.matrix", "model.frame" , "terms")) {
+   cat(sprintf("\%15s : ", nm))
+   FUN <- get(nm)
+   F.fm1.1s <- FUN(fm1.1s)
+   F.fm1.2s <- FUN(fm1.2s)
+   if(nm == "model.matrix") {
+	 F.fm1.1s <- as(F.fm1.1s, "denseMatrix")
+	 F.fm1.2s <- as(F.fm1.2s, "denseMatrix")
+   }
+   stopifnot(all.equal(FUN(fm1.), F.fm1.1s, tol = 1e-6))
+   stopifnot(all.equal(FUN(fm1 ), F.fm1.1s, tol = 9e-6))
+   stopifnot(all.equal(F.fm1.2s,  F.fm1.1s, tol = 1e-6))
+   cat("[Ok]\n")
+ }
 }%{dontshow}
 
 ## use more sensical example !!

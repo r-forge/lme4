@@ -8,9 +8,12 @@ mkSqrtXwt <- function(N, s) {
 ##'
 ##' @param bars a list of parsed random-effects terms
 ##' @param fr a model frame in which to evaluate these terms
+##' @param rwt iff TRUE, want a *ReWeighTed* reModule, i.e. "rwReTrms"
+##' @param checknl iff TRUE, bail out iff any grouping factors has >= n levels
+##' @param s (only for rwt=TRUE): number of columns in ..
 ##'
 ##' @return a list of an reModule and a merTrms
-mkReTrms <- function(bars, fr, rwt = FALSE, s = 1L) {
+mkReTrms <- function(bars, fr, rwt = FALSE, checknl = TRUE, s = 1L) {
     if (!length(bars))
         stop("No random effects terms specified in formula")
     stopifnot(is.list(bars), all(sapply(bars, is.language)),
@@ -43,6 +46,9 @@ mkReTrms <- function(bars, fr, rwt = FALSE, s = 1L) {
     blist <- lapply(bars, mkBlist)
     nl <- sapply(blist, "[[", "nl")     # no. of levels per term
     n <- nrow(fr)
+    if(checknl && any(nl >= n))
+	stop("Number of levels of a grouping factor for the random effects\n",
+	     "must be less than the number of observations")
 
     ## order terms stably by decreasing number of levels in the factor
     if (any(diff(nl)) > 0) {
@@ -96,17 +102,21 @@ mkReTrms <- function(bars, fr, rwt = FALSE, s = 1L) {
     ll$Lambda <- Lambda
 
     ll$Ut <- crossprod(Lambda, Zt)
-    ll$Class <- "reTrms"
-    if (rwt) {                          # different class with more information
+    if (rwt) { ## different class with more information
         N <- ncol(Zt)
         ll$sqrtXwt <- mkSqrtXwt(N, s)
         if (s > 1) {
-            ll$Ut <- Reduce(lapply(split(seq_len(N) , rep.int(1:s, rep.int(N %/% s, s))),
-                                   function(cols) Ut[, cols]), "+")
+	    ll$Ut <- Reduce(lapply(split(seq_len(N) ,
+					 rep.int(seq_len(s),
+						 rep.int(N %/% s, s))),
+				   function(cols) Ut[, cols]), "+")
         }
         ll$ubase <- ll$u
-        ll$Class <- "rwReTrms"
+	ll$Class <- "rwReTrms"
     }
+    else
+	ll$Class <- "reTrms"
+
     ll$L <- Cholesky(tcrossprod(ll$Ut), LDL = FALSE, Imult = 1)
     ll$ldL2 <- numeric(1)
                                         # massage the factor list
@@ -335,7 +345,7 @@ lmer2 <- function(formula, data, REML = TRUE, sparseX = FALSE,
                                         # fixed-effects module
     feMod <- mkFeModule(formula, fr, contrasts, reTrms, sparseX)
     respMod <- mkRespMod(fr, reTrms, feMod)
-    ans <- new(ifelse (sparseX, "lmerSp", "lmerDe"), call = mc,
+    ans <- new(ifelse (sparseX, "lmerSp", "lmerDe"), call = mc, frame = fr,
 	       re = reTrms, fe = feMod, resp = respMod,
 	       REML = REML)
     if (doFit) {                        # optimize estimates
@@ -407,7 +417,7 @@ glmer2 <- function(formula, data, family = gaussian, sparseX = FALSE,
                                         # reweightable fixed-effects module
     feMod <- mkFeModule(formula, fr, contrasts, reTrms, sparseX, TRUE)
     respMod <- mkRespMod(fr, reTrms, feMod, family)
-    ans <- new(ifelse (sparseX, "glmerSp", "glmerDe"), call = mc,
+    ans <- new(ifelse (sparseX, "glmerSp", "glmerDe"), call = mc, frame = fr,
 	       re = reTrms, fe = feMod, resp = respMod)
     ## if (doFit) {                        # optimize estimates
     ##     devfun <- function(th) {

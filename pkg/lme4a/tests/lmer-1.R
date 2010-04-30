@@ -14,17 +14,15 @@ stopifnot(all.equal(fm1, fm1.))
 fm1. <- lmer1(Reaction ~ Days + (Days|Subject), sleepstudy,
               compDev = FALSE)#--> use R code (not C) for deviance computation
 
-setMethod("as.list", "mer",
-          function(x, drop.call=FALSE, ...)
-      {
-          sn <- slotNames(x)
-          if(drop.call) sn <- sn[sn != "call"]
-          lapply(sn, slot, object=x) })
-L <- function(x) as.list(x, drop.call=TRUE)
-if(FALSE) #fails, and I don't understand how and why
-stopifnot(all.equal(L(as(fm1,"lmerenv")), L(fm1.), tol = 1e-7))# don't understand
+L1 <- as.list(env(   fm1. @ env))
+L2 <- as.list(env(as(fm1, "lmerenv")))
+ns <- intersect((n1 <- names(L1)),
+                (n2 <- names(L2)))
+n1[!(n1 %in% ns)] #    lmer1() extras
+n2[!(n2 %in% ns)] # new-lmer() extras
+ns <- ns[!(ns %in% c("call", "compDev"))]# they will certainly differ by that ...
+all.equal(L1[ns], L2[ns], tol = 7e-7) ## ok, still far from ok
 ## FIXME !
-
 
 (fm3 <- lmer(Yield ~ 1|Batch, Dyestuff2))
 stopifnot(all.equal(fixef(fm1), fixef(fm2), tol= 1e-13),
@@ -226,21 +224,21 @@ stopifnot(identical(ranef(m0), ranef(m1)),
                    "error"))
 
 ## Reordering of grouping factors should not change the internal structure
-Pm1 <- lmer(strength ~ (1|batch) + (1|sample), Pastes, doFit = FALSE)
-Pm2 <- lmer(strength ~ (1|sample) + (1|batch), Pastes, doFit = FALSE)
+Pm1  <- lmer1(strength ~ (1|batch) + (1|sample), Pastes, doFit = FALSE)
+Pm2  <- lmer1(strength ~ (1|sample) + (1|batch), Pastes, doFit = FALSE)
+P2.1 <- lmer (strength ~ (1|batch) + (1|sample), Pastes, doFit = FALSE)
+P2.2 <- lmer (strength ~ (1|sample) + (1|batch), Pastes, doFit = FALSE)
 ## The environments of Pm1 and Pm2 should be identical except for
 ## "call" and "frame":
-if(exists("all.equal.X")) {
-    all.equal.notCall <- function(x,y,...)
-    all.equal.X(env(x), env(y), except = c("call", "frame"), ...)
-} else {
-    trunclist <- function(x) {
-	ll <- as.list(env(x))
-	ll[-match(c("call", "frame"), names(ll))]
-    }
-    all.equal.notCall <- function(x,y,...)
-        all.equal(trunclist(x), trunclist(x), ...)
+all.EQ <- function(u,v, ...) all.equal.X(u, v, except = c("call", "frame"), ...)
+S4_2list <- function(obj) {
+    sn <- slotNames(obj)
+    structure(lapply(sn, slot, object = obj), .Names = sn)
 }
-stopifnot(all.equal.notCall(Pm1, Pm2))
+
+stopifnot(all.EQ(env(Pm1), env(Pm2)),
+          all.EQ(S4_2list(P2.1),
+                 S4_2list(P2.2)))
+
 
 cat('Time elapsed: ', proc.time(),'\n') # for ``statistical reasons''
