@@ -154,17 +154,18 @@ mkFeModule <-
     if (is.null(nb)) nb <- 1
     form[[3]] <- nb
     if (sparseX) {
-        X <- sparse.model.matrix(form, fr, contrasts)
-        ll <- list(Class = "lmerSpFeMod", X = X,
-                   RX = Cholesky(crossprod(X), LDL = FALSE))
+        ll <- list(X = sparse.model.matrix(form, fr, contrasts))
     } else {
-        X <- Matrix(model.matrix(form, fr, contrasts), sparse = FALSE)
-        ll <- list(Class = "lmerDeFeMod", X = X, RX = chol(crossprod(X)))
+        ll <- list(X = Matrix(model.matrix(form, fr, contrasts), sparse = FALSE),
+                   RX = chol(crossprod(X)))
     }
     rownames(ll$X) <- NULL
     ll$RZX <- reMod@Zt %*% ll$X
     ll$beta <- numeric(ncol(ll$X))
     ll$ldRX2 <- numeric(1)
+    ## watch for the case that crossprod(ll$RZX) is more dense than crossprod(ll$X)
+    if (sparseX) ll$RX <- Cholesky(crossprod(ll$X) + crossprod(ll$RZX), LDL = FALSE)
+
     if (rwt) {
         ll$V <- ll$X
         N <- nrow(ll$X)
@@ -177,6 +178,7 @@ mkFeModule <-
         ll$betabase <- ll$beta
         ll$Class <- if (sparseX) "rwSpFeMod" else "rwDeFeMod"
     } else {                            # lmer model (the only non-reweightable type)
+        ll$Class <- if (sparseX) "lmerSpFeMod" else "lmerDeFeMod"
         ll$ZtX <- ll$RZX
         ll$XtX <- crossprod(ll$X)
     }
