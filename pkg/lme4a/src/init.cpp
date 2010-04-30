@@ -8,6 +8,7 @@ extern "C" SEXP lmerSpUpdate(SEXP,SEXP);
 extern "C" SEXP lmerDeDeviance(SEXP);
 extern "C" SEXP lmerSpDeviance(SEXP);
 extern "C" SEXP glmerDeIRLS(SEXP);
+extern "C" SEXP glmerDeIRLS(SEXP);
 
 #define CALLDEF(name, n)  {#name, (DL_FUNC) &name, n}
 

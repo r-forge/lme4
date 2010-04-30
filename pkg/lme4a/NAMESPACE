@@ -47,7 +47,8 @@ importMethodsFrom("Matrix",
                   tcrossprod,
                   update)
 
-exportPattern("^[^\\.]")  # for debugging
+#exportPattern("^[^\\.]")  # for debugging
+# Rather use:  attach(asNamespace("lme4a"))
 
 export(VarCorr, copyMerenv, devcomp, env, getL,
        glmer, glmer2, lmList, lmer, lmer1, lmer2, nlmer,
@@ -66,11 +67,8 @@ exportClasses(lmList,
               )
 
 exportMethods(VarCorr, anova, bobyqa, coef, coerce, confint, deviance,
-              devcomp,
-## see ./ToDo -- '*merMod' classes currently do not store the model.frame, terms:
-##            model.frame, terms,
-              fixef, formula, getL,
-              logLik, model.matrix, nlminb,
+              devcomp, fixef, formula, getL,
+              logLik, nlminb, model.frame, model.matrix, terms,
               optimize, plot, print, profile, ranef,
               show, sigma, summary, update, vcov)
 

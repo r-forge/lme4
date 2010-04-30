@@ -6,7 +6,7 @@
 ##' @param muetastart logical - check for mustart and etastart
 check_y_weights <- function(fr, rho, muetastart = FALSE) {
     rho$frame <- fr
-    attr(rho$frame, "terms") <- NULL
+    ## need for terms(.) method; do NOT delete: attr(rho$frame, "terms") <- NULL
     rho$nobs <- n <- nrow(fr)
                                         # components of the model frame
     y <- model.response(fr)
@@ -255,7 +255,7 @@ setAs("lmerenv", "lmer", env2lmer)
         else
             ldL2	    + nobs * (1 + log(2 * pi * pwrss/nobs))
     }
-}
+}#{.setPars}
 
 lmer1 <-
     function(formula, data, REML = TRUE, sparseX = FALSE,
@@ -568,7 +568,7 @@ nlmer <- function(formula, data, family = gaussian, start = NULL,
     rho <- new.env(parent = environment(formula))
     fr <- eval(mf, parent.frame())
     check_y_weights(fr, rho)
-    attr(rho$frame, "terms") <- NULL
+    ## need for terms(.) method; do NOT delete: attr(rho$frame, "terms") <- NULL
     for (nm in pnames) fr[[nm]] <- start$nlpars[[nm]]
     n <- nrow(fr)
 
@@ -1390,24 +1390,24 @@ setMethod("model.matrix", signature(object = "lmerMod"),
 setMethod("model.matrix", signature(object = "glmerMod"),
 	  function(object, ...) object@fe@X)
 
-if(FALSE){ ## Not sure if we really need these -- will user want them?
-           ## old-lme4  does provide them though
 setMethod("model.frame", signature(formula = "merenv"),
 	  function(formula, ...) env(formula)$frame)
 setMethod("model.frame", signature(formula = "mer"),
+	  function(formula, ...) formula@frame)
+setMethod("model.frame", signature(formula = "lmerMod"),
+	  function(formula, ...) formula@frame)
+setMethod("model.frame", signature(formula = "glmerMod"),
 	  function(formula, ...) formula@frame)
 
 setMethod("terms", signature(x = "merenv"),
 	  function(x, ...) attr(env(x)$frame, "terms"))
 setMethod("terms", signature(x = "mer"),
 	  function(x, ...) attr(x@frame, "terms"))
+setMethod("terms", signature(x = "lmerMod"),
+	  function(x, ...) attr(x@frame, "terms"))
+setMethod("terms", signature(x = "glmerMod"),
+	  function(x, ...) attr(x@frame, "terms"))
 
-## 'lmerMod' currently does *not* store the model.frame -- should it? --
-## setMethod("model.frame", signature(formula = "lmerMod"),
-## 	  function(formula, ...) formula@frame)
-## setMethod("terms", signature(x = "lmerMod"),
-## 	  function(x, ...) attr(x@frame, "terms"))
-}
 
 
 setMethod("deviance", signature(object="lmerenv"),
