@@ -26,7 +26,12 @@ stopifnot(
 	  all.equal(diag(V.d), unname(se1.d)^2, tol= 1e-12)
 	  ,
 	  all.equal(unname(se1.d),
-		    c(0.5760122554859, rep(0.5186838382653, 3)), tol= 1e-10)
+		    ## lmer2:
+		    c(0.5760119655646, rep(0.5186839846263, 3)), tol= 1e-10)
+	  ,
+	  all.equal(unname(se1.d),
+		    ## lmer1:
+		    c(0.5760122554859, rep(0.5186838382653, 3)), tol= 1e-6)
 	  )
 
 ### -------------------------- a "large" example -------------------------
@@ -42,8 +47,9 @@ fm7 # takes a while as it computes summary() again !
 
 range(t.fm7 <- coef(sfm7)[,"t value"])## -10.94173  10.61535
 
-stopifnot(all.equal(mean(abs(t.fm7), trim = .01), 1.55326394))
-
+m.t.7 <- mean(abs(t.fm7), trim = .01)
+stopifnot(all.equal(m.t.7, 1.55326394,   tol = 1e-5), # lmer1
+          all.equal(m.t.7, 1.5532709682, tol = 1e-9)) # lmer2
 hist.t <- cut(t.fm7, floor(min(t.fm7)) : ceiling(max(t.fm7)))
 cbind(table(hist.t))
 
