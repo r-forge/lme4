@@ -153,34 +153,39 @@ mkFeModule <-
     nb <- nobars(form[[3]])
     if (is.null(nb)) nb <- 1
     form[[3]] <- nb
-    if (sparseX) {
-        ll <- list(X = sparse.model.matrix(form, fr, contrasts))
-    } else {
-        ll <- list(X = Matrix(model.matrix(form, fr, contrasts), sparse = FALSE),
-                   RX = chol(crossprod(X)))
-    }
-    rownames(ll$X) <- NULL
-    ll$RZX <- reMod@Zt %*% ll$X
-    ll$beta <- numeric(ncol(ll$X))
-    ll$ldRX2 <- numeric(1)
-    ## watch for the case that crossprod(ll$RZX) is more dense than crossprod(ll$X)
-    if (sparseX) ll$RX <- Cholesky(crossprod(ll$X) + crossprod(ll$RZX), LDL = FALSE)
+    X <-
+	if (sparseX)
+	    sparse.model.matrix(form, fr, contrasts)
+	else
+	    Matrix(model.matrix(form, fr, contrasts), sparse = FALSE)
+    rownames(X) <- NULL
+    ll <- list(X = X,
+	       RZX = reMod@Zt %*% X,
+	       beta = numeric(ncol(X)),
+	       ldRX2= numeric(1))
+    X.X <- crossprod(X)
+    ll$RX <-
+	if (sparseX)
+	    ## watch for the case that crossprod(ll$RZX) is more dense than X.X
+	    Cholesky(X.X + crossprod(ll$RZX), LDL = FALSE)
+	else
+	    chol(X.X)
 
     if (rwt) {
-        ll$V <- ll$X
-        N <- nrow(ll$X)
-        ll$sqrtXwt <- mkSqrtXwt(N, s)
-        if (s > 1) {
-            ll$V <- Reduce(lapply(split(seq_len(N) ,
-                                        rep.int(1:s, rep.int(N %/% s, s))),
-                                  function(rows) X[rows, ]), "+")
-        }
-        ll$betabase <- ll$beta
-        ll$Class <- if (sparseX) "rwSpFeMod" else "rwDeFeMod"
-    } else {                            # lmer model (the only non-reweightable type)
-        ll$Class <- if (sparseX) "lmerSpFeMod" else "lmerDeFeMod"
-        ll$ZtX <- ll$RZX
-        ll$XtX <- crossprod(ll$X)
+	ll$V <- X
+	N <- nrow(X)
+	ll$sqrtXwt <- mkSqrtXwt(N, s)
+	if (s > 1) {
+	    ll$V <- Reduce(lapply(split(seq_len(N) ,
+					rep.int(1:s, rep.int(N %/% s, s))),
+				  function(rows) X[rows, ]), "+")
+	}
+	ll$betabase <- ll$beta
+	ll$Class <- if (sparseX) "rwSpFeMod" else "rwDeFeMod"
+    } else { ## lmer model (the only non-reweightable type)
+	ll$Class <- if (sparseX) "lmerSpFeMod" else "lmerDeFeMod"
+	ll$ZtX <- ll$RZX
+	ll$XtX <- X.X
     }
     do.call("new", ll)
 }
