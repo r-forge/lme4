@@ -477,11 +477,11 @@ setClass("rwSpFeMod",
 ##' wrss is the scalar weigthed residual sum of squares
 ##'
 ##' Utr is the q-dimensional product of Ut (reModule) and the weighted
-##' residual sum of squares.
+##' residuals.
 ##'
 ##' Vtr is the p-dimension crossproduct of V (reweightable feModule)
 ##' or X (lmer feModule) and the weighted residual, which initially is
-##' in the lmer case.
+##' y in the lmer case.
 ##'
 ##' cu is the intermediate solution for u, cbeta for beta
 setClass("merResp",

@@ -24,15 +24,43 @@ ns <- ns[!(ns %in% c("call", "compDev"))]# they will certainly differ by that ..
 all.equal(L1[ns], L2[ns], tol = 7e-7) ## ok, still far from ok
 ## FIXME !
 
-(fm3 <- lmer(Yield ~ 1|Batch, Dyestuff2))
 stopifnot(all.equal(fixef(fm1), fixef(fm2), tol= 1e-13),
 	  all.equal(unname(fixef(fm1)),
 		    c(251.405104848485, 10.467285959595), tol = 1e-13),
-	  all.equal(cov2cor(vcov(fm1))["(Intercept)", "Days"], -0.13755, tol=1e-4),
-	  all.equal(coef(summary(fm3)),
+	  all.equal(cov2cor(vcov(fm1))["(Intercept)", "Days"],
+		    -0.13755, tol=1e-4))
+
+(fm3 <- lmer(Yield ~ 1|Batch, Dyestuff2))
+stopifnot(all.equal(coef(summary(fm3)),
 		    array(c(5.6656, 0.67838803150, 8.3515624346),
 			  c(1,3), dimnames = list("(Intercept)",
 				  c("Estimate", "Std. Error", "t value")))))
+
+### {from ../man/lmer.Rd } --- compare lmer1 & lmer2 ---------------
+(fm1. <- lmer1(Reaction ~ Days + (Days|Subject), sleepstudy))
+(fm2. <- lmer1(Reaction ~ Days + (1|Subject) + (0+Days|Subject), sleepstudy))
+
+(fm1 <- lmer2(Reaction ~ Days + (Days|Subject), sleepstudy))
+(fm2 <- lmer2(Reaction ~ Days + (1|Subject) + (0+Days|Subject), sleepstudy))
+
+fm1.1s <- lmer1(Reaction ~ Days + (Days|Subject), sleepstudy, sparseX=TRUE)
+fm1.2s <- lmer2(Reaction ~ Days + (Days|Subject), sleepstudy, sparseX=TRUE)
+for(nm in c("coef", "fixef", "ranef", "sigma",
+	     "model.matrix", "model.frame" , "terms")) {
+    cat(sprintf("%15s : ", nm))
+    FUN <- get(nm)
+    F.fm1.1s <- FUN(fm1.1s)
+    F.fm1.2s <- FUN(fm1.2s)
+    if(nm == "model.matrix") {
+        F.fm1.1s <- as(F.fm1.1s, "denseMatrix")
+        F.fm1.2s <- as(F.fm1.2s, "denseMatrix")
+    }
+    stopifnot(all.equal(FUN(fm1.), F.fm1.1s, tol = 1e-6))
+    stopifnot(all.equal(FUN(fm1 ), F.fm1.1s, tol = 9e-6))
+    stopifnot(all.equal(F.fm1.2s,  F.fm1.1s, tol = 6e-6))
+    cat("[Ok]\n")
+}
+
 
 ## transformed vars should work[even if non-sensical as here;failed in 0.995-1]
 fm2l <- lmer(log(Reaction) ~ log(Days+1) + (log(Days+1)|Subject),

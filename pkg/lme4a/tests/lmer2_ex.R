@@ -23,10 +23,10 @@ dat <- within(data.frame(lagoon = factor(rep(1:4, each = 25)),
 chkLmers <- function(form, data, verbose = FALSE,
                      tol = 7e-7)
 {
-    m   <- lmer(form, data = data)  # ok, and more clear
-    m.  <- lmer(form, data = data, sparseX = TRUE, verbose = verbose)
-    m2   <- lmer2(form, data = data, verbose = verbose) # lmem-dense
-    m2.  <- lmer2(form, data = data, verbose = verbose, sparseX = TRUE)
+    m   <- lmer1(form, data = data)  # ok, and more clear
+    m.  <- lmer1(form, data = data, sparseX = TRUE, verbose = verbose)
+    m2  <- lmer2(form, data = data, verbose = verbose) # lmem-dense
+    m2. <- lmer2(form, data = data, sparseX = TRUE, verbose = verbose)
     ##
     Eq <- function(x,y) all.equal(x,y, tol = tol)
     stopifnot(## Compare  sparse & dense of the new class results
