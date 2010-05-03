@@ -91,6 +91,13 @@ namespace mer{
 	Ut.dmult('T', 1., 1., cu, cgam);
     }
 
+    void rwReMod::incGamma(NumericVector &gam) {
+	std::vector<double> uu(u.size());
+	std::transform(u.begin(), u.end(), ubase.begin(), uu.begin(), std::plus<double>());
+	chmDn cuu(uu), cgam(gam);
+	Ut.dmult('T', 1., 1., cuu, cgam);
+    }
+	
     //< Create RZX from ZtX or cu from Zty
     static void DupdateL(reModule &re, chmDn &src, chmDn &dest) {
 	re.Lambda.dmult('T', 1., 0., src, dest);
@@ -137,14 +144,19 @@ namespace mer{
 	DupdateL(re, cUtr, ccu);
     }
 
-    void merResp::updateWrss() {
+    double merResp::updateWrss() {
 	int n = y.size();
-	double *mm = mu.begin(), *rr = resid.begin(), *ww = weights.begin(), *yy = y.begin();
-	*wrss = 0;
+	double *mm = mu.begin(),
+	    *rr = resid.begin(),
+	    *ww = weights.begin(),
+	    *yy = y.begin(),
+	    ans = 0;
 	for (int i = 0; i < n; i++) {
 	    rr[i] = yy[i] - mm[i];
-	    *wrss += rr[i] * rr[i] * ww[i];
+	    ans += rr[i] * rr[i] * ww[i];
 	}
+	*wrss = ans;
+	return ans;
     }
     
     void lmerDeFeMod::updateRzxRx(reModule &re) {
@@ -162,6 +174,18 @@ namespace mer{
 	RZX.dgemv('N', -1., beta, 1., resp.cu);
     }
 
+    void rwDeFeMod::incGamma(NumericVector &gam) {
+// Should use std::vector<double> but need to add appropriate dgeMatrix::dgemv method
+// It is not clear to me what the best design for that is.  I could
+// blow up the number of possible combinations or I could coerce
+// everything to a base type.  I don't know if as< std::vector<double> >
+// is sufficiently lightweight to use std::vector<double> as the base type.
+	NumericVector bb(beta.size()); 
+	std::transform(beta.begin(), beta.end(), betabase.begin(),
+		       bb.begin(), std::plus<double>());
+	X.dgemv('N', 1., bb, 1., gam);
+    }
+    
     void lmerSpFeMod::updateRzxRx(reModule &re) {
 	double mone[] = {-1.,0}, one[] = {1.,0};
 
@@ -235,7 +259,6 @@ namespace mer{
 	return reml ? reCrit() : deviance();
     }
 
-//FIXME:: factor out the parts that do not depend on the fe class (or make those virtual functions?)
     double lmerSp::updateTheta(const NumericVector &nt) {
 	re.updateTheta(nt);
 	resp.updateL(re);
@@ -253,24 +276,58 @@ namespace mer{
 	return reml ? reCrit() : deviance();
     }
 
-    double glmerDe::IRLS() {
-	std::vector<double> varold(resp.var.size());
-#if 0
-	double crit, step, wrss0, wrss1;
-	update_sqrtrwt();		// var and sqrtrwt
+    void glmerResp::updateSqrtRWt() {
+	double *rr = sqrtrwt.begin(), *ww = weights.begin(), *vv = var.begin();
+	int n = var.size();
 
+	for (int i = 0; i < n; i++) rr[i] = sqrt(ww[i] / vv[i]);
+    }
+
+    void glmerResp::updateSqrtXWt() {
+	std::transform(sqrtrwt.begin(), sqrtrwt.end(), muEta.begin(),
+		       sqrtXwt.x.begin(), std::multiplies<double>());
+    }
+
+    void glmerDe::updateGamma() {
+	std::copy(resp.offset.begin(), resp.offset.end(), resp.gamma.begin());
+	fe.incGamma(resp.gamma);
+	re.incGamma(resp.gamma);
+    }
+
+//    void rwDeFeMod::updateV(rwResp const &resp) {
+    void rwDeFeMod::updateV(rwResp &resp) {
+	int nc = resp.sqrtXwt.ncol();
+	if (nc != 1) Rf_error("code for nlmer not yet written");
+	std::copy(X.x.begin(), X.x.end(), V.x.begin());
+	int m = X.nrow(), n = X.ncol();
+	double *vv = V.x.begin(), *ww = resp.sqrtXwt.x.begin();
+	for (int j = 0; j < n; j++)
+	    for (int i = 0; i < m; i++) vv[i + j * m] *= ww[i];
+    }
+
+#define CM_TOL 1.e-5
+#define CM_MAXITER 30
+
+    double glmerDe::IRLS() {
+	std::vector<double> varold(resp.var.size()), betaold(fe.beta.size());
+	double crit, step, wrss0, wrss1;
+
+	resp.updateSqrtRWt();
 	crit = 10. * CM_TOL;
 	for (int i = 0; crit >= CM_TOL && i < CM_MAXITER; i++) {
-	    dble_cpy(varold, var, n);
-	    dble_cpy(betaold, beta, p);
-	    update_gamma();		// linear predictor
-	    linkinv();		// mu and muEta
-	    update_sqrtXwt();
-	    wrss0 = update_wtres();
-	    V = Vp();		// derive V from X
-	    VtV = V->AtA();		// crossproduct
-	    RXp->update(VtV);	// factor
+	    std::copy(resp.var.begin(), resp.var.end(), varold.begin());
+	    std::copy(fe.beta.begin(), fe.beta.end(), betaold.begin());
+	    updateGamma();	// linear predictor
+	    resp.linkInv();	// mu
+	    resp.MuEta();
+	    resp.updateSqrtXWt();
+	    wrss0 = resp.updateWrss();
 	    
+	    fe.updateV(resp);	// derive V from X
+	    fe.RX.update(fe.V);	// factor V'V
+	    
+#if 0
+	    fe.V.dgemv(
 	    V->drmult(1/*transpose*/, 1, 0, cwtres, Vtwr);
 	    deltaf = RXp->solveA(Vtwr);
 	    if (verbose > 1) showdbl((double*)deltaf->x, "deltaf", p);
@@ -293,12 +350,9 @@ namespace mer{
 	    VtV->freeA(); delete VtV;
 	    V->freeA(); delete V;
 	    M_cholmod_free_dense(&deltaf, &c);
-	}
-	delete[] betaold; delete[] varold;
-	M_cholmod_free_dense(&Vtwr, &c);
-	devResid();
-	return devres;
 #endif 
+	}
+//	return devres;
 	return 0.;
     } // IRLS
 }
