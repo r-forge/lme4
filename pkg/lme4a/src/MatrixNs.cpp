@@ -53,7 +53,23 @@ namespace MatrixNs{
 			B.x.begin(), &Bd[0], &beta, C.x.begin(), &Cd[0]);
     }
 
-    void Cholesky::update(const dpoMatrix &A) {
+    void Cholesky::update(dgeMatrix const &A) {
+	Dimension Ad(A.Dim);
+	if (Dim[0] != Ad[1])
+	    Rf_error("%s dimension mismatch, (%d,%d) vs A(%d,%d)",
+		     "Cholesky::update(dgeMatrix)", Dim[0], Dim[1],
+		     Ad[0], Ad[1]);
+	double alpha = 1., beta = 0.;
+	F77_CALL(dsyrk)(&(uplo.UL), "T", &Dim[0], &Ad[0], &alpha,
+			A.x.begin(), &Ad[0], &beta, x.begin(), &Dim[0]);
+	int info;
+	F77_CALL(dpotrf)(&(uplo.UL), &Dim[0], x.begin(), &Dim[0], &info);
+	if (!info)
+	    Rf_error("Lapack routine %s returned error code %d",
+		     "dpotrf", info);
+    }
+
+    void Cholesky::update(dpoMatrix const &A) {
 	Dimension Ad(A.Dim);
 	if (Dim[0] != Ad[0])
 	    Rf_error("%s dimension mismatch, (%d,%d) vs A(%d,%d)",

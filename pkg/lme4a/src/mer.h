@@ -47,7 +47,7 @@ namespace mer {
 	merResp(Rcpp::S4);
 	void updateL(reModule&);
 	//<  cu <- solve(L, solve(L, crossprod(Lambda, Utr), sys = "P"), sys = "L")
-	void updateWrss();	//< resid := y - mu; wrss := sum((sqrtrwts * resid)^2)
+	double updateWrss();	//< resid <- y - mu; wrss <- sum((sqrtrwts * resid)^2)
 	void setGamma(Rcpp::NumericVector&);
 	//< gamma <- if (length(offset)) offset else rep(0, N)
 
@@ -203,6 +203,13 @@ namespace mer {
 	    n(SEXP(xp.slot("n"))),
 	    var(SEXP(xp.slot("var"))) {}
 
+	void linkFun(){family.linkFun(gamma, mu);}
+	void linkInv(){family.linkFun(mu, gamma);}
+	void MuEta(){family.linkFun(muEta, gamma);}
+	void variance(){family.variance(var, mu);}
+	void updateSqrtRWt();
+	void updateSqrtXWt();
+
 	glmFamily family;
 	Rcpp::NumericVector muEta, n, var;
     };
@@ -214,6 +221,9 @@ namespace mer {
 	    V(Rcpp::S4(SEXP(xp.slot("V")))),
 	    betabase(SEXP(xp.slot("betabase"))) {}
 
+	void incGamma(Rcpp::NumericVector &gam);
+//	void updateV(rwResp const&);
+	void updateV(rwResp&);
 	MatrixNs::dgeMatrix V;
 	Rcpp::NumericVector betabase;
     };
@@ -244,6 +254,8 @@ namespace mer {
 	glmerDe(Rcpp::S4 xp) :
 	    glmer(xp),
 	    fe(Rcpp::S4(SEXP(xp.slot("fe")))) {}
+
+	void updateGamma();
 	double IRLS();
 
 	rwDeFeMod fe;

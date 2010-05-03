@@ -14,16 +14,15 @@ namespace MatrixNs {
 
     class Matrix {
     public:
-	Rcpp::Dimension Dim;
-	Rcpp::List Dimnames;
-
 	Matrix(Rcpp::S4 &xp) :
 	    Dim(SEXP(xp.slot("Dim"))),
 	    Dimnames(SEXP(xp.slot("Dimnames"))) { }
 
-	int nrow(){return Dim[0];}
-	int ncol(){return Dim[1];}
-	
+	int nrow() {return Dim[0];}
+	int ncol() {return Dim[1];}
+
+	Rcpp::Dimension Dim;
+	Rcpp::List Dimnames;
     };
 
     class dMatrix : public Matrix {
@@ -121,9 +120,9 @@ namespace MatrixNs {
     public:
 	dgeMatrix(Rcpp::S4 xp) : ddenseMatrix(xp), generalMatrix(xp) {}
 
-	void dgemv(Trans,double,const Rcpp::NumericVector&,
+	void dgemv(Trans,double,Rcpp::NumericVector const&,
 		   double,Rcpp::NumericVector&);
-	void dgemv(char Tr, double alpha, const Rcpp::NumericVector &X,
+	void dgemv(char Tr, double alpha, Rcpp::NumericVector const &X,
 		   double beta, Rcpp::NumericVector &Y) {
 	    dgemv(Trans(Tr), alpha, X, beta, Y);
 	}
@@ -158,7 +157,8 @@ namespace MatrixNs {
     public:
 	Cholesky(Rcpp::S4 xp) : dtrMatrix(xp) {diag = Diag('N');}
 
-	void update(const dpoMatrix&);
+	void update(dpoMatrix const&); // chol(A)
+	void update(dgeMatrix const&); // chol(crossprod(X))
 
 	void update(Trans,double,const dgeMatrix&,double,const dsyMatrix&);
 	void update(char Tr, double alpha, const dgeMatrix& A,
@@ -230,11 +230,11 @@ namespace MatrixNs {
 //	CHM_SP crossprod() const; // compile error
 	CHM_SP crossprod();
 	CHM_SP crossprod(CHM_SP, int sorted = 1);
-	CHM_SP crossprod(chmSp&B, int sorted = 1) {return crossprod(&B, sorted);}
+	CHM_SP crossprod(chmSp &B, int sorted = 1) {return crossprod(&B, sorted);}
 
 	CHM_SP tcrossprod();
 	CHM_SP tcrossprod(CHM_SP, int sorted = 1);
-	CHM_SP tcrossprod(chmSp& B, int sorted = 1) {return tcrossprod(&B, sorted);}
+	CHM_SP tcrossprod(chmSp &B, int sorted = 1) {return tcrossprod(&B, sorted);}
 
 	CHM_SP smult(chmSp &B, int stype, int values, int sorted) {
 	    return ::M_cholmod_ssmult(this, &B, stype, values, sorted, &c);
