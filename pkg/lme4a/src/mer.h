@@ -48,8 +48,6 @@ namespace mer {
 	void updateL(reModule&);
 	//<  cu <- solve(L, solve(L, crossprod(Lambda, Utr), sys = "P"), sys = "L")
 	double updateWrss();	//< resid <- y - mu; wrss <- sum((sqrtrwts * resid)^2)
-	void setGamma(Rcpp::NumericVector&);
-	//< gamma <- if (length(offset)) offset else rep(0, N)
 
 	Rcpp::NumericVector Utr, Vtr, cbeta,
 	    cu, mu, offset, resid, weights, y;
@@ -190,6 +188,7 @@ namespace mer {
 	    gamma(SEXP(xp.slot("gamma"))),
 	    sqrtrwt(SEXP(xp.slot("sqrtrwt"))),
 	    sqrtXwt(Rcpp::S4(SEXP(xp.slot("sqrtXwt")))) {}
+	double updateWrss();
 	Rcpp::NumericVector gamma, sqrtrwt;
 	MatrixNs::dgeMatrix sqrtXwt;
     };

@@ -159,6 +159,18 @@ namespace mer{
 	return ans;
     }
     
+    double rwResp::updateWrss() {
+	std::vector<double> res(y.size());
+	// res <- y - mu
+	std::transform(y.begin(), y.end(), mu.begin(),
+		       res.begin(), std::minus<double>());
+	// resid <- res * sqrtrwt
+	std::transform(res.begin(), res.end(), sqrtrwt.begin(),
+		       resid.begin(), std::multiplies<double>());
+	*wrss = std::inner_product(resid.begin(), resid.end(), resid.begin(), double());
+	return *wrss;
+    }
+
     void lmerDeFeMod::updateRzxRx(reModule &re) {
 	chmDn cZtX(ZtX), cRZX(RZX);
 	DupdateL(re, cZtX, cRZX);
@@ -175,7 +187,9 @@ namespace mer{
     }
 
     void rwDeFeMod::incGamma(NumericVector &gam) {
-// Should use std::vector<double> but need to add appropriate dgeMatrix::dgemv method
+// Should use std::vector<double> but need to add appropriate
+// dgeMatrix::dgemv method.
+//
 // It is not clear to me what the best design for that is.  I could
 // blow up the number of possible combinations or I could coerce
 // everything to a base type.  I don't know if as< std::vector<double> >
@@ -249,9 +263,7 @@ namespace mer{
 	fe.updateBeta(resp);
 	re.updateU(resp);
 				// update resp.mu
-	if (resp.offset.size())	// FIXME: define offset to be rep(0, n) when numeric(0)
-	    std::copy(resp.offset.begin(), resp.offset.end(), resp.mu.begin());
-	else std::fill(resp.mu.begin(), resp.mu.end(), double());
+	std::copy(resp.offset.begin(), resp.offset.end(), resp.mu.begin());
 	re.incGamma(resp.mu);
 	fe.incGamma(resp.mu);
 				// update resp.resid and resp.wrss
@@ -266,9 +278,7 @@ namespace mer{
 	fe.updateBeta(resp);
 	re.updateU(resp);
 				// update resp.mu
-	if (resp.offset.size())	// FIXME: define offset to be rep(0, n) when numeric(0)
-	    std::copy(resp.offset.begin(), resp.offset.end(), resp.mu.begin());
-	else std::fill(resp.mu.begin(), resp.mu.end(), double());
+	std::copy(resp.offset.begin(), resp.offset.end(), resp.mu.begin());
 	re.incGamma(resp.mu);
 	fe.incGamma(resp.mu);
 				// update resp.resid and resp.wrss
@@ -307,50 +317,67 @@ namespace mer{
 
 #define CM_TOL 1.e-5
 #define CM_MAXITER 30
+#define CM_SMIN 1.e-4
+
+/**
+ * Determine the Euclidean distance between two vectors relative to the
+ * square root of the product of their lengths
+ */
+    static double compare_vec(const double *v1, const double *v2, int n) {
+	double num = 0., d1 = 0., d2 = 0.;
+	for (int i = 0; i < n; i++) {
+	    double diff = v1[i] - v2[i];
+	    num += diff * diff;
+	    d1 += v1[i] * v1[i];
+	    d2 += v2[i] * v2[i];
+	}
+	num = sqrt(num); d1 = sqrt(d1); d2 = sqrt(d2);
+	if (d1 == 0) {
+	    if (d2 == 0) return num;
+	    else return num/d2;
+	}
+	if (d2 == 0) return num/d1;
+	return num/sqrt(d1 * d2);
+    }
 
     double glmerDe::IRLS() {
-	std::vector<double> varold(resp.var.size()), betaold(fe.beta.size());
+	std::vector<double> varold(resp.var.size());
+//	std::vector<double> incr(fe.beta.size());
+// FIXME: This is needed because MatrixNs::Cholesky::dpotrs is not polymorphic
+	NumericVector incr(fe.beta.size());
 	double crit, step, wrss0, wrss1;
 
 	resp.updateSqrtRWt();
 	crit = 10. * CM_TOL;
 	for (int i = 0; crit >= CM_TOL && i < CM_MAXITER; i++) {
 	    std::copy(resp.var.begin(), resp.var.end(), varold.begin());
-	    std::copy(fe.beta.begin(), fe.beta.end(), betaold.begin());
 	    updateGamma();	// linear predictor
 	    resp.linkInv();	// mu
 	    resp.MuEta();
 	    resp.updateSqrtXWt();
 	    wrss0 = resp.updateWrss();
+				// Vtr <- crossprod(V, resid)
+	    fe.V.dgemv('T', 1., resp.resid, 0., resp.Vtr);
 	    
 	    fe.updateV(resp);	// derive V from X
 	    fe.RX.update(fe.V);	// factor V'V
-	    
-#if 0
-	    fe.V.dgemv(
-	    V->drmult(1/*transpose*/, 1, 0, cwtres, Vtwr);
-	    deltaf = RXp->solveA(Vtwr);
-	    if (verbose > 1) showdbl((double*)deltaf->x, "deltaf", p);
+	    std::copy(resp.Vtr.begin(), resp.Vtr.end(), incr.begin());
+	    fe.RX.dpotrs(incr); // evaluate the increment
+	    showdbl(incr.begin(), "incr", incr.size());
 	    wrss1 = wrss0;		// force one evaluation of the loop
 	    for (step = 1.; wrss0 <= wrss1 && step > CM_SMIN; step /= 2.) {
-		for (int k = 0; k < p; k++)
-		    beta[k] = betaold[k] + step * ((double*)deltaf->x)[k];
-		update_gamma();
-		linkinv();
-		wrss1 = update_wtres();
-		if (verbose > 1) {
-		    Rprintf("step = %g, wrss0 = %g; wrss1 = %g\n",
-			    step, wrss0, wrss1, beta[0]);
-		    showdbl(beta, "beta", p);
-		}
+		std::transform(incr.begin(), incr.end(), fe.beta.begin(),
+			       std::bind2nd(std::multiplies<double>(), step));
+		updateGamma();
+		resp.linkInv();
+		wrss1 = resp.updateWrss();
+		Rprintf("step = %g, wrss0 = %g; wrss1 = %g\n",
+			step, wrss0, wrss1, fe.beta[0]);
+		showdbl(fe.beta.begin(), "beta", fe.beta.size());
 	    }
-	    update_sqrtrwt();
-	    crit = compare_vec(varold, var, n);
-	    if (verbose > 1) Rprintf("convergence criterion: %g\n", crit);
-	    VtV->freeA(); delete VtV;
-	    V->freeA(); delete V;
-	    M_cholmod_free_dense(&deltaf, &c);
-#endif 
+	    resp.updateSqrtRWt();
+	    crit = compare_vec(&varold[0], &resp.var[0], varold.size());
+	    Rprintf("convergence criterion: %g\n", crit);
 	}
 //	return devres;
 	return 0.;
@@ -379,5 +406,5 @@ RCPP_FUNCTION_1(double,lmerSpDeviance,S4 xp) {
 
 RCPP_FUNCTION_1(double,glmerDeIRLS,S4 xp) {
     mer::glmerDe glmr(xp);
-    return 0.;
+    return glmr.IRLS();
 }
