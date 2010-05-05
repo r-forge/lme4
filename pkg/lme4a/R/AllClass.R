@@ -347,17 +347,11 @@ setClass("reTrms",
 ##'
 ##'
 setClass("rwReMod",
-         representation(sqrtXwt = "dgeMatrix",
-                        ubase = "numeric"),
+         representation(ubase = "numeric"),
          contains = "reModule",
          validity = function(object) {
              if (length(object@ubase) != nrow(object@Zt))
                  return("length(ubase) != q = nrow(Zt)")
-             dd <- dim(object@sqrtXwt)
-             if (dd[1] != ncol(object@Ut))
-                 return("nrow(sqrtXwt) != n = ncol(Ut)")
-             if (prod(dd) != ncol(object@Zt))
-                 return("prod(dim(sqrtXwt)) != N = ncol(Zt)")
              TRUE
          })
 
@@ -440,17 +434,11 @@ setClass("lmerSpFeMod",
 ##' multiple of the number of rows in V
 setClass("rwDeFeMod",
          representation(V = "dgeMatrix",
-                        sqrtXwt = "dgeMatrix",
                         betabase = "numeric"),
          contains = "deFeMod",
          validity = function(object) {
              if (ncol(object@V) != ncol(object@X))
                  return("number of columns in X and V must match")
-             dd <- dim(object@sqrtXwt)
-             if (prod(dd) != nrow(object@X))
-                 return("prod(dim(sqrtXwt)) != nrow(X)")
-             if (nrow(object@V) != dd[1])
-                 return("nrow(V) and nrow(sqrtXwt) must match")
              TRUE
          })
 
@@ -474,7 +462,7 @@ setClass("rwSpFeMod",
 
 ##' mer response module
 ##' y, offset and mu are as expected
-##' wrss is the scalar weigthed residual sum of squares
+##' wrss is the scalar weighted residual sum of squares
 ##'
 ##' Utr is the q-dimensional product of Ut (reModule) and the weighted
 ##' residuals.
@@ -489,8 +477,8 @@ setClass("merResp",
                         weights = "numeric", # prior weights
                         offset = "numeric",
                         mu = "numeric",
-                        resid = "numeric",
-                        wrss = "numeric",
+                        wtres = "numeric", # weighted residuals
+                        wrss = "numeric",  # weighted residual sum of squares
                         Utr = "numeric",
                         Vtr = "numeric",
                         cu = "numeric",
@@ -501,8 +489,8 @@ setClass("merResp",
                  return("length(offset) must be 0 or length(y)")
              if (!(length(object@weights) %in% c(0L, n)))
                  return("length(weights) must be 0 or length(y)")
-             if (length(object@mu) != n || length(object@resid) != n)
-                 return("lengths of mu and resid must match length(y)")
+             if (length(object@mu) != n || length(object@wtres) != n)
+                 return("lengths of mu and wtres must match length(y)")
              if (length(object@wrss) != 1L)
                  return("length of wrss must be 1")
              if (length(object@Utr) != length(object@cu))
