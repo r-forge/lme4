@@ -64,7 +64,7 @@ namespace MatrixNs{
 			A.x.begin(), &Ad[0], &beta, x.begin(), &Dim[0]);
 	int info;
 	F77_CALL(dpotrf)(&(uplo.UL), &Dim[0], x.begin(), &Dim[0], &info);
-	if (!info)
+	if (info)
 	    Rf_error("Lapack routine %s returned error code %d",
 		     "dpotrf", info);
     }
@@ -79,7 +79,7 @@ namespace MatrixNs{
 	std::copy(A.x.begin(), A.x.end(), x.begin());
 	int info;
 	F77_CALL(dpotrf)(&(uplo.UL), &Dim[0], x.begin(), &Dim[0], &info);
-	if (!info)
+	if (info)
 	    Rf_error("Lapack routine %s returned error code %d",
 		     "dpotrf", info);
     }
