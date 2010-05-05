@@ -203,8 +203,8 @@ namespace mer {
 	    var(SEXP(xp.slot("var"))) {}
 
 	void linkFun(){family.linkFun(gamma, mu);}
-	void linkInv(){family.linkFun(mu, gamma);}
-	void MuEta(){family.linkFun(muEta, gamma);}
+	void linkInv(){family.linkInv(mu, gamma);}
+	void MuEta(){family.muEta(muEta, gamma);}
 	void variance(){family.variance(var, mu);}
 	void updateSqrtRWt();
 	void updateSqrtXWt();
