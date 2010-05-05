@@ -47,10 +47,10 @@ namespace mer {
 	merResp(Rcpp::S4);
 	void updateL(reModule&);
 	//<  cu <- solve(L, solve(L, crossprod(Lambda, Utr), sys = "P"), sys = "L")
-	double updateWrss();	//< resid <- y - mu; wrss <- sum((sqrtrwts * resid)^2)
+	double updateWrss(); //< wtres <- sqrtrwts * (y - mu); wrss <- sum(wtres^2)
 
 	Rcpp::NumericVector Utr, Vtr, cbeta,
-	    cu, mu, offset, resid, weights, y;
+	    cu, mu, offset, wtres, weights, y;
 	MatrixNs::chmDn cUtr, ccu;
 	double *wrss;
     };

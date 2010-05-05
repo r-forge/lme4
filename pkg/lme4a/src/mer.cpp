@@ -118,7 +118,7 @@ namespace mer{
 	cu(SEXP(xp.slot("cu"))),
 	mu(SEXP(xp.slot("mu"))),
 	offset(SEXP(xp.slot("offset"))),
-	resid(SEXP(xp.slot("resid"))),
+	wtres(SEXP(xp.slot("wtres"))),
 	weights(SEXP(xp.slot("weights"))),
 	y(SEXP(xp.slot("y"))),
 	cUtr(Utr),
@@ -129,9 +129,9 @@ namespace mer{
 
 	int n = y.size(), os = offset.size();
 
-	if (mu.size() != n || resid.size() != n ||
+	if (mu.size() != n || wtres.size() != n ||
 	    weights.size() != n || offset.size() != n)
-	    ::Rf_error("y, mu, resid and weights slots must have equal lengths");
+	    ::Rf_error("y, mu, wtres and weights slots must have equal lengths");
 	if (os < 1 || os % n)
 	    ::Rf_error("length(offset) must be a positive multiple of length(y)");
 	if (cbeta.size() != Vtr.size())
@@ -147,7 +147,7 @@ namespace mer{
     double merResp::updateWrss() {
 	int n = y.size();
 	double *mm = mu.begin(),
-	    *rr = resid.begin(),
+	    *rr = wtres.begin(),
 	    *ww = weights.begin(),
 	    *yy = y.begin(),
 	    ans = 0;
@@ -160,14 +160,13 @@ namespace mer{
     }
     
     double rwResp::updateWrss() {
-	std::vector<double> res(y.size());
-	// res <- y - mu
-	std::transform(y.begin(), y.end(), mu.begin(),
-		       res.begin(), std::minus<double>());
-	// resid <- res * sqrtrwt
-	std::transform(res.begin(), res.end(), sqrtrwt.begin(),
-		       resid.begin(), std::multiplies<double>());
-	*wrss = std::inner_product(resid.begin(), resid.end(), resid.begin(), double());
+				// wtres <- y - mu
+	std::transform(y.begin(), y.end(), mu.begin(), wtres.begin(),
+		       std::minus<double>());
+				// wtres <- wtres * sqrtrwt
+	std::transform(wtres.begin(), wtres.end(), sqrtrwt.begin(),
+		       wtres.begin(), std::multiplies<double>());
+	*wrss = std::inner_product(wtres.begin(), wtres.end(), wtres.begin(), double());
 	return *wrss;
     }
 
@@ -266,7 +265,7 @@ namespace mer{
 	std::copy(resp.offset.begin(), resp.offset.end(), resp.mu.begin());
 	re.incGamma(resp.mu);
 	fe.incGamma(resp.mu);
-				// update resp.resid and resp.wrss
+				// update resp.wtres and resp.wrss
 	resp.updateWrss();
 	return reml ? reCrit() : deviance();
     }
@@ -281,19 +280,19 @@ namespace mer{
 	std::copy(resp.offset.begin(), resp.offset.end(), resp.mu.begin());
 	re.incGamma(resp.mu);
 	fe.incGamma(resp.mu);
-				// update resp.resid and resp.wrss
+				// update resp.wtres and resp.wrss
 	resp.updateWrss();
 	return reml ? reCrit() : deviance();
     }
 
     void glmerResp::updateSqrtRWt() {
-	double *rr = sqrtrwt.begin(), *ww = weights.begin(), *vv = var.begin();
-	int n = var.size();
-
-	for (int i = 0; i < n; i++) rr[i] = sqrt(ww[i] / vv[i]);
+	std::transform(weights.begin(), weights.end(), var.begin(),
+		       sqrtrwt.begin(), std::divides<double>());
+	std::transform(sqrtrwt.begin(), sqrtrwt.end(), sqrtrwt.begin(), sqrt);
     }
 
     void glmerResp::updateSqrtXWt() {
+	MuEta();
 	std::transform(sqrtrwt.begin(), sqrtrwt.end(), muEta.begin(),
 		       sqrtXwt.x.begin(), std::multiplies<double>());
     }
@@ -342,45 +341,53 @@ namespace mer{
 
     double glmerDe::IRLS() {
 	std::vector<double> varold(resp.var.size());
-//	std::vector<double> incr(fe.beta.size());
-// FIXME: This is needed because MatrixNs::Cholesky::dpotrs is not polymorphic
 	NumericVector incr(fe.beta.size());
 	double crit, step, wrss0, wrss1;
 
-	resp.updateSqrtRWt();
 	crit = 10. * CM_TOL;
 	for (int i = 0; crit >= CM_TOL && i < CM_MAXITER; i++) {
+				// weights, var and sqrtrwt are established.
+				// store a copy of var
 	    std::copy(resp.var.begin(), resp.var.end(), varold.begin());
-	    updateGamma();	// linear predictor
+				// zero beta for the initial calculation of gamma
+	    std::fill(fe.beta.begin(), fe.beta.end(), double());
+	    updateGamma();	// linear predictor using betabase only
 	    resp.linkInv();	// mu
-	    resp.MuEta();
-	    resp.updateSqrtXWt();
-	    wrss0 = resp.updateWrss();
-				// Vtr <- crossprod(V, resid)
-	    fe.V.dgemv('T', 1., resp.resid, 0., resp.Vtr);
-	    
-	    fe.updateV(resp);	// derive V from X
+	    wrss0 = resp.updateWrss(); // wtres
+	    resp.updateSqrtXWt();      // muEta and sqrtXwt
+	    fe.updateV(resp);	       // derive V from X
+				// Vtr <- crossprod(V, wtres)
+	    fe.V.dgemv('T', 1., resp.wtres, 0., resp.Vtr);
+//	    showdbl(resp.Vtr.begin(), "Vtr", resp.Vtr.size());
+//	    showdbl(fe.V.x.begin(), "V", fe.V.x.size());
 	    fe.RX.update(fe.V);	// factor V'V
+//	    showdbl(fe.RX.x.begin(), "RX", fe.RX.x.size());
 	    std::copy(resp.Vtr.begin(), resp.Vtr.end(), incr.begin());
 	    fe.RX.dpotrs(incr); // evaluate the increment
-	    showdbl(incr.begin(), "incr", incr.size());
-	    wrss1 = wrss0;		// force one evaluation of the loop
+//	    showdbl(fe.betabase.begin(), "betabase", fe.betabase.size());
+//	    showdbl(incr.begin(), "incr", incr.size());
+	    wrss1 = wrss0;	// force one evaluation of the loop
 	    for (step = 1.; wrss0 <= wrss1 && step > CM_SMIN; step /= 2.) {
 		std::transform(incr.begin(), incr.end(), fe.beta.begin(),
 			       std::bind2nd(std::multiplies<double>(), step));
 		updateGamma();
 		resp.linkInv();
 		wrss1 = resp.updateWrss();
-		Rprintf("step = %g, wrss0 = %g; wrss1 = %g\n",
-			step, wrss0, wrss1, fe.beta[0]);
-		showdbl(fe.beta.begin(), "beta", fe.beta.size());
+//		Rprintf("step = %g, wrss0 = %g; wrss1 = %g\n",
+//			step, wrss0, wrss1, fe.beta[0]);
+//		showdbl(fe.beta.begin(), "beta", fe.beta.size());
 	    }
+	    resp.variance();
 	    resp.updateSqrtRWt();
 	    crit = compare_vec(&varold[0], &resp.var[0], varold.size());
-	    Rprintf("convergence criterion: %g\n", crit);
+//	    Rprintf("convergence criterion: %g\n", crit);
+				// update betabase (can this be done in place?)
+	    std::transform(fe.beta.begin(), fe.beta.end(), fe.betabase.begin(),
+			   incr.begin(), std::plus<double>());
+	    std::copy(incr.begin(), incr.end(), fe.betabase.begin());
 	}
-//	return devres;
-	return 0.;
+	NumericVector devRes = resp.family.devResid(resp.mu, resp.weights, resp.y);
+	return std::accumulate(devRes.begin(), devRes.end(), double());
     } // IRLS
 }
 

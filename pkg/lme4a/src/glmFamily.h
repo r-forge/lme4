@@ -41,10 +41,10 @@ private:
     static double twoxf(double x) {return 2 * x;}
     static double x1mxf(double x) {return std::max(epsilon, x * (1 - x));}
     
-    static double finitePos(double x) { // truncate to (0, Infinity)
+    static double finitePos(double x) { // truncate to [eps, 1/eps]
 	return std::max(epsilon, std::min(INVEPS, x));
     }
-    static double finite01(double x) { // truncate to (0, 1)
+    static double finite01(double x) { // truncate to [eps, 1 - eps]
 	return std::max(epsilon, std::min(1. - epsilon, x));
     }
 
@@ -53,7 +53,8 @@ private:
 	return tmp/(1 + tmp);
     }
     static double logitLink(double x) {
-	return log(finitePos(x / (1 - x)));
+	double xx = finite01(x);
+	return log(xx / (1 - xx));
     }
     static double logitMuEta(double x) {
 	return x1mxf(logitLinkInv(x));
