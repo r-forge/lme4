@@ -10,7 +10,6 @@ mkSqrtXwt <- function(N, s) {
 ##' @param fr a model frame in which to evaluate these terms
 ##' @param rwt iff TRUE, want a *ReWeighTed* reModule, i.e. "rwReTrms"
 ##' @param checknl iff TRUE, bail out iff any grouping factors has >= n levels
-##' @param s (only for rwt=TRUE): number of columns in ..
 ##'
 ##' @return a list of an reModule and a merTrms
 mkReTrms <- function(bars, fr, rwt = FALSE, checknl = TRUE, s = 1L) {
@@ -104,7 +103,6 @@ mkReTrms <- function(bars, fr, rwt = FALSE, checknl = TRUE, s = 1L) {
     ll$Ut <- crossprod(Lambda, Zt)
     if (rwt) { ## different class with more information
         N <- ncol(Zt)
-        ll$sqrtXwt <- mkSqrtXwt(N, s)
         if (s > 1) {
 	    ll$Ut <- Reduce(lapply(split(seq_len(N) ,
 					 rep.int(seq_len(s),
@@ -144,7 +142,6 @@ mkReTrms <- function(bars, fr, rwt = FALSE, checknl = TRUE, s = 1L) {
 ##' @param reMod the reModule for the model
 ##' @param sparseX Logical indicator of sparse X
 ##' @param rwt Logical indicator of reweightable
-##' @param s number of columns in the sqrtXwts
 ##'
 ##' @return an object that inherits from feModule
 mkFeModule <-
@@ -174,7 +171,6 @@ mkFeModule <-
     if (rwt) {
 	ll$V <- X
 	N <- nrow(X)
-	ll$sqrtXwt <- mkSqrtXwt(N, s)
 	if (s > 1) {
 	    ll$V <- Reduce(lapply(split(seq_len(N) ,
 					rep.int(1:s, rep.int(N %/% s, s))),
@@ -220,7 +216,7 @@ mkRespMod <- function(fr, reMod, feMod, family = NULL, nlenv = NULL) {
     if (is.null(family) && is.null(nlenv)) { # lmer
         ll$Class <- "merResp"
         ll$y <- y <- unname(as.numeric(y))
-        ll$resid <- numeric(n)
+        ll$wtres <- numeric(n)
         ll$mu <- numeric(n)
         ll$Utr <- (reMod@Zt %*% y)@x
         ll$Vtr <- crossprod(feMod@X, y)@x
@@ -244,8 +240,8 @@ mkRespMod <- function(fr, reMod, feMod, family = NULL, nlenv = NULL) {
         ll$gamma <- family$linkfun(ll$mu)
         ll$muEta <- family$mu.eta(ll$gamma)
         ll$var <- family$variance(ll$mu)
-        ll$resid <- ll$y - ll$mu
         ll$sqrtrwt <- sqrt(ll$weights/ll$var)
+        ll$wtres <- ll$sqrtrwt * (ll$y - ll$mu)
         ll$sqrtXwt <- Matrix(ll$sqrtrwt * ll$muEta)
         ll$family <- family
         ll <- ll[intersect(names(ll), slotNames("glmerResp"))]
@@ -424,6 +420,7 @@ glmer2 <- function(formula, data, family = gaussian, sparseX = FALSE,
                                         # reweightable fixed-effects module
     feMod <- mkFeModule(formula, fr, contrasts, reTrms, sparseX, TRUE)
     respMod <- mkRespMod(fr, reTrms, feMod, family)
+    feMod@V <- Diagonal(x = respMod@sqrtXwt[,1]) %*% feMod@X
     ans <- new(ifelse (sparseX, "glmerSp", "glmerDe"), call = mc, frame = fr,
 	       re = reTrms, fe = feMod, resp = respMod)
     ## if (doFit) {                        # optimize estimates
