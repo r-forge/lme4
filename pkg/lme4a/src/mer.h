@@ -20,26 +20,13 @@ namespace mer {
 	}
 	void updateU(const merResp&);
 	//< u <- solve(L, solve(L, cu - RZX %*% beta, sys = "Lt"), sys = "Pt")
-	void incGamma(Rcpp::NumericVector&);
-	//< gamma += crossprod(Ut, u)
+	void incGamma(Rcpp::NumericVector &gam); //< gam <- gam + crossprod(Ut, u + ubase)
 
 	MatrixNs::chmFr L;
 	MatrixNs::chmSp Lambda, Ut, Zt;
 	Rcpp::IntegerVector Lind;
-	Rcpp::NumericVector lower, theta, u;
+	Rcpp::NumericVector lower, theta, u, ubase;
 	double *ldL2;
-    };
-
-    class rwReMod : public reModule {
-    public:
-	rwReMod(Rcpp::S4 xp) :
-	    reModule(xp),
-	    ubase(SEXP(xp.slot("ubase"))) {}
-	void incGamma(Rcpp::NumericVector&);
-	//< gamma += crossprod(Ut, u + ubase)
-	void updateUt(const merResp&);
-
-	Rcpp::NumericVector ubase;
     };
 
     class merResp {
@@ -49,8 +36,7 @@ namespace mer {
 	//<  cu <- solve(L, solve(L, crossprod(Lambda, Utr), sys = "P"), sys = "L")
 	double updateWrss(); //< wtres <- sqrtrwts * (y - mu); wrss <- sum(wtres^2)
 
-	Rcpp::NumericVector Utr, Vtr, cbeta,
-	    cu, mu, offset, wtres, weights, y;
+	Rcpp::NumericVector Utr, Vtr, cbeta, cu, mu, offset, wtres, weights, y;
 	MatrixNs::chmDn cUtr, ccu;
 	double *wrss;
     };
@@ -139,48 +125,6 @@ namespace mer {
 	MatrixNs::chmSp ZtX, XtX;
     };
 
-    class lmer {
-    public:
-	lmer(Rcpp::S4 xp) :
-	    re(Rcpp::S4(SEXP(xp.slot("re")))),
-	    resp(Rcpp::S4(SEXP(xp.slot("resp")))),
-	    REML(SEXP(xp.slot("REML"))) {
-	    reml = (bool)*REML.begin();
-	}
-
-	double deviance();
-	//< ldL2 + n *(1 + log(2 * pi * pwrss/n))
-
-	reModule re;
-	merResp resp;
-	Rcpp::LogicalVector REML;
-	bool reml;
-    };
-
-    class lmerDe : public lmer {
-    public:
-	lmerDe(Rcpp::S4 xp) :
-	    lmer(xp),
-	    fe(Rcpp::S4(SEXP(xp.slot("fe")))) {
-	}
-	double reCrit();
-	//< ldL2 + ldRX2 + (n - p) * (1 + log(2 * pi * pwrss/(n - p)))
-	double updateTheta(const Rcpp::NumericVector&);
-	lmerDeFeMod fe;
-    };
-
-    class lmerSp : public lmer {
-    public:
-	lmerSp(Rcpp::S4 xp) :
-	    lmer(xp),
-	    fe(Rcpp::S4(SEXP(xp.slot("fe")))) {
-	}
-	double reCrit();
-	//< ldL2 + ldRX2 + (n - p) * (1 + log(2 * pi * pwrss/(n - p)))
-	double updateTheta(const Rcpp::NumericVector&);
-	lmerSpFeMod fe;
-    };
-
     class rwResp : public merResp {
     public:
 	rwResp(Rcpp::S4 xp) :
@@ -244,7 +188,7 @@ namespace mer {
 	    re(Rcpp::S4(SEXP(xp.slot("re")))),
 	    resp(Rcpp::S4(SEXP(xp.slot("resp")))) {}
 	
-	rwReMod re;
+	reModule re;
 	glmerResp resp;
     };
     
@@ -256,6 +200,7 @@ namespace mer {
 
 	void updateGamma();
 	double IRLS();
+	double PIRLS();
 
 	rwDeFeMod fe;
     };
@@ -269,6 +214,66 @@ namespace mer {
 	rwSpFeMod fe;
     };
 
+    template<typename T>
+    class lmer {
+    public:
+	lmer(Rcpp::S4 xp);
+
+	double deviance();
+	//< ldL2 + n *(1 + log(2 * pi * pwrss/n))
+	double reCrit();
+	//< ldL2 + ldRX2 + (n - p) * (1 + log(2 * pi * pwrss/(n - p)))
+	double updateTheta(const Rcpp::NumericVector&);
+
+	reModule re;
+	T fe;
+	merResp resp;
+	bool reml;
+    private:
+	static double l2PI;
+    };
+    
+    template<typename T>
+    inline lmer<T>::lmer(Rcpp::S4 xp) :
+	    re(Rcpp::S4(SEXP(xp.slot("re")))),
+	    fe(Rcpp::S4(xp.slot("fe"))),
+	    resp(Rcpp::S4(SEXP(xp.slot("resp"))))
+	{
+	    Rcpp::LogicalVector REML = xp.slot("REML");
+	    reml = (bool)*REML.begin();
+	}
+
+    template<typename T>
+    double lmer<T>::l2PI = log(2. * PI);
+
+    template<typename T>
+    inline double lmer<T>::deviance() {
+	double nn = (double)resp.y.size(), prss = re.sqLenU() + *resp.wrss;
+	return *re.ldL2 + nn * (1 + l2PI + log(prss/nn));
+    }
+
+    template<typename T>
+    inline double lmer<T>::reCrit() {
+	double nmp = (double)(resp.y.size() - fe.beta.size()),
+	    prss = re.sqLenU() + *resp.wrss;
+	return *re.ldL2 + *fe.ldRX2 + nmp * (1 + l2PI + log(prss/nmp));
+    }
+
+    template<typename T>
+    inline double lmer<T>::updateTheta(const Rcpp::NumericVector &nt) {
+	re.updateTheta(nt);
+	resp.updateL(re);
+	fe.updateRzxRx(re);
+	fe.updateBeta(resp);
+	re.updateU(resp);
+				// update resp.mu
+	std::copy(resp.offset.begin(), resp.offset.end(), resp.mu.begin());
+	re.incGamma(resp.mu);
+	fe.incGamma(resp.mu);
+				// update resp.wtres and resp.wrss
+	resp.updateWrss();
+	return reml ? reCrit() : deviance();
+    }
 }
 
 #endif
