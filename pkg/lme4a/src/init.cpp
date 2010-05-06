@@ -3,12 +3,13 @@
 #include "Syms.h"
 #include <R_ext/Rdynload.h>
 
-extern "C" SEXP lmerDeUpdate(SEXP,SEXP);
-extern "C" SEXP lmerSpUpdate(SEXP,SEXP);
-extern "C" SEXP lmerDeDeviance(SEXP);
-extern "C" SEXP lmerSpDeviance(SEXP);
 extern "C" SEXP glmerDeIRLS(SEXP);
-//extern "C" SEXP glmerSpIRLS(SEXP);
+extern "C" SEXP glmerSpIRLS(SEXP);
+extern "C" SEXP lmerDeDeviance(SEXP);
+extern "C" SEXP lmerDeUpdate(SEXP,SEXP);
+extern "C" SEXP lmerSpDeviance(SEXP);
+extern "C" SEXP lmerSpUpdate(SEXP,SEXP);
+extern "C" SEXP reModUpdate(SEXP,SEXP);
 
 #define CALLDEF(name, n)  {#name, (DL_FUNC) &name, n}
 
@@ -36,6 +37,8 @@ static R_CallMethodDef CallEntries[] = {
     CALLDEF(merenvtrms_condVar, 2),
     CALLDEF(merenvtrms_show, 1),
     CALLDEF(merenvtrms_validate, 1),
+
+    CALLDEF(reModUpdate, 2),
   {NULL, NULL, 0}
 };
 

@@ -280,6 +280,7 @@ setClass("reModule",
                         lower = "numeric",
                         theta = "numeric",
                         u = "numeric",
+                        ubase = "numeric",
                         ldL2 = "numeric"),
          validity = function(object) {
              q <- nrow(object@Zt)
@@ -287,8 +288,8 @@ setClass("reModule",
                  return("Lambda must be q by q where q = nrow(Zt)")
              if (nrow(object@Ut) != q || nrow(object@L) != q)
                  return("Number of rows in Zt, L and Ut must match")
-             if (length(object@u) != q)
-                 return("length(u) must be q = nrow(Zt)")
+             if (length(object@u) != q || length(object@ubase) != q)
+                 return("length(u) and length(ubase) must be q = nrow(Zt)")
              if (length(object@Lind) != length(object@Lambda@x))
                  return("length(Lind) != length(Lambda@x)")
              if (!all(object@Lind %in% seq_along(object@theta)))
@@ -336,28 +337,6 @@ setClass("reTrms",
              return("inconsistent dimensions in trms and re slots")
          TRUE
      })
-
-
-##' Reweightable random-effects module
-##'
-##' The square root of the X weights is an n by s dgeMatrix where n is
-##' the number of columns in Ut and N = ns is the number of columns in
-##' Zt.
-##' In a reweightable module u represents an increment relative to ubase.
-##'
-##'
-setClass("rwReMod",
-         representation(ubase = "numeric"),
-         contains = "reModule",
-         validity = function(object) {
-             if (length(object@ubase) != nrow(object@Zt))
-                 return("length(ubase) != q = nrow(Zt)")
-             TRUE
-         })
-
-
-##' Reweightable random-effects module based on random-effects terms
-setClass("rwReTrms", contains = c("reTrms", "rwReMod"))
 
 ##' Fixed-effects module
 setClass("feModule",
@@ -560,7 +539,7 @@ setClass("lmerMod",
                         REML = "logical", "VIRTUAL"),
          validity = function(object)
      {
-         if (is(object@re, "rwReMod") || is(object@resp, "rwResp"))
+         if (is(object@resp, "rwResp"))
              return("lmer modules cannot be reweightable")
      })
 
@@ -570,7 +549,7 @@ setClass("lmerSp", representation(fe = "lmerSpFeMod"), contains = "lmerMod")
 
 setClass("glmerMod",
          representation(call = "call", frame = "data.frame",
-                        re = "rwReTrms",
+                        re = "reModule",
                         resp = "glmerResp",
                         "VIRTUAL"))
 

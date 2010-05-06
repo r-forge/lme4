@@ -69,6 +69,7 @@ mkReTrms <- function(bars, fr, rwt = FALSE, checknl = TRUE, s = 1L) {
     stopifnot(sum(nb) == q)
 
     ll$u <- numeric(q)
+    ll$ubase <- numeric(q)
     ll$theta <- numeric(sum(nth))
 
     boff <- cumsum(c(0L, nb))           # offsets into b
@@ -109,7 +110,6 @@ mkReTrms <- function(bars, fr, rwt = FALSE, checknl = TRUE, s = 1L) {
 						 rep.int(N %/% s, s))),
 				   function(cols) Ut[, cols]), "+")
         }
-        ll$ubase <- ll$u
 	ll$Class <- "rwReTrms"
     }
     else
