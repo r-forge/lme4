@@ -9,18 +9,18 @@ typedef std::map<std::string, double(*)(double)> fmap;
 
 /// generalized linear model family
 class glmFamily {
+    std::string family, link;
 public:
     glmFamily(SEXP);
-    void linkFun(Rcpp::NumericVector& eta, const Rcpp::NumericVector& mu);
-    void linkInv(Rcpp::NumericVector& mu, const Rcpp::NumericVector& eta);
-    void muEta(Rcpp::NumericVector& mueta, const Rcpp::NumericVector& eta);
-    void variance(Rcpp::NumericVector& vv, const Rcpp::NumericVector& mu);
+    void linkFun(Rcpp::NumericVector&, Rcpp::NumericVector const &);
+    void linkInv(Rcpp::NumericVector&, Rcpp::NumericVector const&);
+    void muEta(Rcpp::NumericVector&, Rcpp::NumericVector const&);
+    void variance(Rcpp::NumericVector&, Rcpp::NumericVector const&);
     Rcpp::NumericVector devResid(
-	const Rcpp::NumericVector& mu,
-	const Rcpp::NumericVector& weights,
-	const Rcpp::NumericVector& y);
+	Rcpp::NumericVector const&,
+	Rcpp::NumericVector const&,
+	Rcpp::NumericVector const&);
     
-    std::string family, link;
 private:
     static fmap
 	devs,			//< scalar deviance functions
