@@ -8,21 +8,20 @@
 #include <Rcpp.h>
 #include <Matrix.h>
 
+//extern "C" CHM_SP M_cholmod_transpose(const CHM_SP, int, CHM_CM);
+
 extern cholmod_common c;
 
 namespace MatrixNs {
 
     class Matrix {
-    public:
-	Matrix(Rcpp::S4 &xp) :
-	    Dim(SEXP(xp.slot("Dim"))),
-	    Dimnames(SEXP(xp.slot("Dimnames"))) { }
-
-	int nrow() {return Dim[0];}
-	int ncol() {return Dim[1];}
-
-	Rcpp::Dimension Dim;
+    protected:
 	Rcpp::List Dimnames;
+	int d_nrow, d_ncol;
+    public:
+	Matrix(Rcpp::S4 &xp);
+	int nrow() const;
+	int ncol() const;
     };
 
     class dMatrix : public Matrix {
@@ -119,21 +118,10 @@ namespace MatrixNs {
     class dgeMatrix : public ddenseMatrix, public generalMatrix {
     public:
 	dgeMatrix(Rcpp::S4 xp) : ddenseMatrix(xp), generalMatrix(xp) {}
-
-	void dgemv(Trans,double,Rcpp::NumericVector const&,
-		   double,Rcpp::NumericVector&);
-	void dgemv(char Tr, double alpha, Rcpp::NumericVector const &X,
-		   double beta, Rcpp::NumericVector &Y) {
-	    dgemv(Trans(Tr), alpha, X, beta, Y);
-	}
-
-
-	void dgemm(Trans,Trans,double,const dgeMatrix&,double,dgeMatrix&);
-	void dgemm(char TrA, char TrB,
-		   double alpha, const dgeMatrix &B,
-		   double beta, dgeMatrix &C) {
-	    dgemm(Trans(TrA), Trans(TrB), alpha, B, beta, C);
-	}
+	void dgemv(char,double,Rcpp::NumericVector const&,
+		   double, Rcpp::NumericVector&) const;
+	void dgemm(char,char,double,dgeMatrix const&,
+		   double,dgeMatrix&) const;
     };
 
     class dtrMatrix : public ddenseMatrix, public triangularMatrix {
@@ -160,13 +148,13 @@ namespace MatrixNs {
 	void update(dpoMatrix const&); // chol(A)
 	void update(dgeMatrix const&); // chol(crossprod(X))
 
-	void update(Trans,double,const dgeMatrix&,double,const dsyMatrix&);
-	void update(char Tr, double alpha, const dgeMatrix& A,
+	void update(Trans,double,dgeMatrix const&,double,const dsyMatrix&);
+	void update(char Tr, double alpha, dgeMatrix const& A,
 		    double beta, const dsyMatrix& C) {
 	    update(Trans(Tr), alpha, A, beta, C);
 	}
 
-	void dpotrs(Rcpp::NumericVector&);
+	void dpotrs(Rcpp::NumericVector&) const;
 
 	double logDet2();
     };
@@ -201,78 +189,46 @@ namespace MatrixNs {
 //	CHM_DN pp;
     };
 
-// FIXME:  Something is weird with the inclusion of the cholmod.h
-// file from the Matrix package's include directory.  I have tried to
-// declare functions like M_cholmod_transpose with const pointer
-// arguments and I keep getting compile errors indicating that their
-// arguments are not const when I use this property.  Don't know why.
-
     class chmSp : public cholmod_sparse { 
+//	SEXP m_sexp;
     public:
 	chmSp(Rcpp::S4);
 //	chmSp(CHM_SP);
 //	~chmSp() {if (pp) ::M_cholmod_free_sparse(&pp, &c);}
 
-	void update(cholmod_sparse&);
+	void update(cholmod_sparse const&);
 
-//	CHM_SP transpose(int values = 1) const {  // causes compile error
-	CHM_SP transpose(int values = 1) {
-	    return ::M_cholmod_transpose(this, values, &c);
-	}
+	CHM_SP transpose(int values = 1) const;
+	int dmult(char tr, double alpha, double beta, 
+	 	  chmDn const &src, chmDn &dest) const;
+	
+	CHM_SP crossprod() const;
+	CHM_SP crossprod(const CHM_SP, int sorted = 1) const;
+	CHM_SP crossprod(chmSp const &B, int sorted = 1) const;
 
-	// int dmult(char tr, double alpha, double beta, 
-	// 	  chmDn const &src, chmDn &dest) const {  // compile error
-	int dmult(char tr, double alpha, double beta,
-		  chmDn &src, chmDn &dest) {
-	    return ::M_cholmod_sdmult(this, Trans(tr).TR == 'T', &alpha,
-				      &beta, &src, &dest, &c);
-	}
-//	CHM_SP crossprod() const; // compile error
-	CHM_SP crossprod();
-	CHM_SP crossprod(CHM_SP, int sorted = 1);
-	CHM_SP crossprod(chmSp &B, int sorted = 1) {return crossprod(&B, sorted);}
+	CHM_SP tcrossprod() const;
+	CHM_SP tcrossprod(const CHM_SP, int sorted = 1) const;
+	CHM_SP tcrossprod(chmSp const &B, int sorted = 1) const;
 
-	CHM_SP tcrossprod();
-	CHM_SP tcrossprod(CHM_SP, int sorted = 1);
-	CHM_SP tcrossprod(chmSp &B, int sorted = 1) {return tcrossprod(&B, sorted);}
-
-	CHM_SP smult(chmSp &B, int stype, int values, int sorted) {
-	    return ::M_cholmod_ssmult(this, &B, stype, values, sorted, &c);
-	}
-
-//    protected:
-//	CHM_SP pp;
-//	SEXP m_sexp;
+	CHM_SP smult(chmSp const &B, int stype, int values, int sorted) const;
     };
 
     class chmFr : public cholmod_factor {
+//	CHM_FR pp;
+//	SEXP m_sexp;
     public:
 	chmFr(Rcpp::S4);
 //	chmFr(CHM_FR);
 //	~chmFr() {if (pp) ::M_cholmod_free_factor(&pp, &c);}
 
-	void update(cholmod_sparse &A, double Imult = 0.) {
-	    double ImVec[] = {Imult, 0};
-	    ::M_cholmod_factorize_p(&A, ImVec, (int*)NULL, (size_t) 0, this, &c);
-	}
+	void update(cholmod_sparse const &A, double Imult = 0.); 
 
-	CHM_DN solve(int sys, CHM_DN b) {
-	    return ::M_cholmod_solve(sys, this, b, &c);
-	}
-	CHM_DN solve(int sys, chmDn b) {
-	    return ::M_cholmod_solve(sys, this, &b, &c);
-	}
+	CHM_DN solve(int sys, const CHM_DN b) const;
+	CHM_DN solve(int sys, chmDn const &b) const;
 
-	CHM_SP spsolve(int sys, CHM_SP b) {
-	    return ::M_cholmod_spsolve(sys, this, b, &c);
-	}
-	CHM_SP spsolve(int sys, chmSp b) {
-	    return ::M_cholmod_spsolve(sys, this, &b, &c);
-	}
+	CHM_SP spsolve(int sys, const CHM_SP b) const;
+	CHM_SP spsolve(int sys, chmSp const &b) const;
 
-//    protected:
-//	CHM_FR pp;
-//	SEXP m_sexp;
     };
 }
 
