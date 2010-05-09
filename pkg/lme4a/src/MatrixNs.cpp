@@ -4,81 +4,84 @@
 using namespace Rcpp;
 
 namespace MatrixNs{
-
-// A function like this should be part of the Rcpp::S4 class
-    static bool isClass(S4 x, std::string clname) {
-	CharacterVector cl = x.attr("class");
-	if (as<std::string>(cl) == clname) return true;
-
-	Function clDef("getClassDef");
-	S4 cld = clDef(cl);
-	List cont = cld.slot("contains");
-	CharacterVector nms = cont.names();
-	for (int i = 0; i < nms.size(); i++)
-	    if (std::string(nms[i]) == clname) return true;
-	return false;
+    Matrix::Matrix(S4 &xp) :
+	Dimnames(xp.slot("Dimnames")) {
+	IntegerVector Dim(xp.slot("Dim"));
+	d_nrow = Dim[0];
+	d_ncol = Dim[1];
     }
+
+    int Matrix::nrow() const { return d_nrow; }
+    int Matrix::ncol() const { return d_ncol; }
 
 // Check this: Do the dspMatrix and dtpMatrix classes pass this check?
     ddenseMatrix::ddenseMatrix(S4 &xp) : dMatrix(xp) {
-	if (!x.size() == Dim[0] * Dim[1])
+	if (!x.size() == d_nrow * d_ncol)
 	    ::Rf_error("%s: Dim = (%d, %d) is inconsistent with x.size() = %d",
-		       "ddenseMatrix::ddenseMatrix", Dim[0], Dim[1], x.size());
+		       "ddenseMatrix::ddenseMatrix", d_nrow, d_ncol, x.size());
     }
 
-    void dgeMatrix::dgemv(Trans Tr,
-			  double alpha, const NumericVector &X,
-			  double beta, NumericVector &Y) {
+    void dgeMatrix::dgemv(char Tr, double alpha,
+			  NumericVector const &X, double beta,
+			  NumericVector &Y) const {
 	int i1 = 1;
-	char tr = Tr.TR;
+	Trans TR(Tr);
+	char tr = TR.TR;
 	bool NTR = tr == 'N';
-	if (X.size() != Dim[NTR ? 1 : 0] || Y.size() != Dim[NTR ? 0 : 1])
+	if (X.size() != (NTR ? d_ncol : d_nrow) ||
+	    Y.size() != (NTR ? d_nrow : d_ncol))
 	    Rf_error("dgemv \"%c\", dim mismatch (%d, %d), X(%d), Y(%d)",
-		     tr, Dim[0], Dim[1], X.size(), Y.size());
-	F77_CALL(dgemv)(&tr, &Dim[0], &Dim[1], &alpha, x.begin(), &Dim[0],
+		     tr, d_nrow, d_ncol, X.size(), Y.size());
+	F77_CALL(dgemv)(&tr, &d_nrow, &d_ncol, &alpha, x.begin(), &d_nrow,
 			X.begin(), &i1, &beta, Y.begin(), &i1);
     }
 
-    void dgeMatrix::dgemm(Trans TrA, Trans TrB,
+    void dgeMatrix::dgemm(char TRA, char TRB,
 			  double alpha, const dgeMatrix &B,
-			  double beta, dgeMatrix &C) {
+			  double beta, dgeMatrix &C) const {
+	Trans TrA(TRA), TrB(TRB);
 	char trA = TrA.TR, trB = TrB.TR;
 	bool NTA = trA == 'N', NTB = trB == 'N';
-	Dimension Bd(B.Dim), Cd(C.Dim);
-	int M = Dim[NTA ? 0 : 1], N = Bd[NTB ? 1 : 0], K = Dim[NTA ? 1 : 0];
-	if (Bd[NTB ? 0 : 1] != K || Cd[0] != M || Cd[1] != N)
+//	Dimension Bd(B.Dim), Cd(C.Dim);
+	int M = NTA ? d_nrow : d_ncol,
+	    N = NTB ? B.ncol() : B.nrow(),
+	    K = NTA ? d_ncol : d_nrow;
+	int Bnr = B.nrow();
+	if (NTB ? B.ncol() : B.nrow() != K || C.nrow() != M || C.ncol() != N)
 	    Rf_error("dgemm \"%c,%c\", dim mismatch (%d, %d), (%d,%d), (%d,%d)",
-		     trA, trB, Dim[0], Dim[1], Bd[0], Bd[1], Cd[0], Cd[1]);
-	F77_CALL(dgemm)(&trA, &trB, &M, &N, &K, &alpha, x.begin(), &Dim[0],
-			B.x.begin(), &Bd[0], &beta, C.x.begin(), &Cd[0]);
+		     trA, trB, d_nrow, d_ncol, B.nrow(), B.ncol(),
+		     C.nrow(), C.ncol());
+	F77_CALL(dgemm)(&trA, &trB, &M, &N, &K, &alpha, x.begin(), &d_nrow,
+			B.x.begin(), &Bnr, &beta, C.x.begin(), &M);
     }
 
     void Cholesky::update(dgeMatrix const &A) {
-	Dimension Ad(A.Dim);
-	if (Dim[0] != Ad[1])
+//	Dimension Ad(A.Dim);
+	if (d_nrow != A.ncol())
 	    Rf_error("%s dimension mismatch, (%d,%d) vs A(%d,%d)",
-		     "Cholesky::update(dgeMatrix)", Dim[0], Dim[1],
-		     Ad[0], Ad[1]);
+		     "Cholesky::update(dgeMatrix)", d_nrow, d_ncol,
+		     A.nrow(), A.ncol());
 	double alpha = 1., beta = 0.;
-	F77_CALL(dsyrk)(&(uplo.UL), "T", &Dim[0], &Ad[0], &alpha,
-			A.x.begin(), &Ad[0], &beta, x.begin(), &Dim[0]);
+	int Anr = A.nrow();
+	F77_CALL(dsyrk)(&(uplo.UL), "T", &d_nrow, &Anr, &alpha,
+			A.x.begin(), &Anr, &beta, x.begin(), &d_nrow);
 	int info;
-	F77_CALL(dpotrf)(&(uplo.UL), &Dim[0], x.begin(), &Dim[0], &info);
+	F77_CALL(dpotrf)(&(uplo.UL), &d_nrow, x.begin(), &d_nrow, &info);
 	if (info)
 	    Rf_error("Lapack routine %s returned error code %d",
 		     "dpotrf", info);
     }
 
     void Cholesky::update(dpoMatrix const &A) {
-	Dimension Ad(A.Dim);
-	if (Dim[0] != Ad[0])
+//	Dimension Ad(A.Dim);
+	if (d_nrow != A.nrow())
 	    Rf_error("%s dimension mismatch, (%d,%d) vs A(%d,%d)",
-		     "Cholesky::update(dpoMatrix)", Dim[0], Dim[1],
-		     Ad[0], Ad[1]);
+		     "Cholesky::update(dpoMatrix)", d_nrow, d_ncol,
+		     A.nrow(), A.ncol());
 	uplo = A.uplo;
 	std::copy(A.x.begin(), A.x.end(), x.begin());
 	int info;
-	F77_CALL(dpotrf)(&(uplo.UL), &Dim[0], x.begin(), &Dim[0], &info);
+	F77_CALL(dpotrf)(&(uplo.UL), &d_nrow, x.begin(), &d_nrow, &info);
 	if (info)
 	    Rf_error("Lapack routine %s returned error code %d",
 		     "dpotrf", info);
@@ -88,28 +91,29 @@ namespace MatrixNs{
 			  double beta, const dsyMatrix &C) {
 	const char tr = Tr.TR;
 	const bool NTR = tr == 'N';
-	Dimension Ad(A.Dim), Cd(C.Dim);
-	if (Dim[0] != Cd[0] || Ad[NTR ? 0 : 1] != Dim[0])
+//	Dimension Ad(A.Dim), Cd(C.Dim);
+	int Anr = A.nrow(), Anc = A.ncol(), Cnr = C.nrow(), Cnc = C.ncol();
+	if (d_nrow != Cnr || NTR ? Anr : Anc != d_nrow)
 	    Rf_error("%s(\"%c\") dimension mismatch, (%d,%d), A(%d,%d), C(%d,%d)",
 		     "Cholesky::update(dpoMatrix, dgeMatrix)", tr,
-		     Dim[0], Dim[1], Ad[0], Ad[1], Cd[0], Cd[1]);
+		     d_nrow, d_ncol, Anr, Anc, Cnr, Cnc);
 	uplo = C.uplo;
 	std::copy(C.x.begin(), C.x.end(), x.begin());
-	F77_CALL(dsyrk)(&(uplo.UL), &tr, &Dim[0], &Ad[NTR ? 1 : 0], &alpha,
-			A.x.begin(), &Ad[0], &beta, x.begin(), &Dim[0]);
+	F77_CALL(dsyrk)(&(uplo.UL), &tr, &d_nrow, NTR ? &Anc : &Anr, &alpha,
+			A.x.begin(), &Anr, &beta, x.begin(), &d_nrow);
 	int info;
-	F77_CALL(dpotrf)(&(uplo.UL), &Dim[0], x.begin(), &Dim[0], &info);
+	F77_CALL(dpotrf)(&(uplo.UL), &d_nrow, x.begin(), &d_nrow, &info);
 	if (info)
 	    Rf_error("Lapack routine %s returned error code %d",
 		     "dpotrf", info);
     }
 
-    void Cholesky::dpotrs(NumericVector &v) {
+    void Cholesky::dpotrs(NumericVector &v) const {
 	int info, i1 = 1, vs = v.size();
-	if (vs != Dim[0])
+	if (vs != d_nrow)
 	    Rf_error("%s (%d, %d) dimension mismatch (%d, %d)",
-		     "Cholesky::dpotrs", Dim[0], Dim[1], vs, 1);
-	F77_CALL(dpotrs)(&uplo.UL, &Dim[0], &i1, x.begin(), &Dim[0],
+		     "Cholesky::dpotrs", d_nrow, d_ncol, vs, 1);
+	F77_CALL(dpotrs)(&uplo.UL, &d_nrow, &i1, x.begin(), &d_nrow,
 			 v.begin(), &vs, &info);
 	if (info)
 	    Rf_error("Lapack routine %s returned error code %d",
@@ -128,7 +132,7 @@ namespace MatrixNs{
     {
 	CharacterVector cl(SEXP(xp.attr("class")));
 	char *clnm = cl[0];
-	if (!isClass(xp, "CHMfactor"))
+	if (!xp.is("CHMfactor"))
 	    ::Rf_error("Class %s object passed to %s is not a %s",
 		       clnm, "chmFr::chmFr", "CHMfactor");
 	Dimension Dim(SEXP(xp.slot("Dim")));
@@ -158,7 +162,7 @@ namespace MatrixNs{
 		S(SEXP(xp.slot("s")));
 	    NumericVector PX(SEXP(xp.slot("px")));
 
-	    if (!isClass(xp, "dCHMsuper"))
+	    if (!xp.is("dCHMsuper"))
 		::Rf_error(msg, "TRUE", "dCHMsuper");
 	    xsize = X.size();
 	    ssize = S.size();
@@ -177,7 +181,7 @@ namespace MatrixNs{
 		P(SEXP(xp.slot("p"))),
 		PRV(SEXP(xp.slot("prv")));
 
-	    if (!isClass(xp, "dCHMsimpl"))
+	    if (!xp.is("dCHMsimpl"))
 		::Rf_error(msg, "FALSE", "dCHMsimpl");
 	    nzmax = X.size();
 	    p = (void*)P.begin();
@@ -220,11 +224,33 @@ namespace MatrixNs{
     // 	dtype = xp->dtype;
     // }
 		    
+    void chmFr::update(cholmod_sparse const &A, double Imult) {
+	M_cholmod_factorize_p((const CHM_SP)&A, &Imult, (int*)NULL,
+			      (size_t) 0, this, &c);
+    }
+
+    CHM_DN chmFr::solve(int sys, const CHM_DN b) const {
+	return M_cholmod_solve(sys, (const CHM_FR)this, b, &c);
+    }
+
+    CHM_DN chmFr::solve(int sys, chmDn const &b) const {
+	return M_cholmod_solve(sys, (const CHM_FR)this,
+			       (const CHM_DN)&b, &c);
+    }
+
+    CHM_SP chmFr::spsolve(int sys, const CHM_SP b) const {
+	return M_cholmod_spsolve(sys, (const CHM_FR)this, b, &c);
+    }
+    CHM_SP chmFr::spsolve(int sys, chmSp const &b) const {
+	return M_cholmod_spsolve(sys, (const CHM_FR)this,
+				 (const CHM_SP)&b, &c);
+    }
+
     chmSp::chmSp(S4 xp) : cholmod_sparse()//, m_sexp(SEXP(xp))
     {
 	CharacterVector cl(SEXP(xp.attr("class")));
 	char *clnm = cl[0];
-	if (!isClass(xp, "CsparseMatrix"))
+	if (!xp.is("CsparseMatrix"))
 	    Rf_error("Class %s object passed to %s is not a %s",
 		     clnm, "chmSp::chmSp", "CsparseMatrix");
 //	pp = (CHM_SP)NULL;
@@ -238,8 +264,8 @@ namespace MatrixNs{
 	i = (void*)ii.begin();
 	dtype = 0;  // CHOLMOD_DOUBLE
 	stype = 0;
-	if (!isClass(xp, "generalMatrix")) {
-	    if (isClass(xp, "symmetricMatrix")) {
+	if (!xp.is("generalMatrix")) {
+	    if (xp.is("symmetricMatrix")) {
 		CharacterVector uplo(SEXP(xp.slot("uplo")));
 		char *UL = uplo[0];
 		stype = 1;
@@ -251,13 +277,13 @@ namespace MatrixNs{
 	packed = (int)true;
 	sorted = (int)true;
 	xtype = -1;
-	if (isClass(xp, "dsparseMatrix")) {
+	if (xp.is("dsparseMatrix")) {
 	    NumericVector xx(SEXP(xp.slot("x")));
 	    x = xx.begin();
 	    xtype = CHOLMOD_REAL;
 	}
-	if (isClass(xp, "nsparseMatrix")) xtype = CHOLMOD_PATTERN;
-	if (isClass(xp, "zsparseMatrix")) {
+	if (xp.is("nsparseMatrix")) xtype = CHOLMOD_PATTERN;
+	if (xp.is("zsparseMatrix")) {
 	    xtype = CHOLMOD_COMPLEX;
 	    Rf_error("Not yet defined zsparseMatrix?");
 	}
@@ -282,8 +308,19 @@ namespace MatrixNs{
     // 	sorted = xp->sorted;
     // }
 
-    void chmSp::update(cholmod_sparse &nn) {
-	size_t nnznn = M_cholmod_nnz(&nn, &c);
+    CHM_SP chmSp::transpose(int values) const {
+	return M_cholmod_transpose((const CHM_SP)this, values, &c);
+    }
+
+    int chmSp::dmult(char tr, double alpha, double beta,
+		     chmDn const &src, chmDn &dest) const {
+	return M_cholmod_sdmult((const CHM_SP)this,
+				Trans(tr).TR == 'T', &alpha,
+				&beta, (const CHM_DN)(&src), &dest, &c);
+    }
+
+    void chmSp::update(cholmod_sparse const &nn) {
+	size_t nnznn = M_cholmod_nnz((const CHM_SP)&nn, &c);
 	if (nn.ncol != ncol || nnznn > nzmax || xtype != nn.xtype ||
 	    itype != nn.itype || dtype != nn.dtype || packed != nn.packed)
 	    Rf_error("%s: matrices not conformable", "chmSp::update");
@@ -307,7 +344,7 @@ namespace MatrixNs{
 	}
     }
 
-    CHM_SP chmSp::crossprod() {
+    CHM_SP chmSp::crossprod() const {
 	CHM_SP t1 = this->transpose();
 	CHM_SP t2 = ::M_cholmod_aat(t1, (int*)NULL, 0/*fsize*/,
 				    xtype/*mode*/, &c);
@@ -317,7 +354,7 @@ namespace MatrixNs{
 	return t1;
     }
 
-    CHM_SP chmSp::crossprod(CHM_SP B, int sorted) {
+    CHM_SP chmSp::crossprod(const CHM_SP B, int sorted) const {
 	CHM_SP t1 = this->transpose();
 	CHM_SP t2 = ::M_cholmod_ssmult(t1, B, 0/*stype*/, xtype/*values*/,
 				       sorted, &c);
@@ -325,25 +362,36 @@ namespace MatrixNs{
 	return t2;
     }
 
-    CHM_SP chmSp::tcrossprod() {
-	CHM_SP t1 = ::M_cholmod_aat(this, (int*)NULL, 0/*fsize*/,
-				    xtype/*mode*/, &c);
+    CHM_SP chmSp::crossprod(chmSp const &B, int sorted) const {
+	return crossprod((const CHM_SP)&B, sorted);
+    }
+
+    CHM_SP chmSp::tcrossprod() const {
+	CHM_SP t1 = M_cholmod_aat((const CHM_SP)this, (int*)NULL,
+				  0/*fsize*/, xtype/*mode*/, &c);
 	CHM_SP t2 = ::M_cholmod_copy(t1, 1/*stype*/, xtype/*mode*/, &c);
 	::M_cholmod_free_sparse(&t1, &c);
 	return t2;
     }
 
-    CHM_SP chmSp::tcrossprod(CHM_SP B, int sorted) {
-	CHM_SP t1 = ::M_cholmod_transpose(B, xtype/*values*/, &c);
-	CHM_SP t2 = ::M_cholmod_ssmult(this, t1, 0/*stype*/, xtype/*values*/,
-				       sorted, &c);
-	::M_cholmod_free_sparse(&t1, &c);
+    CHM_SP chmSp::tcrossprod(const CHM_SP B, int sorted) const {
+	CHM_SP t1 = M_cholmod_transpose(B, xtype/*values*/, &c);
+	CHM_SP t2 =
+	    M_cholmod_ssmult((const CHM_SP)this, t1, 0/*stype*/,
+			     xtype/*values*/, sorted, &c);
+	M_cholmod_free_sparse(&t1, &c);
 	return t2;
     }
 
-    // CHM_SP chmSp::smult(chmSp &B, int stype, int values, int sorted) {
-    // 	return ::M_cholmod_ssmult(this, &B, stype, values, sorted, &c);
-    // }
+    CHM_SP chmSp::tcrossprod(chmSp const &B, int sorted) const {
+	return tcrossprod((const CHM_SP)&B, sorted);
+    }
+
+    CHM_SP chmSp::smult(chmSp const &B, int stype, int values,
+			int sorted) const {
+	return M_cholmod_ssmult((const CHM_SP)this, (const CHM_SP)&B,
+				stype, values, sorted, &c);
+    }
 
     // chmDn::chmDn(CHM_DN xp) : cholmod_dense(), pp(xp) {
     // 	nrow = pp->nrow;
