@@ -10,119 +10,83 @@ namespace mer {
     class merResp;		// forward declaration
 
     class reModule {
-    public:
-	reModule(Rcpp::S4);
-
-	void updateTheta(const Rcpp::NumericVector&);
-	//< Lambda@x[] <- theta[Lind]; Ut <- crossprod(Lambda, Zt); update(L,Ut,1); ldL2
-	double sqLenU() const {	//< squared length of u
-	    return std::inner_product(u.begin(), u.end(), u.begin(), double());
-	}
-	void updateU(const merResp&);
-	//< u <- solve(L, solve(L, cu - RZX %*% beta, sys = "Lt"), sys = "Pt")
-	void incGamma(Rcpp::NumericVector &gam); //< gam <- gam + crossprod(Ut, u + ubase)
-
 	MatrixNs::chmFr L;
 	MatrixNs::chmSp Lambda, Ut, Zt;
 	Rcpp::IntegerVector Lind;
 	Rcpp::NumericVector lower, theta, u, ubase;
-	double *ldL2;
+	double *d_ldL2;
+    public:
+	reModule(Rcpp::S4);
+
+	CHM_SP SupdateL(MatrixNs::chmSp const&) const;
+	double sqLenU() const;
+	double ldL2() const;
+	void DupdateL(MatrixNs::chmDn const&,MatrixNs::chmDn&) const;
+	void incGamma(Rcpp::NumericVector&) const;
+	void updateTheta(Rcpp::NumericVector const&);
+	void updateU(merResp const&);
     };
 
     class merResp {
     public:
 	merResp(Rcpp::S4);
-	void updateL(reModule&);
-	//<  cu <- solve(L, solve(L, crossprod(Lambda, Utr), sys = "P"), sys = "L")
-	double updateWrss(); //< wtres <- sqrtrwts * (y - mu); wrss <- sum(wtres^2)
+	void updateL(reModule const&);
+	void updateMu(Rcpp::NumericVector const&);
+	double updateWrss();
 
-	Rcpp::NumericVector Utr, Vtr, cbeta, cu, mu, offset, wtres, weights, y;
+	Rcpp::NumericVector Utr, Vtr, cbeta, cu, mu,
+	    offset, wtres, weights, y;
 	MatrixNs::chmDn cUtr, ccu;
 	double *wrss;
     };
 
     class feModule {
+    protected:
+	Rcpp::NumericVector bb, d_ldRX2;
     public:
-	feModule(Rcpp::S4 xp) :
-	    beta(SEXP(xp.slot("beta"))) {
-	    Rcpp::NumericVector l_vec(SEXP(xp.slot("ldRX2")));
-	    ldRX2 = l_vec.begin();
-	}
-
-	double *ldRX2;
-	Rcpp::NumericVector beta;
+	feModule(Rcpp::S4 xp);
+	void setBeta(Rcpp::NumericVector const&);
+	void setBeta(Rcpp::NumericVector const&, double);
+	void setBeta(double vv = 0.);
+	const Rcpp::NumericVector& beta() const;
+	double ldRX2() const;
     };
 
     class deFeMod : public feModule {
-    public:
-	deFeMod(Rcpp::S4 xp) :
-	    feModule(xp)
-	    , X(Rcpp::S4(SEXP(xp.slot("X"))))
-	    , RZX(Rcpp::S4(SEXP(xp.slot("RZX"))))
-	    , RX(Rcpp::S4(SEXP(xp.slot("RX"))))
-	{ }
-
+    protected:
 	MatrixNs::dgeMatrix X, RZX;
-	MatrixNs::Cholesky RX;
+	MatrixNs::Cholesky d_RX;
+    public:
+	deFeMod(Rcpp::S4 xp);
+	const MatrixNs::Cholesky &RX() const;
     };
 
     class lmerDeFeMod : public deFeMod {
-    public:
-	lmerDeFeMod(Rcpp::S4 xp) :
-	    deFeMod(xp)
-	    , ZtX(Rcpp::S4(SEXP(xp.slot("ZtX"))))
-	    , XtX(Rcpp::S4(SEXP(xp.slot("XtX"))))
-	{ }
-
-	void updateRzxRx(reModule&);
-	//< RZX <<- solve(L, solve(L, crossprod(Lambda, ZtX), sys = "P"), sys = "L")
-        //< RX <- chol(XtX - crossprod(RZX))
-	void updateBeta(merResp&);
-	//< resp@cbeta <- Vtr - crossprod(RZX, cu)
-	//< beta <- solve(RX, solve(t(RX), resp@cbeta))
-	//< resp@cu <- resp@cu - RZX %*% beta
-	void incGamma(Rcpp::NumericVector &gam) {
-	    X.dgemv('N', 1., beta, 1., gam);
-	}
-	//< gamma += crossprod(Ut, u)
-
 	MatrixNs::dgeMatrix ZtX;
 	MatrixNs::dpoMatrix XtX;
+    public:
+	lmerDeFeMod(Rcpp::S4 xp);
+
+	void updateRzxRx(reModule const&);
+	void updateBeta(merResp&);
+	void incGamma(Rcpp::NumericVector &gam) const;
     };
 
     class spFeMod : public feModule {
-    public:
-	spFeMod(Rcpp::S4 xp) :
-	    feModule(xp),
-	    X(Rcpp::S4(SEXP(xp.slot("X")))),
-	    RZX(Rcpp::S4(SEXP(xp.slot("RZX")))),
-	    RX(Rcpp::S4(SEXP(xp.slot("RX")))) { }
-
+    protected:
 	MatrixNs::chmSp X, RZX;
 	MatrixNs::chmFr RX;
+    public:
+	spFeMod(Rcpp::S4 xp);
     };
 
     class lmerSpFeMod : public spFeMod {
-    public:
-	lmerSpFeMod(Rcpp::S4 xp) :
-	    spFeMod(xp),
-	    ZtX(Rcpp::S4(SEXP(xp.slot("ZtX")))),
-	    XtX(Rcpp::S4(SEXP(xp.slot("XtX")))) { }
-
-	void updateRzxRx(reModule&);
-	//< RZX <<- solve(L, solve(L, crossprod(Lambda, ZtX), sys = "P"), sys = "L")
-        //< RX <- chol(XtX - crossprod(RZX))
-	void updateBeta(merResp&);
-	//< resp@cbeta <- Vtr - crossprod(RZX, cu)
-	//< beta <- solve(RX, solve(t(RX), resp@cbeta))
-	//< resp@cu <- resp@cu - RZX %*% beta
-	void incGamma(Rcpp::NumericVector &gam) {
-	    MatrixNs::chmDn bb(beta), gg(gam);
-	    X.dmult('N', 1., 1., bb, gg);
-	}
-	//< gamma += crossprod(Ut, u)
-
 	MatrixNs::chmSp ZtX, XtX;
+    public:
+	lmerSpFeMod(Rcpp::S4 xp);
+	void updateRzxRx(reModule const&);
+	void updateBeta(merResp&);
+	void incGamma(Rcpp::NumericVector &gam) const;
     };
 
     class rwResp : public merResp {
@@ -159,15 +123,14 @@ namespace mer {
     
     class rwDeFeMod : public deFeMod {
     public:
-	rwDeFeMod(Rcpp::S4 xp) :
-	    deFeMod(xp),
-	    V(Rcpp::S4(SEXP(xp.slot("V")))),
-	    betabase(SEXP(xp.slot("betabase"))) {}
-
-	void incGamma(Rcpp::NumericVector &gam);
-//	void updateV(rwResp const&);
-	void updateV(rwResp&);
+	rwDeFeMod(Rcpp::S4 xp);
+	void incGamma(Rcpp::NumericVector &gam) const;
+	void updateV(rwResp const&);
+	void updateBetaBase();
+	void updateRX(bool);
+	void dpotrs(Rcpp::NumericVector&) const;
 	MatrixNs::dgeMatrix V;
+    private:
 	Rcpp::NumericVector betabase;
     };
 
@@ -216,71 +179,73 @@ namespace mer {
 
     template<typename T>
     class lmer {
-    public:
-	lmer(Rcpp::S4 xp);
-
-	double deviance();
-	//< ldL2 + n *(1 + log(2 * pi * pwrss/n))
-	double reCrit();
-	//< ldL2 + ldRX2 + (n - p) * (1 + log(2 * pi * pwrss/(n - p)))
-	double updateTheta(const Rcpp::NumericVector&);
-
 	reModule re;
 	T fe;
 	merResp resp;
 	bool reml;
-    private:
 	static double l2PI;
+    public:
+	lmer(Rcpp::S4 xp);
+
+	double deviance();
+	double reCrit();
+	double updateTheta(const Rcpp::NumericVector&);
     };
     
     template<typename T>
     inline lmer<T>::lmer(Rcpp::S4 xp) :
-	    re(Rcpp::S4(SEXP(xp.slot("re")))),
-	    fe(Rcpp::S4(xp.slot("fe"))),
-	    resp(Rcpp::S4(SEXP(xp.slot("resp"))))
-	{
-	    Rcpp::LogicalVector REML = xp.slot("REML");
-	    reml = (bool)*REML.begin();
-	}
+	re(Rcpp::S4(SEXP(xp.slot("re")))),
+	fe(Rcpp::S4(xp.slot("fe"))),
+	resp(Rcpp::S4(SEXP(xp.slot("resp"))))
+    {
+	Rcpp::LogicalVector REML = xp.slot("REML");
+	reml = (bool)*REML.begin();
+    }
 
     template<typename T>
     double lmer<T>::l2PI = log(2. * PI);
-
-    template<typename T>
-    inline double lmer<T>::deviance() {
-	double nn = (double)resp.y.size(), prss = re.sqLenU() + *resp.wrss;
-	return *re.ldL2 + nn * (1 + l2PI + log(prss/nn));
-    }
-
-    template<typename T>
-    inline double lmer<T>::reCrit() {
-	double nmp = (double)(resp.y.size() - fe.beta.size()),
+    
+/** 
+ * Evaluate the deviance
+ * 
+ * @return ldL2 + n *(1 + log(2 * pi * pwrss/n))
+ */
+    template<typename T> inline
+    double lmer<T>::deviance() {
+	double nn = (double)resp.y.size(),
 	    prss = re.sqLenU() + *resp.wrss;
-	return *re.ldL2 + *fe.ldRX2 + nmp * (1 + l2PI + log(prss/nmp));
+	return re.ldL2() + nn * (1 + l2PI + log(prss/nn));
     }
 
-    template<typename T>
-    inline double lmer<T>::updateTheta(const Rcpp::NumericVector &nt) {
+/** 
+ * Evaluate the REML criterion
+ * 
+ * @return ldL2 + ldRX2 + (n - p) * (1 + log(2 * pi * pwrss/(n - p)))
+ */
+    template<typename T> inline
+    double lmer<T>::reCrit() {
+	double nmp = (double)(resp.y.size() - fe.beta().size()),
+	    prss = re.sqLenU() + *resp.wrss;
+	return re.ldL2()+fe.ldRX2()+nmp*(1 + l2PI + log(prss/nmp));
+    }
+
+    template<typename T> inline
+    double lmer<T>::updateTheta(Rcpp::NumericVector const &nt) {
 	re.updateTheta(nt);
 	resp.updateL(re);
 	fe.updateRzxRx(re);
 	fe.updateBeta(resp);
 	re.updateU(resp);
-				// update resp.mu
-	std::copy(resp.offset.begin(), resp.offset.end(), resp.mu.begin());
-	re.incGamma(resp.mu);
-	fe.incGamma(resp.mu);
-				// update resp.wtres and resp.wrss
-	resp.updateWrss();
+	Rcpp::NumericVector gamma(resp.offset.size());
+
+	std::copy(resp.offset.begin(), resp.offset.end(), gamma.begin());
+	fe.incGamma(gamma);
+	re.incGamma(gamma);
+	resp.updateMu(gamma);
+	
+	resp.updateWrss();	// update resp.wtres and resp.wrss
 	return reml ? reCrit() : deviance();
     }
 }
 
 #endif
-
-
-
-
-
-
-
