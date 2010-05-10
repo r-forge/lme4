@@ -3,8 +3,7 @@
 using namespace Rcpp;
 using namespace MatrixNs;
 
-//static double l2PI = log(2. * PI);
-
+#if 0
 static void showdbl(const double* x, const char* nm, int n) {
     int n5 = (n < 5) ? n : 5;
     Rprintf("%s: %g", nm, x[0]);
@@ -21,7 +20,8 @@ static void showint(const int* x, const char* nm, int n) {
 
 static void showCHM_SP(const CHM_SP x, const std::string &nm) {
     Rprintf("%s: nrow = %d, ncol = %d, xtype = %d, stype = %d, itype = %d, dtype = %d\n",
-	    nm.c_str(), x->nrow, x->ncol, x->xtype, x->stype, x->itype, x->dtype);
+	    nm.c_str(), x->nrow, x->ncol, x->xtype, x->stype,
+	    x->itype, x->dtype);
     int nc = x->ncol, nnz = ::M_cholmod_nnz(x, &c);
     showint((int*)x->p, "p", nc + 1);
     if (nnz > 0) {
@@ -43,6 +43,7 @@ static void showCHM_FR(const CHM_FR x, const std::string &nm) {
 	showdbl((double*)x->x, "x", x->n);
     } else Rprintf("nnz = 0\n");
 }
+#endif
 
 namespace mer{
 
@@ -111,7 +112,7 @@ namespace mer{
  */
     void reModule::incGamma(NumericVector &gam) const {
 	std::vector<double> uu(u.size());
-	chmDn cuu(uu), cgam(gam);
+	chmDn cgam(gam);
 //	showdbl(gam.begin(), "gamma in", gam.size());
 //	showdbl(u.begin(), "u", u.size());
 //	showdbl(ubase.begin(), "ubase", ubase.size());
@@ -120,7 +121,8 @@ namespace mer{
 		       uu.begin(), std::plus<double>());
 				// gamma <- gamma + crossprod(Ut, uu)
 //	showdbl(&uu[0], "uu", uu.size());
-	Ut.dmult('T', 1., 1., cuu, cgam);
+//	showCHM_SP((const CHM_SP)&Ut, "Ut");
+	Ut.dmult('T', 1., 1., chmDn(uu), cgam);
 //	showdbl(gam.begin(), "gamma out", gam.size());
     }
 	
@@ -152,7 +154,7 @@ namespace mer{
  */
     CHM_SP reModule::SupdateL(chmSp const &src) const {
 	CHM_SP t1 = Lambda.crossprod(src);
-	CHM_SP t2 = L.spsolve(CHOLMOD_P, t2);
+	CHM_SP t2 = L.spsolve(CHOLMOD_P, t1);
 	::M_cholmod_free_sparse(&t1, &c);
 	t1 = L.spsolve(CHOLMOD_L, t2);
 	::M_cholmod_free_sparse(&t2, &c);
@@ -368,15 +370,24 @@ namespace mer{
  */
     void lmerSpFeMod::updateRzxRx(reModule const &re) {
 	double mone[] = {-1.,0}, one[] = {1.,0};
+//	Rprintf("in lmerSpFeMod::updateRzxRx\n");
+//	showCHM_SP(&ZtX, "ZtX");
 	CHM_SP t2 = re.SupdateL(ZtX);
+//	showCHM_SP(t2, "t2");
+
 	RZX.update(*t2);
+//	showCHM_SP(&RZX, "RZX");
 	M_cholmod_free_sparse(&t2, &c);	
 	
 	CHM_SP t1 = RZX.crossprod();
+//	showCHM_SP(t1, "t1");
 	t2 = M_cholmod_add(&XtX, t1, one, mone, 1/*values*/,
 			     1/*sorted*/, &c);
+//	showCHM_SP(t2, "t2");
 	M_cholmod_free_sparse(&t1, &c);
 	RX.update(*t2);
+//	showCHM_FR(&RX, "RX");
+
 	M_cholmod_free_sparse(&t2, &c);
 
 	*d_ldRX2.begin() = M_chm_factor_ldetL2(&RX);
