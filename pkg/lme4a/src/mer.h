@@ -236,8 +236,8 @@ namespace mer {
 	fe.updateRzxRx(re);
 	fe.updateBeta(resp);
 	re.updateU(resp);
-	Rcpp::NumericVector gamma(resp.offset.size());
 
+	Rcpp::NumericVector gamma(resp.offset.size());
 	std::copy(resp.offset.begin(), resp.offset.end(), gamma.begin());
 	fe.incGamma(gamma);
 	re.incGamma(gamma);
