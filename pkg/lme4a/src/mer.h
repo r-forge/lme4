@@ -13,9 +13,10 @@ namespace mer {
 	MatrixNs::chmFr L;
 	MatrixNs::chmSp Lambda, Ut, Zt;
 	Rcpp::IntegerVector Lind;
-	Rcpp::NumericVector lower, theta, u, ubase;
+	Rcpp::NumericVector lower, theta;
 	double *d_ldL2;
     public:
+	Rcpp::NumericVector u, ubase;
 	reModule(Rcpp::S4);
 
 	CHM_SP SupdateL(MatrixNs::chmSp const&) const;
@@ -23,8 +24,10 @@ namespace mer {
 	double ldL2() const;
 	void DupdateL(MatrixNs::chmDn const&,MatrixNs::chmDn&) const;
 	void incGamma(Rcpp::NumericVector&) const;
+	Rcpp::NumericVector rwUpdateL(MatrixNs::dgeMatrix const&, Rcpp::NumericVector const&);
 	void updateTheta(Rcpp::NumericVector const&);
 	void updateU(merResp const&);
+	void updateUbase();
     };
 
     class merResp {
