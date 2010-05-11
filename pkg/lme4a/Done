@@ -53,3 +53,8 @@ Replace the glmer_create and nlmer_create C functions with R code.
 
 - Evaluate the likelihood of a fitted GLMM by the Laplacian approximation
 
+---------------------
+Provide methods for lmer2() aka the "[gln]merMod" classes based one the
+"mer" / "merenv" ones
+
+ o Now done for  anova, coef, isREML, update, model.matrix, model.frame, terms

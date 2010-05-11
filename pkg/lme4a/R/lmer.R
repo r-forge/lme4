@@ -163,7 +163,7 @@ makeZt <- function(bars, fr, rho, checknl = TRUE) {
     rho$Lind <- as.integer(rho$Lambda@x)
     if (rho$diagonalLambda <- all(nc == 1))
         rho$Lambda <- Diagonal(x = rho$Lambda@x)
-    rho$Ut <- crossprod(rho$Lambda, rho$Zt)
+    rho$Ut <- crossprod(rho$Lambda, rho$Zt)# Ut = Lambda' Z' = (Z Lambda)'  <==> U = Z Lambda
 
     lower <- -Inf * (rho$theta + 1)
     lower[unique(diag(rho$Lambda))] <- 0
@@ -346,18 +346,27 @@ lmer1 <-
     environment(sP) <- environment(gP) <- environment(gB) <- rho
     me <- new("lmerenv", setPars = sP, getPars = gP, getBounds = gB)
     if (doFit) {                        # perform the optimization
-        opt <- match.arg(optimizer)
-        if (verbose) {
-            if (opt == "nlminb") control$trace <- 1
-            if (opt == "bobyqa") control$iprint <- 2
-            if (opt == "optimize")
-                warning("verbose argument ignored with optimize")
+        if(is.character(optimizer)) {
+            opt <- match.arg(optimizer)
+            if (verbose) {
+                if (opt == "nlminb") control$trace <- 1
+                if (opt == "bobyqa") control$iprint <- 2
+                if (opt == "optimize")
+                    warning("verbose argument ignored with optimize")
+            }
+            switch(opt,
+                   bobyqa = bobyqa(me, control = control),
+                   nlminb = nlminb(me, control = control),
+                   optimize = { if(is.numeric(tl <- control$tol[1]) && tl >= 0)
+                                    optimize(me, tol=tl) else optimize(me)
+                            })
+        } else if(!is.function(optimizer))
+            stop("'optimizer' must be an optim()-like function or string")
+        else { ## 'optimizer' is a function
+            if (verbose)
+                warning("verbose argument ignored - use 'control' instead")
+            optimizer(me, control = control)
         }
-        switch(opt,
-               bobyqa = bobyqa(me, control = control),
-               nlminb = nlminb(me, control = control),
-               optimize = if(is.numeric(tl <- control$tol[1]) & tl >= 0)
-               optimize(me, tol=tl) else optimize(me))
 
         env2lmer(me)
     }
@@ -483,9 +492,9 @@ function(formula, data, family = gaussian, sparseX = FALSE,
     ## This is the one that will be minimized
     sP <- function(x) {
         rho <- parent.env(environment())
-        m <- length(rho$theta)
-        sat <- seq_len(m)
-        stopifnot(is.numeric(x), length(x) == m + length(beta))
+        np <- length(rho$theta)
+        sat <- seq_len(np)
+        stopifnot(is.numeric(x), length(x) == np + length(beta))
         .Call("merenv_update_Lambda_Ut", rho, x[sat], PACKAGE = "lme4a")
         rho$beta[] <- x[-sat]
         ## return value:
@@ -1054,7 +1063,7 @@ anovaLmer <- function(object, ...) {
 	class(table) <- c("anova", "data.frame")
 	table
     }
-}
+}## {anovaLmer}
 
 setMethod("anova", signature(object = "lmerenv"), anovaLmer)
 

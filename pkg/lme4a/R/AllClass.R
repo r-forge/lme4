@@ -275,8 +275,8 @@ setClass("reModule",
          representation(L = "CHMfactor",
                         Lambda = "dgCMatrix",
                         Lind = "integer",
-                        Ut = "dgCMatrix",
-                        Zt = "dgCMatrix",
+                        Ut = "dgCMatrix",## U := Z Lambda; Ut := U' = Lambda' Z' = Lambda' Zt
+                        Zt = "dgCMatrix",## = Z'
                         lower = "numeric",
                         theta = "numeric",
                         u = "numeric",
