@@ -8,11 +8,11 @@ mkSqrtXwt <- function(N, s) {
 ##'
 ##' @param bars a list of parsed random-effects terms
 ##' @param fr a model frame in which to evaluate these terms
-##' @param rwt iff TRUE, want a *ReWeighTed* reModule, i.e. "rwReTrms"
 ##' @param checknl iff TRUE, bail out iff any grouping factors has >= n levels
+##' @param s Number of parameters in the nonlinear mean function for nlmer
 ##'
 ##' @return a list of an reModule and a merTrms
-mkReTrms <- function(bars, fr, rwt = FALSE, checknl = TRUE, s = 1L) {
+mkReTrms <- function(bars, fr, checknl = TRUE, s = 1L) {
     if (!length(bars))
         stop("No random effects terms specified in formula")
     stopifnot(is.list(bars), all(sapply(bars, is.language)),
@@ -102,18 +102,14 @@ mkReTrms <- function(bars, fr, rwt = FALSE, checknl = TRUE, s = 1L) {
     ll$Lambda <- Lambda
 
     ll$Ut <- crossprod(Lambda, Zt)
-    if (rwt) { ## different class with more information
+    ll$Class <- "reTrms"
+    if (s > 1) { ## Ut is the sum of vertical sections of Zt
         N <- ncol(Zt)
-        if (s > 1) {
-	    ll$Ut <- Reduce(lapply(split(seq_len(N) ,
-					 rep.int(seq_len(s),
-						 rep.int(N %/% s, s))),
-				   function(cols) Ut[, cols]), "+")
-        }
-	ll$Class <- "rwReTrms"
+        ll$Ut <- Reduce(lapply(split(seq_len(N),
+                                     rep.int(seq_len(s),
+                                             rep.int(N %/% s, s))),
+                               function(cols) Ut[, cols]), "+")
     }
-    else
-	ll$Class <- "reTrms"
 
     ll$L <- Cholesky(tcrossprod(ll$Ut), LDL = FALSE, Imult = 1)
     ll$ldL2 <- numeric(1)
@@ -562,9 +558,7 @@ glmer2 <- function(formula, data, family = gaussian, sparseX = FALSE,
     environment(fr.form) <- environment(formula)
     mf$formula <- fr.form
     fr <- eval(mf, parent.frame())
-                             # reweightable random-effects module from terms
-    reTrms <- mkReTrms(findbars(formula[[3]]), fr, TRUE)
-                                        # reweightable fixed-effects module
+    reTrms <- mkReTrms(findbars(formula[[3]]), fr) # random-effects module 
     feMod <- mkFeModule(formula, fr, contrasts, reTrms, sparseX, TRUE)
     respMod <- mkRespMod(fr, reTrms, feMod, family)
     feMod@V <- Diagonal(x = respMod@sqrtXwt[,1]) %*% feMod@X
