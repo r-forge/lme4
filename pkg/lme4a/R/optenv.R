@@ -39,10 +39,21 @@ setMethod("optimize", signature(f = "optenv"),
           ## the argument name 'tol' is matched from the generic
           stopifnot(length(f@getPars()) == 1)
           bb <- f@getBounds()
+          ## hmm, typically have  (0, Inf) here,  but optimize really starts at
+          ##  a + (1-phi)*(b-a) = phi*a + (1-phi)b  = .382*a + .618*b,
+          ## and its extremely silly to have  (a = 0, b = 1.8e308)
 	  if(any(is.infinite(bb))) ## optimize does not allow '+- Inf' bounds:
-	      bb <- pmin(.Machine$double.xmax,
-			 pmax(.Machine$double.xmin, bb))
-          optimize(f@setPars, lower = bb[,"lower"], upper = bb[,"upper"], tol=tol)
+	      bb[] <- pmin(.Machine$double.xmax,
+			   pmax(-.Machine$double.xmax, bb))
+          r <- optimize(f@setPars, lower = bb[,"lower"], upper = bb[,"upper"], tol=tol)
+      })
+
+setMethod("optimize", signature(f = "merenv"),
+          function(f, ...)
+      {
+          ## the argument name 'tol' is matched from the generic
+          stopifnot(length(f@getPars()) == 1)
+          optimize(f@setPars, lower = 0, upper = 100, tol=tol)
       })
 
 } else {## R <= 2.10.x -- need correct (full) argument list in method

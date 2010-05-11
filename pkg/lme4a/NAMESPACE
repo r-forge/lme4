@@ -50,7 +50,7 @@ importMethodsFrom("Matrix",
 #exportPattern("^[^\\.]")  # for debugging
 # Rather use:  attach(asNamespace("lme4a"))
 
-export(VarCorr, copyMerenv, devcomp, env, getL,
+export(VarCorr, bootMer, copyMerenv, devcomp, env, getL,
        glmer, glmer2, lmList, lmer, lmer1, lmer2, nlmer,
        sigma, findbars, nobars, subbars, isNested)
 
@@ -69,7 +69,7 @@ exportMethods(VarCorr, anova, bobyqa, coef, coerce, confint, deviance,
               devcomp, fixef, formula, getL,
               logLik, nlminb, model.frame, model.matrix, terms,
               optimize, plot, print, profile, ranef,
-              show, sigma, summary, update, vcov)
+              show, simulate, sigma, summary, update, vcov)
 
 S3method(plot, coef.mer)
 S3method(dotplot, coef.mer)

@@ -200,12 +200,12 @@ mkRespMod <- function(fr, reMod, feMod, family = NULL, nlenv = NULL) {
     ## This part is necessary for glmer!  We can fix the weights for lmer later.
     weights <- model.weights(fr)
     if (is.null(weights)) weights <- rep.int(1, n)
-    if (any(weights < 0))
+    else if (any(weights < 0))
         stop(gettext("negative weights not allowed", domain = "R-lme4"))
     offset <- model.offset(fr)
     if (is.null(offset)) offset <- numeric(N)
     if (length(offset) == 1) offset <- rep.int(offset, n)
-    if (length(offset) != n)
+    else if (length(offset) != n)
         stop(gettextf("number of offsets (%d) should be %d (number of observations)",
                       loff, n), domain = "R-lme4")
     p <- ncol(feMod@X)
@@ -307,7 +307,10 @@ setAs("lmerMod", "lmerenv", function(from) .lmerM2env(from, "lmerenv"))
 
 
 lmer2 <- function(formula, data, REML = TRUE, sparseX = FALSE,
-                  control = list(), start = NULL, verbose = 0, doFit = TRUE,
+                  control = list(), start = NULL,
+                  verbose = 0, doFit = TRUE,
+                  ## think of also copying 'compDev = FALSE' from lmer1()
+                  ## TODO: optimizer = c("bobyqa", "nlminb", "optimize", "optim"),
                   subset, weights, na.action, offset,
                   contrasts = NULL, ...)
 {
@@ -352,20 +355,36 @@ lmer2 <- function(formula, data, REML = TRUE, sparseX = FALSE,
 	       re = reTrms, fe = feMod, resp = respMod,
 	       REML = REML)
     if (doFit) {                        # optimize estimates
-        devfun <- function(th) {
-            if (is(ans, "lmerSp")) return(.Call(lmerSpUpdate, ans, th))
-            .Call(lmerDeUpdate, ans, th)
-        }
+        code <- if(is(ans, "lmerSp")) lmerSpUpdate else lmerDeUpdate
+	if(verbose) {
+	    ..it <- 0L
+	    f.width <- (f.dig <- getOption("digits")) + 5 # "+5": e.g. for 1.2e-05
+	    devfun <- function(th) {
+		r <- .Call(code, ans, th)
+		..it <<- ..it + 1L
+		cat(sprintf("%3d : %s |-> %15.12g\n", ..it,
+			    paste(sapply(th, format, width = f.width),
+                                  collapse = " "),
+                            r))
+		r
+	    }
+	} else
+	    devfun <- function(th) .Call(code, ans, th)
+
         if (length(ans@re@theta) < 2) { # use optimize
             d0 <- devfun(0)
             opt <- optimize(devfun, c(0, 10))
+            ##                      -------- <<< arbitrary
+            ## FIXME ?! if optimal theta > 0, optimize will *not* warn!
             if (d0 <= opt$objective) { ## prefer theta == 0 when close
+                cat(sprintf("dev(th =0) = %.12g <= %.12g = opt$obj(th=%g)%s\n",
+                            d0, opt$objective, opt$minimum, " --> th := 0"))
                 devfun(0) # -> theta  := 0  and update the rest
             }
         } else {
-            if (verbose) control$iprint <- 2L
+            ## if (verbose > 1) control$iprint <- verbose
             bobyqa(ans@re@theta, devfun, ans@re@lower, control = control)
-            ## FIXME: also here, prefer \hat\sigma^2 == 0 (exactly)
+            ## FIXME: also here, prefer \hat{\sigma_a^2} == 0 (exactly)
         }
     }
     ans
@@ -373,6 +392,134 @@ lmer2 <- function(formula, data, REML = TRUE, sparseX = FALSE,
 
 ## being brave now:
 lmer <- lmer2
+
+setMethod("simulate", "lmerMod",
+	  function(object, nsim = 1, seed = NULL, use.u = FALSE, ...)
+      {
+          stopifnot((nsim <- as.integer(nsim[1])) > 0) ## is(x, "lmer")
+	  if(!is.null(seed)) set.seed(seed)
+	  if(!exists(".Random.seed", envir = .GlobalEnv))
+	      runif(1) # initialize the RNG if necessary
+
+	  n <- nrow(X <- object@fe @ X)
+	  ## result will be matrix  n x nsim :
+	  as.vector(X %*% object@fe @ beta) +  # fixed-effect contribution
+	      sigma(object) * (## random-effects contribution:
+			       if(use.u) {
+				   object@re @ u
+			       } else {
+				   U <- t(object@re @ Ut)
+				   q <- ncol(U)
+				   as(U %*% matrix(rnorm(q * nsim), nc = nsim), "matrix")
+			       }
+			       ## residual contribution:
+			       + matrix(rnorm(n * nsim), nc = nsim))
+      })
+
+### bootMer() --- <==>  (TODO: semi-*)parametric bootstrap
+### -------------------------------------------------------
+## Doc: show how  this is equivalent - but faster than
+##              boot(*, R = nsim, sim = "parametric", ran.gen = simulate(.,1,.), mle = x)
+## --> return a "boot" object -- so we could use boot.ci() etc
+## TODO: also allow "semi-parametric" model-based bootstrap:
+##    resampling the (centered!) residuals (for use.u=TRUE) or for use.u=FALSE,
+##    *both* the centered u's + centered residuals
+##    instead of using  rnorm()
+
+##' <description>
+##'  Perform model-based (Semi-)parametric bootstrap for mixed models;
+##'  The working name for bootMer() was simulestimate(), but this is serious..
+##' <details>
+##'  ...
+##' @title Model-based (Semi-)Parametric Bootstrap for Mixed Models
+##' @param x fitted *lmer() model
+##' @param FUN a function(x) computating the *statistic* of interest,
+##' which must be a numeric vector, possibly named.
+##' @param nsim number of simulations, positive integer; the bootstrap
+##' 'B' (or 'R').
+##' @param seed optional argument to \code{\link{set.seed}}.
+##' @param use.u
+##' @param verbose logical indicating if progress should print output
+##' @param control
+##' @return an object of S3 class "boot" {compatible with boot package}
+##' @author Martin Maechler
+bootMer <- function(x, FUN, nsim = 1, seed = NULL, use.u = FALSE,
+                    verbose = FALSE, control = list())
+{
+    stopifnot((nsim <- as.integer(nsim[1])) > 0,
+              is(x, "lmerMod"))
+    FUN <- match.fun(FUN)
+    if(!is.null(seed)) set.seed(seed)
+    else if(!exists(".Random.seed", envir = .GlobalEnv))
+        runif(1) # initialize the RNG if necessary
+
+    mc <- match.call()
+    t0 <- FUN(x)
+    if (!is.numeric(t0))
+        stop("bootMer currently only handles functions that return numeric vectors")
+
+    ## simplistic approach {original for old-lme4 by DB was much smarter}
+
+    n <- nrow(X <- x@fe @ X)
+    if(use.u) {
+        u <- x@re @ u
+    } else {
+        U <- t(x@re @ Ut)
+        q <- ncol(U)
+    }
+    Zt <- x@re @ Zt
+    X.beta <- as.vector(X %*% x@fe @ beta) # fixed-effect contribution
+    sigm.x <- sigma(x)
+
+    ## Here, and below ("optimize"/"bobyqa") using the "logic" of lmer2() itself:
+    lmer..Update <- if(is(x, "lmerSp")) lmerSpUpdate else lmerDeUpdate
+    devfun <- function(th) .Call(lmer..Update, x, th)
+    oneD <- length(x@re@theta) < 2
+
+    theta0 <- x@re@theta # to use as starting value
+    ## just for the "boot" result -- TODOmaybe drop
+    mle <- list(beta = x@fe @ beta, theta = theta0, sigma = sigm.x)
+
+    t.star <- matrix(t0, nr = length(t0), nc = nsim)
+    for(i in 1:nsim) {
+        y <- {
+            X.beta + sigm.x *
+                ((if(use.u) u else as.vector(U %*% rnorm(q))) + rnorm(n))
+            ##      random effects  contribution            +     Error
+        }
+        x @ resp @ y <- y
+        x @ resp @ Utr <- (Zt %*% y)@x
+        x @ resp @ Vtr <- crossprod(X, y)@x
+
+        if (oneD) { # use optimize
+            d0 <- devfun(0)
+            opt <- optimize(devfun, c(0, 10))
+            ##                      -------- <<< arbitrary
+            ## FIXME ?! if optimal theta > 0, optimize will *not* warn!
+            if (d0 <= opt$objective) ## prefer theta == 0 when close
+                devfun(0) # -> theta  := 0  and update the rest
+        } else {
+            bobyqa(theta0, devfun, x@re@lower, control = control)
+            ## FIXME: also here, prefer \hat\sigma^2 == 0 (exactly)
+        }
+        foo <- tryCatch(FUN(x), error = function(e)e)
+        if(verbose) { cat(sprintf("%5d :",i)); str(foo) }
+        t.star[,i] <- if (inherits(foo, "error")) NA else foo
+    }
+    rownames(t.star) <- names(t0)
+
+## boot() ends with the equivalent of
+    ## structure(list(t0 = t0, t = t.star, R = R, data = data, seed = seed,
+    ##		      statistic = statistic, sim = sim, call = call,
+    ##		      ran.gen = ran.gen, mle = mle),
+    ##		 class = "boot")
+    structure(list(t0 = t0, t = t(t.star), R = nsim, data = x@frame,
+		   seed = .Random.seed,
+		   statistic = FUN, sim = "parametric", call = mc,
+		   ## these two are dummies
+		   ran.gen = "simulate(<lmerMod>, 1, *)", mle = mle),
+	      class = "boot")
+}## {bootMer}
 
 glmer2 <- function(formula, data, family = gaussian, sparseX = FALSE,
                    control = list(), start = NULL, verbose = 0, doFit = TRUE,
