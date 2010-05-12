@@ -108,16 +108,27 @@ namespace MatrixNs{
 		     "dpotrf", info);
     }
 
-    void Cholesky::dpotrs(NumericVector &v) const {
-	int info, i1 = 1, vs = v.size();
-	if (vs != d_nrow)
-	    Rf_error("%s (%d, %d) dimension mismatch (%d, %d)",
-		     "Cholesky::dpotrs", d_nrow, d_ncol, vs, 1);
+    void Cholesky::dpotrs(double *v) const {
+	int info, i1 = 1;
 	F77_CALL(dpotrs)(&uplo.UL, &d_nrow, &i1, x.begin(), &d_nrow,
-			 v.begin(), &vs, &info);
+			 v, &d_nrow, &info);
 	if (info)
 	    Rf_error("Lapack routine %s returned error code %d",
 		     "dpotrs", info);
+    }
+
+    void Cholesky::dpotrs(NumericVector &v) const {
+	if ((int)v.size() != d_nrow)
+	    Rf_error("%s (%d, %d) dimension mismatch (%d, %d)",
+		     "Cholesky::dpotrs", d_nrow, d_ncol, v.size(), 1);
+	dpotrs(v.begin());
+    }
+
+    void Cholesky::dpotrs(std::vector<double> &v) const {
+	if ((int)v.size() != d_nrow)
+	    Rf_error("%s (%d, %d) dimension mismatch (%d, %d)",
+		     "Cholesky::dpotrs", d_nrow, d_ncol, v.size(), 1);
+	dpotrs(&v[0]);
     }
 
     double Cholesky::logDet2() {
