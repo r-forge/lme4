@@ -41,9 +41,12 @@ namespace MatrixNs {
 // these are pure virtual classes.
 
     class compMatrix {		//< composite (factorizable) Matrix
-    public:
+    protected:
 	Rcpp::List factors;
-	compMatrix(Rcpp::S4 &xp) : factors(SEXP(xp.slot("factors"))) { }
+    public:
+	compMatrix(Rcpp::S4 &xp) :
+	    factors(SEXP(xp.slot("factors"))) {
+	}
     };
 
     class generalMatrix : public compMatrix { //< general structure
@@ -155,6 +158,8 @@ namespace MatrixNs {
 	}
 
 	void dpotrs(Rcpp::NumericVector&) const;
+	void dpotrs(std::vector<double>&) const;
+	void dpotrs(double*) const;
 
 	double logDet2();
     };
