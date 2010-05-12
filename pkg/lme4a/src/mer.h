@@ -15,19 +15,21 @@ namespace mer {
 	Rcpp::IntegerVector Lind;
 	Rcpp::NumericVector lower, theta;
 	double *d_ldL2;
+	Rcpp::NumericVector d_u;
     public:
-	Rcpp::NumericVector u, ubase;
 	reModule(Rcpp::S4);
 
 	CHM_SP SupdateL(MatrixNs::chmSp const&) const;
+	void setU(const double *);
+	const Rcpp::NumericVector &u() const;
 	double sqLenU() const;
 	double ldL2() const;
 	void DupdateL(MatrixNs::chmDn const&,MatrixNs::chmDn&) const;
 	void incGamma(Rcpp::NumericVector&) const;
-	Rcpp::NumericVector rwUpdateL(MatrixNs::dgeMatrix const&, Rcpp::NumericVector const&);
+	void rwUpdateL(MatrixNs::dgeMatrix const&,
+		       Rcpp::NumericVector const&, double*);
 	void updateTheta(Rcpp::NumericVector const&);
 	void updateU(merResp const&);
-	void updateUbase();
     };
 
     class merResp {
@@ -45,12 +47,10 @@ namespace mer {
 
     class feModule {
     protected:
-	Rcpp::NumericVector bb, d_ldRX2;
+	Rcpp::NumericVector d_beta, d_ldRX2;
     public:
 	feModule(Rcpp::S4 xp);
-	void setBeta(Rcpp::NumericVector const&);
-	void setBeta(Rcpp::NumericVector const&, double);
-	void setBeta(double vv = 0.);
+	void setBeta(const double*);
 	const Rcpp::NumericVector& beta() const;
 	double ldRX2() const;
     };
@@ -62,6 +62,7 @@ namespace mer {
     public:
 	deFeMod(Rcpp::S4 xp);
 	const MatrixNs::Cholesky &RX() const;
+	void incGamma(Rcpp::NumericVector &gam) const;
     };
 
     class lmerDeFeMod : public deFeMod {
@@ -72,7 +73,6 @@ namespace mer {
 
 	void updateRzxRx(reModule const&);
 	void updateBeta(merResp&);
-	void incGamma(Rcpp::NumericVector &gam) const;
     };
 
     class spFeMod : public feModule {
@@ -81,6 +81,7 @@ namespace mer {
 	MatrixNs::chmFr RX;
     public:
 	spFeMod(Rcpp::S4 xp);
+	void incGamma(Rcpp::NumericVector &gam) const;
     };
 
     class lmerSpFeMod : public spFeMod {
@@ -89,16 +90,11 @@ namespace mer {
 	lmerSpFeMod(Rcpp::S4 xp);
 	void updateRzxRx(reModule const&);
 	void updateBeta(merResp&);
-	void incGamma(Rcpp::NumericVector &gam) const;
     };
 
     class rwResp : public merResp {
     public:
-	rwResp(Rcpp::S4 xp) :
-	    merResp(xp),
-	    gamma(SEXP(xp.slot("gamma"))),
-	    sqrtrwt(SEXP(xp.slot("sqrtrwt"))),
-	    sqrtXwt(Rcpp::S4(SEXP(xp.slot("sqrtXwt")))) {}
+	rwResp(Rcpp::S4 xp);
 	double updateWrss();
 	Rcpp::NumericVector gamma, sqrtrwt;
 	MatrixNs::dgeMatrix sqrtXwt;
@@ -127,48 +123,38 @@ namespace mer {
     class rwDeFeMod : public deFeMod {
     public:
 	rwDeFeMod(Rcpp::S4 xp);
-	void incGamma(Rcpp::NumericVector &gam) const;
 	void updateV(rwResp const&);
-	void updateBetaBase();
 	void updateRX(bool);
 	void dpotrs(Rcpp::NumericVector&) const;
 	MatrixNs::dgeMatrix V;
-    private:
-	Rcpp::NumericVector betabase;
     };
 
     class rwSpFeMod : public spFeMod {
     public:
 	rwSpFeMod(Rcpp::S4 xp) :
 	    spFeMod(xp),
-	    V(Rcpp::S4(SEXP(xp.slot("V")))),
-	    betabase(SEXP(xp.slot("betabase"))) {}
-
+	    V(Rcpp::S4(xp.slot("V"))){};
 	MatrixNs::chmSp V;
-	Rcpp::NumericVector betabase;
     };
     
     class glmer {
-    public:
-	glmer(Rcpp::S4 xp) :
-	    re(Rcpp::S4(SEXP(xp.slot("re")))),
-	    resp(Rcpp::S4(SEXP(xp.slot("resp")))) {}
-	
+    protected:
 	reModule re;
 	glmerResp resp;
+    public:
+	glmer(Rcpp::S4 xp) :
+	    re(Rcpp::S4(xp.slot("re"))),
+	    resp(Rcpp::S4(xp.slot("resp"))) {}
     };
     
     class glmerDe : public glmer {
+	rwDeFeMod fe;
     public:
-	glmerDe(Rcpp::S4 xp) :
-	    glmer(xp),
-	    fe(Rcpp::S4(SEXP(xp.slot("fe")))) {}
-
+	glmerDe(Rcpp::S4 xp);
 	void updateGamma();
 	double IRLS();
 	double PIRLS();
 
-	rwDeFeMod fe;
     };
 
     class glmerSp : public glmer {
