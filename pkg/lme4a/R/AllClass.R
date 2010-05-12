@@ -280,7 +280,6 @@ setClass("reModule",
                         lower = "numeric",
                         theta = "numeric",
                         u = "numeric",
-                        ubase = "numeric",
                         ldL2 = "numeric"),
          validity = function(object) {
              q <- nrow(object@Zt)
@@ -288,8 +287,8 @@ setClass("reModule",
                  return("Lambda must be q by q where q = nrow(Zt)")
              if (nrow(object@Ut) != q || nrow(object@L) != q)
                  return("Number of rows in Zt, L and Ut must match")
-             if (length(object@u) != q || length(object@ubase) != q)
-                 return("length(u) and length(ubase) must be q = nrow(Zt)")
+             if (length(object@u) != q)
+                 return("length(u) must be q = nrow(Zt)")
              if (length(object@Lind) != length(object@Lambda@x))
                  return("length(Lind) != length(Lambda@x)")
              if (!all(object@Lind %in% seq_along(object@theta)))
@@ -412,8 +411,7 @@ setClass("lmerSpFeMod",
 ##' of X but no precomputed products.  The number of rows in X can be
 ##' multiple of the number of rows in V
 setClass("rwDeFeMod",
-         representation(V = "dgeMatrix",
-                        betabase = "numeric"),
+         representation(V = "dgeMatrix"),
          contains = "deFeMod",
          validity = function(object) {
              if (ncol(object@V) != ncol(object@X))
@@ -424,18 +422,11 @@ setClass("rwDeFeMod",
 ##' reweightable sparse fixed-effects module
 ##'
 setClass("rwSpFeMod",
-         representation(V = "dgCMatrix",
-                        sqrtXwt = "dgeMatrix",
-                        betabase = "numeric"),
+         representation(V = "dgCMatrix"),
          contains = "spFeMod",
          validity = function(object) {
              if (ncol(object@V) != ncol(object@X))
                  return("number of columns in X and V must match")
-             dd <- dim(object@sqrtXwt)
-             if (prod(dd) != nrow(object@X))
-                 return("prod(dim(sqrtXwt)) != nrow(X)")
-             if (nrow(object@V) != dd[1])
-                 return("nrow(V) and nrow(sqrtXwt) must match")
              TRUE
          })
 

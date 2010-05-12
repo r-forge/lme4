@@ -69,7 +69,6 @@ mkReTrms <- function(bars, fr, checknl = TRUE, s = 1L) {
     stopifnot(sum(nb) == q)
 
     ll$u <- numeric(q)
-    ll$ubase <- numeric(q)
     ll$theta <- numeric(sum(nth))
 
     boff <- cumsum(c(0L, nb))           # offsets into b
@@ -172,7 +171,6 @@ mkFeModule <-
 					rep.int(1:s, rep.int(N %/% s, s))),
 				  function(rows) X[rows, ]), "+")
 	}
-	ll$betabase <- ll$beta
 	ll$Class <- if (sparseX) "rwSpFeMod" else "rwDeFeMod"
     } else { ## lmer model (the only non-reweightable type)
 	ll$Class <- if (sparseX) "lmerSpFeMod" else "lmerDeFeMod"
