@@ -562,19 +562,19 @@ glmer2 <- function(formula, data, family = gaussian, sparseX = FALSE,
     feMod@V <- Diagonal(x = respMod@sqrtXwt[,1]) %*% feMod@X
     ans <- new(ifelse (sparseX, "glmerSp", "glmerDe"), call = mc, frame = fr,
 	       re = reTrms, fe = feMod, resp = respMod)
-    ## if (doFit) {                        # optimize estimates
-    ##     devfun <- function(th) {
-    ##         if (is(ans, "lmerSp")) return(.Call(update_lmerSp, ans, th))
-    ##         .Call(update_lmerDe, ans, th)
-    ##     }
-    ##     if (length(ans@re@theta) < 2) { # use optimize
-    ##         d0 <- devfun(0)
-    ##         opt <- optimize(devfun, c(0, 10))
-    ##         if (d0 <= opt$objective) d0 # prefer theta == 0 when close
-    ##     } else {
-    ##         if (verbose) control$iprint <- 2L
-    ##         bobyqa(ans@re@theta, devfun, ans@re@lower, control = control)
-    ##     }
-    ## }
+    .Call(glmerDeIRLS, ans, as.integer(verbose))
+    if (doFit) {                        # optimize estimates
+        thpars <- seq_along(ans@re@theta)
+        bb <- ans@fe@beta
+        devfun <- function(pars) {
+            .Call(reModUpdate, ans@re, pars[thpars])
+            ans@fe@beta[] <- pars[-thpars]
+            .Call(glmerDePIRLS, ans, verbose)
+        }
+        if (verbose) control$iprint <- 2L
+        bobyqa(c(ans@re@theta, bb), devfun,
+               c(ans@re@lower, rep.int(-Inf, length(bb))),
+               control = control)
+    }
     ans
 }
