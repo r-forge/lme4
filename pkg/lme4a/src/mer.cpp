@@ -286,22 +286,14 @@ namespace mer{
 	return *d_ldRX2.begin();
     }
 
-    void feModule::setBeta(const double *nb) {
-	std::copy(nb, nb + d_beta.size(), d_beta.begin());
+    void feModule::setBeta(NumericVector const &nbeta) {
+	if (nbeta.size() != d_beta.size())
+	    Rf_error("length(beta) = %d should be %d",
+		     nbeta.size(), d_beta.size());
+	std::copy(nbeta.begin(), nbeta.end(), d_beta.begin());
     }
-#if 0    
-    void feModule::setBeta(NumericVector const &BB, double mm) {
-	if (bb.size() != BB.size())
-	    throw std::range_error("setBeta dimension mismatch");
-	std::transform(BB.begin(), BB.end(), bb.begin(),
-		       std::bind2nd(std::multiplies<double>(), mm));
-    }
-    
-    void feModule::setBeta(double vv) {
-	std::fill(bb.begin(), bb.end(), vv);
-    }
-#endif    
-    const NumericVector& feModule::beta() const {
+
+    const NumericVector &feModule::beta() const {
 	return d_beta;
     }
 
@@ -513,7 +505,7 @@ namespace mer{
 	std::vector<double> varold(resp.var.size());
 	NumericVector bb = fe.beta();
 	int p = bb.size();
-	std::vector<double> betabase(p), newbeta(p), incr(p); 
+	NumericVector betabase(p), newbeta(p), incr(p); 
 	double crit, step, pwrss0, pwrss1;
 
 	crit = 10. * CM_TOL;
@@ -541,7 +533,7 @@ namespace mer{
 		std::transform(betabase.begin(), betabase.end(),
 			       newbeta.begin(), newbeta.begin(),
 			       std::plus<double>());
-		fe.setBeta(&newbeta[0]);
+		fe.setBeta(newbeta);
 		updateGamma();
 		resp.linkInv();
 		pwrss1 = resp.updateWrss();
@@ -648,4 +640,14 @@ RCPP_FUNCTION_2(double,glmerDeIRLS,S4 xp,IntegerVector verb) {
 RCPP_FUNCTION_2(double,glmerDePIRLS,S4 xp,IntegerVector verb) {
     mer::glmerDe glmr(xp);
     return glmr.PIRLS(verb[0]);
+}
+
+RCPP_FUNCTION_1(double,glmerLaplace,S4 xp) {
+    mer::glmer glmr(xp);
+    return glmr.Laplace();
+}
+
+RCPP_FUNCTION_VOID_2(feModSetBeta,S4 xp,NumericVector nbeta) {
+    mer::feModule fe(xp);
+    fe.setBeta(nbeta);
 }

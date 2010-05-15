@@ -51,7 +51,7 @@ namespace mer {
 	Rcpp::NumericVector d_beta, d_ldRX2;
     public:
 	feModule(Rcpp::S4 xp);
-	void setBeta(const double*);
+	void setBeta(Rcpp::NumericVector const&);
 	const Rcpp::NumericVector& beta() const;
 	double ldRX2() const;
     };
