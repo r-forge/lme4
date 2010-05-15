@@ -657,6 +657,7 @@ nlmer <- function(formula, data, family = gaussian, start = NULL,
 setMethod("formula", "merenv", function(x, ...) formula(env(x)$call, ...))
 setMethod("formula", "mer", function(x, ...) formula(x@call, ...))
 setMethod("formula", "lmerMod", function(x, ...) formula(x@call, ...))
+setMethod("formula", "glmerMod", function(x, ...) formula(x@call, ...))
 
 .fixef <- function(object, ...) structure(object@beta, names = dimnames(object@X)[[2]])
 
@@ -668,8 +669,8 @@ setMethod("fixef", "mer", .fixef) # function(object, ...) .fixef(object@env)
 #setMethod("fixef", "deFeMod", .fixef)
 #setMethod("fixef", "spFeMod", .fixef)
 setMethod("fixef", "lmerMod", function(object, ...) .fixef(object@fe))
+setMethod("fixef", "glmerMod", function(object, ...) .fixef(object@fe))
 
-setMethod("formula", "lmerMod", function(x, ...) formula(x@call, ...))
 #setMethod("fixef", "deFeMod", function(object, ...)
 #	  structure(object@beta, names = dimnames(object@X)[[2]]))
 #setMethod("fixef", "lmerMod", function(object, ...) fixef(object@fe))
@@ -754,6 +755,9 @@ setMethod("ranef", signature(object = "mer"),
 
 ## "cheat" too {but never wrong}:
 setMethod("ranef", signature(object = "lmerMod"),
+	  function(object, postVar = FALSE, drop = FALSE, ...)
+	  ranef(as(object, "lmerenv"), postVar=postVar, drop=drop, ...))
+setMethod("ranef", signature(object = "glmerMod"),
 	  function(object, postVar = FALSE, drop = FALSE, ...)
 	  ranef(as(object, "lmerenv"), postVar=postVar, drop=drop, ...))
 
@@ -871,8 +875,6 @@ dotplot.coef.mer <- function(x, data, ...) {
     eval(mc)
 }
 
-
-
 .devc.lmer <- function(nobs, nmp, ldL2, ldRX2, pwrss) {
     c(deviance = ldL2        + nobs * (1 + log(2 * pi * pwrss/nobs)),
       REML     = ldL2 + ldRX2 + nmp * (1 + log(2 * pi * pwrss/nmp)))
@@ -890,20 +892,31 @@ setMethod("devcomp", "lmerenv", function(x, ...)
 ## Cheap for now; not sure if the slot should be kept at all:
 setMethod("devcomp", "mer", function(x, ...) x@devcomp)
 
-setMethod("devcomp", "lmerMod", function(x, ...)
-      {
-	  n <- nrow  (x@fe @ X)
-	  p <- length(x@fe @ beta)
-	  ldRX2 <-    x@fe @ ldRX2
-	  ldL2 <- x@re @ ldL2
-	  u    <- x@re @ u
-	  pwrss <- x@resp@wrss + sum(u*u)
-	  list(cmp =
-	       c(ldL2 = ldL2, ldRX2 = ldRX2, pwrss = pwrss,
-		 .devc.lmer(n, n-p, ldL2, ldRX2, pwrss)),
-	       dims = c(n = n, p = p, nmp = n-p, q = length(u), useSc = TRUE))
-      })
+.ModDevComp <- function(x, ...) {
+    n <- nrow  (x@fe @ X)
+    p <- length(x@fe @ beta)
+    ldRX2 <-    x@fe @ ldRX2
+    ldL2 <- x@re @ ldL2
+    u    <- x@re @ u
+    pwrss <- x@resp@wrss + sum(u*u)
+    list(cmp =
+         c(ldL2 = ldL2, ldRX2 = ldRX2, pwrss = pwrss,
+           .devc.lmer(n, n-p, ldL2, ldRX2, pwrss)),
+         dims = c(n = n, p = p, nmp = n-p, q = length(u),
+         useSc = TRUE))
+}
 
+setMethod("devcomp", "lmerMod", .ModDevComp)
+
+setMethod("devcomp", "glmerMod", function(x, ...)
+      {
+          ans <- .ModDevComp(x, ...)
+          ans$cmp["REML"] <- NA
+          ans$cmp["deviance"] <- .Call(glmerLaplace, x)
+          ans$dims["useSc"] <- !(x@resp@family$family %in%
+                                   c("binomial", "poisson"))
+          ans
+      })
 
 setMethod("devcomp", "glmerenv",
 	  function(x, ...)
@@ -921,7 +934,6 @@ setMethod("getL", "mer", function(x) x@L)
 setMethod("getL", "reModule", function(x) x@L)
 setMethod("getL", "lmerMod", function(x) x@re@L)
 
-
 setMethod("sigma", signature(object = "merenv"),
 	  function (object, ...) {
 	      dc <- devcomp(object)
@@ -930,6 +942,7 @@ setMethod("sigma", signature(object = "merenv"),
 		       dc$dims[[if (env(object)$REML) "nmp" else "n"]])
 	      else 1
 	  })
+
 setMethod("sigma", signature(object = "mer"), function (object, ...)
       {
 	  dm <- object@dims
@@ -939,17 +952,16 @@ setMethod("sigma", signature(object = "mer"), function (object, ...)
 	  else 1
       })
 
-setMethod("sigma", signature(object = "lmerMod"), function (object, ...)
-      {
-	  dc <- devcomp(object)
-	  dm <- dc$dims
-## in general {maybe use, making this into aux.function?
-## 	  if(dm[["useSc"]])
-## 	      sqrt(dc$cmp[["pwrss"]]/
-## 		   dm[[if(dc$cmp[["REML"]]) "nmp" else "n"]])
-## 	  else 1
-          sqrt(dc$cmp[["pwrss"]]/ dm[[if(object@REML) "nmp" else "n"]])
-      })
+.ModSigma <- function(object, ...) {
+    dc <- devcomp(object)
+    dm <- dc$dims
+    if (!dm[["useSc"]]) return(1)
+    sqrt(dc$cmp[["pwrss"]]/ dm[[if(object@REML) "nmp" else "n"]])
+}
+    
+setMethod("sigma", signature(object = "lmerMod"), .ModSigma)
+
+setMethod("sigma", signature(object = "glmerMod"), .ModSigma)
 
 
 ## Obtain the ML fit of the model parameters
@@ -964,10 +976,12 @@ setMethod("isREML", "lmer",	function(x) as.logical(x@dims[["REML"]]))
 setMethod("isREML", "merenv",	function(x) FALSE)
 setMethod("isREML", "mer",	function(x) FALSE)
 setMethod("isREML", "lmerMod",	function(x) x@REML)
+setMethod("isREML", "glmerMod",	function(x) FALSE)
 
 setMethod("getCall", "merenv",	function(x) env(x)$call)
 setMethod("getCall", "mer",	function(x) x@call)
 setMethod("getCall", "lmerMod",	function(x) x@call)
+setMethod("getCall", "glmerMod",function(x) x@call)
 
 ##' <description>
 ##'
@@ -1107,6 +1121,11 @@ setMethod("vcov", signature(object = "lmerMod"),
 	  mkVcov(sigm, RX = object@fe@RX, nmsX = colnames(object@fe@X),
 		 correlation=correlation, ...))
 
+setMethod("vcov", signature(object = "glmerMod"),
+	  function(object, correlation = TRUE, sigm = sigma(object), ...)
+	  mkVcov(sigm, RX = object@fe@RX, nmsX = colnames(object@fe@X),
+		 correlation=correlation, ...))
+
 
 mkVarCorr <- function(sc, cnms, nc, theta, flist) {
     ncseq <- seq_along(nc)
@@ -1139,7 +1158,7 @@ setMethod("VarCorr", signature(x = "mer"), function(x)
     mkVarCorr(sigma(x), cnms=x@cnms, nc = x@ncTrms,
 	      theta=x@theta, flist=x@flist))
 
-setMethod("VarCorr", signature(x = "lmerMod"), function(x) {
+.ModVarCorr <- function(x) {
     re <- x@re
     if (!is(re, "reTrms"))
         stop("VarCorr methods require reTrms, not just reModule")
@@ -1147,8 +1166,10 @@ setMethod("VarCorr", signature(x = "lmerMod"), function(x) {
     nc <- sapply(cnms, length)      # no. of columns per term
     mkVarCorr(sigma(x), cnms=cnms, nc = nc,
 	      theta=re@theta, flist=re@flist)
-})
+}
 
+setMethod("VarCorr", signature(x = "lmerMod"), .ModVarCorr)
+setMethod("VarCorr", signature(x = "glmerMod"), .ModVarCorr)
 
 ## This is modeled a bit after  print.summary.lm :
 ## Prints *both*  'mer' and 'merenv' - as it uses summary(x) mainly
@@ -1364,18 +1385,19 @@ summaryMer2 <- function(object, varcov = FALSE, ...)
 {
     cld <- getClass(cl <- class(object))
     ## begin{workaround} -- FIXME (later)
-    stopifnot(extends(cld, "lmerMod"))
-    isG <- FALSE ## extends(cld, "glmer")
-    isLmer <- TRUE
+    isLmer <- extends(cld, "lmerMod")
+    isG <- extends(cld, "glmerMod")
+    stopifnot(isLmer || isG)
     ## end{workaround}
 
     rho <- list(RX = object@fe@RX,
                 ## FIXME : "family" !
                 flist = object@re@flist,
                 call = object@call)
+    ## FIXME: You can't count on re@flist unless is(re, "reTrms")
     devC <- devcomp(object)
     .summMer(object, rho=rho, devC = devC,
-	     flags = c(REML = object@REML, isLmer = isLmer, isGLmer= isG),
+	     flags = c(REML = isLmer && object@REML, isLmer = isLmer, isGLmer= isG),
 	     varcov=varcov)
 } ## summaryMer2()
 
@@ -1387,6 +1409,7 @@ setMethod("summary", "glmerenv", summaryMerenv)
 setMethod("summary", "mer", summaryMer)
 
 setMethod("summary", "lmerMod", summaryMer2)
+setMethod("summary", "glmerMod", summaryMer2)
 
 
 ## This is just  "Access the X matrix"
@@ -1443,6 +1466,8 @@ setMethod("deviance", signature(object="lmer"),
 
 ## The non-lmerenv case:
 setMethod("deviance", signature(object="merenv"),
+	  function(object, ...) devcomp(object)$cmp[["deviance"]])
+setMethod("deviance", signature(object="glmerMod"),
 	  function(object, ...) devcomp(object)$cmp[["deviance"]])
 
 ## The non-lmer case:
@@ -1504,6 +1529,16 @@ setMethod("logLik", signature(object="lmerMod"),
 		   np = length(object@re @ theta),
 		   REML = REML, hasScale = 1L)
       })
+
+setMethod("logLik", signature(object = "glmerMod"),
+	  function(object, REML = NULL, ...)
+          mkLogLik(deviance(object),
+		   n  = nrow  (object@fe @ X),
+		   p  = length(object@fe @ beta),
+		   np = length(object@re @ theta),
+		   REML = FALSE,
+                   hasScale = !(object@resp@family$family %in%
+                                c("binomial", "poisson"))))
 
 ## The non-lmerenv case:
 setMethod("logLik", signature(object="merenv"), function(object, ...)
@@ -1570,6 +1605,9 @@ setMethod("show",  "mer", function(object) printMerenv(object))
 
 setMethod("print", "lmerMod", printMerenv)
 setMethod("show",  "lmerMod", function(object) printMerenv(object))
+
+setMethod("print", "glmerMod", printMerenv)
+setMethod("show",  "glmerMod", function(object) printMerenv(object))
 
 ## coef() method for all kinds of "mer", "*merMod", ... objects
 ## ------  should work with fixef() + ranef()  alone

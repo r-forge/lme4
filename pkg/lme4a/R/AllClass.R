@@ -539,7 +539,8 @@ setClass("lmerDe", representation(fe = "lmerDeFeMod"), contains = "lmerMod")
 setClass("lmerSp", representation(fe = "lmerSpFeMod"), contains = "lmerMod")
 
 setClass("glmerMod",
-         representation(call = "call", frame = "data.frame",
+         representation(call = "call",
+                        frame = "data.frame",
                         re = "reModule",
                         resp = "glmerResp",
                         "VIRTUAL"))
