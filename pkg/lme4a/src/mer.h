@@ -27,7 +27,9 @@ namespace mer {
 	void DupdateL(MatrixNs::chmDn const&,MatrixNs::chmDn&) const;
 	void incGamma(Rcpp::NumericVector&) const;
 	void rwUpdateL(MatrixNs::dgeMatrix const&,
-		       Rcpp::NumericVector const&, double*);
+		       Rcpp::NumericVector const&,
+		       Rcpp::NumericVector const&,
+		       double*);
 	void updateTheta(Rcpp::NumericVector const&);
 	void updateU(merResp const&);
     };
@@ -41,7 +43,6 @@ namespace mer {
 
 	Rcpp::NumericVector Utr, Vtr, cbeta, cu, mu,
 	    offset, wtres, weights, y;
-	MatrixNs::chmDn cUtr, ccu;
 	double *wrss;
     };
 
@@ -141,10 +142,10 @@ namespace mer {
     protected:
 	reModule re;
 	glmerResp resp;
+	int verbose;
     public:
-	glmer(Rcpp::S4 xp) :
-	    re(Rcpp::S4(xp.slot("re"))),
-	    resp(Rcpp::S4(xp.slot("resp"))) {}
+	glmer(Rcpp::S4 xp);
+	double Laplace();
     };
     
     class glmerDe : public glmer {
@@ -152,18 +153,16 @@ namespace mer {
     public:
 	glmerDe(Rcpp::S4 xp);
 	void updateGamma();
-	double IRLS();
-	double PIRLS();
-
+	double IRLS(int);
+	double PIRLS(int);
     };
 
     class glmerSp : public glmer {
-    public:
-	glmerSp(Rcpp::S4 xp) :
-	    glmer(xp),
-	    fe(Rcpp::S4(SEXP(xp.slot("fe")))) {}
-
 	rwSpFeMod fe;
+    public:
+	glmerSp(Rcpp::S4 xp);
+	void updateGamma();
+	double IRLS(int);
     };
 
     template<typename T>
