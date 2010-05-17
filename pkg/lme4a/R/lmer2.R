@@ -298,7 +298,8 @@ S4toEnv <- function(from) {
 }
 setAs("lmerMod", "optenv",  function(from) .lmerM2env(from, "optenv"))
 setAs("lmerMod", "lmerenv", function(from) .lmerM2env(from, "lmerenv"))
-setAs("glmerMod", "merenv", function(from) .lmerM2env(from, "glmerenv"))
+setAs("glmerMod", "glmerenv", function(from) .lmerM2env(from, "glmerenv"))
+setAs("glmerMod",   "merenv", function(from) .lmerM2env(from, "glmerenv"))
 
 
 lmer2 <- function(formula, data, REML = TRUE, sparseX = FALSE,
@@ -557,7 +558,7 @@ glmer2 <- function(formula, data, family = gaussian, sparseX = FALSE,
     environment(fr.form) <- environment(formula)
     mf$formula <- fr.form
     fr <- eval(mf, parent.frame())
-    reTrms <- mkReTrms(findbars(formula[[3]]), fr) # random-effects module 
+    reTrms <- mkReTrms(findbars(formula[[3]]), fr) # random-effects module
     feMod <- mkFeModule(formula, fr, contrasts, reTrms, sparseX, TRUE)
     respMod <- mkRespMod(fr, reTrms, feMod, family)
     feMod@V <- Diagonal(x = respMod@sqrtXwt[,1]) %*% feMod@X
@@ -578,7 +579,12 @@ glmer2 <- function(formula, data, family = gaussian, sparseX = FALSE,
                control = control)
     }
     ans
-}
+}## {glmer2}
+
+## being brave now:
+glmer <- glmer2
+
+
 
 ##' Fit a nonlinear mixed-effects model
 ##'
@@ -716,4 +722,4 @@ nlmer <- function(formula, data, family = gaussian, start = NULL,
     if (!doFit) return(rho)
 
 #    merFinalize(rho)
-}
+}## {nlmer}
