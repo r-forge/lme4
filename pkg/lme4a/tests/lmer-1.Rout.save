@@ -1,5 +1,5 @@
 
-R version 2.11.0 Patched (2010-04-28 r51857)
+R version 2.11.0 Patched (2010-05-16 r52015)
 Copyright (C) 2010 The R Foundation for Statistical Computing
 ISBN 3-900051-07-0
 
@@ -23,11 +23,9 @@ Attaching package: 'Matrix'
 
 The following object(s) are masked from 'package:base':
 
-    det
+    det, norm
 
 Loading required package: minqa
-Loading required package: Rcpp
-Loading required package: inline
 > options(show.signif.stars = FALSE)
 > 
 > source(system.file("test-tools.R", package = "Matrix"))# identical3() etc
@@ -119,25 +117,17 @@ In determinant(x, TRUE) : This version of the Matrix package returns
 > n1[!(n1 %in% ns)] #    lmer1() extras
 [1] "p"     "frame"
 > n2[!(n2 %in% ns)] # new-lmer() extras
-[1] "cbeta"     "cu"        "wrss"      "resid"     "row.names" "names"    
+[1] "cbeta"     "cu"        "wrss"      "wtres"     "row.names" "names"    
 > ns <- ns[!(ns %in% c("call", "compDev"))]# they will certainly differ by that ...
 > all.equal(L1[ns], L2[ns], tol = 7e-7) ## ok, still far from ok
- [1] "Component 1: Modes: numeric, logical"                                                        
- [2] "Component 1: target is numeric, current is logical"                                          
- [3] "Component 2: Numeric: lengths (0, 180) differ"                                               
- [4] "Component 3: Numeric: lengths (0, 180) differ"                                               
- [5] "Component 5: Mean relative difference: 7.800013e-07"                                         
- [6] "Component 9: Attributes: < Component 6: Mean relative difference: 8.103302e-06 >"            
- [7] "Component 11: Attributes: < Component 3: Component 1: target is NULL, current is character >"
- [8] "Component 11: Attributes: < Component 5: Mean relative difference: 7.85293e-06 >"            
- [9] "Component 15: Attributes: < Component 11: Mean relative difference: 7.457813e-06 >"          
-[10] "Component 16: Attributes: < Length mismatch: comparison on first 1 components >"             
-[11] "Component 18: Attributes: < Component 7: Mean relative difference: 7.633515e-06 >"           
-[12] "Component 21: Attributes: < Component 7: Mean relative difference: 2.997601e-06 >"           
-[13] "Component 22: Mean relative difference: 2.997601e-06"                                        
-[14] "Component 23: Mean relative difference: 6.6377e-06"                                          
-[15] "Component 31: Numeric: lengths (0, 180) differ"                                              
-[16] "Component 32: Numeric: lengths (0, 180) differ"                                              
+[1] "Component 1: Modes: numeric, logical"                                                        
+[2] "Component 1: target is numeric, current is logical"                                          
+[3] "Component 2: Numeric: lengths (0, 180) differ"                                               
+[4] "Component 3: Numeric: lengths (0, 180) differ"                                               
+[5] "Component 11: Attributes: < Component 3: Component 1: target is NULL, current is character >"
+[6] "Component 16: Attributes: < Length mismatch: comparison on first 1 components >"             
+[7] "Component 31: Numeric: lengths (0, 180) differ"                                              
+[8] "Component 32: Numeric: lengths (0, 180) differ"                                              
 > ## FIXME !
 > 
 > stopifnot(all.equal(fixef(fm1), fixef(fm2), tol= 1e-13),
@@ -147,6 +137,7 @@ In determinant(x, TRUE) : This version of the Matrix package returns
 + 		    -0.13755, tol=1e-4))
 > 
 > (fm3 <- lmer(Yield ~ 1|Batch, Dyestuff2))
+dev(th =0) = 161.828277812 <= 161.828277843 = opt$obj(th=5.57587e-05) --> th := 0
 Linear mixed model fit by REML  ['lmerDe']
 Formula: Yield ~ 1 | Batch 
    Data: Dyestuff2 
@@ -311,19 +302,19 @@ In model.spmatrix(t, data, transpose = transpose) :
   2:     100.56004: 0.615233 -1.27251 -0.959292 -1.12479 -1.65541
   3:     100.20954: 0.610582 -1.40036 -0.926470 -1.07457 -1.58632
   4:     100.17421: 0.610882 -1.39431 -0.957225 -1.08640 -1.53232
-  5:     100.15066: 0.637524 -1.39839 -0.938900 -1.14074 -1.52755
-  6:     100.11983: 0.666950 -1.39931 -0.974647 -1.11355 -1.56152
-  7:     100.11005: 0.651880 -1.40315 -0.968869 -1.10483 -1.55001
-  8:     100.11004: 0.651227 -1.40329 -0.968713 -1.10422 -1.54972
+  5:     100.14351: 0.629166 -1.39711 -0.944652 -1.12369 -1.52905
+  6:     100.11065: 0.650213 -1.39784 -0.969052 -1.10605 -1.55253
+  7:     100.11004: 0.651153 -1.40287 -0.968823 -1.10431 -1.54988
+  8:     100.11004: 0.651242 -1.40329 -0.968724 -1.10422 -1.54973
   9:     100.11004: 0.651244 -1.40329 -0.968724 -1.10422 -1.54973
- 10:     100.11004: 0.651245 -1.40329 -0.968724 -1.10422 -1.54973
+ 10:     100.11004: 0.651247 -1.40329 -0.968723 -1.10423 -1.54973
 List of 6
  $ par        : num [1:5] 0.651 -1.403 -0.969 -1.104 -1.55
  $ objective  : num 100
  $ convergence: int 0
  $ message    : chr "relative convergence (4)"
  $ iterations : int 10
- $ evaluations: Named int [1:2] 40 100
+ $ evaluations: Named int [1:2] 41 100
   ..- attr(*, "names")= chr [1:2] "function" "gradient"
 > m1 <- glmer(cbind(incidence, size - incidence) ~ period + (1 | herd),
 +             family = binomial, data = cbpp, verbose = 1)
@@ -332,12 +323,12 @@ List of 6
   2:     100.56004: 0.615233 -1.27251 -0.959292 -1.12479 -1.65541
   3:     100.20954: 0.610582 -1.40036 -0.926470 -1.07457 -1.58632
   4:     100.17421: 0.610882 -1.39431 -0.957225 -1.08640 -1.53232
-  5:     100.15066: 0.637524 -1.39839 -0.938900 -1.14074 -1.52755
-  6:     100.11983: 0.666950 -1.39931 -0.974647 -1.11355 -1.56152
-  7:     100.11005: 0.651880 -1.40315 -0.968869 -1.10483 -1.55001
-  8:     100.11004: 0.651227 -1.40329 -0.968713 -1.10422 -1.54972
+  5:     100.14351: 0.629166 -1.39711 -0.944652 -1.12369 -1.52905
+  6:     100.11065: 0.650213 -1.39784 -0.969052 -1.10605 -1.55253
+  7:     100.11004: 0.651153 -1.40287 -0.968823 -1.10431 -1.54988
+  8:     100.11004: 0.651242 -1.40329 -0.968724 -1.10422 -1.54973
   9:     100.11004: 0.651244 -1.40329 -0.968724 -1.10422 -1.54973
- 10:     100.11004: 0.651245 -1.40329 -0.968724 -1.10422 -1.54973
+ 10:     100.11004: 0.651247 -1.40329 -0.968723 -1.10423 -1.54973
 > stopifnot(is((cm1 <- coef(m1e)), "coef.mer"),
 + 	  dim(cm1$herd) == c(15,4),
 +           TRUE ## FIXME -- these were "old-lme4" -- not lme4a (rel.diff. = 0.0166)
@@ -527,7 +518,9 @@ In Ops.factor(habitat, lagoon) : * not meaningful for factors
 > 
 > ## Use a more sensible model:
 > r2.0 <- lmer(y ~ 0+lagoon + (1|habitat:lagoon), data = dat) # ok
+dev(th =0) = 709.744716061 <= 709.744716126 = opt$obj(th=5.77071e-05) --> th := 0
 > r2   <- lmer(y ~ 0+lagoon + (1|habitat), data = dat) # ok, and more clear
+dev(th =0) = 709.744716061 <= 709.744716126 = opt$obj(th=5.77071e-05) --> th := 0
 > stopifnot(all.equal(fixef(r2), fixef(r2.0), tol= 1e-15),
 +           all.equal(ranef(r2), ranef(r2.0), tol= 1e-15, check.attributes=FALSE))
 > V2 <- vcov(r2)
@@ -538,6 +531,31 @@ In Ops.factor(habitat, lagoon) : * not meaningful for factors
 > ## sparseX version should give same numbers:
 > r2.  <- lmer(y ~ 0+lagoon + (1|habitat), data = dat,
 +              sparseX = TRUE, verbose = TRUE)
+  1 :            0 |->   709.744716061
+  2 :      3.81966 |->   765.830864037
+  3 :      6.18034 |->   780.980198803
+  4 :      2.36068 |->   751.070350186
+  5 :     1.458980 |->   737.248853157
+  6 :    0.9016994 |->   725.448039603
+  7 :    0.5572809 |->   717.069662988
+  8 :    0.3444185 |->   712.574396219
+  9 :    0.2128624 |->   710.747037848
+ 10 :    0.1315562 |->   710.102527414
+ 11 :   0.03073312 |->   709.763118247
+ 12 :    0.0139253 |->   709.748481995
+ 13 :  0.001806356 |->   709.744779377
+ 14 :  0.001847046 |->   709.744782262
+ 15 :  0.001765665 |->   709.744776556
+ 16 :  0.001091241 |->   709.744739168
+ 17 : 0.0006744242 |->   709.744724887
+ 18 : 0.0004168171 |->   709.744719432
+ 19 : 0.0002576071 |->   709.744717349
+ 20 : 0.0001592100 |->   709.744716553
+ 21 : 9.839716e-05 |->   709.744716249
+ 22 : 5.770706e-05 |->   709.744716126
+ 23 : 5.770706e-05 |->   709.744716126
+dev(th =0) = 709.744716061 <= 709.744716126 = opt$obj(th=5.77071e-05) --> th := 0
+ 24 :            0 |->   709.744716061
 > 
 > ## the summary() components we do want to compare 'dense X' vs 'sparse X':
 > nmsSumm <- c("methTitle", "devcomp", "logLik", "ngrps", "coefficients",
@@ -674,5 +692,5 @@ In Ops.factor(ff, x1) : + not meaningful for factors
 > 
 > 
 > cat('Time elapsed: ', proc.time(),'\n') # for ``statistical reasons''
-Time elapsed:  29.39 0.1 29.472 0 0 
+Time elapsed:  26.028 0.218 26.773 0 0 
 > 

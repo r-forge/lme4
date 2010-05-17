@@ -377,7 +377,7 @@ lmer1 <-
 if(FALSE) ## no longer:
 lmer <- lmer1
 
-glmer <-
+glmer1 <-
 function(formula, data, family = gaussian, sparseX = FALSE,
          compDev = TRUE, control = list(), start = NULL,
          verbose = 0, doFit = TRUE, subset, weights, na.action,
@@ -512,7 +512,12 @@ function(formula, data, family = gaussian, sparseX = FALSE,
         .Call(glmer_update_RX, rho)
     }
     me
-} ## glmer()
+} ## glmer1()
+
+##for now: if(FALSE) ## no longer:
+glmer <- glmer1
+
+
 
 ##' Fit a nonlinear mixed-effects model
 ##'
@@ -656,7 +661,7 @@ nlmer <- function(formula, data, family = gaussian, start = NULL,
 
 setMethod("formula", "merenv", function(x, ...) formula(env(x)$call, ...))
 setMethod("formula", "mer", function(x, ...) formula(x@call, ...))
-setMethod("formula", "lmerMod", function(x, ...) formula(x@call, ...))
+setMethod("formula",  "lmerMod", function(x, ...) formula(x@call, ...))
 setMethod("formula", "glmerMod", function(x, ...) formula(x@call, ...))
 
 .fixef <- function(object, ...) structure(object@beta, names = dimnames(object@X)[[2]])
@@ -668,7 +673,7 @@ setMethod("fixef", "mer", .fixef) # function(object, ...) .fixef(object@env)
 
 #setMethod("fixef", "deFeMod", .fixef)
 #setMethod("fixef", "spFeMod", .fixef)
-setMethod("fixef", "lmerMod", function(object, ...) .fixef(object@fe))
+setMethod("fixef",  "lmerMod", function(object, ...) .fixef(object@fe))
 setMethod("fixef", "glmerMod", function(object, ...) .fixef(object@fe))
 
 #setMethod("fixef", "deFeMod", function(object, ...)
@@ -759,7 +764,7 @@ setMethod("ranef", signature(object = "lmerMod"),
 	  ranef(as(object, "lmerenv"), postVar=postVar, drop=drop, ...))
 setMethod("ranef", signature(object = "glmerMod"),
 	  function(object, postVar = FALSE, drop = FALSE, ...)
-	  ranef(as(object, "lmerenv"), postVar=postVar, drop=drop, ...))
+	  ranef(as(object, "merenv"), postVar=postVar, drop=drop, ...))
 
 dotplot.ranef.mer <- function(x, data, ...)
 {
@@ -958,9 +963,8 @@ setMethod("sigma", signature(object = "mer"), function (object, ...)
     if (!dm[["useSc"]]) return(1)
     sqrt(dc$cmp[["pwrss"]]/ dm[[if(object@REML) "nmp" else "n"]])
 }
-    
-setMethod("sigma", signature(object = "lmerMod"), .ModSigma)
 
+setMethod("sigma", signature(object =  "lmerMod"), .ModSigma)
 setMethod("sigma", signature(object = "glmerMod"), .ModSigma)
 
 
@@ -1381,20 +1385,21 @@ summaryMer <- function(object, varcov = FALSE, ...)
 	     varcov=varcov)
 } ## summaryMer()
 
-summaryMer2 <- function(object, varcov = FALSE, ...)
+summaryMer2 <- function(object, varcov = FALSE, type, ...)
 {
     cld <- getClass(cl <- class(object))
-    ## begin{workaround} -- FIXME (later)
+    ## begin{workaround} -- FIXME (later  use 'type' !)
     isLmer <- extends(cld, "lmerMod")
     isG <- extends(cld, "glmerMod")
-    stopifnot(isLmer || isG)
+    stopifnot(isLmer || isG)# for now
     ## end{workaround}
 
     rho <- list(RX = object@fe@RX,
-                ## FIXME : "family" !
-                flist = object@re@flist,
-                call = object@call)
-    ## FIXME: You can't count on re@flist unless is(re, "reTrms")
+		## FIXME: You can't count on re@flist unless is(re, "reTrms")
+		flist = object@re@flist,
+		call = object@call)
+    if(isG)
+        rho$family <- object@resp@family # family object
     devC <- devcomp(object)
     .summMer(object, rho=rho, devC = devC,
 	     flags = c(REML = isLmer && object@REML, isLmer = isLmer, isGLmer= isG),
@@ -1408,8 +1413,10 @@ setMethod("summary", "glmerenv", summaryMerenv)
 
 setMethod("summary", "mer", summaryMer)
 
-setMethod("summary", "lmerMod", summaryMer2)
-setMethod("summary", "glmerMod", summaryMer2)
+setMethod("summary", "lmerMod", function(object, varcov = FALSE, ...)
+	  summaryMer2(object, varcov=varcov, type = "lmer"))
+setMethod("summary", "glmerMod", function(object, varcov = FALSE, ...)
+	  summaryMer2(object, varcov=varcov, type = "glmer"))
 
 
 ## This is just  "Access the X matrix"
