@@ -349,7 +349,7 @@ lmer2 <- function(formula, data, REML = TRUE, sparseX = FALSE,
     respMod <- mkRespMod(fr, reTrms, feMod)
     ans <- new(ifelse (sparseX, "lmerSp", "lmerDe"), call = mc, frame = fr,
 	       re = reTrms, fe = feMod, resp = respMod,
-	       REML = REML)
+	       REML = as.logical(REML))
     if (doFit) {                        # optimize estimates
         code <- if(is(ans, "lmerSp")) lmerSpUpdate else lmerDeUpdate
 	if(verbose) {
