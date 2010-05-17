@@ -689,11 +689,16 @@ The algorithm converges in 6 iterations to a profiled deviance of
 at $\theta=$\Sexpr{sprintf("%.6f", fm01ML@getPars())}.
   
 The actual values of many of the matrices and vectors defined above
-are available in the \emph{environment} of the fitted model object,
-accessed with the \code{env} function.  For example,
-$\Lambda_{\widehat{\theta}}$ is
+are available as \emph{slots} of the fitted model object.  In general
+the object returned by a model-fitting function from the
+\package{lme4} package has three upper-level slots: \code{re},
+consisting of information related to the random effects, \code{fe},
+consisting of information related to the fixed effects, and
+\code{resp}, consisting of information related to the response.
+
+For example, $\Lambda_{\widehat{\theta}}$ is stored as
 <<fm01MLLambda>>=
-env(fm01ML)$Lambda
+fm01ML@re@Lambda
 @ 
 Often we will show the structure of sparse matrices as an image
 (Fig.~\ref{fig:fm01Lambdaimage}).
@@ -701,7 +706,7 @@ Often we will show the structure of sparse matrices as an image
   \sidecaption[t]
   \setkeys{Gin}{width=1.5in}
 <<fm01Lambdaimage,fig=TRUE,echo=FALSE,width=2.5,height=2.5>>=
-print(image(env(fm01)$Lambda, sub=NULL, xlab=NULL, ylab=NULL))
+print(image(fm01@re@Lambda, sub=NULL, xlab=NULL, ylab=NULL))
 @   
 \caption[Image of the $\Lambda$ for model \texttt{fm01ML}]{Image of the
   relative covariance factor, $\Lambda_{\widehat{\theta}}$ for model
@@ -714,7 +719,7 @@ more compactly than does the printed representation.
 \begin{figure}[tbp]
   \centering
 <<fm01Ztimage,fig=TRUE,echo=FALSE,height=2.5>>=
-print(image(env(fm01)$Zt, sub=NULL))
+print(image(fm01@re@Zt, sub=NULL))
 @   
 \caption[Image of the random-effects model matrix, $\vec Z\trans$, for
 \texttt{fm01}]{Image of the transpose of the random-effects model
@@ -730,9 +735,9 @@ transpose is shown in Fig.~\ref{fig:fm01Ztimage}, consists of the
 indicator columns for \code{Batch}.  Because the data are balanced
 with respect to \code{Batch}, the Cholesky factor, $\vec L$ is also a
 multiple of the identity (you can check this with
-\code{image(env(fm01ML)\$L}).  The vectors $\vec u$ and $\vec b$ and
-the matrix $\vec X$ have the same names in \code{env(fm01ML)}.  The
-vector $\beta$ is called \code{fixef}.
+\code{image(fm01ML@re@L}).  The vectors $\vec u$ and $\vec b$ and
+the matrix $\vec X$ have the same names in \code{fm01ML@re}.  The
+vector $\beta$ is in \code{fm01ML@fe}.
 
 \section{Assessing the Variability of the Parameter Estimates}
 \label{sec:variability}
