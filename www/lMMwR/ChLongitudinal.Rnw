@@ -203,14 +203,13 @@ for correlation of the random effects for the same subject.
 \begin{figure}[tbp]
   \centering
 <<fm8LambdaL,fig=TRUE,echo=FALSE,results=hide,height=3,width=8>>=
-print(image(env(fm8)$Lambda, sub = NULL, xlab = expression(Lambda),
+print(image(fm8@re@Lambda, sub = NULL, xlab = expression(Lambda),
             ylab = NULL),
       split = c(1,1,3,1), more = TRUE)
-print(image(tcrossprod(env(fm8)$Lambda), sub = NULL,
+print(image(tcrossprod(fm8@re@Lambda), sub = NULL,
             xlab = expression(Sigma), ylab = NULL),
       split = c(2,1,3,1), more = TRUE)
-print(image(get("L", envir = env(fm8)),
-            sub = NULL, xlab = "L", ylab = NULL),
+print(image(fm8@re@L, sub = NULL, xlab = "L", ylab = NULL),
       split = c(3,1,3,1))
 @
   \caption{Images of $\Lambda$, $\Sigma$ and $\vec L$ for model \code{fm8}}
@@ -331,14 +330,13 @@ these two terms had the same grouping factor.
 \begin{figure}[tbp]
   \centering
 <<fm9LambdaL,fig=TRUE,echo=FALSE,results=hide,height=3,width=8>>=
-print(image(env(fm9)$Lambda, sub = NULL, xlab = expression(Lambda),
+print(image(fm9@re@Lambda, sub = NULL, xlab = expression(Lambda),
             ylab = NULL),
       split = c(1,1,3,1), more = TRUE)
-print(image(tcrossprod(env(fm9)$Lambda), sub = NULL,
+print(image(tcrossprod(fm9@re@Lambda), sub = NULL,
             xlab = expression(Sigma), ylab = NULL),
       split = c(2,1,3,1), more = TRUE)
-print(image(get("L", envir = env(fm9)),
-            sub = NULL, xlab = "L", ylab = NULL),
+print(image(fm9@re@L, sub = NULL, xlab = "L", ylab = NULL),
       split = c(3,1,3,1))
 @
 \caption[Images of $\Lambda$, $\Sigma$ and $\vec L$ for model
@@ -363,10 +361,10 @@ structure in $\vec Z$.
 \begin{figure}[tbp]
   \centering
 <<fm89Zt,fig=TRUE,echo=FALSE,results=hide,height=4,width=8>>=
-print(image(env(fm8)$Zt, sub = NULL, xlab = NULL, ylab = NULL,
+print(image(fm8@re@Zt, sub = NULL, xlab = NULL, ylab = NULL,
             scales = list(x = list(labels = NULL))),
       pos = c(0,0.38,1,1), more = TRUE)
-print(image(env(fm9)$Zt, sub = NULL, xlab = NULL, ylab = NULL,
+print(image(fm9@re@Zt, sub = NULL, xlab = NULL, ylab = NULL,
             scales = list(x = list(labels = NULL))),
       pos = c(0,0,1,0.62))
 @
