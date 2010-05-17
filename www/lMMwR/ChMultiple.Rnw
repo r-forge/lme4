@@ -9,9 +9,9 @@ library(splines)
 library(lattice)
 library(Matrix)
 library(lme4a)
-fm03ML <- lmer(diameter ~ 1 + (1|plate) + (1|sample), Penicillin, REML=0)
-fm04 <- lmer(strength ~ 1 + (1|sample) + (1|batch), Pastes, REML=0)
-fm04a <- lmer(strength ~ 1 + (1|sample), Pastes, REML=0)
+fm03ML <- lmer(diameter ~ 1 + (1|plate) + (1|sample), Penicillin, REML=FALSE)
+fm04 <- lmer(strength ~ 1 + (1|sample) + (1|batch), Pastes, REML=FALSE)
+fm04a <- lmer(strength ~ 1 + (1|sample), Pastes, REML=FALSE)
 if (file.exists("pr03.rda")) {
     load("pr03.rda")
 } else {
@@ -30,7 +30,7 @@ if (file.exists("pr04a.rda")) {load("pr04a.rda")
 }
 if (file.exists("fm05.rda")) {load("fm05.rda")
 } else {
-    fm05 <- lmer(y ~ 1 + (1|s) + (1|d) + (1|dept:service), InstEval, REML=0)
+    fm05 <- lmer(y ~ 1 + (1|s) + (1|d) + (1|dept:service), InstEval, REML=FALSE)
     save(fm05, file = "fm05.rda")
 }
 if (file.exists("rr4.rda")) {load("rr4.rda")
@@ -40,11 +40,11 @@ if (file.exists("rr4.rda")) {load("rr4.rda")
 }
 if (file.exists("fm05a.rda")) { load("fm05a.rda")
 } else {
-    fm05a <- lmer(y ~ 1 + (1|s) + (1|d), InstEval, REML=0)
+    fm05a <- lmer(y ~ 1 + (1|s) + (1|d), InstEval, REML=FALSE)
     save(fm05a, file = "fm05a.rda")
 }
 if (!file.exists("figs/Multiple-fm05Limage.png")) {
-    ttt <- env(fm05)$L
+    ttt <- fm05@re@L
     ttt@x[] <- 1
     trellis.device(png, color = FALSE, file = "figs/Multiple-fm05Limage.png",
                    height=6, width=8, units='in', res=600)
@@ -243,7 +243,7 @@ indicators for each factor.
 \begin{figure}[tbp]
   \centering
 <<fm03Ztimage,fig=TRUE,echo=FALSE,height=2.4>>=
-print(image(env(fm03)$Zt, sub=NULL,xlab=NULL,ylab=NULL))
+print(image(fm03@re@Zt, sub=NULL,xlab=NULL,ylab=NULL))
 @   
   \caption[Image of the random-effects model matrix for
   \texttt{fm03}]{Image of the transpose of the random-effects model
@@ -255,11 +255,11 @@ print(image(env(fm03)$Zt, sub=NULL,xlab=NULL,ylab=NULL))
 \begin{figure}[tbp]
   \centering
 <<fm03LambdaLimage,fig=TRUE,echo=FALSE,height=3,width=8>>=
-print(image(env(fm03)$Lambda, sub=NULL,xlab=expression(Lambda),ylab=NULL),
+print(image(fm03@re@Lambda, sub=NULL,xlab=expression(Lambda),ylab=NULL),
       split=c(1,1,3,1), more=TRUE)
-print(image(tcrossprod(env(fm03)$Zt),sub=NULL,xlab="Z'Z",ylab=NULL),
+print(image(tcrossprod(fm03@re@Zt),sub=NULL,xlab="Z'Z",ylab=NULL),
       split=c(2,1,3,1), more=TRUE)
-print(image(env(fm03)$L, sub=NULL,xlab="L",ylab=NULL,colorkey=FALSE),
+print(image(fm03@re@L, sub=NULL,xlab="L",ylab=NULL,colorkey=FALSE),
       split=c(3,1,3,1))
 @   
 \caption[Images of $\Lambda$, $\vec Z\trans\vec Z$ and $\vec L$ for
@@ -278,7 +278,7 @@ identity.  The diagonal elements of the two blocks are $\theta_1$ and
 $\theta_2$, respectively.  The numeric values of these parameters can
 be obtained as
 <<fm03verb>>=
-env(fm03)$theta
+fm03@re@theta
 @ 
 The first parameter is the relative standard deviation of the random
 effects for \code{plate}, which has the value $0.84671/0.54992=1.53968$ at
@@ -599,18 +599,18 @@ is done in exactly the same way as fitting a model with random effects
 for crossed grouping factors.   We include random-effects terms for
 each factor, as in
 <<fm04>>=
-(fm04 <- lmer(strength ~ 1 + (1|sample) + (1|batch), Pastes, REML=0))
+(fm04 <- lmer(strength ~ 1 + (1|sample) + (1|batch), Pastes, REML=FALSE))
 @ 
 
 Not only is the model specification similar for nested and crossed
 \begin{figure}[tbp]
   \centering
 <<fm04LambdaLimage,fig=TRUE,echo=FALSE,height=3.5>>=
-print(image(env(fm04)$Lambda, sub=NULL,xlab=expression(Lambda),ylab=NULL),
+print(image(fm04@re@Lambda, sub=NULL,xlab=expression(Lambda),ylab=NULL),
       split=c(1,1,3,1), more=TRUE)
-print(image(tcrossprod(env(fm04)$Zt),sub=NULL,xlab="Z'Z",ylab=NULL),
+print(image(tcrossprod(fm04@re@Zt),sub=NULL,xlab="Z'Z",ylab=NULL),
       split=c(2,1,3,1), more=TRUE)
-print(image(env(fm04)$L, sub=NULL,xlab="L",ylab=NULL,colorkey=FALSE),
+print(image(fm04@re@L, sub=NULL,xlab="L",ylab=NULL,colorkey=FALSE),
       split=c(3,1,3,1))
 @   
 \caption[Images of $\Lambda$, $\vec Z\trans\vec Z$ and $\vec L$ for
@@ -755,7 +755,7 @@ constraints imposed on the parameters of $H_a$ to produce $H_0$.
 
 The restricted model fit
 <<fm04a>>=
-(fm04a <- lmer(strength ~ 1 + (1|sample), Pastes, REML=0)) 
+(fm04a <- lmer(strength ~ 1 + (1|sample), Pastes, REML=FALSE)) 
 @ 
 is compared to model \code{fm04} with the \code{anova} function
 <<anovafm04>>=
@@ -879,7 +879,7 @@ instructor, and department (or the \code{dept:service} combination) to
 these data.  In the next chapter we will fit models incorporating
 fixed-effects for instructor and department to these data.
 <<fm05show,eval=FALSE>>=
-(fm05 <- lmer(y ~ 1 + (1|s) + (1|d)+(1|dept:service), InstEval, REML=0))
+(fm05 <- lmer(y ~ 1 + (1|s) + (1|d)+(1|dept:service), InstEval, REML=FALSE))
 @
 <<fm05,echo=FALSE>>=
 fm05
@@ -957,8 +957,8 @@ L$, (Fig.~\ref{fig:fm05Limage}), which is of size $4128\times4128$.
 Even as a sparse matrix this factor requires a considerable amount of
 memory,
 <<fm05Lstats>>=
-object.size(env(fm05)$L)
-unclass(round(object.size(env(fm05)$L)/2^20, 3))  # size in megabytes
+object.size(fm05@re@L)
+unclass(round(object.size(fm05@re@L)/2^20, 3))  # size in megabytes
 @ 
 but as a triangular dense matrix it would require nearly 10 times as
 much.  There are $(4128\times 4129)/2$ elements on and below the
@@ -976,7 +976,7 @@ megabytes of storage.
 The number of nonzero elements in this matrix that must be updated for
 each evaluation of the deviance is
 <<nnzero>>=
-nnzero(as(env(fm05)$L, "sparseMatrix"))
+nnzero(as(fm05@re@L, "sparseMatrix"))
 @
 Comparing this to \Sexpr{(4128*4129)/2}, the number of elements that
 must be updated in a dense Cholesky factor, we can see why the sparse
