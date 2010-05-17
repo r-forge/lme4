@@ -326,7 +326,7 @@ head(ergoStool)
 combined with the contrasts produce the model matrix $\vec X$, whose
 first few rows are
 <<headfm07X>>=
-head(with(env(fm07), X))
+head(model.matrix(fm07))
 @
 We see that the rows of $\vec X$ for observations on stool type \code{T1}
 have zeros in the last three columns; the rows for observations on stool
@@ -363,7 +363,7 @@ Similarly, the fixed-effects predictions for the \code{T3} and
 \code{T4} levels of \code{Type} are $8.5556+2.2222=10.7778$ and
 $8.5556+0.6667=9.2222$, respectively, as can be verified from
 <<fixeffm07>>=
-with(env(fm07), head(as.vector(X %*% fixef)))
+head(as.vector(model.matrix(fm07) %*% fixef(fm07)))
 @ 
 
 The fact that the parameter labeled \code{TypeT2} is the difference
@@ -630,7 +630,7 @@ $\vec L_\theta$, defined in (\ref{eq:sparseCholesky1}) which is less
 than the condition number of $\Lambda_\theta\trans\vec Z\trans\vec
 Z\Lambda_\theta$, even when $\Lambda_\theta$ is singular.
 <<kappafm06>>=
-kappa.tri(as(as(env(fm06)$L, "sparseMatrix"), "matrix"), exact = TRUE)
+kappa.tri(as(as(fm06@re@L, "sparseMatrix"), "matrix"), exact = TRUE)
 @ 
 The evaluation of $\vec L_\theta$ is an example of
 \emph{regularization} methods for solving ill-posed problems or to
@@ -675,7 +675,7 @@ are the levels of the \code{classid} factor nested within
 to avoid the possibility of implicit nesting but it saves a bit of
 trouble if we check before doing so
 <<isnested>>=
-with(classroom, lme4a:::isNested(classid, schoolid))
+with(classroom, isNested(classid, schoolid))
 @
 \begin{figure}[tbp]
   \centering
