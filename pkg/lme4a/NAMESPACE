@@ -5,7 +5,9 @@ import("lattice")
 import("splines")
 importFrom("graphics", plot)
 importFrom("nlme", BIC, fixef, ranef, VarCorr)
-importFrom("stats", AIC,  coef, confint, logLik, profile, vcov,
+importFrom("stats4", AIC)# so S4 methods for AIC are used!
+importFrom("stats",
+           coef, confint, logLik, profile, vcov,
            anova, deviance, formula, model.frame, model.matrix,
            nlminb, optimize, predict, resid, residuals, simulate,
            terms)
