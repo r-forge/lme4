@@ -1,3 +1,8 @@
+2010-05-18  Martin Maechler  <maechler@stat.math.ethz.ch>
+
+	* NAMESPACE: import AIC & BIC from stats4, *and* re-export
+	* tests/lmer-1.R: "test" these
+
 2010-05-11  Martin Maechler  <maechler@stat.math.ethz.ch>
 
 	* R/lmer2.R (bootMer, simulate): new (lmer2-only) functions;

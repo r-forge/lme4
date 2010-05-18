@@ -1,5 +1,5 @@
 
-R version 2.11.0 Patched (2010-05-16 r52015)
+R version 2.11.0 Patched (2010-05-17 r52025)
 Copyright (C) 2010 The R Foundation for Statistical Computing
 ISBN 3-900051-07-0
 
@@ -23,9 +23,16 @@ Attaching package: 'Matrix'
 
 The following object(s) are masked from 'package:base':
 
-    det, norm
+    det
 
 Loading required package: minqa
+
+Attaching package: 'lme4a'
+
+The following object(s) are masked from 'package:stats':
+
+    AIC
+
 > options(show.signif.stars = FALSE)
 > 
 > source(system.file("test-tools.R", package = "Matrix"))# identical3() etc
@@ -97,7 +104,8 @@ Correlation of Fixed Effects:
      (Intr)
 Days -0.184
 > 
-> fm1. <- glmer(Reaction ~ Days + (Days|Subject), sleepstudy)
+> ## FIXME: this should also work for glmer2() !
+> fm1. <- glmer1(Reaction ~ Days + (Days|Subject), sleepstudy)
 > ## default family=gaussian -> automatically calls  lmer()
 > stopifnot(all.equal(fm1, fm1.))
 > ## Test 'compDev = FALSE' (vs TRUE)
@@ -135,6 +143,17 @@ In determinant(x, TRUE) : This version of the Matrix package returns
 + 		    c(251.405104848485, 10.467285959595), tol = 1e-13),
 + 	  all.equal(cov2cor(vcov(fm1))["(Intercept)", "Days"],
 + 		    -0.13755, tol=1e-4))
+> 
+> AIC(fm1); AIC(fm2)
+[1] 1755.628
+[1] 1753.669
+> BIC(fm1); BIC(fm2)
+[1] 1774.786
+[1] 1769.634
+> ## not yet: if(getRversion() > "2.11.0") {
+> ##  AIC(fm1, fm2)
+> ##  BIC(fm1, fm2)
+> ## }
 > 
 > (fm3 <- lmer(Yield ~ 1|Batch, Dyestuff2))
 dev(th =0) = 161.828277812 <= 161.828277843 = opt$obj(th=5.57587e-05) --> th := 0
@@ -292,8 +311,8 @@ In model.spmatrix(t, data, transpose = transpose) :
 +           TRUE)
 > 
 > ## generalized linear mixed model
-> m1e <- glmer(cbind(incidence, size - incidence) ~ period + (1 | herd),
-+              family = binomial, data = cbpp, doFit = FALSE)
+> m1e <- glmer1(cbind(incidence, size - incidence) ~ period + (1 | herd),
++               family = binomial, data = cbpp, doFit = FALSE)
 > stopifnot(is(m1e,"merenv"))
 > ## now
 > str(nlminb(m1e, control = list(trace = 1)))
@@ -318,23 +337,14 @@ List of 6
   ..- attr(*, "names")= chr [1:2] "function" "gradient"
 > m1 <- glmer(cbind(incidence, size - incidence) ~ period + (1 | herd),
 +             family = binomial, data = cbpp, verbose = 1)
-  0:     103.64097:  1.00000 -1.26902 -1.17076 -1.30141 -1.78228
-  1:     103.64095:  1.00000 -1.26902 -1.17076 -1.30140 -1.78228
-  2:     100.56004: 0.615233 -1.27251 -0.959292 -1.12479 -1.65541
-  3:     100.20954: 0.610582 -1.40036 -0.926470 -1.07457 -1.58632
-  4:     100.17421: 0.610882 -1.39431 -0.957225 -1.08640 -1.53232
-  5:     100.14351: 0.629166 -1.39711 -0.944652 -1.12369 -1.52905
-  6:     100.11065: 0.650213 -1.39784 -0.969052 -1.10605 -1.55253
-  7:     100.11004: 0.651153 -1.40287 -0.968823 -1.10431 -1.54988
-  8:     100.11004: 0.651242 -1.40329 -0.968724 -1.10422 -1.54973
-  9:     100.11004: 0.651244 -1.40329 -0.968724 -1.10422 -1.54973
- 10:     100.11004: 0.651247 -1.40329 -0.968723 -1.10423 -1.54973
+npt is set at  11  and n= 5 
+RHOBEG = 0.3564557   RHOEND= 3.564557e-07 
 > stopifnot(is((cm1 <- coef(m1e)), "coef.mer"),
 + 	  dim(cm1$herd) == c(15,4),
-+           TRUE ## FIXME -- these were "old-lme4" -- not lme4a (rel.diff. = 0.0166)
-+ 	  ## all.equal(fixef(m1),
-+ 	  ##           c(-1.39853504914, -0.992334711,
-+ 	  ##             -1.12867541477, -1.58037390498), check.attr=FALSE)
++ 	  all.equal(fixef(m1), ##  these values are those of "old-lme4":
++ 		    c(-1.39853504914, -0.992334711,
++ 		      -1.12867541477, -1.58037390498),
++ 		    tol = 1e-4, check.attr=FALSE)
 + 	  )
 > 
 > ## Simple example by Andrew Gelman (2006-01-10) ----
@@ -471,30 +481,30 @@ $Subject
 + 			c("(Intercept)"= 2.831609490, "trtdiag"= -1.366722631,
 + 			  "trtencourage"=0.5840147802, "wk2TRUE"=-1.598591346)))
 + }
-Generalized linear mixed model fit by maximum likelihood (Laplace Approximation) ['glmerenv']
+Generalized linear mixed model fit by maximum likelihood (Laplace Approximation) ['glmerDe']
  Family: binomial 
 Formula: y ~ trt + wk2 + (1 | ID) 
    Data: bacteria 
      AIC      BIC   logLik deviance 
-  204.05   221.02   -97.02   194.05 
+  202.26   219.23   -96.13   192.26 
 
 Random effects:
  Groups Name        Variance Std.Dev.
- ID     (Intercept) 1        1       
+ ID     (Intercept) 1.543    1.242   
 Number of obs: 220, groups: ID, 50
 
 Fixed effects:
              Estimate Std. Error z value
-(Intercept)    2.2479     0.3804   5.909
-trtdiag       -1.1187     0.5645  -1.982
-trtencourage   0.4815     0.5863   0.821
-wk2TRUE       -1.2949     0.4095  -3.162
+(Intercept)    2.8316     0.3560   7.954
+trtdiag       -1.3667     0.4288  -3.187
+trtencourage   0.5840     0.4330   1.349
+wk2TRUE       -1.5984     0.4104  -3.895
 
 Correlation of Fixed Effects:
             (Intr) trtdig trtncr
-trtdiag     -0.029              
-trtencourag  0.058 -0.500       
-wk2TRUE     -0.787  0.059 -0.047
+trtdiag     -0.099              
+trtencourag  0.084 -0.458       
+wk2TRUE     -0.866  0.079 -0.051
 > 
 > ## Invalid factor specification -- used to seg.fault:
 > set.seed(1)
@@ -692,5 +702,33 @@ In Ops.factor(ff, x1) : + not meaningful for factors
 > 
 > 
 > cat('Time elapsed: ', proc.time(),'\n') # for ``statistical reasons''
-Time elapsed:  26.028 0.218 26.773 0 0 
+Time elapsed:  27.156 0.179 28.014 0 0 
 > 
+
+    New RHO = 3.5646D-02     Number of function values =    12
+    Least value of F =  1.007456252288044D+02         The corresponding X is:
+     6.435443D-01  -1.269023D+00  -1.170763D+00  -1.301405D+00  -1.782279D+00
+
+    New RHO = 3.5646D-03     Number of function values =    31
+    Least value of F =  1.002175412179770D+02         The corresponding X is:
+     6.180019D-01  -1.380412D+00  -9.918166D-01  -1.171433D+00  -1.713773D+00
+
+    New RHO = 3.5646D-04     Number of function values =    51
+    Least value of F =  1.000958959173402D+02         The corresponding X is:
+     6.418665D-01  -1.397732D+00  -9.941061D-01  -1.129562D+00  -1.581480D+00
+
+    New RHO = 3.5646D-05     Number of function values =    62
+    Least value of F =  1.000958567928718D+02         The corresponding X is:
+     6.422170D-01  -1.398473D+00  -9.923231D-01  -1.128705D+00  -1.580062D+00
+
+    New RHO = 3.5646D-06     Number of function values =    72
+    Least value of F =  1.000958307654270D+02         The corresponding X is:
+     6.422121D-01  -1.398455D+00  -9.922670D-01  -1.128648D+00  -1.580090D+00
+
+    New RHO = 3.5646D-07     Number of function values =    81
+    Least value of F =  1.000956571707044D+02         The corresponding X is:
+     6.422146D-01  -1.398463D+00  -9.922702D-01  -1.128649D+00  -1.580092D+00
+
+    At the return from BOBYQA     Number of function values =    90
+    Least value of F =  1.000956571707044D+02         The corresponding X is:
+     6.422146D-01  -1.398463D+00  -9.922702D-01  -1.128649D+00  -1.580092D+00
