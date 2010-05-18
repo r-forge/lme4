@@ -4,10 +4,10 @@ import("grid")
 import("lattice")
 import("splines")
 importFrom("graphics", plot)
-importFrom("nlme", BIC, fixef, ranef, VarCorr)
-importFrom("stats4", AIC)# so S4 methods for AIC are used!
+importFrom("nlme", fixef, ranef, VarCorr)
+importFrom("stats4", AIC, BIC, logLik)# so S4 methods are used!
 importFrom("stats",
-           coef, confint, logLik, profile, vcov,
+           coef, confint, profile, vcov,
            anova, deviance, formula, model.frame, model.matrix,
            nlminb, optimize, predict, resid, residuals, simulate,
            terms)
@@ -52,7 +52,7 @@ importMethodsFrom("Matrix",
 #exportPattern("^[^\\.]")  # for debugging
 # Rather use:  attach(asNamespace("lme4a"))
 
-export(VarCorr, bootMer, copyMerenv, devcomp, env, getL,
+export(AIC, BIC, VarCorr, bootMer, copyMerenv, devcomp, env, getL,
        glmer, glmer1, glmer2, lmList, lmer, lmer1, lmer2, nlmer,
        sigma, findbars, nobars, subbars, isNested)
 

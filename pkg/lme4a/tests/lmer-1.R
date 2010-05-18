@@ -31,6 +31,13 @@ stopifnot(all.equal(fixef(fm1), fixef(fm2), tol= 1e-13),
 	  all.equal(cov2cor(vcov(fm1))["(Intercept)", "Days"],
 		    -0.13755, tol=1e-4))
 
+AIC(fm1); AIC(fm2)
+BIC(fm1); BIC(fm2)
+## not yet: if(getRversion() > "2.11.0") {
+##  AIC(fm1, fm2)
+##  BIC(fm1, fm2)
+## }
+
 (fm3 <- lmer(Yield ~ 1|Batch, Dyestuff2))
 stopifnot(all.equal(coef(summary(fm3)),
 		    array(c(5.6656, 0.67838803150, 8.3515624346),
