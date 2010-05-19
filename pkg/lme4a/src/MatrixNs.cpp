@@ -21,6 +21,19 @@ namespace MatrixNs{
 		       "ddenseMatrix::ddenseMatrix", d_nrow, d_ncol, x.size());
     }
 
+    void dgeMatrix::dgemv(char Tr, double alpha, NumericVector const &X,
+			  double beta, double *Y) const {
+	int i1 = 1;
+	Trans TR(Tr);
+	char tr = TR.TR;
+	bool NTR = tr == 'N';
+	if (X.size() != (NTR ? d_ncol : d_nrow))
+	    Rf_error("dgemv \"%c\", dim mismatch (%d, %d), X(%d)",
+		     tr, d_nrow, d_ncol, X.size());
+	F77_CALL(dgemv)(&tr, &d_nrow, &d_ncol, &alpha, x.begin(), &d_nrow,
+			X.begin(), &i1, &beta, Y, &i1);
+    }
+
     void dgeMatrix::dgemv(char Tr, double alpha,
 			  NumericVector const &X, double beta,
 			  NumericVector &Y) const {
@@ -415,7 +428,7 @@ namespace MatrixNs{
     // 	dtype = pp->dtype;
     // }
 
-    void chmDn::init(double *X, int r, int c) {
+    void chmDn::init(const double *X, int r, int c) {
 	z = (void*)NULL;
 	xtype = CHOLMOD_REAL;
 	dtype = 0;		// CHOLMOD_DOUBLE
@@ -425,5 +438,55 @@ namespace MatrixNs{
 	d = (size_t) r;
 	x = (void*) X;
 //	pp = (CHM_DN)NULL;
+    }
+
+    chmDn::chmDn(double *xx, int nr, int nc)
+	: cholmod_dense() {
+	this->init(xx, nr, nc);
+    }
+
+    chmDn::chmDn(const double *xx, int nr, int nc)
+	: cholmod_dense() {
+	    this->init(xx, nr, nc);
+    }
+
+    chmDn::chmDn(std::vector<double> &v)
+	: cholmod_dense() {
+	this->init(&v[0], v.size(), 1);
+    }
+
+    chmDn::chmDn(std::vector<double> const &v)
+	: cholmod_dense() {
+	this->init(&v[0], v.size(), 1);
+    }
+
+    chmDn::chmDn(Rcpp::NumericVector &v)
+	: cholmod_dense() {
+	this->init(v.begin(), v.size(), 1);
+    }
+
+    chmDn::chmDn(Rcpp::NumericVector const &v)
+	: cholmod_dense() {
+	this->init(v.begin(), v.size(), 1);
+    }
+
+    chmDn::chmDn(Rcpp::NumericMatrix &m)
+	: cholmod_dense() {
+	this->init(m.begin(), m.nrow(), m.ncol());
+    }
+
+    chmDn::chmDn(Rcpp::NumericMatrix const &m)
+	: cholmod_dense() {
+	this->init(m.begin(), m.nrow(), m.ncol());
+    }
+
+    chmDn::chmDn(ddenseMatrix &m)
+	: cholmod_dense() {
+	this->init(m.x.begin(), m.nrow(), m.ncol());
+    }
+    
+    chmDn::chmDn(ddenseMatrix const &m)
+	: cholmod_dense() {
+	this->init(m.x.begin(), m.nrow(), m.ncol());
     }
 }
