@@ -12,6 +12,7 @@ extern "C" SEXP lmerSpDeviance(SEXP);
 extern "C" SEXP lmerSpUpdate(SEXP,SEXP);
 extern "C" SEXP reModUpdate(SEXP,SEXP);
 extern "C" SEXP feModSetBeta(SEXP,SEXP);
+extern "C" SEXP nlmerDeEval(SEXP);
 
 #define CALLDEF(name, n)  {#name, (DL_FUNC) &name, n}
 
@@ -43,6 +44,8 @@ static R_CallMethodDef CallEntries[] = {
     CALLDEF(merenvtrms_condVar, 2),
     CALLDEF(merenvtrms_show, 1),
     CALLDEF(merenvtrms_validate, 1),
+
+    CALLDEF(nlmerDeEval, 1),
 
     CALLDEF(reModUpdate, 2),
   {NULL, NULL, 0}
