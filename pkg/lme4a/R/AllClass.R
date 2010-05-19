@@ -445,22 +445,23 @@ setClass("rwSpFeMod",
 setClass("merResp",
          representation(y = "numeric",
                         weights = "numeric", # prior weights
+                        sqrtrwt = "numeric", # square root of the residual weights
                         offset = "numeric",
                         mu = "numeric",
                         wtres = "numeric", # weighted residuals
-                        wrss = "numeric",  # weighted residual sum of squares
+                        wrss = "numeric", # weighted residual sum of squares
                         Utr = "numeric",
                         Vtr = "numeric",
                         cu = "numeric",
                         cbeta = "numeric"),
          validity = function(object) {
              n <- length(object@y)
-             if (!(length(object@offset) %in% c(0L, n)))
-                 return("length(offset) must be 0 or length(y)")
-             if (!(length(object@weights) %in% c(0L, n)))
-                 return("length(weights) must be 0 or length(y)")
-             if (length(object@mu) != n || length(object@wtres) != n)
-                 return("lengths of mu and wtres must match length(y)")
+             loff <- length(object@offset)
+             if (loff == 0L || loff %% n)
+                 return("length(offset) must be a positive multiple of length(y)")
+             if (length(object@weights) != n || length(object@mu) != n ||
+                 length(object@wtres) != n)
+                 return("lengths of weights, mu and wtres must match length(y)")
              if (length(object@wrss) != 1L)
                  return("length of wrss must be 1")
              if (length(object@Utr) != length(object@cu))
@@ -474,19 +475,13 @@ setClass("merResp",
 ##'
 ##' gamma is the linear predictor, which is transformed to mu
 setClass("rwResp",
-         representation(gamma = "numeric",
-                        sqrtrwt = "numeric",
-                        sqrtXwt = "dgeMatrix"),
+         representation(gamma = "numeric"),
          contains = "merResp",
          validity = function(object) {
              lg <- length(object@gamma)
              n <- length(object@y)
              if (lg < 1 || lg %% n)
                  return("length(gamma) must be a positive multiple of length(y)")
-             if (length(object@sqrtXwt) != lg)
-                 return("length(sqrtXwt) != length(gamma)")
-             if (length(object@sqrtrwt) != n)
-                 return("length(sqrtrwt) != length(y)")
              TRUE
          })
 
@@ -494,29 +489,42 @@ setClass("rwResp",
 setClass("glmerResp",
          representation(family = "family",
                         muEta = "numeric",
+                        sqrtrwt = "numeric",
+                        sqrtXwt = "matrix",
                         n = "numeric",    # for evaluation of the aic
                         var = "numeric"), # variances of responses
          contains = "rwResp",
          validity = function(object) {
              n <- length(object@y)
              lXwt <- length(object@sqrtXwt)
+             lg <- length(object@gamma)
+             if (lXwt != lg)
+                 return("length(sqrtXwt) != length(gamma)")
              if (lXwt < 1L || lXwt %% n)
                  return("length(sqrtXwt) must be a positive multiple of length(y)")
              if (length(object@muEta) != n || length(object@var) != n)
                  return("lengths of muEta and var must match length(y)")
+             if (length(object@sqrtrwt) != n)
+                 return("length(sqrtrwt) != length(y)")
          })
 
 ##' nlmer response module
 setClass("nlmerResp",
          representation(nlenv = "environment",
-                        gradient = "matrix"),
+                        nlmod = "call",
+                        eta = "numeric"),
          contains = "rwResp",
          validity = function(object) {
              n <- length(object@y)
-             N <- length(object@gamma)
+             N <- length(object@offset)
+             gradient <- attr(object@eta, "gradient")
              s <- N %/% n
-             if (dim(gradient) != c(n, s))
-                 return("dimension mismatch on gradient, y and gamma")
+             if (!all(dim(gradient) == c(n, s))) {
+                 dd <- dim(gradient)
+                 return(sprintf("dim(gradient) = (%d, %d), n = %d, s = %d",
+                                dd[1], dd[2], n, s))
+             }
+             TRUE
          })
 
 ##' nglmer response module
@@ -548,3 +556,15 @@ setClass("glmerMod",
 setClass("glmerDe", representation(fe = "rwDeFeMod"), contains = "glmerMod")
 
 setClass("glmerSp", representation(fe = "rwSpFeMod"), contains = "glmerMod")
+
+setClass("nlmerMod",
+         representation(call = "call",
+                        frame = "data.frame",
+                        re = "reModule",
+                        resp = "nlmerResp",
+                        "VIRTUAL"))
+
+setClass("nlmerDe", representation(fe = "rwDeFeMod"), contains = "nlmerMod")
+
+setClass("nlmerSp", representation(fe = "rwSpFeMod"), contains = "nlmerMod")
+
