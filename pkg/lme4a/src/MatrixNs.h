@@ -123,6 +123,8 @@ namespace MatrixNs {
 	dgeMatrix(Rcpp::S4 xp) : ddenseMatrix(xp), generalMatrix(xp) {}
 	void dgemv(char,double,Rcpp::NumericVector const&,
 		   double, Rcpp::NumericVector&) const;
+	void dgemv(char,double,Rcpp::NumericVector const&,
+		   double,double*) const;
 	void dgemm(char,char,double,dgeMatrix const&,
 		   double,dgeMatrix&) const;
     };
@@ -165,31 +167,30 @@ namespace MatrixNs {
     };
 
     class chmDn : public cholmod_dense {
-    private:
-	void init(double*, int, int);
+	void init(const double*, int, int);
     public:
-	chmDn(double *xx, int nr, int nc) : cholmod_dense() {
-	    this->init(xx, nr, nc);
-	}
-	chmDn(std::vector<double> v) : cholmod_dense() {
-	    this->init(&v[0], v.size(), 1);
-	}
-	chmDn(Rcpp::NumericVector v) : cholmod_dense() {
-	    this->init(v.begin(), v.size(), 1);
-	}
-	chmDn(Rcpp::NumericMatrix m) : cholmod_dense() {
-	    this->init(m.begin(), m.nrow(), m.ncol());
-	}
-    	chmDn(ddenseMatrix m) : cholmod_dense() {
-	    this->init(m.x.begin(), m.nrow(), m.ncol());
-	}
+	chmDn(double*, int, int);
+	chmDn(const double*, int, int);
+	chmDn(std::vector<double> &);
+	chmDn(std::vector<double> const&);
+	chmDn(Rcpp::NumericVector&);
+	chmDn(Rcpp::NumericVector const&);
+	chmDn(Rcpp::NumericMatrix&);
+	chmDn(Rcpp::NumericMatrix const&);
+    	chmDn(ddenseMatrix&);
+    	chmDn(ddenseMatrix const&);
 //	chmDn(CHM_DN);
 //	~chmDn() {if (pp) ::M_cholmod_free_dense(&pp, &c);}
 
 	int nr() const { return nrow; }
 	int nc() const { return ncol; }
 	double* begin() {return (double*)x;} // template this
+//	const double* begin() {return const (double*)x;}
 	double* end() {return begin() + nrow * ncol;}
+//	const double* end() {
+//	    const double *ee = begin() + nrow * ncol;
+//	    return ee;
+//	}
 //    protected:
 //	CHM_DN pp;
     };
