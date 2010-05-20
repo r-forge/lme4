@@ -10,8 +10,8 @@ namespace mer {
     class merResp;		// forward declaration
 
     class reModule {
-	MatrixNs::chmFr L;
-	MatrixNs::chmSp Lambda, Ut, Zt;
+	MatrixNs::chmFr d_L;
+	MatrixNs::chmSp d_Lambda, d_Ut, d_Zt;
 	Rcpp::IntegerVector Lind;
 	Rcpp::NumericVector lower, theta;
 	double *d_ldL2;
@@ -21,7 +21,11 @@ namespace mer {
 
 	CHM_SP SupdateL(MatrixNs::chmSp const&) const;
 	void setU(const double *);
-	const Rcpp::NumericVector &u() const;
+	const Rcpp::NumericVector &u() const {return d_u;}
+	const MatrixNs::chmFr &L() const {return d_L;}
+	const MatrixNs::chmSp &Lambda() const {return d_Lambda;}
+	const MatrixNs::chmSp &Ut() const {return d_Ut;}
+	const MatrixNs::chmSp &Zt() const {return d_Zt;}
 	double sqLenU() const;
 	double ldL2() const;
 	void DupdateL(MatrixNs::chmDn const&,MatrixNs::chmDn&) const;
@@ -54,7 +58,8 @@ namespace mer {
 
     class feModule {
     protected:
-	Rcpp::NumericVector d_beta, d_ldRX2;
+	Rcpp::NumericVector d_beta;
+	double *d_ldRX2;
     public:
 	feModule(Rcpp::S4 xp);
 	void setBeta(Rcpp::NumericVector const&);
@@ -64,11 +69,12 @@ namespace mer {
 
     class deFeMod : public feModule {
     protected:
-	MatrixNs::dgeMatrix X, RZX;
+	MatrixNs::dgeMatrix d_X, d_RZX;
 	MatrixNs::Cholesky d_RX;
     public:
 	deFeMod(Rcpp::S4 xp);
-	const MatrixNs::Cholesky &RX() const;
+	const MatrixNs::Cholesky &RX() const{return d_RX;}
+	const MatrixNs::dgeMatrix &X() const{return d_X;}
 	void incGamma(Rcpp::NumericVector &gam) const;
 	void incGamma(double*) const;
     };
@@ -117,25 +123,25 @@ namespace mer {
     public:
 	glmerResp(Rcpp::S4 xp);
 	const Rcpp::NumericVector &var() const {return d_var;}
+	Rcpp::NumericVector devResid(){return family.devResid(mu, weights, y);}
+	void updateMu(Rcpp::NumericVector const &gamma);
+	void updateSqrtRWt();
+	void updateSqrtXWt();
 	void linkFun(){family.linkFun(d_gamma, mu);}
 	void linkInv(){family.linkInv(mu, d_gamma);}
 	void MuEta(){family.muEta(muEta, d_gamma);}
 	void variance(){family.variance(d_var, mu);}
-	Rcpp::NumericVector devResid(){return family.devResid(mu, weights, y);}
-	void updateSqrtRWt();
-	void updateSqrtXWt();
     };
     
     class nlmerResp : public rwResp {
-	Rcpp::NumericVector d_eta;
+//	Rcpp::NumericVector d_eta;
 	Rcpp::Environment nlenv;
 	Rcpp::Language nlmod;
 	Rcpp::CharacterVector pnames;
     public:
 	nlmerResp(Rcpp::S4 xp);
-	const Rcpp::NumericVector &eta() const;
-	void nlEval();
-//	const Rcpp::NumericVector &sqrtXwt() const;
+//	const Rcpp::NumericVector &eta() const;
+	void updateMu(Rcpp::NumericVector const &gamma);
     };
     
     class rwDeFeMod : public deFeMod {
@@ -196,7 +202,7 @@ namespace mer {
 	rwDeFeMod fe;
     public:
 	nlmerDe(Rcpp::S4 xp);
-	void updateGamma();
+	void updateMu();
 	double IRLS(int);
 	double PIRLS(int);
     };

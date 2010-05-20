@@ -54,10 +54,10 @@ static void showCHM_SP(const CHM_SP x, const std::string &nm) {
 namespace mer{
 
     reModule::reModule(S4 xp) :
-	L(S4(xp.slot("L"))),
-	Lambda(S4(xp.slot("Lambda"))),
-	Ut(S4(xp.slot("Ut"))),
-	Zt(S4(xp.slot("Zt"))),
+	d_L(S4(xp.slot("L"))),
+	d_Lambda(S4(xp.slot("Lambda"))),
+	d_Ut(S4(xp.slot("Ut"))),
+	d_Zt(S4(xp.slot("Zt"))),
 	Lind(xp.slot("Lind")),
 	lower(xp.slot("lower")),
 	theta(xp.slot("theta")),
@@ -69,8 +69,6 @@ namespace mer{
 	std::copy(nu, nu + d_u.size(), d_u.begin());
     }
     
-    const NumericVector &reModule::u() const {return d_u;}
-
 /** 
  * Lambda@x[] <- theta[Lind]; Ut <- crossprod(Lambda, Zt);
  * update(L,Ut,1); ldL2
@@ -82,15 +80,15 @@ namespace mer{
 	    ::Rf_error("length(theta) = %d != length(newtheta) = %d",
 		       theta.size(), nt.size());
 	std::copy(nt.begin(), nt.end(), theta.begin());
-	double *Lamx = (double*)Lambda.x, *nnt = nt.begin();
+	double *Lamx = (double*)d_Lambda.x, *nnt = nt.begin();
 	int *Li = Lind.begin();
 	for (int i = 0; i < Lind.size(); i++) Lamx[i] = nnt[Li[i] - 1];
 
-	CHM_SP LamTrZt = Lambda.crossprod(Zt);
-	Ut.update(*LamTrZt);
+	CHM_SP LamTrZt = d_Lambda.crossprod(d_Zt);
+	d_Ut.update(*LamTrZt);
 	M_cholmod_free_sparse(&LamTrZt, &c);
-	L.update(Ut, 1.);
-	*d_ldL2 = M_chm_factor_ldetL2(&L);
+	d_L.update(d_Ut, 1.);
+	*d_ldL2 = M_chm_factor_ldetL2(&d_L);
     }
 
     void reModule::rwUpdateL(NumericMatrix const &Xwt,
@@ -98,23 +96,23 @@ namespace mer{
 			     NumericVector const &u,
 			     double *ans) {
 	double one = 1., mone = -1;
-	CHM_SP wtUt = M_cholmod_copy_sparse(&Ut, &c);
+	CHM_SP wtUt = M_cholmod_copy_sparse(&d_Ut, &c);
 	const chmDn cXwt(Xwt);
-	if (Ut.ncol == Zt.ncol) {
+	if (d_Ut.ncol == d_Zt.ncol) {
 	    M_cholmod_scale(&cXwt, CHOLMOD_COL, wtUt, &c);
 	} else Rf_error("Multiple columns in Xwt");
 	M_cholmod_factorize_p(wtUt, &one, (int*)NULL, (size_t)0,
-			      &L, &c);
-	*d_ldL2 = M_chm_factor_ldetL2(&L);
+			      &d_L, &c);
+	*d_ldL2 = M_chm_factor_ldetL2(&d_L);
 	std::copy(u.begin(), u.end(), ans);
-	chmDn cans(ans, Ut.nrow, 1);
+	chmDn cans(ans, d_Ut.nrow, 1);
 	const chmDn cwtres(wtres);
 	M_cholmod_sdmult(wtUt, 0/*trans*/, &one, &mone, &cwtres,
 			 &cans, &c);
 	M_cholmod_free_sparse(&wtUt, &c);
-	CHM_DN incr = M_cholmod_solve(CHOLMOD_A, &L, &cans, &c);
+	CHM_DN incr = M_cholmod_solve(CHOLMOD_A, &d_L, &cans, &c);
 	double *incx = (double*)incr->x;
-	std::copy(incx, incx + Ut.nrow, ans);
+	std::copy(incx, incx + d_Ut.nrow, ans);
 	M_cholmod_free_dense(&incr, &c);
     }
 
@@ -133,8 +131,8 @@ namespace mer{
  */
     void reModule::updateU(const merResp &resp) {
 	chmDn cu(resp.cu);
-	CHM_DN t1 = L.solve(CHOLMOD_Lt, &cu);
-	CHM_DN t2 = L.solve(CHOLMOD_Pt, t1);
+	CHM_DN t1 = d_L.solve(CHOLMOD_Lt, &cu);
+	CHM_DN t2 = d_L.solve(CHOLMOD_Pt, t1);
 	::M_cholmod_free_dense(&t1, &c);
 	double *t2b = (double*)t2->x;
 	std::copy(t2b,  t2b + d_u.size(), d_u.begin());
@@ -148,13 +146,13 @@ namespace mer{
  * @param gam Current gamma vector
  */
     void reModule::incGamma(double *gam) const {
-	chmDn cgam(gam, Ut.ncol, 1);
-	Ut.dmult('T', 1., 1., chmDn(d_u), cgam);
+	chmDn cgam(gam, d_Ut.ncol, 1);
+	d_Ut.dmult('T', 1., 1., chmDn(d_u), cgam);
     }
 	
     void reModule::incGamma(NumericVector &gam) const {
 	chmDn cgam(gam);
-	Ut.dmult('T', 1., 1., chmDn(d_u), cgam);
+	d_Ut.dmult('T', 1., 1., chmDn(d_u), cgam);
     }
 	
 /** 
@@ -165,9 +163,9 @@ namespace mer{
  * @param dest destination dense matrix
  */
     void reModule::DupdateL(chmDn const &src, chmDn &dest) const {
-	Lambda.dmult('T', 1., 0., src, dest);
-	CHM_DN t1 = L.solve(CHOLMOD_P, &dest);
-	CHM_DN t2 = L.solve(CHOLMOD_L, t1);
+	d_Lambda.dmult('T', 1., 0., src, dest);
+	CHM_DN t1 = d_L.solve(CHOLMOD_P, &dest);
+	CHM_DN t2 = d_L.solve(CHOLMOD_L, t1);
 	::M_cholmod_free_dense(&t1, &c);
 
 	double *t2b = (double*)t2->x, *db = (double*)(dest.x);
@@ -184,10 +182,10 @@ namespace mer{
  * @return as above
  */
     CHM_SP reModule::SupdateL(chmSp const &src) const {
-	CHM_SP t1 = Lambda.crossprod(src);
-	CHM_SP t2 = L.spsolve(CHOLMOD_P, t1);
+	CHM_SP t1 = d_Lambda.crossprod(src);
+	CHM_SP t2 = d_L.spsolve(CHOLMOD_P, t1);
 	::M_cholmod_free_sparse(&t1, &c);
-	t1 = L.spsolve(CHOLMOD_L, t2);
+	t1 = d_L.spsolve(CHOLMOD_L, t2);
 	::M_cholmod_free_sparse(&t2, &c);
 	return t1;
     }
@@ -238,9 +236,37 @@ namespace mer{
     }
 
     void merResp::updateMu(NumericVector const &gamma) {
-	if (gamma.size() != mu.size())
-	    throw std::range_error("dimensions of gamma and mu");
 	std::copy(gamma.begin(), gamma.end(), mu.begin());
+    }
+
+    void glmerResp::updateMu(NumericVector const &gamma) {
+	std::copy(gamma.begin(), gamma.end(), d_gamma.begin());
+	linkInv();
+	MuEta();
+    }
+
+    void nlmerResp::updateMu(NumericVector const &gamma) {
+	int n = y.size();
+	double *gg = gamma.begin();
+
+	showdbl(gamma.begin(), "gamma in resp::updateMu", gamma.size());
+	for (int p = 0; p < pnames.size(); p++) {
+	    std::string pn(pnames[p]);
+	    Rprintf("p = %d, parameter name = %s\n", p, &pn[0]);
+	    NumericVector pp = nlenv.get(pn);
+	    showdbl(pp.begin(), "current", pp.size());
+	    std::copy(gg + n * p, gg + n * (p + 1), pp.begin());
+	    showdbl(pp.begin(), "updated", pp.size());
+	}
+	Rprintf("\nBefore evaluation\n");
+	NumericVector rr = nlmod.eval(nlenv);
+	showdbl(rr.begin(), "Model evaluation", rr.size());
+	if (rr.size() != n)
+	    Rf_error("Length mu = %d, expected %d", rr.size(), n);
+	std::copy(rr.begin(), rr.end(), mu.begin());
+	NumericMatrix rrg = rrg.attr("gradient");
+	std::copy(rrg.begin(), rrg.end(), d_sqrtXwt.begin());
+	showdbl(rrg.begin(), "Gradient evaluation", rrg.size());
     }
 
 /** 
@@ -286,40 +312,18 @@ namespace mer{
 
     nlmerResp::nlmerResp(S4 xp)
 	: rwResp(xp),
-	  d_eta(xp.slot("eta")),
 	  nlenv(SEXP(xp.slot("nlenv"))),
 	  nlmod(SEXP(xp.slot("nlmod"))),
 	  pnames(xp.slot("pnames")) {
     }
 
-    const NumericVector &nlmerResp::eta() const {
-	return d_eta;
+    feModule::feModule(S4 xp)
+	: d_beta(xp.slot("beta")),
+	  d_ldRX2(NumericVector(xp.slot("ldRX2")).begin()) {
     }
-    
-    void nlmerResp::nlEval() {
-	int n = y.size();
-	double *gg = d_gamma.begin();
-
-	for (int p = 0; p < pnames.size(); p++) {
-	    NumericVector pp = nlenv.get(as<std::string>(pnames[p]));
-	    std::copy(gg + n * p, gg + n * (p + 1), pp.begin());
-	}
-	NumericVector rr = nlmod.eval(nlenv);
-	if (rr.size() != n)
-	    Rf_error("Length eta = %d, expected %d", rr.size(), n);
-	std::copy(rr.begin(), rr.end(), d_eta.begin());
-	NumericMatrix etag = d_eta.attr("gradient"),
-	    rrg = rr.attr("gradient");
-	std::copy(rrg.begin(), rrg.end(), etag.begin());
-    }
-	    
-    feModule::feModule(S4 xp) :
-	d_beta(xp.slot("beta")),
-	d_ldRX2(xp.slot("ldRX2"))
-    { }
 
     double feModule::ldRX2() const {
-	return *d_ldRX2.begin();
+	return *d_ldRX2;
     }
 
     void feModule::setBeta(NumericVector const &nbeta) {
@@ -335,14 +339,10 @@ namespace mer{
 
     deFeMod::deFeMod(S4 xp) :
 	feModule(xp),
-	X(S4(xp.slot("X"))),
-	RZX(S4(xp.slot("RZX"))),
+	d_X(S4(xp.slot("X"))),
+	d_RZX(S4(xp.slot("RZX"))),
 	d_RX(S4(xp.slot("RX")))
     { }
-
-    const MatrixNs::Cholesky &deFeMod::RX() const {
-	return d_RX;
-    }
 
     lmerDeFeMod::lmerDeFeMod(S4 xp) :
 	deFeMod(xp),
@@ -360,10 +360,10 @@ namespace mer{
  * @param re a random-effects module
  */
     void lmerDeFeMod::updateRzxRx(reModule const &re) {
-	chmDn cRZX(RZX);
+	chmDn cRZX(d_RZX);
 	re.DupdateL(chmDn(ZtX), cRZX);
-	d_RX.update('T', -1., RZX, 1., XtX);
-	*d_ldRX2.begin() = d_RX.logDet2();
+	d_RX.update('T', -1., d_RZX, 1., XtX);
+	*d_ldRX2 = d_RX.logDet2();
     }
 
  /** 
@@ -376,10 +376,10 @@ namespace mer{
   */
     void lmerDeFeMod::updateBeta(merResp &resp) {
 	std::copy(resp.Vtr.begin(), resp.Vtr.end(), resp.cbeta.begin());
-	RZX.dgemv('T', -1., resp.cu, 1., resp.cbeta);
+	d_RZX.dgemv('T', -1., resp.cu, 1., resp.cbeta);
 	std::copy(resp.cbeta.begin(), resp.cbeta.end(), d_beta.begin());
 	d_RX.dpotrs(d_beta);
-	RZX.dgemv('N', -1., d_beta, 1., resp.cu);
+	d_RZX.dgemv('N', -1., d_beta, 1., resp.cu);
     }
 
 /** 
@@ -388,11 +388,11 @@ namespace mer{
  * @param gam Value of gamma to be updated
  */
     void deFeMod::incGamma(double *gam) const {
-	X.dgemv('N', 1., d_beta, 1., gam);
+	d_X.dgemv('N', 1., d_beta, 1., gam);
     }
     
     void deFeMod::incGamma(NumericVector &gam) const {
-	X.dgemv('N', 1., d_beta, 1., gam.begin());
+	d_X.dgemv('N', 1., d_beta, 1., gam.begin());
     }
     
     rwDeFeMod::rwDeFeMod(S4 xp)
@@ -441,7 +441,7 @@ namespace mer{
 
 	M_cholmod_free_sparse(&t2, &c);
 
-	*d_ldRX2.begin() = M_chm_factor_ldetL2(&RX);
+	*d_ldRX2 = M_chm_factor_ldetL2(&RX);
     }
 
  /** 
@@ -502,18 +502,23 @@ namespace mer{
     }
 
     void glmerDe::updateGamma() {
-	const NumericVector offset = resp.offset();
-	std::copy(offset.begin(), offset.end(), resp.gamma());
-	fe.incGamma(resp.gamma());
-	re.incGamma(resp.gamma());
+	const NumericVector u = re.u(), offset = resp.offset();
+	NumericVector b(u.size()), gamma(offset.size());
+	std::copy(offset.begin(), offset.end(), gamma.begin());
+	chmDn bb(b), gg(gamma);
+
+	re.Lambda().dmult('N', 1., 0., chmDn(u), bb);
+	re.Zt().dmult('T', 1., 1., bb, gg);
+	fe.X().dmult('N', 1., 1., chmDn(fe.beta()), gg);
+	resp.updateMu(gamma);
     }
 
     void rwDeFeMod::updateV(NumericMatrix const &sqrtXwt) {
 	int nc = sqrtXwt.ncol();
 	if (nc != 1) Rf_error("code for nlmer not yet written");
 // FIXME: Rewrite this using std::transform
-	std::copy(X.x.begin(), X.x.end(), d_V.x.begin());
-	int m = X.nrow(), n = X.ncol();
+	std::copy(d_X.x.begin(), d_X.x.end(), d_V.x.begin());
+	int m = d_X.nrow(), n = d_X.ncol();
 	double *vv = d_V.x.begin(), *ww = sqrtXwt.begin();
 	for (int j = 0; j < n; j++)
 	    for (int i = 0; i < m; i++) vv[i + j * m] *= ww[i];
@@ -657,20 +662,27 @@ namespace mer{
 	resp(S4(xp.slot("resp"))) {
     }
 
-    void nlmer::nlEval() {resp.nlEval();}
-
     nlmerDe::nlmerDe(S4 xp) :
 	nlmer(xp),
 	fe(S4(xp.slot("fe"))) {
     }
 
-    void nlmerDe::updateGamma() {
-	const NumericVector offset = resp.offset();
-	std::copy(offset.begin(), offset.end(), resp.gamma());
-	fe.incGamma(resp.gamma());
-	re.incGamma(resp.gamma());
-    }
+    void nlmerDe::updateMu() {
+	const NumericVector u = re.u(), offset = resp.offset();
+	NumericVector b(u.size()), gamma(offset.size());
+	std::copy(offset.begin(), offset.end(), gamma.begin());
+	chmDn bb(b), gg(gamma);
 
+	showdbl(gamma.begin(), "gamma after offset", gamma.size());
+	re.Lambda().dmult('N', 1., 0., chmDn(u), bb);
+	showdbl(u.begin(), "u", u.size());
+	showdbl(b.begin(), "b", b.size());
+	re.Zt().dmult('T', 1., 1., bb, gg);
+	showdbl(gamma.begin(), "gamma after reUpdate", gamma.size());
+	fe.X().dmult('N', 1., 1., chmDn(fe.beta()), gg);
+	showdbl(gamma.begin(), "gamma after feUpdate", gamma.size());
+	resp.updateMu(gamma);
+    }
 
 } // namespace mer
 
@@ -721,6 +733,6 @@ RCPP_FUNCTION_VOID_2(feModSetBeta,S4 xp,NumericVector nbeta) {
 
 RCPP_FUNCTION_VOID_1(nlmerDeEval,S4 xp) {
     mer::nlmerDe nlmr(xp);
-    nlmr.updateGamma();
-    nlmr.nlEval();
+    Rprintf("past initialization of nlmerDe object\n");
+    nlmr.updateMu();
 }
