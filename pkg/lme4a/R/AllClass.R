@@ -456,9 +456,12 @@ setClass("merResp",
                         cbeta = "numeric"),
          validity = function(object) {
              n <- length(object@y)
-             if (any(n != sapply(lapply(c("weights","sqrtrwt","offset","mu","wtres"), slot,
+             if (any(n != sapply(lapply(c("weights","sqrtrwt","mu","wtres"), slot,
                      object = object), length)))
-                 return("lengths of weights, sqrtwt, offset, mu and wtres must match length(y)")
+                 return("lengths of weights, sqrtwt, mu and wtres must match length(y)")
+             lo <- length(object@offset)
+             if (!lo || lo %% n)
+                 return("length(offset) must be a positive multiple of length(y)")
              if (length(object@wrss) != 1L)
                  return("length of wrss must be 1")
              if (length(object@Utr) != length(object@cu))
@@ -503,14 +506,17 @@ setClass("glmerResp",
 ##' nlmer response module
 setClass("nlmerResp",
          representation(nlenv = "environment",
-                        nlmod = "call"),
+                        nlmod = "call",
+                        pnames = "character"),
          contains = "rwResp",
          validity = function(object) {
              n <- length(object@y)
              N <- length(object@offset)
              s <- N %/% n
-             if (!all(dim(sqrtXwt) == c(n, s))) {
-                 dd <- dim(sqrtXwt)
+             lpn <- length(object@pnames)
+             if (lpn != s) return(sprintf("length(pnames) = %d != s = %d", lpn, s))
+             dd <- dim(object@sqrtXwt)
+             if (!all(dd == c(n, s))) {
                  return(sprintf("dim(gradient) = (%d, %d), n = %d, s = %d",
                                 dd[1], dd[2], n, s))
              }
