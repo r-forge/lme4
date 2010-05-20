@@ -195,25 +195,23 @@ namespace mer{
     double reModule::ldL2() const { return *d_ldL2; }
 
     merResp::merResp(S4 xp)
-	: d_sqrtrwt(xp.slot("sqrtrwt")),
+	: d_wrss(NumericVector(xp.slot("wrss")).begin()),
+	  d_offset(xp.slot("offset")),
+	  d_sqrtrwt(xp.slot("sqrtrwt")),
+	  d_wtres(xp.slot("wtres")),
+	  mu(xp.slot("mu")),
+	  weights(xp.slot("weights")),
+	  y(xp.slot("y")),
 	  Utr(xp.slot("Utr")),
 	  Vtr(xp.slot("Vtr")),
 	  cbeta(xp.slot("cbeta")),
-	  cu(xp.slot("cu")),
-	  mu(xp.slot("mu")),
-	  offset(xp.slot("offset")),
-	  wtres(xp.slot("wtres")),
-	  weights(xp.slot("weights")),
-	  y(xp.slot("y"))
+	  cu(xp.slot("cu"))
     {
-	NumericVector wrssVec(SEXP(xp.slot("wrss")));
-	wrss = wrssVec.begin();
+	int n = y.size(), os = d_offset.size();
 
-	int n = y.size(), os = offset.size();
-
-	if (mu.size() != n || wtres.size() != n ||
-	    weights.size() != n)
-	    ::Rf_error("y, mu, wtres and weights slots must have equal lengths");
+	if (mu.size() != n || d_wtres.size() != n ||
+	    weights.size() != n || d_sqrtrwt.size() != n)
+	    ::Rf_error("y, mu, sqrtrwt, wtres and weights slots must have equal lengths");
 	if (os < 1 || os % n)
 	    ::Rf_error("length(offset) must be a positive multiple of length(y)");
 	if (cbeta.size() != Vtr.size())
@@ -222,6 +220,10 @@ namespace mer{
 	    ::Rf_error("cu and Utr slots must have equal lengths");
     }
 
+    double merResp::wrss() const { return *d_wrss; }
+    const NumericVector &merResp::sqrtrwt() const { return d_sqrtrwt; }
+    const NumericVector &merResp::offset() const { return d_offset; }
+    const NumericVector &merResp::wtres() const { return d_wtres; }
 /** 
  * Update cu using Lambda and L
  *  cu <- solve(L, solve(L, crossprod(Lambda, Utr),
@@ -251,13 +253,13 @@ namespace mer{
     double merResp::updateWrss() {
 				// wtres <- y - mu
 	std::transform(y.begin(), y.end(), mu.begin(),
-		       wtres.begin(), std::minus<double>());
+		       d_wtres.begin(), std::minus<double>());
 				// wtres <- wtres * sqrtrwt
-	std::transform(wtres.begin(), wtres.end(), d_sqrtrwt.begin(),
-		       wtres.begin(), std::multiplies<double>());
-	*wrss = std::inner_product(wtres.begin(), wtres.end(),
-				   wtres.begin(), double());
-	return *wrss;
+	std::transform(d_wtres.begin(), d_wtres.end(), d_sqrtrwt.begin(),
+		       d_wtres.begin(), std::multiplies<double>());
+	*d_wrss = std::inner_product(d_wtres.begin(), d_wtres.end(),
+				     d_wtres.begin(), double());
+	return *d_wrss;
     }
 
     rwResp::rwResp(S4 xp)
@@ -500,8 +502,8 @@ namespace mer{
     }
 
     void glmerDe::updateGamma() {
-	std::copy(resp.offset.begin(), resp.offset.end(),
-		  resp.gamma());
+	const NumericVector offset = resp.offset();
+	std::copy(offset.begin(), offset.end(), resp.gamma());
 	fe.incGamma(resp.gamma());
 	re.incGamma(resp.gamma());
     }
@@ -567,7 +569,7 @@ namespace mer{
 	    resp.updateSqrtXWt();      // muEta and sqrtXwt
 	    fe.updateV(resp.sqrtXwt());	// derive V from X
 				// Vtr <- crossprod(V, wtres)
-	    fe.V().dgemv('T', 1., resp.wtres, 0., resp.Vtr);
+	    fe.V().dgemv('T', 1., resp.wtres(), 0., resp.Vtr);
 	    fe.updateRX(false);	// factor V'V
 	    std::copy(resp.Vtr.begin(), resp.Vtr.end(), incr.begin());
 	    fe.RX().dpotrs(incr); // evaluate the increment
@@ -625,7 +627,7 @@ namespace mer{
 	    pwrss0 = resp.updateWrss() + re.sqLenU();
 	    resp.updateSqrtXWt();      // muEta and sqrtXwt
 				// solve for incr
-	    re.rwUpdateL(resp.sqrtXwt(), resp.wtres, uu, &incr[0]);
+	    re.rwUpdateL(resp.sqrtXwt(), resp.wtres(), uu, &incr[0]);
 	    pwrss1 = pwrss0;	// force one evaluation of the loop
 	    for (step = 1.; pwrss0 <= pwrss1 && step > CM_SMIN; step /= 2.) {
 		std::transform(incr.begin(), incr.end(), newU.begin(),
@@ -663,8 +665,8 @@ namespace mer{
     }
 
     void nlmerDe::updateGamma() {
-	std::copy(resp.offset.begin(), resp.offset.end(),
-		  resp.gamma());
+	const NumericVector offset = resp.offset();
+	std::copy(offset.begin(), offset.end(), resp.gamma());
 	fe.incGamma(resp.gamma());
 	re.incGamma(resp.gamma());
     }

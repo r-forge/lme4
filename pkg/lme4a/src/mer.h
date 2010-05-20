@@ -37,17 +37,19 @@ namespace mer {
 
     class merResp {
     protected:
-	Rcpp::NumericVector d_sqrtrwt;
+	double *d_wrss;
+	Rcpp::NumericVector d_offset, d_sqrtrwt, d_wtres, mu, weights, y;
     public:
 	merResp(Rcpp::S4);
 	void updateL(reModule const&);
 	void updateMu(Rcpp::NumericVector const&);
 	double updateWrss();
-	const double *sqrtrwt() const;
+	double wrss() const;
+	const Rcpp::NumericVector &sqrtrwt() const;
+	const Rcpp::NumericVector &wtres() const;
+	const Rcpp::NumericVector &offset() const;
 
-	Rcpp::NumericVector Utr, Vtr, cbeta, cu, mu,
-	    offset, wtres, weights, y;
-	double *wrss;
+	Rcpp::NumericVector Utr, Vtr, cbeta, cu;
     };
 
     class feModule {
@@ -225,9 +227,9 @@ namespace mer {
     
     template<typename T>
     inline lmer<T>::lmer(Rcpp::S4 xp) :
-	re(Rcpp::S4(SEXP(xp.slot("re")))),
+	re(Rcpp::S4(xp.slot("re"))),
 	fe(Rcpp::S4(xp.slot("fe"))),
-	resp(Rcpp::S4(SEXP(xp.slot("resp"))))
+	resp(Rcpp::S4(xp.slot("resp")))
     {
 	Rcpp::LogicalVector REML = xp.slot("REML");
 	reml = (bool)*REML.begin();
@@ -243,8 +245,8 @@ namespace mer {
  */
     template<typename T> inline
     double lmer<T>::deviance() {
-	double nn = (double)resp.y.size(),
-	    prss = re.sqLenU() + *resp.wrss;
+	double nn = (double)resp.wtres().size(),
+	    prss = re.sqLenU() + resp.wrss();
 	return re.ldL2() + nn * (1 + l2PI + log(prss/nn));
     }
 
@@ -255,8 +257,8 @@ namespace mer {
  */
     template<typename T> inline
     double lmer<T>::reCrit() {
-	double nmp = (double)(resp.y.size() - fe.beta().size()),
-	    prss = re.sqLenU() + *resp.wrss;
+	double nmp = (double)(resp.wtres().size() - fe.beta().size()),
+	    prss = re.sqLenU() + resp.wrss();
 	return re.ldL2()+fe.ldRX2()+nmp*(1 + l2PI + log(prss/nmp));
     }
 
@@ -268,8 +270,9 @@ namespace mer {
 	fe.updateBeta(resp);
 	re.updateU(resp);
 
-	Rcpp::NumericVector gamma(resp.offset.size());
-	std::copy(resp.offset.begin(), resp.offset.end(), gamma.begin());
+	const Rcpp::NumericVector offset = resp.offset();
+	Rcpp::NumericVector gamma(offset.size());
+	std::copy(offset.begin(), offset.end(), gamma.begin());
 	fe.incGamma(gamma);
 	re.incGamma(gamma);
 	resp.updateMu(gamma);

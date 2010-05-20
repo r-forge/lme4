@@ -456,12 +456,9 @@ setClass("merResp",
                         cbeta = "numeric"),
          validity = function(object) {
              n <- length(object@y)
-             loff <- length(object@offset)
-             if (loff == 0L || loff %% n)
-                 return("length(offset) must be a positive multiple of length(y)")
-             if (length(object@weights) != n || length(object@mu) != n ||
-                 length(object@wtres) != n)
-                 return("lengths of weights, mu and wtres must match length(y)")
+             if (any(n != sapply(lapply(c("weights","sqrtrwt","offset","mu","wtres"), slot,
+                     object = object), length)))
+                 return("lengths of weights, sqrtwt, offset, mu and wtres must match length(y)")
              if (length(object@wrss) != 1L)
                  return("length of wrss must be 1")
              if (length(object@Utr) != length(object@cu))
@@ -475,11 +472,16 @@ setClass("merResp",
 ##'
 ##' gamma is the linear predictor, which is transformed to mu
 setClass("rwResp",
-         representation(gamma = "numeric"),
+         representation(gamma = "numeric", sqrtXwt = "matrix"),
          contains = "merResp",
          validity = function(object) {
              lg <- length(object@gamma)
              n <- length(object@y)
+             lXwt <- length(object@sqrtXwt)
+             if (lXwt != lg)
+                 return("length(sqrtXwt) != length(gamma)")
+             if (lXwt < 1L || lXwt %% n)
+                 return("length(sqrtXwt) must be a positive multiple of length(y)")
              if (lg < 1 || lg %% n)
                  return("length(gamma) must be a positive multiple of length(y)")
              TRUE
@@ -489,38 +491,26 @@ setClass("rwResp",
 setClass("glmerResp",
          representation(family = "family",
                         muEta = "numeric",
-                        sqrtrwt = "numeric",
-                        sqrtXwt = "matrix",
                         n = "numeric",    # for evaluation of the aic
                         var = "numeric"), # variances of responses
          contains = "rwResp",
          validity = function(object) {
              n <- length(object@y)
-             lXwt <- length(object@sqrtXwt)
-             lg <- length(object@gamma)
-             if (lXwt != lg)
-                 return("length(sqrtXwt) != length(gamma)")
-             if (lXwt < 1L || lXwt %% n)
-                 return("length(sqrtXwt) must be a positive multiple of length(y)")
              if (length(object@muEta) != n || length(object@var) != n)
                  return("lengths of muEta and var must match length(y)")
-             if (length(object@sqrtrwt) != n)
-                 return("length(sqrtrwt) != length(y)")
          })
 
 ##' nlmer response module
 setClass("nlmerResp",
          representation(nlenv = "environment",
-                        nlmod = "call",
-                        eta = "numeric"),
+                        nlmod = "call"),
          contains = "rwResp",
          validity = function(object) {
              n <- length(object@y)
              N <- length(object@offset)
-             gradient <- attr(object@eta, "gradient")
              s <- N %/% n
-             if (!all(dim(gradient) == c(n, s))) {
-                 dd <- dim(gradient)
+             if (!all(dim(sqrtXwt) == c(n, s))) {
+                 dd <- dim(sqrtXwt)
                  return(sprintf("dim(gradient) = (%d, %d), n = %d, s = %d",
                                 dd[1], dd[2], n, s))
              }

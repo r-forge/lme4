@@ -244,8 +244,9 @@ mkRespMod <- function(fr, reMod, feMod, family = NULL, nlenv = NULL,
             ll$nlenv <- nlenv
             ll$gamma <- ll$offset
             ll$nlmod <- Quote(nlmod)
-            ll$eta <- eval(nlmod, nlenv)
-            if (is.null(attr(ll$eta, "gradient")))
+            eta <- eval(nlmod, nlenv)
+            ll$sqrtXwt <- attr(eta, "gradient")
+            if (is.null(ll$sqrtXwt))
                 stop("The nonlinear model in nlmer must return a gradient attribute")
         }
     }
