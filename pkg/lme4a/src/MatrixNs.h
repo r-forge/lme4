@@ -8,8 +8,6 @@
 #include <Rcpp.h>
 #include <Matrix.h>
 
-//extern "C" CHM_SP M_cholmod_transpose(const CHM_SP, int, CHM_CM);
-
 extern cholmod_common c;
 
 namespace MatrixNs {
@@ -117,10 +115,14 @@ namespace MatrixNs {
 // Concrete classes are initialized from Rcpp::S4 not Rcpp::S4& so
 // they can be constructed from slots extracted during the
 // construction of composite objects.
-	
+
+    class chmDn; 		// forward declaration
+
     class dgeMatrix : public ddenseMatrix, public generalMatrix {
     public:
 	dgeMatrix(Rcpp::S4 xp) : ddenseMatrix(xp), generalMatrix(xp) {}
+	int dmult(char tr, double alpha, double beta, 
+	 	  chmDn const &src, chmDn &dest) const;
 	void dgemv(char,double,Rcpp::NumericVector const&,
 		   double, Rcpp::NumericVector&) const;
 	void dgemv(char,double,Rcpp::NumericVector const&,
@@ -209,11 +211,11 @@ namespace MatrixNs {
 	 	  chmDn const &src, chmDn &dest) const;
 	
 	CHM_SP crossprod() const;
-	CHM_SP crossprod(const CHM_SP, int sorted = 1) const;
+	CHM_SP crossprod(const cholmod_sparse*, int sorted = 1) const;
 	CHM_SP crossprod(chmSp const &B, int sorted = 1) const;
 
 	CHM_SP tcrossprod() const;
-	CHM_SP tcrossprod(const CHM_SP, int sorted = 1) const;
+	CHM_SP tcrossprod(const_CHM_SP, int sorted = 1) const;
 	CHM_SP tcrossprod(chmSp const &B, int sorted = 1) const;
 
 	CHM_SP smult(chmSp const &B, int stype, int values, int sorted) const;
@@ -229,10 +231,10 @@ namespace MatrixNs {
 
 	void update(cholmod_sparse const &A, double Imult = 0.); 
 
-	CHM_DN solve(int sys, const CHM_DN b) const;
+	CHM_DN solve(int sys, const_CHM_DN b) const;
 	CHM_DN solve(int sys, chmDn const &b) const;
 
-	CHM_SP spsolve(int sys, const CHM_SP b) const;
+	CHM_SP spsolve(int sys, const_CHM_SP b) const;
 	CHM_SP spsolve(int sys, chmSp const &b) const;
 
     };
