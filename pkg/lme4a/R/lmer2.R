@@ -248,6 +248,7 @@ mkRespMod <- function(fr, reMod, feMod, family = NULL, nlenv = NULL,
             ll$sqrtXwt <- attr(eta, "gradient")
             if (is.null(ll$sqrtXwt))
                 stop("The nonlinear model in nlmer must return a gradient attribute")
+            ll$pnames <- colnames(ll$sqrtXwt)
         }
     }
     do.call("new", ll)
@@ -679,6 +680,7 @@ nlmer2 <- function(formula, data, family = gaussian, start = NULL,
         stop(gettextf("rank of X = %d < ncol(X) = %d", qrX$rank, p))
     feMod@beta[] <- qr.coef(qrX, unlist(lapply(pnames, get, envir = nlenv)))
     respMod <- mkRespMod(fr, reTrms, feMod, nlenv = nlenv, nlmod = nlmod)
+    respMod@pnames <- pnames
     ans <- new(ifelse(sparseX, "nlmerSp", "nlmerDe"), call = mc,
                frame = fr, re = reTrms, fe = feMod, resp = respMod)
     ans
