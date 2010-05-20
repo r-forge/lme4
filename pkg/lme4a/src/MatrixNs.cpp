@@ -21,6 +21,26 @@ namespace MatrixNs{
 		       "ddenseMatrix::ddenseMatrix", d_nrow, d_ncol, x.size());
     }
 
+    int dgeMatrix::dmult(char Tr, double alpha, double beta, 
+			 chmDn const &src, chmDn &dest) const {
+	int i1 = 1;
+	Trans TR(Tr);
+	char tr = TR.TR;
+	if (src.nrow == 1)
+	    F77_CALL(dgemv)(&tr, &d_nrow, &d_ncol, &alpha, x.begin(),
+			    &d_nrow, (double*)src.x, &i1, &beta,
+			    (double*)dest.x, &i1);
+	else {
+	    bool NTR = tr == 'N';
+	    int M = NTR ? d_nrow : d_ncol, N = src.ncol,
+		K = NTR ? d_ncol : d_nrow;
+	    F77_CALL(dgemm)(&tr, "N", &M, &N, &K, &alpha, x.begin(),
+			    &d_nrow, (double*)src.x, &K, &beta,
+			    (double*)dest.x, &M);
+	}
+	return 0;
+    }
+
     void dgeMatrix::dgemv(char Tr, double alpha, NumericVector const &X,
 			  double beta, double *Y) const {
 	int i1 = 1;
@@ -45,8 +65,9 @@ namespace MatrixNs{
 	    Y.size() != (NTR ? d_nrow : d_ncol))
 	    Rf_error("dgemv \"%c\", dim mismatch (%d, %d), X(%d), Y(%d)",
 		     tr, d_nrow, d_ncol, X.size(), Y.size());
-	F77_CALL(dgemv)(&tr, &d_nrow, &d_ncol, &alpha, x.begin(), &d_nrow,
-			X.begin(), &i1, &beta, Y.begin(), &i1);
+	F77_CALL(dgemv)(&tr, &d_nrow, &d_ncol, &alpha, x.begin(),
+			&d_nrow, X.begin(), &i1, &beta,
+			Y.begin(), &i1);
     }
 
     void dgeMatrix::dgemm(char TRA, char TRB,
@@ -249,25 +270,25 @@ namespace MatrixNs{
     // }
 		    
     void chmFr::update(cholmod_sparse const &A, double Imult) {
-	M_cholmod_factorize_p((const CHM_SP)&A, &Imult, (int*)NULL,
-			      (size_t) 0, this, &c);
+	M_cholmod_factorize_p((const_CHM_SP)&A, &Imult,
+			      (int*)NULL, (size_t) 0, this, &c);
     }
 
-    CHM_DN chmFr::solve(int sys, const CHM_DN b) const {
-	return M_cholmod_solve(sys, (const CHM_FR)this, b, &c);
+    CHM_DN chmFr::solve(int sys, const_CHM_DN b) const {
+	return M_cholmod_solve(sys, (const_CHM_FR)this, b, &c);
     }
 
     CHM_DN chmFr::solve(int sys, chmDn const &b) const {
-	return M_cholmod_solve(sys, (const CHM_FR)this,
-			       (const CHM_DN)&b, &c);
+	return M_cholmod_solve(sys, (const_CHM_FR)this,
+			       (const_CHM_DN)&b, &c);
     }
 
-    CHM_SP chmFr::spsolve(int sys, const CHM_SP b) const {
+    CHM_SP chmFr::spsolve(int sys, const_CHM_SP b) const {
 	return M_cholmod_spsolve(sys, (const CHM_FR)this, b, &c);
     }
     CHM_SP chmFr::spsolve(int sys, chmSp const &b) const {
 	return M_cholmod_spsolve(sys, (const CHM_FR)this,
-				 (const CHM_SP)&b, &c);
+				 (const_CHM_SP)&b, &c);
     }
 
     chmSp::chmSp(S4 xp) : cholmod_sparse()//, m_sexp(SEXP(xp))
@@ -333,18 +354,18 @@ namespace MatrixNs{
     // }
 
     CHM_SP chmSp::transpose(int values) const {
-	return M_cholmod_transpose((const CHM_SP)this, values, &c);
+	return M_cholmod_transpose((const_CHM_SP)this, values, &c);
     }
 
     int chmSp::dmult(char tr, double alpha, double beta,
 		     chmDn const &src, chmDn &dest) const {
-	return M_cholmod_sdmult((const CHM_SP)this,
+	return M_cholmod_sdmult((const_CHM_SP)this,
 				Trans(tr).TR == 'T', &alpha,
 				&beta, (const CHM_DN)(&src), &dest, &c);
     }
 
     void chmSp::update(cholmod_sparse const &nn) {
-	size_t nnznn = M_cholmod_nnz((const CHM_SP)&nn, &c);
+	size_t nnznn = M_cholmod_nnz((const_CHM_SP)&nn, &c);
 	if (nn.ncol != ncol || nnznn > nzmax || xtype != nn.xtype ||
 	    itype != nn.itype || dtype != nn.dtype || packed != nn.packed)
 	    Rf_error("%s: matrices not conformable", "chmSp::update");
@@ -378,7 +399,7 @@ namespace MatrixNs{
 	return t1;
     }
 
-    CHM_SP chmSp::crossprod(const CHM_SP B, int sorted) const {
+    CHM_SP chmSp::crossprod(const_CHM_SP B, int sorted) const {
 	CHM_SP t1 = this->transpose();
 	CHM_SP t2 = ::M_cholmod_ssmult(t1, B, 0/*stype*/, xtype/*values*/,
 				       sorted, &c);
@@ -387,33 +408,33 @@ namespace MatrixNs{
     }
 
     CHM_SP chmSp::crossprod(chmSp const &B, int sorted) const {
-	return crossprod((const CHM_SP)&B, sorted);
+	return crossprod((const_CHM_SP)&B, sorted);
     }
 
     CHM_SP chmSp::tcrossprod() const {
-	CHM_SP t1 = M_cholmod_aat((const CHM_SP)this, (int*)NULL,
+	CHM_SP t1 = M_cholmod_aat((const_CHM_SP)this, (int*)NULL,
 				  0/*fsize*/, xtype/*mode*/, &c);
 	CHM_SP t2 = ::M_cholmod_copy(t1, 1/*stype*/, xtype/*mode*/, &c);
 	::M_cholmod_free_sparse(&t1, &c);
 	return t2;
     }
 
-    CHM_SP chmSp::tcrossprod(const CHM_SP B, int sorted) const {
+    CHM_SP chmSp::tcrossprod(const_CHM_SP B, int sorted) const {
 	CHM_SP t1 = M_cholmod_transpose(B, xtype/*values*/, &c);
 	CHM_SP t2 =
-	    M_cholmod_ssmult((const CHM_SP)this, t1, 0/*stype*/,
+	    M_cholmod_ssmult((const_CHM_SP)this, t1, 0/*stype*/,
 			     xtype/*values*/, sorted, &c);
 	M_cholmod_free_sparse(&t1, &c);
 	return t2;
     }
 
     CHM_SP chmSp::tcrossprod(chmSp const &B, int sorted) const {
-	return tcrossprod((const CHM_SP)&B, sorted);
+	return tcrossprod((const_CHM_SP)&B, sorted);
     }
 
     CHM_SP chmSp::smult(chmSp const &B, int stype, int values,
 			int sorted) const {
-	return M_cholmod_ssmult((const CHM_SP)this, (const CHM_SP)&B,
+	return M_cholmod_ssmult((const_CHM_SP)this, (const_CHM_SP)&B,
 				stype, values, sorted, &c);
     }
 
