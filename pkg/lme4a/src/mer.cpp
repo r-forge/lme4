@@ -53,20 +53,30 @@ static void showCHM_SP(const CHM_SP x, const std::string &nm) {
 
 namespace mer{
 
-    reModule::reModule(S4 xp) :
-	d_L(S4(xp.slot("L"))),
-	d_Lambda(S4(xp.slot("Lambda"))),
-	d_Ut(S4(xp.slot("Ut"))),
-	d_Zt(S4(xp.slot("Zt"))),
-	Lind(xp.slot("Lind")),
-	lower(xp.slot("lower")),
-	theta(xp.slot("theta")),
-	d_ldL2(NumericVector(xp.slot("ldL2")).begin()),
-	d_u(xp.slot("u"))
-    {}
+    reModule::reModule(S4 xp)
+	: d_L(S4(xp.slot("L"))),
+	  d_Lambda(S4(xp.slot("Lambda"))),
+	  d_Ut(S4(xp.slot("Ut"))),
+	  d_Zt(S4(xp.slot("Zt"))),
+	  Lind(xp.slot("Lind")),
+	  lower(xp.slot("lower")),
+	  theta(xp.slot("theta")),
+	  d_u(xp.slot("u")),
+	  d_ldL2(NumericVector(xp.slot("ldL2")).begin()),
+	  d_sqlLenU(std::inner_product(d_u.begin(), d_u.end(),
+				       d_u.begin(), double())) {
+    }
     
-    void reModule::setU(const double *nu) {
-	std::copy(nu, nu + d_u.size(), d_u.begin());
+    void reModule::setU(std::vector<double> const &nu) {
+	std::copy(nu.begin(), nu.end(), d_u.begin());
+	d_sqlLenU = std::inner_product(d_u.begin(), d_u.end(),
+				       d_u.begin(), double());
+    }
+    
+    void reModule::setU(NumericVector const &nu) {
+	std::copy(nu.begin(), nu.end(), d_u.begin());
+	d_sqlLenU = std::inner_product(d_u.begin(), d_u.end(),
+				       d_u.begin(), double());
     }
     
 /** 
@@ -117,14 +127,6 @@ namespace mer{
     }
 
 /** 
- * @return squared length of u
- */
-    double reModule::sqLenU() const {
-	return std::inner_product(d_u.begin(), d_u.end(),
-				  d_u.begin(), double());
-    }
-
-/** 
  * Solve for u given cu from the response module
  * 
  * @param resp Response module
@@ -139,22 +141,6 @@ namespace mer{
 	::M_cholmod_free_dense(&t2, &c);
     }
 
-/** 
- * Add the contribution of the random effects to the linear predictor
- * vector.
- * 
- * @param gam Current gamma vector
- */
-    void reModule::incGamma(double *gam) const {
-	chmDn cgam(gam, d_Ut.ncol, 1);
-	d_Ut.dmult('T', 1., 1., chmDn(d_u), cgam);
-    }
-	
-    void reModule::incGamma(NumericVector &gam) const {
-	chmDn cgam(gam);
-	d_Ut.dmult('T', 1., 1., chmDn(d_u), cgam);
-    }
-	
 /** 
  * Update the destination dense matrix as
  * solve(L, solve(L, Lambda %*% src, system = "P"), system = "L")
@@ -190,8 +176,6 @@ namespace mer{
 	return t1;
     }
     
-    double reModule::ldL2() const { return *d_ldL2; }
-
     merResp::merResp(S4 xp)
 	: d_wrss(NumericVector(xp.slot("wrss")).begin()),
 	  d_offset(xp.slot("offset")),
@@ -218,10 +202,6 @@ namespace mer{
 	    ::Rf_error("cu and Utr slots must have equal lengths");
     }
 
-    double merResp::wrss() const { return *d_wrss; }
-    const NumericVector &merResp::sqrtrwt() const { return d_sqrtrwt; }
-    const NumericVector &merResp::offset() const { return d_offset; }
-    const NumericVector &merResp::wtres() const { return d_wtres; }
 /** 
  * Update cu using Lambda and L
  *  cu <- solve(L, solve(L, crossprod(Lambda, Utr),
@@ -233,40 +213,6 @@ namespace mer{
     void merResp::updateL(reModule const &re) {
 	chmDn ccu(cu);
 	re.DupdateL(chmDn(Utr), ccu);
-    }
-
-    void merResp::updateMu(NumericVector const &gamma) {
-	std::copy(gamma.begin(), gamma.end(), mu.begin());
-    }
-
-    void glmerResp::updateMu(NumericVector const &gamma) {
-	std::copy(gamma.begin(), gamma.end(), d_gamma.begin());
-	linkInv();
-	MuEta();
-    }
-
-    void nlmerResp::updateMu(NumericVector const &gamma) {
-	int n = y.size();
-	double *gg = gamma.begin();
-
-	showdbl(gamma.begin(), "gamma in resp::updateMu", gamma.size());
-	for (int p = 0; p < pnames.size(); p++) {
-	    std::string pn(pnames[p]);
-	    Rprintf("p = %d, parameter name = %s\n", p, &pn[0]);
-	    NumericVector pp = nlenv.get(pn);
-	    showdbl(pp.begin(), "current", pp.size());
-	    std::copy(gg + n * p, gg + n * (p + 1), pp.begin());
-	    showdbl(pp.begin(), "updated", pp.size());
-	}
-	Rprintf("\nBefore evaluation\n");
-	NumericVector rr = nlmod.eval(nlenv);
-	showdbl(rr.begin(), "Model evaluation", rr.size());
-	if (rr.size() != n)
-	    Rf_error("Length mu = %d, expected %d", rr.size(), n);
-	std::copy(rr.begin(), rr.end(), mu.begin());
-	NumericMatrix rrg = rrg.attr("gradient");
-	std::copy(rrg.begin(), rrg.end(), d_sqrtXwt.begin());
-	showdbl(rrg.begin(), "Gradient evaluation", rrg.size());
     }
 
 /** 
@@ -288,9 +234,37 @@ namespace mer{
 	return *d_wrss;
     }
 
+    double merResp::updateMu(NumericVector const &gamma) {
+	std::copy(gamma.begin(), gamma.end(), mu.begin());
+	return updateWrss();
+    }
+
+    double glmerResp::updateMu(NumericVector const &gamma) {
+	std::copy(gamma.begin(), gamma.end(), eta.begin());
+	linkInv();
+	return updateWrss();
+    }
+
+    double nlmerResp::updateMu(NumericVector const &gamma) {
+	int n = y.size();
+	double *gg = gamma.begin();
+
+	for (int p = 0; p < pnames.size(); p++) {
+	    std::string pn(pnames[p]);
+	    NumericVector pp = nlenv.get(pn);
+	    std::copy(gg + n * p, gg + n * (p + 1), pp.begin());
+	}
+	NumericVector rr = nlmod.eval(SEXP(nlenv));
+	if (rr.size() != n)
+	    Rf_error("Length mu = %d, expected %d", rr.size(), n);
+	std::copy(rr.begin(), rr.end(), mu.begin());
+	NumericMatrix rrg = rr.attr("gradient");
+	std::copy(rrg.begin(), rrg.end(), d_sqrtXwt.begin());
+	return updateWrss();
+    }
+
     rwResp::rwResp(S4 xp)
 	: merResp(xp),
-	  d_gamma(xp.slot("gamma")),
 	  d_sqrtXwt(SEXP(xp.slot("sqrtXwt"))) {
     }
 
@@ -298,13 +272,10 @@ namespace mer{
 	return d_sqrtXwt;
     }
 
-    double *rwResp::gamma() {
-	return d_gamma.begin();
-    }
-
     glmerResp::glmerResp(S4 xp)
 	: rwResp(xp),
 	  family(SEXP(xp.slot("family"))),
+	  eta(xp.slot("eta")),
 	  muEta(xp.slot("muEta")),
 	  n(xp.slot("n")),
 	  d_var(xp.slot("var")) {
@@ -382,34 +353,17 @@ namespace mer{
 	d_RZX.dgemv('N', -1., d_beta, 1., resp.cu);
     }
 
-/** 
- *  gamma += crossprod(Ut, u)
- * 
- * @param gam Value of gamma to be updated
- */
-    void deFeMod::incGamma(double *gam) const {
-	d_X.dgemv('N', 1., d_beta, 1., gam);
-    }
-    
-    void deFeMod::incGamma(NumericVector &gam) const {
-	d_X.dgemv('N', 1., d_beta, 1., gam.begin());
-    }
-    
     rwDeFeMod::rwDeFeMod(S4 xp)
 	: deFeMod(xp),
 	  d_V(S4(xp.slot("V"))) {
     }
 
-    const dgeMatrix &rwDeFeMod::V() const {
-	return d_V;
+    spFeMod::spFeMod(Rcpp::S4 xp)
+	: feModule(xp),
+	  d_X(S4(xp.slot("X"))),
+	  d_RZX(S4(xp.slot("RZX"))),
+	  d_RX(S4(xp.slot("RX"))) {
     }
-
-    spFeMod::spFeMod(Rcpp::S4 xp) :
-	feModule(xp),
-	X(S4(xp.slot("X"))),
-	RZX(S4(xp.slot("RZX"))),
-	RX(S4(xp.slot("RX")))
-    { }
 
     lmerSpFeMod::lmerSpFeMod(Rcpp::S4 xp) :
 	spFeMod(xp),
@@ -430,18 +384,18 @@ namespace mer{
 	double mone[] = {-1.,0}, one[] = {1.,0};
 	CHM_SP t2 = re.SupdateL(ZtX);
 
-	RZX.update(*t2);
+	d_RZX.update(*t2);
 	M_cholmod_free_sparse(&t2, &c);	
 	
-	CHM_SP t1 = RZX.crossprod();
+	CHM_SP t1 = d_RZX.crossprod();
 	t2 = M_cholmod_add(&XtX, t1, one, mone, 1/*values*/,
 			     1/*sorted*/, &c);
 	M_cholmod_free_sparse(&t1, &c);
-	RX.update(*t2);
+	d_RX.update(*t2);
 
 	M_cholmod_free_sparse(&t2, &c);
 
-	*d_ldRX2 = M_chm_factor_ldetL2(&RX);
+	*d_ldRX2 = M_chm_factor_ldetL2(&d_RX);
     }
 
  /** 
@@ -455,26 +409,22 @@ namespace mer{
     void lmerSpFeMod::updateBeta(merResp &resp) {
 	std::copy(resp.Vtr.begin(), resp.Vtr.end(), resp.cbeta.begin());
 	chmDn ccbeta(resp.cbeta), ccu(resp.cu);
-	RZX.dmult('T', -1., 1., ccu, ccbeta);
+	d_RZX.dmult('T', -1., 1., ccu, ccbeta);
 	std::copy(resp.cbeta.begin(), resp.cbeta.end(), d_beta.begin());
 	chmDn cbeta(d_beta);
-	CHM_DN t1 = RX.solve(CHOLMOD_A, &cbeta);
+	CHM_DN t1 = d_RX.solve(CHOLMOD_A, &cbeta);
 	double *t1b = (double*)t1->x;
 	std::copy(t1b,  t1b + d_beta.size(), d_beta.begin());
 	M_cholmod_free_dense(&t1, &c);
-	RZX.dmult('N', -1., 1., cbeta, ccu);
+	d_RZX.dmult('N', -1., 1., cbeta, ccu);
     }
 
-    void spFeMod::incGamma(NumericVector &gam) const {
-	chmDn bb(d_beta), gg(gam);
-	X.dmult('N', 1., 1., bb, gg);
-    }
-    
     static inline double sqrtquotient(double x, double y) {
 	return sqrt(x/y);
     }
 
     void glmerResp::updateSqrtRWt() {
+	variance();
 	std::transform(weights.begin(), weights.end(), d_var.begin(),
 		       d_sqrtrwt.begin(), sqrtquotient);
     }
@@ -501,7 +451,7 @@ namespace mer{
 	fe(S4(xp.slot("fe"))) {
     }
 
-    void glmerDe::updateGamma() {
+    double glmerDe::updateMu() {
 	const NumericVector u = re.u(), offset = resp.offset();
 	NumericVector b(u.size()), gamma(offset.size());
 	std::copy(offset.begin(), offset.end(), gamma.begin());
@@ -510,7 +460,7 @@ namespace mer{
 	re.Lambda().dmult('N', 1., 0., chmDn(u), bb);
 	re.Zt().dmult('T', 1., 1., bb, gg);
 	fe.X().dmult('N', 1., 1., chmDn(fe.beta()), gg);
-	resp.updateMu(gamma);
+	return resp.updateMu(gamma);
     }
 
     void rwDeFeMod::updateV(NumericMatrix const &sqrtXwt) {
@@ -555,7 +505,7 @@ namespace mer{
     }
 
     double glmerDe::IRLS(int verbose) {
-	const NumericVector var = resp.var();
+	const NumericVector var = resp.var(), u = re.u();
 	std::vector<double> varold(var.size());
 	NumericVector bb = fe.beta();
 	int p = bb.size();
@@ -568,9 +518,8 @@ namespace mer{
 				// store copies of var and beta
 	    std::copy(bb.begin(), bb.end(), betabase.begin());
 	    std::copy(var.begin(), var.end(), varold.begin());
-	    updateGamma();     // using current beta
-	    resp.linkInv();    // mu
-	    pwrss0 = resp.updateWrss() + re.sqLenU();
+				// using current beta and u
+	    pwrss0 = updateMu() + re.sqrLenU();
 	    resp.updateSqrtXWt();      // muEta and sqrtXwt
 	    fe.updateV(resp.sqrtXwt());	// derive V from X
 				// Vtr <- crossprod(V, wtres)
@@ -588,17 +537,14 @@ namespace mer{
 			       newbeta.begin(), newbeta.begin(),
 			       std::plus<double>());
 		fe.setBeta(newbeta);
-		updateGamma();
-		resp.linkInv();
-		pwrss1 = resp.updateWrss();
-		NumericVector bb = fe.beta();
+		pwrss1 = updateMu() + re.sqrLenU();
 		if (verbose > 1) {
+		    NumericVector bb = fe.beta();
 		    Rprintf("step = %g, pwrss0 = %g; pwrss1 = %g\n",
 			    step, pwrss0, pwrss1, *bb.begin());	
 		    showdbl(bb.begin(), "beta", p);
 		}
 	    }
-	    resp.variance();
 	    resp.updateSqrtRWt();
 	    crit = compare_vec(&varold[0], var.begin(), varold.size());
 	    if (verbose > 1) Rprintf("convergence criterion: %g\n", crit);
@@ -607,49 +553,46 @@ namespace mer{
     } // IRLS
 
     double glmer::Laplace() {
-	NumericVector devRes = resp.devResid();
-	return std::accumulate(devRes.begin(), devRes.end(),
-			       double()) +
-	    re.ldL2() + re.sqLenU();
+	const NumericVector devRes = resp.devResid();
+	return re.ldL2() + re.sqrLenU() +
+	    std::accumulate(devRes.begin(), devRes.end(), double());
     }
 	
     double glmerDe::PIRLS(int verbose) {
-	const NumericVector var = resp.var();
+	const NumericVector var = resp.var(), u = re.u();
 	std::vector<double> varold(var.size());
-	NumericVector uu = re.u();
-	int q = uu.size();
-	std::vector<double> incr(q), ubase(q), newU(q);
+	int q = u.size();
+	NumericVector incr(q), ubase(q), newU(q);
 	double crit, step, pwrss0, pwrss1;
 
 	crit = 10. * CM_TOL;
 	// weights, var and sqrtrwt are assumed established.
 	for (int i = 0; crit >= CM_TOL && i < CM_MAXITER; i++) {
 				// store copies of var and u
-	    std::copy(uu.begin(), uu.end(), ubase.begin());
+	    std::copy(u.begin(), u.end(), ubase.begin());
 	    std::copy(var.begin(), var.end(), varold.begin());
-	    updateGamma();	// linear predictor
-	    resp.linkInv();	// mu
-	    pwrss0 = resp.updateWrss() + re.sqLenU();
+	    updateMu();	// linear predictor
+	    pwrss0 = resp.updateWrss() + re.sqrLenU();
 	    resp.updateSqrtXWt();      // muEta and sqrtXwt
 				// solve for incr
-	    re.rwUpdateL(resp.sqrtXwt(), resp.wtres(), uu, &incr[0]);
+	    re.rwUpdateL(resp.sqrtXwt(), resp.wtres(), u, &incr[0]);
 	    pwrss1 = pwrss0;	// force one evaluation of the loop
 	    for (step = 1.; pwrss0 <= pwrss1 && step > CM_SMIN; step /= 2.) {
 		std::transform(incr.begin(), incr.end(), newU.begin(),
-			       std::bind2nd(std::multiplies<double>(), step));
-		std::transform(ubase.begin(), ubase.end(), newU.begin(), newU.begin(),
+			       std::bind2nd(std::multiplies<double>(),
+					    step));
+		std::transform(ubase.begin(), ubase.end(),
+			       newU.begin(), newU.begin(),
 			       std::plus<double>());
-		re.setU(&newU[0]);
-		updateGamma();
-		resp.linkInv();
-		pwrss1 = resp.updateWrss() + re.sqLenU();
+		re.setU(newU);
+		updateMu();
+		pwrss1 = resp.updateWrss() + re.sqrLenU();
 		if (verbose > 1) {
 		    Rprintf("step = %g, pwrss0 = %g; pwrss1 = %g\n",
-			    step, pwrss0, pwrss1, uu[0]);
-		    showdbl(uu.begin(), "u", uu.size());
+			    step, pwrss0, pwrss1);
+		    showdbl(u.begin(), "u", u.size());
 		}
 	    }
-	    resp.variance();
 	    resp.updateSqrtRWt();
 	    crit = compare_vec(&varold[0], var.begin(), varold.size());
 	    if (verbose > 1) Rprintf("convergence criterion: %g\n", crit);
@@ -667,21 +610,16 @@ namespace mer{
 	fe(S4(xp.slot("fe"))) {
     }
 
-    void nlmerDe::updateMu() {
+    double nlmerDe::updateMu() {
 	const NumericVector u = re.u(), offset = resp.offset();
 	NumericVector b(u.size()), gamma(offset.size());
 	std::copy(offset.begin(), offset.end(), gamma.begin());
 	chmDn bb(b), gg(gamma);
 
-	showdbl(gamma.begin(), "gamma after offset", gamma.size());
 	re.Lambda().dmult('N', 1., 0., chmDn(u), bb);
-	showdbl(u.begin(), "u", u.size());
-	showdbl(b.begin(), "b", b.size());
 	re.Zt().dmult('T', 1., 1., bb, gg);
-	showdbl(gamma.begin(), "gamma after reUpdate", gamma.size());
 	fe.X().dmult('N', 1., 1., chmDn(fe.beta()), gg);
-	showdbl(gamma.begin(), "gamma after feUpdate", gamma.size());
-	resp.updateMu(gamma);
+	return resp.updateMu(gamma);
     }
 
 } // namespace mer
@@ -731,8 +669,7 @@ RCPP_FUNCTION_VOID_2(feModSetBeta,S4 xp,NumericVector nbeta) {
     fe.setBeta(nbeta);
 }
 
-RCPP_FUNCTION_VOID_1(nlmerDeEval,S4 xp) {
+RCPP_FUNCTION_1(double,nlmerDeEval,S4 xp) {
     mer::nlmerDe nlmr(xp);
-    Rprintf("past initialization of nlmerDe object\n");
-    nlmr.updateMu();
+    return nlmr.updateMu();
 }
