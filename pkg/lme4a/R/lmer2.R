@@ -220,8 +220,8 @@ mkRespMod <- function(fr, reMod, feMod, family = NULL, nlenv = NULL,
         ll[names(lr)] <- lr             # may overwrite y, weights, etc.
         ll$weights <- unname(ll$weights)
         ll$y <- unname(ll$y)
-        ll$gamma <- family$linkfun(ll$mu)
-        ll$muEta <- family$mu.eta(ll$gamma)
+        ll$eta <- family$linkfun(ll$mu)
+        ll$muEta <- family$mu.eta(ll$eta)
         ll$var <- family$variance(ll$mu)
         ll$sqrtrwt <- sqrt(ll$weights/ll$var)
         ll$wtres <- ll$sqrtrwt * (ll$y - ll$mu)
@@ -242,7 +242,6 @@ mkRespMod <- function(fr, reMod, feMod, family = NULL, nlenv = NULL,
         } else {
             ll$Class <- "nlmerResp"
             ll$nlenv <- nlenv
-            ll$gamma <- ll$offset
             ll$nlmod <- Quote(nlmod)
             eta <- eval(nlmod, nlenv)
             ll$sqrtXwt <- attr(eta, "gradient")

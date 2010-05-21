@@ -14,27 +14,27 @@ namespace mer {
 	MatrixNs::chmSp d_Lambda, d_Ut, d_Zt;
 	Rcpp::IntegerVector Lind;
 	Rcpp::NumericVector lower, theta;
-	double *d_ldL2;
 	Rcpp::NumericVector d_u;
+	double *d_ldL2, d_sqlLenU;
     public:
 	reModule(Rcpp::S4);
 
-	CHM_SP SupdateL(MatrixNs::chmSp const&) const;
-	void setU(const double *);
 	const Rcpp::NumericVector &u() const {return d_u;}
 	const MatrixNs::chmFr &L() const {return d_L;}
 	const MatrixNs::chmSp &Lambda() const {return d_Lambda;}
 	const MatrixNs::chmSp &Ut() const {return d_Ut;}
 	const MatrixNs::chmSp &Zt() const {return d_Zt;}
-	double sqLenU() const;
-	double ldL2() const;
+	double ldL2() const {return *d_ldL2;}
+	double sqrLenU() const {return d_sqlLenU;}
+
+	CHM_SP SupdateL(MatrixNs::chmSp const&) const;
 	void DupdateL(MatrixNs::chmDn const&,MatrixNs::chmDn&) const;
-	void incGamma(Rcpp::NumericVector&) const;
-	void incGamma(double*) const;
 	void rwUpdateL(Rcpp::NumericMatrix const&,
 		       Rcpp::NumericVector const&,
 		       Rcpp::NumericVector const&,
 		       double*);
+	void setU(std::vector<double> const&);
+	void setU(Rcpp::NumericVector const&);
 	void updateTheta(Rcpp::NumericVector const&);
 	void updateU(merResp const&);
     };
@@ -46,12 +46,12 @@ namespace mer {
     public:
 	merResp(Rcpp::S4);
 	void updateL(reModule const&);
-	void updateMu(Rcpp::NumericVector const&);
+	double updateMu(Rcpp::NumericVector const&);
 	double updateWrss();
-	double wrss() const;
-	const Rcpp::NumericVector &sqrtrwt() const;
-	const Rcpp::NumericVector &wtres() const;
-	const Rcpp::NumericVector &offset() const;
+	double wrss() const {return *d_wrss;}
+	const Rcpp::NumericVector &sqrtrwt() const {return d_sqrtrwt;}
+	const Rcpp::NumericVector &wtres() const {return d_wtres;}
+	const Rcpp::NumericVector &offset() const  {return d_offset;}
 
 	Rcpp::NumericVector Utr, Vtr, cbeta, cu;
     };
@@ -75,8 +75,6 @@ namespace mer {
 	deFeMod(Rcpp::S4 xp);
 	const MatrixNs::Cholesky &RX() const{return d_RX;}
 	const MatrixNs::dgeMatrix &X() const{return d_X;}
-	void incGamma(Rcpp::NumericVector &gam) const;
-	void incGamma(double*) const;
     };
 
     class lmerDeFeMod : public deFeMod {
@@ -91,11 +89,13 @@ namespace mer {
 
     class spFeMod : public feModule {
     protected:
-	MatrixNs::chmSp X, RZX;
-	MatrixNs::chmFr RX;
+	MatrixNs::chmSp d_X, d_RZX;
+	MatrixNs::chmFr d_RX;
     public:
 	spFeMod(Rcpp::S4 xp);
-	void incGamma(Rcpp::NumericVector &gam) const;
+	const MatrixNs::chmSp& X() const {return d_X;}
+	const MatrixNs::chmSp& RZX() const {return d_RZX;}
+	const MatrixNs::chmFr& RX() const {return d_RX;}
     };
 
     class lmerSpFeMod : public spFeMod {
@@ -108,40 +108,36 @@ namespace mer {
 
     class rwResp : public merResp {
     protected:
-	Rcpp::NumericVector d_gamma;
 	Rcpp::NumericMatrix d_sqrtXwt;
     public:
 	rwResp(Rcpp::S4 xp);
 	const Rcpp::NumericMatrix &sqrtXwt() const;
-	double *gamma();
     };
 
     class glmerResp : public rwResp {
     protected:
 	glmFamily family;
-	Rcpp::NumericVector muEta, n, d_var;
+	Rcpp::NumericVector eta, muEta, n, d_var;
+	void linkFun(){family.linkFun(eta, mu);}
+	void linkInv(){family.linkInv(mu, eta);}
+	void MuEta(){family.muEta(muEta, eta);}
+	void variance(){family.variance(d_var, mu);}
     public:
 	glmerResp(Rcpp::S4 xp);
 	const Rcpp::NumericVector &var() const {return d_var;}
 	Rcpp::NumericVector devResid(){return family.devResid(mu, weights, y);}
-	void updateMu(Rcpp::NumericVector const &gamma);
+	double updateMu(Rcpp::NumericVector const &gamma);
 	void updateSqrtRWt();
 	void updateSqrtXWt();
-	void linkFun(){family.linkFun(d_gamma, mu);}
-	void linkInv(){family.linkInv(mu, d_gamma);}
-	void MuEta(){family.muEta(muEta, d_gamma);}
-	void variance(){family.variance(d_var, mu);}
     };
     
     class nlmerResp : public rwResp {
-//	Rcpp::NumericVector d_eta;
 	Rcpp::Environment nlenv;
 	Rcpp::Language nlmod;
 	Rcpp::CharacterVector pnames;
     public:
 	nlmerResp(Rcpp::S4 xp);
-//	const Rcpp::NumericVector &eta() const;
-	void updateMu(Rcpp::NumericVector const &gamma);
+	double updateMu(Rcpp::NumericVector const &gamma);
     };
     
     class rwDeFeMod : public deFeMod {
@@ -151,7 +147,7 @@ namespace mer {
 	void updateV(Rcpp::NumericMatrix const&);
 	void updateRX(bool);
 	void dpotrs(Rcpp::NumericVector&) const;
-	const MatrixNs::dgeMatrix &V() const;
+	const MatrixNs::dgeMatrix &V() const {return d_V;}
     };
 
     class rwSpFeMod : public spFeMod {
@@ -175,7 +171,7 @@ namespace mer {
 	rwDeFeMod fe;
     public:
 	glmerDe(Rcpp::S4 xp);
-	void updateGamma();
+	double updateMu();
 	double IRLS(int);
 	double PIRLS(int);
     };
@@ -184,7 +180,7 @@ namespace mer {
 	rwSpFeMod fe;
     public:
 	glmerSp(Rcpp::S4 xp);
-	void updateGamma();
+	double updateMu();
 	double IRLS(int);
     };
 
@@ -202,7 +198,7 @@ namespace mer {
 	rwDeFeMod fe;
     public:
 	nlmerDe(Rcpp::S4 xp);
-	void updateMu();
+	double updateMu();
 	double IRLS(int);
 	double PIRLS(int);
     };
@@ -211,7 +207,7 @@ namespace mer {
 	rwSpFeMod fe;
     public:
 	nlmerSp(Rcpp::S4 xp);
-	void updateGamma();
+	double updateMu();
 	double IRLS(int);
 	double PIRLS(int);
     };
@@ -226,8 +222,9 @@ namespace mer {
     public:
 	lmer(Rcpp::S4 xp);
 
-	double deviance();
-	double reCrit();
+	double pwrss() const;
+	double deviance() const;
+	double reCrit() const;
 	double updateTheta(const Rcpp::NumericVector&);
     };
     
@@ -243,29 +240,37 @@ namespace mer {
 
     template<typename T>
     double lmer<T>::l2PI = log(2. * PI);
-    
+
+/** 
+ * Evaluate the penalized, weighted residual sum of squares
+ * 
+ * @return resp.wrss() + crossprod(re.u())
+ */
+    template<typename T> inline
+    double lmer<T>::pwrss() const {
+	const Rcpp::NumericVector u = re.u();
+	return resp.wrss() +
+	    std::inner_product(u.begin(), u.end(), u.begin(), double());
+    }
 /** 
  * Evaluate the deviance
  * 
  * @return ldL2 + n *(1 + log(2 * pi * pwrss/n))
  */
     template<typename T> inline
-    double lmer<T>::deviance() {
-	double nn = (double)resp.wtres().size(),
-	    prss = re.sqLenU() + resp.wrss();
-	return re.ldL2() + nn * (1 + l2PI + log(prss/nn));
+    double lmer<T>::deviance() const {
+	double nn = (double)resp.wtres().size();
+	return re.ldL2() + nn * (1 + l2PI + log(pwrss()/nn));
     }
-
 /** 
  * Evaluate the REML criterion
  * 
  * @return ldL2 + ldRX2 + (n - p) * (1 + log(2 * pi * pwrss/(n - p)))
  */
     template<typename T> inline
-    double lmer<T>::reCrit() {
-	double nmp = (double)(resp.wtres().size() - fe.beta().size()),
-	    prss = re.sqLenU() + resp.wrss();
-	return re.ldL2()+fe.ldRX2()+nmp*(1 + l2PI + log(prss/nmp));
+    double lmer<T>::reCrit() const {
+	double nmp = (double)(resp.wtres().size() - fe.beta().size());
+	return re.ldL2()+fe.ldRX2()+nmp*(1 + l2PI + log(pwrss()/nmp));
     }
 
     template<typename T> inline
@@ -276,14 +281,15 @@ namespace mer {
 	fe.updateBeta(resp);
 	re.updateU(resp);
 
-	const Rcpp::NumericVector offset = resp.offset();
-	Rcpp::NumericVector gamma(offset.size());
+	const Rcpp::NumericVector u = re.u(), offset = resp.offset();
+	Rcpp::NumericVector b(u.size()), gamma(offset.size());
 	std::copy(offset.begin(), offset.end(), gamma.begin());
-	fe.incGamma(gamma);
-	re.incGamma(gamma);
+	MatrixNs::chmDn bb(b), gg(gamma);
+
+	re.Lambda().dmult('N', 1., 0., MatrixNs::chmDn(u), bb);
+	re.Zt().dmult('T', 1., 1., bb, gg);
+	fe.X().dmult('N', 1., 1., MatrixNs::chmDn(fe.beta()), gg);
 	resp.updateMu(gamma);
-	
-	resp.updateWrss();	// update resp.wtres and resp.wrss
 	return reml ? reCrit() : deviance();
     }
 }

@@ -473,34 +473,30 @@ setClass("merResp",
 
 ##' reweightable response module
 ##'
-##' gamma is the linear predictor, which is transformed to mu
+##' sqrtXwt is the matrix of weights for the X matrix and Ut matrix
 setClass("rwResp",
-         representation(gamma = "numeric", sqrtXwt = "matrix"),
+         representation(sqrtXwt = "matrix"),
          contains = "merResp",
          validity = function(object) {
-             lg <- length(object@gamma)
              n <- length(object@y)
              lXwt <- length(object@sqrtXwt)
-             if (lXwt != lg)
-                 return("length(sqrtXwt) != length(gamma)")
              if (lXwt < 1L || lXwt %% n)
                  return("length(sqrtXwt) must be a positive multiple of length(y)")
-             if (lg < 1 || lg %% n)
-                 return("length(gamma) must be a positive multiple of length(y)")
              TRUE
          })
 
 ##' glmer response module
 setClass("glmerResp",
          representation(family = "family",
+                        eta = "numeric",
                         muEta = "numeric",
                         n = "numeric",    # for evaluation of the aic
                         var = "numeric"), # variances of responses
          contains = "rwResp",
          validity = function(object) {
              n <- length(object@y)
-             if (length(object@muEta) != n || length(object@var) != n)
-                 return("lengths of muEta and var must match length(y)")
+             if (length(object@eta) != n || length(object@muEta) != n || length(object@var) != n)
+                 return("lengths of eta, muEta and var must match length(y)")
          })
 
 ##' nlmer response module
