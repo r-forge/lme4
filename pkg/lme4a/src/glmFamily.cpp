@@ -100,7 +100,7 @@ glmFamily::variance(NumericVector &vv, NumericVector const &mu) {
 NumericVector
 glmFamily::devResid(NumericVector const &mu,
 		    NumericVector const &weights,
-		    NumericVector const &y) {
+		    NumericVector const &y) { 
     Function devres = lst["dev.resids"];
     NumericVector dd = devres(y, mu, weights);
     return dd;

@@ -12,14 +12,14 @@ class glmFamily {
     std::string family, link;
 public:
     glmFamily(SEXP);
-    void linkFun(Rcpp::NumericVector&, Rcpp::NumericVector const &);
-    void linkInv(Rcpp::NumericVector&, Rcpp::NumericVector const&);
-    void muEta(Rcpp::NumericVector&, Rcpp::NumericVector const&);
+    void  linkFun(Rcpp::NumericVector&, Rcpp::NumericVector const&);
+    void  linkInv(Rcpp::NumericVector&, Rcpp::NumericVector const&);
+    void    muEta(Rcpp::NumericVector&, Rcpp::NumericVector const&);
     void variance(Rcpp::NumericVector&, Rcpp::NumericVector const&);
     Rcpp::NumericVector devResid(
 	Rcpp::NumericVector const&,
 	Rcpp::NumericVector const&,
-	Rcpp::NumericVector const&);
+	Rcpp::NumericVector const&); //const; //Fails on lst["dev.resids"]
     
 private:
     static fmap

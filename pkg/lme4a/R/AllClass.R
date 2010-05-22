@@ -425,13 +425,14 @@ setClass("rwSpFeMod",
 ##'
 ##' cu is the intermediate solution for u, cbeta for beta
 setClass("merResp",
-         representation(y = "numeric",
-                        weights = "numeric", # prior weights
-                        sqrtrwt = "numeric", # square root of the residual weights
+         representation(mu = "numeric",
                         offset = "numeric",
-                        mu = "numeric",
+                        sqrtXwt = "matrix",
+                        sqrtrwt = "numeric", # sqrt(residual weights)
+                        weights = "numeric", # prior weights
+                        wrss = "numeric", # weighted residual sum of squares
                         wtres = "numeric", # weighted residuals
-                        wrss = "numeric"), # weighted residual sum of squares
+                        y = "numeric"),
          validity = function(object) {
              n <- length(object@y)
              if (any(n != sapply(lapply(c("weights","sqrtrwt","mu","wtres"), slot,
@@ -440,26 +441,17 @@ setClass("merResp",
              lo <- length(object@offset)
              if (!lo || lo %% n)
                  return("length(offset) must be a positive multiple of length(y)")
+             if (length(object@sqrtXwt) != lo)
+                 return("length(sqrtXwt) must equal length(offset)")
+             if (nrow(object@sqrtXwt) != n)
+                 return("nrow(sqrtXwt) != length(y)")                 
              if (length(object@wrss) != 1L)
                  return("length of wrss must be 1")
              TRUE
          })
 
-setClass("lmerResp", representation(REML = "logical"), contains = "merResp")
-
-##' reweightable response module
-##'
-##' sqrtXwt is the matrix of weights for the X matrix and Ut matrix
-setClass("rwResp",
-         representation(sqrtXwt = "matrix", nAGQ = "integer"),
-         contains = "merResp",
-         validity = function(object) {
-             n <- length(object@y)
-             lXwt <- length(object@sqrtXwt)
-             if (lXwt < 1L || lXwt %% n)
-                 return("length(sqrtXwt) must be a positive multiple of length(y)")
-             TRUE
-         })
+setClass("lmerResp", representation(REML = "logical"),
+         contains = "merResp")
 
 ##' glmer response module
 setClass("glmerResp",
@@ -468,7 +460,7 @@ setClass("glmerResp",
                         muEta = "numeric",
                         n = "numeric",    # for evaluation of the aic
                         var = "numeric"), # variances of responses
-         contains = "rwResp",
+         contains = "merResp",
          validity = function(object) {
              n <- length(object@y)
              if (length(object@eta) != n || length(object@muEta) != n || length(object@var) != n)
@@ -480,7 +472,7 @@ setClass("nlmerResp",
          representation(nlenv = "environment",
                         nlmod = "call",
                         pnames = "character"),
-         contains = "rwResp",
+         contains = "merResp",
          validity = function(object) {
              n <- length(object@y)
              N <- length(object@offset)
