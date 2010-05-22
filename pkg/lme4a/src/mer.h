@@ -193,6 +193,7 @@ namespace mer {
 	void solveBetaU();
 	void solveU();
 	void updateTheta(const Rcpp::NumericVector&nt){re.updateTheta(nt);}
+	void updateRzxRx(){fe.updateRzxRx(re.Lambda(), re.L());}
 	double updateMu();
     };
     
