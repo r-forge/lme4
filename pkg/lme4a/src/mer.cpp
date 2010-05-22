@@ -3,56 +3,91 @@
 using namespace Rcpp;
 using namespace MatrixNs;
 
-static void showdbl(const double* x, const char* nm, int n) {
-    int n5 = (n < 5) ? n : 5;
-    Rprintf("%s: %g", nm, x[0]);
-    for (int i = 1; i < n5; i++) Rprintf(", %g", x[i]);
-    Rprintf("\n");
-}
-
-#if 0
-static void showint(const int* x, const char* nm, int n) {
-    int n20 = (n < 20) ? n : 20;
-    Rprintf("%s: %d", nm, x[0]);
-    for (int i = 1; i < n20; i++) Rprintf(", %d", x[i]);
-    Rprintf("\n");
-}
-
-static void showCHM_DN(const CHM_DN x, const std::string &nm) {
-    Rprintf("%s: nrow = %d, ncol = %d, nzmax = %d, d = %d, xtype = %d, dtype = %d\n",
-	    nm.c_str(), x->nrow, x->ncol, x->nzmax, x->d, x->xtype, x->dtype);
-    showdbl((double*)x->x, "x", x->nzmax);
-}
-
-static void showCHM_FR(const CHM_FR x, const std::string &nm) {
-    Rprintf("%s: n = %d, minor = %d, xtype = %d, itype = %d, dtype = %d\n",
-	    nm.c_str(), x->n, x->minor, x->xtype, x->itype, x->dtype);
-    Rprintf("ordering = %d, is_ll = %d, is_super = %d, is_monotonic = %d, nzmax = %d\n",
-	    x->ordering, x->is_ll, x->is_super, x->is_monotonic, x->nzmax);
-    int *pp = (int*)x->p;
-    showint(pp, "p", (x->n) + 1);
-    showint((int*)x->Perm, "Perm", x->n);
-    if (pp[x->n] > 0) {
-	showint((int*)x->i, "i", x->n);
-	showdbl((double*)x->x, "x", x->n);
-    } else Rprintf("nnz = 0\n");
-}
-
-static void showCHM_SP(const CHM_SP x, const std::string &nm) {
-    Rprintf("%s: nrow = %d, ncol = %d, xtype = %d, stype = %d, itype = %d, dtype = %d\n",
-	    nm.c_str(), x->nrow, x->ncol, x->xtype, x->stype,
-	    x->itype, x->dtype);
-    int nc = x->ncol, nnz = M_cholmod_nnz(x, &c);
-    showint((int*)x->p, "p", nc + 1);
-    if (nnz > 0) {
-	showint((int*)x->i, "i", nnz);
-	showdbl((double*)x->x, "x", nnz);
-    } else Rprintf("nnz = 0\n");
-}
-#endif
-
 namespace mer{
 
+    void showdbl(const double* x, const char* nm, int n) {
+	int n5 = (n < 5) ? n : 5;
+	Rprintf("%s: %g", nm, x[0]);
+	for (int i = 1; i < n5; i++) Rprintf(", %g", x[i]);
+	Rprintf("\n");
+    }
+
+    void showint(const int* x, const char* nm, int n) {
+	int n20 = (n < 20) ? n : 20;
+	Rprintf("%s: %d", nm, x[0]);
+	for (int i = 1; i < n20; i++) Rprintf(", %d", x[i]);
+	Rprintf("\n");
+    }
+
+    void showCHM_DN(const CHM_DN x, const std::string &nm) {
+	Rprintf("%s: nrow = %d, ncol = %d, nzmax = %d, d = %d, xtype = %d, dtype = %d\n",
+		nm.c_str(), x->nrow, x->ncol, x->nzmax, x->d, x->xtype, x->dtype);
+	showdbl((double*)x->x, "x", x->nzmax);
+    }
+
+    void showCHM_FR(const CHM_FR x, const std::string &nm) {
+	Rprintf("%s: n = %d, minor = %d, xtype = %d, itype = %d, dtype = %d\n",
+		nm.c_str(), x->n, x->minor, x->xtype, x->itype, x->dtype);
+	Rprintf("ordering = %d, is_ll = %d, is_super = %d, is_monotonic = %d, nzmax = %d\n",
+		x->ordering, x->is_ll, x->is_super, x->is_monotonic, x->nzmax);
+	int *pp = (int*)x->p;
+	showint(pp, "p", (x->n) + 1);
+	showint((int*)x->Perm, "Perm", x->n);
+	if (pp[x->n] > 0) {
+	    showint((int*)x->i, "i", x->n);
+	    showdbl((double*)x->x, "x", x->n);
+	} else Rprintf("nnz = 0\n");
+    }
+
+    void showCHM_SP(const CHM_SP x, const std::string &nm) {
+	Rprintf("%s: nrow = %d, ncol = %d, xtype = %d, stype = %d, itype = %d, dtype = %d\n",
+		nm.c_str(), x->nrow, x->ncol, x->xtype, x->stype,
+		x->itype, x->dtype);
+	int nc = x->ncol, nnz = M_cholmod_nnz(x, &c);
+	showint((int*)x->p, "p", nc + 1);
+	if (nnz > 0) {
+	    showint((int*)x->i, "i", nnz);
+	    showdbl((double*)x->x, "x", nnz);
+	} else Rprintf("nnz = 0\n");
+    }
+
+/** 
+ * Determine the Euclidean distance between two vectors relative to the
+ * square root of the product of their lengths
+ * 
+ * @param v1 First vector to compare
+ * @param v2 Second vector to compare
+ * 
+ * @return relative difference between the vectors
+ */
+    double compare_vec(const NumericVector v1, const NumericVector v2) {
+	int n = v1.size();
+	if (v2.size() != n)
+	    Rf_error("%s: size mismatch, %d != %d\n",
+		     "compare_vec", n, v2.size());
+	std::vector<double> diff(v1.size());
+	std::transform(v1.begin(), v1.end(), v2.begin(),
+		       diff.begin(), std::minus<double>());
+	double d1 = sqrt(std::inner_product(v1.begin(), v1.end(),
+					    v1.begin(), double())),
+	    d2 = sqrt(std::inner_product(v1.begin(), v1.end(),
+					 v1.begin(), double())),
+	    num = sqrt(std::inner_product(diff.begin(), diff.end(),
+					  diff.begin(), double()));
+	if (d1 == 0) {
+	    if (d2 == 0) return num;
+	    else return num/d2;
+	}
+	if (d2 == 0) return num/d1;
+	return num/sqrt(d1 * d2);
+    }
+
+    template<typename T> 
+    static T myClone(T object) {
+	T ans(object.size());
+	std::copy(object.begin(), object.end(), ans.begin());
+	return ans;
+    }
 
 /** 
  * Update the destination dense matrix as
@@ -111,10 +146,27 @@ namespace mer{
 				       d_u.begin(), double())) {
     }
     
-    void reModule::setU(const double *nu) {
-	std::copy(nu, nu + d_u.size(), d_u.begin());
+    void reModule::updateSqrLenU() {
 	d_sqlLenU = std::inner_product(d_u.begin(), d_u.end(),
 				       d_u.begin(), double());
+    }
+
+    void reModule::setU(const cholmod_dense* nu) {
+	int q = d_u.size();
+	if (nu->nrow != (size_t)q || nu->ncol != (size_t)1)
+	    Rf_error("%s: expected dimensions (%d,1), got (%d,%d)",
+		     "reModule::setU(chmDn)", q, nu->nrow, nu->ncol);
+	double *uu = (double*)nu->x;
+	std::copy(uu, uu + q, d_u.begin());
+	updateSqrLenU();
+    }
+    
+    void reModule::setU(NumericVector const &nu) {
+	if (nu.size() != d_u.size())
+	    Rf_error("%s: expected %d, got %d",
+		     "reModule::setU(NumericVector)", d_u.size(), nu.size());
+	std::copy(nu.begin(), nu.end(), d_u.begin());
+	updateSqrLenU();
     }
     
 /** 
@@ -147,10 +199,8 @@ namespace mer{
 	DupdateL(d_Lambda, d_L, chmDn(d_Utr), ccu);
     }
 
-    void reModule::rwUpdateL(NumericMatrix const &Xwt,
-			     NumericVector const &wtres,
-			     NumericVector const &u,
-			     double *ans) {
+    NumericVector reModule::rwUpdateL(NumericMatrix const &Xwt,
+				      NumericVector const &wtres) {
 	double one = 1., mone = -1;
 	CHM_SP wtUt = M_cholmod_copy_sparse(&d_Ut, &c);
 	const chmDn cXwt(Xwt);
@@ -160,16 +210,17 @@ namespace mer{
 	M_cholmod_factorize_p(wtUt, &one, (int*)NULL, (size_t)0,
 			      &d_L, &c);
 	*d_ldL2 = M_chm_factor_ldetL2(&d_L);
-	std::copy(u.begin(), u.end(), ans);
-	chmDn cans(ans, d_Ut.nrow, 1);
+	NumericVector ans = myClone(d_u);
+	chmDn cans(ans);
 	const chmDn cwtres(wtres);
 	M_cholmod_sdmult(wtUt, 0/*trans*/, &one, &mone, &cwtres,
 			 &cans, &c);
 	M_cholmod_free_sparse(&wtUt, &c);
 	CHM_DN incr = M_cholmod_solve(CHOLMOD_A, &d_L, &cans, &c);
 	double *incx = (double*)incr->x;
-	std::copy(incx, incx + d_Ut.nrow, ans);
+	std::copy(incx, incx + d_Ut.nrow, ans.begin());
 	M_cholmod_free_dense(&incr, &c);
+	return ans;
     }
 
 /** 
@@ -181,7 +232,7 @@ namespace mer{
 	CHM_DN t1 = d_L.solve(CHOLMOD_Lt, &cu);
 	CHM_DN t2 = d_L.solve(CHOLMOD_Pt, t1);
 	::M_cholmod_free_dense(&t1, &c);
-	setU((double*)t2->x);
+	setU(t2);
 	::M_cholmod_free_dense(&t2, &c);
     }
 
@@ -192,8 +243,8 @@ namespace mer{
 	  d_wtres(xp.slot("wtres")),
 	  mu(xp.slot("mu")),
 	  weights(xp.slot("weights")),
-	  y(xp.slot("y"))
-    {
+	  y(xp.slot("y")),
+	  d_sqrtXwt(SEXP(xp.slot("sqrtXwt"))) {
 	int n = y.size(), os = d_offset.size();
 
 	if (mu.size() != n || d_wtres.size() != n ||
@@ -227,6 +278,15 @@ namespace mer{
 	return updateWrss();
     }
 
+    NumericVector glmerResp::devResid() {
+	return family.devResid(mu, weights, y);
+    }
+
+    double glmerResp::unscaledDeviance() {
+	const NumericVector dr = devResid();
+	return std::accumulate(dr.begin(), dr.end(), double());
+    }
+	
     double glmerResp::updateMu(NumericVector const &gamma) {
 	std::copy(gamma.begin(), gamma.end(), eta.begin());
 	linkInv();
@@ -256,13 +316,8 @@ namespace mer{
 	  d_reml(*LogicalVector(xp.slot("REML")).begin()) {
     }
 
-    rwResp::rwResp(S4 xp)
-	: merResp(xp),
-	  d_sqrtXwt(SEXP(xp.slot("sqrtXwt"))) {
-    }
-
     glmerResp::glmerResp(S4 xp)
-	: rwResp(xp),
+	: merResp(xp),
 	  family(SEXP(xp.slot("family"))),
 	  eta(xp.slot("eta")),
 	  muEta(xp.slot("muEta")),
@@ -271,7 +326,7 @@ namespace mer{
     }
 
     nlmerResp::nlmerResp(S4 xp)
-	: rwResp(xp),
+	: merResp(xp),
 	  nlenv(SEXP(xp.slot("nlenv"))),
 	  nlmod(SEXP(xp.slot("nlmod"))),
 	  pnames(xp.slot("pnames")) {
@@ -315,6 +370,11 @@ namespace mer{
 	DupdateL(Lambda, L, chmDn(d_UtV), cRZX);
 	d_RX.update('T', -1., d_RZX, 1., d_VtV);
 	*d_ldRX2 = d_RX.logDet2();
+    }
+
+    void deFeMod::updateRX(bool useRZX) {
+	if (useRZX) throw std::range_error("should not happen");
+	d_RX.update(d_V);
     }
 
 /** 
@@ -433,180 +493,6 @@ namespace mer{
 		       muEta.begin(), d_sqrtXwt.begin(),
 		       std::multiplies<double>());
     }
-    
-    glmer::glmer(S4 xp) :
-	re(S4(xp.slot("re"))),
-	resp(S4(xp.slot("resp"))) {
-    }
-    
-    glmerDe::glmerDe(S4 xp) :
-	glmer(xp),
-	fe(Rcpp::S4(xp.slot("fe"))) {
-    }
-
-    glmerSp::glmerSp(S4 xp) :
-	glmer(xp),
-	fe(S4(xp.slot("fe"))) {
-    }
-
-    double glmerDe::updateMu() {
-	const NumericVector u = re.u(), offset = resp.offset();
-	NumericVector b(u.size()), gamma(offset.size());
-	std::copy(offset.begin(), offset.end(), gamma.begin());
-	chmDn bb(b), gg(gamma);
-
-	re.Lambda().dmult('N', 1., 0., chmDn(u), bb);
-	re.Zt().dmult('T', 1., 1., bb, gg);
-	fe.X().dmult('N', 1., 1., chmDn(fe.beta()), gg);
-	return resp.updateMu(gamma);
-    }
-
-    void deFeMod::updateRX(bool useRZX) {
-	if (useRZX) throw std::range_error("should not happen");
-	d_RX.update(d_V);
-    }
-
-#define CM_TOL 1.e-5
-#define CM_MAXITER 30
-#define CM_SMIN 1.e-4
-
-/**
- * Determine the Euclidean distance between two vectors relative to the
- * square root of the product of their lengths
- */
-    static double compare_vec(const double *v1, const double *v2, int n) {
-	double num = 0., d1 = 0., d2 = 0.;
-	for (int i = 0; i < n; i++) {
-	    double diff = v1[i] - v2[i];
-	    num += diff * diff;
-	    d1 += v1[i] * v1[i];
-	    d2 += v2[i] * v2[i];
-	}
-	num = sqrt(num); d1 = sqrt(d1); d2 = sqrt(d2);
-	if (d1 == 0) {
-	    if (d2 == 0) return num;
-	    else return num/d2;
-	}
-	if (d2 == 0) return num/d1;
-	return num/sqrt(d1 * d2);
-    }
-
-    double glmerDe::IRLS(int verbose) {
-	const NumericVector var = resp.var(), u = re.u();
-	std::vector<double> varold(var.size());
-	NumericVector bb = fe.beta();
-	int p = bb.size();
-	NumericVector betabase(p), newbeta(p), incr(p); 
-	double crit, step, pwrss0, pwrss1;
-
-	crit = 10. * CM_TOL;
-	    // weights, var and sqrtrwt are assumed established.
-	for (int i = 0; crit >= CM_TOL && i < CM_MAXITER; i++) {
-				// store copies of var and beta
-	    std::copy(bb.begin(), bb.end(), betabase.begin());
-	    std::copy(var.begin(), var.end(), varold.begin());
-				// using current beta and u
-	    pwrss0 = updateMu() + re.sqrLenU();
-	    resp.updateSqrtXWt();	// muEta and sqrtXwt
-	    fe.updateV(resp.sqrtXwt());	// derive V from X
-	    fe.updateVtr(resp.wtres());	// crossprod(V, wtres)
-	    fe.updateRX(false);		// factor V'V
-	    std::copy(fe.Vtr().begin(), fe.Vtr().end(), incr.begin());
-	    fe.RX().dpotrs(incr); // evaluate the increment
-	    if (verbose > 1) showdbl(&incr[0], "deltab", p);
-	    pwrss1 = pwrss0;	// force one evaluation of the loop
-	    for (step = 1.; pwrss0 <= pwrss1 && step > CM_SMIN; step /= 2.) {
-				// newbeta <- betabase + incr * mult
-		std::transform(incr.begin(), incr.end(), newbeta.begin(),
-		       std::bind2nd(std::multiplies<double>(), step));
-		std::transform(betabase.begin(), betabase.end(),
-			       newbeta.begin(), newbeta.begin(),
-			       std::plus<double>());
-		fe.setBeta(newbeta);
-		pwrss1 = updateMu() + re.sqrLenU();
-		if (verbose > 1) {
-		    NumericVector bb = fe.beta();
-		    Rprintf("step = %g, pwrss0 = %g; pwrss1 = %g\n",
-			    step, pwrss0, pwrss1, *bb.begin());	
-		    showdbl(bb.begin(), "beta", p);
-		}
-	    }
-	    resp.updateSqrtRWt();
-	    crit = compare_vec(&varold[0], var.begin(), varold.size());
-	    if (verbose > 1) Rprintf("convergence criterion: %g\n", crit);
-	}
-	return Laplace();
-    } // IRLS
-
-    double glmer::Laplace() {
-	const NumericVector devRes = resp.devResid();
-	return re.ldL2() + re.sqrLenU() +
-	    std::accumulate(devRes.begin(), devRes.end(), double());
-    }
-	
-    double glmerDe::PIRLS(int verbose) {
-	const NumericVector var = resp.var(), u = re.u();
-	std::vector<double> varold(var.size());
-	int q = u.size();
-	NumericVector incr(q), ubase(q), newU(q);
-	double crit, step, pwrss0, pwrss1;
-
-	crit = 10. * CM_TOL;
-	// weights, var and sqrtrwt are assumed established.
-	for (int i = 0; crit >= CM_TOL && i < CM_MAXITER; i++) {
-				// store copies of var and u
-	    std::copy(u.begin(), u.end(), ubase.begin());
-	    std::copy(var.begin(), var.end(), varold.begin());
-	    updateMu();	// linear predictor
-	    pwrss0 = resp.updateWrss() + re.sqrLenU();
-	    resp.updateSqrtXWt();      // muEta and sqrtXwt
-				// solve for incr
-	    re.rwUpdateL(resp.sqrtXwt(), resp.wtres(), u, &incr[0]);
-	    pwrss1 = pwrss0;	// force one evaluation of the loop
-	    for (step = 1.; pwrss0 <= pwrss1 && step > CM_SMIN; step /= 2.) {
-		std::transform(incr.begin(), incr.end(), newU.begin(),
-			       std::bind2nd(std::multiplies<double>(),
-					    step));
-		std::transform(ubase.begin(), ubase.end(),
-			       newU.begin(), newU.begin(),
-			       std::plus<double>());
-		re.setU(newU.begin());
-		updateMu();
-		pwrss1 = resp.updateWrss() + re.sqrLenU();
-		if (verbose > 1) {
-		    Rprintf("step = %g, pwrss0 = %g; pwrss1 = %g\n",
-			    step, pwrss0, pwrss1);
-		    showdbl(u.begin(), "u", u.size());
-		}
-	    }
-	    resp.updateSqrtRWt();
-	    crit = compare_vec(&varold[0], var.begin(), varold.size());
-	    if (verbose > 1) Rprintf("convergence criterion: %g\n", crit);
-	}
-	return Laplace();
-    } // PIRLS
-
-    nlmer::nlmer(S4 xp) :
-	re(S4(xp.slot("re"))),
-	resp(S4(xp.slot("resp"))) {
-    }
-
-    nlmerDe::nlmerDe(S4 xp) :
-	nlmer(xp),
-	fe(S4(xp.slot("fe"))) {
-    }
-
-    double nlmerDe::updateMu() {
-	const NumericVector u = re.u(), offset = resp.offset();
-	NumericVector b(u.size()), gamma(offset.size());
-	std::copy(offset.begin(), offset.end(), gamma.begin());
-	chmDn bb(b), gg(gamma);
-
-	re.Lambda().dmult('N', 1., 0., chmDn(u), bb);
-	re.Zt().dmult('T', 1., 1., bb, gg);
-	fe.X().dmult('N', 1., 1., chmDn(fe.beta()), gg);
-	return resp.updateMu(gamma);
-    }
 
 } // namespace mer
 
@@ -618,11 +504,6 @@ RCPP_FUNCTION_2(double,lmerDeUpdate,S4 xp,NumericVector nt) {
     return lm.reml() ? lm.profREML() : lm.profDev();
 }
 
-RCPP_FUNCTION_VOID_1(lmerDeUpdateMu,S4 xp) {
-    mer::mer<mer::deFeMod,mer::lmerResp> lm(xp);
-    lm.updateMu();
-}
-
 RCPP_FUNCTION_2(double,lmerSpUpdate,S4 xp,NumericVector nt) {
     mer::mer<mer::spFeMod,mer::lmerResp> lm(xp);
     lm.updateTheta(nt);
@@ -631,37 +512,32 @@ RCPP_FUNCTION_2(double,lmerSpUpdate,S4 xp,NumericVector nt) {
     return lm.reml() ? lm.profREML() : lm.profDev();
 }
 
-RCPP_FUNCTION_VOID_1(lmerSpUpdateMu,S4 xp) {
-    mer::mer<mer::spFeMod,mer::lmerResp> lm(xp);
-    lm.updateMu();
-}
-
-RCPP_FUNCTION_VOID_2(reModUpdate,S4 xp,NumericVector nt) {
+RCPP_FUNCTION_VOID_2(reUpdateTheta,S4 xp,NumericVector nt) {
     mer::reModule re(xp);
     re.updateTheta(nt);
 }
 
 RCPP_FUNCTION_2(double,glmerDeIRLS,S4 xp,IntegerVector verb) {
-    mer::glmerDe glmr(xp);
+    mer::mer<mer::deFeMod,mer::glmerResp> glmr(xp);
     return glmr.IRLS(verb[0]);
 }
 
 RCPP_FUNCTION_2(double,glmerDePIRLS,S4 xp,IntegerVector verb) {
-    mer::glmerDe glmr(xp);
+    mer::mer<mer::deFeMod,mer::glmerResp> glmr(xp);
     return glmr.PIRLS(verb[0]);
 }
 
-RCPP_FUNCTION_1(double,glmerLaplace,S4 xp) {
-    mer::glmer glmr(xp);
+RCPP_FUNCTION_1(double,glmerDeLaplace,S4 xp) {
+    mer::mer<mer::deFeMod,mer::glmerResp> glmr(xp);
     return glmr.Laplace();
 }
 
-RCPP_FUNCTION_VOID_2(feModSetBeta,S4 xp,NumericVector nbeta) {
+RCPP_FUNCTION_VOID_2(feSetBeta,S4 xp,NumericVector nbeta) {
     mer::feModule fe(xp);
     fe.setBeta(nbeta);
 }
 
 RCPP_FUNCTION_1(double,nlmerDeEval,S4 xp) {
-    mer::nlmerDe nlmr(xp);
+    mer::mer<mer::deFeMod,mer::nlmerResp> nlmr(xp);
     return nlmr.updateMu();
 }

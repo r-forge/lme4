@@ -232,6 +232,7 @@ mkRespMod <- function(fr, reMod, feMod, family = NULL, nlenv = NULL,
         if (is.null(nlenv)) {
             ll$Class <- "lmerResp"
             ll$REML <- TRUE
+            ll$sqrtXwt <- matrix(ll$sqrtrwt)
         } else {
             ll$Class <- "nlmerResp"
             ll$nlenv <- nlenv
@@ -571,8 +572,8 @@ glmer2 <- function(formula, data, family = gaussian, sparseX = FALSE,
         thpars <- seq_along(ans@re@theta)
         bb <- ans@fe@beta
         devfun <- function(pars) {
-            .Call(reModUpdate, ans@re, pars[thpars])
-            .Call(feModSetBeta, ans@fe, pars[-thpars])
+            .Call(reUpdateTheta, ans@re, pars[thpars])
+            .Call(feSetBeta, ans@fe, pars[-thpars])
             .Call(glmerDePIRLS, ans, verbose)
         }
         if (verbose) control$iprint <- 2L

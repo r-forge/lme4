@@ -62,7 +62,7 @@ exportClasses(lmList,
 	      optenv, merenv, merenvtrms, lmerenv, glmerenv,
               mer, lmer, glmer, reModule, reTrms,
               feModule, deFeMod, spFeMod,
-              merResp, lmerResp, rwResp, glmerResp, nlmerResp, nglmerResp,
+              merResp, lmerResp, glmerResp, nlmerResp, nglmerResp,
               merMod, lmerMod, lmerDe, lmerSp,
               glmerMod, glmerDe, glmerSp,
               nlmerMod, nlmerDe, nlmerSp
