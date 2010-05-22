@@ -6,10 +6,10 @@
 extern "C" SEXP glmerDeIRLS(SEXP,SEXP);
 extern "C" SEXP glmerDePIRLS(SEXP,SEXP);
 extern "C" SEXP glmerLaplace(SEXP);
-extern "C" SEXP lmerDeDeviance(SEXP);
 extern "C" SEXP lmerDeUpdate(SEXP,SEXP);
-extern "C" SEXP lmerSpDeviance(SEXP);
+extern "C" SEXP lmerDeUpdateMu(SEXP);
 extern "C" SEXP lmerSpUpdate(SEXP,SEXP);
+extern "C" SEXP lmerSpUpdateMu(SEXP);
 extern "C" SEXP reModUpdate(SEXP,SEXP);
 extern "C" SEXP feModSetBeta(SEXP,SEXP);
 extern "C" SEXP nlmerDeEval(SEXP);
@@ -34,10 +34,10 @@ static R_CallMethodDef CallEntries[] = {
     CALLDEF(lmer_deviance, 2),
     CALLDEF(lmer_validate, 1),
 
-    CALLDEF(lmerDeDeviance, 1),
-    CALLDEF(lmerSpDeviance, 1),
     CALLDEF(lmerDeUpdate, 2),
+    CALLDEF(lmerDeUpdateMu, 1),
     CALLDEF(lmerSpUpdate, 2),
+    CALLDEF(lmerSpUpdateMu, 1),
 
     CALLDEF(merenv_update_Lambda_Ut, 2),
 

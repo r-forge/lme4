@@ -1402,7 +1402,7 @@ summaryMer2 <- function(object, varcov = FALSE, type, ...)
         rho$family <- object@resp@family # family object
     devC <- devcomp(object)
     .summMer(object, rho=rho, devC = devC,
-	     flags = c(REML = isLmer && object@REML, isLmer = isLmer, isGLmer= isG),
+	     flags = c(REML = isLmer && object@resp@REML, isLmer = isLmer, isGLmer= isG),
 	     varcov=varcov)
 } ## summaryMer2()
 
@@ -1460,7 +1460,7 @@ setMethod("deviance", signature(object="lmerMod"),
 	  function(object, REML = NULL, ...)
       {
           if (missing(REML) || is.null(REML) || is.na(REML[1]))
-              REML <- object@REML
+              REML <- object@resp@REML
 	  devcomp(object)$cmp[[if(REML) "REML" else "deviance"]]
       })
 setMethod("deviance", signature(object="lmer"),
@@ -1522,14 +1522,14 @@ setMethod("sigma", signature(object = "lmerMod"), function (object, ...)
 ## 	      sqrt(dc$cmp[["pwrss"]]/
 ## 		   dm[[if(dc$cmp[["REML"]]) "nmp" else "n"]])
 ## 	  else 1
-          sqrt(dc$cmp[["pwrss"]]/ dm[[if(object@REML) "nmp" else "n"]])
+          sqrt(dc$cmp[["pwrss"]]/ dm[[if(object@resp@REML) "nmp" else "n"]])
       })
 
 setMethod("logLik", signature(object="lmerMod"),
 	  function(object, REML = NULL, ...)
       {
 	  if (is.null(REML) || is.na(REML[1]))
-	      REML <- object@REML
+	      REML <- object@resp@REML
 	  mkLogLik(deviance(object, REML = REML),
 		   n  = nrow  (object@fe @ X),
 		   p  = length(object@fe @ beta),
