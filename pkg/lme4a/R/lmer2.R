@@ -52,7 +52,7 @@ mkReTrms <- function(bars, fr, checknl = TRUE, s = 1L) {
     }
     Zt <- do.call(rBind, lapply(blist, "[[", "sm"))
     q <- nrow(Zt)
-    ll <- list(Zt = Zt)
+    ll <- list(Zt = Zt, u = numeric(q), Utr = numeric(q))
 
     ## Create and install Lambda, Lind, etc.  This must be done after
     ## any potential reordering of the terms.
@@ -63,7 +63,6 @@ mkReTrms <- function(bars, fr, checknl = TRUE, s = 1L) {
     nb <- nc * nl                       # no. of random effects per term
     stopifnot(sum(nb) == q)
 
-    ll$u <- numeric(q)
     ll$theta <- numeric(sum(nth))
 
     boff <- cumsum(c(0L, nb))           # offsets into b
@@ -133,11 +132,11 @@ mkReTrms <- function(bars, fr, checknl = TRUE, s = 1L) {
 ##' @param reMod the reModule for the model
 ##' @param sparseX Logical indicator of sparse X
 ## FIXME: Why not use s = 0 for indication of non-reweightable?
-##' @param rwt Logical indicator of reweightable
+##' @param s Number of columns in the sqrtXwt matrix
 ##'
 ##' @return an object that inherits from feModule
 mkFeModule <-
-    function(form, fr, contrasts, reMod, sparseX, rwt = FALSE, s = 1L) {
+    function(form, fr, contrasts, reMod, sparseX, s = 1L) {
                                         # fixed-effects model matrix X
     nb <- nobars(form[[3]])
     if (is.null(nb)) nb <- 1
@@ -147,32 +146,29 @@ mkFeModule <-
 	    sparse.model.matrix(form, fr, contrasts)
 	else
 	    Matrix(model.matrix(form, fr, contrasts), sparse = FALSE)
+    N <- nrow(X)
+    p <- ncol(X)
     rownames(X) <- NULL
-    ll <- list(X = X,
-	       RZX = reMod@Zt %*% X,
-	       beta = numeric(ncol(X)),
-	       ldRX2= numeric(1))
-    X.X <- crossprod(X)
+    ZtX <- reMod@Zt %*% X
+    ll <- list(Class = ifelse(sparseX, "spFeMod", "deFeMod"),
+               RZX = ZtX,
+               UtV = ZtX,
+               V = X,
+               VtV = crossprod(X),
+               Vtr = numeric(p),
+               X = X,
+               beta = numeric(p),
+               ldRX2= numeric(1))
     ll$RX <-
 	if (sparseX)
 	    ## watch for the case that crossprod(ll$RZX) is more dense than X.X
-	    Cholesky(X.X + crossprod(ll$RZX), LDL = FALSE)
+	    Cholesky(ll$VtV + crossprod(ll$RZX), LDL = FALSE)
 	else
-	    chol(X.X)
-
-    if (rwt) {
-	ll$V <- X
-	N <- nrow(X)
-	if (s > 1) {
-	    ll$V <- Reduce("+", lapply(split(seq_len(N) ,
-                                             rep.int(1:s, rep.int(N %/% s, s))),
-                                       function(rows) X[rows, ]))
-	}
-	ll$Class <- if (sparseX) "rwSpFeMod" else "rwDeFeMod"
-    } else { ## lmer model (the only non-reweightable type)
-	ll$Class <- if (sparseX) "lmerSpFeMod" else "lmerDeFeMod"
-	ll$ZtX <- ll$RZX
-	ll$XtX <- X.X
+	    chol(ll$VtV)
+    if (s > 1) {
+        ll$V <- Reduce("+", lapply(split(seq_len(N) ,
+                                         rep.int(1:s, rep.int(N %/% s, s))),
+                                   function(rows) X[rows, ]))
     }
     do.call("new", ll)
 }
@@ -201,9 +197,7 @@ mkRespMod <- function(fr, reMod, feMod, family = NULL, nlenv = NULL,
                       length(offset), N), domain = "R-lme4")
     p <- ncol(feMod@X)
     q <- nrow(reMod@Zt)
-    ll <- list(weights = unname(weights), offset = unname(offset),
-               wrss = numeric(1), Utr = numeric(q),
-               Vtr = numeric(p), cu = numeric(q), cbeta = numeric(p))
+    ll <- list(weights = unname(weights), offset = unname(offset), wrss = numeric(1))
     if (!is.null(family)) {
         ll$y <- y                       # may get overwritten later
         rho <- new.env()
@@ -236,9 +230,8 @@ mkRespMod <- function(fr, reMod, feMod, family = NULL, nlenv = NULL,
         ll$wtres <- numeric(n)
         ll$mu <- numeric(n)
         if (is.null(nlenv)) {
-            ll$Class <- "merResp"
-            ll$Utr <- (reMod@Zt %*% y)@x
-            ll$Vtr <- crossprod(feMod@X, y)@x
+            ll$Class <- "lmerResp"
+            ll$REML <- TRUE
         } else {
             ll$Class <- "nlmerResp"
             ll$nlenv <- nlenv
@@ -309,7 +302,6 @@ setAs("lmerMod", "lmerenv", function(from) .lmerM2env(from, "lmerenv"))
 setAs("glmerMod", "glmerenv", function(from) .lmerM2env(from, "glmerenv"))
 setAs("glmerMod",   "merenv", function(from) .lmerM2env(from, "glmerenv"))
 
-
 lmer2 <- function(formula, data, REML = TRUE, sparseX = FALSE,
                   control = list(), start = NULL,
                   verbose = 0, doFit = TRUE,
@@ -355,9 +347,11 @@ lmer2 <- function(formula, data, REML = TRUE, sparseX = FALSE,
                                         # fixed-effects module
     feMod <- mkFeModule(formula, fr, contrasts, reTrms, sparseX)
     respMod <- mkRespMod(fr, reTrms, feMod)
+    reTrms@Utr[] <- (reTrms@Zt %*% respMod@y)@x
+    feMod@Vtr[] <- crossprod(feMod@X, respMod@y)@x
+    if (!REML) respMod@REML <- FALSE
     ans <- new(ifelse (sparseX, "lmerSp", "lmerDe"), call = mc, frame = fr,
-	       re = reTrms, fe = feMod, resp = respMod,
-	       REML = as.logical(REML))
+	       re = reTrms, fe = feMod, resp = respMod)
     if (doFit) {                        # optimize estimates
         code <- if(is(ans, "lmerSp")) lmerSpUpdate else lmerDeUpdate
 	if(verbose) {
@@ -672,7 +666,8 @@ nlmer2 <- function(formula, data, family = gaussian, start = NULL,
 
     fe.form <- nlform
     fe.form[[3]] <- formula[[3]]
-    feMod <- mkFeModule(fe.form, frE, contrasts, reTrms, sparseX = FALSE, rwt = TRUE, s = s)
+    feMod <- mkFeModule(fe.form, frE, contrasts, reTrms,
+                        sparseX = FALSE, s = s)
                                         # should this check be in mkFeModule?
     p <- length(feMod@beta)
     if ((qrX <- qr(feMod@X))$rank < p)

@@ -276,6 +276,7 @@ setClass("reModule",
                         Lambda = "dgCMatrix",
                         Lind = "integer",
                         Ut = "dgCMatrix",## U := Z Lambda; Ut := U' = Lambda' Z' = Lambda' Zt
+                        Utr = "numeric",
                         Zt = "dgCMatrix",## = Z'
                         lower = "numeric",
                         theta = "numeric",
@@ -339,71 +340,52 @@ setClass("reTrms",
 
 ##' Fixed-effects module
 setClass("feModule",
-         representation(beta = "numeric", ldRX2 = "numeric", "VIRTUAL"))
+         representation(beta = "numeric",
+                        ldRX2 = "numeric",
+                        Vtr = "numeric",
+                        "VIRTUAL"))
+
+.feValid <- function(object) {
+    p <- ncol(object@X)
+    if (any(p != sapply(lapply(c("RZX", "RX", "UtV", "V", "VtV"),
+            slot, object = object), ncol)))
+        return("Number of columns in X, RZX, RX, UtV, V and VtV must match")
+    if (any(dim(object@UtV) != dim(object@RZX)))
+        return("dimensions of UtV and RZX must match")
+    if (any(dim(object@VtV) != dim(object@RX)))
+        return("dimensions of XtX and RX must match")
+    if (length(object@ldRX2) != 1L)
+        return("ldRX2 must have length 1")
+    TRUE
+}
 
 ##' Dense fixed-effects module
 setClass("deFeMod",
-         representation(X = "dgeMatrix",
-                        RZX = "dgeMatrix",
-                        RX = "Cholesky"),
+         representation(RZX = "dgeMatrix",
+                        RX =   "Cholesky",
+                        UtV = "dgeMatrix",
+                        V =   "dgeMatrix",
+                        VtV = "dpoMatrix",
+                        X =   "dgeMatrix",
+                        ldRX2 = "numeric"),
          contains = "feModule",
-         validity = function(object) {
-             p <- ncol(object@X)
-             if (ncol(object@RZX) != p || ncol(object@RX) != p)
-                 return("Number of columns in X, RZX and RX must match")
-             TRUE
-         })
+         validity = .feValid)
 
 ##' Sparse fixed-effects module
 setClass("spFeMod",
-         representation(X = "dgCMatrix",
-                        RZX = "dgCMatrix",
-                        RX = "CHMfactor"),
+         representation(RZX = "dgCMatrix",
+                        RX =  "CHMfactor",
+                        UtV = "dgCMatrix",
+                        V =   "dgCMatrix",
+                        VtV = "dsCMatrix",
+                        X =   "dgCMatrix"),
          contains = "feModule",
          validity = function(object) {
-             p <- ncol(object@X)
-             if (ncol(object@RZX) != p || ncol(object@RX) != p)
-                 return("Number of columns in X, RZX and RX must match")
+             if (is(rr <- .feValid(object), "character")) return(rr)
              if (isLDL(object@RX))
                  return("RX must be an LL factor, not LDL")
              TRUE
          })
-
-##' lmer dense fixed-effects module
-##'
-##' An lmer fixed-effects module is not reweightable so products ZtX
-##' and XtX are pre-computed and stored
-##'
-setClass("lmerDeFeMod",
-         representation(ZtX = "dgeMatrix",
-                        XtX = "dpoMatrix"),
-         contains = "deFeMod",
-         validity = function(object) {
-             if (any(dim(object@ZtX) != dim(object@RZX)))
-                 return("dimensions of ZtX and RZX must match")
-             if (any(dim(object@XtX) != dim(object@RX)))
-                 return("dimensions of XtX and RX must match")
-             if (length(object@ldRX2) != 1L)
-                 return("ldRX2 must have length 1")
-             TRUE
-         })
-
-##' lmer sparse fixed-effects module
-##'
-setClass("lmerSpFeMod",
-         representation(ZtX = "dgCMatrix",
-                        XtX = "dsCMatrix"),
-         contains = "spFeMod",
-         validity = function(object) {
-             if (any(dim(object@ZtX) != dim(object@RZX)))
-                 return("dimensions of ZtX and RZX must match")
-             if (any(dim(object@XtX) != dim(object@RX)))
-                 return("dimensions of XtX and RX must match")
-             if (length(object@ldRX2) != 1L)
-                 return("ldRX2 must have length 1")
-             TRUE
-         })
-
 
 ##' reweightable dense fixed-effects module
 ##'
@@ -449,11 +431,7 @@ setClass("merResp",
                         offset = "numeric",
                         mu = "numeric",
                         wtres = "numeric", # weighted residuals
-                        wrss = "numeric", # weighted residual sum of squares
-                        Utr = "numeric",
-                        Vtr = "numeric",
-                        cu = "numeric",
-                        cbeta = "numeric"),
+                        wrss = "numeric"), # weighted residual sum of squares
          validity = function(object) {
              n <- length(object@y)
              if (any(n != sapply(lapply(c("weights","sqrtrwt","mu","wtres"), slot,
@@ -464,18 +442,16 @@ setClass("merResp",
                  return("length(offset) must be a positive multiple of length(y)")
              if (length(object@wrss) != 1L)
                  return("length of wrss must be 1")
-             if (length(object@Utr) != length(object@cu))
-                 return("lengths of Utr and cu must match")
-             if (length(object@Vtr) != length(object@cbeta))
-                 return("lengths of Vtr and cbeta must match")
              TRUE
          })
+
+setClass("lmerResp", representation(REML = "logical"), contains = "merResp")
 
 ##' reweightable response module
 ##'
 ##' sqrtXwt is the matrix of weights for the X matrix and Ut matrix
 setClass("rwResp",
-         representation(sqrtXwt = "matrix"),
+         representation(sqrtXwt = "matrix", nAGQ = "integer"),
          contains = "merResp",
          validity = function(object) {
              n <- length(object@y)
@@ -522,41 +498,35 @@ setClass("nlmerResp",
 ##' nglmer response module
 setClass("nglmerResp", contains = c("glmerResp", "nlmerResp"))
 
-setClass("lmerMod",
+setClass("merMod",
          representation(call = "call",
 			frame = "data.frame", # "model.frame" is not S4-ized yet
-                        re = "reModule",
-                        resp = "merResp",
-                        REML = "logical", "VIRTUAL"),
-         validity = function(object)
-     {
-         if (is(object@resp, "rwResp"))
-             return("lmer modules cannot be reweightable")
-     })
+                        re = "reModule", "VIRTUAL"))
 
-setClass("lmerDe", representation(fe = "lmerDeFeMod"), contains = "lmerMod")
+setClass("lmerMod", representation(resp = "lmerResp", "VIRTUAL"),
+         contains = "merMod")
 
-setClass("lmerSp", representation(fe = "lmerSpFeMod"), contains = "lmerMod")
+setClass("lmerDe", representation(fe = "deFeMod"),
+         contains = "lmerMod")
 
-setClass("glmerMod",
-         representation(call = "call",
-                        frame = "data.frame",
-                        re = "reModule",
-                        resp = "glmerResp",
-                        "VIRTUAL"))
+setClass("lmerSp", representation(fe = "spFeMod"),
+         contains = "lmerMod")
 
-setClass("glmerDe", representation(fe = "rwDeFeMod"), contains = "glmerMod")
+setClass("glmerMod", representation(resp = "glmerResp", "VIRTUAL"),
+         contains = "merMod")
 
-setClass("glmerSp", representation(fe = "rwSpFeMod"), contains = "glmerMod")
+setClass("glmerDe", representation(fe = "deFeMod"),
+         contains = "glmerMod")
 
-setClass("nlmerMod",
-         representation(call = "call",
-                        frame = "data.frame",
-                        re = "reModule",
-                        resp = "nlmerResp",
-                        "VIRTUAL"))
+setClass("glmerSp", representation(fe = "spFeMod"),
+         contains = "glmerMod")
 
-setClass("nlmerDe", representation(fe = "rwDeFeMod"), contains = "nlmerMod")
+setClass("nlmerMod", representation(resp = "nlmerResp", "VIRTUAL"),
+         contains = "merMod")
 
-setClass("nlmerSp", representation(fe = "rwSpFeMod"), contains = "nlmerMod")
+setClass("nlmerDe", representation(fe = "deFeMod"),
+         contains = "nlmerMod")
+
+setClass("nlmerSp", representation(fe = "spFeMod"),
+         contains = "nlmerMod")
 
