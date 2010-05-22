@@ -532,6 +532,11 @@ RCPP_FUNCTION_1(double,glmerDeLaplace,S4 xp) {
     return glmr.Laplace();
 }
 
+RCPP_FUNCTION_VOID_1(glmerDeUpdateRzxRx,S4 xp) {
+    mer::mer<mer::deFeMod,mer::glmerResp> glmr(xp);
+    return glmr.updateRzxRx();
+}
+
 RCPP_FUNCTION_VOID_2(feSetBeta,S4 xp,NumericVector nbeta) {
     mer::feModule fe(xp);
     fe.setBeta(nbeta);

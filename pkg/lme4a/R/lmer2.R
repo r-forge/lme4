@@ -580,6 +580,7 @@ glmer2 <- function(formula, data, family = gaussian, sparseX = FALSE,
         bobyqa(c(ans@re@theta, bb), devfun,
                c(ans@re@lower, rep.int(-Inf, length(bb))),
                control = control)
+        .Call(glmerDeUpdateRzxRx, ans)
     }
     ans
 }## {glmer2}
