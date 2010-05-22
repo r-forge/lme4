@@ -129,3 +129,25 @@ isNested <- function(f1, f2)
              "CsparseMatrix")
     all(sm@p[2:(k+1L)] - sm@p[1:k] <= 1L)
 }
+
+subnms <- function(form, nms) {
+    ## Recursive function applied to individual terms
+    sbnm <- function(term)
+    {
+        if (is.name(term))
+            if (any(term == nms)) return(0) else return(term)
+        switch(length(term),
+               return(term),
+           {
+               term[[2]] <- sbnm(term[[2]])
+               return(term)
+           },
+           {
+               term[[2]] <- sbnm(term[[2]])
+               term[[3]] <- sbnm(term[[3]])
+               return(term)
+           })
+        NULL
+    }
+    sbnm(form)
+}
