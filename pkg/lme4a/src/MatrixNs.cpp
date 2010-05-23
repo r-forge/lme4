@@ -274,13 +274,23 @@ namespace MatrixNs{
 			      (int*)NULL, (size_t) 0, this, &c);
     }
 
-    CHM_DN chmFr::solve(int sys, const_CHM_DN b) const {
-	return M_cholmod_solve(sys, (const_CHM_FR)this, b, &c);
+    NumericMatrix chmFr::solve(int sys, const_CHM_DN b) const {
+	CHM_DN t1 = M_cholmod_solve(sys, (const_CHM_FR)this, b, &c);
+	NumericMatrix ans((int) t1->nrow, (int) t1->ncol);
+	double *tx = (double*)t1->x;
+	std::copy(tx, tx + ans.size(), ans.begin());
+	M_cholmod_free_dense(&t1, &c);
+	return ans;
     }
 
-    CHM_DN chmFr::solve(int sys, chmDn const &b) const {
-	return M_cholmod_solve(sys, (const_CHM_FR)this,
-			       (const_CHM_DN)&b, &c);
+    NumericMatrix chmFr::solve(int sys, NumericMatrix const& b) const {
+	const chmDn cb(b);
+	return solve(sys, &cb);
+    }
+
+    NumericMatrix chmFr::solve(int sys, NumericVector const& b) const {
+	const chmDn cb(b);
+	return solve(sys, &cb);
     }
 
     CHM_SP chmFr::spsolve(int sys, const_CHM_SP b) const {

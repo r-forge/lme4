@@ -231,8 +231,9 @@ namespace MatrixNs {
 
 	void update(cholmod_sparse const &A, double Imult = 0.); 
 
-	CHM_DN solve(int sys, const_CHM_DN b) const;
-	CHM_DN solve(int sys, chmDn const &b) const;
+	Rcpp::NumericMatrix solve(int, const_CHM_DN) const;
+	Rcpp::NumericMatrix solve(int,Rcpp::NumericMatrix const&) const;
+	Rcpp::NumericMatrix solve(int,Rcpp::NumericVector const&) const;
 
 	CHM_SP spsolve(int sys, const_CHM_SP b) const;
 	CHM_SP spsolve(int sys, chmSp const &b) const;
