@@ -450,7 +450,7 @@ setClass("merResp",
              TRUE
          })
 
-setClass("lmerResp", representation(REML = "logical"),
+setClass("lmerResp", representation(REML = "integer"),
          contains = "merResp")
 
 ##' glmer response module
