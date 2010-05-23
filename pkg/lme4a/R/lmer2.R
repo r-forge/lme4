@@ -231,7 +231,7 @@ mkRespMod <- function(fr, reMod, feMod, family = NULL, nlenv = NULL,
         ll$mu <- numeric(n)
         if (is.null(nlenv)) {
             ll$Class <- "lmerResp"
-            ll$REML <- TRUE
+            ll$REML <- p
             ll$sqrtXwt <- matrix(ll$sqrtrwt)
         } else {
             ll$Class <- "nlmerResp"
@@ -350,7 +350,7 @@ lmer2 <- function(formula, data, REML = TRUE, sparseX = FALSE,
     respMod <- mkRespMod(fr, reTrms, feMod)
     reTrms@Utr[] <- (reTrms@Zt %*% respMod@y)@x
     feMod@Vtr[] <- crossprod(feMod@X, respMod@y)@x
-    if (!REML) respMod@REML <- FALSE
+    if (!REML) respMod@REML <- 0L
     ans <- new(ifelse (sparseX, "lmerSp", "lmerDe"), call = mc, frame = fr,
 	       re = reTrms, fe = feMod, resp = respMod)
     if (doFit) {                        # optimize estimates
