@@ -6,16 +6,33 @@ using namespace MatrixNs;
 namespace mer{
 
     void showdbl(const double* x, const char* nm, int n) {
+	if (n < 1) {
+	    Rprintf("%s[%d]:\n", nm, n);
+	    return;
+	}
 	int n5 = (n < 5) ? n : 5;
-	Rprintf("%s: %g", nm, x[0]);
+	Rprintf("%s[1:%d]: %g", nm, n, x[0]);
 	for (int i = 1; i < n5; i++) Rprintf(", %g", x[i]);
+	if (n > 5) Rprintf(", ...");
 	Rprintf("\n");
     }
 
+    void showincr(double step, double c0, double c1,
+		  NumericVector const& incr, const char* nm) {
+	Rprintf("step = %8.5f, pwrss0 = %12g, pwrss1 = %12g\n",
+		step, c0, c1);
+	showdbl(incr.begin(), nm, incr.size());
+    }
+
     void showint(const int* x, const char* nm, int n) {
+	if (n < 1) {
+	    Rprintf("%s[%d]:\n", nm, n);
+	    return;
+	}
 	int n20 = (n < 20) ? n : 20;
-	Rprintf("%s: %d", nm, x[0]);
+	Rprintf("%s[1:%d]: %d", nm, n, x[0]);
 	for (int i = 1; i < n20; i++) Rprintf(", %d", x[i]);
+	if (n > 20) Rprintf(", ...");
 	Rprintf("\n");
     }
 
@@ -60,7 +77,7 @@ namespace mer{
  * 
  * @return relative difference between the vectors
  */
-    double compare_vec(const NumericVector v1, const NumericVector v2) {
+    double compare_vec(NumericVector const& v1, NumericVector const& v2) {
 	int n = v1.size();
 	if (v2.size() != n)
 	    Rf_error("%s: size mismatch, %d != %d\n",
@@ -82,13 +99,6 @@ namespace mer{
 	return num/sqrt(d1 * d2);
     }
 
-    template<typename T> 
-    static T myClone(T object) {
-	T ans(object.size());
-	std::copy(object.begin(), object.end(), ans.begin());
-	return ans;
-    }
-
 /** 
  * Update the destination dense matrix as
  * solve(L, solve(L, Lambda %*% src, system = "P"), system = "L")
@@ -98,17 +108,15 @@ namespace mer{
  * @param src source dense matrix
  * @param dest destination dense matrix
  */
-    void DupdateL(chmSp const &Lambda, chmFr const &L,
-		  chmDn const &src, chmDn &dest) {
+    void DupdateL(chmSp const& Lambda,
+		  chmFr const&      L,
+		  chmDn const&    src,
+		  chmDn          dest) {
 	Lambda.dmult('T', 1., 0., src, dest);
-	CHM_DN t1 = L.solve(CHOLMOD_P, &dest);
-	CHM_DN t2 = L.solve(CHOLMOD_L, t1);
-	::M_cholmod_free_dense(&t1, &c);
-
-	double *t2b = (double*)t2->x, *db = (double*)(dest.x);
-	int sz = src.nr() * src.nc();
-	std::copy(t2b, t2b + sz, db);
-	::M_cholmod_free_dense(&t2, &c);
+	NumericMatrix t1 = L.solve(CHOLMOD_P, &dest);
+	chmDn ct1(t1);
+	NumericMatrix t2 = L.solve(CHOLMOD_L, &ct1);
+	std::copy(t2.begin(), t2.end(), (double*)dest.x);
     }
 
 /** 
@@ -120,8 +128,9 @@ namespace mer{
  * @param src source sparse matrix
  * @return as above
  */
-    CHM_SP SupdateL(chmSp const &Lambda, chmFr const &L,
-		    chmSp const &src) {
+    CHM_SP SupdateL(chmSp const& Lambda,
+		    chmFr const&      L,
+		    chmSp const&    src) {
 	CHM_SP t1 = Lambda.crossprod(src);
 	CHM_SP t2 = L.spsolve(CHOLMOD_P, t1);
 	::M_cholmod_free_sparse(&t1, &c);
@@ -146,27 +155,25 @@ namespace mer{
 				       d_u.begin(), double())) {
     }
     
-    void reModule::updateSqrLenU() {
+    void reModule::setU(NumericVector const &ubase,
+			NumericVector const &incr, double step) {
+	int q = d_u.size();
+	if (ubase.size() != d_u.size())
+	    Rf_error("%s: expected %s.size() = %d, got %d",
+		     "reModule::setU", "ubase", q, ubase.size());
+	if (step == 0.) {
+	    std::copy(ubase.begin(), ubase.end(), d_u.begin());
+	} else {
+	    if (incr.size() != q)
+		Rf_error("%s: expected %s.size() = %d, got %d",
+			 "reModule::setU", "incr", q, incr.size());
+	    std::transform(incr.begin(), incr.end(), d_u.begin(),
+			   std::bind2nd(std::multiplies<double>(), step));
+	    std::transform(ubase.begin(), ubase.end(), d_u.begin(),
+			   d_u.begin(), std::plus<double>());
+	}
 	d_sqlLenU = std::inner_product(d_u.begin(), d_u.end(),
 				       d_u.begin(), double());
-    }
-
-    void reModule::setU(const cholmod_dense* nu) {
-	int q = d_u.size();
-	if (nu->nrow != (size_t)q || nu->ncol != (size_t)1)
-	    Rf_error("%s: expected dimensions (%d,1), got (%d,%d)",
-		     "reModule::setU(chmDn)", q, nu->nrow, nu->ncol);
-	double *uu = (double*)nu->x;
-	std::copy(uu, uu + q, d_u.begin());
-	updateSqrLenU();
-    }
-    
-    void reModule::setU(NumericVector const &nu) {
-	if (nu.size() != d_u.size())
-	    Rf_error("%s: expected %d, got %d",
-		     "reModule::setU(NumericVector)", d_u.size(), nu.size());
-	std::copy(nu.begin(), nu.end(), d_u.begin());
-	updateSqrLenU();
     }
     
 /** 
@@ -199,8 +206,8 @@ namespace mer{
 	DupdateL(d_Lambda, d_L, chmDn(d_Utr), ccu);
     }
 
-    NumericVector reModule::rwUpdateL(NumericMatrix const &Xwt,
-				      NumericVector const &wtres) {
+    NumericVector reModule::rwUIncr(NumericMatrix const&   Xwt,
+				    NumericVector const& wtres) {
 	double one = 1., mone = -1;
 	CHM_SP wtUt = M_cholmod_copy_sparse(&d_Ut, &c);
 	const chmDn cXwt(Xwt);
@@ -210,7 +217,7 @@ namespace mer{
 	M_cholmod_factorize_p(wtUt, &one, (int*)NULL, (size_t)0,
 			      &d_L, &c);
 	*d_ldL2 = M_chm_factor_ldetL2(&d_L);
-	NumericVector ans = myClone(d_u);
+	NumericVector ans = clone(d_u);
 	chmDn cans(ans);
 	const chmDn cwtres(wtres);
 	M_cholmod_sdmult(wtUt, 0/*trans*/, &one, &mone, &cwtres,
@@ -229,11 +236,9 @@ namespace mer{
  * @param cu 
  */
     void reModule::updateU(chmDn const &cu) {
-	CHM_DN t1 = d_L.solve(CHOLMOD_Lt, &cu);
-	CHM_DN t2 = d_L.solve(CHOLMOD_Pt, t1);
-	::M_cholmod_free_dense(&t1, &c);
-	setU(t2);
-	::M_cholmod_free_dense(&t2, &c);
+	NumericMatrix t1 = d_L.solve(CHOLMOD_Lt, &cu);
+	const chmDn ct1(t1);
+	setU(d_L.solve(CHOLMOD_Pt, &ct1));
     }
 
     merResp::merResp(S4 xp)
@@ -241,14 +246,14 @@ namespace mer{
 	  d_offset(xp.slot("offset")),
 	  d_sqrtrwt(xp.slot("sqrtrwt")),
 	  d_wtres(xp.slot("wtres")),
-	  mu(xp.slot("mu")),
-	  weights(xp.slot("weights")),
-	  y(xp.slot("y")),
+	  d_mu(xp.slot("mu")),
+	  d_weights(xp.slot("weights")),
+	  d_y(xp.slot("y")),
 	  d_sqrtXwt(SEXP(xp.slot("sqrtXwt"))) {
-	int n = y.size(), os = d_offset.size();
+	int n = d_y.size(), os = d_offset.size();
 
-	if (mu.size() != n || d_wtres.size() != n ||
-	    weights.size() != n || d_sqrtrwt.size() != n)
+	if (d_mu.size() != n || d_wtres.size() != n ||
+	    d_weights.size() != n || d_sqrtrwt.size() != n)
 	    ::Rf_error("y, mu, sqrtrwt, wtres and weights slots must have equal lengths");
 	if (os < 1 || os % n)
 	    ::Rf_error("length(offset) must be a positive multiple of length(y)");
@@ -263,7 +268,7 @@ namespace mer{
  */
     double merResp::updateWrss() {
 				// wtres <- y - mu
-	std::transform(y.begin(), y.end(), mu.begin(),
+	std::transform(d_y.begin(), d_y.end(), d_mu.begin(),
 		       d_wtres.begin(), std::minus<double>());
 				// wtres <- wtres * sqrtrwt
 	std::transform(d_wtres.begin(), d_wtres.end(), d_sqrtrwt.begin(),
@@ -273,28 +278,72 @@ namespace mer{
 	return *d_wrss;
     }
 
-    double merResp::updateMu(NumericVector const &gamma) {
-	std::copy(gamma.begin(), gamma.end(), mu.begin());
+    lmerResp::lmerResp(S4 xp)
+	: merResp(xp),
+	  d_reml(*IntegerVector(xp.slot("REML")).begin()) {
+    }
+
+    double lmerResp::Laplace(double ldL2, double ldRX2, double sqrL)const{
+	double lnum = 2.* PI * (*d_wrss + sqrL), n = (double)d_y.size();
+	if (d_reml == 0) return ldL2 + n * (1 + log(lnum / n));
+	double nmp = n - d_reml;
+	return ldL2 + ldRX2 + nmp * (1 + log(lnum / nmp));
+    }
+
+    double lmerResp::updateMu(NumericVector const &gamma) {
+	std::copy(gamma.begin(), gamma.end(), d_mu.begin());
 	return updateWrss();
     }
 
-    NumericVector glmerResp::devResid() {
-	return family.devResid(mu, weights, y);
+    glmerResp::glmerResp(S4 xp)
+	: merResp(xp),
+	  family(SEXP(xp.slot("family"))),
+	  d_eta(xp.slot("eta")),
+	  d_muEta(xp.slot("muEta")),
+	  d_n(xp.slot("n")),
+	  d_var(xp.slot("var")) {
+	updateWts();
     }
 
-    double glmerResp::unscaledDeviance() {
-	const NumericVector dr = devResid();
-	return std::accumulate(dr.begin(), dr.end(), double());
+    double glmerResp::Laplace(double ldL2, double ldRX2, double sqrL) const{
+	const NumericVector dr =
+	    const_cast<glmFamily&>(family).devResid(d_mu, d_weights, d_y);
+	return ldL2 + sqrL +
+	    std::accumulate(dr.begin(), dr.end(), double());
     }
 	
     double glmerResp::updateMu(NumericVector const &gamma) {
-	std::copy(gamma.begin(), gamma.end(), eta.begin());
-	linkInv();
+	std::copy(gamma.begin(), gamma.end(), d_eta.begin());
+	family.linkInv(d_mu, d_eta);
 	return updateWrss();
     }
 
+    static inline double sqrtquot(double x, double y){return sqrt(x / y);}
+
+    void glmerResp::updateWts() {
+	family.variance(d_var, d_mu);
+	std::transform(d_weights.begin(), d_weights.end(),
+		       d_var.begin(), d_sqrtrwt.begin(), sqrtquot);
+	family.muEta(d_muEta, d_eta);
+	std::transform(d_sqrtrwt.begin(), d_sqrtrwt.end(),
+		       d_muEta.begin(), d_sqrtXwt.begin(),
+		       std::multiplies<double>());
+    }
+
+    nlmerResp::nlmerResp(S4 xp)
+	: merResp(xp),
+	  nlenv(SEXP(xp.slot("nlenv"))),
+	  nlmod(SEXP(xp.slot("nlmod"))),
+	  pnames(xp.slot("pnames")) {
+    }
+
+    double nlmerResp::Laplace(double ldL2, double ldRX2, double sqrL)const{
+	double lnum = 2.* PI * (*d_wrss + sqrL), n = (double)d_y.size();
+	return ldL2 + n * (1 + log(lnum / n));
+    }
+
     double nlmerResp::updateMu(NumericVector const &gamma) {
-	int n = y.size();
+	int n = d_y.size();
 	double *gg = gamma.begin();
 
 	for (int p = 0; p < pnames.size(); p++) {
@@ -305,31 +354,10 @@ namespace mer{
 	NumericVector rr = nlmod.eval(SEXP(nlenv));
 	if (rr.size() != n)
 	    Rf_error("Length mu = %d, expected %d", rr.size(), n);
-	std::copy(rr.begin(), rr.end(), mu.begin());
+	std::copy(rr.begin(), rr.end(), d_mu.begin());
 	NumericMatrix rrg = rr.attr("gradient");
 	std::copy(rrg.begin(), rrg.end(), d_sqrtXwt.begin());
 	return updateWrss();
-    }
-
-    lmerResp::lmerResp(S4 xp)
-	: merResp(xp),
-	  d_reml(*LogicalVector(xp.slot("REML")).begin()) {
-    }
-
-    glmerResp::glmerResp(S4 xp)
-	: merResp(xp),
-	  family(SEXP(xp.slot("family"))),
-	  eta(xp.slot("eta")),
-	  muEta(xp.slot("muEta")),
-	  n(xp.slot("n")),
-	  d_var(xp.slot("var")) {
-    }
-
-    nlmerResp::nlmerResp(S4 xp)
-	: merResp(xp),
-	  nlenv(SEXP(xp.slot("nlenv"))),
-	  nlmod(SEXP(xp.slot("nlmod"))),
-	  pnames(xp.slot("pnames")) {
     }
 
     feModule::feModule(S4 xp)
@@ -338,11 +366,23 @@ namespace mer{
 	  d_ldRX2(NumericVector(xp.slot("ldRX2")).begin()) {
     }
 
-    void feModule::setBeta(NumericVector const &nbeta) {
-	if (nbeta.size() != d_beta.size())
-	    Rf_error("length(beta) = %d should be %d",
-		     nbeta.size(), d_beta.size());
-	std::copy(nbeta.begin(), nbeta.end(), d_beta.begin());
+    void feModule::setBeta(NumericVector const &bbase,
+			   NumericVector const &incr, double step) {
+	int p = d_beta.size();
+	if (bbase.size() != d_beta.size())
+	    Rf_error("%s: expected %s.size() = %d, got %d",
+		     "feModule::setBeta", "bbase", p, bbase.size());
+	if (step == 0.) {
+	    std::copy(bbase.begin(), bbase.end(), d_beta.begin());
+	} else {
+	    if (incr.size() != p)
+		Rf_error("%s: expected %s.size() = %d, got %d",
+			 "feModule::setBeta", "incr", p, incr.size());
+	    std::transform(incr.begin(), incr.end(), d_beta.begin(),
+			   std::bind2nd(std::multiplies<double>(), step));
+	    std::transform(bbase.begin(), bbase.end(), d_beta.begin(),
+			   d_beta.begin(), std::plus<double>());
+	}
     }
 
     deFeMod::deFeMod(S4 xp)
@@ -372,29 +412,29 @@ namespace mer{
 	*d_ldRX2 = d_RX.logDet2();
     }
 
-    void deFeMod::updateRX(bool useRZX) {
-	if (useRZX) throw std::range_error("should not happen");
-	d_RX.update(d_V);
-    }
-
-/** 
- * Update Vtr
- */
-    void deFeMod::updateVtr(NumericVector const &wtres) {
+    NumericVector deFeMod::rwBetaIncr(NumericMatrix const&sqrtXwt,
+			              NumericVector const&  wtres) {
+	if (sqrtXwt.size() != d_X.nrow())
+	    Rf_error("%s: dimension mismatch %s(%d,%d), %s(%d,%d)",
+		     "deFeMod::rwBetaIncr", "X", d_X.nrow(), d_X.ncol(),
+		     "sqrtXwt", sqrtXwt.nrow(), sqrtXwt.ncol());
+	int nc = sqrtXwt.ncol(), nr = sqrtXwt.nrow(), Xnc = d_X.ncol();
+	double *V = d_V.x.begin(), *W = sqrtXwt.begin(), *X = d_X.x.begin();
+	if (nc == 1) {
+	    for (int j = 0; j < Xnc; j++)
+		std::transform(X + j * nr, X + (j+1) * nr, W,
+			       V + j * nr, std::multiplies<double>());
+	} else {
+	    Rf_error("code for nlmer not yet written");
+	}
 	d_V.dgemv('T', 1., wtres, 0., d_Vtr);
+	d_RX.update(d_V);
+	NumericVector ans(d_beta.size());
+	std::copy(d_Vtr.begin(), d_Vtr.end(), ans.begin());
+	d_RX.dpotrs(ans);
+	return ans;
     }
 
-    void deFeMod::updateV(NumericMatrix const &sqrtXwt) {
-	int nc = sqrtXwt.ncol();
-	if (nc != 1) Rf_error("code for nlmer not yet written");
-// FIXME: Rewrite this using std::transform
-	std::copy(d_X.x.begin(), d_X.x.end(), d_V.x.begin());
-	int m = d_X.nrow(), n = d_X.ncol();
-	double *vv = d_V.x.begin(), *ww = sqrtXwt.begin();
-	for (int j = 0; j < n; j++)
-	    for (int i = 0; i < m; i++) vv[i + j * m] *= ww[i];
-    }
-    
     void deFeMod::updateUtV(chmSp const &Ut) {
 	chmDn cUtV(d_UtV);
 	Ut.dmult('N', 1., 0., chmDn(d_V), cUtV);
@@ -469,29 +509,21 @@ namespace mer{
 	std::copy(d_Vtr.begin(), d_Vtr.end(), d_beta.begin());
 	chmDn cbeta(d_beta), cans(ans);
 	d_RZX.dmult('T', -1., 1., chmDn(cu), cbeta);
-	CHM_DN t1 = d_RX.solve(CHOLMOD_A, &cbeta);
-	double *t1b = (double*)t1->x;
-	std::copy(t1b,  t1b + d_beta.size(), d_beta.begin());
-	M_cholmod_free_dense(&t1, &c);
+	NumericMatrix t1 = d_RX.solve(CHOLMOD_A, &cbeta);
+	std::copy(t1.begin(),  t1.end(), d_beta.begin());
 	d_RZX.dmult('N', -1., 1., cbeta, cans);
 	return ans;
     }
 
-    static inline double sqrtquotient(double x, double y) {
-	return sqrt(x/y);
-    }
-
-    void glmerResp::updateSqrtRWt() {
-	variance();
-	std::transform(weights.begin(), weights.end(), d_var.begin(),
-		       d_sqrtrwt.begin(), sqrtquotient);
-    }
-
-    void glmerResp::updateSqrtXWt() {
-	MuEta();
-	std::transform(d_sqrtrwt.begin(), d_sqrtrwt.end(),
-		       muEta.begin(), d_sqrtXwt.begin(),
-		       std::multiplies<double>());
+    NumericVector spFeMod::rwBetaIncr(NumericMatrix const& sqrtXwt,
+			              NumericVector const&   wtres) {
+//FIXME: Code here not written yet.
+	// updateV(sqrtXwt);
+	// updateVtr(wtres);
+	// d_RX.update(d_V);
+	chmDn cbeta(d_beta);
+	NumericMatrix ans = d_RX.solve(CHOLMOD_A, &cbeta);
+	return NumericVector(SEXP(ans));
     }
 
 } // namespace mer
@@ -501,7 +533,7 @@ RCPP_FUNCTION_2(double,lmerDeUpdate,S4 xp,NumericVector nt) {
     lm.updateTheta(nt);
     lm.solveBetaU();
     lm.updateMu();
-    return lm.reml() ? lm.profREML() : lm.profDev();
+    return lm.Laplace();
 }
 
 RCPP_FUNCTION_2(double,lmerSpUpdate,S4 xp,NumericVector nt) {
@@ -509,7 +541,7 @@ RCPP_FUNCTION_2(double,lmerSpUpdate,S4 xp,NumericVector nt) {
     lm.updateTheta(nt);
     lm.solveBetaU();
     lm.updateMu();
-    return lm.reml() ? lm.profREML() : lm.profDev();
+    return lm.Laplace();
 }
 
 RCPP_FUNCTION_VOID_2(reUpdateTheta,S4 xp,NumericVector nt) {
