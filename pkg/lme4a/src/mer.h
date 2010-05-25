@@ -245,7 +245,8 @@ namespace mer {
 
 	re.Lambda().dmult('N', 1., 0., MatrixNs::chmDn(u), bb);
 	re.Zt().dmult('T', 1., 1., bb, gg);
-	fe.X().dmult('N', 1., 1., MatrixNs::chmDn(fe.beta()), gg);
+	if (fe.beta().size() > 0)
+	    fe.X().dmult('N', 1., 1., MatrixNs::chmDn(fe.beta()), gg);
 	return resp.updateMu(gamma) + re.sqrLenU();
     }	
 
