@@ -90,7 +90,6 @@ namespace MatrixNs{
     }
 
     void Cholesky::update(dgeMatrix const &A) {
-//	Dimension Ad(A.Dim);
 	if (d_nrow != A.ncol())
 	    Rf_error("%s dimension mismatch, (%d,%d) vs A(%d,%d)",
 		     "Cholesky::update(dgeMatrix)", d_nrow, d_ncol,
@@ -107,7 +106,6 @@ namespace MatrixNs{
     }
 
     void Cholesky::update(dpoMatrix const &A) {
-//	Dimension Ad(A.Dim);
 	if (d_nrow != A.nrow())
 	    Rf_error("%s dimension mismatch, (%d,%d) vs A(%d,%d)",
 		     "Cholesky::update(dpoMatrix)", d_nrow, d_ncol,
@@ -125,7 +123,6 @@ namespace MatrixNs{
 			  double beta, const dsyMatrix &C) {
 	const char tr = Tr.TR;
 	const bool NTR = tr == 'N';
-//	Dimension Ad(A.Dim), Cd(C.Dim);
 	int Anr = A.nrow(), Anc = A.ncol(), Cnr = C.nrow(), Cnc = C.ncol();
 	if (d_nrow != Cnr || NTR ? Anr : Anc != d_nrow)
 	    Rf_error("%s(\"%c\") dimension mismatch, (%d,%d), A(%d,%d), C(%d,%d)",
@@ -142,9 +139,9 @@ namespace MatrixNs{
 		     "dpotrf", info);
     }
 
-    void Cholesky::dpotrs(double *v) const {
-	int info, i1 = 1;
-	F77_CALL(dpotrs)(&uplo.UL, &d_nrow, &i1, x.begin(), &d_nrow,
+    void Cholesky::dpotrs(double *v, int nb) const {
+	int info;
+	F77_CALL(dpotrs)(&uplo.UL, &d_nrow, &nb, x.begin(), &d_nrow,
 			 v, &d_nrow, &info);
 	if (info)
 	    Rf_error("Lapack routine %s returned error code %d",
@@ -152,7 +149,7 @@ namespace MatrixNs{
     }
 
     void Cholesky::dpotrs(NumericVector &v) const {
-	if ((int)v.size() != d_nrow)
+	if (v.size() != d_nrow)
 	    Rf_error("%s (%d, %d) dimension mismatch (%d, %d)",
 		     "Cholesky::dpotrs", d_nrow, d_ncol, v.size(), 1);
 	dpotrs(v.begin());
@@ -165,6 +162,44 @@ namespace MatrixNs{
 	dpotrs(&v[0]);
     }
 
+    Rcpp::NumericMatrix Cholesky::solve(int sys, const_CHM_DN B) const {
+	if (sys != CHOLMOD_A) Rf_error("Code not yet written");
+	if ((int)B->nrow != d_nrow)
+	    Rf_error("%s (%d, %d) dimension mismatch (%d, %d)",
+		     "Cholesky::solve",
+		     d_nrow, d_ncol, B->nrow, B->ncol);
+	Rcpp::NumericMatrix ans(B->nrow, B->ncol);
+	double *bx = (double*)B->x;
+	std::copy(bx, bx + ans.size(), ans.begin());
+	dpotrs(ans.begin(), ans.ncol());
+	return ans;
+    }
+	
+    NumericMatrix Cholesky::solve(int                 sys,
+				  NumericMatrix const&  B) const {
+	if (sys != CHOLMOD_A) Rf_error("Code not yet written");
+	if (B.nrow() != d_nrow)
+	    Rf_error("%s (%d, %d) dimension mismatch (%d, %d)",
+		     "Cholesky::solve",
+		     d_nrow, d_ncol, B.nrow(), B.ncol());
+	NumericMatrix ans = clone(B);
+	dpotrs(ans.begin(), ans.ncol());
+	return ans;
+    }
+	
+    NumericMatrix Cholesky::solve(int                 sys,
+				  NumericVector const&  B) const {
+	if (sys != CHOLMOD_A) Rf_error("Code not yet written");
+	if (B.size() != d_nrow)
+	    Rf_error("%s (%d, %d) dimension mismatch (%d, %d)",
+		     "Cholesky::solve",
+		     d_nrow, d_ncol, B.size(), 1);
+	NumericMatrix ans(B.size(), 1);
+	std::copy(B.begin(), B.end(), ans.begin());
+	dpotrs(ans.begin(), ans.ncol());
+	return ans;
+    }
+	
     double Cholesky::logDet2() {
 	int nc = ncol(), stride = nrow() + 1;
 	double *rx = x.begin(), ans = 0.;
@@ -303,16 +338,14 @@ namespace MatrixNs{
 
     chmSp::chmSp(S4 xp) : cholmod_sparse()//, m_sexp(SEXP(xp))
     {
-	CharacterVector cl(SEXP(xp.attr("class")));
-	char *clnm = cl[0];
-	if (!xp.is("CsparseMatrix"))
+	if (!xp.is("CsparseMatrix")) {
+	    CharacterVector cls = SEXP(xp.attr("class"));
+	    char *clnm = cls[0];
 	    Rf_error("Class %s object passed to %s is not a %s",
 		     clnm, "chmSp::chmSp", "CsparseMatrix");
-//	pp = (CHM_SP)NULL;
+	}
 	IntegerVector
-	    Dim(SEXP(xp.slot("Dim"))),
-	    pp(SEXP(xp.slot("p"))),
-	    ii(SEXP(xp.slot("i")));
+	    Dim(xp.slot("Dim")), pp(xp.slot("p")), ii(xp.slot("i"));
 	nrow = Dim[0];
 	ncol = Dim[1];
 	p = (void*)pp.begin();
@@ -446,6 +479,10 @@ namespace MatrixNs{
 			int sorted) const {
 	return M_cholmod_ssmult((const_CHM_SP)this, (const_CHM_SP)&B,
 				stype, values, sorted, &c);
+    }
+
+    void chmSp::scale(int whch, chmDn const& sc) {
+	M_cholmod_scale(&sc, whch, this, &c);
     }
 
     // chmDn::chmDn(CHM_DN xp) : cholmod_dense(), pp(xp) {
