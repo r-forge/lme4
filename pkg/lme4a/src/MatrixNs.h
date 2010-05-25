@@ -152,18 +152,22 @@ namespace MatrixNs {
     public:
 	Cholesky(Rcpp::S4 xp) : dtrMatrix(xp) {diag = Diag('N');}
 
+	Rcpp::NumericMatrix solve(int, const_CHM_DN) const;
+	Rcpp::NumericMatrix solve(int,Rcpp::NumericMatrix const&) const;
+	Rcpp::NumericMatrix solve(int,Rcpp::NumericVector const&) const;
+
 	void update(dpoMatrix const&); // chol(A)
 	void update(dgeMatrix const&); // chol(crossprod(X))
-
-	void update(Trans,double,dgeMatrix const&,double,const dsyMatrix&);
+	void update(Trans,double,dgeMatrix const&,double,
+		    const dsyMatrix&);
 	void update(char Tr, double alpha, dgeMatrix const& A,
-		    double beta, const dsyMatrix& C) {
+		    double beta, dsyMatrix const& C) {
 	    update(Trans(Tr), alpha, A, beta, C);
 	}
 
 	void dpotrs(Rcpp::NumericVector&) const;
 	void dpotrs(std::vector<double>&) const;
-	void dpotrs(double*) const;
+	void dpotrs(double*, int = 1) const;
 
 	double logDet2();
     };
@@ -198,18 +202,9 @@ namespace MatrixNs {
     };
 
     class chmSp : public cholmod_sparse { 
-//	SEXP m_sexp;
     public:
 	chmSp(Rcpp::S4);
-//	chmSp(CHM_SP);
-//	~chmSp() {if (pp) ::M_cholmod_free_sparse(&pp, &c);}
 
-	void update(cholmod_sparse const&);
-
-	CHM_SP transpose(int values = 1) const;
-	int dmult(char tr, double alpha, double beta, 
-	 	  chmDn const &src, chmDn &dest) const;
-	
 	CHM_SP crossprod() const;
 	CHM_SP crossprod(const cholmod_sparse*, int sorted = 1) const;
 	CHM_SP crossprod(chmSp const &B, int sorted = 1) const;
@@ -218,7 +213,13 @@ namespace MatrixNs {
 	CHM_SP tcrossprod(const_CHM_SP, int sorted = 1) const;
 	CHM_SP tcrossprod(chmSp const &B, int sorted = 1) const;
 
-	CHM_SP smult(chmSp const &B, int stype, int values, int sorted) const;
+	CHM_SP transpose(int values = 1) const;
+
+	CHM_SP smult(chmSp const&, int, int, int) const;
+	int dmult(char, double, double, chmDn const&, chmDn&) const;
+	
+	void scale(int,chmDn const&);
+	void update(cholmod_sparse const&);
     };
 
     class chmFr : public cholmod_factor {

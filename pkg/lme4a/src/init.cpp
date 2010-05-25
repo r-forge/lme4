@@ -4,14 +4,15 @@
 #include <R_ext/Rdynload.h>
 
 extern "C" SEXP glmerDeIRLS(SEXP,SEXP);
-extern "C" SEXP glmerDeLaplace(SEXP);
-extern "C" SEXP glmerDePIRLS(SEXP,SEXP);
+//extern "C" SEXP glmerDeLaplace(SEXP);
+extern "C" SEXP glmerDePIRLS(SEXP,SEXP,SEXP);
 extern "C" SEXP glmerDeUpdateRzxRx(SEXP);
 extern "C" SEXP lmerDeUpdate(SEXP,SEXP);
 extern "C" SEXP lmerSpUpdate(SEXP,SEXP);
-extern "C" SEXP reUpdateTheta(SEXP,SEXP);
+//extern "C" SEXP reUpdateTheta(SEXP,SEXP);
 extern "C" SEXP feSetBeta(SEXP,SEXP);
 extern "C" SEXP nlmerDeEval(SEXP);
+extern "C" SEXP nlmerDeIRLS(SEXP,SEXP);
 
 #define CALLDEF(name, n)  {#name, (DL_FUNC) &name, n}
 
@@ -24,8 +25,7 @@ static R_CallMethodDef CallEntries[] = {
     CALLDEF(glmer_update_RX, 1),
 
     CALLDEF(glmerDeIRLS, 2),
-    CALLDEF(glmerDeLaplace, 1),
-    CALLDEF(glmerDePIRLS, 2),
+    CALLDEF(glmerDePIRLS, 3),
     CALLDEF(glmerDeUpdateRzxRx, 1),
 
     CALLDEF(lme4_ghq, 1),
@@ -44,8 +44,9 @@ static R_CallMethodDef CallEntries[] = {
     CALLDEF(merenvtrms_validate, 1),
 
     CALLDEF(nlmerDeEval, 1),
+    CALLDEF(nlmerDeIRLS, 2),
 
-    CALLDEF(reUpdateTheta, 2),
+//    CALLDEF(reUpdateTheta, 2),
   {NULL, NULL, 0}
 };
 
