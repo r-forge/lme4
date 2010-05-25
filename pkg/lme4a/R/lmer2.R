@@ -221,6 +221,7 @@ mkRespMod <- function(fr, reMod, feMod, family = NULL, nlenv = NULL,
         ll$wtres <- ll$sqrtrwt * (ll$y - ll$mu)
         ll$sqrtXwt <- matrix(ll$sqrtrwt * ll$muEta)
         ll$family <- family
+        ll$devres <- numeric(1)
         ll <- ll[intersect(names(ll), slotNames("glmerResp"))]
         ll$n <- unname(rho$n)           # for the family$aic function
         ll$Class <- "glmerResp"
@@ -521,10 +522,11 @@ bootMer <- function(x, FUN, nsim = 1, seed = NULL, use.u = FALSE,
 }## {bootMer}
 
 glmer2 <- function(formula, data, family = gaussian, sparseX = FALSE,
-                   control = list(), start = NULL, verbose = 0, doFit = TRUE,
+                   control = list(), start = NULL, verbose = 0L, doFit = TRUE,
                    subset, weights, na.action, offset,
                    contrasts = NULL, nAGQ = 1, mustart, etastart, ...)
 {
+    verbose <- as.integer(verbose)
     mf <- mc <- match.call()
     if (missing(family)) { ## divert using lmer2()
 	mc[[1]] <- as.name("lmer2")
@@ -567,14 +569,13 @@ glmer2 <- function(formula, data, family = gaussian, sparseX = FALSE,
     feMod@V <- Diagonal(x = respMod@sqrtXwt[,1]) %*% feMod@X
     ans <- new(ifelse(sparseX, "glmerSp", "glmerDe"), call = mc,
                frame = fr, re = reTrms, fe = feMod, resp = respMod)
-    .Call(glmerDeIRLS, ans, as.integer(verbose))
+    .Call(glmerDeIRLS, ans, verbose)
     if (doFit) {                        # optimize estimates
         thpars <- seq_along(ans@re@theta)
         bb <- ans@fe@beta
         devfun <- function(pars) {
-            .Call(reUpdateTheta, ans@re, pars[thpars])
             .Call(feSetBeta, ans@fe, pars[-thpars])
-            .Call(glmerDePIRLS, ans, verbose)
+            .Call(glmerDePIRLS, ans, pars[thpars], verbose)
         }
         if (verbose) control$iprint <- 2L
         bobyqa(c(ans@re@theta, bb), devfun,

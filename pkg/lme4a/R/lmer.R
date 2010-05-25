@@ -917,7 +917,8 @@ setMethod("devcomp", "glmerMod", function(x, ...)
       {
           ans <- .ModDevComp(x, ...)
           ans$cmp["REML"] <- NA
-          ans$cmp["deviance"] <- .Call(glmerDeLaplace, x)
+          ans$cmp["deviance"] <-
+              x@re@ldL2 + as.vector(crossprod(x@re@u)) + x@resp@devres
           ans$dims["useSc"] <- !(x@resp@family$family %in%
                                    c("binomial", "poisson"))
           ans
