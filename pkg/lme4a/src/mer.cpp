@@ -297,7 +297,7 @@ namespace mer{
     lmerResp::lmerResp(S4 xp)
 	: merResp(xp),
 	  d_reml(*IntegerVector(xp.slot("REML")).begin()) {
-	std::fill(d_mu.begin(), d_mu.end(), double());
+	std::copy(d_offset.begin(), d_offset.end(), d_mu.begin());
 	updateWrss();
     }
 
@@ -398,6 +398,7 @@ namespace mer{
 
     void feModule::setBeta(NumericVector const &bbase,
 			   NumericVector const &incr, double step) {
+	if (d_beta.size() == 0) return;
 	int p = d_beta.size();
 	if (bbase.size() != d_beta.size())
 	    Rf_error("%s: expected %s.size() = %d, got %d",
@@ -436,6 +437,7 @@ namespace mer{
  * @param L
  */
     void deFeMod::updateRzxRx(chmSp const &Lambda, chmFr const &L) {
+	if (d_beta.size() == 0) return;
 	chmDn cRZX(d_RZX);
 	DupdateL(Lambda, L, chmDn(d_UtV), cRZX);
 	d_RX.update('T', -1., d_RZX, 1., d_VtV);
@@ -445,6 +447,7 @@ namespace mer{
     void deFeMod::reweight(chmSp         const&    Ut,
 			   NumericMatrix const&   Xwt,
 			   NumericVector const& wtres) {
+	if (d_beta.size() == 0) return;
 	if (Xwt.size() != d_X.nrow())
 	    Rf_error("%s: dimension mismatch %s(%d,%d), %s(%d,%d)",
 		     "deFeMod::reweight", "X", d_X.nrow(), d_X.ncol(),
@@ -473,6 +476,7 @@ namespace mer{
     }
 
     NumericVector deFeMod::BetaIncr() {
+	if (d_beta.size() == 0) return NumericVector(0);
 	d_RX.update(d_V);
 	NumericVector ans(d_beta.size());
 	std::copy(d_Vtr.begin(), d_Vtr.end(), ans.begin());
@@ -481,6 +485,7 @@ namespace mer{
     }
 
     void deFeMod::updateUtV(chmSp const &Ut) {
+	if (d_beta.size() == 0) return;
 	chmDn cUtV(d_UtV);
 	Ut.dmult('N', 1., 0., chmDn(d_V), cUtV);
     }
@@ -495,6 +500,7 @@ namespace mer{
     NumericVector deFeMod::updateBeta(NumericVector const &cu) {
 	NumericVector ans(cu.size());
 	std::copy(cu.begin(), cu.end(), ans.begin());
+	if (d_beta.size() == 0) return ans;
 	std::copy(d_Vtr.begin(), d_Vtr.end(), d_beta.begin());
 	
 	d_RZX.dgemv('T', -1., ans, 1., d_beta);
@@ -622,5 +628,6 @@ RCPP_FUNCTION_2(double, nlmerDeEval, S4 xp, int verb) {
 
 RCPP_FUNCTION_1(double,nlmerDeIRLS,S4 xp) {
     mer::mer<mer::deFeMod,mer::nlmerResp> nlmr(xp);
+    Rprintf("Constructed object successfully\n");
     return nlmr.updateMu();
 }

@@ -16,6 +16,9 @@ copyMerenv <- function(x) {
     new("lmerenv", setPars = sp, getPars = gp, getBounds = gb)
 }
 
+setGeneric("dropX",
+           function(x, which, fw) standardGeneric("dropX"))
+
 ##' Drop the which'th column from X in rho.
 
 ##' Drop the which'th column from the fixed-effects model matrix in rho,
@@ -29,19 +32,63 @@ copyMerenv <- function(x) {
 ##'     be held constant.
 
 ##' @return no return value.  The environment rho is modified.
-dropX <- function(rho, which, fw) {
-    w <- as.integer(which)[1]
-    fw <- as.numeric(fw)[1]
-    rho$fw <- fw
-    p <- length(rho$beta)
-    stopifnot(0 < w, w <= p)
-    rho$beta <- rho$beta[-w]
-    rho$Xw <- rho$X[, w, drop = TRUE]
-    rho$X <- X <- rho$X[, -w, drop = FALSE]
-    ## offset calculated from fixed parameter value
-    rho$offset <- rho$Xw * fw + rho$offset.orig
-    derived_mats(rho)
-}
+setMethod("dropX", signature(x = "environment"), 
+          function(x, which, fw)
+      {
+          w <- as.integer(which)[1]
+          fw <- as.numeric(fw)[1]
+          x$fw <- fw
+          p <- length(x$beta)
+          stopifnot(0 < w, w <= p)
+          x$beta <- x$beta[-w]
+          x$Xw <- x$X[, w, drop = TRUE]
+          x$X <- X <- x$X[, -w, drop = FALSE]
+          ## offset calculated from fixed parameter value
+          x$offset <- x$Xw * fw + x$offset.orig
+          derived_mats(x)
+      })
+
+##' Drop the which'th column from X in an lmerDe object
+
+##' Drop the which'th column from the fixed-effects model matrix in
+##' fe, the deFeMod slot.  Add fw times the dropped column to
+##' resp@offset and store values to implement
+##' profiling of the fixed-effects parameters.
+
+##' @param obj
+##' @param which the column to drop.  Must have 1 <= which <= ncol(obj@fe@X)
+##' @param fw the value of the which'th fixed effect which will
+##'     be held constant.
+
+##' @return a revised lmerDe object
+setMethod("dropX", "lmerDe",
+          function(x, which, fw)
+      {
+          w <- as.integer(which)[1]
+          fw <- as.numeric(fw)[1]
+          fe <- x@fe
+          resp <- x@resp
+          p <- length(fe@beta)
+          stopifnot(0 < w, w <= p)
+          Xw <-fe@X[, w, drop = TRUE]
+          X <- fe@X[, -w, drop = FALSE]
+          VtV <- crossprod(X)
+          ll <- list(Class = class(fe),
+                     beta = fe@beta[-w],
+                     RZX = fe@RZX[, -w, drop = FALSE],
+                     RX = chol(VtV),
+                     UtV = fe@UtV[, -w, drop = FALSE],
+                     X = X,
+                     V = fe@V[, -w, drop = FALSE],
+                     VtV = VtV,
+                     Vtr = numeric(p-1),
+                     ldRX2= numeric(1))
+          ## offset calculated from fixed parameter value
+          resp@offset <- Xw * fw + resp@offset
+          newfe <- do.call("new", ll)
+          new("lmerDe", re = x@re, fe = newfe, resp = resp,
+              call = x@call, frame = x@frame)
+      })
 
 ##' Reset the which'th fixed effect in rho.
 
