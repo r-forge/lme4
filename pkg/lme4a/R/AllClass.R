@@ -455,11 +455,12 @@ setClass("lmerResp", representation(REML = "integer"),
 
 ##' glmer response module
 setClass("glmerResp",
-         representation(family = "family",
-                        eta = "numeric",
-                        muEta = "numeric",
-                        n = "numeric",    # for evaluation of the aic
-                        var = "numeric"), # variances of responses
+         representation(devres = "numeric", # sum of deviance residuals
+                        family =  "family",
+                        eta =    "numeric",
+                        muEta =  "numeric",
+                        n =      "numeric", # for evaluation of the aic
+                        var =    "numeric"),# variances of responses
          contains = "merResp",
          validity = function(object) {
              n <- length(object@y)
