@@ -52,7 +52,10 @@ importMethodsFrom("Matrix",
 #exportPattern("^[^\\.]")  # for debugging
 # Rather use:  attach(asNamespace("lme4a"))
 
-export(AIC, BIC, VarCorr, bootMer, copyMerenv, devcomp, env, getL,
+## re-export imported S4 generics
+export(AIC, BIC, logLik)
+## and the rest (S3 generics; regular functions):
+export(VarCorr, bootMer, copyMerenv, devcomp, env, getL, # getCall,
        glmer, glmer1, glmer2, lmList, lmer, lmer1, lmer2, nlmer,
        sigma, findbars, nobars, subbars, isNested)
 

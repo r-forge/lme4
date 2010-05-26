@@ -56,21 +56,21 @@ derived_mats <- function(rho) {
         zz <- c(0L,0L)
         qz <- c(nrow(Zt), 0L)
         rho$Vtr <- numeric(0)
-        rho$XtX <- new("dpoMatrix", Dim = zz, uplo = "U")
+        rho$VtV <- new("dpoMatrix", Dim = zz, uplo = "U")
         rho$RX <- new("Cholesky", Dim = zz, uplo = "U", diag = "N")
-        rho$ZtX <- new("dgeMatrix", Dim = qz, Dimnames = Zt@Dimnames)
+        rho$UtV <- new("dgeMatrix", Dim = qz, Dimnames = Zt@Dimnames)
         rho$RZX <- new("dgeMatrix", Dim = qz, Dimnames = Zt@Dimnames)
     } else {
         ## Create crossproduct and check for full column rank
         rho$Vtr <- unname(as.vector(crossprod(X, yy)))
-        rho$ZtX <- Zt %*% X
+        rho$UtV <- Zt %*% X
         rho$RZX <- solve(rho$L, solve(rho$L, crossprod(rho$Lambda,
-                                                       rho$ZtX),
+                                                       rho$UtV),
                                       sys = "P"), sys = "L")
-        if (is(rho$XtX <- crossprod(X), "dsparseMatrix")) {
-            rho$RX <- Cholesky(rho$XtX - crossprod(rho$RZX), LDL = FALSE)
+        if (is(rho$VtV <- crossprod(X), "dsparseMatrix")) {
+            rho$RX <- Cholesky(rho$VtV - crossprod(rho$RZX), LDL = FALSE)
         } else {
-            rho$RX <- chol(rho$XtX)
+            rho$RX <- chol(rho$VtV)
         }
     }
 }
@@ -206,6 +206,9 @@ env2lmer <- function(from) {
     ## $ cmp = c("ldL2", "ldRX2", "pwrss", "deviance", "REML")
     ## $dims = c("n", "p", "nmp", "q", "useSc")
     mel <- mel[is.na(match(names(mel), xnms))] # == mel[!i.xnms]
+    ## the *env class has renamed slots; "mer" keeps old ones (for now):
+    names(mel)[names(mel) == "VtV"] <- "XtX"
+    names(mel)[names(mel) == "UtV"] <- "ZtX"
     ## enquote(.) the call {TODO: use enquote(.) from R 2.12.0 on}:
     mel[["call"]] <- as.call(list(as.name("quote"), mel[["call"]]))
     ## return  new("mer", .....) :
@@ -232,13 +235,13 @@ setAs("lmerenv", "lmer", env2lmer)
         Matrix:::destructive_Chol_update(L, Ut, Imult = 1)
         cu <- solve(L, solve(L, crossprod(Lambda, Utr), sys = "P"),
                     sys = "L")
-        RZX <<- solve(L, solve(L, crossprod(Lambda, ZtX), sys = "P"),
+        RZX <<- solve(L, solve(L, crossprod(Lambda, UtV), sys = "P"),
                       sys = "L")
         if (sparseX) { ## == is(X, "sparseMatrix")
-            RX <<- update(RX, XtX - crossprod(RZX))
+            RX <<- update(RX, VtV - crossprod(RZX))
             beta[] <<- solve(RX, Vtr - crossprod(RZX, cu))@x
         } else { ## dense X
-            RX <<- chol(XtX - crossprod(RZX))
+            RX <<- chol(VtV - crossprod(RZX))
             beta[] <<- solve(RX, solve(t(RX), Vtr - crossprod(RZX, cu)))@x
         }
         u[] <<- solve(L, solve(L, cu - RZX %*% beta, sys = "Lt"),
@@ -984,7 +987,7 @@ setMethod("isREML", "lmerenv",	function(x) isTRUE(env(x)$REML))
 setMethod("isREML", "lmer",	function(x) as.logical(x@dims[["REML"]]))
 setMethod("isREML", "merenv",	function(x) FALSE)
 setMethod("isREML", "mer",	function(x) FALSE)
-setMethod("isREML", "lmerMod",	function(x) x@REML)
+setMethod("isREML", "lmerMod",	function(x) as.logical(x@resp@REML))
 setMethod("isREML", "glmerMod",	function(x) FALSE)
 
 setMethod("getCall", "merenv",	function(x) env(x)$call)
