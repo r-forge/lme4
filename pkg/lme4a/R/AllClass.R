@@ -119,22 +119,20 @@ setClass("lmerenv", contains = "merenvtrms",
          q <- length(rho$u)
 	 if (!(is.numeric(Utr <- rho$Utr) && length(Utr) == q))
 	     return("environment must contain a numeric q-vector Utr")
-         if (!(is(ZtX <- rho$ZtX, "dMatrix") &&
-               all(dim(ZtX) == c(q, p))))
-             return("environment must contain a q by p Matrix ZtX")
-         if (!(is(RZX <- rho$RZX, "dMatrix") &&
-               all(dim(RZX) == c(q, p))))
-             return("environment must contain a q by p Matrix RZX")
-         RX <- rho$RX
-         if (is(RX, "CHMfactor")) RX <- as(RX, "sparseMatrix")
-         if (!(is(RX, "dMatrix") && all(dim(RX) == c(p, p))))
-             return("environment must contain a p by p Matrix RX")
-         if (!(is.numeric(Vtr <- rho$Vtr) && length(Vtr) == p))
-             return("environment must contain a numeric p-vector Vtr")
-         if (!(is(XtX <- rho$XtX, "dMatrix") &&
-               is(XtX, "symmetricMatrix") &&
-               all(dim(RZX) == c(q, p))))
-             return("environment must contain a symmetric Matrix XtX")
+	 if (!(is(UtV <- rho$UtV, "dMatrix") && all(dim(UtV) == c(q, p))))
+	     return("environment must contain a q by p Matrix UtV")
+	 if (!(is(RZX <- rho$RZX, "dMatrix") && all(dim(RZX) == c(q, p))))
+	     return("environment must contain a q by p Matrix RZX")
+	 RX <- rho$RX
+	 if (is(RX, "CHMfactor")) RX <- as(RX, "sparseMatrix")
+	 if (!(is(RX, "dMatrix") && all(dim(RX) == c(p, p))))
+	     return("environment must contain a p by p Matrix RX")
+	 if (!(is.numeric(Vtr <- rho$Vtr) && length(Vtr) == p))
+	     return("environment must contain a numeric p-vector Vtr (= Xty in linear case)")
+	 if (!(is(VtV <- rho$VtV, "dMatrix") &&
+	       is(VtV, "symmetricMatrix") &&
+	       all(dim(VtV) == c(p, p))))
+	     return("environment must contain a symmetric Matrix VtV (= XtX in linear case)")
          TRUE
      })
 
@@ -165,8 +163,8 @@ setClass("mer",
 			## Xst = "dgCMatrix", # sparse fixed effects model matrix
 			Lambda = "dgC_or_diMatrix", # ddi- or dgC-Matrix"
 			Zt = "dgCMatrix",# sparse form of Z'
-			ZtX = "dMatrix", # [dge- or dgC-Matrix]
-			Utr = "numeric", # Zty was "dgeMatrix",
+			ZtX = "dMatrix", # [dge- or dgC-Matrix] -- == UtV in newer classes
+			Utr = "numeric", # was "dgeMatrix"; is Zty in linear case
 			pWt = "numeric",# prior weights,   __ FIXME? __
 			offset = "numeric", # length 0 -> no offset
 			y = "numeric",	 # response vector
@@ -199,7 +197,7 @@ setClass("mer",
 			sqrtXWt = "numeric",# sqrt of model matrix row weights
 			RZX = "dMatrix", # dgeMatrix or dgCMatrix
 			RX = "CholKind",  # "Cholesky" (dense) or "dCHMsimpl" (sparse)
-			XtX = "dsC_or_dpoMatrix", # "dsymmetricMatrix", # dpo* or dsC*
+			XtX = "dsC_or_dpoMatrix", # "dsymmetricMatrix", # dpo* or dsC* -- == VtV in newer classes
 			Vtr = "numeric"
 			),
 	 validity = function(object) TRUE ## FIXME .Call(mer_validate, object)
@@ -276,7 +274,7 @@ setClass("reModule",
                         Lambda = "dgCMatrix",
                         Lind = "integer",
                         Ut = "dgCMatrix",## U := Z Lambda; Ut := U' = Lambda' Z' = Lambda' Zt
-                        Utr = "numeric",
+                        Utr = "numeric", ## U'r (r: residuals; = y initially)
                         Zt = "dgCMatrix",## = Z'
                         lower = "numeric",
                         theta = "numeric",
@@ -444,7 +442,7 @@ setClass("merResp",
              if (length(object@sqrtXwt) != lo)
                  return("length(sqrtXwt) must equal length(offset)")
              if (nrow(object@sqrtXwt) != n)
-                 return("nrow(sqrtXwt) != length(y)")                 
+                 return("nrow(sqrtXwt) != length(y)")
              if (length(object@wrss) != 1L)
                  return("length of wrss must be 1")
              TRUE

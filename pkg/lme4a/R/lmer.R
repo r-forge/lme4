@@ -663,6 +663,8 @@ setMethod("formula", "merenv", function(x, ...) formula(env(x)$call, ...))
 setMethod("formula", "mer", function(x, ...) formula(x@call, ...))
 setMethod("formula",  "lmerMod", function(x, ...) formula(x@call, ...))
 setMethod("formula", "glmerMod", function(x, ...) formula(x@call, ...))
+setMethod("formula", "glmerMod", function(x, ...) formula(x@call, ...))
+setMethod("formula", "glmerMod", function(x, ...) formula(x@call, ...))
 
 .fixef <- function(object, ...) structure(object@beta, names = dimnames(object@X)[[2]])
 
@@ -674,6 +676,8 @@ setMethod("fixef", "mer", .fixef) # function(object, ...) .fixef(object@env)
 #setMethod("fixef", "deFeMod", .fixef)
 #setMethod("fixef", "spFeMod", .fixef)
 setMethod("fixef",  "lmerMod", function(object, ...) .fixef(object@fe))
+setMethod("fixef", "glmerMod", function(object, ...) .fixef(object@fe))
+setMethod("fixef", "glmerMod", function(object, ...) .fixef(object@fe))
 setMethod("fixef", "glmerMod", function(object, ...) .fixef(object@fe))
 
 #setMethod("fixef", "deFeMod", function(object, ...)
@@ -1418,6 +1422,7 @@ setMethod("summary", "lmerMod", function(object, varcov = FALSE, ...)
 	  summaryMer2(object, varcov=varcov, type = "lmer"))
 setMethod("summary", "glmerMod", function(object, varcov = FALSE, ...)
 	  summaryMer2(object, varcov=varcov, type = "glmer"))
+setMethod("summary", "glmerMod", summaryMer2)
 
 
 ## This is just  "Access the X matrix"

@@ -487,9 +487,9 @@ bootMer <- function(x, FUN, nsim = 1, seed = NULL, use.u = FALSE,
                 ((if(use.u) u else as.vector(U %*% rnorm(q))) + rnorm(n))
             ##      random effects  contribution            +     Error
         }
-        x @ resp @ y <- y
-        x @ resp @ Utr <- (Zt %*% y)@x
-        x @ resp @ Vtr <- crossprod(X, y)@x
+	x @ resp @ y <- y
+	x @ fe @ Vtr <- crossprod(X, y)@x
+	x @ re @ Utr <- (Zt %*% y)@x
 
         if (oneD) { # use optimize
             d0 <- devfun(0)
@@ -646,7 +646,7 @@ nlmer2 <- function(formula, data, family = gaussian, start = NULL,
         stop("not all parameter names are used in the nonlinear model expression")
     fr.form <- nlform
 ## FIXME: This should be changed to use subbars and subnms.
-    fr.form[[3]] <- 
+    fr.form[[3]] <-
         parse(text = paste(setdiff(all.vars(formula), pnames),
                          collapse = ' + '))[[1]]
     environment(fr.form) <- environment(formula)
@@ -664,7 +664,7 @@ nlmer2 <- function(formula, data, family = gaussian, start = NULL,
     frE <- do.call(rbind, lapply(1:s, function(i) fr)) # rbind s copies of the frame
     for (nm in pnames) # convert these variables in fr to indicators
         frE[[nm]] <- as.numeric(rep(nm == pnames, each = n))
-                                        # random-effects module 
+                                        # random-effects module
     reTrms <- mkReTrms(findbars(formula[[3]]), frE, s = s)
 
     fe.form <- nlform
@@ -687,7 +687,7 @@ nlmer2 <- function(formula, data, family = gaussian, start = NULL,
 ## #    rho$eta[] <- eta
 
 ##     rho$start <- numeric(p)  # must be careful that these are distinct
-##     rho$start[] <- 
+##     rho$start[] <-
 ##     rho$RX <- qr.R(qrX)
 
 ##     q <- length(rho$u)
