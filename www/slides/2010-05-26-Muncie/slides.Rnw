@@ -1,0 +1,465 @@
+\usepackage{SweaveSlides}
+\title[Fitting NLMMs]{A Likelihood Approach to Fitting\\
+  Nonlinear Mixed-Effects Models\\
+  to Pharmacokinetic and Pharmacodynamic Data}
+\subject{NLMM}
+\AtBeginSection[]
+{
+  \begin{frame}<beamer>
+    \frametitle{Outline}
+    \tableofcontents[currentsection]
+  \end{frame}
+}
+\newcounter{saveenum}
+\newcommand*{\Rp}{\textsf{R}$\;$}% R program
+%---- from texab.sty --- can not take all --------------
+%\newcommand{\norm}[1]   {\left\| #1 \right\|}
+% % the above sometimes give much too long  || -- then use the following:
+% \newcommand{\normb}[1]  {\bigl\|{#1}\bigr\|}
+% \newcommand{\normB}[1]  {\Bigl\|{#1}\Bigr\|}
+\newcommand{\fn}[1]{\kern-2pt\left(#1\right)}
+\newcommand{\Ew}[1]{\mathbf{E}\kern2pt\fn{#1}}
+%
+%
+\mode<handout>{\usetheme{default}}
+\mode<beamer>{%
+  %%> http://www.namsu.de/latex/themes/uebersicht_beamer.html
+  \usetheme{Boadilla}% somewhat similar to Singapore, but "nice" blocks
+  %\usetheme{Singapore}%  \usetheme{Madrid}%
+  \setbeamercovered{dynamic}% {transparent} {invisible} or {dynamic}
+  % Use ETH Logo
+%   \pgfdeclareimage[height=0.5cm]{ETH-logo}{../ethlogo_black}%
+%   \logo{\pgfuseimage{ETH-logo}}%
+  % \pgfdeclareimage[height=0.5cm]{R-logo}{Rlogo}%
+%  \pgfdeclareimage[height=0.5cm]{R-logo}{useR}%
+%  \logo{\pgfuseimage{R-logo}}%
+}
+\begin{document}
+\frame{\titlepage}
+\begin{frame}
+  \frametitle{Outline}
+  \tableofcontents[pausesections,hideallsubsections]
+\end{frame}
+
+\SweaveOpts{engine=R,eps=FALSE,pdf=TRUE,width=10,height=6.5,strip.white=all}
+\SweaveOpts{prefix=TRUE,prefix.string=figs/nlmm,include=TRUE}
+\setkeys{Gin}{width=\textwidth}
+<<preliminaries,echo=FALSE,results=hide>>=
+options(width=69,show.signif.stars=FALSE)
+library(lattice)
+lattice.options(default.theme = function() standard.theme())
+#lattice.options(default.theme = function() standard.theme(color=FALSE))
+library(lme4a)
+@
+
+\section{Introduction}
+
+\begin{frame}
+  \frametitle{Introduction}
+  \begin{itemize}
+  \item Population pharmacokinetic data are often modeled using
+    \Emph{nonlinear mixed-effects models} (NLMMs).
+  \item These are \Emph{nonlinear} because pharmacokinetic parameters
+    - rate constants, clearance rates, etc. - occur nonlinearly in the
+    model function.
+  \item In statistical terms these are \Emph{mixed-effects models}
+    because they involve both \Emph{fixed-effects parameters},
+    applying to the entire population or well-defined subsets of the
+    population, and \Emph{random effects} associated with particular
+    experimental or observational units under study.
+  \item Many algorithms for obtaining parameter estimates, usually
+    ``something like'' the \Emph{maximum likelihood estimates} (MLEs),
+    for such models have been proposed and implemented.
+  \item Comparing different algorithms is not easy.  Even
+    understanding the definition of the model and the proposed
+    algorithm is not easy.
+  \end{itemize}
+\end{frame}
+
+
+\begin{frame}[fragile]
+  \frametitle{An example: Theophylline pharmacokinetics}
+<<Theophplot,fig=TRUE,echo=FALSE,height=5>>=  
+print(xyplot(conc ~ Time|Subject, Theoph, type = c("g","b"),
+             xlab = "Time since drug administration (hr)",
+             ylab = "Serum concentration (mg/l)"))
+@ 
+\begin{itemize}
+\item These are serum concentration profiles for 12 volunteers after
+  injestion of an oral dose of Theophylline, as described in Pinheiro
+  and Bates (2000).
+\end{itemize}
+
+\end{frame}
+\begin{frame}
+  \frametitle{Modeling pharmacokinetic data with a nonlinear model}
+  \begin{itemize}
+  \item These are longitudinal repeated measures data.
+  \item For such data the time pattern of an individual's response is
+    determined by pharmacokinetic parameters (e.g. rate constants)
+    that occur nonlinearly in the expression for the expected response.
+  \item The form of the nonlinear model is determined by the
+    pharmacokinetic theory, not derived from the data.
+    \begin{displaymath}
+      d\cdot k_e\cdot k_a\cdot C\frac{e^{-k_et}-e^{-k_at}}{k_a-k_e}
+    \end{displaymath}
+  \item These pharmacokinetic parameters vary over the population.  We
+    wish to characterize typical values in the population and the
+    extent of the variation.
+  \item Thus, we associate random effects with the parameters, $k_a$,
+    $k_e$ and $C$ in the nonlinear model.
+  \end{itemize}
+\end{frame}
+
+\section{Statistical theory, applications and approximations}
+\label{sec:Philosophy}
+
+\begin{frame}
+  \frametitle{Statistical theory and applications - why we need both}
+  \begin{itemize}
+  \item For 30 years, I have had the pleasure of being part of the
+    U. of Wisconsin-Madison Statistics Dept.  This year we celebrate
+    the 50th anniversary of the founding of our department by George
+    Box (who turned 90 earlier this year).
+  \item George's approach, emphasizing \textbf{both} the theory and
+    the applications of statistics, has now become second-nature to me.
+  \item We are familiar with the dangers of practicing theory without
+    knowledge of applications.  As George famously said, ``All models
+    are wrong; some models are useful.''  How can you expect to decide
+    if a model is useful unless you use it?
+  \item We should equally be wary of the application of statistical
+    techniques for which we know the ``how'' but not the ``why''.
+    Despite the impression we sometimes give in courses, applied
+    statistics is not just a ``black box'' collection of formulas into
+    which you pour your data, hoping to get back a p-value that is
+    less than 5\%.  (In the past many people felt that ``applied
+    statistics is the use of SAS'' but now we know better.)
+  \end{itemize}
+\end{frame}
+
+\begin{frame}
+  \frametitle{The evolving role of approximation}
+  \begin{itemize}
+  \item When Don Watts and I wrote a book on nonlinear regression we
+    included a quote from Bertrand Russell, ``Paradoxically, all exact
+    science is dominated by the idea of approximation''.  In
+    translating statistical theory to applied techniques (computing
+    algorithms) we almost always use some approximations.
+  \item Sometimes the theory is deceptively simple (maximum
+    likelihood estimates are the values of the parameters that
+    maximize the likelihood, given the data) but the devil is in the
+    details (so exactly how do I maximize this likelihood?).
+  \item Decades of work by many talented people have provided us with
+    a rich assortment of computational approximations and other tricks
+    to help us get to the desired answer - or at least close to the
+    desired answer.
+  \item It is important to realize that approximations, like all
+    aspects of computing, have a very short shelf life.  Books on
+    theory can be useful for decades; books on computing may be
+    outmoded in a few years.
+  \end{itemize}
+\end{frame}
+\begin{frame}
+  \frametitle{Failure to revisit assumptions leads to absurdities}
+  \begin{itemize}
+  \item Forty years ago, when I took an intro engineering stats class,
+    we used slide rules or pencil and paper for calculations.  Our
+    text took this into account, providing short-cut computational
+    formulas and ``rules of thumb'' for the use of approximations, plus
+    dozens of pages of tables of probabilities and quantiles.
+  \item Today's computing resources are unimaginably more
+    sophisticated yet the table of contents of most introductory text
+    hasn't changed.
+  \item The curriculum still includes using tables to evaluate
+    probabilities, calculating coefficient estimates of a simple
+    linear regression by hand, creating histograms (by hand, probably)
+    to assess a density, approximating a binomial by a Poisson or by a
+    Gaussian for cases not available in the tables, etc.
+  \item Then we make up PDF slides of this content and put the file on a web
+    site for the students to download and follow on their laptops
+    during the lecture.  Apparently using the computer to evaluate the
+    probabilities or to fit a model would be cheating - you are
+    supposed to do this by hand.
+  \end{itemize}
+\end{frame}
+
+\begin{frame}
+  \frametitle{And what about nonlinear mixed-effects models?}
+  \begin{itemize}
+  \item Defining the statistical model is subtle and all methods
+    proposed for determining parameter estimates use approximations.
+  \item Often the many forms of approximations are presented as different
+    ``types'' of estimates from which one can pick and choose. 
+  \item In 2007-2008 a consortium of pharma companies, the NLMEc,
+    discussed ``next generation'' simulation and estimation software
+    for population PK/PD modeling.  They issued a set of user
+    requirements for such software including, in section 4.4 on estimation
+    \begin{quote}
+      The system will support but not be limited to the following
+      estimation methods: FO, FOI, FOCE, FOCEI, Laplacian, Lindstrom
+      and Bates, MCMC, MCPEM, SAEM, Gaussian quadrature, and
+      nonparametric methods.
+    \end{quote}
+  \item Note the emphasis on estimation methods (i.e. algorithms).
+    All of these techniques are supposed to approximate the mle's but
+    that is never mentioned.
+  \end{itemize}
+\end{frame}
+\section[Model]{Model definition}
+
+\begin{frame}
+  \frametitle{Linear and nonlinear mixed-effects models}
+  \begin{itemize}
+  \item Both linear and nonlinear mixed-effects models, are based on
+    the $n$-dimensional response random variable, $\bc Y$, whose
+    value, $\bm y$, is observed, and the $q$-dimensional, unobserved
+    random effects variable, $\bc B$.
+  \item In the models we will consider $\bc B\sim\mathcal{N}\left(\bm
+      0,\bm\Sigma_\theta\right)$.  The variance-covariance matrix
+    $\bm\Sigma_\theta$ can be huge but it is completely determined by
+    a small number of \Emph{variance-component parameters},
+    $\bm\theta$.
+  \item The conditional distribution of the response, $\bc Y$, is
+    \begin{displaymath}
+      \left(\bc Y|\bc B=\bm b\right)\sim
+      \mathcal{N}\left(\bm\mu_{\bc Y|\bc B},\sigma^2\bm I_n\right)
+    \end{displaymath}
+  \item The conditional mean, $\bm\mu_{\bc Y|\bc B}$, depends on $\bm
+    b$ and on the fixed-effects parameters, $\bm\beta$, through a
+    \Emph{linear predictor} expression, $\bm Z\bm b+\bm X\bm\beta$.
+  \item For a linear mixed model (LMM), $\bm\mu_{\bc Y|\bc B}$ is
+    exactly the linear predictor.  For an NLMM the linear predictor
+    determines the parameter values in the nonlinear model function
+    which then determines the mean.
+  \end{itemize}
+\end{frame}
+\begin{frame}
+  \frametitle{Transforming to orthogonal random effects}
+  \begin{itemize}
+  \item We never really form $\bm\Sigma_\theta$; we always work with the
+    \Emph{relative covariance factor}, $\bm\Lambda_\theta$,
+    defined so that
+    \begin{displaymath}
+      \bm\Sigma_\theta=\sigma^2\bm\Lambda_\theta\bm\Lambda\tr_\theta .
+    \end{displaymath}
+    Note that we must allow for $\bm\Lambda_\theta$ to be less that full rank.
+  \item We define a $q$-dimensional ``spherical'' or ``unit''
+    random-effects vector, $\bc U$, such that
+    \begin{displaymath}
+      \bc U\sim\mathcal{N}\left(\bm 0,\sigma^2\bm I_q\right),\:
+      \bc B=\bm\Lambda_\theta\,\bc U\Rightarrow
+      \text{Var}(\bc B)=\sigma^2\bm\Lambda_\theta\bm\Lambda_\theta\tr=\bm\Sigma_\theta .
+    \end{displaymath}
+  \item Setting $\bm U_\theta=\bm Z\bm\Lambda_\theta$, the linear
+    predictor expression becomes
+    \begin{displaymath}
+      \bm Z\bm b+\bm X\bm\beta=
+      \bm Z\bm\Lambda_\theta\,\bm u+\bm X\bm\beta=
+      \bm U_\theta\,\bm u+\bm X\bm\beta .
+    \end{displaymath}
+    where $\bm U_\theta$, like $\bm Z_\theta$ is a large, sparse matrix.
+  \end{itemize}
+\end{frame}
+\begin{frame}
+  \frametitle{The conditional mode, $\tilde{\bm u}_{\theta,\beta}$}
+  \begin{itemize}
+  \item Although the probability model is defined from $(\bc Y|\bc
+    U=\bm u)$, we observe $\bm y$, not $\bm u$ (or $\bm b$) so we want
+    to work with the other conditional distribution, $(\bc U|\bc Y=\bm
+    y)$.
+  \item The joint distribution of $\bc Y$ and $\bc U$ is Gaussian
+    with density
+    \begin{displaymath}
+      \begin{aligned}
+        f_{\bc Y,\bc U}(\bm y,\bm u)&
+        =f_{\bc Y|\bc U}(\bm y|\bm u)\,f_{\bc U}(\bm u)\\
+        &=\frac{\exp(-\frac{1}{2\sigma^2}\|\bm y-\bm\mu_{\bc Y|\bc U}\|^2)}
+        {(2\pi\sigma^2)^{n/2}}\;
+        \frac{\exp(-\frac{1}{2\sigma^2}\|\bm u\|^2)}{(2\pi\sigma^2)^{q/2}}\\
+        &=\frac{\exp(-
+          \left[\|\bm y-\bm\mu_{\bc Y|\bc U}\|^2+\|\bm u\|^2\right]/(2\sigma^2))}
+        {(2\pi\sigma^2)^{(n+q)/2}}
+      \end{aligned}
+    \end{displaymath}
+  \item The mode, $\tilde{\bm u}_{\theta,\beta}$, of the conditional
+    distribution $(\bc U|\bc Y=\bm y)$ (also the conditional mean in
+    the case of an LMM) is
+    \begin{displaymath}
+      \tilde{\bm u}_{\theta,\beta}=\arg\min_{\bm u}
+      \left[\norm{\bm y-\bm\mu_{\bc Y|\bc U}}^2 +
+      \norm{\bm u}^2\right]
+    \end{displaymath}
+  \end{itemize}
+\end{frame}
+
+\section[PLS]{The penalized least squares problem}
+
+\begin{frame}
+  \frametitle{Minimizing a penalized sum of squared residuals}
+  \begin{itemize}
+  \item An expression like $\norm{\bm y-\bm\mu_{\bc Y|\bc U}}^2
+     + \norm{\bm u}^2$ is called a \Emph{penalized sum of squared
+      residuals} because $\norm{\bm y-\bm\mu_{\bc Y|\bc U}}^2$
+    is a sum of squared residuals and $\norm{\bm u}^2$ is a
+    penalty on the size of the vector $\bm u$.
+  \item Determining $\tilde{\bm u}_{\theta,\beta}$ as the minimizer of
+    this expression is a \Emph{penalized least squares} (PLS) problem.
+    For an LMM it is a \Emph{penalized linear least squares problem}
+    that can be solved directly (i.e. without iterating).  For an NLMM
+    it is a \Emph{penalized nonlinear least squares problem}.
+  \item One way to determine the solution in an LMM is to rephrase it as a
+    linear least squares problem for an extended residual vector
+    \begin{displaymath}
+      \tilde{\bm u}_{\theta,\beta}=\arg\min_{\bm u}\left\|
+        \begin{bmatrix}\bm y-\bm X\bm\beta\\\bm 0\end{bmatrix}-
+        \begin{bmatrix}\bm U_\theta\\\bm I_q\end{bmatrix}
+        \bm u\right\|^2
+    \end{displaymath}
+    This is sometimes called a \Emph{pseudo-data} approach because we
+    create the effect of the penalty term, $\|\bm u\|^2$, by adding
+    ``pseudo-observations'' to $\bm y$ and to the predictor.
+  \end{itemize}
+\end{frame}
+
+\begin{frame}
+  \frametitle{The profiled deviance for LMMs}
+  \begin{itemize}
+  \item We can see that $\tilde{\bm u}_{\theta,\beta}$ satisfies
+    $\left(\bm U_\theta\tr\bm U_\theta+\bm I_q\right)\tilde{\bm
+      u}_{\theta,\beta}= \bm U\tr_\theta(\bm y-\bm X\bm\beta)$ which
+    we solve using the sparse Cholesky decomposition
+    \begin{displaymath}
+      \bm L_\theta\bm L\tr_\theta=
+      \bm P\left(\bm U_\theta\tr\bm U_\theta+\bm I_q\right)\bm P\tr
+    \end{displaymath}
+    $\bm P$ is a permutation matrix that has practical importance but
+    does not affect the theory.  The matrix $\bm L_\theta$ is the
+    sparse, lower-triangular factor.
+  \item Let $r^2(\bm\theta,\bm\beta)$ be the minimum penalized
+    residual sum of squares, then
+    $\ell(\bm\theta,\bm\beta,\sigma|\bm y)=\log
+    L(\bm\theta,\bm\beta,\sigma|\bm y)$ can be written
+    \begin{displaymath}
+      -2\ell(\bm\theta,\bm\beta,\sigma|\bm y)=
+      n\log(2\pi\sigma^2)+\frac{r^2(\bm\theta,\bm\beta)}{\sigma^2}+
+      \log(|\bm L_\theta|^2)
+    \end{displaymath}
+  \item The conditional estimate of $\sigma^2$ is
+    \begin{displaymath}
+      \widehat{\sigma^2}(\bm\theta,\bm\beta)=\frac{r^2(\bm\theta,\bm\beta)}{n}
+    \end{displaymath}
+    producing the \Emph{profiled deviance}
+    \begin{displaymath}
+    -2\tilde{\ell}(\bm\theta,\bm\beta|\bm y)=\log(|\bm L_\theta|^2)+
+      n\left[1+\log\left(\frac{2\pi r^2(\bm\theta,\bm\beta)}{n}\right)\right]
+    \end{displaymath}
+  \end{itemize}
+\end{frame}
+
+\begin{frame}
+  \frametitle{Profiling the deviance with respect to $\bm\beta$ for LMMs}
+  \begin{itemize}
+  \item In a LMM the deviance depends on $\bm\beta$ only through
+    $r^2(\bm\theta,\bm\beta)$ we can obtain the conditional estimate,
+    $\widehat{\bm\beta}_\theta$, by extending the PLS problem to
+    \begin{displaymath}
+      r^2(\bm\theta)=\min_{\bm u,\bm\beta}
+      \left[\left\|\bm y-\bm X\bm\beta-\bm U_\theta\,\bm u\right\|^2 +
+      \left\|\bm u\right\|^2\right]
+    \end{displaymath}
+    with the solution satisfying the equations
+    \begin{displaymath}
+      \begin{bmatrix}
+        \bm U_\theta\tr\bm U_\theta+\bm I_q & \bm
+        U_\theta\tr\bm X\\
+        \bm X\tr\bm U_\theta & \bm X\tr\bm X
+      \end{bmatrix}
+      \begin{bmatrix}
+        \tilde{\bm u}_\theta\\\widehat{\bm\beta}_\theta
+      \end{bmatrix}=
+      \begin{bmatrix}\bm U_\theta\tr\bm y\\\bm X\tr\bm y .
+      \end{bmatrix}
+    \end{displaymath}
+  \item The profiled deviance, which is a function of $\bm\theta$
+    only, is
+    \begin{displaymath}
+      -2\tilde{\ell}(\bm\theta)=\log(|\bm L_\theta|^2)+
+      n\left[1+\log\left(\frac{2\pi r^2(\bm\theta)}{n}\right)\right]
+    \end{displaymath}
+  \end{itemize}
+\end{frame}
+
+\begin{frame}
+  \frametitle{Conditional mode and profiled Laplace approximation for NLMMs}
+  \begin{itemize}
+  \item As previously stated, determining the conditional mode 
+    \begin{displaymath}
+      \tilde{\bm u}_{\theta,\beta}=\arg\min_{\bm u}
+      \left[\norm{\bm y-\bm\mu_{\bc Y|\bc U}}^2 +
+      \norm{\bm u}^2\right]
+    \end{displaymath}
+    in an NLMM is a penalized nonlinear least squares (PNLS) problem.
+  \item It is a nonlinear optimization problem but a comparatively
+    simple one.  The penalty term \Emph{regularizes} the optimization.
+  \item The Laplace approximation to the profiled deviance (profiled
+    over $\sigma^2$) is, as before,
+    \begin{displaymath}
+    -2\tilde{\ell}(\bm\theta,\bm\beta|\bm y)=\log(|\bm L_\theta|^2)+
+      n\left[1+\log\left(\frac{2\pi r^2(\bm\theta,\bm\beta)}{n}\right)\right]
+    \end{displaymath}
+    where $\bm L_\theta$ is the sparse Cholesky factor evaluated at
+    the conditional mode.
+  \item The motivation for this approximation is that it replaces the
+    conditional distribution, $(\bc U|\bc Y=\bm y)$, for parameters
+    $\bm\beta$, $\bm\theta$ and $\sigma$, by a multivariate Gaussian
+    approximation, \Emph{evaluated at the mode}.
+  \end{itemize}
+\end{frame}
+\begin{frame}
+  \frametitle{Laplace approximation and adaptive Gauss-Hermite quadrature}
+  \begin{itemize}
+  \item The Laplace approximation
+    \begin{displaymath}
+    -2\tilde{\ell}(\bm\theta,\bm\beta|\bm y)=\log(|\bm L_\theta|^2)+
+      n\left[1+\log\left(\frac{2\pi r^2(\bm\theta,\bm\beta)}{n}\right)\right]
+    \end{displaymath}
+    is a type of \Emph{smoothing objective} consisting of
+    two terms: $n\left[1+\log\left(\frac{2\pi
+          r^2(\bm\theta,\bm\beta)}{n}\right)\right]$, which measures
+    fidelity to the data, and $\log(|\bm L_\theta|^2)$, which measures
+    the complexity of the model.
+  \item For models with a simple structure for the random effects (the
+    matrices $\bm\Sigma_\theta$ and $\bm\Lambda_\theta$ are block
+    diagonal consisting of a large number of small blocks) a further
+    enhancement is to use \Emph{adaptive Gauss-Hermite quadrature},
+    requiring values of the RSS at several points near $\tilde{\bm
+      u}_{\theta,\beta}$
+  \item Note that the modifier \Emph{adaptive}, meaning evaluating at
+    the conditional mode, is important.  Gauss-Hermite quadrature
+    without first determining the conditional mode is not a good idea.
+  \end{itemize}
+\end{frame}
+
+\section[Comparing methods]{Comparing estimation methods}
+
+\begin{frame}
+  \frametitle{Consequences for comparisons of methods}
+  \begin{itemize}
+  \item We should distinguish between an algorithm, which is a sort of
+    a black box, and a criterion, such as maximizing the likelihood
+    (or, equivalently, minimizing the deviance.
+  \item The criterion is based on the statistical model and exists
+    outside of any particular implementation or computing hardware.
+    It is part of the theory, which has a long shelf life.
+  \item A particular approximation, algorithm and implementation has a
+    short shelf life.
+  \item I claim it does not make sense to regard the FO, FOI, $\dots$
+    methods as producing well-defined types of ``estimates'' in the
+    same sense that maximum likelihood estimates, or maximum \emph{a
+      posteriori} estimates are defined.
+  \item If you use a criterion to define an estimation method then
+    implementations should be compared on the basis of that criterion,
+    not on something like mean squared error.
+
+  \end{itemize}
+\end{frame}
