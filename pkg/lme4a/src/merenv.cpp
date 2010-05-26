@@ -318,14 +318,14 @@ lmer::lmer(SEXP rho) : merenv(rho) {
     Vtr = VAR_REAL_NULL(rho, install("Vtr"), p);
     Utr = VAR_REAL_NULL(rho, install("Utr"), q);
     if (sparseX) {
-	XtXp = new CHM_rs(VAR_CHM_SP(rho, install("XtX"), p, p));
-	ZtXp = new CHM_rs(VAR_CHM_SP(rho, install("ZtX"), q, p));
+	XtXp = new CHM_rs(VAR_CHM_SP(rho, install("VtV"), p, p));
+	ZtXp = new CHM_rs(VAR_CHM_SP(rho, install("UtV"), q, p));
     } else {
-	XtXp = new dpoMatrix(findVarBound(rho, install("XtX")));
+	XtXp = new dpoMatrix(findVarBound(rho, install("VtV")));
 	if (!(XtXp->nrow() == p && XtXp->ncol() == p))
 	    error(_("Dimensions of %s are %d by %d, should be %d by %d"),
-		  "XtX", XtXp->nrow(), XtXp->ncol(), p, p);
-	ZtXp = new CHM_rd(VAR_CHM_DN(rho, install("ZtX"), q, p));
+		  "VtV", XtXp->nrow(), XtXp->ncol(), p, p);
+	ZtXp = new CHM_rd(VAR_CHM_DN(rho, install("UtV"), q, p));
     }
 }
 

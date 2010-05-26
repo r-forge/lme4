@@ -164,7 +164,7 @@ setClass("mer",
 			Lambda = "dgC_or_diMatrix", # ddi- or dgC-Matrix"
 			Zt = "dgCMatrix",# sparse form of Z'
 			ZtX = "dMatrix", # [dge- or dgC-Matrix] -- == UtV in newer classes
-			Utr = "numeric", # was "dgeMatrix"; is Zty in linear case
+			Utr = "numeric", # was "dgeMatrix", related to Zty in linear case
 			pWt = "numeric",# prior weights,   __ FIXME? __
 			offset = "numeric", # length 0 -> no offset
 			y = "numeric",	 # response vector

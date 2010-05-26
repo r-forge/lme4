@@ -22,7 +22,7 @@ setGeneric("env", function(x, ...) standardGeneric("env"),
 ##' extract the deviance components
 setGeneric("devcomp", function(x, ...) standardGeneric("devcomp"))
 
-## utilities, *not* exported
+## utilities, *not* exported (yet ?)
 setGeneric("isREML", function(x) standardGeneric("isREML"),
 	   valueClass = "logical")
 setGeneric("getCall", function(x) standardGeneric("getCall"),
