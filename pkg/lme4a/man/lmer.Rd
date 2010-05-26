@@ -3,45 +3,61 @@
 \alias{lmer1}
 \alias{lmer2}
 \alias{glmer}
+\alias{glmer1}
+\alias{glmer2}
 \alias{nlmer}
-\concept{GLMM}% << so it's found
-\concept{NLMM}% << so it's found
+\concept{LMM}% << so it's found; ditto for these:
+\concept{GLMM}
+\concept{NLMM}
 \title{Fit Mixed-Effects Models}
 \description{
   Fit a linear mixed model or a generalized linear mixed model or a
   nonlinear mixed model.
 }
 \usage{
-lmer1(formula, data, REML = TRUE, sparseX = FALSE,
-      control = list(), start = NULL, verbose = 0,
-      doFit = TRUE, compDev = TRUE,
-%% MM: I would add optim() too; it did not get stuck initially like nlminb
-      optimizer = c("nlminb", "bobyqa", "optimize"),
-      subset, weights, na.action, offset,
-      contrasts = NULL, \dots)
-lmer2(formula, data, REML = TRUE, sparseX = FALSE,
-      control = list(), start = NULL, verbose = 0,
-      doFit = TRUE,
-%% TODO ??  add choice of optimizer as well (and compDev = TRUE/FALSE)  ??
-      subset, weights, na.action, offset,
-      contrasts = NULL, \dots)
-
-## lmer() is currently identical to lmer2() :
 lmer(formula, data, REML = TRUE, sparseX = FALSE,
       control = list(), start = NULL, verbose = 0,
-      doFit = TRUE,
-%% TODO ??  add choice of optimizer as well (and compDev = TRUE/FALSE)  ??
+      doFit = TRUE,%% TODO ??  add choice of optimizer as well (and compDev = TRUE/FALSE)  ??
       subset, weights, na.action, offset,
       contrasts = NULL, \dots)
 
 glmer(formula, data, family = gaussian, sparseX = FALSE,
-      compDev = TRUE, control = list(), start = NULL,
+      control = list(), start = NULL,
       verbose = 0, doFit = TRUE, subset, weights,
       na.action, offset, contrasts = NULL, nAGQ = 1,
       mustart, etastart, \dots)
+
 nlmer(formula, data, family = gaussian, start = NULL, verbose = 0, nAGQ = 1,
       doFit = TRUE, subset, weights, na.action, mustart, etastart,
       contrasts = NULL, control = list(), \dots)
+
+##---------------------------------------------------------------------
+## Somewhat experimental Variants :
+##  -  lmer() is currently identical to  lmer2()
+##  - glmer() is currently identical to glmer2() :
+
+lmer1(formula, data, REML = TRUE, sparseX = FALSE,
+      control = list(), start = NULL, verbose = 0,
+      doFit = TRUE, compDev = TRUE,
+      optimizer = c("nlminb", "bobyqa", "optimize"),%% MM: add "optim"; it did not get stuck initially like nlminb
+      subset, weights, na.action, offset,
+      contrasts = NULL, \dots)
+lmer2(formula, data, REML = TRUE, sparseX = FALSE,
+      control = list(), start = NULL, verbose = 0,
+      doFit = TRUE,%% TODO ??  add choice of optimizer as well (and compDev = TRUE/FALSE)  ??
+      subset, weights, na.action, offset,
+      contrasts = NULL, \dots)
+
+glmer1(formula, data, family = gaussian, sparseX = FALSE,
+       compDev = TRUE, control = list(), start = NULL,
+       verbose = 0, doFit = TRUE, subset, weights,
+       na.action, offset, contrasts = NULL, nAGQ = 1,
+       mustart, etastart, \dots)
+glmer2(formula, data, family = gaussian, sparseX = FALSE,
+       control = list(), start = NULL,
+       verbose = 0, doFit = TRUE, subset, weights,
+       na.action, offset, contrasts = NULL, nAGQ = 1,
+       mustart, etastart, \dots)
 }
 \arguments{
   \item{formula}{a two-sided linear formula object describing the
