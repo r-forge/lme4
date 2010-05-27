@@ -364,8 +364,7 @@ setClass("deFeMod",
                         UtV = "dgeMatrix",
                         V =   "dgeMatrix",
                         VtV = "dpoMatrix",
-                        X =   "dgeMatrix",
-                        ldRX2 = "numeric"),
+			X =   "dgeMatrix"),
          contains = "feModule",
          validity = .feValid)
 
