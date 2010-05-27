@@ -1,9 +1,16 @@
 \name{devcomp}
-\alias{devcomp}
 \title{Extract the components of the deviance}
+\alias{devcomp}
+\alias{devcomp-methods}
+\alias{devcomp,glmerenv-method}
+\alias{devcomp,glmerMod-method}
+\alias{devcomp,lmerenv-method}
+\alias{devcomp,lmerMod-method}
+\alias{devcomp,mer-method}
 \description{
-  Extract the components of the deviance from an
-  \code{\linkS4class{lmerenv}} object.
+  Extract the components of the deviance from a \code{*lmer()} fit.
+  This is a generic function with methods for all kinds of classes
+  returned from calls to \code{\link{lmer}}, \code{\link{glmer}}, etc.
 }
 \usage{
 devcomp(x, ...)
@@ -16,6 +23,16 @@ devcomp(x, ...)
   Extract several numeric quantities used to evaluate the deviance or
   the REML criterion of the model.
 }
+\section{Methods}{
+  \describe{
+    \item{\code{signature(x = "glmerenv")}}{ }%% FIXME
+    \item{\code{signature(x = "glmerMod")}}{ }
+
+    \item{\code{signature(x = "lmerenv")}}{ }
+    \item{\code{signature(x = "lmerMod")}}{ }
+
+    \item{\code{signature(x = "mer")}}{ }
+}}
 \value{a list of two named vectors
   \item{cmp }{Numeric components including \code{ldL2}, the logarithm of
     the square of the determinant of the sparse Cholesky factor,
@@ -33,3 +50,4 @@ devcomp(x, ...)
 devcomp(lmer(Yield ~ 1 + (1|Batch), Dyestuff))
 }
 \keyword{models}
+\keyword{methods}
