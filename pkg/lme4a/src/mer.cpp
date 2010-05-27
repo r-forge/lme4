@@ -109,7 +109,7 @@ namespace mer{
 
 /** 
  * Update the destination dense matrix as
- * solve(L, solve(L, Lambda %*% src, system = "P"), system = "L")
+ * solve(L, solve(L, crossprod(Lambda, src), system ="P"), system ="L")
  * 
  * @param Lambda a sparse q by q matrix
  * @param L a q by q sparse Cholesky factor
@@ -128,7 +128,7 @@ namespace mer{
 
 /** 
  * Return
- * solve(L, solve(L, Lambda %*% src, system = "P"), system = "L")
+ * solve(L, solve(L, crossprod(Lambda, src), system ="P"), system ="L")
  * 
  * @param Lambda a sparse q by q matrix
  * @param L a q by q sparse Cholesky factor
@@ -221,8 +221,10 @@ namespace mer{
 	    d_Ut.update(d_Zt);
 	    d_Ut.scale(CHOLMOD_COL, chmDn(Xwt));
 	} else Rf_error("Multiple columns in Xwt");
-	chmDn cUtr(d_Utr);
+
+	chmDn cUtr(d_Utr), ccu(d_cu);
 	d_Ut.dmult('N', 1., 0., chmDn(wtres), cUtr);
+	DupdateL(d_Lambda, d_L, cUtr, d_cu);
     }
 
 /*
@@ -230,12 +232,11 @@ namespace mer{
  * Update cu from Utr and L.
  */ 
     void reModule::updateLcu() {
-	double one = 1.;
 	CHM_SP LtUt = d_Lambda.crossprod(d_Ut);
-	M_cholmod_factorize_p(LtUt, &one, (int*)NULL, (size_t)0,
-			      &d_L, &c);
-	*d_ldL2 = M_chm_factor_ldetL2(&d_L);
+	d_L.update(*LtUt, 1.);
 	M_cholmod_free_sparse(&LtUt, &c);
+
+	*d_ldL2 = M_chm_factor_ldetL2(&d_L);
 
 	chmDn ccu(d_cu);
 	DupdateL(d_Lambda, d_L, chmDn(d_Utr), d_cu);
@@ -251,10 +252,12 @@ namespace mer{
  * 
  * @param cu 
  */
-    void reModule::updateU(chmDn const &cu) {
-	NumericMatrix t1 = d_L.solve(CHOLMOD_Lt, &cu);
-	const chmDn ct1(t1);
-	setU(d_L.solve(CHOLMOD_Pt, &ct1));
+    void reModule::updateU(NumericVector const &cu) {
+	Rcpp::NumericMatrix
+	    nu = d_L.solve(CHOLMOD_Pt, d_L.solve(CHOLMOD_Lt, cu));
+	std::copy(nu.begin(), nu.end(), d_u.begin());
+	d_sqlLenU = std::inner_product(d_u.begin(), d_u.end(),
+				       d_u.begin(), double());
     }
 
     merResp::merResp(S4 xp)
@@ -587,6 +590,7 @@ namespace mer{
 RCPP_FUNCTION_2(double, lmerDeUpdate, S4 xp, NumericVector nt) {
     mer::mer<mer::deFeMod,mer::lmerResp> lm(xp);
     lm.updateTheta(nt);
+    lm.reweight();
     lm.solveBetaU();
     lm.updateMu();
     return lm.Laplace();
@@ -595,6 +599,7 @@ RCPP_FUNCTION_2(double, lmerDeUpdate, S4 xp, NumericVector nt) {
 RCPP_FUNCTION_2(double, lmerSpUpdate, S4 xp, NumericVector nt) {
     mer::mer<mer::spFeMod,mer::lmerResp> lm(xp);
     lm.updateTheta(nt);
+    lm.reweight();
     lm.solveBetaU();
     lm.updateMu();
     return lm.Laplace();

@@ -38,8 +38,6 @@ namespace mer {
 	double                    ldL2() const {return *d_ldL2;}
 	double                 sqrLenU() const {return  d_sqlLenU;}
 
-//	Rcpp::NumericVector rwUIncr(Rcpp::NumericMatrix const&,
-//				    Rcpp::NumericVector const&);
 	Rcpp::NumericVector UIncr();
 	void setU(Rcpp::NumericVector const&,
 		  Rcpp::NumericVector const& = Rcpp::NumericVector(),
@@ -48,7 +46,7 @@ namespace mer {
 	void reweight(Rcpp::NumericMatrix const&,
 		      Rcpp::NumericVector const&);
 	void updateLcu();
-	void updateU(MatrixNs::chmDn const&);
+	void updateU(Rcpp::NumericVector const&);
     };
 
     class feModule {
@@ -211,9 +209,10 @@ namespace mer {
 	int q()const{return        re.u().size();}
 	int s()const{return              N()/n();}
 
-	void solveBetaU();
+	void reweight();
 	void incrBetaU(Rcpp::NumericVector&,
 		       Rcpp::NumericVector&);
+	void solveBetaU();
 	void updateTheta(const Rcpp::NumericVector&);
 	void updateRzxRx(){fe.updateRzxRx(re.Lambda(), re.L());}
     };
@@ -293,13 +292,15 @@ namespace mer {
     }
 
     template<typename Tf, typename Tr> inline
-    void mer<Tf,Tr>::solveBetaU() {
+    void mer<Tf,Tr>::reweight() {
 	re.reweight(resp.sqrtXwt(), resp.wtres());
-	re.updateLcu();
 	fe.reweight(re.Ut(), resp.sqrtXwt(), resp.wtres());
+    }
+
+    template<typename Tf, typename Tr> inline
+    void mer<Tf,Tr>::solveBetaU() {
 	fe.updateRzxRx(re.Lambda(), re.L());
-	Rcpp::NumericVector cu = fe.updateBeta(re.cu());
-	re.updateU(MatrixNs::chmDn(cu));
+	re.updateU(fe.updateBeta(re.cu()));
     }
 
 /*    
