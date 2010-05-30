@@ -89,7 +89,17 @@ namespace MatrixNs{
 			B.x.begin(), &Bnr, &beta, C.x.begin(), &M);
     }
 
-    void Cholesky::update(dgeMatrix const &A) {
+    void dsyMatrix::dsyrk(dgeMatrix const& A, double alpha, double beta) {
+	if (d_nrow != A.ncol())
+	    Rf_error("%s dimension mismatch, (%d,%d) vs A(%d,%d)",
+		     "dsyMatrix::dsyrk", d_nrow, d_ncol,
+		     A.nrow(), A.ncol());
+	int Anr = A.nrow();
+	F77_CALL(dsyrk)(&(uplo.UL), "T", &d_nrow, &Anr, &alpha,
+			A.x.begin(), &Anr, &beta, x.begin(), &d_nrow);
+    }
+
+    void Cholesky::update(dgeMatrix const& A) {
 	if (d_nrow != A.ncol())
 	    Rf_error("%s dimension mismatch, (%d,%d) vs A(%d,%d)",
 		     "Cholesky::update(dgeMatrix)", d_nrow, d_ncol,
@@ -148,7 +158,7 @@ namespace MatrixNs{
 		     "dpotrs", info);
     }
 
-    void Cholesky::dpotrs(NumericVector &v) const {
+    void Cholesky::dpotrs(Rcpp::NumericVector &v) const {
 	if (v.size() != d_nrow)
 	    Rf_error("%s (%d, %d) dimension mismatch (%d, %d)",
 		     "Cholesky::dpotrs", d_nrow, d_ncol, v.size(), 1);
@@ -331,6 +341,7 @@ namespace MatrixNs{
     CHM_SP chmFr::spsolve(int sys, const_CHM_SP b) const {
 	return M_cholmod_spsolve(sys, (const CHM_FR)this, b, &c);
     }
+
     CHM_SP chmFr::spsolve(int sys, chmSp const &b) const {
 	return M_cholmod_spsolve(sys, (const CHM_FR)this,
 				 (const_CHM_SP)&b, &c);
@@ -404,7 +415,7 @@ namespace MatrixNs{
 		     chmDn const &src, chmDn &dest) const {
 	return M_cholmod_sdmult((const_CHM_SP)this,
 				Trans(tr).TR == 'T', &alpha,
-				&beta, (const CHM_DN)(&src), &dest, &c);
+				&beta, &src, &dest, &c);
     }
 
     void chmSp::update(cholmod_sparse const &nn) {

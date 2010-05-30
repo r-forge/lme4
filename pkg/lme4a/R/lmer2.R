@@ -571,11 +571,45 @@ glmer2 <- function(formula, data, family = gaussian, sparseX = FALSE,
                frame = fr, re = reTrms, fe = feMod, resp = respMod)
     .Call(glmerDeIRLS, ans, verbose)
     if (doFit) {                        # optimize estimates
+        code <- if(is(ans, "glmerSp")) glmerSpPIRLSBeta else glmerDePIRLSBeta
+	if(verbose) {
+	    ..it <- 0L
+	    f.width <- (f.dig <- getOption("digits")) + 5 # "+5": e.g. for 1.2e-05
+	    devfun <- function(th) {
+		r <- .Call(code, ans, th, verbose)
+		..it <<- ..it + 1L
+		cat(sprintf("%3d : %s |-> %15.12g\n", ..it,
+			    paste(sapply(th, format, width = f.width),
+                                  collapse = " "),
+                            r))
+		r
+	    }
+	} else
+	    devfun <- function(th) .Call(code, ans, th, verbose)
+
+        if (length(ans@re@theta) < 2) { # use optimize
+            d0 <- devfun(0)
+            opt <- optimize(devfun, c(0, 10))
+            ##                      -------- <<< arbitrary
+            ## FIXME ?! if optimal theta > 0, optimize will *not* warn!
+            if (d0 <= opt$objective) { ## prefer theta == 0 when close
+                cat(sprintf("dev(th =0) = %.12g <= %.12g = opt$obj(th=%g)%s\n",
+                            d0, opt$objective, opt$minimum, " --> th := 0"))
+                devfun(0) # -> theta  := 0  and update the rest
+            }
+        } else {
+            ## if (verbose > 1) control$iprint <- verbose
+            bobyqa(ans@re@theta, devfun, ans@re@lower, control = control)
+            ## FIXME: also here, prefer \hat{\sigma_a^2} == 0 (exactly)
+        }
+        
+        ## now PIRLS optimization to refine the answer
+        code <- if(is(ans, "glmerSp")) glmerSpPIRLS else glmerDePIRLS
         thpars <- seq_along(ans@re@theta)
         bb <- ans@fe@beta
         devfun <- function(pars) {
             .Call(feSetBeta, ans@fe, pars[-thpars])
-            .Call(glmerDePIRLS, ans, pars[thpars], verbose)
+            .Call(code, ans, pars[thpars], verbose)
         }
         if (verbose) control$iprint <- 2L
         bobyqa(c(ans@re@theta, bb), devfun,

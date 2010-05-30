@@ -140,7 +140,7 @@ namespace MatrixNs {
     public:
 	dsyMatrix(Rcpp::S4 xp) : ddenseMatrix(xp), symmetricMatrix(xp) {}
 
-	void dsyrk(dgeMatrix&,double,double);
+	void dsyrk(dgeMatrix const&,double,double);
     };
 
     class dpoMatrix : public dsyMatrix {
