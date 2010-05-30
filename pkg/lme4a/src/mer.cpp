@@ -68,16 +68,16 @@ namespace mer{
 	} else Rprintf("nnz = 0\n");
     }
 
-/** 
- * Determine the weighted Euclidean distance between two vectors,
- * relative to the square root of the product of their lengths
- * 
- * @param v1 First vector to compare
- * @param v2 Second vector to compare
- * @param wt square root of the weights
- * 
- * @return relative difference between the matrices
- */
+    /** 
+     * Determine the weighted Euclidean distance between two vectors,
+     * relative to the square root of the product of their lengths
+     * 
+     * @param v1 First vector to compare
+     * @param v2 Second vector to compare
+     * @param wt square root of the weights
+     * 
+     * @return relative difference between the matrices
+     */
     double compareVecWt(NumericVector const& v1,
 			NumericVector const& v2,
 			NumericVector const& wt) {
@@ -158,14 +158,61 @@ namespace mer{
 	  d_theta(xp.slot("theta")),
 	  d_u(xp.slot("u")),
 	  d_ldL2(NumericVector(xp.slot("ldL2")).begin()),
-	  d_sqlLenU(std::inner_product(d_u.begin(), d_u.end(),
+	  d_sqrLenU(std::inner_product(d_u.begin(), d_u.end(),
 				       d_u.begin(), double())) {
     }
-    
-    void reModule::setU(NumericVector const &ubase,
-			NumericVector const &incr, double step) {
+
+    /** 
+     * Update derived matrices and vectors: Ut, Utr and cu, for new
+     * weights.
+     *
+     * Update Ut from Zt and sqrtXwt.
+     * Update Utr from wtres and Ut.
+     * 
+     * @param Xwt Matrix of weights for the model matrix
+     * @param wtres weighted residuals
+     */
+    void reModule::reweight(Rcpp::NumericMatrix const&   Xwt,
+			    Rcpp::NumericVector const& wtres) {
+	double mone = -1., one = 1.; 
+	int Wnc = Xwt.ncol()
+//	    ,Wnr = Xwt.nrow()
+//	    ,Znc = d_Zt.ncol
+//	    ,Znr = d_Zt.nrow
+	    ;
+	if (Wnc == 1) {
+	    d_Ut.update(d_Zt);	// copy Zt to Ut
+	    d_Ut.scale(CHOLMOD_COL, chmDn(Xwt));
+	} else Rf_error("Multiple columns in Xwt");
+				// update the factor L
+	CHM_SP LambdatUt = d_Lambda.crossprod(d_Ut);
+	d_L.update(*LambdatUt, 1.);
+	*d_ldL2 = M_chm_factor_ldetL2(&d_L);
+				// update Utr
+	chmDn cUtr(d_Utr), ccu(d_cu), cwtres(wtres);
+	d_Ut.dmult('N', 1., 0., cwtres, cUtr);
+				// update cu
+	std::copy(d_u.begin(), d_u.end(), d_cu.begin());
+	M_cholmod_sdmult(LambdatUt, 0/*trans*/, &one, &mone, &cwtres, &ccu, &c);
+	M_cholmod_free_sparse(&LambdatUt, &c);
+	NumericMatrix
+	    ans = d_L.solve(CHOLMOD_L, d_L.solve(CHOLMOD_P, d_cu));
+	std::copy(ans.begin(), ans.end(), d_cu.begin());
+
+    }
+
+    /** 
+     * Install a new value of U, either a single vector or as a
+     * combination of a base, an increment and a step factor.
+     * 
+     * @param ubase base value of u
+     * @param incr increment relative to the base
+     * @param step step fraction
+     */
+    void reModule::setU(Rcpp::NumericVector const &ubase,
+			Rcpp::NumericVector const &incr, double step) {
 	int q = d_u.size();
-	if (ubase.size() != d_u.size())
+	if (ubase.size() != q)
 	    Rf_error("%s: expected %s.size() = %d, got %d",
 		     "reModule::setU", "ubase", q, ubase.size());
 	if (step == 0.) {
@@ -179,19 +226,28 @@ namespace mer{
 	    std::transform(ubase.begin(), ubase.end(), d_u.begin(),
 			   d_u.begin(), std::plus<double>());
 	}
-	d_sqlLenU = std::inner_product(d_u.begin(), d_u.end(),
+	d_sqrLenU = std::inner_product(d_u.begin(), d_u.end(),
 				       d_u.begin(), double());
     }
-    
-/** 
- * Check and install new value of theta.  Update Lambda.
- *
- * @param nt New value of theta.
- */
-    void reModule::updateTheta(NumericVector const& nt) {
+
+    /** 
+     * Solve for u (or the increment for u) only.
+     * 
+     */  
+    void reModule::solveU() {
+	NumericMatrix ans = d_L.solve(CHOLMOD_A, d_cu);
+	setU(NumericVector(SEXP(ans)));
+    }
+
+    /** 
+     * Check and install new value of theta.  Update Lambda.
+     * 
+     * @param nt New value of theta
+     */
+    void reModule::updateLambda(NumericVector const& nt) {
 	if (nt.size() != d_theta.size())
 	    Rf_error("%s: %s[1:%d], expected [1:%d]",
-		     "updateTheta", "newtheta",
+		     "updateLambda", "newtheta",
 		     nt.size(), d_theta.size());
 //FIXME: Check values of nt against the lower bounds in lower.
 //Perhaps use the Rcpp::any_if algorithm
@@ -203,64 +259,27 @@ namespace mer{
 	double *Lamx = (double*)d_Lambda.x, *th = d_theta.begin();
 	int *Li = d_Lind.begin(), Lis = d_Lind.size();
 	for (int i = 0; i < Lis; i++) Lamx[i] = th[Li[i] - 1];
-
-	updateLcu();
-    }
-/*
- * Update Ut from Zt and sqrtXwt.
- * Update Utr from wtres and Ut.
- */ 
-    void reModule::reweight(NumericMatrix const&   Xwt,
-			    NumericVector const& wtres) {
-	int Wnc = Xwt.ncol()
-//	    ,Wnr = Xwt.nrow()
-//	    ,Znc = d_Zt.ncol
-//	    ,Znr = d_Zt.nrow
-	    ;
-	if (Wnc == 1) {
-	    d_Ut.update(d_Zt);
-	    d_Ut.scale(CHOLMOD_COL, chmDn(Xwt));
-	} else Rf_error("Multiple columns in Xwt");
-
-	chmDn cUtr(d_Utr), ccu(d_cu);
-	d_Ut.dmult('N', 1., 0., chmDn(wtres), cUtr);
-	DupdateL(d_Lambda, d_L, cUtr, d_cu);
     }
 
-/*
- * Update L and ldL2.
- * Update cu from Utr and L.
- */ 
-    void reModule::updateLcu() {
-	CHM_SP LtUt = d_Lambda.crossprod(d_Ut);
-	d_L.update(*LtUt, 1.);
-	M_cholmod_free_sparse(&LtUt, &c);
-
-	*d_ldL2 = M_chm_factor_ldetL2(&d_L);
-
-	chmDn ccu(d_cu);
-	DupdateL(d_Lambda, d_L, chmDn(d_Utr), d_cu);
+    /** 
+     * Solve for u given the updated cu
+     * 
+     * @param cu 
+     */
+    void reModule::updateU(Rcpp::NumericVector const &cu) {
+	NumericMatrix nu = d_L.solve(CHOLMOD_Pt, d_L.solve(CHOLMOD_Lt, cu));
+	setU(NumericVector(SEXP(nu)));
     }
 
-    NumericVector reModule::UIncr() {
-	NumericMatrix ans = d_L.solve(CHOLMOD_A, d_Utr);
-	return NumericVector(SEXP(ans));
+    /** 
+     * Zero the contents of d_u and d_sqrLenU
+     */
+    void reModule::zeroU() {
+	std::fill(d_u.begin(), d_u.end(), double());
+	d_sqrLenU = 0.;
     }
-
-/** 
- * Solve for u given the updated cu
- * 
- * @param cu 
- */
-    void reModule::updateU(NumericVector const &cu) {
-	Rcpp::NumericMatrix
-	    nu = d_L.solve(CHOLMOD_Pt, d_L.solve(CHOLMOD_Lt, cu));
-	std::copy(nu.begin(), nu.end(), d_u.begin());
-	d_sqlLenU = std::inner_product(d_u.begin(), d_u.end(),
-				       d_u.begin(), double());
-    }
-
-    merResp::merResp(S4 xp)
+    
+    merResp::merResp(Rcpp::S4 xp)
 	: d_wrss(NumericVector(xp.slot("wrss")).begin()),
 	  d_offset(xp.slot("offset")),
 	  d_sqrtrwt(xp.slot("sqrtrwt")),
@@ -278,13 +297,13 @@ namespace mer{
 	    ::Rf_error("length(offset) must be a positive multiple of length(y)");
     }
 
-/** 
- * Update the wtres vector and return the sum of squares
- *   wtres <- sqrtrwts * (y - mu)
- *   return(wrss <- sum(wtres^2))
- *
- * @return Updated weighted residual sum of squares
- */
+    /** 
+     * Update the wtres vector and return its sum of squares
+     *   wtres <- sqrtrwts * (y - mu)
+     *   return(wrss <- sum(wtres^2))
+     *
+     * @return Updated weighted residual sum of squares
+     */
     double merResp::updateWrss() {
 				// wtres <- y - mu
 	std::transform(d_y.begin(), d_y.end(), d_mu.begin(),
@@ -297,26 +316,28 @@ namespace mer{
 	return *d_wrss;
     }
 
-    lmerResp::lmerResp(S4 xp)
+    lmerResp::lmerResp(Rcpp::S4 xp)
 	: merResp(xp),
 	  d_reml(*IntegerVector(xp.slot("REML")).begin()) {
 	std::copy(d_offset.begin(), d_offset.end(), d_mu.begin());
 	updateWrss();
     }
 
-    double lmerResp::Laplace(double ldL2, double ldRX2, double sqrL)const{
+    double lmerResp::Laplace(double  ldL2,
+			     double ldRX2,
+			     double  sqrL) const {
 	double lnum = 2.* PI * (*d_wrss + sqrL), n = (double)d_y.size();
 	if (d_reml == 0) return ldL2 + n * (1 + log(lnum / n));
 	double nmp = n - d_reml;
 	return ldL2 + ldRX2 + nmp * (1 + log(lnum / nmp));
     }
 
-    double lmerResp::updateMu(NumericVector const &gamma) {
+    double lmerResp::updateMu(Rcpp::NumericVector const &gamma) {
 	std::copy(gamma.begin(), gamma.end(), d_mu.begin());
 	return updateWrss();
     }
 
-    glmerResp::glmerResp(S4 xp)
+    glmerResp::glmerResp(Rcpp::S4 xp)
 	: merResp(xp),
 	  d_devres(NumericVector(xp.slot("devres")).begin()),
 	  family(SEXP(xp.slot("family"))),
@@ -429,27 +450,18 @@ namespace mer{
 	  d_RX(S4(xp.slot("RX"))) {
     }
 
-/** 
- * Update RZX and RX
- *   RZX <<- solve(L, solve(L, crossprod(Lambda, ZtX), 
- *                          sys = "P"),
- *                 sys = "L")
- *   RX <<- chol(XtX - crossprod(RZX))
- * 
- * @param Lambda 
- * @param L
- */
-    void deFeMod::updateRzxRx(chmSp const &Lambda, chmFr const &L) {
-	if (d_beta.size() == 0) return;
-	chmDn cRZX(d_RZX);
-	DupdateL(Lambda, L, chmDn(d_UtV), cRZX);
-	d_RX.update('T', -1., d_RZX, 1., d_VtV);
-	*d_ldRX2 = d_RX.logDet2();
-    }
-
-    void deFeMod::reweight(chmSp         const&    Ut,
-			   NumericMatrix const&   Xwt,
-			   NumericVector const& wtres) {
+    /** 
+     * Reweight the feModule.
+     *
+     * Update V, UtV and Vtr
+     * 
+     * @param Ut from the reModule
+     * @param Xwt square root of the weights for the model matrices
+     * @param wtres weighted residuals
+     */
+    void deFeMod::reweight(MatrixNs::chmSp       const&    Ut,
+			   Rcpp::NumericMatrix   const&   Xwt,
+			   Rcpp::NumericVector   const& wtres) {
 	if (d_beta.size() == 0) return;
 	if (Xwt.size() != d_X.nrow())
 	    Rf_error("%s: dimension mismatch %s(%d,%d), %s(%d,%d)",
@@ -459,7 +471,7 @@ namespace mer{
 	    Xnc = d_X.ncol(), Xnr = d_X.nrow();
 	double *V = d_V.x.begin(), *W = Xwt.begin(), *X = d_X.x.begin();
 	NumericVector pr(Wnr);
-				// Use the first column of W to initialize V
+				// Initialize V by first column of W
 	for (int j = 0; j < Xnc; j++)
 	    std::transform(X + j*Xnr, X + (j+1)*Xnr, W,
 			   V + j * Wnr, std::multiplies<double>());
@@ -476,31 +488,62 @@ namespace mer{
 	d_V.dgemv('T', 1., wtres, 0., d_Vtr);
 	chmDn cUtV(d_UtV);
 	Ut.dmult('N', 1., 0., chmDn(d_V), cUtV);
+	d_VtV.dsyrk(d_V, 1., 0.);
     }
 
-    NumericVector deFeMod::BetaIncr() {
-	if (d_beta.size() == 0) return NumericVector(0);
-	d_RX.update(d_V);
-	NumericVector ans(d_beta.size());
-	std::copy(d_Vtr.begin(), d_Vtr.end(), ans.begin());
-	d_RX.dpotrs(ans);
-	return ans;
-    }
-
-    void deFeMod::updateUtV(chmSp const &Ut) {
+    /** 
+     * Solve (V'V)beta = Vtr for beta.
+     * 
+     * The contents of RX are saved, changed and restored.
+     */
+    void deFeMod::solveBeta() {
 	if (d_beta.size() == 0) return;
-	chmDn cUtV(d_UtV);
-	Ut.dmult('N', 1., 0., chmDn(d_V), cUtV);
+// FIXME: Probably don't need this backup and restore sequence
+// Define clearly what the contents of d_RX are assumed to be.
+				// back up contents of d_RX;
+	NumericVector RX = d_RX.x, bak(d_RX.x.size());
+	std::copy(RX.begin(), RX.end(), bak.begin());
+	d_RX.update(d_V);
+	std::copy(d_Vtr.begin(), d_Vtr.end(), d_beta.begin());
+	d_RX.dpotrs(d_beta);
+				// restore contents of d_RX;
+	std::copy(bak.begin(), bak.end(), RX.begin());
     }
 
- /** 
-  * Update beta
-  *	beta <- solve(RX, solve(t(RX), Vtr - crossprod(RZX, cu)))
-  * 
-  * @param cu intermediate solution of random-effects.  Updated to
-  *     cu - RZX %*% beta on return
-  */
-    NumericVector deFeMod::updateBeta(NumericVector const &cu) {
+    /** 
+     * Update RZX and RX
+     *   RZX <<- solve(L, solve(L, crossprod(Lambda, ZtX), 
+     *                          sys = "P"),
+     *                 sys = "L")
+     *   RX <<- chol(XtX - crossprod(RZX))
+     * 
+     * @param Lambda relative covariance factor for the random effects
+     * @param L sparse Cholesky factor for the random effects
+     */
+    void deFeMod::updateRzxRx(MatrixNs::chmSp const& Lambda,
+			      MatrixNs::chmFr const&      L) {
+	if (d_beta.size() == 0) return;
+	chmDn cRZX(d_RZX);
+	DupdateL(Lambda, L, chmDn(d_UtV), cRZX);
+	d_RX.update('T', -1., d_RZX, 1., d_VtV);
+	*d_ldRX2 = d_RX.logDet2();
+    }
+
+    // void deFeMod::updateUtV(chmSp const &Ut) {
+    // 	if (d_beta.size() == 0) return;
+    // 	chmDn cUtV(d_UtV);
+    // 	Ut.dmult('N', 1., 0., chmDn(d_V), cUtV);
+    // }
+
+    /** 
+     * Update beta
+     *	beta <- solve(RX, solve(t(RX), Vtr - crossprod(RZX, cu)))
+     * 
+     * @param cu intermediate solution of random-effects.
+     * 
+     * @return cu - RZX %*% beta
+     */
+    Rcpp::NumericVector deFeMod::updateBeta(Rcpp::NumericVector const& cu) {
 	NumericVector ans(cu.size());
 	std::copy(cu.begin(), cu.end(), ans.begin());
 	if (d_beta.size() == 0) return ans;
@@ -522,15 +565,37 @@ namespace mer{
 	  d_RX(S4(xp.slot("RX"))) {
     }
 
-/** 
- * Update RZX and RX
- *   RZX <<- solve(L, solve(L, crossprod(Lambda, ZtX), 
- *                          sys = "P"),
- *                 sys = "L")
- *   RX <- chol(XtX - crossprod(RZX))
- * 
- * @param re a random-effects module
- */
+    /** 
+     * Update beta
+     *	beta <- solve(RX, solve(t(RX), Vtr - crossprod(RZX, cu)))
+     * 
+     * @param cu intermediate solution of random-effects.
+     * 
+     * @return cu - RZX %*% beta
+     */
+    NumericVector spFeMod::updateBeta(NumericVector const &cu) {
+	NumericVector ans(cu.size());
+	std::copy(cu.begin(), cu.end(), ans.begin());
+	std::copy(d_Vtr.begin(), d_Vtr.end(), d_beta.begin());
+	chmDn cbeta(d_beta), cans(ans);
+	d_RZX.dmult('T', -1., 1., chmDn(cu), cbeta);
+	NumericMatrix t1 = d_RX.solve(CHOLMOD_A, &cbeta);
+	std::copy(t1.begin(),  t1.end(), d_beta.begin());
+	d_RZX.dmult('N', -1., 1., cbeta, cans);
+	return ans;
+    }
+
+
+    /** 
+     * Update RZX and RX
+     *   RZX <<- solve(L, solve(L, crossprod(Lambda, ZtX), 
+     *                          sys = "P"),
+     *                 sys = "L")
+     *   RX <<- chol(XtX - crossprod(RZX))
+     * 
+     * @param Lambda relative covariance factor for the random effects
+     * @param L sparse Cholesky factor for the random effects
+     */
     void spFeMod::updateRzxRx(chmSp const &Lambda, chmFr const &L) {
 	double mone[] = {-1.,0}, one[] = {1.,0};
 	CHM_SP t2 = SupdateL(Lambda, L, d_UtV);
@@ -549,48 +614,55 @@ namespace mer{
 	*d_ldRX2 = M_chm_factor_ldetL2(&d_RX);
     }
 
- /** 
-  * Update beta
-  * 	resp@cbeta <- Vtr - crossprod(RZX, cu)
-  *	beta <- solve(RX, solve(t(RX), resp@cbeta))
-  *	resp@cu <- resp@cu - RZX %*% beta
-  * 
-  * @param resp response module
-  */
-    NumericVector spFeMod::updateBeta(NumericVector const &cu) {
-	NumericVector ans(cu.size());
-	std::copy(cu.begin(), cu.end(), ans.begin());
-	std::copy(d_Vtr.begin(), d_Vtr.end(), d_beta.begin());
-	chmDn cbeta(d_beta), cans(ans);
-	d_RZX.dmult('T', -1., 1., chmDn(cu), cbeta);
-	NumericMatrix t1 = d_RX.solve(CHOLMOD_A, &cbeta);
-	std::copy(t1.begin(),  t1.end(), d_beta.begin());
-	d_RZX.dmult('N', -1., 1., cbeta, cans);
-	return ans;
-    }
-
+    /** 
+     * Reweight the feModule.
+     *
+     * Update V, UtV and Vtr
+     * 
+     * @param Ut from the reModule
+     * @param Xwt square root of the weights for the model matrices
+     * @param wtres weighted residuals
+     */
     void spFeMod::reweight(chmSp         const&      Ut,
 			   NumericMatrix const& sqrtXwt,
 			   NumericVector const&   wtres) {
-//FIXME: Code here not written yet.
-	// updateV(sqrtXwt);
-	// updateVtr(wtres);
-	// d_RX.update(d_V);
+	if (d_beta.size() == 0) return;
+	int Wnc = sqrtXwt.ncol(), Wnr = sqrtXwt.nrow(),
+	    Xnc = d_X.ncol, Xnr = d_X.nrow;
+	if (sqrtXwt.size() != (int)d_X.nrow)
+	    Rf_error("%s: dimension mismatch %s(%d,%d), %s(%d,%d)",
+		     "deFeMod::reweight", "X", Xnr, Xnc,
+		     "Xwt", Wnr, Wnc);
+	if (Wnc == 1) {
+	    d_V.update(d_X);
+	    d_V.scale(CHOLMOD_ROW, chmDn(sqrtXwt));
+	} else Rf_error("Multiple columns in Xwt");
+	
+	CHM_SP UtV = Ut.smult(d_V,0/*stype*/,1/*values*/,1/*sorted*/);
+	d_UtV.update(*UtV);
+	M_cholmod_free_sparse(&UtV, &c);
+
+	chmDn cVtr(d_Vtr);
+	d_V.dmult('T', 1., 0., chmDn(wtres), cVtr);
     }
 
-    NumericVector spFeMod::rwBetaIncr(NumericMatrix const& sqrtXwt,
-			              NumericVector const&   wtres) {
-	chmDn cbeta(d_beta);
-	NumericMatrix ans = d_RX.solve(CHOLMOD_A, &cbeta);
-	return NumericVector(SEXP(ans));
+    /** 
+     * Solve (V'V)beta = Vtr for beta.
+     * 
+     */
+    void spFeMod::solveBeta() {
+	d_RX.update(d_VtV);
+	NumericMatrix ans = d_RX.solve(CHOLMOD_A, d_Vtr);
+	std::copy(ans.begin(), ans.end(), d_beta.begin());
     }
 
 } // namespace mer
 
 RCPP_FUNCTION_2(double, lmerDeUpdate, S4 xp, NumericVector nt) {
     mer::mer<mer::deFeMod,mer::lmerResp> lm(xp);
-    lm.updateTheta(nt);
-    lm.reweight();
+    lm.updateLambda(nt);
+    lm.zeroU();
+    lm.updateWts();
     lm.solveBetaU();
     lm.updateMu();
     return lm.Laplace();
@@ -598,8 +670,9 @@ RCPP_FUNCTION_2(double, lmerDeUpdate, S4 xp, NumericVector nt) {
 
 RCPP_FUNCTION_2(double, lmerSpUpdate, S4 xp, NumericVector nt) {
     mer::mer<mer::spFeMod,mer::lmerResp> lm(xp);
-    lm.updateTheta(nt);
-    lm.reweight();
+    lm.updateLambda(nt);
+    lm.zeroU();
+    lm.updateWts();
     lm.solveBetaU();
     lm.updateMu();
     return lm.Laplace();
@@ -612,8 +685,20 @@ RCPP_FUNCTION_2(double, glmerDeIRLS, S4 xp, int verb) {
 
 RCPP_FUNCTION_3(double, glmerDePIRLS, S4 xp, NumericVector nt, int verb) {
     mer::mer<mer::deFeMod,mer::glmerResp> glmr(xp);
-    glmr.updateTheta(nt);
+    glmr.updateLambda(nt);
     return glmr.PIRLS(verb);
+}
+
+RCPP_FUNCTION_3(double, glmerDePIRLSBeta, S4 xp, NumericVector nt, int verb) {
+    mer::mer<mer::deFeMod,mer::glmerResp> glmr(xp);
+    glmr.updateLambda(nt);
+    return glmr.PIRLSBeta(verb);
+}
+
+RCPP_FUNCTION_3(double, glmerSpPIRLSBeta, S4 xp, NumericVector nt, int verb) {
+    mer::mer<mer::deFeMod,mer::glmerResp> glmr(xp);
+    glmr.updateLambda(nt);
+    return glmr.PIRLSBeta(verb);
 }
 
 RCPP_FUNCTION_VOID_1(glmerDeUpdateRzxRx,S4 xp) {

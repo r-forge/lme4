@@ -4,8 +4,8 @@
 #include <R_ext/Rdynload.h>
 
 extern "C" SEXP glmerDeIRLS(SEXP,SEXP);
-//extern "C" SEXP glmerDeLaplace(SEXP);
 extern "C" SEXP glmerDePIRLS(SEXP,SEXP,SEXP);
+extern "C" SEXP glmerDePIRLSBeta(SEXP,SEXP,SEXP);
 extern "C" SEXP glmerDeUpdateRzxRx(SEXP);
 extern "C" SEXP lmerDeUpdate(SEXP,SEXP);
 extern "C" SEXP lmerSpUpdate(SEXP,SEXP);
@@ -26,6 +26,7 @@ static R_CallMethodDef CallEntries[] = {
 
     CALLDEF(glmerDeIRLS, 2),
     CALLDEF(glmerDePIRLS, 3),
+    CALLDEF(glmerDePIRLSBeta, 3),
     CALLDEF(glmerDeUpdateRzxRx, 1),
 
     CALLDEF(lme4_ghq, 1),
