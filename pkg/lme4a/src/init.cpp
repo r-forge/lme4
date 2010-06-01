@@ -9,10 +9,10 @@ extern "C" SEXP glmerDePIRLSBeta(SEXP,SEXP,SEXP);
 extern "C" SEXP glmerDeUpdateRzxRx(SEXP);
 extern "C" SEXP lmerDeUpdate(SEXP,SEXP);
 extern "C" SEXP lmerSpUpdate(SEXP,SEXP);
-//extern "C" SEXP reUpdateTheta(SEXP,SEXP);
 extern "C" SEXP feSetBeta(SEXP,SEXP);
-extern "C" SEXP nlmerDeEval(SEXP);
-extern "C" SEXP nlmerDeIRLS(SEXP,SEXP);
+extern "C" SEXP nlmerDeIRLS(SEXP,SEXP,SEXP);
+extern "C" SEXP nlmerDePIRLS(SEXP,SEXP,SEXP);
+extern "C" SEXP nlmerDePIRLSBeta(SEXP,SEXP,SEXP);
 
 #define CALLDEF(name, n)  {#name, (DL_FUNC) &name, n}
 
@@ -44,8 +44,9 @@ static R_CallMethodDef CallEntries[] = {
     CALLDEF(merenvtrms_show, 1),
     CALLDEF(merenvtrms_validate, 1),
 
-    CALLDEF(nlmerDeEval, 1),
-    CALLDEF(nlmerDeIRLS, 2),
+    CALLDEF(nlmerDeIRLS, 3),
+    CALLDEF(nlmerDePIRLS, 3),
+    CALLDEF(nlmerDePIRLSBeta, 3),
 
 //    CALLDEF(reUpdateTheta, 2),
   {NULL, NULL, 0}
