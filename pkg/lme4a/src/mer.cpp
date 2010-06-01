@@ -1,4 +1,5 @@
 #include "mer.h"
+#include <R_ext/BLAS.h>
 
 using namespace Rcpp;
 using namespace MatrixNs;
@@ -175,15 +176,26 @@ namespace mer{
     void reModule::reweight(Rcpp::NumericMatrix const&   Xwt,
 			    Rcpp::NumericVector const& wtres) {
 	double mone = -1., one = 1.; 
-	int Wnc = Xwt.ncol()
-//	    ,Wnr = Xwt.nrow()
-//	    ,Znc = d_Zt.ncol
-//	    ,Znr = d_Zt.nrow
-	    ;
+	int Wnc = Xwt.ncol();
 	if (Wnc == 1) {
 	    d_Ut.update(d_Zt);	// copy Zt to Ut
 	    d_Ut.scale(CHOLMOD_COL, chmDn(Xwt));
-	} else Rf_error("Multiple columns in Xwt");
+	} else {
+	    int n = Xwt.nrow();
+	    CHM_TR tr = M_cholmod_sparse_to_triplet(&d_Zt, &c);
+	    int *j = (int*)tr->j, nnz = tr->nnz;
+	    double *x = (double*)tr->x, *W = Xwt.begin();
+	    for (int k = 0; k < nnz; k++) {
+		x[k] *= W[j[k]];
+		j[k] = j[k] % n;
+	    }
+	    tr->ncol = (size_t)n;
+
+	    CHM_SP sp = M_cholmod_triplet_to_sparse(tr, nnz, &c);
+	    M_cholmod_free_triplet(&tr, &c);
+	    d_Ut.update(*sp);
+	    M_cholmod_free_sparse(&sp, &c);
+	}
 				// update the factor L
 	CHM_SP LambdatUt = d_Lambda.crossprod(d_Ut);
 	d_L.update(*LambdatUt, 1.);
@@ -198,7 +210,6 @@ namespace mer{
 	NumericMatrix
 	    ans = d_L.solve(CHOLMOD_L, d_L.solve(CHOLMOD_P, d_cu));
 	std::copy(ans.begin(), ans.end(), d_cu.begin());
-
     }
 
     /** 
@@ -289,12 +300,11 @@ namespace mer{
 	  d_y(xp.slot("y")),
 	  d_sqrtXwt(SEXP(xp.slot("sqrtXwt"))) {
 	int n = d_y.size(), os = d_offset.size();
-
 	if (d_mu.size() != n || d_wtres.size() != n ||
 	    d_weights.size() != n || d_sqrtrwt.size() != n)
-	    ::Rf_error("y, mu, sqrtrwt, wtres and weights slots must have equal lengths");
+	    Rf_error("y, mu, sqrtrwt, wtres and weights slots must have equal lengths");
 	if (os < 1 || os % n)
-	    ::Rf_error("length(offset) must be a positive multiple of length(y)");
+	    Rf_error("length(offset) must be a positive multiple of length(y)");
     }
 
     /** 
@@ -385,7 +395,7 @@ namespace mer{
 	: merResp(xp),
 	  nlenv(SEXP(xp.slot("nlenv"))),
 	  nlmod(SEXP(xp.slot("nlmod"))),
-	  pnames(xp.slot("pnames")) {
+	  pnames(SEXP(xp.slot("pnames"))) {
     }
 
     double nlmerResp::Laplace(double  ldL2,
@@ -469,20 +479,23 @@ namespace mer{
 		     "Xwt", Xwt.nrow(), Xwt.ncol());
 	int Wnc = Xwt.ncol(), Wnr = Xwt.nrow(),
 	    Xnc = d_X.ncol(), Xnr = d_X.nrow();
-	double *V = d_V.x.begin(), *W = Xwt.begin(), *X = d_X.x.begin();
-	NumericVector pr(Wnr);
-				// Initialize V by first column of W
-	for (int j = 0; j < Xnc; j++)
-	    std::transform(X + j*Xnr, X + (j+1)*Xnr, W,
-			   V + j * Wnr, std::multiplies<double>());
-				// increment by other columns, if any
-	for (int Wj = 1; Wj < Wnc; Wj++) {
-	    double *Xpt = X + Wj * Wnr;
+	double *V = d_V.x.begin(), *X = d_X.x.begin();
+
+	if (Wnc == 1) {
+	    for (int j = 0; j < Xnc; j++) 
+		std::transform(Xwt.begin(), Xwt.end(), X + j*Xnr,
+			       V + j*Xnr, std::multiplies<double>());
+	} else {
+	    int i1 = 1;
+	    double one = 1., zero = 0.;
+	    NumericVector tmp(Xnr), mm(Wnc); 
+	    std::fill(mm.begin(), mm.end(), 1.);
 	    for (int j = 0; j < Xnc; j++) {
-		std::transform(Xpt + j * Xnr, Xpt + (j+1)*Xnr, W,
-			       pr.begin(), std::multiplies<double>());
-		std::transform(pr.begin(), pr.end(),
-			       V + j*Wnr, V + j*Wnr, std::plus<double>());
+		std::transform(Xwt.begin(), Xwt.end(), X + j*Xnr,
+			       tmp.begin(), std::multiplies<double>());
+		F77_CALL(dgemv)("N", &Wnr, &Wnc, &one, tmp.begin(),
+				&Wnr, mm.begin(), &i1, &zero,
+				V + j * Wnr, &i1);
 	    }
 	}
 	d_V.dgemv('T', 1., wtres, 0., d_Vtr);
@@ -711,13 +724,20 @@ RCPP_FUNCTION_VOID_2(feSetBeta, S4 xp, NumericVector nbeta) {
     fe.setBeta(nbeta);
 }
 
-RCPP_FUNCTION_2(double, nlmerDeEval, S4 xp, int verb) {
+RCPP_FUNCTION_3(double, nlmerDeIRLS, S4 xp, NumericVector nt, int verb) {
     mer::mer<mer::deFeMod,mer::nlmerResp> nlmr(xp);
+    nlmr.updateLambda(nt);
     return nlmr.IRLS(verb);
 }
 
-RCPP_FUNCTION_1(double,nlmerDeIRLS,S4 xp) {
+RCPP_FUNCTION_3(double, nlmerDePIRLS, S4 xp, NumericVector nt, int verb) {
     mer::mer<mer::deFeMod,mer::nlmerResp> nlmr(xp);
-    Rprintf("Constructed object successfully\n");
-    return nlmr.updateMu();
+    nlmr.updateLambda(nt);
+    return nlmr.PIRLS(verb);
+}
+
+RCPP_FUNCTION_3(double, nlmerDePIRLSBeta, S4 xp, NumericVector nt, int verb) {
+    mer::mer<mer::deFeMod,mer::nlmerResp> nlmr(xp);
+    nlmr.updateLambda(nt);
+    return nlmr.PIRLSBeta(verb);
 }

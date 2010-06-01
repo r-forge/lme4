@@ -270,20 +270,6 @@ namespace mer {
 	return updateMu();
     }
     
-    /**
-     * Update the weighted residuals, wrss, sqrtrwt, sqrtXwt, U, Utr,
-     * cu, UtV, VtV and Vtr.
-     *
-     * @return penalized, weighted residual sum of squares
-     */
-    template<typename Tf, typename Tr> inline
-    double mer<Tf,Tr>::updateWts() {
-	double ans = resp.updateWts() + re.sqrLenU();
-	re.reweight(resp.sqrtXwt(), resp.wtres());
-	fe.reweight(re.Ut(), resp.sqrtXwt(), resp.wtres());
-	return ans;
-    }
-
     template<typename Tf, typename Tr> inline
     void mer<Tf,Tr>::solveBetaU() {
 	fe.updateRzxRx(re.Lambda(), re.L());
@@ -298,6 +284,21 @@ namespace mer {
     template<typename Tf, typename Tr> inline
     void mer<Tf,Tr>::updateLambda(Rcpp::NumericVector const& nt) {
 	re.updateLambda(nt);
+    }
+
+    /**
+     * Update the weighted residuals, wrss, sqrtrwt, sqrtXwt, U, Utr,
+     * cu, UtV, VtV and Vtr.
+     *
+     * @return penalized, weighted residual sum of squares
+     */
+    template<typename Tf, typename Tr> inline
+    double mer<Tf,Tr>::updateWts() {
+	double ans = resp.updateWts();
+	ans += re.sqrLenU();
+	re.reweight(resp.sqrtXwt(), resp.wtres());
+	fe.reweight(re.Ut(), resp.sqrtXwt(), resp.wtres());
+	return ans;
     }
 
     template<typename Tf, typename Tr> inline
