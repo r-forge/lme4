@@ -2,12 +2,10 @@
 ##'
 ##' @param bars a list of parsed random-effects terms
 ##' @param fr a model frame in which to evaluate these terms
-##' @param checknl iff TRUE, bail out iff any grouping factors has >=
-##' n levels
 ##' @param s Number of parameters in the nonlinear mean function (nlmer only)
 ##'
 ##' @return a random-effects module that inherits from reTrms
-mkReTrms <- function(bars, fr, checknl = TRUE, s = 1L) {
+mkReTrms <- function(bars, fr, s = 1L) {
     if (!length(bars))
         stop("No random effects terms specified in formula")
     stopifnot(is.list(bars), all(sapply(bars, is.language)),
@@ -39,10 +37,6 @@ mkReTrms <- function(bars, fr, checknl = TRUE, s = 1L) {
     }
     blist <- lapply(bars, mkBlist)
     nl <- sapply(blist, "[[", "nl")     # no. of levels per term
-    n <- nrow(fr)
-    if(checknl && any(nl >= n))
-	stop("Number of levels of a grouping factor for the random effects\n",
-	     "must be less than the number of observations")
 
     ## order terms stably by decreasing number of levels in the factor
     if (any(diff(nl)) > 0) {
@@ -119,6 +113,7 @@ mkReTrms <- function(bars, fr, checknl = TRUE, s = 1L) {
     names(fl) <- ufn
     fl <- do.call(data.frame, c(fl, check.names = FALSE))
     attr(fl, "assign") <- asgn
+    ll$nlev <- nl
     ll$flist <- fl
     ll$cnms <- cnms
     do.call("new", ll)
@@ -141,11 +136,7 @@ mkFeModule <-
     nb <- nobars(form[[3]])
     if (is.null(nb)) nb <- 1
     form[[3]] <- nb
-    X <-
-	if (sparseX)
-	    sparse.model.matrix(form, fr, contrasts)
-	else
-	    Matrix(model.matrix(form, fr, contrasts), sparse = FALSE)
+    X <- model.Matrix(form, fr, contrasts, sparse = sparseX)
     N <- nrow(X)
     p <- ncol(X)
     rownames(X) <- NULL
@@ -173,8 +164,9 @@ mkFeModule <-
     do.call("new", ll)
 }
 
-mkRespMod <- function(fr, reMod, feMod, family = NULL, nlenv = NULL,
-    nlmod = NULL) {
+mkRespMod <- function(fr, reMod, feMod, family = NULL,
+                      nlenv = NULL, nlmod = NULL, checknl = NULL)
+{
     n <- nrow(fr)
     N <- nrow(feMod@X)
                                         # components of the model frame
@@ -209,6 +201,8 @@ mkRespMod <- function(fr, reMod, feMod, family = NULL, nlenv = NULL,
         if (is.function(family)) family <- family()
         eval(family$initialize, rho)
         family$initialize <- NULL       # remove clutter from str output
+        if(is.null(checknl))
+            checknl <- !(family$family %in% c("binomial", "poisson"))
         ll$mu <- unname(rho$mustart)
         lr <- as.list(rho)
         ll[names(lr)] <- lr             # may overwrite y, weights, etc.
@@ -244,7 +238,11 @@ mkRespMod <- function(fr, reMod, feMod, family = NULL, nlenv = NULL,
                 stop("The nonlinear model in nlmer must return a gradient attribute")
             ll$pnames <- colnames(ll$sqrtXwt)
         }
+        if(is.null(checknl)) checknl <- TRUE # non-glmer case
     }
+    if(checknl && any(reMod@nlev >= n))
+	stop("Number of levels of a grouping factor for the random effects\n",
+	     "must be less than the number of observations")
     do.call("new", ll)
 }
 
@@ -375,7 +373,7 @@ lmer2 <- function(formula, data, REML = TRUE, sparseX = FALSE,
             d0 <- devfun(0)
             opt <- optimize(devfun, c(0, 10))
             ##                      -------- <<< arbitrary
-            ## FIXME ?! if optimal theta > 0, optimize will *not* warn!
+            ## FIXME ?! if optimal theta > 10, optimize will *not* warn!
             if (d0 <= opt$objective) { ## prefer theta == 0 when close
                 cat(sprintf("dev(th =0) = %.12g <= %.12g = opt$obj(th=%g)%s\n",
                             d0, opt$objective, opt$minimum, " --> th := 0"))
@@ -591,7 +589,7 @@ glmer2 <- function(formula, data, family = gaussian, sparseX = FALSE,
             d0 <- devfun(0)
             opt <- optimize(devfun, c(0, 10))
             ##                      -------- <<< arbitrary
-            ## FIXME ?! if optimal theta > 0, optimize will *not* warn!
+            ## FIXME ?! if optimal theta > 10, optimize will *not* warn!
             if (d0 <= opt$objective) { ## prefer theta == 0 when close
                 cat(sprintf("dev(th =0) = %.12g <= %.12g = opt$obj(th=%g)%s\n",
                             d0, opt$objective, opt$minimum, " --> th := 0"))
@@ -602,7 +600,7 @@ glmer2 <- function(formula, data, family = gaussian, sparseX = FALSE,
             bobyqa(ans@re@theta, devfun, ans@re@lower, control = control)
             ## FIXME: also here, prefer \hat{\sigma_a^2} == 0 (exactly)
         }
-        
+
         ## now PIRLS optimization to refine the answer
         code <- if(is(ans, "glmerSp")) glmerSpPIRLS else glmerDePIRLS
         thpars <- seq_along(ans@re@theta)
@@ -704,7 +702,7 @@ nlmer2 <- function(formula, data, family = gaussian, start = NULL,
     fe.form <- nlform
     fe.form[[3]] <- formula[[3]]
     feMod <- mkFeModule(fe.form, frE, contrasts, reTrms,
-                        sparseX = FALSE, s = s)
+                        sparseX = sparseX, s = s)
                                         # should this check be in mkFeModule?
     p <- length(feMod@beta)
     if ((qrX <- qr(feMod@X))$rank < p)
