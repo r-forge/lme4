@@ -6,6 +6,7 @@
 \alias{glmer1}
 \alias{glmer2}
 \alias{nlmer}
+\alias{nlmer2}
 \concept{LMM}% << so it's found; ditto for these:
 \concept{GLMM}
 \concept{NLMM}
@@ -27,7 +28,8 @@ glmer(formula, data, family = gaussian, sparseX = FALSE,
       na.action, offset, contrasts = NULL, nAGQ = 1,
       mustart, etastart, \dots)
 
-nlmer(formula, data, family = gaussian, start = NULL, verbose = 0, nAGQ = 1,
+nlmer(formula, data, family = gaussian, sparseX = FALSE,
+      start = NULL, verbose = 0, nAGQ = 1,
       doFit = TRUE, subset, weights, na.action, mustart, etastart,
       contrasts = NULL, control = list(), \dots)
 
@@ -58,6 +60,11 @@ glmer2(formula, data, family = gaussian, sparseX = FALSE,
        verbose = 0, doFit = TRUE, subset, weights,
        na.action, offset, contrasts = NULL, nAGQ = 1,
        mustart, etastart, \dots)
+
+nlmer2(formula, data, family = gaussian, start = NULL, verbose = 0,
+       nAGQ = 1, doFit = TRUE, subset, weights, na.action, mustart,
+       etastart, sparseX = FALSE, contrasts = NULL, control = list(),
+       \dots)
 }
 \arguments{
   \item{formula}{a two-sided linear formula object describing the

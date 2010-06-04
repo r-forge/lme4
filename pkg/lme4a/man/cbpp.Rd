@@ -39,40 +39,54 @@
 }
 \examples{
 ## response as a matrix
-(m1. <- glmer1(cbind(incidence, size - incidence) ~ period + (1 | herd),
+(m1 <- glmer1(cbind(incidence, size - incidence) ~ period + (1 | herd),
                cbpp, binomial, verbose = TRUE))
-(m1a <- glmer2(cbind(incidence, size - incidence) ~ period + (1 | herd),
+(m2 <- glmer2(cbind(incidence, size - incidence) ~ period + (1 | herd),
                cbpp, binomial, verbose = 1))
 ## response as a vector of probabilities and usage of argument "weights"
-m2. <- glmer1(incidence / size ~ period + (1 | herd), weights = size,
+m1p <- glmer1(incidence / size ~ period + (1 | herd), weights = size,
               cbpp, binomial, verbose = TRUE)
-m2a <- glmer2(incidence / size ~ period + (1 | herd), weights = size,
+m2p <- glmer2(incidence / size ~ period + (1 | herd), weights = size,
               cbpp, binomial, verbose = 1)
 ## Confirm that these are equivalent:
-stopifnot(all.equal(fixef(m1.), fixef(m2.), tol = 1e-7),
-          all.equal(ranef(m1.), ranef(m2.), tol = 1e-7))
+stopifnot(all.equal(fixef(m1), fixef(m1p), tol = 1e-11),
+          all.equal(ranef(m1), ranef(m1p), tol = 1e-11),
+          all.equal(fixef(m2), fixef(m2p), tol = 1e-11),
+          all.equal(ranef(m2), ranef(m2p), tol = 1e-11),
+          TRUE)
+if(FALSE) ## <<--- FIXME currently things are not ok
+stopifnot(all.equal(fixef(m1), fixef(m2), tol = 1e-7),
+          all.equal(ranef(m1), ranef(m2), tol = 1e-7),
+          all.equal(fixef(m1p), fixef(m2p), tol = 1e-7),
+          all.equal(ranef(m1p), ranef(m2p), tol = 1e-7),
+          TRUE)
+
 \dontshow{%% TODO: test logLik() working
-  for(m in c(m1., m1a, m2., m2a)) {
-    cat("-------\n\nCall: ", format(lme4a:::getCall(m)),"\n")
+  for(m in c(m1, m2, m1p, m2p)) {
+    cat("-------\n\nCall: ",
+        paste(format(lme4a:::getCall(m)), collapse="\n"), "\n")
     print(logLik(m)); cat("AIC:", AIC(m), "\n") ; cat("BIC:", BIC(m),"\n")
   }
-stopifnot(all.equal(logLik(m1.), logLik(m2.), tol = 1e-7),
-          all.equal(AIC(m1.),    AIC(m2.),    tol = 1e-7),
-          all.equal(BIC(m1.),    BIC(m2.),    tol = 1e-7))
+stopifnot(all.equal(logLik(m1), logLik(m1p), tol = 1e-11),
+          all.equal(AIC(m1),    AIC(m1p),    tol = 1e-11),
+          all.equal(BIC(m1),    BIC(m1p),    tol = 1e-11))
+stopifnot(all.equal(logLik(m2), logLik(m2p), tol = 1e-11),
+          all.equal(AIC(m2),    AIC(m2p),    tol = 1e-11),
+          all.equal(BIC(m2),    BIC(m2p),    tol = 1e-11))
 if(FALSE) ## things are wrong "currently" (see below):
-stopifnot(all.equal(logLik(m1.), logLik(m1a), tol = 0.02),
-          all.equal(AIC(m1.),    AIC(m1a),    tol = 0.02),
-          all.equal(BIC(m1.),    BIC(m1a),    tol = 0.02))
+stopifnot(all.equal(logLik(m1), logLik(m2), tol = 0.02),
+          all.equal(AIC(m1),    AIC(m2),    tol = 0.02),
+          all.equal(BIC(m1),    BIC(m2),    tol = 0.02))
 }
 
 %% FIXME: Why are they so much different that we need such a high 'tol'  ????
 %% DB: the glmer1() results are somewhat doubtful
 ## currently (2010-05-26) things are *really* wrong:
 if(FALSE)
-stopifnot(all.equal(fixef(m1.), fixef(m1a), tol = 0.02),
-          all.equal(ranef(m2.), ranef(m2a), tol = 0.02))
+stopifnot(all.equal(fixef(m1), fixef(m1p), tol = 0.02),
+          all.equal(ranef(m1p), ranef(m2p), tol = 0.02))
 if(FALSE)
-stopifnot(all.equal(fixef(m1.), fixef(m1a), tol = 0.02),%% << FIXME tol !!
-          all.equal(ranef(m2.), ranef(m2a), tol = 0.02))
+stopifnot(all.equal(fixef(m1), fixef(m2), tol = 0.02),%% << FIXME tol !!
+          all.equal(ranef(m1p), ranef(m2p), tol = 0.02))
 }
 \keyword{datasets}

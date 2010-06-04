@@ -44,12 +44,16 @@ Chapman and Hall/CRC.
 }
 \examples{
 str(cake)
-print(fm1 <- lmer(angle ~ recipe * temperature + (1|recipe:replicate), cake,
-                  REML = FALSE), corr = FALSE)
-print(fm2 <- lmer(angle ~ recipe + temperature + (1|recipe:replicate), cake,
-                  REML = FALSE), corr = FALSE)
-print(fm3 <- lmer(angle ~ recipe + temp + (1|recipe:replicate), cake,
-                  REML = FALSE), corr = FALSE)
-try(anova(fm3, fm2, fm1))## FIXME %__ FIXME __
+## 'temp' is continuous, 'temperature' an ordered factor with 6 levels
+
+fm1 <- lmer(angle ~ recipe * temperature + (1|recipe:replicate), cake, REML= FALSE)
+print(fm1, corr=FALSE)
+fm2 <- lmer(angle ~ recipe + temperature + (1|recipe:replicate), cake, REML= FALSE)
+print(fm2, corr=FALSE)
+fm3 <- lmer(angle ~ recipe + temp        + (1|recipe:replicate), cake, REML= FALSE)
+print(fm3, corr=FALSE)
+
+## and now "choose" :
+anova(fm3, fm2, fm1)
 }
 \keyword{datasets}

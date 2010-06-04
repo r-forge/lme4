@@ -309,7 +309,7 @@ setClass("reModule",
 ##'
 ##'
 setClass("reTrms",
-         representation(flist = "list", cnms = "list"),
+         representation(flist = "list", cnms = "list", nlev = "integer"),
          contains = "reModule",
          validity = function(object)
      {

@@ -308,9 +308,7 @@ lmer1 <-
     nb <- nobars(formula[[3]])   # fixed-effects terms only
     if (is.null(nb)) nb <- 1
     fe.form[[3]] <- nb
-    X <- if (sparseX) {
-        sparse.model.matrix(fe.form, fr, contrasts)
-    } else as( model.matrix(fe.form, fr, contrasts), "dgeMatrix")
+    X <- model.Matrix(fe.form, fr, contrasts, sparse = sparseX)
     rownames(X) <- NULL
     rho$X <- X
     rho$sparseX <- sparseX
@@ -432,9 +430,7 @@ function(formula, data, family = gaussian, sparseX = FALSE,
     nb <- nobars(formula[[3]])   # fixed-effects terms only
     if (is.null(nb)) nb <- 1
     fe.form[[3]] <- nb
-    X <- if (sparseX) {
-        sparse.model.matrix(fe.form, fr, contrasts)
-    } else as(model.matrix(fe.form, fr, contrasts), "dgeMatrix")
+    X <- model.Matrix(fe.form, fr, contrasts, sparse = sparseX)
     rownames(X) <- NULL
     rho$X <- X
     rho$sparseX <- sparseX
@@ -549,12 +545,14 @@ glmer <- glmer1
 ##'    defaults are given in the (hidden) function \code{lmerControl}.
 
 ##' @return if doFit is FALSE an environment, otherwise an object of S4 class "mer"
-nlmer <- function(formula, data, family = gaussian, start = NULL,
-                   verbose = 0, nAGQ = 1, doFit = TRUE, subset,
-                   weights, na.action, mustart, etastart,
-                   contrasts = NULL, control = list(), ...)
+nlmer <- function(formula, data, family = gaussian, sparseX = FALSE,
+                  start = NULL, verbose = 0, nAGQ = 1, doFit = TRUE, subset,
+                  weights, na.action, mustart, etastart,
+                  contrasts = NULL, control = list(), ...)
 {
     if (!missing(family)) stop("code not yet written")
+    if (sparseX)
+	warning("'sparseX = TRUE' is probably not yet functional in nlmer()")
     mf <- mc <- match.call()
     m <- match(c("data", "subset", "weights", "na.action",
                  "offset", "etastart", "mustart"),
@@ -624,10 +622,12 @@ nlmer <- function(formula, data, family = gaussian, start = NULL,
         fr[[nm]] <- as.numeric(rep(nm == pnames, each = n))
     fe.form <- nlform # modify formula to suppress intercept (Is this a good idea?)
     fe.form[[3]] <- substitute(0 + bar, list(bar = nobars(formula[[3]])))
-    rho$X <- model.matrix(fe.form, fr, contrasts)
-    rownames(rho$X) <- NULL
-    p <- ncol(rho$X)
-    if ((qrX <- qr(rho$X))$rank < p)
+    X <- model.Matrix(fe.form, fr, contrasts, sparse = sparseX)
+    rownames(X) <- NULL
+    rho$X <- X
+    rho$sparseX <- sparseX
+    p <- ncol(X)
+    if ((qrX <- qr(X))$rank < p)
         stop(gettextf("rank of X = %d < ncol(X) = %d", qrX$rank, p))
     rho$start <- numeric(p)  # must be careful that these are distinct
     rho$start[] <- rho$beta <- qr.coef(qrX, unlist(lapply(pnames, get, envir = rho$nlenv)))
@@ -1063,12 +1063,20 @@ anovaLmer <- function(object, ...) {
     else { ## ------ single model ---------------------
 	dc <- devcomp(object)
 	p <- dc$dims[["p"]]
-	ss <- fixef(object)
-	## FIXME :
-	stop("assign attribute not currently available")
-	asgn <- attr(object@X, "assign")
-	terms <- terms(object)
-	nmeffects <- attr(terms, "term.labels")
+	asgn <- object@fe @ X @ assign
+	stopifnot(length(asgn) == p)
+	## ss <- fixef(object)# wrong !
+
+        stop("one-argument anova() not yet implemented")
+
+        ## really need something like the old update_projection C code :
+        ## an  R  equivalent would be fine, too.
+
+### From here on,  1:1--copy of "old lme4" :
+        ss <- (.Call(mer_update_projection, object)[[2]])^2
+        names(ss) <- names(object@fixef)
+        terms <- terms(object)
+        nmeffects <- attr(terms, "term.labels")
 	if ("(Intercept)" %in% names(ss))
 	    nmeffects <- c("(Intercept)", nmeffects)
 	ss <- unlist(lapply(split(ss, asgn), sum))
@@ -1329,7 +1337,7 @@ formatVC <- function(varc, digits = max(3, getOption("digits") - 2),
     isLmer <- flags[["isLmer"]]
     REML <- if(isLmer) flags[["REML"]] else FALSE
 
-    useSc <- as.logical(devC$dims["useSc"])
+    useSc <- as.logical(devC$dims[["useSc"]])
     fcoef <- fixef(x)
     sig <- if(useSc) sigma(x) else 1.0
     coefs <- cbind("Estimate" = fcoef,
