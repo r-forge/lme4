@@ -134,7 +134,7 @@ namespace mer {
     };
 
     class lmerResp : public merResp {
-	bool d_reml;
+	int d_reml;
     public:
 	lmerResp(Rcpp::S4);
 	double Laplace(double,double,double)const;

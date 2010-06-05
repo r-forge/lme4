@@ -337,9 +337,9 @@ namespace mer{
 			     double ldRX2,
 			     double  sqrL) const {
 	double lnum = 2.* PI * (*d_wrss + sqrL), n = (double)d_y.size();
-	if (d_reml == 0) return ldL2 + n * (1 + log(lnum / n));
+	if (d_reml == 0) return ldL2 + n * (1. + log(lnum / n));
 	double nmp = n - d_reml;
-	return ldL2 + ldRX2 + nmp * (1 + log(lnum / nmp));
+	return ldL2 + ldRX2 + nmp * (1. + log(lnum / nmp));
     }
 
     double lmerResp::updateMu(Rcpp::NumericVector const &gamma) {
