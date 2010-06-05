@@ -19,13 +19,24 @@ showProc.time <- function() { ## CPU elapsed __since last called__
 (fm1a <- lmer(Reaction ~ Days + (Days|Subject), sleepstudy, REML = FALSE))
 (fm2 <- lmer(Reaction ~ Days + (1|Subject) + (0+Days|Subject), sleepstudy))
 
-## FIXME: this should also work for glmer2() !
-fm1. <- glmer1(Reaction ~ Days + (Days|Subject), sleepstudy)
+## Now works for glmer2 (aka glmer)
+fm1. <- glmer(Reaction ~ Days + (Days|Subject), sleepstudy)
 ## default family=gaussian -> automatically calls  lmer()
 stopifnot(all.equal(fm1, fm1.))
+## Test against previous version in lmer1
+(fm1. <- lmer1(Reaction ~ Days + (Days|Subject), sleepstudy))
+stopifnot(all.equal(deviance(fm1), deviance(fm1.)),
+          all.equal(fixef(fm1), fixef(fm1.)),
+          all.equal(fm1@re@theta, fm1.@theta, tol = 1.e-6),
+          all.equal(ranef(fm1), ranef(fm1.), tol = 1.e-06))
+
 ## Test 'compDev = FALSE' (vs TRUE)
 fm1. <- lmer1(Reaction ~ Days + (Days|Subject), sleepstudy,
               compDev = FALSE)#--> use R code (not C) for deviance computation
+stopifnot(all.equal(deviance(fm1), deviance(fm1.)),
+          all.equal(fixef(fm1), fixef(fm1.)),
+          all.equal(fm1@re@theta, fm1.@theta, tol = 1.e-6),
+          all.equal(ranef(fm1), ranef(fm1.), tol = 1.e-06))
 
 L1 <- as.list(env(   fm1. @ env))
 L2 <- as.list(env(as(fm1, "lmerenv")))
@@ -81,13 +92,13 @@ for(nm in c("coef", "fixef", "ranef", "sigma",
 	FF <- function(.) as(FUN(.), "generalMatrix")
     } else FF <- FUN
     stopifnot(
-	      all.equal( FF(fmX1), F.fmX1s, tol =  4e-4)# was 1e-6
+	      all.equal( FF(fmX1), F.fmX1s, tol =  1e-6)# was 1e-6
 	      ,
-	      all.equal( FF(fmX2), F.fmX1s, tol = 40e-4)# was 9e-6 _ FIXME ?
+	      all.equal( FF(fmX2), F.fmX1s, tol = 9e-6)# was 9e-6 _ FIXME ?
               ,
-              all.equal(F.fmX2s,   F.fmX1s, tol = 35e-4)# was 6e-6
+              all.equal(F.fmX2s,   F.fmX1s, tol = 6e-6)# was 6e-6
               ,
-              all.equal(FUN(fm.1), FUN(fm.2), tol = 30e-4)
+              all.equal(FUN(fm.1), FUN(fm.2), tol = 6e-6)
               ,
               TRUE)
     cat("[Ok]\n")
