@@ -55,11 +55,11 @@ stopifnot(all.equal(fixef(fm1), fixef(fm2), tol = 1.e-13),
 		    -0.13755, tol=1e-4))
 
 if(getRversion() > "2.11.0") {
-  AIC(fm1, fm2)
-  BIC(fm1, fm2)
+    print(AIC(fm1, fm2))
+    print(BIC(fm1, fm2))
 } else {
-    AIC(fm1); AIC(fm2)
-    BIC(fm1); BIC(fm2)
+    print(AIC(fm1)); print(AIC(fm2))
+    print(BIC(fm1)); print(BIC(fm2))
 }
 
 (fm3 <- lmer(Yield ~ 1|Batch, Dyestuff2))
