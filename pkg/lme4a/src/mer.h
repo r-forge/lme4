@@ -360,6 +360,7 @@ namespace mer {
 	double crit, step, c0, c1;
 	
 	crit = 10. * CM_TOL;
+	zeroU();
 	updateMu();
 	for (int i = 0; crit >= CM_TOL && i < CM_MAXITER; i++) {
 				// store copies of mu, beta and u
