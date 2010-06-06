@@ -364,4 +364,3 @@ if(FALSE) # not yet available  -- FIXME
 anova(m0, m1)
 
 showProc.time()
-

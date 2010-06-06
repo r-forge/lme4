@@ -3,31 +3,44 @@ library(lme4a)
 allEQ <- function(x,y, tolerance = 4e-4, ...)
     all.equal.numeric(x,y, tolerance=tolerance, ...)
 
+## No summary method for nlmer objects yet so just check str
+nm1 <- nlmer2(circumference ~ SSlogis(age, Asym, xmid, scal) ~
+              0 + Asym + xmid + scal + (0 + Asym|Tree),
+              Orange, PLSBeta = TRUE,
+              start = c(Asym = 200, xmid = 725, scal = 350),
+              verbose = 2)
+fixef(nm1)
+
 ## 'Theoph' Data modeling
 
 Th.start <- c(lKe = -2.5, lKa = 0.5, lCl = -3)
-system.time(nm2 <- nlmer(conc ~ SSfol(Dose, Time,lKe, lKa, lCl) ~
-                         lKe + lKa + lCl + 
-                         (lKe+lKa+lCl|Subject), verb = 1,
+system.time(nm2 <- nlmer2(conc ~ SSfol(Dose, Time,lKe, lKa, lCl) ~
+                         0 + lKe + lKa + lCl + 
+                         (0 + lKe+lKa+lCl|Subject), verb = 1,
+                          PLSBeta = TRUE,
                          Theoph, start = Th.start))  # ~ 5.7s {dual-opteron 2814, on 64b, no optim.}
-nm2
+fixef(nm2)
 
-system.time(nm3 <- nlmer(conc ~ SSfol(Dose, Time,lKe, lKa, lCl) ~
-                         lKe + lKa + lCl + 
-                         (lKe|Subject) + (lKa|Subject) + (lCl|Subject),
-                         verb = 1, Theoph, start = Th.start)) # ~ 3.2s
-nm3
+system.time(nm3 <- nlmer2(conc ~ SSfol(Dose, Time,lKe, lKa, lCl) ~
+                          0 + lKe + lKa + lCl + (0 + lKe|Subject) +
+                          (0 + lKa|Subject) + (0 + lCl|Subject),
+                          Theoph, start = Th.start,
+                          PLSBeta = TRUE, verbose = 1)) # ~ 3.2s
+fixef(nm3)
 
 ## dropping   lKe  from random effects:
-system.time(nm4 <- nlmer(conc ~ SSfol(Dose, Time,lKe, lKa, lCl) ~
-                         lKe + lKa + lCl + (lKa+lCl|Subject), verb = 1,
+system.time(nm4 <- nlmer2(conc ~ SSfol(Dose, Time,lKe, lKa, lCl) ~
+                         0 + lKe + lKa + lCl + (0+lKa+lCl|Subject),
+                          verbose = 1, PLSBeta = TRUE,
                          Theoph, start = Th.start))
-nm4
+fixef(nm4)
+sigma(nm4)
 
-system.time(nm5 <- nlmer(conc ~ SSfol(Dose, Time,lKe, lKa, lCl) ~
-                         lKe + lKa + lCl + (lKa|Subject) + (lCl|Subject),
-                         verb = 1, Theoph, start = Th.start))
-nm5
+system.time(nm5 <- nlmer2(conc ~ SSfol(Dose, Time,lKe, lKa, lCl) ~
+                          0 +lKe + lKa + lCl + (0 + lKa|Subject) +
+                          (0 + lCl|Subject), verbose = 1,
+                          PLSBeta = TRUE, Theoph, start = Th.start))
+fixef(nm5)
 
 #e3 <- expand(nm3)
 #stopifnot(identical(sapply(e3, class),
