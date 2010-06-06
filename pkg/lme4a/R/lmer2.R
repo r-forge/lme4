@@ -265,10 +265,15 @@ S4toEnv <- function(from) {
 .lmerM2env <- function (from, envclass, compDev = TRUE)
 {
     rho <- S4toEnv(from)
+    if (exists("REML", envir = rho, inherits = FALSE))
+        rho$REML <- rho$REML > 0
     n <- length(rho$y)
     p <- length(rho$beta)
     nc <- sapply(rho$cnms, length)      # no. of columns per term
+    if (all(rho$offset == 0)) rho$offset <- numeric(0)
+    if (all(rho$weights == 1)) rho$weights <- numeric(0)
     rho$nobs <- n
+    rho$p <- p
     rho$nmp <- n - p
     rho$ncTrms <- nc
     rho$diagonalLambda <- all(nc == 1)
@@ -277,7 +282,8 @@ S4toEnv <- function(from) {
     cl <- rho$call
     ## This is only a cheap guess, possibly incorrect e.g., in 'lmer(*, verbose=verbose)':
     rho$verbose <-
-        length(v <- as.list(cl)[names(cl) == "verbose"]) && !identical(FALSE, eval(v))
+        as.integer(length(v <- as.list(cl)[names(cl) == "verbose"]) &&
+                   !identical(FALSE, eval(v)))
     rho$sparseX <- is(from@fe@X, "sparseMatrix")
 
     ## temporary "workarounds":
@@ -286,10 +292,21 @@ S4toEnv <- function(from) {
 
     ## not yet stored (?)
     ## y <- rho$y
-    rho$sqrtrWt <- sqrt(rho$weights)
-    ##  sqrtXWt  :=  sqrt of model matrix row weights
-    rho$sqrtXWt <- sqrt(rho$weights)    # to ensure a distinct copy
+    rho$sqrtrWt <- rho$sqrtrwt
+    if (all(rho$sqrtrWt == 1)) rho$sqrtrWt <- numeric(0)
+    rm(sqrtrwt, envir = rho)
 
+    rho$sqrtXWt <- rho$sqrtXwt
+    if (all(rho$sqrtXWt == 1)) rho$sqrtXWt <- numeric(0)
+    rm(sqrtXwt, envir = rho)
+
+    ## Fix up some inconsistencies
+    rho$Ut <- crossprod(rho$Lambda, rho$Ut)
+    rownames(rho$RZX) <- NULL
+    asgn <- attr(rho$flist, "assign")
+    rho$flist <- do.call(data.frame, rho$flist)
+    attr(rho$flist, "assign") <- asgn
+    
     sP <- .setPars # see ./lmer.R
     gP <- function() theta
     gB <- function() cbind(lower = lower,
@@ -569,50 +586,62 @@ glmer2 <- function(formula, data, family = gaussian, sparseX = FALSE,
                frame = fr, re = reTrms, fe = feMod, resp = respMod)
     .Call(glmerDeIRLS, ans, verbose)
     if (doFit) {                        # optimize estimates
-        code <- if(is(ans, "glmerSp")) glmerSpPIRLSBeta else glmerDePIRLSBeta
-	if(verbose) {
-	    ..it <- 0L
-	    f.width <- (f.dig <- getOption("digits")) + 5 # "+5": e.g. for 1.2e-05
-	    devfun <- function(th) {
-		r <- .Call(code, ans, th, verbose)
-		..it <<- ..it + 1L
-		cat(sprintf("%3d : %s |-> %15.12g\n", ..it,
-			    paste(sapply(th, format, width = f.width),
-                                  collapse = " "),
-                            r))
-		r
-	    }
-	} else
+        if (FALSE) {           # add an argument to select this option
+            code <- if(is(ans, "glmerSp")) glmerSpPIRLSBeta else glmerDePIRLSBeta
 	    devfun <- function(th) .Call(code, ans, th, verbose)
-
-        if (length(ans@re@theta) < 2) { # use optimize
-            d0 <- devfun(0)
-            opt <- optimize(devfun, c(0, 10))
-            ##                      -------- <<< arbitrary
-            ## FIXME ?! if optimal theta > 10, optimize will *not* warn!
-            if (d0 <= opt$objective) { ## prefer theta == 0 when close
-                cat(sprintf("dev(th =0) = %.12g <= %.12g = opt$obj(th=%g)%s\n",
-                            d0, opt$objective, opt$minimum, " --> th := 0"))
-                devfun(0) # -> theta  := 0  and update the rest
+            if (length(ans@re@theta) < 2) { # use optimize
+                if(verbose) {
+                    ..it <- 0L
+                    f.width <- (f.dig <- getOption("digits")) + 5 # "+5": e.g. for 1.2e-05
+                    devfun <- function(th) {
+                        r <- .Call(code, ans, th, verbose)
+                        ..it <<- ..it + 1L
+                        cat(sprintf("%3d : %s |-> %15.12g\n", ..it,
+                                    paste(sapply(th, format, width = f.width),
+                                          collapse = " "),
+                                    r))
+                        r
+                    }
+                }
+                d0 <- devfun(0)
+                opt <- optimize(devfun, c(0, 10))
+                ##                      -------- <<< arbitrary
+                ## FIXME ?! if optimal theta > 10, optimize will *not* warn!
+                if (d0 <= opt$objective) { ## prefer theta == 0 when close
+                    cat(sprintf("dev(th =0) = %.12g <= %.12g = opt$obj(th=%g)%s\n",
+                                d0, opt$objective, opt$minimum, " --> th := 0"))
+                    devfun(0) # -> theta  := 0  and update the rest
+                }
+            } else {
+                if (verbose > 0) control$iprint <- 2L
+                if (verbose > 1) {
+                    devfun <- function(th) {
+                        r <- .Call(code, ans, th, verbose)
+                        ..it <<- ..it + 1L
+                        cat(sprintf("%3d : %s |-> %15.12g\n", ..it,
+                                    paste(sapply(th, format, width = f.width),
+                                          collapse = " "),
+                                    r))
+                        r
+                    }
+                }
+                bobyqa(ans@re@theta, devfun, ans@re@lower,
+                       control = control)
+                ## FIXME: also here, prefer \hat{\sigma_a^2} == 0 (exactly)
             }
-        } else {
-            ## if (verbose > 1) control$iprint <- verbose
-            bobyqa(ans@re@theta, devfun, ans@re@lower, control = control)
-            ## FIXME: also here, prefer \hat{\sigma_a^2} == 0 (exactly)
+        } else {                        # PIRLS optimization 
+            code <- if(is(ans, "glmerSp")) glmerSpPIRLS else glmerDePIRLS
+            thpars <- seq_along(ans@re@theta)
+            bb <- ans@fe@beta
+            devfun <- function(pars) {
+                .Call(feSetBeta, ans@fe, pars[-thpars])
+                .Call(code, ans, pars[thpars], verbose)
+            }
+            if (verbose) control$iprint <- 2L
+            bobyqa(c(ans@re@theta, bb), devfun,
+                   c(ans@re@lower, rep.int(-Inf, length(bb))),
+                   control = control)
         }
-
-        ## now PIRLS optimization to refine the answer
-        code <- if(is(ans, "glmerSp")) glmerSpPIRLS else glmerDePIRLS
-        thpars <- seq_along(ans@re@theta)
-        bb <- ans@fe@beta
-        devfun <- function(pars) {
-            .Call(feSetBeta, ans@fe, pars[-thpars])
-            .Call(code, ans, pars[thpars], verbose)
-        }
-        if (verbose) control$iprint <- 2L
-        bobyqa(c(ans@re@theta, bb), devfun,
-               c(ans@re@lower, rep.int(-Inf, length(bb))),
-               control = control)
         .Call(glmerDeUpdateRzxRx, ans)
     }
     ans
