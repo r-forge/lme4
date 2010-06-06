@@ -23,20 +23,20 @@ showProc.time <- function() { ## CPU elapsed __since last called__
 fm1. <- glmer(Reaction ~ Days + (Days|Subject), sleepstudy)
 ## default family=gaussian -> automatically calls  lmer()
 stopifnot(all.equal(fm1, fm1.))
-## Test against previous version in lmer1
-(fm1. <- lmer1(Reaction ~ Days + (Days|Subject), sleepstudy))
+## Test against previous version in lmer1 (using bobyqa for consistency)
+(fm1. <- lmer1(Reaction ~ Days + (Days|Subject), sleepstudy, opt = "bobyqa"))
 stopifnot(all.equal(deviance(fm1), deviance(fm1.)),
           all.equal(fixef(fm1), fixef(fm1.)),
-          all.equal(fm1@re@theta, fm1.@theta, tol = 1.e-6),
-          all.equal(ranef(fm1), ranef(fm1.), tol = 1.e-06))
+          all.equal(fm1@re@theta, fm1.@theta, tol = 1.e-7),
+          all.equal(ranef(fm1), ranef(fm1.)))
 
 ## Test 'compDev = FALSE' (vs TRUE)
-fm1. <- lmer1(Reaction ~ Days + (Days|Subject), sleepstudy,
+fm1. <- lmer1(Reaction ~ Days + (Days|Subject), sleepstudy, opt = "bobyqa",
               compDev = FALSE)#--> use R code (not C) for deviance computation
 stopifnot(all.equal(deviance(fm1), deviance(fm1.)),
           all.equal(fixef(fm1), fixef(fm1.)),
-          all.equal(fm1@re@theta, fm1.@theta, tol = 1.e-6),
-          all.equal(ranef(fm1), ranef(fm1.), tol = 1.e-06))
+          all.equal(fm1@re@theta, fm1.@theta, tol = 1.e-7),
+          all.equal(ranef(fm1), ranef(fm1.)))
 
 L1 <- as.list(env(   fm1. @ env))
 L2 <- as.list(env(as(fm1, "lmerenv")))
@@ -45,21 +45,22 @@ ns <- intersect((n1 <- names(L1)),
 n1[!(n1 %in% ns)] #    lmer1() extras
 n2[!(n2 %in% ns)] # new-lmer() extras
 ns <- ns[!(ns %in% c("call", "compDev"))]# they will certainly differ by that ...
-all.equal(L1[ns], L2[ns], tol = 7e-7) ## ok, still far from ok
-## FIXME !
+all.equal(L1[ns], L2[ns]) 
 
-stopifnot(all.equal(fixef(fm1), fixef(fm2), tol= 1e-13),
+
+stopifnot(all.equal(fixef(fm1), fixef(fm2), tol = 1.e-13),
 	  all.equal(unname(fixef(fm1)),
 		    c(251.405104848485, 10.467285959595), tol = 1e-13),
 	  all.equal(cov2cor(vcov(fm1))["(Intercept)", "Days"],
 		    -0.13755, tol=1e-4))
 
-AIC(fm1); AIC(fm2)
-BIC(fm1); BIC(fm2)
-## not yet: if(getRversion() > "2.11.0") {
-##  AIC(fm1, fm2)
-##  BIC(fm1, fm2)
-## }
+if(getRversion() > "2.11.0") {
+  AIC(fm1, fm2)
+  BIC(fm1, fm2)
+} else {
+    AIC(fm1); AIC(fm2)
+    BIC(fm1); BIC(fm2)
+}
 
 (fm3 <- lmer(Yield ~ 1|Batch, Dyestuff2))
 stopifnot(all.equal(coef(summary(fm3)),
@@ -120,9 +121,8 @@ stopifnot(dim(ranef(fm2l)[[1]]) == c(18, 2),
 ## ----  (2) "rationalize" with ../man/cbpp.Rd
 m1e <- glmer1(cbind(incidence, size - incidence) ~ period + (1 | herd),
               family = binomial, data = cbpp, doFit = FALSE)
-stopifnot(is(m1e,"merenv"))
 ## now
-str(nlminb(m1e, control = list(trace = 1)))
+bobyqa(m1e, control = list(iprint = 2L))
 m1 <- glmer(cbind(incidence, size - incidence) ~ period + (1 | herd),
             family = binomial, data = cbpp, verbose = 1)
 stopifnot(is((cm1 <- coef(m1e)), "coef.mer"),
@@ -130,7 +130,7 @@ stopifnot(is((cm1 <- coef(m1e)), "coef.mer"),
 	  all.equal(fixef(m1), ##  these values are those of "old-lme4":
 		    c(-1.39853504914, -0.992334711,
 		      -1.12867541477, -1.58037390498),
-		    tol = 0.02, ## 1e-4 worked
+		    tol = 1.e-4, 
                     check.attr=FALSE)
 	  )
 
