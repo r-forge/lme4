@@ -222,27 +222,6 @@ namespace mer {
 #define CM_MAXITER 30
 #define CM_SMIN 1.e-4
 
-    /** 
-     * Update the conditional mean, weighted residuals and wrss in resp
-     * from the linear predictor.  Some resp modules also update other
-     * information, such as the sqrtXwt matrix. 
-     *
-     * @return the *penalized*, weighted residual sum of squares
-     */
-    template<typename Tf, typename Tr> inline
-    double mer<Tf,Tr>::updateMu() {
-	const Rcpp::NumericVector u = re.u(), offset = resp.offset();
-	Rcpp::NumericVector b(q()), gamma(offset.size());
-	std::copy(offset.begin(), offset.end(), gamma.begin());
-	MatrixNs::chmDn bb(b), gg(gamma);
-
-	re.Lambda().dmult('N', 1., 0., MatrixNs::chmDn(u), bb);
-	re.Zt().dmult('T', 1., 1., bb, gg);
-	if (fe.beta().size() > 0)
-	    fe.X().dmult('N', 1., 1., MatrixNs::chmDn(fe.beta()), gg);
-	return resp.updateMu(gamma) + re.sqrLenU();
-    }	
-
     template<typename Tf, typename Tr> inline
     double mer<Tf,Tr>::setBeta(Rcpp::NumericVector const&  bb,
 			       Rcpp::NumericVector const& inc,
@@ -285,6 +264,27 @@ namespace mer {
     void mer<Tf,Tr>::updateLambda(Rcpp::NumericVector const& nt) {
 	re.updateLambda(nt);
     }
+
+    /** 
+     * Update the conditional mean, weighted residuals and wrss in resp
+     * from the linear predictor.  Some resp modules also update other
+     * information, such as the sqrtXwt matrix. 
+     *
+     * @return the *penalized*, weighted residual sum of squares
+     */
+    template<typename Tf, typename Tr> inline
+    double mer<Tf,Tr>::updateMu() {
+	const Rcpp::NumericVector &u = re.u(), &offset = resp.offset();
+	Rcpp::NumericVector b(q()), gamma(offset.size());
+	std::copy(offset.begin(), offset.end(), gamma.begin());
+	MatrixNs::chmDn bb(b), gg(gamma);
+
+	re.Lambda().dmult('N', 1., 0., MatrixNs::chmDn(u), bb);
+	re.Zt().dmult('T', 1., 1., bb, gg);
+	if (fe.beta().size() > 0)
+	    fe.X().dmult('N', 1., 1., MatrixNs::chmDn(fe.beta()), gg);
+	return resp.updateMu(gamma) + re.sqrLenU();
+    }	
 
     /**
      * Update the weighted residuals, wrss, sqrtrwt, sqrtXwt, U, Utr,
@@ -333,6 +333,7 @@ namespace mer {
 	double crit, step, c0, c1;
 
 	crit = 10. * CM_TOL;
+	zeroU();		// start from a known position
 	updateMu();
 	for (int i = 0; crit >= CM_TOL && i < CM_MAXITER; i++) {
 				// store copies of mu and u
