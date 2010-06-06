@@ -664,10 +664,6 @@ nlmer <- function(formula, data, family = gaussian, sparseX = FALSE,
 
 setMethod("formula", "merenv", function(x, ...) formula(env(x)$call, ...))
 setMethod("formula", "mer", function(x, ...) formula(x@call, ...))
-setMethod("formula",  "lmerMod", function(x, ...) formula(x@call, ...))
-setMethod("formula", "glmerMod", function(x, ...) formula(x@call, ...))
-setMethod("formula", "glmerMod", function(x, ...) formula(x@call, ...))
-setMethod("formula", "glmerMod", function(x, ...) formula(x@call, ...))
 
 .fixef <- function(object, ...) structure(object@beta, names = dimnames(object@X)[[2]])
 
@@ -675,17 +671,6 @@ setMethod("fixef", "merenv", function(object, ...) {
     e <- env(object)
     structure(e$beta, names = dimnames(e$X)[[2]]) })
 setMethod("fixef", "mer", .fixef) # function(object, ...) .fixef(object@env)
-
-#setMethod("fixef", "deFeMod", .fixef)
-#setMethod("fixef", "spFeMod", .fixef)
-setMethod("fixef",  "lmerMod", function(object, ...) .fixef(object@fe))
-setMethod("fixef", "glmerMod", function(object, ...) .fixef(object@fe))
-setMethod("fixef", "glmerMod", function(object, ...) .fixef(object@fe))
-setMethod("fixef", "glmerMod", function(object, ...) .fixef(object@fe))
-
-#setMethod("fixef", "deFeMod", function(object, ...)
-#	  structure(object@beta, names = dimnames(object@X)[[2]]))
-#setMethod("fixef", "lmerMod", function(object, ...) fixef(object@fe))
 
 
 if(FALSE) {## These are not used, rather the methods below
@@ -766,12 +751,12 @@ setMethod("ranef", signature(object = "mer"),
 ##              ----------
 
 ## "cheat" too {but never wrong}:
-setMethod("ranef", signature(object = "lmerMod"),
-	  function(object, postVar = FALSE, drop = FALSE, ...)
-	  ranef(as(object, "lmerenv"), postVar=postVar, drop=drop, ...))
-setMethod("ranef", signature(object = "glmerMod"),
-	  function(object, postVar = FALSE, drop = FALSE, ...)
-	  ranef(as(object, "merenv"), postVar=postVar, drop=drop, ...))
+## setMethod("ranef", signature(object = "lmerMod"),
+## 	  function(object, postVar = FALSE, drop = FALSE, ...)
+## 	  ranef(as(object, "lmerenv"), postVar=postVar, drop=drop, ...))
+## setMethod("ranef", signature(object = "glmerMod"),
+## 	  function(object, postVar = FALSE, drop = FALSE, ...)
+## 	  ranef(as(object, "merenv"), postVar=postVar, drop=drop, ...))
 
 dotplot.ranef.mer <- function(x, data, ...)
 {
@@ -965,15 +950,15 @@ setMethod("sigma", signature(object = "mer"), function (object, ...)
 	  else 1
       })
 
-.ModSigma <- function(object, ...) {
-    dc <- devcomp(object)
-    dm <- dc$dims
-    if (!dm[["useSc"]]) return(1)
-    sqrt(dc$cmp[["pwrss"]]/ dm[[if(object@REML) "nmp" else "n"]])
-}
+## .ModSigma <- function(object, ...) {
+##     dc <- devcomp(object)
+##     dm <- dc$dims
+##     if (!dm[["useSc"]]) return(1)
+##     sqrt(dc$cmp[["pwrss"]]/ dm[[if(object@REML) "nmp" else "n"]])
+## }
 
-setMethod("sigma", signature(object =  "lmerMod"), .ModSigma)
-setMethod("sigma", signature(object = "glmerMod"), .ModSigma)
+## setMethod("sigma", signature(object =  "lmerMod"), .ModSigma)
+## setMethod("sigma", signature(object = "glmerMod"), .ModSigma)
 
 
 ## Obtain the ML fit of the model parameters
