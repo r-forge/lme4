@@ -658,6 +658,7 @@ glmer <- glmer2
 ##' @param data an optional data frame containing the variables named in
 ##'    \code{formula}.  By default the variables are taken from the
 ##'    environment from which \code{nlmer} is called.
+##' @param family 
 ##' @param start starting estimates for the nonlinear model
 ##'    parameters, as a named numeric vector
 ##' @param verbose integer scalar passed to nlminb.  If negative then
@@ -673,14 +674,18 @@ glmer <- glmer2
 ##'    \code{\link[stats]{lm}}; see there for details.
 ##' @param na.action  further model specifications as in
 ##'    \code{\link[stats]{lm}}; see there for details.
+##' @param mustart 
+##' @param etastart 
+##' @param sparseX 
 ##' @param contrasts  further model specifications as in
 ##'    \code{\link[stats]{lm}}; see there for details.
-##' @param control a list of control parameters passed to nlminb.  The
-##'    defaults are given in the (hidden) function \code{lmerControl}.
+##' @param control a list of control parameters passed to bobyqa.
+##' @param ... 
 
-##' @return if doFit is FALSE an environment, otherwise an object of S4 class "mer"
+##' @return an object of S4 class "nlmerMod"
 nlmer2 <- function(formula, data, family = gaussian, start = NULL,
                    verbose = 0, nAGQ = 1, doFit = TRUE, subset,
+                   PLSBeta = FALSE,
                    weights, na.action, mustart, etastart, sparseX = FALSE,
                    contrasts = NULL, control = list(), ...)
 {
@@ -741,35 +746,118 @@ nlmer2 <- function(formula, data, family = gaussian, start = NULL,
     respMod@pnames <- pnames
     ans <- new(ifelse(sparseX, "nlmerSp", "nlmerDe"), call = mc,
                frame = fr, re = reTrms, fe = feMod, resp = respMod)
+    .Call("nlmerDeIRLS", ans, ans@re@theta, verbose)
+    if (doFit) {
+        if (verbose) control$iprint <- 2L
+        if (PLSBeta) {
+            code <- if(is(ans, "nlmerSp")) nlmerSpPIRLSBeta else nlmerDePIRLSBeta
+            devfun <- function(nth) .Call(code, ans, nth, verbose)
+            if (length(th <- ans@re@theta) == 1) {
+                d0 <- devfun(0)
+                opt <- optimize(devfun, c(0, 10))
+                ##                      -------- <<< arbitrary
+                ## FIXME ?! if optimal theta > 10, optimize will *not* warn!
+                if (d0 <= opt$objective) { ## prefer theta == 0 when close
+                    cat(sprintf("dev(th =0) = %.12g <= %.12g = opt$obj(th=%g)%s\n",
+                                d0, opt$objective, opt$minimum, " --> th := 0"))
+                    devfun(0) # -> theta  := 0  and update the rest
+                }
+            } else {
+                bobyqa(th, devfun, lower = ans@re@lower, control = control)
+            }
+        } else {
+            thpars <- seq_along(ans@re@theta)
+            bb <- ans@fe@beta
+            devfun <- function(pars) {
+                .Call(feSetBeta, ans@fe, pars[-thpars])
+                .Call(code, ans, pars[thpars], verbose)
+            }
+            bobyqa(c(ans@re@theta, bb), devfun,
+                   lower = c(ans@re@lower, rep.int(-Inf, length(bb))),
+                   control = control)
+        }
+    }
     ans
 }
 
-## #    rho$eta <- numeric(length(eta))
-## #    rho$eta[] <- eta
+## Methods for the merMod class
+setMethod("fixef",  "merMod", function(object, ...)
+          structure(object@fe@beta, names = dimnames(object@fe@X)[[2]]))
+ 
+setMethod("formula",  "merMod", function(x, ...) formula(x@call, ...))
 
-##     rho$start <- numeric(p)  # must be careful that these are distinct
-##     rho$start[] <-
-##     rho$RX <- qr.R(qrX)
+##' Extract the random effects.
+##'
+##' Extract the conditional modes, which for a linear mixed model are
+##' also the conditional means, of the random effects, given the
+##' observed responses.  These also depend on the model parameters.
+##'
+##' @param object an object that inherits from the \code{\linkS4class{mer}} class
+##' @param postVar logical scalar - should the posterior variance be returned
+##' @param drop logical scalar - drop dimensions of single extent
+##' @param whichel - vector of names of factors for which to return results
 
-##     q <- length(rho$u)
-##     rho$u0 <- numeric(q)
-##     if (!missing(verbose)) control$trace <- as.integer(verbose[1])
-##     rho$dims["verb"] <- control$trace
-## #    control$trace <- abs(control$trace) # negative values give PIRLS output
-##     rho$control <- control
-##     rho$mc <- mc                        # store the matched call
+##' @return a named list of arrays or vectors, aligned to the factor list
 
-##     rho$bds <- getBounds(rho)
-##     theta0 <- getPars(rho)
-##     if (!is.null(start$theta)) {
-##         stopifnot(length(st <- as.double(start$theta)) == length(theta0))
-##         setPars(rho, st)
-##     } else {
-##         setPars(rho, theta0) # one evaluation to check structure
-##     }
-##     rho$beta0[] <- rho$beta
-##     rho$u0[] <- rho$u
-##     if (!doFit) return(rho)
+setMethod("ranef", signature(object = "merMod"),
+          function(object, postVar = FALSE, drop = FALSE,
+                   whichel = names(ans), ...)
+      {
+          re <- object@re
+          ans <- as.vector(re@Lambda %*% re@u)
+          if (is(re, "reTrms")) {
+              ## evaluate the list of matrices
+              levs <- lapply(fl <- re@flist, levels)
+              asgn <- attr(fl, "assign")
+              cnms <- re@cnms
+              nc <- sapply(cnms, length)
+              nb <- nc * (nl <- unlist(lapply(levs, length))[asgn])
+              nbseq <- rep.int(seq_along(nb), nb)
+              ml <- split(ans, nbseq)
+              for (i in seq_along(ml))
+                  ml[[i]] <- matrix(ml[[i]], nc = nc[i], byrow = TRUE,
+                                    dimnames = list(NULL, cnms[[i]]))
+              ## create a list of data frames corresponding to factors
+              ans <- lapply(seq_along(fl),
+                            function(i)
+                            data.frame(do.call(cbind, ml[asgn == i]),
+                                       row.names = levs[[i]],
+                                       check.names = FALSE))
+              names(ans) <- names(fl)
+                                        # process whichel
+              stopifnot(is(whichel, "character"))
+              whchL <- names(ans) %in% whichel
+              ans <- ans[whchL]
+              
+              if (postVar) {
+                  ## FIXME: write a native version of condVar
+                  vv <- .Call(merenvtrms_condVar, as(object, "merenv"), sigma(object))
+                  for (i in seq_along(ans))
+                      attr(ans[[i]], "postVar") <- vv[[i]]
+              }
+              if (drop)
+                  ans <- lapply(ans, function(el)
+                            {
+                                if (ncol(el) > 1) return(el)
+                                pv <- drop(attr(el, "postVar"))
+                                el <- drop(as.matrix(el))
+                                if (!is.null(pv))
+                                    attr(el, "postVar") <- pv
+                                el
+                            })
+              class(ans) <- "ranef.mer"
+          }
+          ans
+      })
 
-## #    merFinalize(rho)
-## }## {nlmer}
+setMethod("sigma", "glmerMod", function(object, ...) 1)
+setMethod("sigma", "merMod", function(object, ...)
+      {
+          resp <- object@resp
+          denom <- length(resp@y)
+          if (is(object, "lmerMod"))
+              denom <- denom - resp@REML  # REML slot is 0 or p
+          sqrt((object@resp@wrss + sum(object@re@u^2))/denom)
+      })
+
+          
