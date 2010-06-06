@@ -62,9 +62,9 @@ glmer2(formula, data, family = gaussian, sparseX = FALSE,
        mustart, etastart, \dots)
 
 nlmer2(formula, data, family = gaussian, start = NULL, verbose = 0,
-       nAGQ = 1, doFit = TRUE, subset, weights, na.action, mustart,
-       etastart, sparseX = FALSE, contrasts = NULL, control = list(),
-       \dots)
+       nAGQ = 1, doFit = TRUE, subset, PLSBeta = FALSE, weights,
+       na.action, mustart, etastart, sparseX = FALSE,
+       contrasts = NULL, control = list(), \dots)
 }
 \arguments{
   \item{formula}{a two-sided linear formula object describing the
@@ -88,7 +88,10 @@ nlmer2(formula, data, family = gaussian, start = NULL, verbose = 0,
     approximation.  Values greater than 1 produce greater accuracy in
     the evaluation of the log-likelihood at the expense of speed.}
   \item{control}{a list of control parameters. See below for details.}
-%% Fix this description
+  %% Fix this description
+  \item{PLSBeta}{use a quicker but less exact form of parameter
+       estimation for nonlinear models where the penalized least squares
+       algorithm is applied to both the fixed and the random effects.}
   \item{start}{a named list of starting values for the parameters in the
     model. If the list is of the same form as the \code{ST} slot, it is
     becomes the starting values of the \code{ST} slot.  If the list
