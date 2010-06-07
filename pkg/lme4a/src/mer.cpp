@@ -671,16 +671,19 @@ namespace mer{
 
 } // namespace mer
 
-RCPP_FUNCTION_2(double, lmerDeUpdate, S4 xp, NumericVector nt) {
-    mer::mer<mer::deFeMod,mer::lmerResp> lm(xp);
-    lm.updateLambda(nt);
-    lm.zeroU();
-    lm.updateWts();
-    lm.solveBetaU();
-    lm.updateMu();
-    return lm.Laplace();
+RCPP_FUNCTION_2(double, LMMupdate, S4 xp, NumericVector nt) {
+    if (xp.is("lmerDe")) {
+	mer::mer<mer::deFeMod,mer::lmerResp> lm(xp);
+	return lm.LMMupdate(nt);
+    }
+    if (xp.is("lmerSp")) {
+	mer::mer<mer::spFeMod,mer::lmerResp> lm(xp);
+	return lm.LMMupdate(nt);
+    }
+    throw std::runtime_error("LMMupdate on non-lmer object");
 }
 
+#if 0
 RCPP_FUNCTION_2(double, lmerSpUpdate, S4 xp, NumericVector nt) {
     mer::mer<mer::spFeMod,mer::lmerResp> lm(xp);
     lm.updateLambda(nt);
@@ -690,6 +693,7 @@ RCPP_FUNCTION_2(double, lmerSpUpdate, S4 xp, NumericVector nt) {
     lm.updateMu();
     return lm.Laplace();
 }
+#endif
 
 RCPP_FUNCTION_2(double, glmerDeIRLS, S4 xp, int verb) {
     mer::mer<mer::deFeMod,mer::glmerResp> glmr(xp);
