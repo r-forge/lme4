@@ -314,9 +314,6 @@ setMethod("profile", "lmerenv",
 ## A cheap substitute (for now) -- need keep lme4a  working
 setMethod("profile", "lmer", function(fitted, ...) profile(fitted@env, ...))
 
-setMethod("profile", "lmerMod",
-          function(fitted, ...) profile(as(fitted,"lmerenv"), ...))
-
 
 ##' extract only the y component from a prediction
 predy <- function(sp, vv) predict(sp, vv)$y
@@ -643,3 +640,202 @@ varpr <- function (x)
     x
 }
 
+##' <description>
+##'
+##' <details>
+##' @title Return a function for evaluation of the deviance.
+##'
+##' The deviance is profiled with respect to the fixed-effects
+##' parameters but not with respect to sigma, which is expressed
+##' on the logarithmic scale, lsigma. The other parameters are on
+##' the standard deviation scale, not the theta scale.
+##'
+##' @param fm a fitted model of class lmerenv
+##' @return a function for evaluating the deviance in the extended
+##'     parameterization.  This is profiled with respect to the
+##'     fixed-effects but not with respect to sigma.
+devfun2 <- function(fm)
+{
+    stopifnot(is(fm, "lmerMod"))
+    ## force a deep copy.
+    fm1 <- new(as.character(class(fm)), fe = fm@fe, resp = fm@resp, call = Quote(fm@call),
+               frame = fm@frame, re = fm@re)
+    rm(fm)
+    th <- fm1@re@theta
+    lth <- length(th)
+    if (fm1@resp@REML != 0) {
+        fm1@resp@REML <- 0L
+        bobyqa(th, function(x) .Call(LMMupdate, fm1, x), fm1@re@lower)
+    }
+
+    basedev <- unname(deviance(fm1))
+    sig <- unname(sigma(fm1))
+    lsig <- log(sig)
+    np <- lth + 1L
+    ans <- function(pars)
+    {
+        stopifnot(is.numeric(pars), length(pars) == np)
+        ## Assumption:  1) last parameter = log(sigma); 2) other pars are on SD-scale
+        sigma <- exp(pars[np])
+        pp <- pars[-np]/sigma
+        stopifnot(all(pp >= fm1@re@lower))
+        .Call(LMMupdate, fm1, pp)
+        sigsq <- sigma^2
+        fm1@re@ldL2 + (fm1@resp@wrss + sum(fm1@re@u^2))/sigsq +
+            length(fm1@resp@y) * log(2 * pi * sigsq)
+    }
+    opt <- c(sig * th, lsig)
+    names(opt) <- c(sprintf(".sig%02d", seq_len(lth)), ".lsig")
+    attr(ans, "optimum") <- c(opt, fixef(fm1)) # w/ names()
+    attr(ans, "basedev") <- basedev
+    attr(ans, "thopt") <- th
+    attr(ans, "stderr") <- sig * sqrt(unscaledVar(RX = fm1@fe@RX))
+    class(ans) <- "devfun"
+    ans
+}
+
+setMethod("profile", "merMod",
+          function(fitted, alphamax = 0.01, maxpts = 100, delta = cutoff/8,
+                           tr = 0, ...)
+      {
+          dd <- devfun2(fitted)
+
+          base <- attr(dd, "basedev")
+          thopt <- attr(dd, "thopt")
+          stderr <- attr(dd, "stderr")
+          fm1 <- environment(dd)$fm1
+          X.orig <- fm1@fe@X
+          n <- length(fm1@resp@y)
+          p <- length(fm1@fe@beta)
+
+          ans <- lapply(opt <- attr(dd, "optimum"), function(el) NULL)
+          bakspl <- forspl <- ans
+
+          nptot <- length(opt)
+          nvp <- nptot - p    # number of variance-covariance pars
+          fe.orig <- opt[-seq_len(nvp)]
+          res <- c(.zeta = 0, opt)
+          res <- matrix(res, nr = maxpts, nc = length(res),
+                        dimnames = list(NULL, names(res)), byrow = TRUE)
+          cutoff <- sqrt(qchisq(1 - alphamax, nptot))
+
+          ## helper functions
+
+          ## nextpar calculates the next value of the parameter being
+          ## profiled based on the desired step in the profile zeta
+          ## (absstep) and the values of zeta and column cc for rows
+          ## r-1 and r.  The parameter may not be below lower
+          nextpar <- function(mat, cc, r, absstep, lower = -Inf) {
+              rows <- r - (1:0)         # previous two row numbers
+              pvals <- mat[rows, cc]
+              zeta <- mat[rows, ".zeta"]
+              if (!(denom <- diff(zeta)))
+                  stop("Last two rows have identical .zeta values")
+              num <- diff(pvals)
+              max(lower, pvals[2] + sign(num) * absstep * num / denom)
+          }
+
+          ## mkpar generates the parameter vector of theta and
+          ## log(sigma) from the values being profiled in position w
+          mkpar <- function(np, w, pw, pmw) {
+              par <- numeric(np)
+              par[w] <- pw
+              par[-w] <- pmw
+              par
+          }
+
+          ## fillmat fills the third and subsequent rows of the matrix
+          ## using nextpar and zeta
+### FIXME:  add code to evaluate more rows near the minimum if that
+###        constraint was active.
+          fillmat <- function(mat, lowcut, zetafun, cc) {
+              nr <- nrow(mat)
+              i <- 2L
+              while (i < nr && abs(mat[i, ".zeta"]) <= cutoff &&
+                     mat[i, cc] > lowcut) {
+                  mat[i + 1L, ] <- zetafun(nextpar(mat, cc, i, delta, lowcut))
+                  i <- i + 1L
+              }
+              mat
+          }
+
+          lower <- c(fm1@re@lower, rep.int(-Inf, p + 1L ))
+          seqnvp <- seq_len(nvp)
+          lowvp <- lower[seqnvp]
+          form <- .zeta ~ foo           # pattern for interpSpline formula
+
+          for (w in seqnvp) {
+              wp1 <- w + 1L
+              start <- opt[seqnvp][-w]
+              pw <- opt[w]
+              lowcut <- lower[w]
+              zeta <- function(xx) {
+                  ores <- bobyqa(start,
+                                 function(x) dd(mkpar(nvp, w, xx, x)),
+                                 lower = lowvp[-w])
+                  zz <- sign(xx - pw) * sqrt(ores$fval - base)
+                  c(zz, mkpar(nvp, w, xx, ores$par), fm1@fe@beta)
+              }
+
+### FIXME: The starting values for the conditional optimization should
+### be determined from recent starting values, not always the global
+### optimum values.
+
+### Can do this by taking the change in the other parameter values at
+### the two last points and extrapolating.
+
+              ## intermediate storage for pos. and neg. increments
+              pres <- nres <- res
+              ## assign one row, determined by inc. sign, from a small shift
+              nres[1, ] <- pres[2, ] <- zeta(pw * 1.01)
+              ## fill in the rest of the arrays and collapse them
+              bres <-
+                  as.data.frame(unique(rbind2(fillmat(pres,lowcut, zeta, wp1),
+                                              fillmat(nres,lowcut, zeta, wp1))))
+              bres$.par <- names(opt)[w]
+              ans[[w]] <- bres[order(bres[, wp1]), ]
+              form[[3]] <- as.name(names(opt)[w])
+
+              bakspl[[w]] <- backSpline(forspl[[w]] <- interpSpline(form, bres))
+          }
+
+          offset <- fm1@resp@offset
+          X <- fm1@fe@X
+
+          for (j in seq_len(p)) {
+              pres <-            # intermediate results for pos. incr.
+                  nres <- res    # and negative increments
+              est <- opt[nvp + j]
+              std <- stderr[j]
+              Xw <- X[ , j, drop = TRUE]
+              fmm1 <- dropX(fm1, j, est)
+              fe.zeta <- function(fw) {
+                  fmm1@resp@offset <- Xw * fw + offset
+                  ores <- bobyqa(thopt,
+                                 function(x) .Call(LMMupdate,fmm1,x),
+                                 lower = fmm1@re@lower)
+                  sig <- sqrt((fmm1@resp@wrss + sum(fmm1@re@u^2)) / n)
+                  c(sign(fw - est) * sqrt(ores$fval - base),
+                    fmm1@re@theta * sig, log(sig), mkpar(p, j, fw, fmm1@fe@beta))
+              }
+              nres[1, ] <- pres[2, ] <- fe.zeta(est + delta * std)
+              pp <- nvp + 1L + j
+              bres <-
+                  as.data.frame(unique(rbind2(fillmat(pres,-Inf, fe.zeta, pp),
+                                              fillmat(nres,-Inf, fe.zeta, pp))))
+              thisnm <- names(fe.orig)[j]
+              bres$.par <- thisnm
+              ans[[thisnm]] <- bres[order(bres[, pp]), ]
+              form[[3]] <- as.name(thisnm)
+              bakspl[[thisnm]] <-
+                  backSpline(forspl[[thisnm]] <- interpSpline(form, bres))
+          }
+
+          ans <- do.call(rbind, ans)
+          ans$.par <- factor(ans$.par)
+          attr(ans, "forward") <- forspl
+          attr(ans, "backward") <- bakspl
+          row.names(ans) <- NULL
+          class(ans) <- c("thpr", "data.frame")
+          ans
+      })
