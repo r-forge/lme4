@@ -184,6 +184,7 @@ namespace mer {
 	double Laplace  () const {
 	    return resp.Laplace(re.ldL2(), fe.ldRX2(), re.sqrLenU());
 	}
+	double LMMupdate(Rcpp::NumericVector const&);
 	double PIRLS    (int);
 	double PIRLSBeta(int);
 	double setBeta  (Rcpp::NumericVector const&,
@@ -218,9 +219,23 @@ namespace mer {
 	  resp (Rcpp::S4(xp.slot("resp"))) {
     }
 
-#define CM_TOL 1.e-4
-#define CM_MAXITER 30
-#define CM_SMIN 1.e-4
+    /** 
+     * Evaluate the profiled deviance or REML criterion for a linear mixed
+     * model 
+     * 
+     * @param nt New value of theta
+     * 
+     * @return profiled deviance or REML criterion
+     */
+    template<typename Tf, typename Tr> inline
+    double mer<Tf,Tr>::LMMupdate(Rcpp::NumericVector const&  nt) {
+	updateLambda(nt);
+	zeroU();
+	updateWts();
+	solveBetaU();
+	updateMu();
+	return Laplace();
+    }
 
     template<typename Tf, typename Tr> inline
     double mer<Tf,Tr>::setBeta(Rcpp::NumericVector const&  bb,
@@ -300,6 +315,10 @@ namespace mer {
 	fe.reweight(re.Ut(), resp.sqrtXwt(), resp.wtres());
 	return ans;
     }
+
+#define CM_TOL 1.e-4
+#define CM_MAXITER 30
+#define CM_SMIN 1.e-4
 
     template<typename Tf, typename Tr> inline
     double mer<Tf,Tr>::IRLS(int verb) {

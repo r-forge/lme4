@@ -3,12 +3,13 @@
 #include "Syms.h"
 #include <R_ext/Rdynload.h>
 
+extern "C" SEXP LMMupdate(SEXP,SEXP);
 extern "C" SEXP glmerDeIRLS(SEXP,SEXP);
 extern "C" SEXP glmerDePIRLS(SEXP,SEXP,SEXP);
 extern "C" SEXP glmerDePIRLSBeta(SEXP,SEXP,SEXP);
 extern "C" SEXP glmerDeUpdateRzxRx(SEXP);
-extern "C" SEXP lmerDeUpdate(SEXP,SEXP);
-extern "C" SEXP lmerSpUpdate(SEXP,SEXP);
+//extern "C" SEXP lmerDeUpdate(SEXP,SEXP);
+//extern "C" SEXP lmerSpUpdate(SEXP,SEXP);
 extern "C" SEXP feSetBeta(SEXP,SEXP);
 extern "C" SEXP nlmerDeIRLS(SEXP,SEXP,SEXP);
 extern "C" SEXP nlmerDePIRLS(SEXP,SEXP,SEXP);
@@ -17,6 +18,8 @@ extern "C" SEXP nlmerDePIRLSBeta(SEXP,SEXP,SEXP);
 #define CALLDEF(name, n)  {#name, (DL_FUNC) &name, n}
 
 static R_CallMethodDef CallEntries[] = {
+    CALLDEF(LMMupdate, 2),
+
     CALLDEF(feSetBeta, 2),
 
     CALLDEF(glmer_IRLS, 1),
@@ -35,8 +38,8 @@ static R_CallMethodDef CallEntries[] = {
     CALLDEF(lmer_deviance, 2),
     CALLDEF(lmer_validate, 1),
 
-    CALLDEF(lmerDeUpdate, 2),
-    CALLDEF(lmerSpUpdate, 2),
+//    CALLDEF(lmerDeUpdate, 2),
+//    CALLDEF(lmerSpUpdate, 2),
 
     CALLDEF(merenv_update_Lambda_Ut, 2),
 
