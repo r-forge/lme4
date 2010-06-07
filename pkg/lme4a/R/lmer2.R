@@ -370,37 +370,41 @@ lmer2 <- function(formula, data, REML = TRUE, sparseX = FALSE,
     ans <- new(ifelse (sparseX, "lmerSp", "lmerDe"), call = mc, frame = fr,
 	       re = reTrms, fe = feMod, resp = respMod)
     if (doFit) {                        # optimize estimates
-        code <- if(is(ans, "lmerSp")) lmerSpUpdate else lmerDeUpdate
-	if(verbose) {
-	    ..it <- 0L
-	    f.width <- (f.dig <- getOption("digits")) + 5 # "+5": e.g. for 1.2e-05
-	    devfun <- function(th) {
-		r <- .Call(code, ans, th)
-		..it <<- ..it + 1L
-		cat(sprintf("%3d : %s |-> %15.12g\n", ..it,
-			    paste(sapply(th, format, width = f.width),
-                                  collapse = " "),
-                            r))
-		r
-	    }
-	} else
-	    devfun <- function(th) .Call(code, ans, th)
+        if (verbose) control$iprint <- 2L
+        bobyqa(ans@re@theta, function(x) .Call(LMMupdate, ans, x),
+               ans@re@lower, control = control)
+ 
+        ## code <- if(is(ans, "lmerSp")) lmerSpUpdate else lmerDeUpdate
+	## if(verbose) {
+	##     ..it <- 0L
+	##     f.width <- (f.dig <- getOption("digits")) + 5 # "+5": e.g. for 1.2e-05
+	##     devfun <- function(th) {
+	## 	r <- .Call(code, ans, th)
+	## 	..it <<- ..it + 1L
+	## 	cat(sprintf("%3d : %s |-> %15.12g\n", ..it,
+	## 		    paste(sapply(th, format, width = f.width),
+        ##                           collapse = " "),
+        ##                     r))
+	## 	r
+	##     }
+	## } else
+	##     devfun <- function(th) .Call(code, ans, th)
 
-        if (length(ans@re@theta) < 2) { # use optimize
-            d0 <- devfun(0)
-            opt <- optimize(devfun, c(0, 10))
-            ##                      -------- <<< arbitrary
-            ## FIXME ?! if optimal theta > 10, optimize will *not* warn!
-            if (d0 <= opt$objective) { ## prefer theta == 0 when close
-                cat(sprintf("dev(th =0) = %.12g <= %.12g = opt$obj(th=%g)%s\n",
-                            d0, opt$objective, opt$minimum, " --> th := 0"))
-                devfun(0) # -> theta  := 0  and update the rest
-            }
-        } else {
-            ## if (verbose > 1) control$iprint <- verbose
-            bobyqa(ans@re@theta, devfun, ans@re@lower, control = control)
-            ## FIXME: also here, prefer \hat{\sigma_a^2} == 0 (exactly)
-        }
+        ## if (length(ans@re@theta) < 2) { # use optimize
+        ##     d0 <- devfun(0)
+        ##     opt <- optimize(devfun, c(0, 10))
+        ##     ##                      -------- <<< arbitrary
+        ##     ## FIXME ?! if optimal theta > 10, optimize will *not* warn!
+        ##     if (d0 <= opt$objective) { ## prefer theta == 0 when close
+        ##         cat(sprintf("dev(th =0) = %.12g <= %.12g = opt$obj(th=%g)%s\n",
+        ##                     d0, opt$objective, opt$minimum, " --> th := 0"))
+        ##         devfun(0) # -> theta  := 0  and update the rest
+        ##     }
+        ## } else {
+        ##     ## if (verbose > 1) control$iprint <- verbose
+        ##     bobyqa(ans@re@theta, devfun, ans@re@lower, control = control)
+        ##     ## FIXME: also here, prefer \hat{\sigma_a^2} == 0 (exactly)
+        ## }
     }
     ans
 }
@@ -448,7 +452,7 @@ setMethod("simulate", "lmerMod",
 ##'  ...
 ##' @title Model-based (Semi-)Parametric Bootstrap for Mixed Models
 ##' @param x fitted *lmer() model
-##' @param FUN a function(x) computating the *statistic* of interest,
+##' @param FUN a function(x) computing the *statistic* of interest,
 ##' which must be a numeric vector, possibly named.
 ##' @param nsim number of simulations, positive integer; the bootstrap
 ##' 'B' (or 'R').
@@ -487,11 +491,12 @@ bootMer <- function(x, FUN, nsim = 1, seed = NULL, use.u = FALSE,
     sigm.x <- sigma(x)
 
     ## Here, and below ("optimize"/"bobyqa") using the "logic" of lmer2() itself:
-    lmer..Update <- if(is(x, "lmerSp")) lmerSpUpdate else lmerDeUpdate
-    devfun <- function(th) .Call(lmer..Update, x, th)
-    oneD <- length(x@re@theta) < 2
-
-    theta0 <- x@re@theta # to use as starting value
+## lmer..Update <- if(is(x, "lmerSp")) lmerSpUpdate else lmerDeUpdate
+    devfun <- function(th) .Call(LMMupdate, x, th)
+##    oneD <- length(x@re@theta) < 2
+## Force theta0 to be a copy of theta, not a reference to theta
+    theta0 <- numeric(length(x@re@theta))
+    theta0[] <- x@re@theta # to use as starting value
     ## just for the "boot" result -- TODOmaybe drop
     mle <- list(beta = x@fe @ beta, theta = theta0, sigma = sigm.x)
 
@@ -506,17 +511,18 @@ bootMer <- function(x, FUN, nsim = 1, seed = NULL, use.u = FALSE,
 	x @ fe @ Vtr <- crossprod(X, y)@x
 	x @ re @ Utr <- (Zt %*% y)@x
 
-        if (oneD) { # use optimize
-            d0 <- devfun(0)
-            opt <- optimize(devfun, c(0, 10))
-            ##                      -------- <<< arbitrary
-            ## FIXME ?! if optimal theta > 0, optimize will *not* warn!
-            if (d0 <= opt$objective) ## prefer theta == 0 when close
-                devfun(0) # -> theta  := 0  and update the rest
-        } else {
-            bobyqa(theta0, devfun, x@re@lower, control = control)
+        ## if (oneD) { # use optimize
+        ##     d0 <- devfun(0)
+        ##     opt <- optimize(devfun, c(0, 10))
+        ##     ##                      -------- <<< arbitrary
+        ##     ## FIXME ?! if optimal theta > 0, optimize will *not* warn!
+        ##     if (d0 <= opt$objective) ## prefer theta == 0 when close
+        ##         devfun(0) # -> theta  := 0  and update the rest
+        ## } else {
+        print(theta0)
+        bobyqa(theta0, devfun, x@re@lower, control = control)
             ## FIXME: also here, prefer \hat\sigma^2 == 0 (exactly)
-        }
+##        }
         foo <- tryCatch(FUN(x), error = function(e)e)
         if(verbose) { cat(sprintf("%5d :",i)); str(foo) }
         t.star[,i] <- if (inherits(foo, "error")) NA else foo
