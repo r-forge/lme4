@@ -153,22 +153,21 @@ namespace mer{
 	  d_Ut(S4(xp.slot("Ut"))),
 	  d_Zt(S4(xp.slot("Zt"))),
 	  d_Lind(xp.slot("Lind")),
-	  d_Utr(xp.slot("Utr")),
-	  d_cu(d_Utr.size()),
+//	  d_Utr(xp.slot("Utr")),
 	  d_lower(xp.slot("lower")),
 	  d_theta(xp.slot("theta")),
 	  d_u(xp.slot("u")),
+	  d_cu(d_u.size()),
 	  d_ldL2(NumericVector(xp.slot("ldL2")).begin()),
 	  d_sqrLenU(std::inner_product(d_u.begin(), d_u.end(),
 				       d_u.begin(), double())) {
     }
 
     /** 
-     * Update derived matrices and vectors: Ut, Utr and cu, for new
-     * weights.
+     * Update L, Ut and cu for new weights.
      *
-     * Update Ut from Zt and sqrtXwt.
-     * Update Utr from wtres and Ut.
+     * Update Ut from Zt and sqrtXwt, then L from Lambda and Ut
+     * Update cu from wtres, Lambda and Ut.
      * 
      * @param Xwt Matrix of weights for the model matrix
      * @param wtres weighted residuals
@@ -200,10 +199,8 @@ namespace mer{
 	CHM_SP LambdatUt = d_Lambda.crossprod(d_Ut);
 	d_L.update(*LambdatUt, 1.);
 	*d_ldL2 = M_chm_factor_ldetL2(&d_L);
-				// update Utr
-	chmDn cUtr(d_Utr), ccu(d_cu), cwtres(wtres);
-	d_Ut.dmult('N', 1., 0., cwtres, cUtr);
 				// update cu
+	chmDn ccu(d_cu), cwtres(wtres);
 	std::copy(d_u.begin(), d_u.end(), d_cu.begin());
 	M_cholmod_sdmult(LambdatUt, 0/*trans*/, &one, &mone, &cwtres, &ccu, &c);
 	M_cholmod_free_sparse(&LambdatUt, &c);
@@ -683,44 +680,31 @@ RCPP_FUNCTION_2(double, LMMupdate, S4 xp, NumericVector nt) {
     throw std::runtime_error("LMMupdate on non-lmer object");
 }
 
-#if 0
-RCPP_FUNCTION_2(double, lmerSpUpdate, S4 xp, NumericVector nt) {
-    mer::mer<mer::spFeMod,mer::lmerResp> lm(xp);
-    lm.updateLambda(nt);
-    lm.zeroU();
-    lm.updateWts();
-    lm.solveBetaU();
-    lm.updateMu();
-    return lm.Laplace();
-}
-#endif
-
-RCPP_FUNCTION_2(double, glmerDeIRLS, S4 xp, int verb) {
-    mer::mer<mer::deFeMod,mer::glmerResp> glmr(xp);
-    return glmr.IRLS(verb);
-}
-
-RCPP_FUNCTION_3(double, glmerDePIRLS, S4 xp, NumericVector nt, int verb) {
-    mer::mer<mer::deFeMod,mer::glmerResp> glmr(xp);
-    glmr.updateLambda(nt);
-    return glmr.PIRLS(verb);
-}
-
-RCPP_FUNCTION_3(double, glmerDePIRLSBeta, S4 xp, NumericVector nt, int verb) {
-    mer::mer<mer::deFeMod,mer::glmerResp> glmr(xp);
-    glmr.updateLambda(nt);
-    return glmr.PIRLSBeta(verb);
-}
-
-RCPP_FUNCTION_3(double, glmerSpPIRLSBeta, S4 xp, NumericVector nt, int verb) {
-    mer::mer<mer::deFeMod,mer::glmerResp> glmr(xp);
-    glmr.updateLambda(nt);
-    return glmr.PIRLSBeta(verb);
-}
-
-RCPP_FUNCTION_VOID_1(glmerDeUpdateRzxRx,S4 xp) {
-    mer::mer<mer::deFeMod,mer::glmerResp> glmr(xp);
-    return glmr.updateRzxRx();
+RCPP_FUNCTION_3(double, PIRLS, S4 xp, int verb, int alg) {
+    if (alg < 1 || alg > 3) throw std::range_error("alg must be 1, 2 or 3");
+    mer::Alg aa = (alg == 1) ? mer::Beta : ((alg == 2) ? mer::U : mer::BetaU);
+    S4 fe(xp.slot("fe")), resp(xp.slot("resp"));
+    bool de = fe.is("deFeMod");
+    if (!de && !fe.is("spFeMod"))
+	throw std::runtime_error("fe slot is not de or sp");
+    if (resp.is("glmerResp")) {
+	if (de) {
+	    mer::mer<mer::deFeMod,mer::glmerResp> glmr(xp);
+	    return glmr.PIRLS(verb, aa);
+	} else {
+	    mer::mer<mer::spFeMod,mer::glmerResp> glmr(xp);
+	    return glmr.PIRLS(verb, aa);
+	}
+    } else if (resp.is("nlmerResp")) {
+	if (de) {
+	    mer::mer<mer::deFeMod,mer::nlmerResp> nlmr(xp);
+	    return nlmr.PIRLS(verb, aa);
+	} else {
+	    mer::mer<mer::spFeMod,mer::nlmerResp> nlmr(xp);
+	    return nlmr.PIRLS(verb, aa);
+	}
+    }
+    throw std::runtime_error("resp slot is not glmerResp or nlmerResp in PIRLS");
 }
 
 RCPP_FUNCTION_VOID_2(feSetBeta, S4 xp, NumericVector nbeta) {
@@ -728,20 +712,20 @@ RCPP_FUNCTION_VOID_2(feSetBeta, S4 xp, NumericVector nbeta) {
     fe.setBeta(nbeta);
 }
 
-RCPP_FUNCTION_3(double, nlmerDeIRLS, S4 xp, NumericVector nt, int verb) {
-    mer::mer<mer::deFeMod,mer::nlmerResp> nlmr(xp);
-    nlmr.updateLambda(nt);
-    return nlmr.IRLS(verb);
+RCPP_FUNCTION_VOID_2(reUpdateLambda, S4 xp, NumericVector nth) {
+    mer::reModule re(xp);
+    re.updateLambda(nth);
 }
 
-RCPP_FUNCTION_3(double, nlmerDePIRLS, S4 xp, NumericVector nt, int verb) {
-    mer::mer<mer::deFeMod,mer::nlmerResp> nlmr(xp);
-    nlmr.updateLambda(nt);
-    return nlmr.PIRLS(verb);
-}
-
-RCPP_FUNCTION_3(double, nlmerDePIRLSBeta, S4 xp, NumericVector nt, int verb) {
-    mer::mer<mer::deFeMod,mer::nlmerResp> nlmr(xp);
-    nlmr.updateLambda(nt);
-    return nlmr.PIRLSBeta(verb);
+RCPP_FUNCTION_VOID_1(updateRzxRx, S4 xp) {
+    const mer::reModule re(S4(xp.slot("re")));
+    S4 fep(xp.slot("fe"));
+    if (fep.is("deFeMod")) {
+	mer::deFeMod fe(fep);
+	return fe.updateRzxRx(re.Lambda(), re.L());
+    } else if (fep.is("spFeMod")) {
+	mer::spFeMod fe(fep);
+	return fe.updateRzxRx(re.Lambda(), re.L());
+    }
+    throw std::runtime_error("fe slot is neither deFeMod nor spFeMod");
 }

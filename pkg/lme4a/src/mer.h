@@ -23,14 +23,14 @@ namespace mer {
 	MatrixNs::chmFr     d_L;
 	MatrixNs::chmSp     d_Lambda, d_Ut, d_Zt;
 	Rcpp::IntegerVector d_Lind;
-	Rcpp::NumericVector d_Utr, d_cu, d_lower, d_theta, d_u;
+	Rcpp::NumericVector d_lower, d_theta, d_u, d_cu;
 	double             *d_ldL2, d_sqrLenU;
     public:
 	reModule(Rcpp::S4);
 
 	const Rcpp::NumericVector  &cu() const {return  d_cu;}
  	const Rcpp::NumericVector   &u() const {return  d_u;}
-	const Rcpp::NumericVector &Utr() const {return  d_Utr;}
+//	const Rcpp::NumericVector &Utr() const {return  d_Utr;}
 	const MatrixNs::chmFr       &L() const {return  d_L;}
 	const MatrixNs::chmSp  &Lambda() const {return  d_Lambda;}
 	const MatrixNs::chmSp      &Ut() const {return  d_Ut;}
@@ -61,7 +61,7 @@ namespace mer {
 		     Rcpp::NumericVector const& = Rcpp::NumericVector(),
 		     double = 0.);
 	const Rcpp::NumericVector &beta() const {return  d_beta;}
-	const Rcpp::NumericVector  &Vtr() const {return  d_Vtr;}
+//	const Rcpp::NumericVector  &Vtr() const {return  d_Vtr;}
 	double                    ldRX2() const {return *d_ldRX2;}
     };
 
@@ -168,6 +168,7 @@ namespace mer {
 	double Laplace(double,double,double) const;
     };
     
+    enum Alg {Beta, U, BetaU};
     /* Model object template
      * Tf is the type of fixed-effects module (deFeMod or spFeMod)
      * Tr is the type of response module (merResp, glmerResp, nlmerResp or nglmerResp)
@@ -180,21 +181,16 @@ namespace mer {
     public:
 	mer(Rcpp::S4 xp);
 
-	double IRLS     (int);
 	double Laplace  () const {
 	    return resp.Laplace(re.ldL2(), fe.ldRX2(), re.sqrLenU());
 	}
 	double LMMupdate(Rcpp::NumericVector const&);
-	double PIRLS    (int);
-	double PIRLSBeta(int);
-	double setBeta  (Rcpp::NumericVector const&,
-			 Rcpp::NumericVector const&, double);
-	double setU     (Rcpp::NumericVector const&,
-			 Rcpp::NumericVector const&, double);
+	double PIRLS    (int,Alg);
 	double setBetaU (Rcpp::NumericVector const&,
 			 Rcpp::NumericVector const&,
 			 Rcpp::NumericVector const&,
-			 Rcpp::NumericVector const&, double);
+			 Rcpp::NumericVector const&,
+			 double,Alg);
 	double updateMu ();
 	double updateWts();
 
@@ -204,9 +200,7 @@ namespace mer {
 	int q() const      {return        re.u().size();}
 	int s() const      {return              N()/n();}
 
-	void solveBeta()   {fe.solveBeta();}
-	void solveBetaU();
-	void solveU();
+	void solveCoef(Alg);
 	void updateLambda(Rcpp::NumericVector const&);
 	void updateRzxRx() {fe.updateRzxRx(re.Lambda(), re.L());}
 	void zeroU()       {re.zeroU();}
@@ -232,47 +226,49 @@ namespace mer {
 	updateLambda(nt);
 	zeroU();
 	updateWts();
-	solveBetaU();
+	solveCoef(BetaU);
 	updateMu();
 	return Laplace();
     }
 
-    template<typename Tf, typename Tr> inline
-    double mer<Tf,Tr>::setBeta(Rcpp::NumericVector const&  bb,
-			       Rcpp::NumericVector const& inc,
-			       double                    step) {
-	fe.setBeta(bb, inc, step);
-	return updateMu();
-    }
-    
+    /** 
+     * Update beta or u or both from base values, increments and a step
+     * factor.
+     * 
+     * @param bBase base of beta vector
+     * @param uBase base of u vector
+     * @param incB increment for beta vector
+     * @param incU increment for u vector
+     * @param step step factor
+     * @param which 1 => beta only, 2 => u only, 3 => beta and u
+     * 
+     * @return penalized, weighted residual sum of squares
+     */
     template<typename Tf, typename Tr> inline
     double mer<Tf,Tr>::setBetaU(Rcpp::NumericVector const& bBase,
 				Rcpp::NumericVector const& uBase,
 				Rcpp::NumericVector const&  incB,
 				Rcpp::NumericVector const&  incU,
-				double                      step) {
-	fe.setBeta(bBase, incB, step);
-	re.setU(uBase, incU, step);
+				double                      step,
+				Alg                          alg) {
+	if (alg !=    U) fe.setBeta(bBase, incB, step);
+	if (alg != Beta) re.setU(uBase, incU, step);
 	return updateMu();
     }
     
     template<typename Tf, typename Tr> inline
-    double mer<Tf,Tr>::setU(Rcpp::NumericVector const& uBase,
-			    Rcpp::NumericVector const&  incU,
-			    double                      step) {
-	re.setU(uBase, incU, step);
-	return updateMu();
-    }
-    
-    template<typename Tf, typename Tr> inline
-    void mer<Tf,Tr>::solveBetaU() {
-	fe.updateRzxRx(re.Lambda(), re.L());
-	re.updateU(fe.updateBeta(re.cu()));
-    }
-
-    template<typename Tf, typename Tr> inline
-    void mer<Tf,Tr>::solveU() {
-	re.solveU();
+    void mer<Tf,Tr>::solveCoef(Alg alg) {
+	switch(alg) {
+	case Beta:
+	    fe.solveBeta();
+	    break;
+	case U:
+	    re.solveU();
+	    break;
+	case BetaU:
+	    fe.updateRzxRx(re.Lambda(), re.L());
+	    re.updateU(fe.updateBeta(re.cu()));
+	}
     }
 
     template<typename Tf, typename Tr> inline
@@ -302,7 +298,7 @@ namespace mer {
     }	
 
     /**
-     * Update the weighted residuals, wrss, sqrtrwt, sqrtXwt, U, Utr,
+     * Update the weighted residuals, wrss, sqrtrwt, sqrtXwt, U,
      * cu, UtV, VtV and Vtr.
      *
      * @return penalized, weighted residual sum of squares
@@ -321,78 +317,24 @@ namespace mer {
 #define CM_SMIN 1.e-4
 
     template<typename Tf, typename Tr> inline
-    double mer<Tf,Tr>::IRLS(int verb) {
-	Rcpp::NumericVector bBase(p()), incB(p()), muBase(n());
+    double mer<Tf,Tr>::PIRLS(int verb, Alg alg) {
+	Rcpp::NumericVector bBase(p()), incB(p()), incU(q()), muBase(n()), uBase(q());
 	double crit, step, c0, c1;
 				// sqrtrwt and sqrtXwt must be set
 	crit = 10. * CM_TOL;
 	updateMu();		// using current beta and u
 	for (int i = 0; crit >= CM_TOL && i < CM_MAXITER; i++) {
-				// store copies of var and beta
-	    std::copy(fe.beta().begin(), fe.beta().end(), bBase.begin());
+				// store copies of mu, u and beta
 	    std::copy(resp.mu().begin(), resp.mu().end(), muBase.begin());
+	    std::copy(re.u().begin(), re.u().end(), uBase.begin());
+	    std::copy(fe.beta().begin(), fe.beta().end(), bBase.begin());
 	    c0 = updateWts();
-	    solveBeta();	// calculate increment in fe.d_beta
+	    solveCoef(alg);
 	    std::copy(fe.beta().begin(), fe.beta().end(), incB.begin());
-	    for (c1 = c0, step = 1.; c0 <= c1 && step > CM_SMIN;
-		 step /= 2.) {
-		c1 = setBeta(bBase, incB, step);
-		if (verb > 1) showincr(step, c0, c1, fe.beta(), "beta");
-	    }
-	    crit = compareVecWt(muBase, resp.mu(), resp.sqrtrwt());
-	    if (verb > 1)
-		Rprintf("   convergence criterion: %g\n", crit);
-	}
-	return Laplace();
-    } // IRLS
-
-    template<typename Tf, typename Tr> inline
-    double mer<Tf,Tr>::PIRLS(int verb) {
-	Rcpp::NumericVector incU(q()), muBase(n()), uBase(q());
-	double crit, step, c0, c1;
-
-	crit = 10. * CM_TOL;
-	zeroU();		// start from a known position
-	updateMu();
-	for (int i = 0; crit >= CM_TOL && i < CM_MAXITER; i++) {
-				// store copies of mu and u
-	    std::copy(re.u().begin(), re.u().end(), uBase.begin());
-	    std::copy(resp.mu().begin(), resp.mu().end(), muBase.begin());
-	    c0 = updateWts();	// sqrtrwt, sqrtXwt, wtres, pwrss
-	    solveU();
 	    std::copy(re.u().begin(), re.u().end(), incU.begin());
 	    for (c1 = c0, step = 1.; c0 <= c1 && step > CM_SMIN;
 		 step /= 2.) {
-		c1 = setU(uBase, incU, step);
-		if (verb > 1) showincr(step, c0, c1, re.u(), "u");
-	    }
-	    crit = compareVecWt(muBase, resp.mu(), resp.sqrtrwt());
-	    if (verb > 1)
-		Rprintf("   convergence criterion: %g\n", crit);
-	}
-	return Laplace();
-    } // PIRLS
-
-    template<typename Tf, typename Tr> inline
-    double mer<Tf,Tr>::PIRLSBeta(int verb) {
-	Rcpp::NumericVector bBase(p()), incB(p()), incU(q()), muBase(n()), uBase(q());
-	double crit, step, c0, c1;
-	
-	crit = 10. * CM_TOL;
-	zeroU();
-	updateMu();
-	for (int i = 0; crit >= CM_TOL && i < CM_MAXITER; i++) {
-				// store copies of mu, beta and u
-	    std::copy(resp.mu().begin(), resp.mu().end(), muBase.begin());
-	    std::copy(re.u().begin(), re.u().end(), uBase.begin());
-	    std::copy(fe.beta().begin(), fe.beta().end(), bBase.begin());
-	    c0 = updateWts();	// sqrtrwt, sqrtXwt, wtres, wrss
-	    solveBetaU();
-	    std::copy(re.u().begin(), re.u().end(), incU.begin());
-	    std::copy(fe.beta().begin(), fe.beta().end(), incB.begin());
-	    for (c1 = c0, step = 1.; c0 <= c1 && step > CM_SMIN;
-		 step /= 2.) {
-		c1 = setBetaU(bBase, uBase, incB, incU, step);
+		c1 = setBetaU(bBase, uBase, incB, incU, step, alg);
 		if (verb > 1) {
 		    showincr(step, c0, c1, fe.beta(), "beta");
 		    showdbl(re.u().begin(), "u", re.u().size());
@@ -403,7 +345,7 @@ namespace mer {
 		Rprintf("   convergence criterion: %g\n", crit);
 	}
 	return Laplace();
-    } // PIRLSBeta
+    } // PIRLS
 }
 
 #endif
