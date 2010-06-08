@@ -895,18 +895,6 @@ setMethod("devcomp", "mer", function(x, ...) x@devcomp)
          useSc = TRUE))
 }
 
-setMethod("devcomp", "lmerMod", .ModDevComp)
-
-setMethod("devcomp", "glmerMod", function(x, ...)
-      {
-          ans <- .ModDevComp(x, ...)
-          ans$cmp["REML"] <- NA
-          ans$cmp["deviance"] <-
-              x@re@ldL2 + as.vector(crossprod(x@re@u)) + x@resp@devres
-          ans$dims["useSc"] <- !(x@resp@family$family %in%
-                                   c("binomial", "poisson"))
-          ans
-      })
 
 setMethod("devcomp", "glmerenv",
 	  function(x, ...)
@@ -921,8 +909,6 @@ setMethod("env", "mer", function(x) env(x@env))
 
 setMethod("getL", "merenv", function(x) env(x)$L)
 setMethod("getL", "mer", function(x) x@L)
-setMethod("getL", "reModule", function(x) x@L)
-setMethod("getL", "lmerMod", function(x) x@re@L)
 
 setMethod("sigma", signature(object = "merenv"),
 	  function (object, ...) {
@@ -949,9 +935,6 @@ setMethod("sigma", signature(object = "mer"), function (object, ...)
 ##     sqrt(dc$cmp[["pwrss"]]/ dm[[if(object@REML) "nmp" else "n"]])
 ## }
 
-## setMethod("sigma", signature(object =  "lmerMod"), .ModSigma)
-## setMethod("sigma", signature(object = "glmerMod"), .ModSigma)
-
 
 ## Obtain the ML fit of the model parameters
 MLfit <- function(x) {
@@ -964,12 +947,9 @@ setMethod("isREML", "lmerenv",	function(x) isTRUE(env(x)$REML))
 setMethod("isREML", "lmer",	function(x) as.logical(x@dims[["REML"]]))
 setMethod("isREML", "merenv",	function(x) FALSE)
 setMethod("isREML", "mer",	function(x) FALSE)
-setMethod("isREML", "lmerMod",	function(x) as.logical(x@resp@REML))
-setMethod("isREML", "glmerMod",	function(x) FALSE)
 
 setMethod("getCall", "merenv",	function(x) env(x)$call)
 setMethod("getCall", "mer",	function(x) x@call)
-setMethod("getCall", "merMod",	function(x) x@call)
 
 ##' <description>
 ##'
@@ -1079,8 +1059,6 @@ setMethod("anova", signature(object = "lmerenv"), anovaLmer)
 
 setMethod("anova", signature(object = "lmer"), anovaLmer)
 
-setMethod("anova", signature(object = "lmerMod"), anovaLmer)
-
 ##' <description>
 ##'
 ##' <details>
@@ -1110,11 +1088,6 @@ setMethod("vcov", signature(object = "merenv"),
 setMethod("vcov", signature(object = "mer"),
 	  function(object, correlation = TRUE, sigm = sigma(object), ...)
 	  mkVcov(sigm, RX = object@RX, nmsX = colnames(object@X),
-		 correlation=correlation, ...))
-
-setMethod("vcov", signature(object = "merMod"),
-	  function(object, correlation = TRUE, sigm = sigma(object), ...)
-	  mkVcov(sigm, RX = object@fe@RX, nmsX = colnames(object@fe@X),
 		 correlation=correlation, ...))
 
 mkVarCorr <- function(sc, cnms, nc, theta, flist) {
@@ -1402,7 +1375,7 @@ setMethod("summary", "lmerMod", function(object, varcov = FALSE, ...)
 	  summaryMer2(object, varcov=varcov, type = "lmer"))
 setMethod("summary", "glmerMod", function(object, varcov = FALSE, ...)
 	  summaryMer2(object, varcov=varcov, type = "glmer"))
-setMethod("summary", "glmerMod", summaryMer2)
+#setMethod("summary", "glmerMod", summaryMer2)
 
 
 ## This is just  "Access the X matrix"
@@ -1410,27 +1383,15 @@ setMethod("model.matrix", signature(object = "merenv"),
 	  function(object, ...) env(object)$X)
 setMethod("model.matrix", signature(object = "mer"),
 	  function(object, ...) object@X)
-setMethod("model.matrix", signature(object = "lmerMod"),
-	  function(object, ...) object@fe@X)
-setMethod("model.matrix", signature(object = "glmerMod"),
-	  function(object, ...) object@fe@X)
 
 setMethod("model.frame", signature(formula = "merenv"),
 	  function(formula, ...) env(formula)$frame)
 setMethod("model.frame", signature(formula = "mer"),
 	  function(formula, ...) formula@frame)
-setMethod("model.frame", signature(formula = "lmerMod"),
-	  function(formula, ...) formula@frame)
-setMethod("model.frame", signature(formula = "glmerMod"),
-	  function(formula, ...) formula@frame)
 
 setMethod("terms", signature(x = "merenv"),
 	  function(x, ...) attr(env(x)$frame, "terms"))
 setMethod("terms", signature(x = "mer"),
-	  function(x, ...) attr(x@frame, "terms"))
-setMethod("terms", signature(x = "lmerMod"),
-	  function(x, ...) attr(x@frame, "terms"))
-setMethod("terms", signature(x = "glmerMod"),
 	  function(x, ...) attr(x@frame, "terms"))
 
 
@@ -1440,13 +1401,6 @@ setMethod("deviance", signature(object="lmerenv"),
       {
           if (missing(REML) || is.null(REML) || is.na(REML[1]))
               REML <- env(object)$REML
-	  devcomp(object)$cmp[[if(REML) "REML" else "deviance"]]
-      })
-setMethod("deviance", signature(object="lmerMod"),
-	  function(object, REML = NULL, ...)
-      {
-          if (missing(REML) || is.null(REML) || is.na(REML[1]))
-              REML <- object@resp@REML
 	  devcomp(object)$cmp[[if(REML) "REML" else "deviance"]]
       })
 setMethod("deviance", signature(object="lmer"),
@@ -1459,8 +1413,6 @@ setMethod("deviance", signature(object="lmer"),
 
 ## The non-lmerenv case:
 setMethod("deviance", signature(object="merenv"),
-	  function(object, ...) devcomp(object)$cmp[["deviance"]])
-setMethod("deviance", signature(object="glmerMod"),
 	  function(object, ...) devcomp(object)$cmp[["deviance"]])
 
 ## The non-lmer case:
@@ -1499,39 +1451,7 @@ setMethod("logLik", signature(object="lmer"),
 		   n = dm[["n"]], p = dm[["p"]], np = dm[["np"]],
 		   REML = REML, hasScale = 1L)
       })
-setMethod("sigma", signature(object = "lmerMod"), function (object, ...)
-      {
-	  dc <- devcomp(object)
-	  dm <- dc$dims
-## in general {maybe use, making this into aux.function?
-## 	  if(dm[["useSc"]])
-## 	      sqrt(dc$cmp[["pwrss"]]/
-## 		   dm[[if(dc$cmp[["REML"]]) "nmp" else "n"]])
-## 	  else 1
-          sqrt(dc$cmp[["pwrss"]]/ dm[[if(object@resp@REML) "nmp" else "n"]])
-      })
 
-setMethod("logLik", signature(object="lmerMod"),
-	  function(object, REML = NULL, ...)
-      {
-	  if (is.null(REML) || is.na(REML[1]))
-	      REML <- object@resp@REML
-	  mkLogLik(deviance(object, REML = REML),
-		   n  = nrow  (object@fe @ X),
-		   p  = length(object@fe @ beta),
-		   np = length(object@re @ theta),
-		   REML = REML, hasScale = 1L)
-      })
-
-setMethod("logLik", signature(object = "glmerMod"),
-	  function(object, REML = NULL, ...)
-          mkLogLik(deviance(object),
-		   n  = nrow  (object@fe @ X),
-		   p  = length(object@fe @ beta),
-		   np = length(object@re @ theta),
-		   REML = FALSE,
-                   hasScale = !(object@resp@family$family %in%
-                                c("binomial", "poisson"))))
 
 ## The non-lmerenv case:
 setMethod("logLik", signature(object="merenv"), function(object, ...)
@@ -1586,8 +1506,6 @@ updateMer <- function(object, formula., ..., evaluate = TRUE)
 
 setMethod("update", signature(object = "merenv"), updateMer)
 setMethod("update", signature(object = "mer"), updateMer)
-setMethod("update", signature(object = "lmerMod"), updateMer)
-setMethod("update", signature(object = "glmerMod"), updateMer)
 
 
 setMethod("print", "merenv", printMerenv)
@@ -1595,12 +1513,6 @@ setMethod("show",  "merenv", function(object) printMerenv(object))
 
 setMethod("print", "mer", printMerenv)
 setMethod("show",  "mer", function(object) printMerenv(object))
-
-setMethod("print", "lmerMod", printMerenv)
-setMethod("show",  "lmerMod", function(object) printMerenv(object))
-
-setMethod("print", "glmerMod", printMerenv)
-setMethod("show",  "glmerMod", function(object) printMerenv(object))
 
 ## coef() method for all kinds of "mer", "*merMod", ... objects
 ## ------  should work with fixef() + ranef()  alone
@@ -1628,8 +1540,6 @@ coefMer <- function(object, ...)
 
 setMethod("coef", signature(object = "merenvtrms"), coefMer)
 setMethod("coef", signature(object = "mer"), coefMer)
-setMethod("coef", signature(object = "lmerMod"), coefMer)
-setMethod("coef", signature(object = "glmerMod"), coefMer)
 
 
 ## For Matrix API change (Oct.2009) - silence the warning:
