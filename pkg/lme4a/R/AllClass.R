@@ -309,7 +309,7 @@ setClass("reModule",
 ##'
 ##'
 setClass("reTrms",
-         representation(flist = "list", cnms = "list", nlev = "integer"),
+         representation(flist = "list", cnms = "list"),
          contains = "reModule",
          validity = function(object)
      {
@@ -384,43 +384,13 @@ setClass("spFeMod",
              TRUE
          })
 
-##' reweightable dense fixed-effects module
-##'
-##' a reweightable fixed-effects module contains V, a weighted version
-##' of X but no precomputed products.  The number of rows in X can be
-##' multiple of the number of rows in V
-setClass("rwDeFeMod",
-         representation(V = "dgeMatrix"),
-         contains = "deFeMod",
-         validity = function(object) {
-             if (ncol(object@V) != ncol(object@X))
-                 return("number of columns in X and V must match")
-             TRUE
-         })
-
-##' reweightable sparse fixed-effects module
-##'
-setClass("rwSpFeMod",
-         representation(V = "dgCMatrix"),
-         contains = "spFeMod",
-         validity = function(object) {
-             if (ncol(object@V) != ncol(object@X))
-                 return("number of columns in X and V must match")
-             TRUE
-         })
-
 ##' mer response module
-##' y, offset and mu are as expected
+##' y, offset and mu are as expected.  Note that length(offset) can be a multiple of length(y)
+##' weights are the prior weights
+##' sqrtrwt and sqrtXwt are the square roots of residual and X weights
+##' wtres is the vector of weighted residuals
+##' 
 ##' wrss is the scalar weighted residual sum of squares
-##'
-##' Utr is the q-dimensional product of Ut (reModule) and the weighted
-##' residuals.
-##'
-##' Vtr is the p-dimension crossproduct of V (reweightable feModule)
-##' or X (lmer feModule) and the weighted residual, which initially is
-##' y in the lmer case.
-##'
-##' cu is the intermediate solution for u, cbeta for beta
 setClass("merResp",
          representation(mu = "numeric",
                         offset = "numeric",
