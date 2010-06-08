@@ -750,14 +750,6 @@ setMethod("ranef", signature(object = "mer"),
 	  ranef(object@env, postVar=postVar, drop=drop, ...))
 ##              ----------
 
-## "cheat" too {but never wrong}:
-## setMethod("ranef", signature(object = "lmerMod"),
-## 	  function(object, postVar = FALSE, drop = FALSE, ...)
-## 	  ranef(as(object, "lmerenv"), postVar=postVar, drop=drop, ...))
-## setMethod("ranef", signature(object = "glmerMod"),
-## 	  function(object, postVar = FALSE, drop = FALSE, ...)
-## 	  ranef(as(object, "merenv"), postVar=postVar, drop=drop, ...))
-
 dotplot.ranef.mer <- function(x, data, ...)
 {
     prepanel.ci <- function(x, y, se, subscripts, ...) {
@@ -977,8 +969,7 @@ setMethod("isREML", "glmerMod",	function(x) FALSE)
 
 setMethod("getCall", "merenv",	function(x) env(x)$call)
 setMethod("getCall", "mer",	function(x) x@call)
-setMethod("getCall", "lmerMod",	function(x) x@call)
-setMethod("getCall", "glmerMod",function(x) x@call)
+setMethod("getCall", "merMod",	function(x) x@call)
 
 ##' <description>
 ##'
@@ -1121,16 +1112,10 @@ setMethod("vcov", signature(object = "mer"),
 	  mkVcov(sigm, RX = object@RX, nmsX = colnames(object@X),
 		 correlation=correlation, ...))
 
-setMethod("vcov", signature(object = "lmerMod"),
+setMethod("vcov", signature(object = "merMod"),
 	  function(object, correlation = TRUE, sigm = sigma(object), ...)
 	  mkVcov(sigm, RX = object@fe@RX, nmsX = colnames(object@fe@X),
 		 correlation=correlation, ...))
-
-setMethod("vcov", signature(object = "glmerMod"),
-	  function(object, correlation = TRUE, sigm = sigma(object), ...)
-	  mkVcov(sigm, RX = object@fe@RX, nmsX = colnames(object@fe@X),
-		 correlation=correlation, ...))
-
 
 mkVarCorr <- function(sc, cnms, nc, theta, flist) {
     ncseq <- seq_along(nc)
@@ -1163,18 +1148,17 @@ setMethod("VarCorr", signature(x = "mer"), function(x)
     mkVarCorr(sigma(x), cnms=x@cnms, nc = x@ncTrms,
 	      theta=x@theta, flist=x@flist))
 
-.ModVarCorr <- function(x) {
-    re <- x@re
-    if (!is(re, "reTrms"))
-        stop("VarCorr methods require reTrms, not just reModule")
-    cnms <- re@cnms
-    nc <- sapply(cnms, length)      # no. of columns per term
-    mkVarCorr(sigma(x), cnms=cnms, nc = nc,
-	      theta=re@theta, flist=re@flist)
-}
-
-setMethod("VarCorr", signature(x = "lmerMod"), .ModVarCorr)
-setMethod("VarCorr", signature(x = "glmerMod"), .ModVarCorr)
+setMethod("VarCorr", signature(x = "merMod"),
+          function(x)
+      {
+          re <- x@re
+          if (!is(re, "reTrms"))
+              stop("VarCorr methods require reTrms, not just reModule")
+          cnms <- re@cnms
+          nc <- sapply(cnms, length)      # no. of columns per term
+          mkVarCorr(sigma(x), cnms=cnms, nc = nc,
+                    theta=re@theta, flist=re@flist)
+      })
 
 ## This is modeled a bit after  print.summary.lm :
 ## Prints *both*  'mer' and 'merenv' - as it uses summary(x) mainly
