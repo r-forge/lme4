@@ -494,9 +494,7 @@ bootMer <- function(x, FUN, nsim = 1, seed = NULL, use.u = FALSE,
 ## lmer..Update <- if(is(x, "lmerSp")) lmerSpUpdate else lmerDeUpdate
     devfun <- function(th) .Call(LMMupdate, x, th)
 ##    oneD <- length(x@re@theta) < 2
-## Force theta0 to be a copy of theta, not a reference to theta
-    theta0 <- numeric(length(x@re@theta))
-    theta0[] <- x@re@theta # to use as starting value
+    theta0 <- x@re@theta
     ## just for the "boot" result -- TODOmaybe drop
     mle <- list(beta = x@fe @ beta, theta = theta0, sigma = sigm.x)
 
