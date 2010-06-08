@@ -113,7 +113,6 @@ mkReTrms <- function(bars, fr, s = 1L) {
     names(fl) <- ufn
     fl <- do.call(data.frame, c(fl, check.names = FALSE))
     attr(fl, "assign") <- asgn
-    ll$nlev <- nl
     ll$flist <- fl
     ll$cnms <- cnms
     do.call("new", ll)
@@ -240,7 +239,8 @@ mkRespMod <- function(fr, reMod, feMod, family = NULL,
         }
         if(is.null(checknl)) checknl <- TRUE # non-glmer case
     }
-    if(checknl && any(reMod@nlev >= n))
+    if(checknl && is(reMod, "reTrms") &&
+       any(n <= (nlev <- sapply(reMod@flist, function(fac) length(levels(fac))))))
 	stop("Number of levels of a grouping factor for the random effects\n",
 	     "must be less than the number of observations")
     do.call("new", ll)
@@ -371,40 +371,11 @@ lmer2 <- function(formula, data, REML = TRUE, sparseX = FALSE,
 	       re = reTrms, fe = feMod, resp = respMod)
     if (doFit) {                        # optimize estimates
         if (verbose) control$iprint <- 2L
-        bobyqa(ans@re@theta, function(x) .Call(LMMupdate, ans, x),
-               ans@re@lower, control = control)
- 
-        ## code <- if(is(ans, "lmerSp")) lmerSpUpdate else lmerDeUpdate
-	## if(verbose) {
-	##     ..it <- 0L
-	##     f.width <- (f.dig <- getOption("digits")) + 5 # "+5": e.g. for 1.2e-05
-	##     devfun <- function(th) {
-	## 	r <- .Call(code, ans, th)
-	## 	..it <<- ..it + 1L
-	## 	cat(sprintf("%3d : %s |-> %15.12g\n", ..it,
-	## 		    paste(sapply(th, format, width = f.width),
-        ##                           collapse = " "),
-        ##                     r))
-	## 	r
-	##     }
-	## } else
-	##     devfun <- function(th) .Call(code, ans, th)
-
-        ## if (length(ans@re@theta) < 2) { # use optimize
-        ##     d0 <- devfun(0)
-        ##     opt <- optimize(devfun, c(0, 10))
-        ##     ##                      -------- <<< arbitrary
-        ##     ## FIXME ?! if optimal theta > 10, optimize will *not* warn!
-        ##     if (d0 <= opt$objective) { ## prefer theta == 0 when close
-        ##         cat(sprintf("dev(th =0) = %.12g <= %.12g = opt$obj(th=%g)%s\n",
-        ##                     d0, opt$objective, opt$minimum, " --> th := 0"))
-        ##         devfun(0) # -> theta  := 0  and update the rest
-        ##     }
-        ## } else {
-        ##     ## if (verbose > 1) control$iprint <- verbose
-        ##     bobyqa(ans@re@theta, devfun, ans@re@lower, control = control)
-        ##     ## FIXME: also here, prefer \hat{\sigma_a^2} == 0 (exactly)
-        ## }
+        devfun <- function(th) {
+            .Call(reUpdateLambda, ans@re, x)
+            .Call(LMMdeviance, ans)
+        }
+        bobyqa(ans@re@theta, devfun, ans@re@lower, control = control)
     }
     ans
 }
@@ -540,10 +511,37 @@ bootMer <- function(x, FUN, nsim = 1, seed = NULL, use.u = FALSE,
 	      class = "boot")
 }## {bootMer}
 
+
+PIRLSest <- function(ans, verbose, control, PLSBeta) {
+    if (verbose) control$iprint <- 2L
+    .Call(PIRLS, ans, verbose, 1L)      # optimize beta only
+    if (PLSBeta) {
+        devfun <- function(pars) {
+            .Call(reUpdateLambda, ans@re, pars)
+            .Call(PIRLS, ans, verbose, 3L) # optimize u and beta
+        }
+        bobyqa(ans@re@theta, devfun, ans@re@lower, control = control)
+    } else {
+        thpars <- seq_along(ans@re@theta)
+        bb <- ans@fe@beta
+        devfun <- function(pars) {
+            .Call(feSetBeta, ans@fe, pars[-thpars])
+            .Call(reUpdateLambda, ans@re, pars[thpars])
+            .Call(merPIRLS, ans, verbose, 2L) # optimize u only
+        }
+        bobyqa(c(ans@re@theta, bb), devfun,
+               lower = c(ans@re@lower, rep.int(-Inf, length(bb))),
+               control = control)
+    }
+    .Call(updateRzxRx, ans)
+    ans
+}
+
 glmer2 <- function(formula, data, family = gaussian, sparseX = FALSE,
-                   control = list(), start = NULL, verbose = 0L, doFit = TRUE,
+                   control = list(), start = NULL, verbose = 0L, nAGQ = 1L,
+                   doFit = TRUE, PLSBeta = FALSE,
                    subset, weights, na.action, offset,
-                   contrasts = NULL, nAGQ = 1, mustart, etastart, ...)
+                   contrasts = NULL, mustart, etastart, ...)
 {
     verbose <- as.integer(verbose)
     mf <- mc <- match.call()
@@ -588,67 +586,8 @@ glmer2 <- function(formula, data, family = gaussian, sparseX = FALSE,
     feMod@V <- Diagonal(x = respMod@sqrtXwt[,1]) %*% feMod@X
     ans <- new(ifelse(sparseX, "glmerSp", "glmerDe"), call = mc,
                frame = fr, re = reTrms, fe = feMod, resp = respMod)
-    .Call(glmerDeIRLS, ans, verbose)
-    if (doFit) {                        # optimize estimates
-        if (FALSE) {           # add an argument to select this option
-            code <- if(is(ans, "glmerSp")) glmerSpPIRLSBeta else glmerDePIRLSBeta
-	    devfun <- function(th) .Call(code, ans, th, verbose)
-            if (length(ans@re@theta) < 2) { # use optimize
-                if(verbose) {
-                    ..it <- 0L
-                    f.width <- (f.dig <- getOption("digits")) + 5 # "+5": e.g. for 1.2e-05
-                    devfun <- function(th) {
-                        r <- .Call(code, ans, th, verbose)
-                        ..it <<- ..it + 1L
-                        cat(sprintf("%3d : %s |-> %15.12g\n", ..it,
-                                    paste(sapply(th, format, width = f.width),
-                                          collapse = " "),
-                                    r))
-                        r
-                    }
-                }
-                d0 <- devfun(0)
-                opt <- optimize(devfun, c(0, 10))
-                ##                      -------- <<< arbitrary
-                ## FIXME ?! if optimal theta > 10, optimize will *not* warn!
-                if (d0 <= opt$objective) { ## prefer theta == 0 when close
-                    cat(sprintf("dev(th =0) = %.12g <= %.12g = opt$obj(th=%g)%s\n",
-                                d0, opt$objective, opt$minimum, " --> th := 0"))
-                    devfun(0) # -> theta  := 0  and update the rest
-                }
-            } else {
-                if (verbose > 0) control$iprint <- 2L
-                if (verbose > 1) {
-                    devfun <- function(th) {
-                        r <- .Call(code, ans, th, verbose)
-                        ..it <<- ..it + 1L
-                        cat(sprintf("%3d : %s |-> %15.12g\n", ..it,
-                                    paste(sapply(th, format, width = f.width),
-                                          collapse = " "),
-                                    r))
-                        r
-                    }
-                }
-                bobyqa(ans@re@theta, devfun, ans@re@lower,
-                       control = control)
-                ## FIXME: also here, prefer \hat{\sigma_a^2} == 0 (exactly)
-            }
-        } else {                        # PIRLS optimization 
-            code <- if(is(ans, "glmerSp")) glmerSpPIRLS else glmerDePIRLS
-            thpars <- seq_along(ans@re@theta)
-            bb <- ans@fe@beta
-            devfun <- function(pars) {
-                .Call(feSetBeta, ans@fe, pars[-thpars])
-                .Call(code, ans, pars[thpars], verbose)
-            }
-            if (verbose) control$iprint <- 2L
-            bobyqa(c(ans@re@theta, bb), devfun,
-                   c(ans@re@lower, rep.int(-Inf, length(bb))),
-                   control = control)
-        }
-        .Call(glmerDeUpdateRzxRx, ans)
-    }
-    ans
+    if (!doFit) return(ans)
+    PIRLSest(ans, verbose, control, PLSBeta)
 }## {glmer2}
 
 ## being brave now:
@@ -688,8 +627,8 @@ glmer <- glmer2
 
 ##' @return an object of S4 class "nlmerMod"
 nlmer2 <- function(formula, data, family = gaussian, start = NULL,
-                   verbose = 0, nAGQ = 1, doFit = TRUE, subset,
-                   PLSBeta = FALSE,
+                   verbose = 0L, nAGQ = 1L, doFit = TRUE,
+                   PLSBeta = FALSE,  subset,
                    weights, na.action, mustart, etastart, sparseX = FALSE,
                    contrasts = NULL, control = list(), ...)
 {
@@ -750,38 +689,8 @@ nlmer2 <- function(formula, data, family = gaussian, start = NULL,
     respMod@pnames <- pnames
     ans <- new(ifelse(sparseX, "nlmerSp", "nlmerDe"), call = mc,
                frame = fr, re = reTrms, fe = feMod, resp = respMod)
-    .Call("nlmerDeIRLS", ans, ans@re@theta, verbose)
-    if (doFit) {
-        if (verbose) control$iprint <- 2L
-        if (PLSBeta) {
-            code <- if(is(ans, "nlmerSp")) nlmerSpPIRLSBeta else nlmerDePIRLSBeta
-            devfun <- function(nth) .Call(code, ans, nth, verbose)
-            if (length(th <- ans@re@theta) == 1) {
-                d0 <- devfun(0)
-                opt <- optimize(devfun, c(0, 10))
-                ##                      -------- <<< arbitrary
-                ## FIXME ?! if optimal theta > 10, optimize will *not* warn!
-                if (d0 <= opt$objective) { ## prefer theta == 0 when close
-                    cat(sprintf("dev(th =0) = %.12g <= %.12g = opt$obj(th=%g)%s\n",
-                                d0, opt$objective, opt$minimum, " --> th := 0"))
-                    devfun(0) # -> theta  := 0  and update the rest
-                }
-            } else {
-                bobyqa(th, devfun, lower = ans@re@lower, control = control)
-            }
-        } else {
-            thpars <- seq_along(ans@re@theta)
-            bb <- ans@fe@beta
-            devfun <- function(pars) {
-                .Call(feSetBeta, ans@fe, pars[-thpars])
-                .Call(code, ans, pars[thpars], verbose)
-            }
-            bobyqa(c(ans@re@theta, bb), devfun,
-                   lower = c(ans@re@lower, rep.int(-Inf, length(bb))),
-                   control = control)
-        }
-    }
-    ans
+    if (!doFit) return(ans)
+    PIRLSest(ans, verbose, control, PLSBeta)
 }
 
 ## Methods for the merMod class
@@ -864,4 +773,79 @@ setMethod("sigma", "merMod", function(object, ...)
           sqrt((object@resp@wrss + sum(object@re@u^2))/denom)
       })
 
-          
+setMethod("model.matrix", signature(object = "merMod"),
+	  function(object, ...) object@fe@X)
+
+setMethod("terms", signature(x = "merMod"),
+	  function(x, ...) attr(x@frame, "terms"))
+
+setMethod("model.frame", signature(formula = "merMod"),
+	  function(formula, ...) formula@frame)
+
+setMethod("deviance", signature(object="lmerMod"),
+	  function(object, REML = NULL, ...)
+      {
+          if (missing(REML) || is.null(REML) || is.na(REML[1]))
+              REML <- object@resp@REML
+	  devcomp(object)$cmp[[if(REML) "REML" else "deviance"]]
+      })
+
+setMethod("deviance", signature(object="glmerMod"),
+	  function(object, ...) devcomp(object)$cmp[["deviance"]])
+
+setMethod("logLik", signature(object="lmerMod"),
+	  function(object, REML = NULL, ...)
+      {
+	  if (is.null(REML) || is.na(REML[1]))
+	      REML <- object@resp@REML
+	  mkLogLik(deviance(object, REML = REML),
+		   n  = nrow  (object@fe @ X),
+		   p  = length(object@fe @ beta),
+		   np = length(object@re @ theta),
+		   REML = REML, hasScale = 1L)
+      })
+
+setMethod("logLik", signature(object = "glmerMod"),
+	  function(object, REML = NULL, ...)
+          mkLogLik(deviance(object),
+		   n  = nrow  (object@fe @ X),
+		   p  = length(object@fe @ beta),
+		   np = length(object@re @ theta),
+		   REML = FALSE,
+                   hasScale = !(object@resp@family$family %in%
+                                c("binomial", "poisson"))))
+
+setMethod("update", signature(object = "merMod"), updateMer)
+
+setMethod("print", "merMod", printMerenv)
+setMethod("show",  "merMod", function(object) printMerenv(object))
+
+setMethod("coef", signature(object = "merMod"), coefMer)
+
+setMethod("devcomp", "lmerMod", .ModDevComp)
+
+setMethod("devcomp", "glmerMod", function(x, ...)
+      {
+          ans <- .ModDevComp(x, ...)
+          ans$cmp["REML"] <- NA
+          ans$cmp["deviance"] <-
+              x@re@ldL2 + as.vector(crossprod(x@re@u)) + x@resp@devres
+          ans$dims["useSc"] <- !(x@resp@family$family %in%
+                                   c("binomial", "poisson"))
+          ans
+      })
+
+setMethod("getL", "reModule", function(x) x@L)
+setMethod("getL", "merMod", function(x) x@re@L)
+
+setMethod("isREML", "lmerMod",	function(x) as.logical(x@resp@REML))
+setMethod("isREML", "glmerMod",	function(x) FALSE)
+setMethod("getCall", "merMod",	function(x) x@call)
+
+setMethod("anova", signature(object = "lmerMod"), anovaLmer)
+
+setMethod("vcov", signature(object = "merMod"),
+	  function(object, correlation = TRUE, sigm = sigma(object), ...)
+	  mkVcov(sigm, RX = object@fe@RX, nmsX = colnames(object@fe@X),
+		 correlation=correlation, ...))
+
