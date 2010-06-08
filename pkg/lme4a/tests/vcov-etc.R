@@ -15,14 +15,14 @@ fe1.s <- fixef(fm1.s)
 s1.d <- summary(fm1)
 s1.s <- summary(fm1.s)
 stopifnot(
-	  all.equal(fe1, fe1.s, tol= 1e-12)
-	  ,
+	  all.equal(fe1, fe1.s, tol= 1e-12
+	  ),
 	  all.equal(se1.d <- coef(s1.d)[,"Std. Error"],
-		    se1.s <- coef(s1.s)[,"Std. Error"], tol=1e-10)
-	  ,
+		    se1.s <- coef(s1.s)[,"Std. Error"]#, tol = 1e-10
+	  ),
 	  all.equal(V.d <- vcov(fm1),
-		    V.s <- vcov(fm1.s), tol = 1e-9)
-	  ,
+		    V.s <- vcov(fm1.s)#, tol = 1e-9
+	  ),
 	  all.equal(diag(V.d), unname(se1.d)^2, tol= 1e-12)
 ###B	  ,
 ###Bug ??: currently have
@@ -51,8 +51,8 @@ range(t.fm7 <- coef(sfm7)[,"t value"])## -10.94173  10.61535
 
 m.t.7 <- mean(abs(t.fm7), trim = .01)
 ###B : now have     m.t.7= 1.55511602701
-stopifnot(all.equal(m.t.7, 1.55326394,   tol = 2e-3), # had = 1e-5  # lmer1
-          all.equal(m.t.7, 1.5532709682, tol = 2e-3)) # had = 1e-9  # lmer2
+stopifnot(all.equal(m.t.7, 1.55326394,   tol = 1.e-6), # had = 1e-5  # lmer1
+          all.equal(m.t.7, 1.5532709682, tol = 1.e-5)) # had = 1e-9  # lmer2
 hist.t <- cut(t.fm7, floor(min(t.fm7)) : ceiling(max(t.fm7)))
 cbind(table(hist.t))
 
