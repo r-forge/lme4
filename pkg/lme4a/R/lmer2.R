@@ -372,7 +372,7 @@ lmer2 <- function(formula, data, REML = TRUE, sparseX = FALSE,
     if (doFit) {                        # optimize estimates
         if (verbose) control$iprint <- 2L
         devfun <- function(th) {
-            .Call(reUpdateLambda, ans@re, x)
+            .Call(reUpdateLambda, ans@re, th)
             .Call(LMMdeviance, ans)
         }
         bobyqa(ans@re@theta, devfun, ans@re@lower, control = control)
@@ -463,7 +463,10 @@ bootMer <- function(x, FUN, nsim = 1, seed = NULL, use.u = FALSE,
 
     ## Here, and below ("optimize"/"bobyqa") using the "logic" of lmer2() itself:
 ## lmer..Update <- if(is(x, "lmerSp")) lmerSpUpdate else lmerDeUpdate
-    devfun <- function(th) .Call(LMMupdate, x, th)
+    devfun <- function(th) {
+        .Call(reUpdateLambda, x@re, th)
+        .Call(LMMdeviance, x)
+    }
 ##    oneD <- length(x@re@theta) < 2
     theta0 <- x@re@theta
     ## just for the "boot" result -- TODOmaybe drop
@@ -527,7 +530,7 @@ PIRLSest <- function(ans, verbose, control, PLSBeta) {
         devfun <- function(pars) {
             .Call(feSetBeta, ans@fe, pars[-thpars])
             .Call(reUpdateLambda, ans@re, pars[thpars])
-            .Call(merPIRLS, ans, verbose, 2L) # optimize u only
+            .Call(PIRLS, ans, verbose, 2L) # optimize u only
         }
         bobyqa(c(ans@re@theta, bb), devfun,
                lower = c(ans@re@lower, rep.int(-Inf, length(bb))),

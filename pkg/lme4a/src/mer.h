@@ -184,7 +184,7 @@ namespace mer {
 	double Laplace  () const {
 	    return resp.Laplace(re.ldL2(), fe.ldRX2(), re.sqrLenU());
 	}
-	double LMMupdate(Rcpp::NumericVector const&);
+	double LMMdeviance();
 	double PIRLS    (int,Alg);
 	double setBetaU (Rcpp::NumericVector const&,
 			 Rcpp::NumericVector const&,
@@ -222,8 +222,7 @@ namespace mer {
      * @return profiled deviance or REML criterion
      */
     template<typename Tf, typename Tr> inline
-    double mer<Tf,Tr>::LMMupdate(Rcpp::NumericVector const&  nt) {
-	updateLambda(nt);
+    double mer<Tf,Tr>::LMMdeviance() {
 	zeroU();
 	updateWts();
 	solveCoef(BetaU);
