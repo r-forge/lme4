@@ -665,7 +665,7 @@ devfun2 <- function(fm)
     lth <- length(th)
     if (fm1@resp@REML != 0) {
         fm1@resp@REML <- 0L
-        bobyqa(th, function(x) .Call(LMMupdate, fm1, x), fm1@re@lower)
+        bobyqa(th, function(x) {.Call(reUpdateLambda, fm1@re, x);.Call(LMMdeviance, fm1)}, fm1@re@lower)
     }
 
     basedev <- unname(deviance(fm1))
@@ -679,7 +679,8 @@ devfun2 <- function(fm)
         sigma <- exp(pars[np])
         pp <- pars[-np]/sigma
         stopifnot(all(pp >= fm1@re@lower))
-        .Call(LMMupdate, fm1, pp)
+        .Call(reUpdateLambda, fm1@re, pp)
+        .Call(LMMdeviance, fm1)
         sigsq <- sigma^2
         fm1@re@ldL2 + (fm1@resp@wrss + sum(fm1@re@u^2))/sigsq +
             length(fm1@resp@y) * log(2 * pi * sigsq)
@@ -812,7 +813,10 @@ setMethod("profile", "merMod",
               fe.zeta <- function(fw) {
                   fmm1@resp@offset <- Xw * fw + offset
                   ores <- bobyqa(thopt,
-                                 function(x) .Call(LMMupdate,fmm1,x),
+                                 function(x) {
+                                     .Call(reUpdateLambda,fmm1@re,x)
+                                     .Call(LMMdeviance, fmm1)
+                                 },
                                  lower = fmm1@re@lower)
                   sig <- sqrt((fmm1@resp@wrss + sum(fmm1@re@u^2)) / n)
                   c(sign(fw - est) * sqrt(ores$fval - base),

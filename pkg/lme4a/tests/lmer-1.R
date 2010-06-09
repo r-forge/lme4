@@ -130,7 +130,7 @@ stopifnot(is((cm1 <- coef(m1e)), "coef.mer"),
 	  all.equal(fixef(m1), ##  these values are those of "old-lme4":
 		    c(-1.39853504914, -0.992334711,
 		      -1.12867541477, -1.58037390498),
-		    tol = 1.e-4, 
+		    tol = 1.e-2, 
                     check.attr=FALSE)
 	  )
 

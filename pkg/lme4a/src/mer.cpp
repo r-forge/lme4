@@ -668,14 +668,14 @@ namespace mer{
 
 } // namespace mer
 
-RCPP_FUNCTION_2(double, LMMupdate, S4 xp, NumericVector nt) {
+RCPP_FUNCTION_1(double, LMMdeviance, S4 xp) {
     if (xp.is("lmerDe")) {
 	mer::mer<mer::deFeMod,mer::lmerResp> lm(xp);
-	return lm.LMMupdate(nt);
+	return lm.LMMdeviance();
     }
     if (xp.is("lmerSp")) {
 	mer::mer<mer::spFeMod,mer::lmerResp> lm(xp);
-	return lm.LMMupdate(nt);
+	return lm.LMMdeviance();
     }
     throw std::runtime_error("LMMupdate on non-lmer object");
 }
