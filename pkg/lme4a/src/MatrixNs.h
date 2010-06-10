@@ -11,26 +11,47 @@
 extern cholmod_common c;
 
 namespace MatrixNs {
+				// utilities
+    char UpLo(char);		// checks for and returns 'U' or 'L' 
+    char UpLo(std::string const&);
+    char UpLo(const SEXPREC*);
+
+    char Diag(char);		// checks for and returns 'U' or 'N' 
+    char Diag(std::string const&);
+    char Diag(const SEXPREC*);
+
+    char Trans(char);		// checks for and returns 'T' or 'N' 
+    char Trans(std::string const&);
+    char Trans(const SEXPREC*);
 
     class Matrix {
     protected:
 	Rcpp::List Dimnames;
 	int d_nrow, d_ncol;
     public:
-	Matrix(Rcpp::S4 &xp);
+	Matrix(Rcpp::S4&);
+	Matrix(int,int);
 	int nrow() const;
 	int ncol() const;
     };
 
     class dMatrix : public Matrix {
+    protected:
+	Rcpp::NumericVector d_x;
     public:
-	Rcpp::NumericVector x;
-	dMatrix(Rcpp::S4 &xp) : Matrix(xp), x(SEXP(xp.slot("x"))) { }
+	dMatrix(Rcpp::S4&);
+	dMatrix(int,int,int=0);
+
+	Rcpp::NumericVector const& x() const{return d_x;}
+	Rcpp::NumericVector& X() {return d_x;}
+	void setX(Rcpp::NumericVector const&);
+	void setX(Rcpp::NumericMatrix const&);
     };
 
     class ddenseMatrix : public dMatrix {
     public:
 	ddenseMatrix(Rcpp::S4&);
+	ddenseMatrix(int,int);
     };
 
 // C++ classes mirroring virtual S4 structure classes do not inherit
@@ -38,78 +59,41 @@ namespace MatrixNs {
 // Dimnames slots.  You can get around this for concrete classes but
 // these are pure virtual classes.
 
-    class compMatrix {		//< composite (factorizable) Matrix
+    class compMatrix {		// composite (factorizable) Matrix
     protected:
 	Rcpp::List factors;
     public:
-	compMatrix(Rcpp::S4 &xp) :
-	    factors(SEXP(xp.slot("factors"))) {
-	}
+	compMatrix(Rcpp::S4&);
+	compMatrix(){};		// factor list is empty
     };
+
 
     class generalMatrix : public compMatrix { //< general structure
     public:
-	generalMatrix(Rcpp::S4 &xp) : compMatrix(xp) { }
-    };
-
-    class UpLo {		//< validated uplo char
-    private: 
-	char chk (char x) {
-	    if (x == 'L' || x == 'l') return 'L';
-	    if (x == 'U' || x == 'u') return 'U';
-	    throw std::range_error("uplo");
-	}
-    public:
-	char UL;
-	UpLo(char &x) : UL(chk(x)) {}
-	UpLo(const std::string &x) : UL(chk(x[0])) {}
-	UpLo(const SEXP x) : UL(chk(*CHAR(Rf_asChar(x)))) {}
-    };
-
-    class Diag {		//< validated diag char
-    private: 
-	char chk (char x) {
-	    if (x == 'N' || x == 'n') return 'N';
-	    if (x == 'U' || x == 'u') return 'U';
-	    throw std::range_error("diag");
-	}
-    public:
-	char DD;
-	Diag(char x) : DD(chk(x)) {}
-	Diag(const std::string &x) : DD(chk(x[0])) {}
-	Diag(const SEXP x) : DD(chk(*CHAR(Rf_asChar(x)))) {};
-    };
-
-    class Trans {		//< validated trans char
-    private: 
-	char chk (char x) {
-	    if (x == 'C' || x == 'c') return 'C';
-	    if (x == 'N' || x == 'n') return 'N';
-	    if (x == 'T' || x == 't') return 'T';
-	    throw std::range_error("trans");
-	}
-    public:
-	char TR;
-	Trans(char x) : TR(chk(x)) {}
-	Trans(const std::string &x) : TR(chk(x[0])) {}
-	Trans(const SEXP x) : TR(chk(*CHAR(Rf_asChar(x)))) {};
+	generalMatrix(Rcpp::S4&);
+	generalMatrix(){};
     };
 
     class triangularMatrix {
+    protected:
+	char d_ul, d_di;
     public:
-	UpLo uplo;
-	Diag diag;
-	triangularMatrix(Rcpp::S4 &xp) :
-	    uplo(SEXP(xp.slot("uplo"))),
-	    diag(SEXP(xp.slot("diag"))) { }
+	triangularMatrix(Rcpp::S4&);
+	triangularMatrix(char='U',char='N');
+
+	char diag() const {return d_di;} 
+	char uplo() const {return d_ul;} 
+
     };
     
     class symmetricMatrix : public compMatrix {
+    protected:
+	char d_ul;
     public:
-	UpLo uplo;
-	symmetricMatrix(Rcpp::S4 &xp) :
-	    compMatrix(xp),
-	    uplo(SEXP(xp.slot("uplo"))) { }
+	symmetricMatrix(Rcpp::S4&);
+	symmetricMatrix(char='U');
+
+	char uplo() const {return d_ul;} 
     };
 
 // Concrete classes are initialized from Rcpp::S4 not Rcpp::S4& so
@@ -120,7 +104,9 @@ namespace MatrixNs {
 
     class dgeMatrix : public ddenseMatrix, public generalMatrix {
     public:
-	dgeMatrix(Rcpp::S4 xp) : ddenseMatrix(xp), generalMatrix(xp) {}
+	dgeMatrix(Rcpp::S4);
+	dgeMatrix(int,int);
+
 	int dmult(char tr, double alpha, double beta, 
 	 	  chmDn const &src, chmDn &dest) const;
 	void dgemv(char,double,Rcpp::NumericVector const&,
@@ -133,24 +119,29 @@ namespace MatrixNs {
 
     class dtrMatrix : public ddenseMatrix, public triangularMatrix {
     public:
-	dtrMatrix(Rcpp::S4 xp) : ddenseMatrix(xp), triangularMatrix(xp) {}
+	dtrMatrix(Rcpp::S4&);
+	dtrMatrix(int,char='U',char='N');
+
     };
 
     class dsyMatrix : public ddenseMatrix, public symmetricMatrix {
     public:
-	dsyMatrix(Rcpp::S4 xp) : ddenseMatrix(xp), symmetricMatrix(xp) {}
+	dsyMatrix(Rcpp::S4&);
+	dsyMatrix(int,char='U');
 
 	void dsyrk(dgeMatrix const&,double,double);
     };
 
     class dpoMatrix : public dsyMatrix {
     public:
-	dpoMatrix(Rcpp::S4 xp) : dsyMatrix(xp) {}
+	dpoMatrix(Rcpp::S4&);
+	dpoMatrix(int,char='U');
     };
 
     class Cholesky : public dtrMatrix {
     public:
-	Cholesky(Rcpp::S4 xp) : dtrMatrix(xp) {diag = Diag('N');}
+	Cholesky(Rcpp::S4);
+	Cholesky(dgeMatrix, char = 'U');
 
 	Rcpp::NumericMatrix solve(int, const_CHM_DN) const;
 	Rcpp::NumericMatrix solve(int,Rcpp::NumericMatrix const&) const;
@@ -158,12 +149,8 @@ namespace MatrixNs {
 
 	void update(dpoMatrix const&); // chol(A)
 	void update(dgeMatrix const&); // chol(crossprod(X))
-	void update(Trans,double,dgeMatrix const&,double,
-		    const dsyMatrix&);
-	void update(char Tr, double alpha, dgeMatrix const& A,
-		    double beta, dsyMatrix const& C) {
-	    update(Trans(Tr), alpha, A, beta, C);
-	}
+	void update(char,double,dgeMatrix const&,
+		    double, dsyMatrix const&);
 
 	void dpotrs(Rcpp::NumericVector&) const;
 	void dpotrs(std::vector<double>&) const;
