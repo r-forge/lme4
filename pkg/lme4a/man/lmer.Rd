@@ -23,14 +23,14 @@ lmer(formula, data, REML = TRUE, sparseX = FALSE,
       contrasts = NULL, \dots)
 
 glmer(formula, data, family = gaussian, sparseX = FALSE,
-      control = list(), start = NULL,
-      verbose = 0, doFit = TRUE, subset, weights,
-      na.action, offset, contrasts = NULL, nAGQ = 1,
+      control = list(), start = NULL, verbose = 0, nAGQ = 1,
+      doFit = TRUE, PLSBeta = FALSE, subset, weights,
+      na.action, offset, contrasts = NULL,
       mustart, etastart, \dots)
 
 nlmer(formula, data, family = gaussian, sparseX = FALSE,
-      start = NULL, verbose = 0, nAGQ = 1,
-      doFit = TRUE, subset, weights, na.action, mustart, etastart,
+      start = NULL, verbose = 0, nAGQ = 1, doFit = TRUE, 
+      subset, weights, na.action, mustart, etastart,
       contrasts = NULL, control = list(), \dots)
 
 ##---------------------------------------------------------------------
@@ -56,13 +56,13 @@ glmer1(formula, data, family = gaussian, sparseX = FALSE,
        na.action, offset, contrasts = NULL, nAGQ = 1,
        mustart, etastart, \dots)
 glmer2(formula, data, family = gaussian, sparseX = FALSE,
-       control = list(), start = NULL,
-       verbose = 0, doFit = TRUE, subset, weights,
-       na.action, offset, contrasts = NULL, nAGQ = 1,
-       mustart, etastart, \dots)
+      control = list(), start = NULL, verbose = 0, nAGQ = 1,
+      doFit = TRUE, PLSBeta = FALSE, subset, weights,
+      na.action, offset, contrasts = NULL,
+      mustart, etastart, \dots)
 
 nlmer2(formula, data, family = gaussian, start = NULL, verbose = 0,
-       nAGQ = 1, doFit = TRUE, subset, PLSBeta = FALSE, weights,
+       nAGQ = 1, doFit = TRUE, PLSBeta = FALSE, subset, weights,
        na.action, mustart, etastart, sparseX = FALSE,
        contrasts = NULL, control = list(), \dots)
 }
