@@ -20,17 +20,17 @@ namespace mer {
     void showint(const int*, const char*, int);
 
     class reModule {
+	Rcpp::S4            d_xp;
 	MatrixNs::chmFr     d_L;
 	MatrixNs::chmSp     d_Lambda, d_Ut, d_Zt;
 	Rcpp::IntegerVector d_Lind;
-	Rcpp::NumericVector d_lower, d_theta, d_u, d_cu;
+	Rcpp::NumericVector d_lower, d_u, d_cu;
 	double             *d_ldL2, d_sqrLenU;
     public:
 	reModule(Rcpp::S4);
 
 	const Rcpp::NumericVector  &cu() const {return  d_cu;}
  	const Rcpp::NumericVector   &u() const {return  d_u;}
-//	const Rcpp::NumericVector &Utr() const {return  d_Utr;}
 	const MatrixNs::chmFr       &L() const {return  d_L;}
 	const MatrixNs::chmSp  &Lambda() const {return  d_Lambda;}
 	const MatrixNs::chmSp      &Ut() const {return  d_Ut;}
@@ -76,8 +76,8 @@ namespace mer {
 	const MatrixNs::Cholesky   &RX() const{return d_RX;}
 	const MatrixNs::dgeMatrix   &X() const{return d_X;}
 	const MatrixNs::dgeMatrix &RZX() const{return d_RZX;}
-	const MatrixNs::dgeMatrix &UtV() const{return d_UtV;}
-	const MatrixNs::dpoMatrix &VtV() const{return d_VtV;}
+//	const MatrixNs::dgeMatrix &UtV() const{return d_UtV;}
+//	const MatrixNs::dpoMatrix &VtV() const{return d_VtV;}
 	const MatrixNs::dgeMatrix   &V() const{return d_V;}
 
 	Rcpp::NumericVector updateBeta(Rcpp::NumericVector const&);
@@ -99,9 +99,9 @@ namespace mer {
 
 	const MatrixNs::chmSp      &X() const{return d_X;}
 	const MatrixNs::chmSp    &RZX() const{return d_RZX;}
-	const MatrixNs::chmSp    &UtV() const{return d_UtV;}
+//	const MatrixNs::chmSp    &UtV() const{return d_UtV;}
 	const MatrixNs::chmSp      &V() const{return d_V;}
-	const MatrixNs::chmSp    &VtV() const{return d_VtV;}
+//	const MatrixNs::chmSp    &VtV() const{return d_VtV;}
 	const MatrixNs::chmFr     &RX() const{return d_RX;}
 
 	Rcpp::NumericVector updateBeta(Rcpp::NumericVector const&);
@@ -201,9 +201,7 @@ namespace mer {
 	int s() const      {return              N()/n();}
 
 	void solveCoef(Alg);
-	void updateLambda(Rcpp::NumericVector const&);
-	void updateRzxRx() {fe.updateRzxRx(re.Lambda(), re.L());}
-	void zeroU()       {re.zeroU();}
+	void updateRzxRx();
     };
     
     template<typename Tf, typename Tr>
@@ -223,7 +221,7 @@ namespace mer {
      */
     template<typename Tf, typename Tr> inline
     double mer<Tf,Tr>::LMMdeviance() {
-	zeroU();
+	re.zeroU();
 	updateWts();
 	solveCoef(BetaU);
 	updateMu();
@@ -270,11 +268,6 @@ namespace mer {
 	}
     }
 
-    template<typename Tf, typename Tr> inline
-    void mer<Tf,Tr>::updateLambda(Rcpp::NumericVector const& nt) {
-	re.updateLambda(nt);
-    }
-
     /** 
      * Update the conditional mean, weighted residuals and wrss in resp
      * from the linear predictor.  Some resp modules also update other
@@ -295,6 +288,19 @@ namespace mer {
 	    fe.X().dmult('N', 1., 1., MatrixNs::chmDn(fe.beta()), gg);
 	return resp.updateMu(gamma) + re.sqrLenU();
     }	
+
+    /**
+     * Update the RZX and RX slots in fe
+     * cu, UtV, VtV and Vtr.
+     *
+     * @return penalized, weighted residual sum of squares
+     */
+    template<typename Tf, typename Tr> inline
+    void mer<Tf,Tr>::updateRzxRx() {
+	re.reweight(resp.sqrtXwt(), resp.wtres());
+	fe.reweight(re.Ut(), resp.sqrtXwt(), resp.wtres());
+	fe.updateRzxRx(re.Lambda(), re.L());
+    }
 
     /**
      * Update the weighted residuals, wrss, sqrtrwt, sqrtXwt, U,
@@ -321,6 +327,7 @@ namespace mer {
 	double crit, step, c0, c1;
 				// sqrtrwt and sqrtXwt must be set
 	crit = 10. * CM_TOL;
+	if (alg != Beta) re.zeroU();
 	updateMu();		// using current beta and u
 	for (int i = 0; crit >= CM_TOL && i < CM_MAXITER; i++) {
 				// store copies of mu, u and beta
