@@ -535,8 +535,8 @@ PIRLSest <- function(ans, verbose, control, PLSBeta) {
         bobyqa(c(ans@re@theta, bb), devfun,
                lower = c(ans@re@lower, rep.int(-Inf, length(bb))),
                control = control)
+        .Call(updateRzxRx, ans)
     }
-    .Call(updateRzxRx, ans)
     ans
 }
 
