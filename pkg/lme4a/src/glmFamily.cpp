@@ -53,7 +53,7 @@ glmFamily::glmFamily(SEXP ll) : lst(ll) {
 }
 
 void
-glmFamily::linkFun(NumericVector &eta, NumericVector const &mu) {
+glmFamily::linkFun(Rcpp::NumericVector &eta, Rcpp::NumericVector const &mu) {
     if (lnks.count(link)) {
 	std::transform(mu.begin(), mu.end(), eta.begin(), lnks[link]);
     } else {
@@ -64,7 +64,7 @@ glmFamily::linkFun(NumericVector &eta, NumericVector const &mu) {
 }
 
 void
-glmFamily::linkInv(NumericVector &mu, NumericVector const &eta) {
+glmFamily::linkInv(Rcpp::NumericVector &mu, Rcpp::NumericVector const &eta) {
     if (linvs.count(link)) {
 	std::transform(eta.begin(), eta.end(), mu.begin(), linvs[link]);
     } else {
@@ -75,7 +75,7 @@ glmFamily::linkInv(NumericVector &mu, NumericVector const &eta) {
 }
 
 void
-glmFamily::muEta(NumericVector &mueta, NumericVector const &eta) {
+glmFamily::muEta(Rcpp::NumericVector &mueta, Rcpp::NumericVector const &eta) {
     if (muEtas.count(link)) {
 	std::transform(eta.begin(), eta.end(), mueta.begin(),
 		       muEtas[link]);
@@ -87,7 +87,7 @@ glmFamily::muEta(NumericVector &mueta, NumericVector const &eta) {
 }
 
 void
-glmFamily::variance(NumericVector &vv, NumericVector const &mu) {
+glmFamily::variance(Rcpp::NumericVector &vv, Rcpp::NumericVector const &mu) {
     if (varFuncs.count(link)) {
 	std::transform(mu.begin(), mu.end(), vv.begin(), varFuncs[link]);
     } else {
@@ -98,9 +98,9 @@ glmFamily::variance(NumericVector &vv, NumericVector const &mu) {
 }
 
 NumericVector
-glmFamily::devResid(NumericVector const &mu,
-		    NumericVector const &weights,
-		    NumericVector const &y) { 
+glmFamily::devResid(Rcpp::NumericVector const &mu,
+		    Rcpp::NumericVector const &weights,
+		    Rcpp::NumericVector const &y) { 
     Function devres = lst["dev.resids"];
     NumericVector dd = devres(y, mu, weights);
     return dd;
