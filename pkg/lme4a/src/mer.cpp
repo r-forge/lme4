@@ -109,25 +109,6 @@ namespace mer{
     }
 
 /** 
- * Update the destination dense matrix as
- * solve(L, solve(L, crossprod(Lambda, src), system ="P"), system ="L")
- * 
- * @param Lambda a sparse q by q matrix
- * @param L a q by q sparse Cholesky factor
- * @param src source dense matrix
- * @param dest destination dense matrix
- */
-    void DupdateL(chmSp const& Lambda,
-		  chmFr const&      L,
-		  chmDn const&    src,
-		  chmDn          dest) {
-	Lambda.dmult('T', 1., 0., src, dest);
-	NumericMatrix
-	    ans = L.solve(CHOLMOD_L, L.solve(CHOLMOD_P, &dest));
-	std::copy(ans.begin(), ans.end(), (double*)dest.x);
-    }
-
-/** 
  * Return
  * solve(L, solve(L, crossprod(Lambda, src), system ="P"), system ="L")
  * 
@@ -148,14 +129,13 @@ namespace mer{
     }
     
     reModule::reModule(S4 xp)
-	: d_L(S4(xp.slot("L"))),
+	: d_xp(xp),
+	  d_L(S4(xp.slot("L"))),
 	  d_Lambda(S4(xp.slot("Lambda"))),
 	  d_Ut(S4(xp.slot("Ut"))),
 	  d_Zt(S4(xp.slot("Zt"))),
 	  d_Lind(xp.slot("Lind")),
-//	  d_Utr(xp.slot("Utr")),
 	  d_lower(xp.slot("lower")),
-	  d_theta(xp.slot("theta")),
 	  d_u(xp.slot("u")),
 	  d_cu(d_u.size()),
 	  d_ldL2(NumericVector(xp.slot("ldL2")).begin()),
@@ -253,18 +233,20 @@ namespace mer{
      * @param nt New value of theta
      */
     void reModule::updateLambda(NumericVector const& nt) {
-	if (nt.size() != d_theta.size())
+	if (nt.size() != d_lower.size())
 	    Rf_error("%s: %s[1:%d], expected [1:%d]",
 		     "updateLambda", "newtheta",
-		     nt.size(), d_theta.size());
-//FIXME: Check values of nt against the lower bounds in lower.
-//Perhaps use the Rcpp::any_if algorithm
-//	NumericVector diffs(p);
-//	std::transform(nt.begin(), nt.end(), d_lower.begin(),
-				// store new theta
-	std::copy(nt.begin(), nt.end(), d_theta.begin());
+		     nt.size(), d_lower.size());
+	double *th = nt.begin(), *ll = d_lower.begin();
+
+	bool feas = true;	// feasible point?
+	for (int i = 0; i < nt.size() && feas ; i++) feas = th[i] >= ll[i];
+	if (!feas) Rf_error("updateLambda: theta not in feasible region");
+
+				// store (a copy of) theta
+	d_xp.slot("theta") = clone(nt);
 				// update Lambda from theta and Lind
-	double *Lamx = (double*)d_Lambda.x, *th = d_theta.begin();
+	double *Lamx = (double*)d_Lambda.x;
 	int *Li = d_Lind.begin(), Lis = d_Lind.size();
 	for (int i = 0; i < Lis; i++) Lamx[i] = th[Li[i] - 1];
     }
@@ -423,7 +405,7 @@ namespace mer{
 
     feModule::feModule(S4 xp)
 	: d_beta(xp.slot("beta")),
-	  d_Vtr(xp.slot("Vtr")),
+	  d_Vtr(d_beta.size()),
 	  d_ldRX2(NumericVector(xp.slot("ldRX2")).begin()) {
     }
 
@@ -451,16 +433,14 @@ namespace mer{
 	: feModule(xp),
 	  d_X(S4(xp.slot("X"))),
 	  d_RZX(S4(xp.slot("RZX"))),
-	  d_UtV(S4(xp.slot("UtV"))),
+	  d_UtV(d_RZX.nrow(), d_RZX.ncol()),
 	  d_V(S4(xp.slot("V"))),
-	  d_VtV(S4(xp.slot("VtV"))),
+	  d_VtV(d_beta.size()),
 	  d_RX(S4(xp.slot("RX"))) {
     }
 
     /** 
-     * Reweight the feModule.
-     *
-     * Update V, UtV and Vtr
+     * Update V, UtV, VtV and Vtr
      * 
      * @param Ut from the reModule
      * @param Xwt square root of the weights for the model matrices
@@ -476,7 +456,7 @@ namespace mer{
 		     "Xwt", Xwt.nrow(), Xwt.ncol());
 	int Wnc = Xwt.ncol(), Wnr = Xwt.nrow(),
 	    Xnc = d_X.ncol(), Xnr = d_X.nrow();
-	double *V = d_V.x.begin(), *X = d_X.x.begin();
+	double *V = d_V.x().begin(), *X = d_X.x().begin();
 
 	if (Wnc == 1) {
 	    for (int j = 0; j < Xnc; j++) 
@@ -504,20 +484,13 @@ namespace mer{
     /** 
      * Solve (V'V)beta = Vtr for beta.
      * 
-     * The contents of RX are saved, changed and restored.
      */
     void deFeMod::solveBeta() {
-	if (d_beta.size() == 0) return;
-// FIXME: Probably don't need this backup and restore sequence
-// Define clearly what the contents of d_RX are assumed to be.
-				// back up contents of d_RX;
-	NumericVector RX = d_RX.x, bak(d_RX.x.size());
-	std::copy(RX.begin(), RX.end(), bak.begin());
-	d_RX.update(d_V);
+	int p = d_beta.size();
+	if (p == 0) return;
+	MatrixNs::Cholesky chol(d_V);
 	std::copy(d_Vtr.begin(), d_Vtr.end(), d_beta.begin());
-	d_RX.dpotrs(d_beta);
-				// restore contents of d_RX;
-	std::copy(bak.begin(), bak.end(), RX.begin());
+	chol.dpotrs(d_beta);
     }
 
     /** 
@@ -534,16 +507,13 @@ namespace mer{
 			      MatrixNs::chmFr const&      L) {
 	if (d_beta.size() == 0) return;
 	chmDn cRZX(d_RZX);
-	DupdateL(Lambda, L, chmDn(d_UtV), cRZX);
+	Lambda.dmult('T', 1., 0., chmDn(d_UtV), cRZX);
+	NumericMatrix
+	    ans = L.solve(CHOLMOD_L, L.solve(CHOLMOD_P, &cRZX));
+	d_RZX.setX(ans);
 	d_RX.update('T', -1., d_RZX, 1., d_VtV);
 	*d_ldRX2 = d_RX.logDet2();
     }
-
-    // void deFeMod::updateUtV(chmSp const &Ut) {
-    // 	if (d_beta.size() == 0) return;
-    // 	chmDn cUtV(d_UtV);
-    // 	Ut.dmult('N', 1., 0., chmDn(d_V), cUtV);
-    // }
 
     /** 
      * Update beta
@@ -686,7 +656,7 @@ RCPP_FUNCTION_3(double, PIRLS, S4 xp, int verb, int alg) {
     S4 fe(xp.slot("fe")), resp(xp.slot("resp"));
     bool de = fe.is("deFeMod");
     if (!de && !fe.is("spFeMod"))
-	throw std::runtime_error("fe slot is not de or sp");
+	throw std::runtime_error("fe slot is neither deFeMod nor spFeMod");
     if (resp.is("glmerResp")) {
 	if (de) {
 	    mer::mer<mer::deFeMod,mer::glmerResp> glmr(xp);
@@ -718,14 +688,26 @@ RCPP_FUNCTION_VOID_2(reUpdateLambda, S4 xp, NumericVector nth) {
 }
 
 RCPP_FUNCTION_VOID_1(updateRzxRx, S4 xp) {
-    const mer::reModule re(S4(xp.slot("re")));
-    S4 fep(xp.slot("fe"));
-    if (fep.is("deFeMod")) {
-	mer::deFeMod fe(fep);
-	return fe.updateRzxRx(re.Lambda(), re.L());
-    } else if (fep.is("spFeMod")) {
-	mer::spFeMod fe(fep);
-	return fe.updateRzxRx(re.Lambda(), re.L());
-    }
-    throw std::runtime_error("fe slot is neither deFeMod nor spFeMod");
+    S4 fe(xp.slot("fe")), resp(xp.slot("resp"));
+    bool de = fe.is("deFeMod");
+    if (!de && !fe.is("spFeMod"))
+	throw std::runtime_error("fe slot is neither deFeMod nor spFeMod");
+    if (resp.is("glmerResp")) {
+	if (de) {
+	    mer::mer<mer::deFeMod,mer::glmerResp> glmr(xp);
+	    glmr.updateRzxRx();
+	} else {
+	    mer::mer<mer::spFeMod,mer::glmerResp> glmr(xp);
+	    glmr.updateRzxRx();
+	}
+    } else if (resp.is("nlmerResp")) {
+	if (de) {
+	    mer::mer<mer::deFeMod,mer::nlmerResp> nlmr(xp);
+	    nlmr.updateRzxRx();
+	} else {
+	    mer::mer<mer::spFeMod,mer::nlmerResp> nlmr(xp);
+	    nlmr.updateRzxRx();
+	}
+    } else 
+	throw std::runtime_error("resp slot is not glmerResp or nlmerResp in updateRzxRx");
 }
