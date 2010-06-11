@@ -213,14 +213,14 @@ stopifnot(all.equal( coef(fm3.d), coef(fm3.s), tol = 1e-14),
 (gm1a <- glmer(cbind(incidence, size - incidence) ~ period + (1 | herd),
                cbpp, binomial, PLSBeta=TRUE))
 ## nonlinear mixed models
-nm1 <- nlmer2(circumference ~ SSlogis(age, Asym, xmid, scal) ~
+(nm1 <- nlmer2(circumference ~ SSlogis(age, Asym, xmid, scal) ~
                0 + Asym + xmid + scal + (0 + Asym|Tree),
                Orange,
-               start = c(Asym = 200, xmid = 725, scal = 350), verbose = 1)
-nm1a <- nlmer2(circumference ~ SSlogis(age, Asym, xmid, scal) ~
+               start = c(Asym = 200, xmid = 725, scal = 350), verbose = 1))
+(nm1a <- nlmer2(circumference ~ SSlogis(age, Asym, xmid, scal) ~
                0 + Asym + xmid + scal + (0 + Asym|Tree),
                Orange, PLSBeta = TRUE,
-               start = c(Asym = 200, xmid = 725, scal = 350), verbose = 1)
+               start = c(Asym = 200, xmid = 725, scal = 350), verbose = 1))
 }
 \keyword{models}
 \keyword{methods}
