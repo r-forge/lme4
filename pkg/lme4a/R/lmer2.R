@@ -1,4 +1,4 @@
-##' Create a random-effects module
+###' Create a random-effects module
 ##'
 ##' @param bars a list of parsed random-effects terms
 ##' @param fr a model frame in which to evaluate these terms
@@ -480,8 +480,8 @@ bootMer <- function(x, FUN, nsim = 1, seed = NULL, use.u = FALSE,
             ##      random effects  contribution            +     Error
         }
 	x @ resp @ y <- y
-	x @ fe @ Vtr <- crossprod(X, y)@x
-	x @ re @ Utr <- (Zt %*% y)@x
+###	x @ fe @ Vtr <- crossprod(X, y)@x  # no longer needed
+###	x @ re @ Utr <- (Zt %*% y)@x       # no longer needed
 
         ## if (oneD) { # use optimize
         ##     d0 <- devfun(0)
@@ -491,7 +491,6 @@ bootMer <- function(x, FUN, nsim = 1, seed = NULL, use.u = FALSE,
         ##     if (d0 <= opt$objective) ## prefer theta == 0 when close
         ##         devfun(0) # -> theta  := 0  and update the rest
         ## } else {
-        print(theta0)
         bobyqa(theta0, devfun, x@re@lower, control = control)
             ## FIXME: also here, prefer \hat\sigma^2 == 0 (exactly)
 ##        }
