@@ -348,9 +348,10 @@ namespace MatrixNs{
 	return ans;
     }
 	
-    double Cholesky::logDet2() {
+    double Cholesky::logDet2() const {
 	int nc = ncol(), stride = nrow() + 1;
-	double *rx = d_x.begin(), ans = 0.;
+	const double *rx = d_x.begin();
+	double ans = 0.;
 	for (int i = 0; i < nc; i++, rx += stride)
 	    ans += 2. * log(*rx);
 	return ans;
@@ -453,6 +454,11 @@ namespace MatrixNs{
     void chmFr::update(cholmod_sparse const &A, double Imult) {
 	M_cholmod_factorize_p((const_CHM_SP)&A, &Imult,
 			      (int*)NULL, (size_t) 0, this, &c);
+    }
+
+    double chmFr::logDet2() const {   // Need Matrix_0.999375-42 or later
+//    double chmFr::logDet2() {
+	return M_chm_factor_ldetL2(this);
     }
 
     Rcpp::NumericMatrix chmFr::solve(int sys, const_CHM_DN b) const {

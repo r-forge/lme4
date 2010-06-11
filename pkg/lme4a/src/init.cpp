@@ -8,6 +8,7 @@ extern "C" SEXP PIRLS(SEXP,SEXP,SEXP);
 extern "C" SEXP feSetBeta(SEXP,SEXP);
 extern "C" SEXP reUpdateLambda(SEXP,SEXP);
 extern "C" SEXP updateRzxRx(SEXP);
+extern "C" SEXP updateDc(SEXP);
 
 #define CALLDEF(name, n)  {#name, (DL_FUNC) &name, n}
 
@@ -37,6 +38,7 @@ static R_CallMethodDef CallEntries[] = {
 
     CALLDEF(reUpdateLambda, 2),
     CALLDEF(updateRzxRx, 1),
+    CALLDEF(updateDc, 1),
     {NULL, NULL, 0}
 };
 

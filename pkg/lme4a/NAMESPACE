@@ -49,9 +49,6 @@ importMethodsFrom("Matrix",
                   tcrossprod,
                   update)
 
-#exportPattern("^[^\\.]")  # for debugging
-# Rather use:  attach(asNamespace("lme4a"))
-
 ## re-export imported S4 generics
 export(AIC, BIC, logLik)
 ## and the rest (S3 generics; regular functions):
@@ -66,9 +63,7 @@ exportClasses(lmList,
               mer, lmer, glmer, reModule, reTrms,
               feModule, deFeMod, spFeMod,
               merResp, lmerResp, glmerResp, nlmerResp, nglmerResp,
-              merMod, lmerMod, lmerDe, lmerSp,
-              glmerMod, glmerDe, glmerSp,
-              nlmerMod, nlmerDe, nlmerSp
+              merMod, lmerMod, glmerMod, nlmerMod
               )
 
 exportMethods(VarCorr, anova, bobyqa, coef, coerce, confint, deviance,

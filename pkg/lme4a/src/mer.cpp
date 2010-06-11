@@ -178,7 +178,7 @@ namespace mer{
 				// update the factor L
 	CHM_SP LambdatUt = d_Lambda.crossprod(d_Ut);
 	d_L.update(*LambdatUt, 1.);
-	*d_ldL2 = M_chm_factor_ldetL2(&d_L);
+	*d_ldL2 = d_L.logDet2();
 				// update cu
 	chmDn ccu(d_cu), cwtres(wtres);
 	std::copy(d_u.begin(), d_u.end(), d_cu.begin());
@@ -227,6 +227,12 @@ namespace mer{
 	setU(NumericVector(SEXP(ans)));
     }
 
+    void reModule::updateDcmp(Rcpp::NumericVector &cmp) const {
+	cmp["ldL2"] = d_L.logDet2();
+	cmp["ussq"] =
+	    std::inner_product(d_u.begin(), d_u.end(), d_u.begin(), double());
+    }
+
     /** 
      * Check and install new value of theta.  Update Lambda.
      * 
@@ -238,11 +244,10 @@ namespace mer{
 		     "updateLambda", "newtheta",
 		     nt.size(), d_lower.size());
 	double *th = nt.begin(), *ll = d_lower.begin();
-
-	bool feas = true;	// feasible point?
-	for (int i = 0; i < nt.size() && feas ; i++) feas = th[i] >= ll[i];
-	if (!feas) Rf_error("updateLambda: theta not in feasible region");
-
+				// check for a feasible point
+	for (int i = 0; i < nt.size(); i++)
+	    if (th[i] < ll[i] || !R_finite(th[i]))
+		Rf_error("updateLambda: theta not in feasible region");
 				// store (a copy of) theta
 	d_xp.slot("theta") = clone(nt);
 				// update Lambda from theta and Lind
@@ -303,6 +308,16 @@ namespace mer{
 	*d_wrss = std::inner_product(d_wtres.begin(), d_wtres.end(),
 				     d_wtres.begin(), double());
 	return *d_wrss;
+    }
+
+    void merResp::updateDcmp(Rcpp::NumericVector& cmp) const {
+	double wrss = std::inner_product(d_wtres.begin(), d_wtres.end(),
+					 d_wtres.begin(), double());
+	double n = (double)d_y.size(), ussq = cmp["ussq"];
+	double pwrss = wrss + ussq;
+	cmp["wrss"] = wrss;
+	cmp["pwrss"] = pwrss;
+	cmp["sigmaML"] = sqrt(pwrss/n);
     }
 
     lmerResp::lmerResp(Rcpp::S4 xp)
@@ -413,7 +428,7 @@ namespace mer{
 			   NumericVector const &incr, double step) {
 	if (d_beta.size() == 0) return;
 	int p = d_beta.size();
-	if (bbase.size() != d_beta.size())
+	if (bbase.size() != p)
 	    Rf_error("%s: expected %s.size() = %d, got %d",
 		     "feModule::setBeta", "bbase", p, bbase.size());
 	if (step == 0.) {
@@ -491,6 +506,10 @@ namespace mer{
 	MatrixNs::Cholesky chol(d_V);
 	std::copy(d_Vtr.begin(), d_Vtr.end(), d_beta.begin());
 	chol.dpotrs(d_beta);
+    }
+
+    void deFeMod::updateDcmp(Rcpp::NumericVector& cmp) const {
+	cmp["ldRX2"] = d_RX.logDet2();
     }
 
     /** 
@@ -636,18 +655,24 @@ namespace mer{
 	std::copy(ans.begin(), ans.end(), d_beta.begin());
     }
 
+    void spFeMod::updateDcmp(Rcpp::NumericVector& cmp) const {
+	cmp["ldRX2"] = d_RX.logDet2();
+    }
+
+
 } // namespace mer
 
 RCPP_FUNCTION_1(double, LMMdeviance, S4 xp) {
-    if (xp.is("lmerDe")) {
+    S4 fe(xp.slot("fe")), resp(xp.slot("resp"));
+    if (!resp.is("lmerResp")) 
+	throw std::runtime_error("LMMupdate on non-lmer object");
+    if (fe.is("deFeMod")) {
 	mer::mer<mer::deFeMod,mer::lmerResp> lm(xp);
 	return lm.LMMdeviance();
-    }
-    if (xp.is("lmerSp")) {
+    } else if (fe.is("spFeMod")) {
 	mer::mer<mer::spFeMod,mer::lmerResp> lm(xp);
 	return lm.LMMdeviance();
-    }
-    throw std::runtime_error("LMMupdate on non-lmer object");
+    } else throw std::runtime_error("fe slot is neither deFeMod nor spFeMod");
 }
 
 RCPP_FUNCTION_3(double, PIRLS, S4 xp, int verb, int alg) {
@@ -711,3 +736,18 @@ RCPP_FUNCTION_VOID_1(updateRzxRx, S4 xp) {
     } else 
 	throw std::runtime_error("resp slot is not glmerResp or nlmerResp in updateRzxRx");
 }
+
+RCPP_FUNCTION_VOID_1(updateDc, S4 xp) {
+    List ll(xp.slot("devcomp"));
+    NumericVector cmp = ll["cmp"];
+    IntegerVector dims = ll["dims"];
+    S4 fe(xp.slot("fe")), re(xp.slot("re")), resp(xp.slot("resp"));
+    mer::reModule(re).updateDcmp(cmp);
+    mer::merResp(resp).updateDcmp(cmp);
+    if (fe.is("deFeMod")) mer::deFeMod(fe).updateDcmp(cmp);
+    if (fe.is("spFeMod")) mer::spFeMod(fe).updateDcmp(cmp);
+    cmp["sigmaREML"] = cmp["sigmaML"] * sqrt((double)dims["n"]/(double)dims["nmp"]);
+
+    ll["cmp"] = cmp;		// should this be necessary?
+}
+    

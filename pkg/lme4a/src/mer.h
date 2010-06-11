@@ -44,7 +44,8 @@ namespace mer {
 		  Rcpp::NumericVector const& = Rcpp::NumericVector(),
 		  double = 0.);
 	void solveU();
-	void updateLcu();
+	void updateDcmp(Rcpp::NumericVector&) const;
+//	void updateLcu();
 	void updateLambda(Rcpp::NumericVector const&);
 	void updateU(Rcpp::NumericVector const&);
 	void zeroU();
@@ -86,6 +87,7 @@ namespace mer {
 		      Rcpp::NumericMatrix const&,
 		      Rcpp::NumericVector const&);
 	void solveBeta();
+	void updateDcmp(Rcpp::NumericVector&) const;
 	void updateRzxRx(MatrixNs::chmSp const&,
 			 MatrixNs::chmFr const&);
     };
@@ -110,6 +112,7 @@ namespace mer {
 		      Rcpp::NumericMatrix const&,
 		      Rcpp::NumericVector const&);
 	void solveBeta();
+	void updateDcmp(Rcpp::NumericVector&) const;
 	void updateRzxRx(MatrixNs::chmSp const&,
 			 MatrixNs::chmFr const&);
     };
@@ -131,6 +134,7 @@ namespace mer {
 
 	double                   updateWts(){return updateWrss();}
 	double                  updateWrss();
+	void                    updateDcmp(Rcpp::NumericVector&) const;
     };
 
     class lmerResp : public merResp {
