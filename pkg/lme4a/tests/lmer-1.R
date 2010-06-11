@@ -45,7 +45,7 @@ ns <- intersect((n1 <- names(L1)),
 n1[!(n1 %in% ns)] #    lmer1() extras
 n2[!(n2 %in% ns)] # new-lmer() extras
 ns <- ns[!(ns %in% c("call", "compDev"))]# they will certainly differ by that ...
-all.equal(L1[ns], L2[ns]) 
+all.equal(L1[ns], L2[ns])
 
 
 stopifnot(all.equal(fixef(fm1), fixef(fm2), tol = 1.e-13),
@@ -93,11 +93,11 @@ for(nm in c("coef", "fixef", "ranef", "sigma",
 	FF <- function(.) as(FUN(.), "generalMatrix")
     } else FF <- FUN
     stopifnot(
-	      all.equal( FF(fmX1), F.fmX1s, tol =  1e-6)# was 1e-6
+	      all.equal( FF(fmX1), F.fmX1s, tol =  1e-6)
 	      ,
-	      all.equal( FF(fmX2), F.fmX1s, tol = 9e-6)# was 9e-6 _ FIXME ?
+	      all.equal( FF(fmX2), F.fmX1s, tol = 9e-6)
               ,
-              all.equal(F.fmX2s,   F.fmX1s, tol = 6e-6)# was 6e-6
+              all.equal(F.fmX2s,   F.fmX1s, tol = 6e-6)
               ,
               all.equal(FUN(fm.1), FUN(fm.2), tol = 6e-6)
               ,
@@ -130,7 +130,7 @@ stopifnot(is((cm1 <- coef(m1e)), "coef.mer"),
 	  all.equal(fixef(m1), ##  these values are those of "old-lme4":
 		    c(-1.39853504914, -0.992334711,
 		      -1.12867541477, -1.58037390498),
-		    tol = 1.e-2, 
+		    tol = 1.e-2,
                     check.attr=FALSE)
 	  )
 
@@ -175,20 +175,22 @@ if (require('MASS', quietly = TRUE)) {
         structure(contr.sdif(3),
                   dimnames = list(NULL, c("diag", "encourage")))
     print(fm5 <- glmer(y ~ trt + wk2 + (1|ID), bacteria, binomial))
-    ## momentarily "fails": nlminb() stuck at theta=1
+    ## used to fail with nlminb() : stuck at theta=1
 
     showProc.time() #
 
-    if(FALSE) ## numbers from 'lme4' ("old"): __ FIXME once glmer() stabilizes
     stopifnot(
-              all.equal(logLik(fm5),
-                        structure(-96.13069, nobs = 220, nall = 220,
-                                  df = 5, REML = FALSE, class = "logLik"))
-              ,
-              all.equal(fixef(fm5),
+	      all.equal(logLik(fm5),
+			## now	  -96.130602
+			structure(-96.13069, nobs = 220, nall = 220,
+				  df = 5, REML = FALSE, class = "logLik"), tol = 1e-6)
+	      ,
+	      all.equal(fixef(fm5),
+			## now		 2.8316317199		 -1.36630120985
 			c("(Intercept)"= 2.831609490, "trtdiag"= -1.366722631,
-			  "trtencourage"=0.5840147802, "wk2TRUE"=-1.598591346))
-              )
+			  ## now	 0.5837812946		 -1.5984621480
+			  "trtencourage"=0.5840147802, "wk2TRUE"=-1.598591346), tol = 2e-4)
+	      )
 }
 
 ## Invalid factor specification -- used to seg.fault:
