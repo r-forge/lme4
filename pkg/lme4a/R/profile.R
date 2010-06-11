@@ -61,7 +61,7 @@ setMethod("dropX", signature(x = "environment"),
 ##'     be held constant.
 
 ##' @return a revised lmerDe object
-setMethod("dropX", "lmerDe",
+setMethod("dropX", "lmerMod",
           function(x, which, fw)
       {
           w <- as.integer(which)[1]
@@ -86,8 +86,8 @@ setMethod("dropX", "lmerDe",
           ## offset calculated from fixed parameter value
           resp@offset <- Xw * fw + resp@offset
           newfe <- do.call("new", ll)
-          new("lmerDe", re = x@re, fe = newfe, resp = resp,
-              call = x@call, frame = x@frame)
+          new("merMod", re = x@re, fe = newfe, resp = resp,
+              call = x@call, devcomp = x@devcomp, frame = x@frame)
       })
 
 ##' Reset the which'th fixed effect in rho.

@@ -1121,18 +1121,6 @@ setMethod("VarCorr", signature(x = "mer"), function(x)
     mkVarCorr(sigma(x), cnms=x@cnms, nc = x@ncTrms,
 	      theta=x@theta, flist=x@flist))
 
-setMethod("VarCorr", signature(x = "merMod"),
-          function(x)
-      {
-          re <- x@re
-          if (!is(re, "reTrms"))
-              stop("VarCorr methods require reTrms, not just reModule")
-          cnms <- re@cnms
-          nc <- sapply(cnms, length)      # no. of columns per term
-          mkVarCorr(sigma(x), cnms=cnms, nc = nc,
-                    theta=re@theta, flist=re@flist)
-      })
-
 ## This is modeled a bit after  print.summary.lm :
 ## Prints *both*  'mer' and 'merenv' - as it uses summary(x) mainly
 printMerenv <- function(x, digits = max(3, getOption("digits") - 3),
@@ -1371,13 +1359,6 @@ setMethod("summary", "glmerenv", summaryMerenv)
 
 setMethod("summary", "mer", summaryMer)
 
-setMethod("summary", "lmerMod", function(object, varcov = FALSE, ...)
-	  summaryMer2(object, varcov=varcov, type = "lmer"))
-setMethod("summary", "glmerMod", function(object, varcov = FALSE, ...)
-	  summaryMer2(object, varcov=varcov, type = "glmer"))
-#setMethod("summary", "glmerMod", summaryMer2)
-
-
 ## This is just  "Access the X matrix"
 setMethod("model.matrix", signature(object = "merenv"),
 	  function(object, ...) env(object)$X)
@@ -1461,15 +1442,6 @@ setMethod("logLik", signature(object="merenv"), function(object, ...)
 	  mkLogLik(deviance(object),
 		   n = length(rho$y),
 		   p = length(rho$beta), np = length(rho$theta),
-		   hasScale = useSc)
-      })
-setMethod("logLik", signature(object="mer"),
-	  function(object, REML = NULL, ...)
-      {
-	  dm <- object@dims
-	  stopifnot(is.logical(useSc <- dm[["useSc"]]))# required for non-lmer
-	  mkLogLik(deviance(object),
-		   n = dm[["n"]], p = dm[["p"]], np = dm[["np"]],
 		   hasScale = useSc)
       })
 

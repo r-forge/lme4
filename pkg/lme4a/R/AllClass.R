@@ -360,11 +360,11 @@ setClass("feModule",
 ##' Dense fixed-effects module
 setClass("deFeMod",
          representation(RZX = "dgeMatrix",
-                        RX =   "Cholesky",
+                        RX  =  "Cholesky",
                         UtV = "dgeMatrix",
-                        V =   "dgeMatrix",
+                        V   = "dgeMatrix",
                         VtV = "dpoMatrix",
-			X =   "dgeMatrix"),
+			X   = "dgeMatrix"),
          contains = "feModule",
          validity = .feValid)
 
@@ -459,34 +459,14 @@ setClass("nlmerResp",
 setClass("nglmerResp", contains = c("glmerResp", "nlmerResp"))
 
 setClass("merMod",
-         representation(call = "call",
-			frame = "data.frame", # "model.frame" is not S4-ized yet
-                        re = "reModule", "VIRTUAL"))
-
-setClass("lmerMod", representation(resp = "lmerResp", "VIRTUAL"),
-         contains = "merMod")
-
-setClass("lmerDe", representation(fe = "deFeMod"),
-         contains = "lmerMod")
-
-setClass("lmerSp", representation(fe = "spFeMod"),
-         contains = "lmerMod")
-
-setClass("glmerMod", representation(resp = "glmerResp", "VIRTUAL"),
-         contains = "merMod")
-
-setClass("glmerDe", representation(fe = "deFeMod"),
-         contains = "glmerMod")
-
-setClass("glmerSp", representation(fe = "spFeMod"),
-         contains = "glmerMod")
-
-setClass("nlmerMod", representation(resp = "nlmerResp", "VIRTUAL"),
-         contains = "merMod")
-
-setClass("nlmerDe", representation(fe = "deFeMod"),
-         contains = "nlmerMod")
-
-setClass("nlmerSp", representation(fe = "spFeMod"),
-         contains = "nlmerMod")
-
+         representation(call    = "call",
+                        devcomp = "list",
+#                        flist   = "list",
+#                        cnms    = "list",
+			frame   = "data.frame", # "model.frame" is not S4-ized yet
+                        re      = "reModule",
+                        fe      = "feModule",
+                        resp    = "merResp"))
+setClass("lmerMod", contains = "merMod")
+setClass("glmerMod", contains = "merMod")
+setClass("nlmerMod", contains = "merMod")

@@ -79,6 +79,7 @@ mkReTrms <- function(bars, fr, s = 1L) {
                                           rep.int(nl[i], length(ii))) +
                                           thoff[i]))
                            })))
+### FIXME: change this to t(Lambda) before extracting the Lind
     ll$Lind <- as.integer(Lambda@x)
 
     ## lower bounds on theta elements are 0 if on diagonal, else -Inf
@@ -246,7 +247,81 @@ mkRespMod <- function(fr, reMod, feMod, family = NULL,
     do.call("new", ll)
 }
 
+setGeneric("updateDcmp", function(x, dcmp) standardGeneric("updateDcmp"), valueClass = "list")
+setMethod("updateDcmp", signature(x = "reTrms", dcmp = "list"),
+          function(x, dcmp) {
+              dcmp$dims["reTrms"] <- 1L
+              dcmp$dims["q"] <- length(x@u)
+              dcmp$dims["nth"] <- length(x@theta)
+              dcmp
+          })
+setMethod("updateDcmp", signature(x = "deFeMod", dcmp = "list"),
+          function(x, dcmp) {
+              dcmp$dims["spFe"] <- 0L
+              dcmp$dims["p"] <- length(x@beta)
+              dcmp
+          })
+setMethod("updateDcmp", signature(x = "spFeMod", dcmp = "list"),
+          function(x, dcmp) {
+              dcmp$dims["spFe"] <- 1L
+              dcmp$dims["p"] <- length(x@beta)
+              dcmp
+          })
 
+.respBase <- function(x, dcmp) {
+    n <- length(x@y)
+    N <- length(x@offset)
+    dcmp$dims["n"]   <- n
+    dcmp$dims["N"]   <- N
+    dcmp$dims["s"]   <- N %/% n
+    dcmp$dims["nmp"] <- n - dcmp$dims["p"]
+    dcmp$dims[c("REML", "GLMM", "NLMM")] <- 0L
+    dcmp$dims[c("useSc")] <- 1L
+    dcmp
+}
+    
+setMethod("updateDcmp", signature(x = "lmerResp", dcmp = "list"),
+          function(x, dcmp) {
+              dcmp <- .respBase(x, dcmp)
+              dcmp$dims["REML"] <- x@REML
+              dcmp
+          })
+setMethod("updateDcmp", signature(x = "glmerResp", dcmp = "list"),
+          function(x, dcmp) {
+              dcmp <- .respBase(x, dcmp)
+              dcmp$dims["GLMM"] <- 1L
+              dcmp$dims["useSc"] <- 0L
+              dcmp
+          })
+setMethod("updateDcmp", signature(x = "nlmerResp", dcmp = "list"),
+          function(x, dcmp) {
+              dcmp <- .respBase(x, dcmp)
+              dcmp$dims["NLMM"] <- 1L
+              dcmp
+          })
+setMethod("updateDcmp", signature(x = "nglmerResp", dcmp = "list"),
+          function(x, dcmp) {
+              dcmp <- .respBase(x, dcmp)
+              dcmp$dims["GLMM"] <- 1L
+              dcmp$dims["NLMM"] <- 1L
+              dcmp$dims["useSc"] <- 0L
+              dcmp
+          })
+
+.dcmp <- function() {
+    nc <- c("ldL2", "ldRX2", "wrss", "ussq", "pwrss", "drsum", "dev",
+            "REML", "sigmaML", "sigmaREML")
+    nd <- c("N", "n", "nmp", "nth", "p", "q", "s", "useSc", "PLSBeta",
+            "reTrms", "spFe", "nAGQ", "REML", "GLMM", "NLMM")
+    list(cmp = structure(rep(NA, length(nc)), .Names = nc),
+         dims = structure(rep(NA_integer_, length(nd)), .Names = nd))
+}
+
+setMethod("updateDcmp", signature(x = "merMod", dcmp = "list"),
+          function (x, dcmp)
+              updateDcmp(x@resp, updateDcmp(x@fe, updateDcmp(x@re, dcmp)))
+          )
+          
 S4toEnv <- function(from) {
     stopifnot(isS4(from))
     ## and we want each to assign each of the slots of the slots
@@ -361,13 +436,17 @@ lmer2 <- function(formula, data, REML = TRUE, sparseX = FALSE,
     fr <- eval(mf, parent.frame())
                                         # random effects and terms modules
     reTrms <- mkReTrms(findbars(formula[[3]]), fr)
+    dcmp <- updateDcmp(reTrms, .dcmp())
                                         # fixed-effects module
     feMod <- mkFeModule(formula, fr, contrasts, reTrms, sparseX)
     respMod <- mkRespMod(fr, reTrms, feMod)
     reTrms@Utr[] <- (reTrms@Zt %*% respMod@y)@x
     feMod@Vtr[] <- crossprod(feMod@X, respMod@y)@x
     if (!REML) respMod@REML <- 0L
-    ans <- new(ifelse (sparseX, "lmerSp", "lmerDe"), call = mc, frame = fr,
+    ans <- new("merMod",
+               call = mc,
+               devcomp = updateDcmp(respMod, updateDcmp(feMod, dcmp)),
+               frame = fr,
 	       re = reTrms, fe = feMod, resp = respMod)
     if (doFit) {                        # optimize estimates
         if (verbose) control$iprint <- 2L
@@ -375,7 +454,9 @@ lmer2 <- function(formula, data, REML = TRUE, sparseX = FALSE,
             .Call(reUpdateLambda, ans@re, th)
             .Call(LMMdeviance, ans)
         }
-        bobyqa(ans@re@theta, devfun, ans@re@lower, control = control)
+        opt <- bobyqa(ans@re@theta, devfun, ans@re@lower, control = control)
+        .Call(updateDc, ans)
+        ans@devcomp$cmp[ifelse(REML, "REML", "dev")] <- opt$fval
     }
     ans
 }
@@ -437,7 +518,7 @@ bootMer <- function(x, FUN, nsim = 1, seed = NULL, use.u = FALSE,
                     verbose = FALSE, control = list())
 {
     stopifnot((nsim <- as.integer(nsim[1])) > 0,
-              is(x, "lmerMod"))
+              is(x, "merMod"), is(x@resp, "lmerResp"))
     FUN <- match.fun(FUN)
     if(!is.null(seed)) set.seed(seed)
     else if(!exists(".Random.seed", envir = .GlobalEnv))
@@ -522,7 +603,7 @@ PIRLSest <- function(ans, verbose, control, PLSBeta) {
             .Call(reUpdateLambda, ans@re, pars)
             .Call(PIRLS, ans, verbose, 3L) # optimize u and beta
         }
-        bobyqa(ans@re@theta, devfun, ans@re@lower, control = control)
+        opt <- bobyqa(ans@re@theta, devfun, ans@re@lower, control = control)
     } else {
         thpars <- seq_along(ans@re@theta)
         bb <- ans@fe@beta
@@ -531,11 +612,13 @@ PIRLSest <- function(ans, verbose, control, PLSBeta) {
             .Call(reUpdateLambda, ans@re, pars[thpars])
             .Call(PIRLS, ans, verbose, 2L) # optimize u only
         }
-        bobyqa(c(ans@re@theta, bb), devfun,
-               lower = c(ans@re@lower, rep.int(-Inf, length(bb))),
-               control = control)
+        opt <- bobyqa(c(ans@re@theta, bb), devfun,
+                      lower = c(ans@re@lower, rep.int(-Inf, length(bb))),
+                      control = control)
         .Call(updateRzxRx, ans)
     }
+    .Call(updateDc, ans)
+    ans@devcomp$cmp["dev"] <- opt$fval
     ans
 }
 
@@ -582,14 +665,22 @@ glmer2 <- function(formula, data, family = gaussian, sparseX = FALSE,
     environment(fr.form) <- environment(formula)
     mf$formula <- fr.form
     fr <- eval(mf, parent.frame())
-    reTrms <- mkReTrms(findbars(formula[[3]]), fr) # random-effects module
+                                        # random-effects module
+    reTrms <- mkReTrms(findbars(formula[[3]]), fr)
+    dcmp <- updateDcmp(reTrms, .dcmp())
+    dcmp$dims[c("PLSBeta", "nAGQ")] <- as.integer(c(PLSBeta, nAGQ))
+
     feMod <- mkFeModule(formula, fr, contrasts, reTrms, sparseX, TRUE)
     respMod <- mkRespMod(fr, reTrms, feMod, family)
     feMod@V <- Diagonal(x = respMod@sqrtXwt[,1]) %*% feMod@X
-    ans <- new(ifelse(sparseX, "glmerSp", "glmerDe"), call = mc,
-               frame = fr, re = reTrms, fe = feMod, resp = respMod)
+    ans <- new("merMod",
+               call = mc,
+               devcomp = updateDcmp(respMod, updateDcmp(feMod, dcmp)),
+               frame = fr,
+	       re = reTrms, fe = feMod, resp = respMod)
     if (!doFit) return(ans)
-    PIRLSest(ans, verbose, control, PLSBeta)
+    ans <- PIRLSest(ans, verbose, control, PLSBeta)
+    
 }## {glmer2}
 
 ## being brave now:
@@ -677,6 +768,8 @@ nlmer2 <- function(formula, data, family = gaussian, start = NULL,
         frE[[nm]] <- as.numeric(rep(nm == pnames, each = n))
                                         # random-effects module
     reTrms <- mkReTrms(findbars(formula[[3]]), frE, s = s)
+    dcmp <- updateDcmp(reTrms, .dcmp())
+    dcmp$dims[c("PLSBeta", "nAGQ")] <- as.integer(c(PLSBeta, nAGQ))
 
     fe.form <- nlform
     fe.form[[3]] <- formula[[3]]
@@ -689,7 +782,9 @@ nlmer2 <- function(formula, data, family = gaussian, start = NULL,
     feMod@beta[] <- qr.coef(qrX, unlist(lapply(pnames, get, envir = nlenv)))
     respMod <- mkRespMod(fr, reTrms, feMod, nlenv = nlenv, nlmod = nlmod)
     respMod@pnames <- pnames
-    ans <- new(ifelse(sparseX, "nlmerSp", "nlmerDe"), call = mc,
+    ans <- new("merMod",
+               call = mc,
+               devcomp = updateDcmp(respMod, updateDcmp(feMod, dcmp)),
                frame = fr, re = reTrms, fe = feMod, resp = respMod)
     if (!doFit) return(ans)
     PIRLSest(ans, verbose, control, PLSBeta)
@@ -765,14 +860,12 @@ setMethod("ranef", signature(object = "merMod"),
           ans
       })
 
-setMethod("sigma", "glmerMod", function(object, ...) 1)
 setMethod("sigma", "merMod", function(object, ...)
       {
-          resp <- object@resp
-          denom <- length(resp@y)
-          if (is(object, "lmerMod"))
-              denom <- denom - resp@REML  # REML slot is 0 or p
-          sqrt((object@resp@wrss + sum(object@re@u^2))/denom)
+          dc <- object@devcomp
+          dd <- dc$dims
+          if (!dd["useSc"]) return(1.)
+          unname(dc$cmp[ifelse(dd["REML"], "sigmaREML", "sigmaML")])
       })
 
 setMethod("model.matrix", signature(object = "merMod"),
@@ -784,38 +877,24 @@ setMethod("terms", signature(x = "merMod"),
 setMethod("model.frame", signature(formula = "merMod"),
 	  function(formula, ...) formula@frame)
 
-setMethod("deviance", signature(object="lmerMod"),
+setMethod("deviance", signature(object="merMod"),
+	  function(object, REML = NULL, ...) {
+              if (!missing(REML)) stop("REML argument not supported")
+              unname(object@devcomp$cmp["dev"])
+          })
+
+setMethod("logLik", signature(object="merMod"),
 	  function(object, REML = NULL, ...)
       {
-          if (missing(REML) || is.null(REML) || is.na(REML[1]))
-              REML <- object@resp@REML
-	  devcomp(object)$cmp[[if(REML) "REML" else "deviance"]]
+          if (!missing(REML)) stop("REML argument not supported")
+          dc <- object@devcomp
+          dims <- dc$dims
+          val <- - unname(dc$cmp["dev"])/2
+          attr(val, "nall") <- attr(val, "nobs") <- unname(dims["n"])
+          attr(val, "df") <- unname(dims["p"] + dims["nth"] + dims["useSc"])
+          class(val) <- "logLik"
+          val
       })
-
-setMethod("deviance", signature(object="glmerMod"),
-	  function(object, ...) devcomp(object)$cmp[["deviance"]])
-
-setMethod("logLik", signature(object="lmerMod"),
-	  function(object, REML = NULL, ...)
-      {
-	  if (is.null(REML) || is.na(REML[1]))
-	      REML <- object@resp@REML
-	  mkLogLik(deviance(object, REML = REML),
-		   n  = nrow  (object@fe @ X),
-		   p  = length(object@fe @ beta),
-		   np = length(object@re @ theta),
-		   REML = REML, hasScale = 1L)
-      })
-
-setMethod("logLik", signature(object = "glmerMod"),
-	  function(object, REML = NULL, ...)
-          mkLogLik(deviance(object),
-		   n  = nrow  (object@fe @ X),
-		   p  = length(object@fe @ beta),
-		   np = length(object@re @ theta),
-		   REML = FALSE,
-                   hasScale = !(object@resp@family$family %in%
-                                c("binomial", "poisson"))))
 
 setMethod("update", signature(object = "merMod"), updateMer)
 
@@ -824,24 +903,13 @@ setMethod("show",  "merMod", function(object) printMerenv(object))
 
 setMethod("coef", signature(object = "merMod"), coefMer)
 
-setMethod("devcomp", "lmerMod", .ModDevComp)
-
-setMethod("devcomp", "glmerMod", function(x, ...)
-      {
-          ans <- .ModDevComp(x, ...)
-          ans$cmp["REML"] <- NA
-          ans$cmp["deviance"] <-
-              x@re@ldL2 + as.vector(crossprod(x@re@u)) + x@resp@devres
-          ans$dims["useSc"] <- !(x@resp@family$family %in%
-                                   c("binomial", "poisson"))
-          ans
-      })
+setMethod("devcomp", "merMod", function(x, ...) x@devcomp)
 
 setMethod("getL", "reModule", function(x) x@L)
 setMethod("getL", "merMod", function(x) x@re@L)
 
-setMethod("isREML", "lmerMod",	function(x) as.logical(x@resp@REML))
-setMethod("isREML", "glmerMod",	function(x) FALSE)
+setMethod("isREML", "merMod", function(x) as.logical(x@devcomp$dims["REML"]))
+
 setMethod("getCall", "merMod",	function(x) x@call)
 
 setMethod("anova", signature(object = "lmerMod"), anovaLmer)
@@ -851,3 +919,65 @@ setMethod("vcov", signature(object = "merMod"),
 	  mkVcov(sigm, RX = object@fe@RX, nmsX = colnames(object@fe@X),
 		 correlation=correlation, ...))
 
+setMethod("VarCorr", signature(x = "merMod"),
+          function(x)
+      {
+          re <- x@re
+          if (!is(re, "reTrms"))
+              stop("VarCorr methods require reTrms, not just reModule")
+          cnms <- re@cnms
+          nc <- sapply(cnms, length)      # no. of columns per term
+          mkVarCorr(sigma(x), cnms=cnms, nc = nc,
+                    theta=re@theta, flist=re@flist)
+      })
+
+setMethod("summary", "merMod",
+          function(object, varcov = FALSE, ...)
+      {
+          resp <- object@resp
+          devC <- object@devcomp
+          dd <-devC$dims
+          cmp <- devC$cmp
+          ## FIXME: You can't count on re@flist unless is(re, "reTrms")
+          flist <- object@re@flist
+          useSc <- as.logical(dd["useSc"])
+          sig <- sigma(object)
+          REML <- isREML(object)
+
+          fam <- NULL
+          if(is(resp, "glmerResp")) fam <- resp@family
+          coefs <- cbind("Estimate" = fixef(object),
+                         "Std. Error" = sig * sqrt(unscaledVar(RX = object@fe@RX)))
+          if (nrow(coefs) > 0) {
+              coefs <- cbind(coefs, coefs[,1]/coefs[,2], deparse.level=0)
+              colnames(coefs)[3] <- paste(if(useSc) "t" else "z", "value")
+          }
+          mName <- paste(switch(1L + dd["GLMM"] * 2L + dd["NLMM"],
+                                "Linear", "Nonlinear",
+                                "Generalized linear", "Generalized nonlinear"),
+                         "mixed model fit by",
+                          ifelse(REML, "REML", "maximum likelihood"))
+          llik <- logLik(object)   # returns NA for a REML fit - maybe change?
+          AICstats <- {
+              if (REML) cmp["REML"] # do *not* show likelihood stats here
+              else {
+                  c(AIC = AIC(llik), BIC = BIC(llik), logLik = c(llik),
+                    deviance = deviance(object))
+              }
+          }
+          varcor <- VarCorr(object)
+                                        # use S3 class for now
+          structure(list(methTitle = mName,
+                         devcomp = devC, isLmer = is(resp, "lmerResp"), useScale = useSc,
+                         logLik = llik, family = fam,
+                         ngrps = sapply(flist, function(x) length(levels(x))),
+                         coefficients = coefs,
+                         sigma = sig,
+                         vcov = if(varcov) vcov(object),
+                         varcor = varcor, # and use formatVC(.) for printing.
+                         AICtab= AICstats,
+                         call = object@call
+                         ), class = "summary.merenv")
+      })
+
+ 

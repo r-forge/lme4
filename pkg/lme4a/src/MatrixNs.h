@@ -156,7 +156,7 @@ namespace MatrixNs {
 	void dpotrs(std::vector<double>&) const;
 	void dpotrs(double*, int = 1) const;
 
-	double logDet2();
+	double logDet2() const;
     };
 
     class chmDn : public cholmod_dense {
@@ -210,12 +210,11 @@ namespace MatrixNs {
     };
 
     class chmFr : public cholmod_factor {
-//	CHM_FR pp;
-//	SEXP m_sexp;
     public:
 	chmFr(Rcpp::S4);
-//	chmFr(CHM_FR);
-//	~chmFr() {if (pp) ::M_cholmod_free_factor(&pp, &c);}
+
+	double logDet2() const;
+//	double logDet2();
 
 	void update(cholmod_sparse const &A, double Imult = 0.); 
 
