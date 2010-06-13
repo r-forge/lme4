@@ -57,10 +57,12 @@ chk2 <- chkLmers(y2 ~ 0+lagoon + (1|habitat), data = dat, verbose = TRUE)
 chk1$m  ## show( lmer() ) -- sigma_a == 0
 chk2$m. ## show( lmer( <sparseX>) ) --
 
+if (FALSE) {                 # no longer use conversion to environment
 lenv <- as(chk2$m2, "lmerenv") # now "works"
 lenv # "works" - now *with* named coefficients
 stopifnot(all.equal(fixef(chk2$m),
                     fixef(lenv)))
+}
 
 n <- nrow(dat)
 for(i in 1:20) {

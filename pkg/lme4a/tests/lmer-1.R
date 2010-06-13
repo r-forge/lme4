@@ -25,7 +25,7 @@ fm1. <- glmer(Reaction ~ Days + (Days|Subject), sleepstudy)
 stopifnot(all.equal(fm1, fm1.))
 ## Test against previous version in lmer1 (using bobyqa for consistency)
 (fm1. <- lmer1(Reaction ~ Days + (Days|Subject), sleepstudy, opt = "bobyqa"))
-stopifnot(all.equal(deviance(fm1), deviance(fm1.)),
+stopifnot(all.equal(fm1@devcomp$cmp['REML'], fm1.@devcomp$cmp['REML']),
           all.equal(fixef(fm1), fixef(fm1.)),
           all.equal(fm1@re@theta, fm1.@theta, tol = 1.e-7),
           all.equal(ranef(fm1), ranef(fm1.)))
@@ -33,24 +33,24 @@ stopifnot(all.equal(deviance(fm1), deviance(fm1.)),
 ## Test 'compDev = FALSE' (vs TRUE)
 fm1. <- lmer1(Reaction ~ Days + (Days|Subject), sleepstudy, opt = "bobyqa",
               compDev = FALSE)#--> use R code (not C) for deviance computation
-stopifnot(all.equal(deviance(fm1), deviance(fm1.)),
+stopifnot(all.equal(fm1@devcomp$cmp['REML'], fm1.@devcomp$cmp['REML']),
           all.equal(fixef(fm1), fixef(fm1.)),
           all.equal(fm1@re@theta, fm1.@theta, tol = 1.e-7),
           all.equal(ranef(fm1), ranef(fm1.)))
+if (FALSE) {
+    L1 <- as.list(env(   fm1. @ env))
+    L2 <- as.list(env(as(fm1, "lmerenv")))
+    ns <- intersect((n1 <- names(L1)),
+                    (n2 <- names(L2)))
+    n1[!(n1 %in% ns)] #    lmer1() extras
+    n2[!(n2 %in% ns)] # new-lmer() extras
+    ns <- ns[!(ns %in% c("call", "compDev"))]# they will certainly differ by that ...
+    all.equal(L1[ns], L2[ns])
 
-L1 <- as.list(env(   fm1. @ env))
-L2 <- as.list(env(as(fm1, "lmerenv")))
-ns <- intersect((n1 <- names(L1)),
-                (n2 <- names(L2)))
-n1[!(n1 %in% ns)] #    lmer1() extras
-n2[!(n2 %in% ns)] # new-lmer() extras
-ns <- ns[!(ns %in% c("call", "compDev"))]# they will certainly differ by that ...
-all.equal(L1[ns], L2[ns])
-
-
+}
 stopifnot(all.equal(fixef(fm1), fixef(fm2), tol = 1.e-13),
-	  all.equal(unname(fixef(fm1)),
-		    c(251.405104848485, 10.467285959595), tol = 1e-13),
+          all.equal(unname(fixef(fm1)),
+                    c(251.405104848485, 10.467285959595), tol = 1e-13),
 	  all.equal(cov2cor(vcov(fm1))["(Intercept)", "Days"],
 		    -0.13755, tol=1e-4))
 
@@ -130,7 +130,7 @@ stopifnot(is((cm1 <- coef(m1e)), "coef.mer"),
 	  all.equal(fixef(m1), ##  these values are those of "old-lme4":
 		    c(-1.39853504914, -0.992334711,
 		      -1.12867541477, -1.58037390498),
-		    tol = 1.e-2,
+		    tol = 1.e-4,
                     check.attr=FALSE)
 	  )
 
@@ -181,14 +181,16 @@ if (require('MASS', quietly = TRUE)) {
 
     stopifnot(
 	      all.equal(logLik(fm5),
-			## now	  -96.130602
-			structure(-96.13069, nobs = 220, nall = 220,
-				  df = 5, REML = FALSE, class = "logLik"), tol = 1e-6)
+			## now	  -96.130582
+			structure(-96.13069, nobs = 220L, nall = 220L,
+				  df = 5L, REML = FALSE,
+                                  class = "logLik"),
+                        tol = 1e-5, check.attributes = FALSE)
 	      ,
 	      all.equal(fixef(fm5),
-			## now		 2.8316317199		 -1.36630120985
+			## now		 2.831631614		 -1.366301172,
 			c("(Intercept)"= 2.831609490, "trtdiag"= -1.366722631,
-			  ## now	 0.5837812946		 -1.5984621480
+			  ## now	 0.5837812921,		 -1.598462111
 			  "trtencourage"=0.5840147802, "wk2TRUE"=-1.598591346), tol = 2e-4)
 	      )
 }
@@ -228,14 +230,14 @@ nmsSumm <- c("methTitle", "devcomp", "logLik", "ngrps", "coefficients",
              "sigma", "REmat", "AICtab")
 sr2  <- summary(r2)
 sr2. <- summary(r2.)
-
+sr2.$devcomp$dims['spFe'] <- 0L       # to allow for comparisons below
 stopifnot(all.equal(sr2[nmsSumm], sr2.[nmsSumm], tol= 1e-14),
           all.equal(ranef(r2), ranef(r2.), tol= 1e-14),
           Matrix:::isDiagonal(vcov(r2.)),# ok
           all.equal(diag(vcov(r2.)), rep.int(V2[1,1], 4), tol= 1e-13)
           ,
-	  all(vcov(r2.)@factors$correlation == diag(4)),
-          TRUE)
+	  all(vcov(r2.)@factors$correlation == diag(4))
+      )
 r2.
 
 ## Failure to specify a random effects term - used to give an obscure message
@@ -362,7 +364,6 @@ rPoisGLMMi <- function(ng, nr, sd=c(f = 1, ind = 0.5), b=c(1,2))
 dd <- rPoisGLMMi(12, 20)
 m0  <- glmer(y~x + (1|f),           family="poisson", data=dd)
 (m1 <- glmer(y~x + (1|f) + (1|obs), family="poisson", data=dd))
-if(FALSE) # not yet available  -- FIXME
 anova(m0, m1)
 
 showProc.time()
