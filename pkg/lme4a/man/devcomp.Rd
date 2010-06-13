@@ -3,9 +3,8 @@
 \alias{devcomp}
 \alias{devcomp-methods}
 \alias{devcomp,glmerenv-method}
-\alias{devcomp,glmerMod-method}
+\alias{devcomp,merMod-method}
 \alias{devcomp,lmerenv-method}
-\alias{devcomp,lmerMod-method}
 \alias{devcomp,mer-method}
 \description{
   Extract the components of the deviance from a \code{*lmer()} fit.

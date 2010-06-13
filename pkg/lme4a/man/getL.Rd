@@ -2,7 +2,7 @@
 \title{Extract the  L  Matrix from a *Mer object}
 \alias{getL}
 \alias{getL-methods}
-\alias{getL,lmerMod-method}
+\alias{getL,merMod-method}
 \alias{getL,mer-method}
 \alias{getL,merenv-method}
 \alias{getL,reModule-method}
