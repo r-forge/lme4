@@ -63,7 +63,7 @@ exportClasses(lmList,
               mer, lmer, glmer, reModule, reTrms,
               feModule, deFeMod, spFeMod,
               merResp, lmerResp, glmerResp, nlmerResp, nglmerResp,
-              merMod, lmerMod, glmerMod, nlmerMod
+              merMod
               )
 
 exportMethods(VarCorr, anova, bobyqa, coef, coerce, confint, deviance,
