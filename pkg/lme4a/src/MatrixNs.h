@@ -189,9 +189,11 @@ namespace MatrixNs {
     };
 
     class chmSp : public cholmod_sparse { 
+	Rcpp::S4        d_xp;
     public:
 	chmSp(Rcpp::S4);
 
+	const Rcpp::S4& S4() const;
 	CHM_SP crossprod() const;
 	CHM_SP crossprod(const cholmod_sparse*, int sorted = 1) const;
 	CHM_SP crossprod(chmSp const &B, int sorted = 1) const;
@@ -210,9 +212,11 @@ namespace MatrixNs {
     };
 
     class chmFr : public cholmod_factor {
+	Rcpp::S4        d_xp;
     public:
 	chmFr(Rcpp::S4);
 
+	const Rcpp::S4& S4() const;
 	double logDet2() const;
 //	double logDet2();
 

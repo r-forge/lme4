@@ -357,7 +357,9 @@ namespace MatrixNs{
 	return ans;
     }
 
-    chmFr::chmFr(Rcpp::S4 xp) : cholmod_factor() {
+    chmFr::chmFr(Rcpp::S4 xp)
+	: d_xp(xp)
+    {
 	Rcpp::CharacterVector cl(SEXP(xp.attr("class")));
 	char *clnm = cl[0];
 	if (!xp.is("CHMfactor"))
@@ -489,7 +491,9 @@ namespace MatrixNs{
 				 (const_CHM_SP)&b, &c);
     }
     
-    chmSp::chmSp(Rcpp::S4 xp) : cholmod_sparse() {
+    chmSp::chmSp(Rcpp::S4 xp)
+	: d_xp(xp)
+    {
 	if (!xp.is("CsparseMatrix")) {
 	    Rcpp::CharacterVector cls = SEXP(xp.attr("class"));
 	    char *clnm = cls[0];

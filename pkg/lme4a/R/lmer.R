@@ -950,6 +950,11 @@ setMethod("isREML", "mer",	function(x) FALSE)
 
 setMethod("getCall", "merenv",	function(x) env(x)$call)
 setMethod("getCall", "mer",	function(x) x@call)
+setGeneric("refitML", function(x) {
+    if (!isREML(x)) return(x)
+    update(x, REML = FALSE)
+})
+## A more effective method for merMod objects is defined in lmer2.R
 
 ##' <description>
 ##'
@@ -964,7 +969,7 @@ anovaLmer <- function(object, ...) {
     .sapply <- function(L, FUN, ...) unlist(lapply(L, FUN, ...))
     modp <- {
 	as.logical(.sapply(dots, is, "lmerenv")) |
-	as.logical(.sapply(dots, is, "lmerMod")) |
+	as.logical(.sapply(dots, is, "merMod")) |
 	as.logical(.sapply(dots, is, "lmer")) |
 	as.logical(.sapply(dots, is, "lm")) }
     if (any(modp)) {			# multiple models - form table
@@ -973,11 +978,7 @@ anovaLmer <- function(object, ...) {
 	## model names
 	mNms <- .sapply(as.list(mCall)[c(FALSE, TRUE, modp)], deparse)
 	names(mods) <- sub("@env$", '', mNms) # <- hack
-	mods <- lapply(mods, function(x) ## get ML estimates if necessary
-		   {
-		       if (isREML(x)) return(x)
-		       update(x, REML = FALSE)
-		   })
+	mods <- lapply(mods, refitML)
 
 	llks <- lapply(mods, logLik)
         ii <- order(Df <- .sapply(llks, attr, "df"))
@@ -1138,7 +1139,10 @@ printMerenv <- function(x, digits = max(3, getOption("digits") - 3),
     if (!is.null(cc <- so$call$subset))
 	cat(" Subset:", deparse(asOneSidedFormula(cc)[[2]]),"\n")
     ## MM would like:    cat("\n")
-    print(so$AICtab, digits = digits)
+    tab <- so$AICtab
+    if (length(tab) == 1 && names(tab) == "REML")
+	cat("REML criterion at convergence:", round(tab, 4), "\n")
+    else print(round(so$AICtab, 4))
     cat("\nRandom effects:\n")
     print(formatVC(so$varcor, digits = digits, useScale = so$useScale),
 	  quote = FALSE, digits = digits, ...)
@@ -1330,28 +1334,6 @@ summaryMer <- function(object, varcov = FALSE, ...)
 			isLmer = extends(cld, "lmer"), isGLmer= isG),
 	     varcov=varcov)
 } ## summaryMer()
-
-summaryMer2 <- function(object, varcov = FALSE, type, ...)
-{
-    cld <- getClass(cl <- class(object))
-    ## begin{workaround} -- FIXME (later  use 'type' !)
-    isLmer <- extends(cld, "lmerMod")
-    isG <- extends(cld, "glmerMod")
-    stopifnot(isLmer || isG)# for now
-    ## end{workaround}
-
-    rho <- list(RX = object@fe@RX,
-		## FIXME: You can't count on re@flist unless is(re, "reTrms")
-		flist = object@re@flist,
-		call = object@call)
-    if(isG)
-        rho$family <- object@resp@family # family object
-    devC <- devcomp(object)
-    .summMer(object, rho=rho, devC = devC,
-	     flags = c(REML = isLmer && object@resp@REML, isLmer = isLmer, isGLmer= isG),
-	     varcov=varcov)
-} ## summaryMer2()
-
 
 setMethod("summary", "lmerenv", summaryMerenv)
 ## and the *same* here [just for now?]:

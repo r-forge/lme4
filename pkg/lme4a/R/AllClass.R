@@ -274,12 +274,10 @@ setClass("reModule",
                         Lambda = "dgCMatrix",
                         Lind = "integer",
                         Ut = "dgCMatrix",## U := Z Lambda; Ut := U' = Lambda' Z' = Lambda' Zt
-                        Utr = "numeric", ## U'r (r: residuals; = y initially)
                         Zt = "dgCMatrix",## = Z'
                         lower = "numeric",
                         theta = "numeric",
-                        u = "numeric",
-                        ldL2 = "numeric"),
+                        u = "numeric"),
          validity = function(object) {
              q <- nrow(object@Zt)
              if (!all(dim(object@Lambda) == q))
@@ -296,8 +294,8 @@ setClass("reModule",
                  return("L must be an LL factor, not LDL")
              if (length(object@lower) != length(object@theta))
                  return("lengths of lower and theta must match")
-             if (length(object@ldL2) != 1L)
-                 return("ldL2 must have length 1")
+###             if (length(object@ldL2) != 1L)
+###                 return("ldL2 must have length 1")
              TRUE
          })
 
@@ -337,23 +335,12 @@ setClass("reTrms",
      })
 
 ##' Fixed-effects module
-setClass("feModule",
-         representation(beta = "numeric",
-                        ldRX2 = "numeric",
-                        Vtr = "numeric",
-                        "VIRTUAL"))
+setClass("feModule", representation(beta = "numeric", "VIRTUAL"))
 
 .feValid <- function(object) {
     p <- ncol(object@X)
-    if (any(p != sapply(lapply(c("RZX", "RX", "UtV", "V", "VtV"),
-            slot, object = object), ncol)))
-        return("Number of columns in X, RZX, RX, UtV, V and VtV must match")
-    if (any(dim(object@UtV) != dim(object@RZX)))
-        return("dimensions of UtV and RZX must match")
-    if (any(dim(object@VtV) != dim(object@RX)))
-        return("dimensions of XtX and RX must match")
-    if (length(object@ldRX2) != 1L)
-        return("ldRX2 must have length 1")
+    if (ncol(object@RZX) != p || ncol(object@RX) != p)
+        return("Number of columns in X, RZX, and RX must match")
     TRUE
 }
 
@@ -361,9 +348,6 @@ setClass("feModule",
 setClass("deFeMod",
          representation(RZX = "dgeMatrix",
                         RX  =  "Cholesky",
-                        UtV = "dgeMatrix",
-                        V   = "dgeMatrix",
-                        VtV = "dpoMatrix",
 			X   = "dgeMatrix"),
          contains = "feModule",
          validity = .feValid)
@@ -372,9 +356,6 @@ setClass("deFeMod",
 setClass("spFeMod",
          representation(RZX = "dgCMatrix",
                         RX =  "CHMfactor",
-                        UtV = "dgCMatrix",
-                        V =   "dgCMatrix",
-                        VtV = "dsCMatrix",
                         X =   "dgCMatrix"),
          contains = "feModule",
          validity = function(object) {
@@ -389,16 +370,13 @@ setClass("spFeMod",
 ##' weights are the prior weights
 ##' sqrtrwt and sqrtXwt are the square roots of residual and X weights
 ##' wtres is the vector of weighted residuals
-##' 
-##' wrss is the scalar weighted residual sum of squares
 setClass("merResp",
          representation(mu = "numeric",
                         offset = "numeric",
                         sqrtXwt = "matrix",
                         sqrtrwt = "numeric", # sqrt(residual weights)
                         weights = "numeric", # prior weights
-                        wrss = "numeric", # weighted residual sum of squares
-                        wtres = "numeric", # weighted residuals
+                        wtres = "numeric",   # weighted residuals
                         y = "numeric"),
          validity = function(object) {
              n <- length(object@y)
@@ -412,8 +390,6 @@ setClass("merResp",
                  return("length(sqrtXwt) must equal length(offset)")
              if (nrow(object@sqrtXwt) != n)
                  return("nrow(sqrtXwt) != length(y)")
-             if (length(object@wrss) != 1L)
-                 return("length of wrss must be 1")
              TRUE
          })
 
@@ -422,17 +398,13 @@ setClass("lmerResp", representation(REML = "integer"),
 
 ##' glmer response module
 setClass("glmerResp",
-         representation(devres = "numeric", # sum of deviance residuals
-                        family =  "family",
+         representation(family =  "family",
                         eta =    "numeric",
-                        muEta =  "numeric",
-                        n =      "numeric", # for evaluation of the aic
-                        var =    "numeric"),# variances of responses
+                        n =      "numeric"), # for evaluation of the aic
          contains = "merResp",
          validity = function(object) {
-             n <- length(object@y)
-             if (length(object@eta) != n || length(object@muEta) != n || length(object@var) != n)
-                 return("lengths of eta, muEta and var must match length(y)")
+             if (length(object@eta) != length(object@y))
+                 return("lengths of eta and y must match")
          })
 
 ##' nlmer response module
@@ -467,6 +439,6 @@ setClass("merMod",
                         re      = "reModule",
                         fe      = "feModule",
                         resp    = "merResp"))
-setClass("lmerMod", contains = "merMod")
-setClass("glmerMod", contains = "merMod")
-setClass("nlmerMod", contains = "merMod")
+##setClass("lmerMod", contains = "merMod")
+##setClass("glmerMod", contains = "merMod")
+##setClass("nlmerMod", contains = "merMod")

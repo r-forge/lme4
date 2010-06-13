@@ -46,7 +46,7 @@ mkReTrms <- function(bars, fr, s = 1L) {
     }
     Zt <- do.call(rBind, lapply(blist, "[[", "sm"))
     q <- nrow(Zt)
-    ll <- list(Zt = Zt, u = numeric(q), Utr = numeric(q))
+    ll <- list(Zt = Zt, u = numeric(q))
 
     ## Create and install Lambda, Lind, etc.  This must be done after
     ## any potential reordering of the terms.
@@ -101,7 +101,7 @@ mkReTrms <- function(bars, fr, s = 1L) {
     }
 
     ll$L <- Cholesky(tcrossprod(ll$Ut), LDL = FALSE, Imult = 1)
-    ll$ldL2 <- numeric(1)
+###    ll$ldL2 <- numeric(1)
                                         # massage the factor list
     fl <- lapply(blist, "[[", "ff")
     asgn <- seq_along(fl)
@@ -143,24 +143,14 @@ mkFeModule <-
     ZtX <- reMod@Zt %*% X
     ll <- list(Class = ifelse(sparseX, "spFeMod", "deFeMod"),
                RZX = ZtX,
-               UtV = ZtX,
-               V = X,
-               VtV = crossprod(X),
-               Vtr = numeric(p),
                X = X,
-               beta = numeric(p),
-               ldRX2= numeric(1))
+               beta = numeric(p))
     ll$RX <-
 	if (sparseX)
 	    ## watch for the case that crossprod(ll$RZX) is more dense than X.X
-	    Cholesky(ll$VtV + crossprod(ll$RZX), LDL = FALSE)
+	    Cholesky(crossprod(X) + crossprod(ll$RZX), LDL = FALSE)
 	else
-	    chol(ll$VtV)
-    if (s > 1) {
-        ll$V <- Reduce("+", lapply(split(seq_len(N) ,
-                                         rep.int(1:s, rep.int(N %/% s, s))),
-                                   function(rows) X[rows, ]))
-    }
+	    chol(crossprod(X))
     do.call("new", ll)
 }
 
@@ -189,7 +179,7 @@ mkRespMod <- function(fr, reMod, feMod, family = NULL,
                       length(offset), N), domain = "R-lme4")
     p <- ncol(feMod@X)
     q <- nrow(reMod@Zt)
-    ll <- list(weights = unname(weights), offset = unname(offset), wrss = numeric(1))
+    ll <- list(weights = unname(weights), offset = unname(offset))
     if (!is.null(family)) {
         ll$y <- y                       # may get overwritten later
         rho <- new.env()
@@ -209,13 +199,10 @@ mkRespMod <- function(fr, reMod, feMod, family = NULL,
         ll$weights <- unname(ll$weights)
         ll$y <- unname(ll$y)
         ll$eta <- family$linkfun(ll$mu)
-        ll$muEta <- family$mu.eta(ll$eta)
-        ll$var <- family$variance(ll$mu)
-        ll$sqrtrwt <- sqrt(ll$weights/ll$var)
+        ll$sqrtrwt <- sqrt(ll$weights/family$variance(ll$mu))
         ll$wtres <- ll$sqrtrwt * (ll$y - ll$mu)
-        ll$sqrtXwt <- matrix(ll$sqrtrwt * ll$muEta)
+        ll$sqrtXwt <- matrix(ll$sqrtrwt * family$mu.eta(ll$eta))
         ll$family <- family
-        ll$devres <- numeric(1)
         ll <- ll[intersect(names(ll), slotNames("glmerResp"))]
         ll$n <- unname(rho$n)           # for the family$aic function
         ll$Class <- "glmerResp"
@@ -273,7 +260,6 @@ setMethod("updateDcmp", signature(x = "spFeMod", dcmp = "list"),
     N <- length(x@offset)
     dcmp$dims["n"]   <- n
     dcmp$dims["N"]   <- N
-    dcmp$dims["s"]   <- N %/% n
     dcmp$dims["nmp"] <- n - dcmp$dims["p"]
     dcmp$dims[c("REML", "GLMM", "NLMM")] <- 0L
     dcmp$dims[c("useSc")] <- 1L
@@ -311,8 +297,8 @@ setMethod("updateDcmp", signature(x = "nglmerResp", dcmp = "list"),
 .dcmp <- function() {
     nc <- c("ldL2", "ldRX2", "wrss", "ussq", "pwrss", "drsum", "dev",
             "REML", "sigmaML", "sigmaREML")
-    nd <- c("N", "n", "nmp", "nth", "p", "q", "s", "useSc", "PLSBeta",
-            "reTrms", "spFe", "nAGQ", "REML", "GLMM", "NLMM")
+    nd <- c("N", "n", "nmp", "nth", "p", "q", "nAGQ", "useSc",
+            "reTrms", "spFe", "REML", "GLMM", "NLMM")
     list(cmp = structure(rep(NA, length(nc)), .Names = nc),
          dims = structure(rep(NA_integer_, length(nd)), .Names = nd))
 }
@@ -389,10 +375,10 @@ S4toEnv <- function(from) {
     environment(sP) <- environment(gP) <- environment(gB) <- rho
     new(envclass, setPars = sP, getPars = gP, getBounds = gB)
 }
-setAs("lmerMod", "optenv",  function(from) .lmerM2env(from, "optenv"))
-setAs("lmerMod", "lmerenv", function(from) .lmerM2env(from, "lmerenv"))
-setAs("glmerMod", "glmerenv", function(from) .lmerM2env(from, "glmerenv"))
-setAs("glmerMod",   "merenv", function(from) .lmerM2env(from, "glmerenv"))
+##setAs("lmerMod", "optenv",  function(from) .lmerM2env(from, "optenv"))
+##setAs("lmerMod", "lmerenv", function(from) .lmerM2env(from, "lmerenv"))
+##setAs("glmerMod", "glmerenv", function(from) .lmerM2env(from, "glmerenv"))
+##setAs("glmerMod",   "merenv", function(from) .lmerM2env(from, "glmerenv"))
 
 lmer2 <- function(formula, data, REML = TRUE, sparseX = FALSE,
                   control = list(), start = NULL,
@@ -440,8 +426,6 @@ lmer2 <- function(formula, data, REML = TRUE, sparseX = FALSE,
                                         # fixed-effects module
     feMod <- mkFeModule(formula, fr, contrasts, reTrms, sparseX)
     respMod <- mkRespMod(fr, reTrms, feMod)
-    reTrms@Utr[] <- (reTrms@Zt %*% respMod@y)@x
-    feMod@Vtr[] <- crossprod(feMod@X, respMod@y)@x
     if (!REML) respMod@REML <- 0L
     ans <- new("merMod",
                call = mc,
@@ -464,10 +448,11 @@ lmer2 <- function(formula, data, REML = TRUE, sparseX = FALSE,
 ## being brave now:
 lmer <- lmer2
 
-setMethod("simulate", "lmerMod",
+setMethod("simulate", "merMod",
 	  function(object, nsim = 1, seed = NULL, use.u = FALSE, ...)
       {
-          stopifnot((nsim <- as.integer(nsim[1])) > 0) ## is(x, "lmer")
+          stopifnot((nsim <- as.integer(nsim[1])) > 0,
+                    is(x, "merMod"), is(x@resp, "lmerResp"))
 	  if(!is.null(seed)) set.seed(seed)
 	  if(!exists(".Random.seed", envir = .GlobalEnv))
 	      runif(1) # initialize the RNG if necessary
@@ -561,8 +546,6 @@ bootMer <- function(x, FUN, nsim = 1, seed = NULL, use.u = FALSE,
             ##      random effects  contribution            +     Error
         }
 	x @ resp @ y <- y
-###	x @ fe @ Vtr <- crossprod(X, y)@x  # no longer needed
-###	x @ re @ Utr <- (Zt %*% y)@x       # no longer needed
 
         ## if (oneD) { # use optimize
         ##     d0 <- devfun(0)
@@ -595,23 +578,22 @@ bootMer <- function(x, FUN, nsim = 1, seed = NULL, use.u = FALSE,
 }## {bootMer}
 
 
-PIRLSest <- function(ans, verbose, control, PLSBeta) {
+PIRLSest <- function(ans, verbose, control, nAGQ) {
     if (verbose) control$iprint <- 2L
-    .Call(PIRLS, ans, verbose, 1L)      # optimize beta only
-    if (PLSBeta) {
-        devfun <- function(pars) {
-            .Call(reUpdateLambda, ans@re, pars)
-            .Call(PIRLS, ans, verbose, 3L) # optimize u and beta
-        }
-        opt <- bobyqa(ans@re@theta, devfun, ans@re@lower, control = control)
-    } else {
+                                        # initial optimization of PLSBeta
+    devfun <- function(pars) {
+        .Call(reUpdateLambda, ans@re, pars)
+        .Call(PIRLS, ans, verbose, 3L) # optimize u and beta
+    }
+    opt <- bobyqa(ans@re@theta, devfun, ans@re@lower, control = control)
+    if (nAGQ == 1L) {
         thpars <- seq_along(ans@re@theta)
-        bb <- ans@fe@beta
         devfun <- function(pars) {
             .Call(feSetBeta, ans@fe, pars[-thpars])
             .Call(reUpdateLambda, ans@re, pars[thpars])
             .Call(PIRLS, ans, verbose, 2L) # optimize u only
         }
+        bb <- ans@fe@beta
         opt <- bobyqa(c(ans@re@theta, bb), devfun,
                       lower = c(ans@re@lower, rep.int(-Inf, length(bb))),
                       control = control)
@@ -624,7 +606,7 @@ PIRLSest <- function(ans, verbose, control, PLSBeta) {
 
 glmer2 <- function(formula, data, family = gaussian, sparseX = FALSE,
                    control = list(), start = NULL, verbose = 0L, nAGQ = 1L,
-                   doFit = TRUE, PLSBeta = FALSE,
+                   doFit = TRUE, 
                    subset, weights, na.action, offset,
                    contrasts = NULL, mustart, etastart, ...)
 {
@@ -651,8 +633,8 @@ glmer2 <- function(formula, data, family = gaussian, sparseX = FALSE,
 		    " are disregarded")
     }
 
-    if (!(all(1 == (nAGQ <- as.integer(nAGQ)))))
-        warning("nAGQ > 1 has not been implemented, using Laplace")
+    nAGQ <- as.integer(nAGQ)[1]
+    if (nAGQ > 1) warning("nAGQ > 1 has not been implemented, using Laplace")
     stopifnot(length(formula <- as.formula(formula)) == 3)
     if (missing(data)) data <- environment(formula)
                                         # evaluate and install the model frame :
@@ -668,18 +650,17 @@ glmer2 <- function(formula, data, family = gaussian, sparseX = FALSE,
                                         # random-effects module
     reTrms <- mkReTrms(findbars(formula[[3]]), fr)
     dcmp <- updateDcmp(reTrms, .dcmp())
-    dcmp$dims[c("PLSBeta", "nAGQ")] <- as.integer(c(PLSBeta, nAGQ))
+    dcmp$dims[c("nAGQ")] <- nAGQ
 
     feMod <- mkFeModule(formula, fr, contrasts, reTrms, sparseX, TRUE)
     respMod <- mkRespMod(fr, reTrms, feMod, family)
-    feMod@V <- Diagonal(x = respMod@sqrtXwt[,1]) %*% feMod@X
     ans <- new("merMod",
                call = mc,
                devcomp = updateDcmp(respMod, updateDcmp(feMod, dcmp)),
                frame = fr,
 	       re = reTrms, fe = feMod, resp = respMod)
     if (!doFit) return(ans)
-    ans <- PIRLSest(ans, verbose, control, PLSBeta)
+    ans <- PIRLSest(ans, verbose, control, nAGQ)
     
 }## {glmer2}
 
@@ -718,10 +699,10 @@ glmer <- glmer2
 ##' @param control a list of control parameters passed to bobyqa.
 ##' @param ... 
 
-##' @return an object of S4 class "nlmerMod"
+##' @return an object of S4 class "merMod"
 nlmer2 <- function(formula, data, family = gaussian, start = NULL,
                    verbose = 0L, nAGQ = 1L, doFit = TRUE,
-                   PLSBeta = FALSE,  subset,
+                   subset,
                    weights, na.action, mustart, etastart, sparseX = FALSE,
                    contrasts = NULL, control = list(), ...)
 {
@@ -769,7 +750,7 @@ nlmer2 <- function(formula, data, family = gaussian, start = NULL,
                                         # random-effects module
     reTrms <- mkReTrms(findbars(formula[[3]]), frE, s = s)
     dcmp <- updateDcmp(reTrms, .dcmp())
-    dcmp$dims[c("PLSBeta", "nAGQ")] <- as.integer(c(PLSBeta, nAGQ))
+    dcmp$dims["nAGQ"] <- as.integer(nAGQ)[1]
 
     fe.form <- nlform
     fe.form[[3]] <- formula[[3]]
@@ -779,7 +760,7 @@ nlmer2 <- function(formula, data, family = gaussian, start = NULL,
     p <- length(feMod@beta)
     if ((qrX <- qr(feMod@X))$rank < p)
         stop(gettextf("rank of X = %d < ncol(X) = %d", qrX$rank, p))
-    feMod@beta[] <- qr.coef(qrX, unlist(lapply(pnames, get, envir = nlenv)))
+    feMod@beta <- qr.coef(qrX, unlist(lapply(pnames, get, envir = nlenv)))
     respMod <- mkRespMod(fr, reTrms, feMod, nlenv = nlenv, nlmod = nlmod)
     respMod@pnames <- pnames
     ans <- new("merMod",
@@ -787,7 +768,7 @@ nlmer2 <- function(formula, data, family = gaussian, start = NULL,
                devcomp = updateDcmp(respMod, updateDcmp(feMod, dcmp)),
                frame = fr, re = reTrms, fe = feMod, resp = respMod)
     if (!doFit) return(ans)
-    PIRLSest(ans, verbose, control, PLSBeta)
+    PIRLSest(ans, verbose, control, nAGQ)
 }
 
 ## Methods for the merMod class
@@ -909,10 +890,24 @@ setMethod("getL", "reModule", function(x) x@L)
 setMethod("getL", "merMod", function(x) x@re@L)
 
 setMethod("isREML", "merMod", function(x) as.logical(x@devcomp$dims["REML"]))
+setMethod("refitML", "merMod",
+          function (x) {
+              if (!x@devcomp$dims["REML"]) return(x)
+              xx <- new(class(x), call=Quote(x@call),
+                        devcomp=x@devcomp, frame=x@frame,
+                        re=x@re, fe=x@fe, resp=x@resp)
+              devfun <- function(pars){
+                  .Call(reUpdateLambda, xx@re, pars)
+                  .Call(LMMdeviance, xx)
+              }
+              bobyqa(xx@re@theta, devfun, xx@re@theta)
+              .Call(updateDc, xx)
+              xx
+          })
 
 setMethod("getCall", "merMod",	function(x) x@call)
 
-setMethod("anova", signature(object = "lmerMod"), anovaLmer)
+setMethod("anova", signature(object = "merMod"), anovaLmer)
 
 setMethod("vcov", signature(object = "merMod"),
 	  function(object, correlation = TRUE, sigm = sigma(object), ...)
