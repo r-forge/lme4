@@ -1,5 +1,5 @@
 
-R version 2.11.1 Patched (2010-06-10 r52252)
+R version 2.11.1 (2010-05-31)
 Copyright (C) 2010 The R Foundation for Statistical Computing
 ISBN 3-900051-07-0
 
@@ -33,11 +33,10 @@ Type 'q()' to quit R.
 > .pc <- proc.time()
 > 
 > (fm1 <- lmer(Reaction ~ Days + (Days|Subject), sleepstudy))
-Linear mixed model fit by REML  ['lmerDe']
+Linear mixed model fit by REML ['merMod']
 Formula: Reaction ~ Days + (Days | Subject) 
    Data: sleepstudy 
-REML 
-1744 
+REML criterion at convergence: 1743.628 
 
 Random effects:
  Groups   Name        Variance Std.Dev. Corr  
@@ -55,11 +54,11 @@ Correlation of Fixed Effects:
      (Intr)
 Days -0.138
 > (fm1a <- lmer(Reaction ~ Days + (Days|Subject), sleepstudy, REML = FALSE))
-Linear mixed model fit by maximum likelihood  ['lmerDe']
+Linear mixed model fit by maximum likelihood ['merMod']
 Formula: Reaction ~ Days + (Days | Subject) 
    Data: sleepstudy 
-     AIC      BIC   logLik deviance 
-    1764     1783     -876     1752 
+      AIC       BIC    logLik  deviance 
+1763.9393 1783.0971 -875.9697 1751.9393 
 
 Random effects:
  Groups   Name        Variance Std.Dev. Corr  
@@ -77,11 +76,10 @@ Correlation of Fixed Effects:
      (Intr)
 Days -0.138
 > (fm2 <- lmer(Reaction ~ Days + (1|Subject) + (0+Days|Subject), sleepstudy))
-Linear mixed model fit by REML  ['lmerDe']
+Linear mixed model fit by REML ['merMod']
 Formula: Reaction ~ Days + (1 | Subject) + (0 + Days | Subject) 
    Data: sleepstudy 
-REML 
-1744 
+REML criterion at convergence: 1743.669 
 
 Random effects:
  Groups   Name        Variance Std.Dev.
@@ -108,8 +106,7 @@ Days -0.184
 Linear mixed model fit by REML  ['lmer']
 Formula: Reaction ~ Days + (Days | Subject) 
    Data: sleepstudy 
-REML 
-1744 
+REML criterion at convergence: 1743.628 
 
 Random effects:
  Groups   Name        Variance Std.Dev. Corr  
@@ -126,7 +123,7 @@ Days          10.467      1.546    6.77
 Correlation of Fixed Effects:
      (Intr)
 Days -0.138
-> stopifnot(all.equal(deviance(fm1), deviance(fm1.)),
+> stopifnot(all.equal(fm1@devcomp$cmp['REML'], fm1.@devcomp$cmp['REML']),
 +           all.equal(fixef(fm1), fixef(fm1.)),
 +           all.equal(fm1@re@theta, fm1.@theta, tol = 1.e-7),
 +           all.equal(ranef(fm1), ranef(fm1.)))
@@ -140,27 +137,24 @@ In determinant(x, TRUE) : This version of the Matrix package returns
 *DIFFERENT* value.
  If still necessary, do change your code, following http://matrix.r-forge.r-project.org
 
-> stopifnot(all.equal(deviance(fm1), deviance(fm1.)),
+> stopifnot(all.equal(fm1@devcomp$cmp['REML'], fm1.@devcomp$cmp['REML']),
 +           all.equal(fixef(fm1), fixef(fm1.)),
 +           all.equal(fm1@re@theta, fm1.@theta, tol = 1.e-7),
 +           all.equal(ranef(fm1), ranef(fm1.)))
-> 
-> L1 <- as.list(env(   fm1. @ env))
-> L2 <- as.list(env(as(fm1, "lmerenv")))
-> ns <- intersect((n1 <- names(L1)),
-+                 (n2 <- names(L2)))
-> n1[!(n1 %in% ns)] #    lmer1() extras
-[1] "frame"
-> n2[!(n2 %in% ns)] # new-lmer() extras
-[1] "row.names" "names"     "wtres"     "wrss"      "V"        
-> ns <- ns[!(ns %in% c("call", "compDev"))]# they will certainly differ by that ...
-> all.equal(L1[ns], L2[ns])
-[1] TRUE
-> 
-> 
+> if (FALSE) {
++     L1 <- as.list(env(   fm1. @ env))
++     L2 <- as.list(env(as(fm1, "lmerenv")))
++     ns <- intersect((n1 <- names(L1)),
++                     (n2 <- names(L2)))
++     n1[!(n1 %in% ns)] #    lmer1() extras
++     n2[!(n2 %in% ns)] # new-lmer() extras
++     ns <- ns[!(ns %in% c("call", "compDev"))]# they will certainly differ by that ...
++     all.equal(L1[ns], L2[ns])
++ 
++ }
 > stopifnot(all.equal(fixef(fm1), fixef(fm2), tol = 1.e-13),
-+ 	  all.equal(unname(fixef(fm1)),
-+ 		    c(251.405104848485, 10.467285959595), tol = 1e-13),
++           all.equal(unname(fixef(fm1)),
++                     c(251.405104848485, 10.467285959595), tol = 1e-13),
 + 	  all.equal(cov2cor(vcov(fm1))["(Intercept)", "Days"],
 + 		    -0.13755, tol=1e-4))
 > 
@@ -171,19 +165,18 @@ In determinant(x, TRUE) : This version of the Matrix package returns
 +     print(AIC(fm1)); print(AIC(fm2))
 +     print(BIC(fm1)); print(BIC(fm2))
 + }
-    df      AIC
-fm1  6 1755.628
-fm2  5 1753.669
-    df      BIC
-fm1  6 1774.786
-fm2  5 1769.634
+    df AIC
+fm1  6  NA
+fm2  5  NA
+    df BIC
+fm1  6  NA
+fm2  5  NA
 > 
 > (fm3 <- lmer(Yield ~ 1|Batch, Dyestuff2))
-Linear mixed model fit by REML  ['lmerDe']
+Linear mixed model fit by REML ['merMod']
 Formula: Yield ~ 1 | Batch 
    Data: Dyestuff2 
- REML 
-161.8 
+REML criterion at convergence: 161.8283 
 
 Random effects:
  Groups   Name        Variance Std.Dev.
@@ -199,15 +192,14 @@ Fixed effects:
 + 			  c(1,3), dimnames = list("(Intercept)",
 + 				  c("Estimate", "Std. Error", "t value")))))
 > showProc.time() #
-Time elapsed:  3.272 0.009 3.309 
+Time elapsed:  7.19 0.03 7.227 
 > 
 > ### {from ../man/lmer.Rd } --- compare lmer1 & lmer2 ---------------
 > (fmX1 <- lmer1(Reaction ~ Days + (Days|Subject), sleepstudy))
 Linear mixed model fit by REML  ['lmer']
 Formula: Reaction ~ Days + (Days | Subject) 
    Data: sleepstudy 
-REML 
-1744 
+REML criterion at convergence: 1743.628 
 
 Random effects:
  Groups   Name        Variance Std.Dev. Corr  
@@ -228,8 +220,7 @@ Days -0.138
 Linear mixed model fit by REML  ['lmer']
 Formula: Reaction ~ Days + (1 | Subject) + (0 + Days | Subject) 
    Data: sleepstudy 
-REML 
-1744 
+REML criterion at convergence: 1743.669 
 
 Random effects:
  Groups   Name        Variance Std.Dev.
@@ -248,11 +239,10 @@ Correlation of Fixed Effects:
 Days -0.184
 > 
 > (fmX2 <- lmer2(Reaction ~ Days + (Days|Subject), sleepstudy))
-Linear mixed model fit by REML  ['lmerDe']
+Linear mixed model fit by REML ['merMod']
 Formula: Reaction ~ Days + (Days | Subject) 
    Data: sleepstudy 
-REML 
-1744 
+REML criterion at convergence: 1743.628 
 
 Random effects:
  Groups   Name        Variance Std.Dev. Corr  
@@ -270,11 +260,10 @@ Correlation of Fixed Effects:
      (Intr)
 Days -0.138
 > (fm.2 <- lmer2(Reaction ~ Days + (1|Subject) + (0+Days|Subject), sleepstudy))
-Linear mixed model fit by REML  ['lmerDe']
+Linear mixed model fit by REML ['merMod']
 Formula: Reaction ~ Days + (1 | Subject) + (0 + Days | Subject) 
    Data: sleepstudy 
-REML 
-1744 
+REML criterion at convergence: 1743.669 
 
 Random effects:
  Groups   Name        Variance Std.Dev.
@@ -296,7 +285,7 @@ Days -0.184
 > fmX2s <- lmer2(Reaction ~ Days + (Days|Subject), sleepstudy, sparseX=TRUE)
 > 
 > showProc.time() #
-Time elapsed:  1.63 0.002 1.643 
+Time elapsed:  3.48 0 3.485 
 > 
 > for(nm in c("coef", "fixef", "ranef", "sigma",
 + 	     "model.matrix", "model.frame" , "terms")) {
@@ -362,22 +351,32 @@ objective: 100.095856579516
 number of function evaluations: 103 
 > m1 <- glmer(cbind(incidence, size - incidence) ~ period + (1 | herd),
 +             family = binomial, data = cbpp, verbose = 1)
-npt = 11 , n =  5 
-rhobeg =  0.3564557 , rhoend =  3.564557e-07 
-   0.036:  12:      100.746;0.643544 -1.26902 -1.17076 -1.30141 -1.78228 
-  0.0036:  31:      100.214;0.618256 -1.37876 -0.993404 -1.16983 -1.71283 
- 0.00036:  55:      100.096;0.642059 -1.39849 -0.991763 -1.12846 -1.58091 
- 3.6e-05:  64:      100.096;0.642310 -1.39860 -0.992359 -1.12856 -1.58047 
- 3.6e-06:  72:      100.096;0.642286 -1.39856 -0.992334 -1.12867 -1.58032 
- 3.6e-07:  84:      100.096;0.642281 -1.39856 -0.992330 -1.12867 -1.58031 
+npt = 3 , n =  1 
+rhobeg =  0.2 , rhoend =  2e-07 
+   0.020:   4:      100.796;0.600000 
+  0.0020:   7:      100.167;0.649382 
+ 0.00020:  10:      100.152;0.641926 
+ 2.0e-05:  12:      100.152;0.641817 
+ 2.0e-06:  13:      100.152;0.641817 
+ 2.0e-07:  15:      100.152;0.641817 
 At return
- 93:     100.09577: 0.642281 -1.39856 -0.992331 -1.12867 -1.58031
+ 18:     100.15193: 0.641817
+npt = 11 , n =  5 
+rhobeg =  0.311936 , rhoend =  3.11936e-07 
+   0.031:  11:      0.00000;0.641817 -1.36047 -0.976177 -1.11108 -1.55968 
+  0.0031:  18:      100.101;0.644494 -1.40424 -1.00455 -1.14107 -1.58516 
+ 0.00031:  33:      100.096;0.641959 -1.39811 -0.992789 -1.12910 -1.58097 
+ 3.1e-05:  42:      100.096;0.642219 -1.39850 -0.992474 -1.12869 -1.58022 
+ 3.1e-06:  53:      100.096;0.642278 -1.39855 -0.992341 -1.12867 -1.58032 
+ 3.1e-07:  63:      100.096;0.642280 -1.39856 -0.992330 -1.12867 -1.58031 
+At return
+ 72:     100.09577: 0.642281 -1.39856 -0.992331 -1.12867 -1.58031
 > stopifnot(is((cm1 <- coef(m1e)), "coef.mer"),
 + 	  dim(cm1$herd) == c(15,4),
 + 	  all.equal(fixef(m1), ##  these values are those of "old-lme4":
 + 		    c(-1.39853504914, -0.992334711,
 + 		      -1.12867541477, -1.58037390498),
-+ 		    tol = 1.e-2,
++ 		    tol = 1.e-4,
 +                     check.attr=FALSE)
 + 	  )
 > 
@@ -408,16 +407,20 @@ attr(,"class")
 [1] "coef.mer"
 > (sf1 <- summary(fit.1)) # show() is as without summary()
 $methTitle
-[1] "Linear mixed model fit by REML "
+[1] "Linear mixed model fit by REML"
 
 $devcomp
 $devcomp$cmp
-      ldL2      ldRX2      pwrss   deviance       REML 
-26.8452812  0.3112042 12.6874321 74.5004151 73.4034352 
+      ldL2      ldRX2       wrss       ussq      pwrss      drsum        dev 
+26.8452812  0.3112042  7.0877876  5.5996445 12.6874321         NA         NA 
+      REML    sigmaML  sigmaREML 
+73.4034352  0.7964745  0.8171656 
 
 $devcomp$dims
-    n     p   nmp     q useSc 
-   20     1    19    10     1 
+     N      n    nmp    nth      p      q   nAGQ  useSc reTrms   spFe   REML 
+    20     20     19      1      1     10     NA      1      1      0      1 
+  GLMM   NLMM 
+     0      0 
 
 
 $isLmer
@@ -427,7 +430,7 @@ $useScale
 [1] TRUE
 
 $logLik
-'log Lik.' -36.70172 (df=3)
+'log Lik.' NA (df=3)
 
 $family
 NULL
@@ -500,7 +503,7 @@ $Subject
 
 > 
 > showProc.time() #
-Time elapsed:  1.758 0.007 1.776 
+Time elapsed:  3.65 0.02 3.668 
 > 
 > if (require('MASS', quietly = TRUE)) {
 +     bacteria$wk2 <- bacteria$week > 2
@@ -514,23 +517,25 @@ Time elapsed:  1.758 0.007 1.776
 + 
 +     stopifnot(
 + 	      all.equal(logLik(fm5),
-+ 			## now	  -96.130602
-+ 			structure(-96.13069, nobs = 220, nall = 220,
-+ 				  df = 5, REML = FALSE, class = "logLik"), tol = 1e-6)
++ 			## now	  -96.130582
++ 			structure(-96.13069, nobs = 220L, nall = 220L,
++ 				  df = 5L, REML = FALSE,
++                                   class = "logLik"),
++                         tol = 1e-5, check.attributes = FALSE)
 + 	      ,
 + 	      all.equal(fixef(fm5),
-+ 			## now		 2.8316317199		 -1.36630120985
++ 			## now		 2.831631614		 -1.366301172,
 + 			c("(Intercept)"= 2.831609490, "trtdiag"= -1.366722631,
-+ 			  ## now	 0.5837812946		 -1.5984621480
++ 			  ## now	 0.5837812921,		 -1.598462111
 + 			  "trtencourage"=0.5840147802, "wk2TRUE"=-1.598591346), tol = 2e-4)
 + 	      )
 + }
-Generalized linear mixed model fit by maximum likelihood (Laplace Approximation) ['glmerDe']
+Generalized linear mixed model fit by maximum likelihood ['merMod']
  Family: binomial 
 Formula: y ~ trt + wk2 + (1 | ID) 
    Data: bacteria 
      AIC      BIC   logLik deviance 
-  202.26   219.23   -96.13   192.26 
+202.2612 219.2293 -96.1306 192.2612 
 
 Random effects:
  Groups Name        Variance Std.Dev.
@@ -549,7 +554,7 @@ Correlation of Fixed Effects:
 trtdiag     -0.044              
 trtencourag  0.064 -0.495       
 wk2TRUE     -0.794  0.063 -0.056
-Time elapsed:  0.733 0.019 0.844 
+Time elapsed:  1.59 0 1.602 
 > 
 > ## Invalid factor specification -- used to seg.fault:
 > set.seed(1)
@@ -600,14 +605,14 @@ At return
 +              "sigma", "REmat", "AICtab")
 > sr2  <- summary(r2)
 > sr2. <- summary(r2.)
-> 
+> sr2.$devcomp$dims['spFe'] <- 0L       # to allow for comparisons below
 > stopifnot(all.equal(sr2[nmsSumm], sr2.[nmsSumm], tol= 1e-14),
 +           all.equal(ranef(r2), ranef(r2.), tol= 1e-14),
 +           Matrix:::isDiagonal(vcov(r2.)),# ok
 +           all.equal(diag(vcov(r2.)), rep.int(V2[1,1], 4), tol= 1e-13)
 +           ,
-+ 	  all(vcov(r2.)@factors$correlation == diag(4)),
-+           TRUE)
++ 	  all(vcov(r2.)@factors$correlation == diag(4))
++       )
 Note: Method with signature "dpoMatrix#generalMatrix" chosen for function "coerce",
  target signature "corMatrix#generalMatrix".
  "denseMatrix#generalMatrix" would also be valid
@@ -615,11 +620,10 @@ Note: Method with signature "dpoMatrix#dgeMatrix" chosen for function "coerce",
  target signature "corMatrix#dgeMatrix".
  "ddenseMatrix#dgeMatrix" would also be valid
 > r2.
-Linear mixed model fit by REML  ['lmerSp']
+Linear mixed model fit by REML ['merMod']
 Formula: y ~ 0 + lagoon + (1 | habitat) 
    Data: dat 
- REML 
-709.7 
+REML criterion at convergence: 709.7447 
 
 Random effects:
  Groups   Name        Variance Std.Dev.
@@ -697,7 +701,7 @@ lagoon4 0.000  0.000  0.000
 +             )
 > 
 > showProc.time() #
-Time elapsed:  0.799 0.004 0.807 
+Time elapsed:  1.79 0.01 1.812 
 > 
 > ## Wrong formula gave a seg.fault at times:
 > set.seed(2)# !
@@ -717,7 +721,7 @@ Warning message:
 In Ops.factor(ff, x1) : + not meaningful for factors
 > 
 > showProc.time() #
-Time elapsed:  8.927 0.006 8.986 
+Time elapsed:  19.27 0.02 19.513 
 > 
 > ## Reordering of grouping factors should not change the internal structure
 > Pm1  <- lmer1(strength ~ (1|batch) + (1|sample), Pastes, doFit = FALSE)
@@ -769,12 +773,12 @@ Time elapsed:  8.927 0.006 8.986
 > dd <- rPoisGLMMi(12, 20)
 > m0  <- glmer(y~x + (1|f),           family="poisson", data=dd)
 > (m1 <- glmer(y~x + (1|f) + (1|obs), family="poisson", data=dd))
-Generalized linear mixed model fit by maximum likelihood (Laplace Approximation) ['glmerDe']
+Generalized linear mixed model fit by maximum likelihood ['merMod']
  Family: poisson 
 Formula: y ~ x + (1 | f) + (1 | obs) 
    Data: dd 
-     AIC      BIC   logLik deviance 
-    6713     6727    -3352     6705 
+      AIC       BIC    logLik  deviance 
+ 6712.755  6726.678 -3352.378  6704.755 
 
 Random effects:
  Groups Name        Variance Std.Dev.
@@ -790,9 +794,15 @@ x            1.88974    0.09080   20.81
 Correlation of Fixed Effects:
   (Intr)
 x -0.895
-> if(FALSE) # not yet available  -- FIXME
-+ anova(m0, m1)
+> anova(m0, m1)
+Data: dd
+Models:
+m0: y ~ x + (1 | f)
+m1: y ~ x + (1 | f) + (1 | obs)
+   Df    AIC    BIC  logLik Chisq Chi Df Pr(>Chisq)
+m0  3 1679.6 1690.0  -836.8                        
+m1  4 6712.8 6726.7 -3352.4     0      1          1
 > 
 > showProc.time()
-Time elapsed:  1.849 0.004 1.856 
+Time elapsed:  4.55 0.02 4.64 
 > 
