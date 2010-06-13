@@ -7,20 +7,21 @@
 
 typedef std::map<std::string, double(*)(double)> fmap;
 
-/// generalized linear model family
+
 class glmFamily {
     std::string family, link;
+    Rcpp::List           lst;
 public:
     glmFamily(SEXP);
+
     void  linkFun(Rcpp::NumericVector&, Rcpp::NumericVector const&);
     void  linkInv(Rcpp::NumericVector&, Rcpp::NumericVector const&);
-    void    muEta(Rcpp::NumericVector&, Rcpp::NumericVector const&);
-    void variance(Rcpp::NumericVector&, Rcpp::NumericVector const&);
     Rcpp::NumericVector devResid(
 	Rcpp::NumericVector const&,
 	Rcpp::NumericVector const&,
-	Rcpp::NumericVector const&); //const; //Fails on lst["dev.resids"]
-    
+	Rcpp::NumericVector const&) const;
+    Rcpp::NumericVector    muEta(Rcpp::NumericVector const&) const;
+    Rcpp::NumericVector variance(Rcpp::NumericVector const&) const;
 private:
     static fmap
 	devs,			//< scalar deviance functions
@@ -28,7 +29,6 @@ private:
 	linvs,			//< scalar linkinv functions
 	muEtas,			//< scalar muEta functions
 	varFuncs;		//< scalar variance functions
-    Rcpp::List lst;
     
     static double epsilon, INVEPS, LTHRESH, MLTHRESH;
 

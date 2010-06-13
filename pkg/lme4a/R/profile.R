@@ -61,7 +61,7 @@ setMethod("dropX", signature(x = "environment"),
 ##'     be held constant.
 
 ##' @return a revised lmerDe object
-setMethod("dropX", "lmerMod",
+setMethod("dropX", "merMod",
           function(x, which, fw)
       {
           w <- as.integer(which)[1]
@@ -77,12 +77,7 @@ setMethod("dropX", "lmerMod",
                      beta = fe@beta[-w],
                      RZX = fe@RZX[, -w, drop = FALSE],
                      RX = chol(VtV),
-                     UtV = fe@UtV[, -w, drop = FALSE],
-                     X = X,
-                     V = fe@V[, -w, drop = FALSE],
-                     VtV = VtV,
-                     Vtr = numeric(p-1),
-                     ldRX2= numeric(1))
+                     X = X)
           ## offset calculated from fixed parameter value
           resp@offset <- Xw * fw + resp@offset
           newfe <- do.call("new", ll)
@@ -656,20 +651,21 @@ varpr <- function (x)
 ##'     fixed-effects but not with respect to sigma.
 devfun2 <- function(fm)
 {
-    stopifnot(is(fm, "lmerMod"))
+    stopifnot(is(fm, "merMod"), is(fm@resp, "lmerResp"))
     ## force a deep copy.
     fm1 <- new(as.character(class(fm)), fe = fm@fe, resp = fm@resp, call = Quote(fm@call),
-               frame = fm@frame, re = fm@re)
+               frame = fm@frame, re = fm@re, devcomp = fm@devcomp)
     rm(fm)
     th <- fm1@re@theta
     lth <- length(th)
     if (fm1@resp@REML != 0) {
         fm1@resp@REML <- 0L
         bobyqa(th, function(x) {.Call(reUpdateLambda, fm1@re, x);.Call(LMMdeviance, fm1)}, fm1@re@lower)
+        .Call(updateDc, fm1)
     }
 
     basedev <- unname(deviance(fm1))
-    sig <- unname(sigma(fm1))
+    sig <- sigma(fm1)
     lsig <- log(sig)
     np <- lth + 1L
     ans <- function(pars)
@@ -680,10 +676,14 @@ devfun2 <- function(fm)
         pp <- pars[-np]/sigma
         stopifnot(all(pp >= fm1@re@lower))
         .Call(reUpdateLambda, fm1@re, pp)
+### FIXME: change this to a call to a function that updates the profiled deviance for any merMod
         .Call(LMMdeviance, fm1)
+        .Call(updateDc, fm1)
         sigsq <- sigma^2
-        fm1@re@ldL2 + (fm1@resp@wrss + sum(fm1@re@u^2))/sigsq +
-            length(fm1@resp@y) * log(2 * pi * sigsq)
+        dc <- fm1@devcomp
+        cmp <- dc$cmp
+        dims <- dc$dims
+        cmp["ldL2"] + cmp["pwrss"]/sigsq + dims['n'] * log(2 * pi * sigsq)
     }
     opt <- c(sig * th, lsig)
     names(opt) <- c(sprintf(".sig%02d", seq_len(lth)), ".lsig")
@@ -818,7 +818,8 @@ setMethod("profile", "merMod",
                                      .Call(LMMdeviance, fmm1)
                                  },
                                  lower = fmm1@re@lower)
-                  sig <- sqrt((fmm1@resp@wrss + sum(fmm1@re@u^2)) / n)
+                  .Call(updateDc, fmm1)
+                  sig <- sigma(fmm1)
                   c(sign(fw - est) * sqrt(ores$fval - base),
                     fmm1@re@theta * sig, log(sig), mkpar(p, j, fw, fmm1@fe@beta))
               }

@@ -25,18 +25,19 @@ namespace mer {
 	MatrixNs::chmSp     d_Lambda, d_Ut, d_Zt;
 	Rcpp::IntegerVector d_Lind;
 	Rcpp::NumericVector d_lower, d_u, d_cu;
-	double             *d_ldL2, d_sqrLenU;
+	double              d_ldL2, d_sqrLenU;
     public:
 	reModule(Rcpp::S4);
 
-	const Rcpp::NumericVector  &cu() const {return  d_cu;}
- 	const Rcpp::NumericVector   &u() const {return  d_u;}
-	const MatrixNs::chmFr       &L() const {return  d_L;}
-	const MatrixNs::chmSp  &Lambda() const {return  d_Lambda;}
-	const MatrixNs::chmSp      &Ut() const {return  d_Ut;}
-	const MatrixNs::chmSp      &Zt() const {return  d_Zt;}
-	double                    ldL2() const {return *d_ldL2;}
-	double                 sqrLenU() const {return  d_sqrLenU;}
+	const Rcpp::NumericVector  &cu() const {return d_cu;}
+ 	const Rcpp::NumericVector   &u() const {return d_u;}
+	const Rcpp::S4             &xp() const {return d_xp;}
+	const MatrixNs::chmFr       &L() const {return d_L;}
+	const MatrixNs::chmSp  &Lambda() const {return d_Lambda;}
+	const MatrixNs::chmSp      &Ut() const {return d_Ut;}
+	const MatrixNs::chmSp      &Zt() const {return d_Zt;}
+	double                    ldL2() const {return d_ldL2;}
+	double                 sqrLenU() const {return d_sqrLenU;}
 
 	void reweight(Rcpp::NumericMatrix const&,
 		      Rcpp::NumericVector const&);
@@ -45,7 +46,6 @@ namespace mer {
 		  double = 0.);
 	void solveU();
 	void updateDcmp(Rcpp::NumericVector&) const;
-//	void updateLcu();
 	void updateLambda(Rcpp::NumericVector const&);
 	void updateU(Rcpp::NumericVector const&);
 	void zeroU();
@@ -54,7 +54,7 @@ namespace mer {
     class feModule {
     protected:
 	Rcpp::NumericVector d_beta, d_Vtr;
-	double             *d_ldRX2;
+	double              d_ldRX2;
     public:
 	feModule(Rcpp::S4 xp);
 
@@ -62,24 +62,22 @@ namespace mer {
 		     Rcpp::NumericVector const& = Rcpp::NumericVector(),
 		     double = 0.);
 	const Rcpp::NumericVector &beta() const {return  d_beta;}
-//	const Rcpp::NumericVector  &Vtr() const {return  d_Vtr;}
-	double                    ldRX2() const {return *d_ldRX2;}
+	double                    ldRX2() const {return  d_ldRX2;}
     };
 
     class deFeMod : public feModule {
     protected:
-	MatrixNs::dgeMatrix d_X, d_RZX, d_UtV, d_V;
-	MatrixNs::dpoMatrix d_VtV;
-	MatrixNs::Cholesky  d_RX;
+	MatrixNs::dgeMatrix d_RZX, d_X;
+	MatrixNs::Cholesky        d_RX;
+	MatrixNs::dgeMatrix d_UtV, d_V;
+	MatrixNs::dpoMatrix      d_VtV;
+
     public:
-	deFeMod(Rcpp::S4 xp);
+	deFeMod(Rcpp::S4 xp,int);
 
 	const MatrixNs::Cholesky   &RX() const{return d_RX;}
 	const MatrixNs::dgeMatrix   &X() const{return d_X;}
 	const MatrixNs::dgeMatrix &RZX() const{return d_RZX;}
-//	const MatrixNs::dgeMatrix &UtV() const{return d_UtV;}
-//	const MatrixNs::dpoMatrix &VtV() const{return d_VtV;}
-	const MatrixNs::dgeMatrix   &V() const{return d_V;}
 
 	Rcpp::NumericVector updateBeta(Rcpp::NumericVector const&);
 
@@ -94,16 +92,15 @@ namespace mer {
 
     class spFeMod : public feModule {
     protected:
-	MatrixNs::chmSp    d_RZX, d_UtV, d_V, d_VtV, d_X;
+	MatrixNs::chmSp    d_RZX, d_X;
 	MatrixNs::chmFr    d_RX;
+	CHM_SP             d_UtV, d_V, d_VtV;
     public:
-	spFeMod(Rcpp::S4 xp);
+	spFeMod(Rcpp::S4 xp,int);
+	~spFeMod();
 
 	const MatrixNs::chmSp      &X() const{return d_X;}
 	const MatrixNs::chmSp    &RZX() const{return d_RZX;}
-//	const MatrixNs::chmSp    &UtV() const{return d_UtV;}
-	const MatrixNs::chmSp      &V() const{return d_V;}
-//	const MatrixNs::chmSp    &VtV() const{return d_VtV;}
 	const MatrixNs::chmFr     &RX() const{return d_RX;}
 
 	Rcpp::NumericVector updateBeta(Rcpp::NumericVector const&);
@@ -119,21 +116,24 @@ namespace mer {
 
     class merResp {
     protected:
-	double              *d_wrss;
+	Rcpp::S4             d_xp;
+	double               d_wrss;
 	Rcpp::NumericVector  d_offset, d_sqrtrwt, d_wtres, d_mu, d_weights, d_y;
 	Rcpp::NumericMatrix  d_sqrtXwt;
     public:
 	merResp(Rcpp::S4);
 
-	const Rcpp::NumericVector      &mu() const{return  d_mu;}
-	const Rcpp::NumericVector  &offset() const{return  d_offset;}
-	const Rcpp::NumericMatrix &sqrtXwt() const{return  d_sqrtXwt;}
-	const Rcpp::NumericVector &sqrtrwt() const{return  d_sqrtrwt;}
-	const Rcpp::NumericVector   &wtres() const{return  d_wtres;}
-	double                        wrss() const{return *d_wrss;}
+	const Rcpp::NumericVector      &mu() const{return d_mu;}
+	const Rcpp::NumericVector  &offset() const{return d_offset;}
+	const Rcpp::NumericMatrix &sqrtXwt() const{return d_sqrtXwt;}
+	const Rcpp::NumericVector &sqrtrwt() const{return d_sqrtrwt;}
+	const Rcpp::NumericVector   &wtres() const{return d_wtres;}
+	const Rcpp::S4                 &xp() const{return d_xp;}
 
+	double                        wrss() const{return d_wrss;}
 	double                   updateWts(){return updateWrss();}
 	double                  updateWrss();
+
 	void                    updateDcmp(Rcpp::NumericVector&) const;
     };
 
@@ -147,19 +147,20 @@ namespace mer {
 
     class glmerResp : public merResp {
     protected:
-	double              *d_devres;
-	glmFamily            family;
-	Rcpp::NumericVector  d_eta, d_muEta, d_n, d_var;
+	glmFamily                family;
+	Rcpp::NumericVector  d_eta, d_n;
     public:
 	glmerResp(Rcpp::S4 xp);
 
-	const Rcpp::NumericVector &var() const{return d_var;}
-	const Rcpp::NumericVector &eta() const{return d_var;}
+	Rcpp::NumericVector   devResid() const;
+
+	const Rcpp::NumericVector &eta() const{return d_eta;}
+
 	double                 Laplace(double,double,double) const;
-	double                  devres() const{return *d_devres;}
 	double                updateMu(Rcpp::NumericVector const&);
 	double               updateWts();
-	Rcpp::NumericVector   devResid();
+
+	void  updateDcmp(Rcpp::NumericVector&) const;
     };
     
     class nlmerResp : public merResp {
@@ -180,8 +181,8 @@ namespace mer {
     template<typename Tf, typename Tr>  
     class mer {
 	reModule re;
-	Tf fe;
 	Tr resp;
+	Tf fe;
     public:
 	mer(Rcpp::S4 xp);
 
@@ -210,9 +211,9 @@ namespace mer {
     
     template<typename Tf, typename Tr>
     inline mer<Tf,Tr>::mer(Rcpp::S4 xp)
-	: re    (Rcpp::S4(xp.slot("re"))),
-	  fe    (Rcpp::S4(xp.slot("fe"))),
-	  resp (Rcpp::S4(xp.slot("resp"))) {
+	: re   (Rcpp::S4(xp.slot("re"))  ),
+	  resp (Rcpp::S4(xp.slot("resp"))),
+    	  fe   (Rcpp::S4(xp.slot("fe")), resp.mu().size()) {
     }
 
     /** 
