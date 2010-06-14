@@ -190,7 +190,7 @@ namespace mer {
 	    return resp.Laplace(re.ldL2(), fe.ldRX2(), re.sqrLenU());
 	}
 	double LMMdeviance();
-	double PIRLS    (int,Alg);
+	double PIRLS    (Rcpp::NumericVector const&,int,Alg);
 	double setBetaU (Rcpp::NumericVector const&,
 			 Rcpp::NumericVector const&,
 			 Rcpp::NumericVector const&,
@@ -323,16 +323,18 @@ namespace mer {
     }
 
 #define CM_TOL 1.e-4
-#define CM_MAXITER 30
+#define CM_MAXITER 200
 #define CM_SMIN 1.e-4
 
     template<typename Tf, typename Tr> inline
-    double mer<Tf,Tr>::PIRLS(int verb, Alg alg) {
+    double mer<Tf,Tr>::PIRLS(Rcpp::NumericVector const& u0, int verb, Alg alg) {
 	Rcpp::NumericVector bBase(p()), incB(p()), incU(q()), muBase(n()), uBase(q());
 	double crit, step, c0, c1;
 				// sqrtrwt and sqrtXwt must be set
 	crit = 10. * CM_TOL;
-	if (alg != Beta) re.zeroU();
+	if (u0.size() != re.u().size())
+	    throw std::runtime_error("lengths of u0 and re.u() must match");
+	re.setU(u0);
 	updateMu();		// using current beta and u
 	for (int i = 0; crit >= CM_TOL && i < CM_MAXITER; i++) {
 				// store copies of mu, u and beta

@@ -4,7 +4,7 @@
 #include <R_ext/Rdynload.h>
 
 extern "C" SEXP LMMdeviance(SEXP);
-extern "C" SEXP PIRLS(SEXP,SEXP,SEXP);
+extern "C" SEXP PIRLS(SEXP,SEXP,SEXP,SEXP);
 extern "C" SEXP feSetBeta(SEXP,SEXP);
 extern "C" SEXP reUpdateLambda(SEXP,SEXP);
 extern "C" SEXP updateRzxRx(SEXP);
@@ -14,7 +14,7 @@ extern "C" SEXP updateDc(SEXP);
 
 static R_CallMethodDef CallEntries[] = {
     CALLDEF(LMMdeviance, 1),
-    CALLDEF(PIRLS, 3),
+    CALLDEF(PIRLS, 4),
 
     CALLDEF(feSetBeta, 2),
 

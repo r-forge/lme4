@@ -581,17 +581,19 @@ bootMer <- function(x, FUN, nsim = 1, seed = NULL, use.u = FALSE,
 PIRLSest <- function(ans, verbose, control, nAGQ) {
     if (verbose) control$iprint <- 2L
                                         # initial optimization of PLSBeta
+    u0 <- numeric(length(ans@re@u))
     devfun <- function(pars) {
         .Call(reUpdateLambda, ans@re, pars)
-        .Call(PIRLS, ans, verbose, 3L) # optimize u and beta
+        .Call(PIRLS, ans, u0, verbose, 3L) # optimize u and beta
     }
     opt <- bobyqa(ans@re@theta, devfun, ans@re@lower, control = control)
     if (nAGQ == 1L) {
+        u0[] <- ans@re@u 
         thpars <- seq_along(ans@re@theta)
         devfun <- function(pars) {
             .Call(feSetBeta, ans@fe, pars[-thpars])
             .Call(reUpdateLambda, ans@re, pars[thpars])
-            .Call(PIRLS, ans, verbose, 2L) # optimize u only
+            .Call(PIRLS, ans, u0, verbose, 2L) # optimize u only
         }
         bb <- ans@fe@beta
         opt <- bobyqa(c(ans@re@theta, bb), devfun,
