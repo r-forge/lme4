@@ -4,7 +4,7 @@
 \alias{merMod-class}
 \alias{anova,merMod-method}
 \alias{coef,merMod-method}
-\alias{devcomp,merMod-method}
+%\alias{devcomp,merMod-method}
 \alias{deviance,merMod-method}
 %\alias{fixef,merMod-method}
 \alias{formula,merMod-method}
