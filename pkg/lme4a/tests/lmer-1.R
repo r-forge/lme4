@@ -130,10 +130,11 @@ stopifnot(is((cm1 <- coef(m1e)), "coef.mer"),
 	  all.equal(fixef(m1), ##  these values are those of "old-lme4":
 		    c(-1.39853504914, -0.992334711,
 		      -1.12867541477, -1.58037390498),
-		    tol = 1.e-4,
+		    tol = 1.e-3,
                     check.attr=FALSE)
 	  )
-
+## Deviance for the new algorithm is lower, eventually we should change the previous test
+stopifnot(deviance(m1) <= deviance(m1e))
 ## Simple example by Andrew Gelman (2006-01-10) ----
 n.groups <- 10 ; n.reps <- 2
 n <- length(group.id <- gl(n.groups, n.reps))
@@ -181,17 +182,17 @@ if (require('MASS', quietly = TRUE)) {
 
     stopifnot(
 	      all.equal(logLik(fm5),
-			## now	  -96.130582
-			structure(-96.13069, nobs = 220L, nall = 220L,
+			## was	  -96.13069
+			structure(-96.127838, nobs = 220L, nall = 220L,
 				  df = 5L, REML = FALSE,
                                   class = "logLik"),
                         tol = 1e-5, check.attributes = FALSE)
 	      ,
 	      all.equal(fixef(fm5),
-			## now		 2.831631614		 -1.366301172,
-			c("(Intercept)"= 2.831609490, "trtdiag"= -1.366722631,
-			  ## now	 0.5837812921,		 -1.598462111
-			  "trtencourage"=0.5840147802, "wk2TRUE"=-1.598591346), tol = 2e-4)
+			## was		 2.831609490		 -1.366722631
+			c("(Intercept)"= 2.834218798, "trtdiag"= -1.367099481,
+			  ## now	 0.5840147802,		 -1.598591346
+			  "trtencourage"=0.5842291915, "wk2TRUE"=-1.599148773), tol = 1e-4)
 	      )
 }
 

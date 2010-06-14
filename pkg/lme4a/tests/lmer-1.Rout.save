@@ -192,7 +192,7 @@ Fixed effects:
 + 			  c(1,3), dimnames = list("(Intercept)",
 + 				  c("Estimate", "Std. Error", "t value")))))
 > showProc.time() #
-Time elapsed:  7.19 0.03 7.227 
+Time elapsed:  7.26 0.01 7.406 
 > 
 > ### {from ../man/lmer.Rd } --- compare lmer1 & lmer2 ---------------
 > (fmX1 <- lmer1(Reaction ~ Days + (Days|Subject), sleepstudy))
@@ -285,7 +285,7 @@ Days -0.184
 > fmX2s <- lmer2(Reaction ~ Days + (Days|Subject), sleepstudy, sparseX=TRUE)
 > 
 > showProc.time() #
-Time elapsed:  3.48 0 3.485 
+Time elapsed:  3.49 0 3.517 
 > 
 > for(nm in c("coef", "fixef", "ranef", "sigma",
 + 	     "model.matrix", "model.frame" , "terms")) {
@@ -364,22 +364,23 @@ At return
 npt = 11 , n =  5 
 rhobeg =  0.311936 , rhoend =  3.11936e-07 
    0.031:  11:      0.00000;0.641817 -1.36047 -0.976177 -1.11108 -1.55968 
-  0.0031:  18:      100.101;0.644494 -1.40424 -1.00455 -1.14107 -1.58516 
- 0.00031:  33:      100.096;0.641959 -1.39811 -0.992789 -1.12910 -1.58097 
- 3.1e-05:  42:      100.096;0.642219 -1.39850 -0.992474 -1.12869 -1.58022 
- 3.1e-06:  53:      100.096;0.642278 -1.39855 -0.992341 -1.12867 -1.58032 
- 3.1e-07:  63:      100.096;0.642280 -1.39856 -0.992330 -1.12867 -1.58031 
+  0.0031:  18:      100.100;0.650703 -1.40007 -0.993674 -1.13970 -1.57723 
+ 0.00031:  32:      100.095;0.642470 -1.39906 -0.990249 -1.12792 -1.58037 
+ 3.1e-05:  40:      100.095;0.642284 -1.39902 -0.992269 -1.12869 -1.58044 
+ 3.1e-06:  56:      100.095;0.642389 -1.39893 -0.992315 -1.12866 -1.58031 
+ 3.1e-07:  66:      100.095;0.642392 -1.39894 -0.992310 -1.12865 -1.58030 
 At return
- 72:     100.09577: 0.642281 -1.39856 -0.992331 -1.12867 -1.58031
+ 78:     100.09497: 0.642392 -1.39894 -0.992310 -1.12865 -1.58030
 > stopifnot(is((cm1 <- coef(m1e)), "coef.mer"),
 + 	  dim(cm1$herd) == c(15,4),
 + 	  all.equal(fixef(m1), ##  these values are those of "old-lme4":
 + 		    c(-1.39853504914, -0.992334711,
 + 		      -1.12867541477, -1.58037390498),
-+ 		    tol = 1.e-4,
++ 		    tol = 1.e-3,
 +                     check.attr=FALSE)
 + 	  )
-> 
+> ## Deviance for the new algorithm is lower, eventually we should change the previous test
+> stopifnot(deviance(m1) <= deviance(m1e))
 > ## Simple example by Andrew Gelman (2006-01-10) ----
 > n.groups <- 10 ; n.reps <- 2
 > n <- length(group.id <- gl(n.groups, n.reps))
@@ -503,7 +504,7 @@ $Subject
 
 > 
 > showProc.time() #
-Time elapsed:  3.65 0.02 3.668 
+Time elapsed:  3.74 0.01 3.824 
 > 
 > if (require('MASS', quietly = TRUE)) {
 +     bacteria$wk2 <- bacteria$week > 2
@@ -517,17 +518,17 @@ Time elapsed:  3.65 0.02 3.668
 + 
 +     stopifnot(
 + 	      all.equal(logLik(fm5),
-+ 			## now	  -96.130582
-+ 			structure(-96.13069, nobs = 220L, nall = 220L,
++ 			## was	  -96.13069
++ 			structure(-96.127838, nobs = 220L, nall = 220L,
 + 				  df = 5L, REML = FALSE,
 +                                   class = "logLik"),
 +                         tol = 1e-5, check.attributes = FALSE)
 + 	      ,
 + 	      all.equal(fixef(fm5),
-+ 			## now		 2.831631614		 -1.366301172,
-+ 			c("(Intercept)"= 2.831609490, "trtdiag"= -1.366722631,
-+ 			  ## now	 0.5837812921,		 -1.598462111
-+ 			  "trtencourage"=0.5840147802, "wk2TRUE"=-1.598591346), tol = 2e-4)
++ 			## was		 2.831609490		 -1.366722631
++ 			c("(Intercept)"= 2.834218798, "trtdiag"= -1.367099481,
++ 			  ## now	 0.5840147802,		 -1.598591346
++ 			  "trtencourage"=0.5842291915, "wk2TRUE"=-1.599148773), tol = 1e-4)
 + 	      )
 + }
 Generalized linear mixed model fit by maximum likelihood ['merMod']
@@ -535,26 +536,26 @@ Generalized linear mixed model fit by maximum likelihood ['merMod']
 Formula: y ~ trt + wk2 + (1 | ID) 
    Data: bacteria 
      AIC      BIC   logLik deviance 
-202.2612 219.2293 -96.1306 192.2612 
+202.2557 219.2238 -96.1278 192.2557 
 
 Random effects:
  Groups Name        Variance Std.Dev.
- ID     (Intercept) 1.544    1.242   
+ ID     (Intercept) 1.550    1.245   
 Number of obs: 220, groups: ID, 50
 
 Fixed effects:
              Estimate Std. Error z value
-(Intercept)    2.8316     0.4466   6.341
-trtdiag       -1.3663     0.6566  -2.081
-trtencourage   0.5838     0.6734   0.867
-wk2TRUE       -1.5985     0.4612  -3.466
+(Intercept)    2.8342     0.4469   6.341
+trtdiag       -1.3671     0.6574  -2.079
+trtencourage   0.5842     0.6743   0.866
+wk2TRUE       -1.5991     0.4614  -3.466
 
 Correlation of Fixed Effects:
             (Intr) trtdig trtncr
 trtdiag     -0.044              
 trtencourag  0.064 -0.495       
-wk2TRUE     -0.794  0.063 -0.056
-Time elapsed:  1.59 0 1.602 
+wk2TRUE     -0.793  0.063 -0.056
+Time elapsed:  1.8 0.03 1.877 
 > 
 > ## Invalid factor specification -- used to seg.fault:
 > set.seed(1)
@@ -701,7 +702,7 @@ lagoon4 0.000  0.000  0.000
 +             )
 > 
 > showProc.time() #
-Time elapsed:  1.79 0.01 1.812 
+Time elapsed:  1.82 0.01 1.867 
 > 
 > ## Wrong formula gave a seg.fault at times:
 > set.seed(2)# !
@@ -721,7 +722,7 @@ Warning message:
 In Ops.factor(ff, x1) : + not meaningful for factors
 > 
 > showProc.time() #
-Time elapsed:  19.27 0.02 19.513 
+Time elapsed:  19.72 0.02 19.887 
 > 
 > ## Reordering of grouping factors should not change the internal structure
 > Pm1  <- lmer1(strength ~ (1|batch) + (1|sample), Pastes, doFit = FALSE)
@@ -778,31 +779,31 @@ Generalized linear mixed model fit by maximum likelihood ['merMod']
 Formula: y ~ x + (1 | f) + (1 | obs) 
    Data: dd 
       AIC       BIC    logLik  deviance 
- 6712.755  6726.678 -3352.378  6704.755 
+ 606.6107  620.5333 -299.3054  598.6107 
 
 Random effects:
  Groups Name        Variance Std.Dev.
- obs    (Intercept) 0.08444  0.2906  
- f      (Intercept) 0.00000  0.0000  
+ obs    (Intercept) 0.3005   0.5482  
+ f      (Intercept) 1.5217   1.2336  
 Number of obs: 240, groups: obs, 240; f, 12
 
 Fixed effects:
             Estimate Std. Error z value
-(Intercept)  1.72321    0.05703   30.22
-x            1.88974    0.09080   20.81
+(Intercept)   0.8354     0.3713    2.25
+x             1.9904     0.1665   11.95
 
 Correlation of Fixed Effects:
   (Intr)
-x -0.895
+x -0.250
 > anova(m0, m1)
 Data: dd
 Models:
 m0: y ~ x + (1 | f)
 m1: y ~ x + (1 | f) + (1 | obs)
-   Df    AIC    BIC  logLik Chisq Chi Df Pr(>Chisq)
-m0  3 1679.6 1690.0  -836.8                        
-m1  4 6712.8 6726.7 -3352.4     0      1          1
+   Df     AIC     BIC  logLik  Chisq Chi Df Pr(>Chisq)
+m0  3 1636.52 1646.96 -815.26                         
+m1  4  606.61  620.53 -299.31 1031.9      1  < 2.2e-16
 > 
 > showProc.time()
-Time elapsed:  4.55 0.02 4.64 
+Time elapsed:  2.99 0.01 3.087 
 > 
