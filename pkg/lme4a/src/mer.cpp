@@ -671,7 +671,7 @@ RCPP_FUNCTION_1(double, LMMdeviance, S4 xp) {
     } else throw runtime_error("fe slot is neither deFeMod nor spFeMod");
 }
 
-RCPP_FUNCTION_3(double, PIRLS, S4 xp, int verb, int alg) {
+RCPP_FUNCTION_4(double, PIRLS, S4 xp, NumericVector u0, int verb, int alg) {
     if (alg < 1 || alg > 3) throw range_error("alg must be 1, 2 or 3");
     mer::Alg aa = (alg == 1) ? mer::Beta : ((alg == 2) ? mer::U : mer::BetaU);
     S4 fe(xp.slot("fe")), resp(xp.slot("resp"));
@@ -681,18 +681,18 @@ RCPP_FUNCTION_3(double, PIRLS, S4 xp, int verb, int alg) {
     if (resp.is("glmerResp")) {
 	if (de) {
 	    mer::mer<mer::deFeMod,mer::glmerResp> glmr(xp);
-	    return glmr.PIRLS(verb, aa);
+	    return glmr.PIRLS(u0, verb, aa);
 	} else {
 	    mer::mer<mer::spFeMod,mer::glmerResp> glmr(xp);
-	    return glmr.PIRLS(verb, aa);
+	    return glmr.PIRLS(u0, verb, aa);
 	}
     } else if (resp.is("nlmerResp")) {
 	if (de) {
 	    mer::mer<mer::deFeMod,mer::nlmerResp> nlmr(xp);
-	    return nlmr.PIRLS(verb, aa);
+	    return nlmr.PIRLS(u0, verb, aa);
 	} else {
 	    mer::mer<mer::spFeMod,mer::nlmerResp> nlmr(xp);
-	    return nlmr.PIRLS(verb, aa);
+	    return nlmr.PIRLS(u0, verb, aa);
 	}
     }
     throw runtime_error("resp slot is not glmerResp or nlmerResp in PIRLS");
