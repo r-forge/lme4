@@ -20,6 +20,7 @@ namespace mer {
     void showint(const int*, const char*, int);
 
     class reModule {
+    protected:
 	Rcpp::S4            d_xp;
 	MatrixNs::chmFr     d_L;
 	MatrixNs::chmSp     d_Lambda, d_Ut, d_Zt;
@@ -52,6 +53,20 @@ namespace mer {
 	void zeroU();
     };
 
+    class reTrms : public reModule {
+	Rcpp::List          d_flist, d_cnms;
+	Rcpp::IntegerVector d_assign;
+    public:
+	reTrms(Rcpp::S4);
+
+	Rcpp::IntegerVector   nlevs() const; // number of levels per factor
+	Rcpp::IntegerVector   ncols() const; // number of columns per term
+	Rcpp::IntegerVector   nctot() const; // total number of columns per factor
+	Rcpp::IntegerVector offsets() const; // offsets into b vector for each term
+	Rcpp::IntegerVector   terms(int) const; // 0-based indices of terms for a factor
+	Rcpp::List condVar(double);
+    };
+	
     class feModule {
     protected:
 	Rcpp::NumericVector d_beta, d_Vtr;
