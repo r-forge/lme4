@@ -208,7 +208,8 @@ namespace mer{
 	setU(NumericVector(SEXP(ans)));
     }
 
-    void reModule::updateDcmp(Rcpp::NumericVector &cmp) const {
+//    void reModule::updateDcmp(Rcpp::NumericVector &cmp) const {  // Need Matrix_0.999375-42 or later
+    void reModule::updateDcmp(Rcpp::NumericVector &cmp) {
 	cmp["ldL2"] = d_L.logDet2();
 	cmp["ussq"] = inner_product(d_u.begin(), d_u.end(),
 				    d_u.begin(), double());
@@ -543,9 +544,9 @@ namespace mer{
     }
 
     spFeMod::~spFeMod() {
-	M_cholmod_free_sparse(&d_VtV, &c);
-	M_cholmod_free_sparse(&d_V, &c);
-	M_cholmod_free_sparse(&d_UtV, &c);
+	if (d_VtV) M_cholmod_free_sparse(&d_VtV, &c);
+	if (d_V) M_cholmod_free_sparse(&d_V, &c);
+	if (d_UtV) M_cholmod_free_sparse(&d_UtV, &c);
     }
 
     /** 
@@ -583,9 +584,9 @@ namespace mer{
 	double mone[] = {-1.,0}, one[] = {1.,0};
 	CHM_SP t1 = Lambda.crossprod(d_UtV);
 	CHM_SP t2 = L.spsolve(CHOLMOD_P, t1);
-	::M_cholmod_free_sparse(&t1, &c);
+	M_cholmod_free_sparse(&t1, &c);
 	t1 = L.spsolve(CHOLMOD_L, t2);
-	::M_cholmod_free_sparse(&t2, &c);
+	M_cholmod_free_sparse(&t2, &c);
 	d_RZX.update(*t1);
 	M_cholmod_free_sparse(&t1, &c);	
 	
@@ -621,17 +622,17 @@ namespace mer{
 		     "deFeMod::reweight", "X", Xnr, Xnc,
 		     "Xwt", Wnr, Wnc);
 	if (Wnc == 1) {
-	    M_cholmod_free_sparse(&d_V, &c);
+	    if (d_V) M_cholmod_free_sparse(&d_V, &c);
 	    d_V = M_cholmod_copy_sparse(&d_X, &c);
 	    chmDn csqrtX(sqrtXwt);
 	    M_cholmod_scale(&csqrtX, CHOLMOD_ROW, d_V, &c);
 	} else throw runtime_error("spFeMod::reweight: multiple columns in sqrtXwt");
 // FIXME rewrite this using the triplet representation
 	
-	M_cholmod_free_sparse(&d_UtV, &c);
+	if (d_UtV) M_cholmod_free_sparse(&d_UtV, &c);
 	d_UtV = M_cholmod_ssmult(&Ut, d_V, 0/*styp*/,1/*vals*/,1/*srtd*/, &c);
 
-	M_cholmod_free_sparse(&d_VtV, &c);
+	if (d_VtV) M_cholmod_free_sparse(&d_VtV, &c);
 	CHM_SP t1 = M_cholmod_transpose(d_V, 1/*vals*/, &c);
 	d_VtV = M_cholmod_ssmult(t1, d_V, 1/*styp*/,1/*vals*/,1/*srtd*/, &c);
 	M_cholmod_free_sparse(&t1, &c);
@@ -651,7 +652,8 @@ namespace mer{
 	copy(ans.begin(), ans.end(), d_beta.begin());
     }
 
-    void spFeMod::updateDcmp(Rcpp::NumericVector& cmp) const {
+//    void spFeMod::updateDcmp(Rcpp::NumericVector& cmp) const {  // needs Matrix_0.999375-42 or later
+    void spFeMod::updateDcmp(Rcpp::NumericVector& cmp) {
 	cmp["ldRX2"] = d_RX.logDet2();
     }
 
@@ -739,11 +741,18 @@ RCPP_FUNCTION_VOID_1(updateDc, S4 xp) {
     IntegerVector dims = ll["dims"];
     S4 fe(xp.slot("fe")), re(xp.slot("re"));
     mer::merResp resp(S4(xp.slot("resp")));
-    mer::reModule(re).updateDcmp(cmp);
+    mer::reModule reM(re);
+    reM.updateDcmp(cmp); // with Matrix_0.999375-42 or later can do this in one step
+//    mer::reModule(re).updateDcmp(cmp); // need Matrix_0.999375-42 or later
     resp.updateDcmp(cmp);
     int n = resp.mu().size();
     if (fe.is("deFeMod")) mer::deFeMod(fe, n).updateDcmp(cmp);
-    if (fe.is("spFeMod")) mer::spFeMod(fe, n).updateDcmp(cmp);
+    if (fe.is("spFeMod")) // mer::spFeMod(fe, n).updateDcmp(cmp);   // needs Matrix_0.999375-42 or later
+    {
+	mer::spFeMod spFe(fe, n);
+	spFe.updateDcmp(cmp);
+    }
+
     cmp["sigmaREML"] = cmp["sigmaML"] * sqrt((double)dims["n"]/(double)dims["nmp"]);
 
     ll["cmp"] = cmp;		// should this be necessary?
