@@ -950,10 +950,7 @@ setMethod("isREML", "mer",	function(x) FALSE)
 
 setMethod("getCall", "merenv",	function(x) env(x)$call)
 setMethod("getCall", "mer",	function(x) x@call)
-setGeneric("refitML", function(x) {
-    if (!isREML(x)) return(x)
-    update(x, REML = FALSE)
-})
+
 ## A more effective method for merMod objects is defined in lmer2.R
 
 ##' <description>
@@ -1245,18 +1242,22 @@ formatVC <- function(varc, digits = max(3, getOption("digits") - 2),
 	corr <-
 	    do.call("rBind",
 		    lapply(recorr,
-			   function(x, maxlen) {
+			   function(x) {
 			       x <- as(x, "matrix")
 			       cc <- format(round(x, 3), nsmall = 3)
 			       cc[!lower.tri(cc)] <- ""
 			       nr <- dim(cc)[1]
 			       if (nr >= maxlen) return(cc)
 			       cbind(cc, matrix("", nr, maxlen-nr))
-			   }, maxlen))
-	colnames(corr) <- c("Corr", rep.int("", maxlen - 1))
-	cbind(reMat, rBind(corr, rep.int("", ncol(corr))))
+			   }))[, -maxlen, drop = FALSE]
+        if (nrow(corr) < nrow(reMat))
+            corr <- rbind(corr, matrix("", nr = nrow(reMat) - nrow(corr), nc = ncol(corr)))
+	colnames(corr) <- rep.int("", ncol(corr))
+        colnames(corr)[1] <- "Corr"
+	cbind(reMat, corr)
     } else reMat
 }
+
 
 .summMer <- function(x, rho, devC, flags, varcov = FALSE)
 {
