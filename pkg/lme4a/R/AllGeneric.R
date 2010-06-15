@@ -31,6 +31,13 @@ setGeneric("getCall", function(x) standardGeneric("getCall"),
 ## utilities, these *exported*:
 setGeneric("getL", function(x) standardGeneric("getL"))
 
+refitML <- function(x) {
+    if (!isREML(x)) return(x)
+    update(x, REML = FALSE)
+}
+setGeneric("refitML", function(x) standardGeneric("refitML"))
+
+
 
 fixed.effects <- function(object, ...) {
     ## fixed.effects was an alternative name for fixef
