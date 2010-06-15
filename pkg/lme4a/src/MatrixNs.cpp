@@ -458,8 +458,8 @@ namespace MatrixNs{
 			      (int*)NULL, (size_t) 0, this, &c);
     }
 
-    double chmFr::logDet2() const {   // Need Matrix_0.999375-42 or later
-//    double chmFr::logDet2() {
+//    double chmFr::logDet2() const {   // Need Matrix_0.999375-42 or later
+    double chmFr::logDet2() {
 	return M_chm_factor_ldetL2(this);
     }
 
@@ -713,4 +713,6 @@ namespace MatrixNs{
 	: cholmod_dense() {
 	this->init(m.x().begin(), m.nrow(), m.ncol());
     }
+
 }
+

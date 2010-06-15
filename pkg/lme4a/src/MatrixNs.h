@@ -217,8 +217,8 @@ namespace MatrixNs {
 	chmFr(Rcpp::S4);
 
 	const Rcpp::S4& S4() const;
-	double logDet2() const;
-//	double logDet2();
+//      double logDet2() const {   // Need Matrix_0.999375-42 or later
+	double logDet2();
 
 	void update(cholmod_sparse const &A, double Imult = 0.); 
 
@@ -228,7 +228,18 @@ namespace MatrixNs {
 
 	CHM_SP spsolve(int sys, const_CHM_SP b) const;
 	CHM_SP spsolve(int sys, chmSp const &b) const;
+    };
 
+    class Permutation {
+	Rcpp::IntegerVector d_perm;
+	int n;
+    public:
+	Permutation(Rcpp::IntegerVector&);
+
+	Rcpp::NumericVector forward(Rcpp::NumericVector const&) const;
+	Rcpp::NumericVector inverse(Rcpp::NumericVector const&) const;
+	void inPlaceFwd(Rcpp::NumericVector&) const;
+	void inPlaceInv(Rcpp::NumericVector&) const;
     };
 }
 
