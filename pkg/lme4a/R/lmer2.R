@@ -101,7 +101,6 @@ mkReTrms <- function(bars, fr, s = 1L) {
     }
 
     ll$L <- Cholesky(tcrossprod(ll$Ut), LDL = FALSE, Imult = 1)
-###    ll$ldL2 <- numeric(1)
                                         # massage the factor list
     fl <- lapply(blist, "[[", "ff")
     asgn <- seq_along(fl)
@@ -823,8 +822,7 @@ setMethod("ranef", signature(object = "merMod"),
               ans <- ans[whchL]
               
               if (postVar) {
-                  ## FIXME: write a native version of condVar
-                  vv <- .Call(merenvtrms_condVar, as(object, "merenv"), sigma(object))
+                  vv <- .Call(reTrmsCondVar, re, sigma(object))
                   for (i in seq_along(ans))
                       attr(ans[[i]], "postVar") <- vv[[i]]
               }
