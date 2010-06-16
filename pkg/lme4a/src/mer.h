@@ -183,7 +183,7 @@ namespace mer {
 
     class glmerResp : public merResp {
     protected:
-	glmFamily                family;
+	glm::glmFamily           family;
 	Rcpp::NumericVector  d_eta, d_n;
     public:
 	glmerResp(Rcpp::S4 xp);
@@ -278,7 +278,7 @@ namespace mer {
      * @param incB increment for beta vector
      * @param incU increment for u vector
      * @param step step factor
-     * @param which 1 => beta only, 2 => u only, 3 => beta and u
+     * @param alg  algorithm
      * 
      * @return penalized, weighted residual sum of squares
      */
