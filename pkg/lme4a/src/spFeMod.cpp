@@ -76,10 +76,10 @@ namespace mer {
      * Update V, UtV and Vtr
      * 
      * @param Ut from the reModule
-     * @param Xwt square root of the weights for the model matrices
+     * @param sqrtXwt square root of the weights for the model matrices
      * @param wtres weighted residuals
      */
-    void spFeMod::reweight(chmSp         const&      Ut,
+    void spFeMod::reweight(chmSp               const&      Ut,
 			   Rcpp::NumericMatrix const& sqrtXwt,
 			   Rcpp::NumericVector const&   wtres) {
 	double one = 1., zero = 0.;
