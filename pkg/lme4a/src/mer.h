@@ -19,6 +19,22 @@ namespace mer {
 		  Rcpp::NumericVector const&, const char*);
     void showint(const int*, const char*, int);
 
+    struct lengthFun : std::unary_function<Rcpp::RObject, R_len_t> {
+	inline R_len_t operator() (Rcpp::RObject const& x) {return Rf_length(SEXP(x));}
+    };
+
+    struct nlevsFun : std::unary_function<Rcpp::RObject, R_len_t> {
+	inline R_len_t operator() (Rcpp::RObject const& x) {
+	    return Rf_length(Rf_getAttrib(SEXP(x), R_LevelsSymbol));
+	}
+    };
+
+    struct sqrtquotFun : std::binary_function<double,double,double> {
+	inline double operator() (double x, double y) {
+	    return sqrt(x / y);
+	}
+    };
+
     class reModule {
     protected:
 	Rcpp::S4            d_xp;
@@ -59,12 +75,15 @@ namespace mer {
     public:
 	reTrms(Rcpp::S4);
 
-	Rcpp::IntegerVector   nlevs() const; // number of levels per factor
-	Rcpp::IntegerVector   ncols() const; // number of columns per term
-	Rcpp::IntegerVector   nctot() const; // total number of columns per factor
-	Rcpp::IntegerVector offsets() const; // offsets into b vector for each term
-	Rcpp::IntegerVector   terms(int) const; // 0-based indices of terms for a factor
-	Rcpp::List condVar(double);
+	Rcpp::IntegerVector const& assign() const {return d_assign;}
+	Rcpp::IntegerVector         nlevs() const; // number of levels per factor
+	Rcpp::IntegerVector         ncols() const; // number of columns per term
+	Rcpp::IntegerVector         nctot() const; // total number of columns per factor
+	Rcpp::IntegerVector       offsets() const; // offsets into b vector for each term
+	Rcpp::IntegerVector         terms(int) const; // 0-based indices of terms for a factor
+	Rcpp::List                condVar(double);
+	Rcpp::List const&            cnms() const {return d_cnms;}
+	Rcpp::List const&           flist() const {return d_flist;}
     };
 	
     class feModule {
