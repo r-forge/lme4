@@ -15,23 +15,23 @@ etapos <-
 mubinom <-
     lapply(list(runif(100, 0, 1),
                 rbeta(100, 1, 3),
-                rbeta(100, 0.1, 3),
-                c(eps, rbeta(100, 3, 0.1), oneMeps)), as.numeric)
+                pmin(pmax(eps, rbeta(100, 0.1, 3)), oneMeps),
+                pmin(pmax(eps, rbeta(100, 3, 0.1)), oneMeps)), as.numeric)
 
-tst.fam <- function(fam, lst, Rname, Cname) 
+tst.fam <- function(fam, lst, Rname)
     lapply(lst, function(x)
            checkEquals(fam[[Rname]](x),
-                       .Call(Cname, fam, x, PACKAGE = "lme4a")))
-tst.lnki <- function(fam, lst) tst.fam(fam, lst, "linkinv", "family_linkinv")
-tst.link <- function(fam, lst) tst.fam(fam, lst, "linkfun", "family_link")
-tst.muEta <- function(fam, lst) tst.fam(fam, lst, "mu.eta", "family_muEta")
+                       .Call(lme4a:::testFam, fam, x, Rname)))
+tst.lnki <- function(fam, lst) tst.fam(fam, lst, "linkinv")
+tst.link <- function(fam, lst) tst.fam(fam, lst, "linkfun")
+tst.muEta <- function(fam, lst) tst.fam(fam, lst, "mu.eta")
 
-test.uncons.lnki.R <- function() {  # check link for unconstrained eta
+test.uncons.lnki.R <- function() { # check link for unconstrained eta
     tst.lnki(binomial(), etas)     # binomial with default, logit link
     tst.muEta(binomial(), etas)
-    tst.lnki(binomial("probit"), etas)   # binomial with probit link
+    tst.lnki(binomial("probit"), etas)  # binomial with probit link
     tst.muEta(binomial("probit"), etas)
-    tst.lnki(poisson(), etas)   # Poisson with default, log link
+    tst.lnki(poisson(), etas)         # Poisson with default, log link
     tst.muEta(poisson(), etas)
     tst.lnki(gaussian(), etas)  # Gaussian with default, identity link
     tst.muEta(gaussian(), etas)
