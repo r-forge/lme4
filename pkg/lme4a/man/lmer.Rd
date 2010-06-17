@@ -18,7 +18,7 @@
 \usage{
 lmer(formula, data, REML = TRUE, sparseX = FALSE,
       control = list(), start = NULL, verbose = 0,
-      doFit = TRUE,%% TODO ??  add choice of optimizer as well (and compDev = TRUE/FALSE)  ??
+      doFit = TRUE, compDev = TRUE,
       subset, weights, na.action, offset,
       contrasts = NULL, \dots)
 
@@ -45,7 +45,7 @@ lmer1(formula, data, REML = TRUE, sparseX = FALSE,
       contrasts = NULL, \dots)
 lmer2(formula, data, REML = TRUE, sparseX = FALSE,
       control = list(), start = NULL, verbose = 0,
-      doFit = TRUE,%% TODO ??  add choice of optimizer as well (and compDev = TRUE/FALSE)  ??
+      doFit = TRUE, compDev = TRUE,
       subset, weights, na.action, offset,
       contrasts = NULL, \dots)
 
