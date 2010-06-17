@@ -14,6 +14,7 @@ namespace mer {
     void showCHM_DN(const_CHM_DN, std::string const&);
     void showCHM_FR(const_CHM_FR, std::string const&);
     void showCHM_SP(const_CHM_SP, std::string const&);
+    void showdMat(MatrixNs::ddenseMatrix const&, std::string const&);
     void showdbl(const double*, const char*, int);
     void showincr(double,double,double,
 		  Rcpp::NumericVector const&, const char*);
@@ -35,14 +36,21 @@ namespace mer {
 	}
     };
 
+    struct sqrtFun : std::unary_function<double,double> {
+	inline double operator() (double x) {
+	    return sqrt(x);
+	}
+    };
+
     class reModule {
     protected:
 	Rcpp::S4            d_xp;
 	MatrixNs::chmFr     d_L;
-	MatrixNs::chmSp     d_Lambda, d_Ut, d_Zt;
+	MatrixNs::chmSp     d_Lambda, d_Zt;
 	Rcpp::IntegerVector d_Lind;
 	Rcpp::NumericVector d_lower, d_u, d_cu;
 	double              d_ldL2, d_sqrLenU;
+	CHM_SP              d_Ut;
     public:
 	reModule(Rcpp::S4);
 
@@ -51,7 +59,7 @@ namespace mer {
 	const Rcpp::S4             &xp() const {return d_xp;}
 	const MatrixNs::chmFr       &L() const {return d_L;}
 	const MatrixNs::chmSp  &Lambda() const {return d_Lambda;}
-	const MatrixNs::chmSp      &Ut() const {return d_Ut;}
+	const cholmod_sparse       *Ut() const {return d_Ut;}
 	const MatrixNs::chmSp      &Zt() const {return d_Zt;}
 	double                    ldL2() const {return d_ldL2;}
 	double                 sqrLenU() const {return d_sqrLenU;}
@@ -116,7 +124,7 @@ namespace mer {
 
 	Rcpp::NumericVector updateBeta(Rcpp::NumericVector const&);
 
-	void reweight(MatrixNs::chmSp     const&,
+	void reweight(cholmod_sparse      const*,
 		      Rcpp::NumericMatrix const&,
 		      Rcpp::NumericVector const&);
 	void solveBeta();
@@ -140,7 +148,7 @@ namespace mer {
 
 	Rcpp::NumericVector updateBeta(Rcpp::NumericVector const&);
 
-	void reweight(MatrixNs::chmSp     const&,
+	void reweight(cholmod_sparse      const*,
 		      Rcpp::NumericMatrix const&,
 		      Rcpp::NumericVector const&);
 	void solveBeta();
@@ -154,7 +162,8 @@ namespace mer {
     protected:
 	Rcpp::S4             d_xp;
 	double               d_wrss;
-	Rcpp::NumericVector  d_offset, d_sqrtrwt, d_wtres, d_mu, d_weights, d_y;
+	Rcpp::NumericVector  d_offset, d_weights, d_y; // read-only slots
+	Rcpp::NumericVector  d_sqrtrwt, d_wtres, d_mu; // writeable slots
 	Rcpp::NumericMatrix  d_sqrtXwt;
     public:
 	merResp(Rcpp::S4);

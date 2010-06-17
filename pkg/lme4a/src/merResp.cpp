@@ -4,18 +4,17 @@ using namespace std;
 
 namespace mer{
     merResp::merResp(Rcpp::S4 xp)
-	: d_xp(xp),
-	  d_offset(xp.slot("offset")),
-	  d_sqrtrwt(xp.slot("sqrtrwt")),
-	  d_wtres(xp.slot("wtres")),
-	  d_mu(xp.slot("mu")),
-	  d_weights(xp.slot("weights")),
-	  d_y(xp.slot("y")),
-	  d_sqrtXwt(SEXP(xp.slot("sqrtXwt"))) {
+	: d_xp(                      xp),
+	  d_offset(                  xp.slot("offset")),
+	  d_weights(                 xp.slot("weights")),
+	  d_y(                       xp.slot("y")),
+	  d_sqrtrwt(                d_y.size()),
+	  d_wtres(                  d_y.size()),
+	  d_mu(                     d_y.size()),
+	  d_sqrtXwt(d_y.size(), d_offset.size()/d_y.size()) {
 	int n = d_y.size(), os = d_offset.size();
-	if (d_mu.size() != n || d_wtres.size() != n ||
-	    d_weights.size() != n || d_sqrtrwt.size() != n)
-	    Rf_error("y, mu, sqrtrwt, wtres and weights slots must have equal lengths");
+	if (d_mu.size() != n || d_weights.size() != n || d_sqrtrwt.size() != n)
+	    Rf_error("y, mu, sqrtrwt and weights slots must have equal lengths");
 	if (os < 1 || os % n)
 	    Rf_error("length(offset) must be a positive multiple of length(y)");
     }

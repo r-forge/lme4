@@ -5,20 +5,16 @@ using namespace MatrixNs;
 using namespace std;
 
 namespace mer{
-
-//FIXME: change d_Ut to a CHM_SP and write a separate utility to take
-//sqrtXwt and a sparse matrix.
     reModule::reModule(S4 xp)
-	: d_xp(       xp),
-	  d_L(     S4(xp.slot("L"))),
-	  d_Lambda(S4(xp.slot("Lambda"))),
-	  d_Ut(    S4(xp.slot("Ut"))),
-	  d_Zt(    S4(xp.slot("Zt"))),
-	  d_Lind(     xp.slot("Lind")),
-	  d_lower(    xp.slot("lower")),
-	  d_u(        xp.slot("u")),
-	  d_cu(      d_u.size()),
-	  d_sqrLenU(inner_product(d_u.begin(), d_u.end(), d_u.begin(), double())) {
+	: d_xp(             xp),
+	  d_L(     S4(clone(SEXP(xp.slot("L"))))),
+	  d_Lambda(S4(clone(SEXP(xp.slot("Lambda"))))),
+	  d_Zt(          S4(xp.slot("Zt"))),
+	  d_Lind(           xp.slot("Lind")),
+	  d_lower(          xp.slot("lower")),
+	  d_u(              d_L.n),       
+	  d_cu(             d_L.n) {
+	d_Ut = (CHM_SP)NULL;
     }
 
     /** 
@@ -34,9 +30,11 @@ namespace mer{
 			    Rcpp::NumericVector const& wtres) {
 	double mone = -1., one = 1.; 
 	int Wnc = Xwt.ncol();
+	if (d_Ut) M_cholmod_free_sparse(&d_Ut, &c);
 	if (Wnc == 1) {
-	    d_Ut.update(d_Zt);	// copy Zt to Ut
-	    d_Ut.scale(CHOLMOD_COL, chmDn(Xwt));
+	    d_Ut = M_cholmod_copy_sparse(&d_Zt, &c);
+	    chmDn csqrtX(Xwt);
+	    M_cholmod_scale(&csqrtX, CHOLMOD_COL, d_Ut, &c);
 	} else {
 	    int n = Xwt.nrow();
 	    CHM_TR tr = M_cholmod_sparse_to_triplet(&d_Zt, &c);
@@ -48,10 +46,8 @@ namespace mer{
 	    }
 	    tr->ncol = (size_t)n;
 
-	    CHM_SP sp = M_cholmod_triplet_to_sparse(tr, nnz, &c);
+	    d_Ut = M_cholmod_triplet_to_sparse(tr, nnz, &c);
 	    M_cholmod_free_triplet(&tr, &c);
-	    d_Ut.update(*sp);
-	    M_cholmod_free_sparse(&sp, &c);
 	}
 				// update the factor L
 	CHM_SP LambdatUt = d_Lambda.crossprod(d_Ut);
@@ -118,21 +114,18 @@ namespace mer{
      * @param nt New value of theta
      */
     void reModule::updateLambda(NumericVector const& nt) {
-	if (nt.size() != d_lower.size())
-	    Rf_error("%s: %s[1:%d], expected [1:%d]",
-		     "updateLambda", "newtheta",
-		     nt.size(), d_lower.size());
-	double *th = nt.begin(), *ll = d_lower.begin();
-				// check for a feasible point
-	for (int i = 0; i < nt.size(); i++)
-	    if (th[i] < ll[i] || !R_finite(th[i]))
-		Rf_error("updateLambda: theta not in feasible region");
-				// store (a copy of) theta
-	d_xp.slot("theta") = clone(nt);
+	int nth = d_lower.size();
+	if (nt.size() != nth)
+	    throw runtime_error("size mismatch of nt and d_lower in updateLambda");
+				// check that nt is feasible
+	double *Lamx = (double*)d_Lambda.x,
+	    *ll = d_lower.begin(), *th = nt.begin();
+	for (R_len_t i = 0; i < nth; ++i)
+	    if (th[i] < ll[i])
+		throw runtime_error("updateLambda: theta not in feasible region");
 				// update Lambda from theta and Lind
-	double *Lamx = (double*)d_Lambda.x;
 	int *Li = d_Lind.begin(), Lis = d_Lind.size();
-	for (int i = 0; i < Lis; i++) Lamx[i] = th[Li[i] - 1];
+	for (R_len_t i = 0; i < Lis; i++) Lamx[i] = th[Li[i] - 1];
     }
 
     /** 
