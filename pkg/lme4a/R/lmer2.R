@@ -381,8 +381,7 @@ S4toEnv <- function(from) {
 
 lmer2 <- function(formula, data, REML = TRUE, sparseX = FALSE,
                   control = list(), start = NULL,
-                  verbose = 0, doFit = TRUE,
-                  ## think of also copying 'compDev = FALSE' from lmer1()
+                  verbose = 0, doFit = TRUE, compDev = FALSE,
                   ## TODO: optimizer = c("bobyqa", "nlminb", "optimize", "optim"),
                   subset, weights, na.action, offset,
                   contrasts = NULL, ...)
@@ -433,10 +432,7 @@ lmer2 <- function(formula, data, REML = TRUE, sparseX = FALSE,
 	       re = reTrms, fe = feMod, resp = respMod)
     if (doFit) {                        # optimize estimates
         if (verbose) control$iprint <- 2L
-        devfun <- function(th) {
-            .Call(reUpdateLambda, ans@re, th)
-            .Call(LMMdeviance, ans)
-        }
+        devfun <- mkdevfun(ans, compDev = compDev)
         opt <- bobyqa(ans@re@theta, devfun, ans@re@lower, control = control)
         .Call(updateDc, ans)
         ans@devcomp$cmp[ifelse(REML, "REML", "dev")] <- opt$fval
@@ -444,6 +440,81 @@ lmer2 <- function(formula, data, REML = TRUE, sparseX = FALSE,
     ans
 }
 
+##' <description>
+##' Returns a function that evaluates the deviance from parameter values
+##' <details>
+##' From an merMod object create an R function that takes a single
+##' argument, which is the new parameter value, and returns the
+##' deviance
+##' @title Create a deviance evaluation function from an merMod object
+##' @param mod an object that inherits from class merMod
+##' @param nAGQ number of points per axis for adaptive Gauss-Hermite
+##' quadrature. 0 indicates the PIRLSBeta algorithm, 1 is the Laplace approximation
+##' @param u0 starting estimate for the PIRLS algorithm
+##' @param compDev for lmerMod objects, should the compiled deviance
+##' evaluation be used?  Setting compDev to FALSE provides an
+##' evaluation using functions from the Matrix package only.
+##' @return a function of one argument
+##' @author Douglas Bates
+mkdevfun <- function(mod, nAGQ = 1L, u0 = numeric(length(mod@re@u)), compDev = TRUE) {
+    stopifnot(is(mod, "merMod"))
+    resp <- mod@resp
+    if (is(resp, "lmerResp")) {
+        if (compDev) return(function(th) .Call(LMMdeviance, mod, th))
+        WtMat <- Diagonal(x = resp@sqrtrwt)
+        return(function(th) {
+            lower <- mod@re@lower
+            stopifnot(is.numeric(th),
+                      length(th) == length(lower),
+                      all(lower <= th))
+            Lambda <- mod@re@Lambda
+            Lambda@x <-th[mod@re@Lind]
+            Ut <- mod@re@Zt %*% WtMat
+            L <- update(mod@re@L, crossprod(Lambda, Ut), mult = 1)
+            r0 <- (resp@y - resp@offset) * resp@sqrtrwt
+            Utr <- Ut %*% r0
+            V <- WtMat %*% mod@fe@X
+            Vtr <- crossprod(V, r0)
+            UtV <- Ut %*% V
+            cu <- solve(L, solve(L, crossprod(Lambda, Utr), sys = "P"),
+                        sys = "L")
+            RZX <- solve(L, solve(L, crossprod(Lambda, UtV), sys = "P"),
+                         sys = "L")
+            if (is(V, "sparseMatrix")) {
+                RX <- Cholesky(crossprod(V) - crossprod(RZX))
+                beta <- solve(RX, Vtr - crossprod(RZX, cu))@x
+            } else {
+                RX <- chol(crossprod(V) - crossprod(RZX))
+                beta <- solve(RX, solve(t(RX), Vtr - crossprod(RZX, cu)))@x
+            }
+            u <- solve(L, solve(L, cu - RZX %*% beta, sys = "Lt"), sys = "Pt")
+            mu <- (resp@offset + crossprod(mod@re@Zt, Lambda %*% u) + mod@fe@X %*% beta)@x
+                                        # penalized, weighted residual sum of squares
+            pwrss <- sum(c((resp@y - mu)*resp@sqrtrwt, u@x)^2) 
+            ldL2 <- 2 * determinant(L)$mod
+            if (resp@REML) {
+                nmp <- length(mu) - length(beta)
+                ldRX2 <- 2 * determinant(RX)$mod
+                ldL2 + ldRX2 + nmp * (1 + log(2 * pi * pwrss/nmp))
+            } else {
+                n <- length(mu)
+                ldL2	     + n   * (1 + log(2 * pi * pwrss/n  ))
+            }
+        })
+    }
+    if (PLSBeta)
+        return(function(pars) {
+            .Call(reUpdateLambda, mod@re, pars)
+            .Call(PIRLS, mod, u0, verbose, 3L) # optimize u and beta
+        })
+    thpars <- seq_along(mod@re@theta)
+    function(pars) {
+        .Call(feSetBeta, ans@fe, pars[-thpars])
+        .Call(reUpdateLambda, ans@re, pars[thpars])
+        .Call(PIRLS, ans, u0, verbose, 2L) # optimize u only
+    }
+}
+    
 ## being brave now:
 lmer <- lmer2
 
