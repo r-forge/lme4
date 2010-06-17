@@ -381,7 +381,7 @@ S4toEnv <- function(from) {
 
 lmer2 <- function(formula, data, REML = TRUE, sparseX = FALSE,
                   control = list(), start = NULL,
-                  verbose = 0, doFit = TRUE, compDev = FALSE,
+                  verbose = 0, doFit = TRUE, compDev = TRUE,
                   ## TODO: optimizer = c("bobyqa", "nlminb", "optimize", "optim"),
                   subset, weights, na.action, offset,
                   contrasts = NULL, ...)
@@ -599,10 +599,7 @@ bootMer <- function(x, FUN, nsim = 1, seed = NULL, use.u = FALSE,
 
     ## Here, and below ("optimize"/"bobyqa") using the "logic" of lmer2() itself:
 ## lmer..Update <- if(is(x, "lmerSp")) lmerSpUpdate else lmerDeUpdate
-    devfun <- function(th) {
-        .Call(reUpdateLambda, x@re, th)
-        .Call(LMMdeviance, x)
-    }
+    devfun <- mkdevfun(x)
 ##    oneD <- length(x@re@theta) < 2
     theta0 <- x@re@theta
     ## just for the "boot" result -- TODOmaybe drop
@@ -967,11 +964,7 @@ setMethod("refitML", "merMod",
               xx <- new(class(x), call=Quote(x@call),
                         devcomp=x@devcomp, frame=x@frame,
                         re=x@re, fe=x@fe, resp=x@resp)
-              devfun <- function(pars){
-                  .Call(reUpdateLambda, xx@re, pars)
-                  .Call(LMMdeviance, xx)
-              }
-              bobyqa(xx@re@theta, devfun, xx@re@theta)
+              bobyqa(xx@re@theta, mkdevfun(xx), xx@re@theta)
               .Call(updateDc, xx)
               xx
           })
@@ -1045,5 +1038,3 @@ setMethod("summary", "merMod",
                          call = object@call
                          ), class = "summary.merenv")
       })
-
- 
