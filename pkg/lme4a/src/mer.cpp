@@ -39,13 +39,13 @@ namespace mer{ // utilities defined here, class constructors and
 	Rprintf("\n");
     }
 
-    void showCHM_DN(const CHM_DN x, const string &nm) {
+    void showCHM_DN(const cholmod_dense* x, const string &nm) {
 	Rprintf("%s: nrow = %d, ncol = %d, nzmax = %d, d = %d, xtype = %d, dtype = %d\n",
 		nm.c_str(), x->nrow, x->ncol, x->nzmax, x->d, x->xtype, x->dtype);
 	showdbl((double*)x->x, "x", x->nzmax);
     }
 
-    void showCHM_FR(const CHM_FR x, const string &nm) {
+    void showCHM_FR(const cholmod_factor* x, const string &nm) {
 	Rprintf("%s: n = %d, minor = %d, xtype = %d, itype = %d, dtype = %d\n",
 		nm.c_str(), x->n, x->minor, x->xtype, x->itype, x->dtype);
 	Rprintf("ordering = %d, is_ll = %d, is_super = %d, is_monotonic = %d, nzmax = %d\n",
@@ -59,7 +59,7 @@ namespace mer{ // utilities defined here, class constructors and
 	} else Rprintf("nnz = 0\n");
     }
 
-    void showCHM_SP(const CHM_SP x, const string &nm) {
+    void showCHM_SP(const cholmod_sparse* x, const string &nm) {
 	Rprintf("%s: nrow = %d, ncol = %d, xtype = %d, stype = %d, itype = %d, dtype = %d\n",
 		nm.c_str(), x->nrow, x->ncol, x->xtype, x->stype,
 		x->itype, x->dtype);
@@ -69,6 +69,21 @@ namespace mer{ // utilities defined here, class constructors and
 	    showint((int*)x->i, "i", nnz);
 	    showdbl((double*)x->x, "x", nnz);
 	} else Rprintf("nnz = 0\n");
+    }
+
+    void showdMat(MatrixNs::ddenseMatrix const& x, string const& nm) {
+	int m = x.ncol(), n = x.nrow();
+	int mn = m * n;
+	double *xx = x.x().begin();
+	if (mn < 1) {
+	    Rprintf("%s[%d,%d]:\n", nm.c_str(), m, n);
+	    return;
+	}
+	int mn7 = (mn < 7) ? mn : 5;
+	Rprintf("%s[1:%d,1:%d]: %g", nm.c_str(), m, n, xx[0]);
+	for (int i = 1; i < mn7; i++) Rprintf(", %g", xx[i]);
+	if (mn > 7) Rprintf(", ...");
+	Rprintf("\n");
     }
 
     /** 

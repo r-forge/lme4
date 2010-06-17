@@ -4,8 +4,8 @@ using namespace std;
 
 namespace mer {
     feModule::feModule(Rcpp::S4 xp)
-	: d_beta(xp.slot("beta")),
-	  d_Vtr(d_beta.size()) {
+	: d_beta(Rcpp::clone(SEXP(xp.slot("beta")))),
+	  d_Vtr(              d_beta.size()) {
     }
 
     void feModule::setBeta(Rcpp::NumericVector const& bbase,

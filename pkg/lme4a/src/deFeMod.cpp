@@ -22,9 +22,11 @@ namespace mer {
      * @param Xwt square root of the weights for the model matrices
      * @param wtres weighted residuals
      */
-    void deFeMod::reweight(MatrixNs::chmSp       const&    Ut,
+    void deFeMod::reweight(cholmod_sparse        const*    Ut,
 			   Rcpp::NumericMatrix   const&   Xwt,
 			   Rcpp::NumericVector   const& wtres) {
+	chmDn cXwt(Xwt);
+	double one = 1., zero = 0.;
 	if (d_beta.size() == 0) return;
 	if (Xwt.size() != d_X.nrow())
 	    Rf_error("%s: dimension mismatch %s(%d,%d), %s(%d,%d)",
@@ -52,8 +54,8 @@ namespace mer {
 	    }
 	}
 	d_V.dgemv('T', 1., wtres, 0., d_Vtr);
-	chmDn cUtV(d_UtV);
-	Ut.dmult('N', 1., 0., chmDn(d_V), cUtV);
+	chmDn cUtV(d_UtV), cV(d_V);
+	M_cholmod_sdmult(Ut, 0/*trans*/, &one, &zero, &cV, &cUtV, &c);
 	d_VtV.dsyrk(d_V, 1., 0.);
     }
 

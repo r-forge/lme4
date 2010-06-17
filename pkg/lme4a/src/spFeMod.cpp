@@ -79,7 +79,7 @@ namespace mer {
      * @param sqrtXwt square root of the weights for the model matrices
      * @param wtres weighted residuals
      */
-    void spFeMod::reweight(chmSp               const&      Ut,
+    void spFeMod::reweight(cholmod_sparse      const*      Ut,
 			   Rcpp::NumericMatrix const& sqrtXwt,
 			   Rcpp::NumericVector const&   wtres) {
 	double one = 1., zero = 0.;
@@ -99,7 +99,7 @@ namespace mer {
 // FIXME rewrite this using the triplet representation
 	
 	if (d_UtV) M_cholmod_free_sparse(&d_UtV, &c);
-	d_UtV = M_cholmod_ssmult(&Ut, d_V, 0/*styp*/,1/*vals*/,1/*srtd*/, &c);
+	d_UtV = M_cholmod_ssmult(Ut, d_V, 0/*styp*/,1/*vals*/,1/*srtd*/, &c);
 
 	if (d_VtV) M_cholmod_free_sparse(&d_VtV, &c);
 	CHM_SP t1 = M_cholmod_transpose(d_V, 1/*vals*/, &c);
