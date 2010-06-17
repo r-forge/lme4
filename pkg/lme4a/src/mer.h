@@ -225,15 +225,15 @@ namespace mer {
 	double Laplace  () const {
 	    return resp.Laplace(re.ldL2(), fe.ldRX2(), re.sqrLenU());
 	}
-	double LMMdeviance();
-	double PIRLS    (Rcpp::NumericVector const&,int,Alg);
-	double setBetaU (Rcpp::NumericVector const&,
-			 Rcpp::NumericVector const&,
-			 Rcpp::NumericVector const&,
-			 Rcpp::NumericVector const&,
-			 double,Alg);
-	double updateMu ();
-	double updateWts();
+	double LMMdeviance(Rcpp::NumericVector const&);
+	double PIRLS      (Rcpp::NumericVector const&,int,Alg);
+	double setBetaU   (Rcpp::NumericVector const&,
+			   Rcpp::NumericVector const&,
+			   Rcpp::NumericVector const&,
+			   Rcpp::NumericVector const&,
+			   double,Alg);
+	double updateMu   ();
+	double updateWts  ();
 
 	int N() const      {return resp.offset().size();}
 	int n() const      {return  resp.wtres().size();}
@@ -261,7 +261,8 @@ namespace mer {
      * @return profiled deviance or REML criterion
      */
     template<typename Tf, typename Tr> inline
-    double mer<Tf,Tr>::LMMdeviance() {
+    double mer<Tf,Tr>::LMMdeviance(Rcpp::NumericVector const& nt) {
+	re.updateLambda(nt);
 	re.zeroU();
 	updateWts();
 	solveCoef(BetaU);

@@ -53,8 +53,8 @@ importMethodsFrom("Matrix",
 export(AIC, BIC, logLik)
 ## and the rest (S3 generics; regular functions):
 export(VarCorr, bootMer, copyMerenv, devcomp, env, getL, # getCall,
-       glmer, glmer1, glmer2, lmList, lmer, lmer1, lmer2, nlmer, nlmer2,
-       sigma, findbars, nobars, subbars, isNested)
+       glmer, glmer1, glmer2, lmList, lmer, lmer1, lmer2,
+       mkdevfun, nlmer, nlmer2, sigma, findbars, nobars, subbars, isNested)
 
 exportClasses(lmList,
 	      ## export all super classes of e.g., "lmerenv",

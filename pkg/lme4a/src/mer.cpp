@@ -112,16 +112,25 @@ namespace mer{ // utilities defined here, class constructors and
 
 } // namespace mer
 
-RCPP_FUNCTION_1(double, LMMdeviance, S4 xp) {
+/** 
+ * Evaluate the profiled deviance or the profiled REML criterion from
+ * a theta parameter value for an lmer model.
+ * 
+ * @param xp merMod object with the resp slot inheriting from lmerResp
+ * @param nt new value of theta
+ * 
+ * @return a deviance evaluation
+ */
+RCPP_FUNCTION_2(double, LMMdeviance, S4 xp, NumericVector nt) {
     S4 fe(xp.slot("fe")), resp(xp.slot("resp"));
     if (!resp.is("lmerResp")) 
 	throw runtime_error("LMMupdate on non-lmer object");
     if (fe.is("deFeMod")) {
 	mer::mer<mer::deFeMod,mer::lmerResp> lm(xp);
-	return lm.LMMdeviance();
+	return lm.LMMdeviance(nt);
     } else if (fe.is("spFeMod")) {
 	mer::mer<mer::spFeMod,mer::lmerResp> lm(xp);
-	return lm.LMMdeviance();
+	return lm.LMMdeviance(nt);
     } else throw runtime_error("fe slot is neither deFeMod nor spFeMod");
 }
 
