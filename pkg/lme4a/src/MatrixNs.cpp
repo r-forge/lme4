@@ -41,15 +41,17 @@ namespace MatrixNs{
 	return Trans(*CHAR(Rf_asChar(x)));
     }
 
-    Matrix::Matrix(Rcpp::S4 &xp) :
-	Dimnames(xp.slot("Dimnames")) {
+    Matrix::Matrix(Rcpp::S4 &xp)
+	: d_sexp(SEXP(xp)),
+	  d_dimnames(xp.slot("Dimnames")) {
 	Rcpp::IntegerVector Dim(xp.slot("Dim"));
 	d_nrow = Dim[0];
 	d_ncol = Dim[1];
     }
 
     Matrix::Matrix(int nr, int nc)
-	: Dimnames(2),
+	: d_sexp(R_NilValue),
+	  d_dimnames(2),
 	  d_nrow(nr),
 	  d_ncol(nc) {
 	if (nr < 0 || nc < 0)

@@ -3,22 +3,20 @@
 #include "Syms.h"
 #include <R_ext/Rdynload.h>
 
-extern "C" SEXP LMMdeviance(SEXP,SEXP);
-extern "C" SEXP PIRLS(SEXP,SEXP,SEXP,SEXP);
-extern "C" SEXP feSetBeta(SEXP,SEXP);
+extern "C" SEXP merDeviance(SEXP,SEXP,SEXP,SEXP,SEXP);
+//extern "C" SEXP feSetBeta(SEXP,SEXP);
 extern "C" SEXP reTrmsCondVar(SEXP,SEXP);
-extern "C" SEXP reUpdateLambda(SEXP,SEXP);
+//extern "C" SEXP reUpdateLambda(SEXP,SEXP);
 extern "C" SEXP testFam(SEXP,SEXP,SEXP);
 extern "C" SEXP updateRzxRx(SEXP);
-extern "C" SEXP updateDc(SEXP);
+extern "C" SEXP updateDc(SEXP,SEXP);
 
 #define CALLDEF(name, n)  {#name, (DL_FUNC) &name, n}
 
 static R_CallMethodDef CallEntries[] = {
-    CALLDEF(LMMdeviance, 2),
-    CALLDEF(PIRLS, 4),
+    CALLDEF(merDeviance, 5),
 
-    CALLDEF(feSetBeta, 2),
+//    CALLDEF(feSetBeta, 2),
 
     CALLDEF(glmer_IRLS, 1),
     CALLDEF(glmer_PIRLS, 1),
@@ -38,12 +36,12 @@ static R_CallMethodDef CallEntries[] = {
     CALLDEF(merenvtrms_show, 1),
     CALLDEF(merenvtrms_validate, 1),
 
-    CALLDEF(reUpdateLambda, 2),
+//    CALLDEF(reUpdateLambda, 2),
     CALLDEF(reTrmsCondVar, 2),
 
     CALLDEF(testFam, 3),
     CALLDEF(updateRzxRx, 1),
-    CALLDEF(updateDc, 1),
+    CALLDEF(updateDc, 2),
     {NULL, NULL, 0}
 };
 

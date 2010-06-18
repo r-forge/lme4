@@ -45,7 +45,10 @@ namespace mer{
      * 
      * @param cmp the devcomp list to update
      */
-    void merResp::updateDcmp(Rcpp::NumericVector& cmp) const {
+    void merResp::updateDcmp(Rcpp::List& ll) const {
+	Rcpp::List devcomp = ll["devcomp"];
+	Rcpp::NumericVector cmp = devcomp["cmp"];
+
 	double wrss = inner_product(d_wtres.begin(), d_wtres.end(),
 				    d_wtres.begin(), double());
 	double n = (double)d_y.size(), ussq = cmp["ussq"];
@@ -53,6 +56,7 @@ namespace mer{
 	cmp["wrss"] = wrss;
 	cmp["pwrss"] = pwrss;
 	cmp["sigmaML"] = sqrt(pwrss/n);
+	ll["mu"] = d_mu;
     }
 
 }

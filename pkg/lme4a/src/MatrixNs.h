@@ -26,13 +26,15 @@ namespace MatrixNs {
 
     class Matrix {
     protected:
-	Rcpp::List Dimnames;
+	SEXP d_sexp;
+	Rcpp::List d_dimnames;
 	int d_nrow, d_ncol;
     public:
 	Matrix(Rcpp::S4&);
 	Matrix(int,int);
 	int nrow() const;
 	int ncol() const;
+	SEXP sexp() {return d_sexp ? d_sexp : R_NilValue;}
     };
 
     class dMatrix : public Matrix {
@@ -193,7 +195,7 @@ namespace MatrixNs {
     public:
 	chmSp(Rcpp::S4);
 
-	const Rcpp::S4& S4() const;
+	const Rcpp::S4& S4() const {return d_xp;}
 	CHM_SP crossprod() const;
 	CHM_SP crossprod(const cholmod_sparse*, int sorted = 1) const;
 	CHM_SP crossprod(chmSp const &B, int sorted = 1) const;
@@ -216,7 +218,7 @@ namespace MatrixNs {
     public:
 	chmFr(Rcpp::S4);
 
-	const Rcpp::S4& S4() const;
+	const Rcpp::S4& S4() const {return d_xp;}
 //      double logDet2() const {   // Need Matrix_0.999375-42 or later
 	double logDet2();
 

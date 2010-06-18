@@ -1,3 +1,11 @@
+2010-06-18  Douglas Bates  <bates@stat.wisc.edu>
+
+	* src/*.cpp, R/lmer2.R: Many changes to make the compiled code
+	treat the model object as read-only.  The idea is that the
+	evaluation of the deviance doesn't change anything in the original
+	object.  Changed values of parameters such as beta or random
+	effects like u are passed back as attributes.
+
 2010-05-18  Martin Maechler  <maechler@stat.math.ethz.ch>
 
 	* NAMESPACE: import AIC & BIC from stats4, *and* re-export

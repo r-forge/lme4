@@ -14,8 +14,10 @@ namespace mer {
     void showCHM_DN(const_CHM_DN, std::string const&);
     void showCHM_FR(const_CHM_FR, std::string const&);
     void showCHM_SP(const_CHM_SP, std::string const&);
+    void showCHM_SP(const MatrixNs::chmSp&, std::string const&);
     void showdMat(MatrixNs::ddenseMatrix const&, std::string const&);
     void showdbl(const double*, const char*, int);
+    void showdbl(const Rcpp::NumericVector& vv, const char* nm);
     void showincr(double,double,double,
 		  Rcpp::NumericVector const&, const char*);
     void showint(const int*, const char*, int);
@@ -42,6 +44,8 @@ namespace mer {
 	}
     };
 
+    Rcpp::NumericVector mkans(double, const Rcpp::NumericVector&, const Rcpp::NumericVector&);
+
     class reModule {
     protected:
 	Rcpp::S4            d_xp;
@@ -54,15 +58,16 @@ namespace mer {
     public:
 	reModule(Rcpp::S4);
 
-	const Rcpp::NumericVector  &cu() const {return d_cu;}
- 	const Rcpp::NumericVector   &u() const {return d_u;}
-	const Rcpp::S4             &xp() const {return d_xp;}
-	const MatrixNs::chmFr       &L() const {return d_L;}
-	const MatrixNs::chmSp  &Lambda() const {return d_Lambda;}
-	const cholmod_sparse       *Ut() const {return d_Ut;}
-	const MatrixNs::chmSp      &Zt() const {return d_Zt;}
-	double                    ldL2() const {return d_ldL2;}
-	double                 sqrLenU() const {return d_sqrLenU;}
+	const Rcpp::NumericVector    &cu() const {return d_cu;}
+ 	const Rcpp::NumericVector     &u() const {return d_u;}
+	const Rcpp::S4               &xp() const {return d_xp;}
+	const Rcpp::NumericVector &lower() const {return d_lower;}
+	const MatrixNs::chmFr         &L() const {return d_L;}
+	const MatrixNs::chmSp    &Lambda() const {return d_Lambda;}
+	const cholmod_sparse         *Ut() const {return d_Ut;}
+	const MatrixNs::chmSp        &Zt() const {return d_Zt;}
+	double                      ldL2() const {return d_ldL2;}
+	double                   sqrLenU() const {return d_sqrLenU;}
 
 	void reweight(Rcpp::NumericMatrix const&,
 		      Rcpp::NumericVector const&);
@@ -70,8 +75,8 @@ namespace mer {
 		  Rcpp::NumericVector const& = Rcpp::NumericVector(),
 		  double = 0.);
 	void solveU();
-//	void updateDcmp(Rcpp::NumericVector&) const;  //needs Matrix_0.999375-42 or later
-	void updateDcmp(Rcpp::NumericVector&);
+//	void updateDcmp(Rcpp::List&) const;  //needs Matrix_0.999375-42 or later
+	void updateDcmp(Rcpp::List&);
 	void updateLambda(Rcpp::NumericVector const&);
 	void updateU(Rcpp::NumericVector const&);
 	void zeroU();
@@ -104,8 +109,10 @@ namespace mer {
 	void setBeta(Rcpp::NumericVector const&,
 		     Rcpp::NumericVector const& = Rcpp::NumericVector(),
 		     double = 0.);
-	const Rcpp::NumericVector &beta() const {return  d_beta;}
-	double                    ldRX2() const {return  d_ldRX2;}
+// Don't want to use the name beta because the R include files remap it to Rf_beta
+	const Rcpp::NumericVector& getBeta() const {return  d_beta;}
+	double                       ldRX2() const {return  d_ldRX2;}
+	virtual void updateDcmp(Rcpp::List&) = 0;
     };
 
     class deFeMod : public feModule {
@@ -128,7 +135,7 @@ namespace mer {
 		      Rcpp::NumericMatrix const&,
 		      Rcpp::NumericVector const&);
 	void solveBeta();
-	void updateDcmp(Rcpp::NumericVector&) const;
+	void updateDcmp(Rcpp::List&) ;
 	void updateRzxRx(MatrixNs::chmSp const&,
 			 MatrixNs::chmFr const&);
     };
@@ -152,8 +159,8 @@ namespace mer {
 		      Rcpp::NumericMatrix const&,
 		      Rcpp::NumericVector const&);
 	void solveBeta();
-//	void updateDcmp(Rcpp::NumericVector&) const;  // needs Matrix_0.999375-42 or later
-	void updateDcmp(Rcpp::NumericVector&);
+//	void updateDcmp(Rcpp::List&) const; // needs Matrix_0.999375-42 or later
+	void updateDcmp(Rcpp::List&);
 	void updateRzxRx(MatrixNs::chmSp const&,
 			 MatrixNs::chmFr const&);
     };
@@ -179,7 +186,7 @@ namespace mer {
 	double                   updateWts(){return updateWrss();}
 	double                  updateWrss();
 
-	void                    updateDcmp(Rcpp::NumericVector&) const;
+	virtual void            updateDcmp(Rcpp::List&) const = 0;
     };
 
     class lmerResp : public merResp {
@@ -188,6 +195,7 @@ namespace mer {
 	lmerResp(Rcpp::S4);
 	double Laplace(double,double,double)const;
 	double updateMu(Rcpp::NumericVector const&);
+	void updateDcmp(Rcpp::List&) const;
     };
 
     class glmerResp : public merResp {
@@ -205,7 +213,7 @@ namespace mer {
 	double                updateMu(Rcpp::NumericVector const&);
 	double               updateWts();
 
-	void  updateDcmp(Rcpp::NumericVector&) const;
+	void  updateDcmp(Rcpp::List&) const;
     };
     
     class nlmerResp : public merResp {
@@ -216,9 +224,11 @@ namespace mer {
 	nlmerResp(Rcpp::S4 xp);
 	double updateMu(Rcpp::NumericVector const &gamma);
 	double Laplace(double,double,double) const;
+	void  updateDcmp(Rcpp::List&) const;
     };
     
     enum Alg {Beta, U, BetaU};
+
     /* Model object template
      * Tf is the type of fixed-effects module (deFeMod or spFeMod)
      * Tr is the type of response module (merResp, glmerResp, nlmerResp or nglmerResp)
@@ -229,12 +239,13 @@ namespace mer {
 	Tr resp;
 	Tf fe;
     public:
-	mer(Rcpp::S4 xp);
+	mer(Rcpp::S4&);
 
 	double Laplace  () const {
 	    return resp.Laplace(re.ldL2(), fe.ldRX2(), re.sqrLenU());
 	}
-	double LMMdeviance(Rcpp::NumericVector const&);
+	Rcpp::NumericVector LMMdeviance(const Rcpp::NumericVector&,
+					const Rcpp::NumericVector&);
 	double PIRLS      (Rcpp::NumericVector const&,int,Alg);
 	double setBetaU   (Rcpp::NumericVector const&,
 			   Rcpp::NumericVector const&,
@@ -244,18 +255,20 @@ namespace mer {
 	double updateMu   ();
 	double updateWts  ();
 
-	int N() const      {return resp.offset().size();}
-	int n() const      {return  resp.wtres().size();}
-	int p() const      {return     fe.beta().size();}
-	int q() const      {return        re.u().size();}
-	int s() const      {return              N()/n();}
+	int N()  const   {return resp.offset().size();}
+	int n()  const   {return  resp.wtres().size();}
+	int nth()const   {return    re.lower().size();}
+	int p()  const   {return  fe.getBeta().size();}
+	int q()  const   {return        re.u().size();}
+	int s()  const   {return              N()/n();}
 
 	void solveCoef(Alg);
 	void updateRzxRx();
+	void updateDcmp(Rcpp::List&,Rcpp::NumericVector const&);
     };
     
     template<typename Tf, typename Tr>
-    inline mer<Tf,Tr>::mer(Rcpp::S4 xp)
+    inline mer<Tf,Tr>::mer(Rcpp::S4& xp)
 	: re   (Rcpp::S4(xp.slot("re"))  ),
 	  resp (Rcpp::S4(xp.slot("resp"))),
     	  fe   (Rcpp::S4(xp.slot("fe")), resp.mu().size()) {
@@ -270,13 +283,13 @@ namespace mer {
      * @return profiled deviance or REML criterion
      */
     template<typename Tf, typename Tr> inline
-    double mer<Tf,Tr>::LMMdeviance(Rcpp::NumericVector const& nt) {
+    Rcpp::NumericVector mer<Tf,Tr>::LMMdeviance(const Rcpp::NumericVector& nt, const Rcpp::NumericVector& u0) {
 	re.updateLambda(nt);
-	re.zeroU();
+	re.setU(u0);
 	updateWts();
 	solveCoef(BetaU);
 	updateMu();
-	return Laplace();
+	return mkans(Laplace(), fe.getBeta(), re.u());
     }
 
     /** 
@@ -335,8 +348,8 @@ namespace mer {
 
 	re.Lambda().dmult('N', 1., 0., MatrixNs::chmDn(u), bb);
 	re.Zt().dmult('T', 1., 1., bb, gg);
-	if (fe.beta().size() > 0)
-	    fe.X().dmult('N', 1., 1., MatrixNs::chmDn(fe.beta()), gg);
+	if (fe.getBeta().size() > 0)
+	    fe.X().dmult('N', 1., 1., MatrixNs::chmDn(fe.getBeta()), gg);
 	return resp.updateMu(gamma) + re.sqrLenU();
     }	
 
@@ -386,16 +399,16 @@ namespace mer {
 				// store copies of mu, u and beta
 	    std::copy(resp.mu().begin(), resp.mu().end(), muBase.begin());
 	    std::copy(re.u().begin(), re.u().end(), uBase.begin());
-	    std::copy(fe.beta().begin(), fe.beta().end(), bBase.begin());
+	    std::copy(fe.getBeta().begin(), fe.getBeta().end(), bBase.begin());
 	    c0 = updateWts();
 	    solveCoef(alg);
-	    std::copy(fe.beta().begin(), fe.beta().end(), incB.begin());
+	    std::copy(fe.getBeta().begin(), fe.getBeta().end(), incB.begin());
 	    std::copy(re.u().begin(), re.u().end(), incU.begin());
 	    for (c1 = c0, step = 1.; c0 <= c1 && step > CM_SMIN;
 		 step /= 2.) {
 		c1 = setBetaU(bBase, uBase, incB, incU, step, alg);
 		if (verb > 1) {
-		    showincr(step, c0, c1, fe.beta(), "beta");
+		    showincr(step, c0, c1, fe.getBeta(), "beta");
 		    showdbl(re.u().begin(), "u", re.u().size());
 		}
 	    }
@@ -405,6 +418,20 @@ namespace mer {
 	}
 	return Laplace();
     } // PIRLS
+
+    template<typename Tf, typename Tr> inline
+    void mer<Tf,Tr>::updateDcmp(Rcpp::List& ans, Rcpp::NumericVector const& pars) {
+	Rcpp::NumericVector th(nth()), beta(p()), u(q());
+	double *pp = pars.begin();
+	std::copy(pp, pp + nth(), th.begin());
+	std::copy(pp + nth(), pp + nth() + p(), beta.begin());
+	std::copy(pp + nth() + p(), pp + nth() + p() + q(), u.begin());
+	LMMdeviance(pars, u);
+	fe.setBeta(beta);
+	(&resp)->updateDcmp(ans);
+	(&re)->updateDcmp(ans);
+	(&fe)->updateDcmp(ans);
+    }
 }
 
 #endif

@@ -122,7 +122,9 @@ namespace mer {
     }
 
 //    void spFeMod::updateDcmp(Rcpp::NumericVector& cmp) const {  // needs Matrix_0.999375-42 or later
-    void spFeMod::updateDcmp(Rcpp::NumericVector& cmp) {
+    void spFeMod::updateDcmp(Rcpp::List& ll) {
+	Rcpp::List devcomp = ll["devcomp"];
+	Rcpp::NumericVector cmp = devcomp["cmp"];
 	cmp["ldRX2"] = d_RX.logDet2();
     }
 }
