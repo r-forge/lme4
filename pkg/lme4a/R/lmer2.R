@@ -460,7 +460,8 @@ mkdevfun <- function(mod, nAGQ = 1L, u0 = numeric(length(mod@re@u)), compDev = T
     stopifnot(is(mod, "merMod"))
     resp <- mod@resp
     if (is(resp, "lmerResp")) {
-        if (compDev) return(function(th) .Call(LMMdeviance, mod, th))
+        q <- length(mod@re@u)
+        if (compDev) return(function(th) .Call(merDeviance, mod, th, numeric(q), 0L, 0L))
         WtMat <- Diagonal(x = resp@sqrtrwt)
         return(function(th) {
             lower <- mod@re@lower

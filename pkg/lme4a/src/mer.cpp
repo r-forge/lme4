@@ -20,6 +20,10 @@ namespace mer{ // utilities defined here, class constructors and
 	Rprintf("\n");
     }
 
+    void showdbl(const Rcpp::NumericVector& vv, const char* nm) {
+	showdbl(vv.begin(), nm, vv.size());
+    }
+
     void showincr(double step, double c0, double c1,
 		  NumericVector const& incr, const char* nm) {
 	Rprintf("step = %8.5f, pwrss0 = %12g, pwrss1 = %12g\n",
@@ -69,6 +73,10 @@ namespace mer{ // utilities defined here, class constructors and
 	    showint((int*)x->i, "i", nnz);
 	    showdbl((double*)x->x, "x", nnz);
 	} else Rprintf("nnz = 0\n");
+    }
+
+    void showCHM_SP(const MatrixNs::chmSp& x, const std::string& nm) {
+	showCHM_SP(&x, nm);
     }
 
     void showdMat(MatrixNs::ddenseMatrix const& x, string const& nm) {
@@ -125,37 +133,45 @@ namespace mer{ // utilities defined here, class constructors and
 	return (d2 == 0) ? sqrt(num/d1) : sqrt(num/sqrt(d1 * d2));
     }
 
+    NumericVector mkans(double x, const NumericVector& beta,
+			const NumericVector& u) {
+	NumericVector ans(1);
+	*ans.begin() = x;
+	ans.attr("beta") = beta;
+	ans.attr("u") = u;
+	return ans;
+    }
 } // namespace mer
 
 /** 
  * Evaluate the profiled deviance or the profiled REML criterion from
  * a theta parameter value for an lmer model.
  * 
- * @param xp merMod object with the resp slot inheriting from lmerResp
- * @param nt new value of theta
+ * @param xp merMod object
+ * @param nt new value of parameters - either theta or c(theta,beta)
  * 
  * @return a deviance evaluation
  */
-RCPP_FUNCTION_2(double, LMMdeviance, S4 xp, NumericVector nt) {
-    S4 fe(xp.slot("fe")), resp(xp.slot("resp"));
-    if (!resp.is("lmerResp")) 
-	throw runtime_error("LMMupdate on non-lmer object");
-    if (fe.is("deFeMod")) {
-	mer::mer<mer::deFeMod,mer::lmerResp> lm(xp);
-	return lm.LMMdeviance(nt);
-    } else if (fe.is("spFeMod")) {
-	mer::mer<mer::spFeMod,mer::lmerResp> lm(xp);
-	return lm.LMMdeviance(nt);
-    } else throw runtime_error("fe slot is neither deFeMod nor spFeMod");
-}
 
-RCPP_FUNCTION_4(double, PIRLS, S4 xp, NumericVector u0, int verb, int alg) {
-    if (alg < 1 || alg > 3) throw range_error("alg must be 1, 2 or 3");
-    mer::Alg aa = (alg == 1) ? mer::Beta : ((alg == 2) ? mer::U : mer::BetaU);
+RCPP_FUNCTION_5(NumericVector, merDeviance, S4 xp, NumericVector pars, NumericVector u0, int verb, int alg) {
     S4 fe(xp.slot("fe")), resp(xp.slot("resp"));
-    bool de = fe.is("deFeMod");
+    bool de(fe.is("deFeMod"));
     if (!de && !fe.is("spFeMod"))
 	throw runtime_error("fe slot is neither deFeMod nor spFeMod");
+
+    if (resp.is("lmerResp")) {
+	if (de) {
+	    mer::mer<mer::deFeMod,mer::lmerResp> lm(xp);
+	    return lm.LMMdeviance(pars, u0);
+	} else {
+	    mer::mer<mer::spFeMod,mer::lmerResp> lm(xp);
+	    return lm.LMMdeviance(pars, u0);
+	}
+    }
+
+    if (alg < 1 || alg > 3) throw range_error("alg must be 1, 2 or 3");
+    mer::Alg aa = (alg == 1) ? mer::Beta : ((alg == 2) ? mer::U : mer::BetaU);
+// FIXME: Need to set beta for alg == 3
     if (resp.is("glmerResp")) {
 	if (de) {
 	    mer::mer<mer::deFeMod,mer::glmerResp> glmr(xp);
@@ -173,9 +189,10 @@ RCPP_FUNCTION_4(double, PIRLS, S4 xp, NumericVector u0, int verb, int alg) {
 	    return nlmr.PIRLS(u0, verb, aa);
 	}
     }
-    throw runtime_error("resp slot is not glmerResp or nlmerResp in PIRLS");
-}
 
+    throw runtime_error("resp slot is not lmerResp or glmerResp or nlmerResp");
+}
+#if 0
 RCPP_FUNCTION_VOID_2(feSetBeta, S4 xp, NumericVector nbeta) {
     mer::feModule fe(xp);
     fe.setBeta(nbeta);
@@ -185,7 +202,7 @@ RCPP_FUNCTION_VOID_2(reUpdateLambda, S4 xp, NumericVector nth) {
     mer::reModule re(xp);
     re.updateLambda(nth);
 }
-
+#endif
 RCPP_FUNCTION_VOID_1(updateRzxRx, S4 xp) {
     S4 fe(xp.slot("fe")), resp(xp.slot("resp"));
     bool de = fe.is("deFeMod");
@@ -211,29 +228,49 @@ RCPP_FUNCTION_VOID_1(updateRzxRx, S4 xp) {
 	throw runtime_error("resp slot is not glmerResp or nlmerResp in updateRzxRx");
 }
 
-RCPP_FUNCTION_VOID_1(updateDc, S4 xp) {
-    List ll(xp.slot("devcomp"));
-    NumericVector cmp = ll["cmp"];
-    IntegerVector dims = ll["dims"];
-    S4 fe(xp.slot("fe")), re(xp.slot("re"));
-    mer::merResp resp(S4(xp.slot("resp")));
-    mer::reModule reM(re);
-    reM.updateDcmp(cmp); // with Matrix_0.999375-42 or later can do this in one step
-//    mer::reModule(re).updateDcmp(cmp); // need Matrix_0.999375-42 or later
-    resp.updateDcmp(cmp);
-    int n = resp.mu().size();
-    if (fe.is("deFeMod")) mer::deFeMod(fe, n).updateDcmp(cmp);
-    if (fe.is("spFeMod")) // mer::spFeMod(fe, n).updateDcmp(cmp);   // needs Matrix_0.999375-42 or later
-    {
-	mer::spFeMod spFe(fe, n);
-	spFe.updateDcmp(cmp);
+RCPP_FUNCTION_2(List, updateDc, S4 xp, NumericVector pars) {
+    List ans = List::create(_["devcomp"] = clone(SEXP(xp.slot("devcomp"))));
+
+    S4 fe(xp.slot("fe")), resp(xp.slot("resp"));
+    bool de(fe.is("deFeMod"));
+    if (!de && !fe.is("spFeMod"))
+	throw runtime_error("fe slot is neither deFeMod nor spFeMod");
+
+    if (resp.is("lmerResp")) {
+	if (de) {
+	    mer::mer<mer::deFeMod,mer::lmerResp> lm(xp);
+	    lm.updateDcmp(ans, pars);
+	    return ans;
+	} else {
+	    mer::mer<mer::spFeMod,mer::lmerResp> lm(xp);
+	    lm.updateDcmp(ans, pars);
+	    return ans;
+	}
+    }
+    if (resp.is("glmerResp")) {
+	if (de) {
+	    mer::mer<mer::deFeMod,mer::glmerResp> glmr(xp);
+	    glmr.updateDcmp(ans, pars);
+	    return ans;
+	} else {
+	    mer::mer<mer::spFeMod,mer::glmerResp> glmr(xp);
+	    glmr.updateDcmp(ans, pars);
+	    return ans;
+	}
+    } else if (resp.is("nlmerResp")) {
+	if (de) {
+	    mer::mer<mer::deFeMod,mer::nlmerResp> nlmr(xp);
+	    nlmr.updateDcmp(ans, pars);
+	    return ans;
+	} else {
+	    mer::mer<mer::spFeMod,mer::nlmerResp> nlmr(xp);
+	    nlmr.updateDcmp(ans, pars);
+	    return ans;
+	}
     }
 
-    cmp["sigmaREML"] = cmp["sigmaML"] * sqrt((double)dims["n"]/(double)dims["nmp"]);
-
-    ll["cmp"] = cmp;		// should this be necessary?
-}
-    
+    throw runtime_error("resp slot is not lmerResp or glmerResp or nlmerResp");
+}    
 RCPP_FUNCTION_2(List, reTrmsCondVar, S4 xp, double scale) {
     mer::reTrms trms(xp);
     return trms.condVar(scale);

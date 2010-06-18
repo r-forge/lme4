@@ -102,10 +102,15 @@ namespace mer{
     }
 
 //    void reModule::updateDcmp(Rcpp::NumericVector &cmp) const {  // Need Matrix_0.999375-42 or later
-    void reModule::updateDcmp(Rcpp::NumericVector &cmp) {
+    void reModule::updateDcmp(Rcpp::List &ll) {
+	List devcomp = ll["devcomp"];
+	NumericVector cmp = devcomp["cmp"];
 	cmp["ldL2"] = d_L.logDet2();
-	cmp["ussq"] = inner_product(d_u.begin(), d_u.end(),
-				    d_u.begin(), double());
+	cmp["ussq"] = inner_product(d_u.begin(), d_u.end(), d_u.begin(), double());
+	Rcpp::S4 L = d_L.S4(), Lambda = d_Lambda.S4();
+	ll["L"]      = L;
+	ll["Lambda"] = Lambda;
+	ll["u"]      = d_u;
     }
 
     /** 
@@ -114,8 +119,8 @@ namespace mer{
      * @param nt New value of theta
      */
     void reModule::updateLambda(NumericVector const& nt) {
-	int nth = d_lower.size();
-	if (nt.size() != nth)
+	R_len_t nth = d_lower.size();
+	if (nt.size() < nth)
 	    throw runtime_error("size mismatch of nt and d_lower in updateLambda");
 				// check that nt is feasible
 	double *Lamx = (double*)d_Lambda.x,

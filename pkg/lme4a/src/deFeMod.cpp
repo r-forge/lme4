@@ -6,10 +6,10 @@ using namespace MatrixNs;  // for chmDn, chmFr and chmSp
 
 namespace mer {
     deFeMod::deFeMod(Rcpp::S4 xp, int n)
-	: feModule(        xp),
-	  d_RZX(  Rcpp::S4(xp.slot("RZX"))),
-	  d_X(    Rcpp::S4(xp.slot("X"))),
-	  d_RX(   Rcpp::S4(xp.slot("RX"))),
+	: feModule(                  xp),
+	  d_RZX(Rcpp::clone(Rcpp::S4(xp.slot("RZX")))),
+	  d_X(              Rcpp::S4(xp.slot("X"))),
+	  d_RX( Rcpp::clone(Rcpp::S4(xp.slot("RX")))),
 	  d_UtV(d_RZX.nrow(), d_RZX.ncol()),
 	  d_V(             n,   d_X.ncol()),
 	  d_VtV(             d_beta.size()) {
@@ -25,9 +25,9 @@ namespace mer {
     void deFeMod::reweight(cholmod_sparse        const*    Ut,
 			   Rcpp::NumericMatrix   const&   Xwt,
 			   Rcpp::NumericVector   const& wtres) {
+	if (d_beta.size() == 0) return;
 	chmDn cXwt(Xwt);
 	double one = 1., zero = 0.;
-	if (d_beta.size() == 0) return;
 	if (Xwt.size() != d_X.nrow())
 	    Rf_error("%s: dimension mismatch %s(%d,%d), %s(%d,%d)",
 		     "deFeMod::reweight", "X", d_X.nrow(), d_X.ncol(),
@@ -64,15 +64,19 @@ namespace mer {
      * 
      */
     void deFeMod::solveBeta() {
-	int p = d_beta.size();
-	if (p == 0) return;
+	if (d_beta.size() == 0) return;
 	MatrixNs::Cholesky chol(d_V);
 	copy(d_Vtr.begin(), d_Vtr.end(), d_beta.begin());
 	chol.dpotrs(d_beta);
     }
 
-    void deFeMod::updateDcmp(Rcpp::NumericVector& cmp) const {
+    void deFeMod::updateDcmp(Rcpp::List& ll) {
+	Rcpp::List devcomp = ll["devcomp"];
+	Rcpp::NumericVector cmp = devcomp["cmp"];
 	cmp["ldRX2"] = d_RX.logDet2();
+	ll["RZX"] = d_RZX.sexp();
+	ll["RX"]  = d_RX. sexp();
+	ll["beta"] = d_beta;
     }
 
     /** 
