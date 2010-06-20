@@ -17,6 +17,8 @@ namespace mer{
 	    Rf_error("y, mu, sqrtrwt and weights slots must have equal lengths");
 	if (os < 1 || os % n)
 	    Rf_error("length(offset) must be a positive multiple of length(y)");
+	transform(d_weights.begin(), d_weights.end(), d_sqrtrwt.begin(), sqrtFun());
+	copy(d_sqrtrwt.begin(), d_sqrtrwt.end(), d_sqrtXwt.begin());
     }
 
     /** 

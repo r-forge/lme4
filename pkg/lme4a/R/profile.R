@@ -652,18 +652,10 @@ varpr <- function (x)
 devfun2 <- function(fm)
 {
     stopifnot(is(fm, "merMod"), is(fm@resp, "lmerResp"))
-    ## force a deep copy.
-    fm1 <- new(as.character(class(fm)), fe = fm@fe, resp = fm@resp, call = Quote(fm@call),
-               frame = fm@frame, re = fm@re, devcomp = fm@devcomp)
-    rm(fm)
     th <- fm1@re@theta
     lth <- length(th)
-    if (fm1@resp@REML != 0) {
-        fm1@resp@REML <- 0L
-        bobyqa(th, function(x) {.Call(reUpdateLambda, fm1@re, x);.Call(LMMdeviance, fm1)}, fm1@re@lower)
-        .Call(updateDc, fm1)
-    }
-
+    fm1 <- refitML(fm)
+    rm(fm)
     basedev <- unname(deviance(fm1))
     sig <- sigma(fm1)
     lsig <- log(sig)
@@ -673,17 +665,12 @@ devfun2 <- function(fm)
         stopifnot(is.numeric(pars), length(pars) == np)
         ## Assumption:  1) last parameter = log(sigma); 2) other pars are on SD-scale
         sigma <- exp(pars[np])
-        pp <- pars[-np]/sigma
-        stopifnot(all(pp >= fm1@re@lower))
-        .Call(reUpdateLambda, fm1@re, pp)
-### FIXME: change this to a call to a function that updates the profiled deviance for any merMod
-        .Call(LMMdeviance, fm1)
-        .Call(updateDc, fm1)
         sigsq <- sigma^2
-        dc <- fm1@devcomp
-        cmp <- dc$cmp
-        dims <- dc$dims
-        cmp["ldL2"] + cmp["pwrss"]/sigsq + dims['n'] * log(2 * pi * sigsq)
+        pp <- pars[-np]/sigma
+        fv <- .Call(merDeviance, fm1, pp)
+### FIXME: change this to a call to a function that updates the profiled deviance for any merMod
+## change the value of merDeviance to include ldL2, drsum, wrss, ussq, and pwrss
+        attr(fv,"ldL2") + (attr(fv,"wrss")+attr(fv,"ussq"))/sigsq + length(fm1@resp@y) * log(2 * pi * sigsq)
     }
     opt <- c(sig * th, lsig)
     names(opt) <- c(sprintf(".sig%02d", seq_len(lth)), ".lsig")

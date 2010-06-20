@@ -8,8 +8,6 @@ namespace mer{
 	  d_reml(*Rcpp::IntegerVector(xp.slot("REML")).begin()) {
 	copy(d_offset.begin(), d_offset.end(), d_mu.begin());
 	updateWrss();
-	transform(d_weights.begin(), d_weights.end(), d_sqrtrwt.begin(), sqrtFun());
-	copy(d_sqrtrwt.begin(), d_sqrtrwt.end(), d_sqrtXwt.begin());
     }
 
     double lmerResp::Laplace(double  ldL2,
@@ -25,9 +23,5 @@ namespace mer{
 	copy(gamma.begin(), gamma.end(), d_mu.begin());
 	return updateWrss();
     }
-
-    // void lmerResp::updateDcmp(Rcpp::List& ll) const {
-    // 	merResp::updateDcmp(ll);
-    // }
 
 }

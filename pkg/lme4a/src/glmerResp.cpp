@@ -37,10 +37,4 @@ namespace mer{
 		  d_sqrtXwt.begin(), multiplies<double>());
 	return updateWrss();
     }
-
-    // void glmerResp::updateDcmp(Rcpp::List& ll) const {
-    // 	merResp::updateDcmp(ll);
-    // 	Rcpp::NumericVector dr = devResid();
-    // 	ll["drsum"] = accumulate(dr.begin(), dr.end(), double());
-    // }
 }
