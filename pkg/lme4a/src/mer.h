@@ -46,7 +46,8 @@ namespace mer {
 
     Rcpp::NumericVector mkans(double,
 			      const Rcpp::NumericVector&,
-			      const Rcpp::NumericVector&);
+			      const Rcpp::NumericVector&,
+			      double,double,double);
 
     class reModule {
     protected:
@@ -298,7 +299,8 @@ namespace mer {
 	updateWts();
 	solveCoef(BetaU);
 	updateMu();
-	return mkans(Laplace(), fe.getBeta(), re.u());
+	return mkans(Laplace(), fe.getBeta(), re.u(),
+		     re.ldL2(), resp.wrss(), re.sqrLenU());
     }
 
     template<typename Tf, typename Tr> inline
@@ -433,7 +435,8 @@ namespace mer {
 	    if (verb > 1)
 		Rprintf("   convergence criterion: %g\n", crit);
 	}
-	return mkans(Laplace(), fe.getBeta(), re.u());
+	return mkans(Laplace(), fe.getBeta(), re.u(),
+		     re.ldL2(), resp.wrss(), re.sqrLenU());
     } // PIRLS
 
     template<typename Tf, typename Tr> inline

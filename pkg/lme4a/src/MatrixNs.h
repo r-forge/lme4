@@ -6,12 +6,18 @@
 #define LME4_MATRIX_H
 
 //#include <RcppCommon.h>
+
+// namespace Rcpp {
+//     template <int RTYPE> class Vector;
+//     template <int RTYPE> class Matrix;
+//     class S4;
+//     typedef Vector<REALSXP> NumericVector;
+//     typedef Vector<VECSXP>  List;
+//     typedef Matrix<REALSXP> NumericMatrix;
+// }
+
 #include <Rcpp.h>
 #include <Matrix.h>
-
-// class Rcpp::List;
-// class Rcpp::NumericVector;
-// class Rcpp::S4;
 
 extern cholmod_common c;
 
@@ -50,10 +56,10 @@ namespace MatrixNs {
 	dMatrix(Rcpp::S4&);
 	dMatrix(int,int,int=0);
 
-	Rcpp::NumericVector const& x() const{return d_x;}
+	const Rcpp::NumericVector& x() const {return d_x;}
 	Rcpp::NumericVector& X() {return d_x;}
-	void setX(Rcpp::NumericVector const&);
-	void setX(Rcpp::NumericMatrix const&);
+	void setX(const Rcpp::NumericVector&);
+	void setX(const Rcpp::NumericMatrix&);
     };
 
     class ddenseMatrix : public dMatrix {
@@ -115,13 +121,12 @@ namespace MatrixNs {
 	dgeMatrix(Rcpp::S4);
 	dgeMatrix(int,int);
 
-	int dmult(char tr, double alpha, double beta, 
-	 	  chmDn const &src, chmDn &dest) const;
-	void dgemv(char,double,Rcpp::NumericVector const&,
-		   double, Rcpp::NumericVector&) const;
-	void dgemv(char,double,Rcpp::NumericVector const&,
+	int  dmult(char,double,double, const chmDn&,chmDn&) const;
+	void dgemv(char,double,const Rcpp::NumericVector&,
+		   double,Rcpp::NumericVector&) const;
+	void dgemv(char,double,const Rcpp::NumericVector&,
 		   double,double*) const;
-	void dgemm(char,char,double,dgeMatrix const&,
+	void dgemm(char,char,double,const dgeMatrix&,
 		   double,dgeMatrix&) const;
     };
 
@@ -151,14 +156,13 @@ namespace MatrixNs {
 	Cholesky(Rcpp::S4);
 	Cholesky(dgeMatrix, char = 'U');
 
-	Rcpp::NumericMatrix solve(int, const_CHM_DN) const;
-	Rcpp::NumericMatrix solve(int,Rcpp::NumericMatrix const&) const;
-	Rcpp::NumericMatrix solve(int,Rcpp::NumericVector const&) const;
+	Rcpp::NumericMatrix solve(int,const_CHM_DN) const;
+	Rcpp::NumericMatrix solve(int,const Rcpp::NumericMatrix&) const;
+	Rcpp::NumericMatrix solve(int,const Rcpp::NumericVector&) const;
 
-	void update(dpoMatrix const&); // chol(A)
-	void update(dgeMatrix const&); // chol(crossprod(X))
-	void update(char,double,dgeMatrix const&,
-		    double, dsyMatrix const&);
+	void update(const dpoMatrix&); // chol(A)
+	void update(const dgeMatrix&); // chol(crossprod(X))
+	void update(char,double,const dgeMatrix&,double,const dsyMatrix&);
 
 	void dpotrs(Rcpp::NumericVector&) const;
 	void dpotrs(std::vector<double>&) const;
@@ -205,19 +209,19 @@ namespace MatrixNs {
 	const SEXPREC* sexp() const {return SEXP(d_xp);}
 	CHM_SP crossprod() const;
 	CHM_SP crossprod(const cholmod_sparse*, int sorted = 1) const;
-	CHM_SP crossprod(chmSp const &B, int sorted = 1) const;
+	CHM_SP crossprod(const chmSp&, int sorted = 1) const;
 
 	CHM_SP tcrossprod() const;
 	CHM_SP tcrossprod(const_CHM_SP, int sorted = 1) const;
-	CHM_SP tcrossprod(chmSp const &B, int sorted = 1) const;
+	CHM_SP tcrossprod(const chmSp&, int sorted = 1) const;
 
 	CHM_SP transpose(int values = 1) const;
 
-	CHM_SP smult(chmSp const&, int, int, int) const;
-	int dmult(char, double, double, chmDn const&, chmDn&) const;
+	CHM_SP smult(const chmSp&, int, int, int) const;
+	int dmult(char,double,double,const chmDn&,chmDn&) const;
 	
-	void scale(int,chmDn const&);
-	void update(cholmod_sparse const&);
+	void scale(int,const chmDn&);
+	void update(const cholmod_sparse&);
     };
 
     class chmFr : public cholmod_factor {
@@ -230,11 +234,11 @@ namespace MatrixNs {
 //      double logDet2() const {   // Need Matrix_0.999375-42 or later
 	double logDet2();
 
-	void update(cholmod_sparse const &A, double Imult = 0.); 
+	void update(const cholmod_sparse&, double Imult = 0.); 
 
 	Rcpp::NumericMatrix solve(int, const_CHM_DN) const;
-	Rcpp::NumericMatrix solve(int,Rcpp::NumericMatrix const&) const;
-	Rcpp::NumericMatrix solve(int,Rcpp::NumericVector const&) const;
+	Rcpp::NumericMatrix solve(int, const Rcpp::NumericMatrix&) const;
+	Rcpp::NumericMatrix solve(int, const Rcpp::NumericVector&) const;
 
 	CHM_SP spsolve(int sys, const_CHM_SP b) const;
 	CHM_SP spsolve(int sys, const chmSp&b) const;

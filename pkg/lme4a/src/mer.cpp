@@ -135,10 +135,16 @@ namespace mer{ // utilities defined here, class constructors and
 
     NumericVector mkans(double x,
 			const NumericVector& beta,
-			const NumericVector&    u) {
+			const NumericVector&    u,
+			double               ldL2,
+			double               wrss,
+			double               ussq) {
 	NumericVector ans(1, x);
 	ans.attr("beta") = beta;
 	ans.attr("u")    = u;
+	ans.attr("ldL2") = ldL2;
+	ans.attr("wrss") = wrss;
+	ans.attr("ussq") = ussq;
 	return ans;
     }
 } // namespace mer

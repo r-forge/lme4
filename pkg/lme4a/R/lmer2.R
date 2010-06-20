@@ -976,15 +976,14 @@ setMethod("getL", "reModule", function(x) x@L)
 setMethod("getL", "merMod", function(x) x@re@L)
 
 setMethod("isREML", "merMod", function(x) as.logical(x@devcomp$dims["REML"]))
+
 setMethod("refitML", "merMod",
           function (x) {
-              if (!x@devcomp$dims["REML"]) return(x)
-              xx <- new(class(x), call=Quote(x@call),
-                        devcomp=x@devcomp, frame=x@frame,
-                        re=x@re, fe=x@fe, resp=x@resp)
-              bobyqa(xx@re@theta, mkdevfun(xx), xx@re@theta)
-              .Call(updateDc, xx)
-              xx
+              if (!isREML(x)) return(x)
+              x@fe@REML <- 0L
+              x@devcmp$dims["REML"] <- 0L
+              bobyqa(x@re@theta, mkdevfun(x), x@re@lower)
+              updateMod(x)
           })
 
 setMethod("getCall", "merMod",	function(x) x@call)

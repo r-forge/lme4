@@ -35,8 +35,4 @@ namespace mer{
 	copy(rrg.begin(), rrg.end(), d_sqrtXwt.begin());
 	return updateWrss();
     }
-
-    // void nlmerResp::updateDcmp(Rcpp::List& ll) const {
-    // 	merResp::updateDcmp(ll);
-    // }
 }

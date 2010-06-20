@@ -9,13 +9,15 @@ namespace mer {
     }
 
     void feModule::setBeta(Rcpp::NumericVector const& bbase,
-			   Rcpp::NumericVector const&  incr, double step) {
+			   Rcpp::NumericVector const&  incr,
+			   double                      step) {
 	R_len_t p = d_beta.size();
+	if (p == 0) return;
 	if (bbase.size() != p)
 	    throw runtime_error("feModule::setBeta size mismatch of beta and bbase");
-	if (p == 0) return;
 
-	Rcpp::NumericVector res = (step == 0.) ? bbase : bbase + incr * step;
+	Rcpp::NumericVector
+	    res = (step == 0.) ? bbase : bbase + incr * step;
 	copy(res.begin(), res.end(), d_beta.begin());
     }
 }

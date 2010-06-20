@@ -70,12 +70,6 @@ namespace mer {
 	chol.dpotrs(d_beta);
     }
 
-    // void deFeMod::updateDcmp(Rcpp::List& ll) {
-    // 	ll["ldRX2"] = d_RX.logDet2();
-    // 	ll["RZX"]   = d_RZX.sexp();
-    // 	ll["RX"]    = d_RX. sexp();
-    // }
-
     /** 
      * Update RZX and RX
      *   RZX <<- solve(L, solve(L, crossprod(Lambda, ZtX), 
