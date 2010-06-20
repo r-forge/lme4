@@ -77,19 +77,9 @@ namespace mer{
 	if (ubase.size() != q)
 	    Rf_error("%s: expected %s.size() = %d, got %d",
 		     "reModule::setU", "ubase", q, ubase.size());
-	if (step == 0.) {
-	    copy(ubase.begin(), ubase.end(), d_u.begin());
-	} else {
-	    if (incr.size() != q)
-		Rf_error("%s: expected %s.size() = %d, got %d",
-			 "reModule::setU", "incr", q, incr.size());
-	    transform(incr.begin(), incr.end(), d_u.begin(),
-			   bind2nd(multiplies<double>(), step));
-	    transform(ubase.begin(), ubase.end(), d_u.begin(),
-			   d_u.begin(), plus<double>());
-	}
-	d_sqrLenU = inner_product(d_u.begin(), d_u.end(),
-				       d_u.begin(), double());
+	NumericVector res = (step == 0.) ? ubase : ubase + incr * step;
+	copy(res.begin(), res.end(), d_u.begin());
+	d_sqrLenU = inner_product(d_u.begin(), d_u.end(), d_u.begin(), double());
     }
 
     /** 
@@ -101,17 +91,12 @@ namespace mer{
 	setU(NumericVector(SEXP(ans)));
     }
 
-//    void reModule::updateDcmp(Rcpp::NumericVector &cmp) const {  // Need Matrix_0.999375-42 or later
-    void reModule::updateDcmp(Rcpp::List &ll) {
-	List devcomp = ll["devcomp"];
-	NumericVector cmp = devcomp["cmp"];
-	cmp["ldL2"] = d_L.logDet2();
-	cmp["ussq"] = inner_product(d_u.begin(), d_u.end(), d_u.begin(), double());
-	Rcpp::S4 L = d_L.S4(), Lambda = d_Lambda.S4();
-	ll["L"]      = L;
-	ll["Lambda"] = Lambda;
-	ll["u"]      = d_u;
-    }
+    // void reModule::updateDcmp(Rcpp::List& ll) const {
+    // 	ll["ldL2"] = d_ldL2;
+    // 	ll["ussq"] = d_sqrLenU;
+    // 	Rcpp::S4 L = d_L.S4();
+    // 	ll["L"]      = L;
+    // }
 
     /** 
      * Check and install new value of theta.  Update Lambda.
@@ -119,18 +104,21 @@ namespace mer{
      * @param nt New value of theta
      */
     void reModule::updateLambda(NumericVector const& nt) {
-	R_len_t nth = d_lower.size();
-	if (nt.size() < nth)
-	    throw runtime_error("size mismatch of nt and d_lower in updateLambda");
 				// check that nt is feasible
-	double *Lamx = (double*)d_Lambda.x,
-	    *ll = d_lower.begin(), *th = nt.begin();
-	for (R_len_t i = 0; i < nth; ++i)
-	    if (th[i] < ll[i])
-		throw runtime_error("updateLambda: theta not in feasible region");
+	if (any(nt < d_lower).is_true())
+	    throw runtime_error("updateLambda: theta not in feasible region");
+
+	// R_len_t nth = d_lower.size(), Lis = d_Lind.size();
+	// if (nt.size() != nth)
+	//     throw runtime_error("size mismatch of nt and d_lower in updateLambda");
+	// double *Lamx = (double*)d_Lambda.x, *ll = d_lower.begin(), *th = nt.begin();
+	// for (R_len_t i = 0; i < nth; ++i)
+	//     if (th[i] < ll[i])
+	// 	throw runtime_error("updateLambda: theta not in feasible region");
 				// update Lambda from theta and Lind
-	int *Li = d_Lind.begin(), Lis = d_Lind.size();
-	for (R_len_t i = 0; i < Lis; i++) Lamx[i] = th[Li[i] - 1];
+	double *Lamx = (double*)d_Lambda.x, *th = nt.begin();
+	int *Li = d_Lind.begin();
+	for (R_len_t i = 0; i < d_Lind.size(); i++) Lamx[i] = th[Li[i] - 1];
     }
 
     /** 

@@ -5,8 +5,13 @@
 #ifndef LME4_MATRIX_H
 #define LME4_MATRIX_H
 
+//#include <RcppCommon.h>
 #include <Rcpp.h>
 #include <Matrix.h>
+
+// class Rcpp::List;
+// class Rcpp::NumericVector;
+// class Rcpp::S4;
 
 extern cholmod_common c;
 
@@ -34,7 +39,8 @@ namespace MatrixNs {
 	Matrix(int,int);
 	int nrow() const;
 	int ncol() const;
-	SEXP sexp() {return d_sexp ? d_sexp : R_NilValue;}
+	const SEXPREC* sexp() const {return d_sexp ? d_sexp : R_NilValue;}
+//	operator SEXP() const {return d_sexp ? d_sexp : R_NilValue;}
     };
 
     class dMatrix : public Matrix {
@@ -195,7 +201,8 @@ namespace MatrixNs {
     public:
 	chmSp(Rcpp::S4);
 
-	const Rcpp::S4& S4() const {return d_xp;}
+	const Rcpp::S4&  S4() const {return d_xp;}
+	const SEXPREC* sexp() const {return SEXP(d_xp);}
 	CHM_SP crossprod() const;
 	CHM_SP crossprod(const cholmod_sparse*, int sorted = 1) const;
 	CHM_SP crossprod(chmSp const &B, int sorted = 1) const;
@@ -218,7 +225,8 @@ namespace MatrixNs {
     public:
 	chmFr(Rcpp::S4);
 
-	const Rcpp::S4& S4() const {return d_xp;}
+	const Rcpp::S4&  S4() const {return d_xp;}
+	const SEXPREC* sexp() const {return SEXP(d_xp);}
 //      double logDet2() const {   // Need Matrix_0.999375-42 or later
 	double logDet2();
 
@@ -229,7 +237,7 @@ namespace MatrixNs {
 	Rcpp::NumericMatrix solve(int,Rcpp::NumericVector const&) const;
 
 	CHM_SP spsolve(int sys, const_CHM_SP b) const;
-	CHM_SP spsolve(int sys, chmSp const &b) const;
+	CHM_SP spsolve(int sys, const chmSp&b) const;
     };
 
     class Permutation {
@@ -238,8 +246,8 @@ namespace MatrixNs {
     public:
 	Permutation(Rcpp::IntegerVector&);
 
-	Rcpp::NumericVector forward(Rcpp::NumericVector const&) const;
-	Rcpp::NumericVector inverse(Rcpp::NumericVector const&) const;
+	Rcpp::NumericVector forward(const Rcpp::NumericVector&) const;
+	Rcpp::NumericVector inverse(const Rcpp::NumericVector&) const;
 	void inPlaceFwd(Rcpp::NumericVector&) const;
 	void inPlaceInv(Rcpp::NumericVector&) const;
     };

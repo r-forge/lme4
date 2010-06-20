@@ -26,12 +26,8 @@ namespace mer{
 	return updateWrss();
     }
 
-    void lmerResp::updateDcmp(Rcpp::List& ll) const {
-	merResp::updateDcmp(ll);
-	Rcpp::List devcomp = ll["devcomp"];
-	Rcpp::NumericVector cmp = devcomp["cmp"];
-	Rcpp::IntegerVector dims = devcomp["dims"];
-	cmp["sigmaREML"] = cmp["sigmaML"] * sqrt((double)dims["n"]/(double)dims["nmp"]);
-    }
+    // void lmerResp::updateDcmp(Rcpp::List& ll) const {
+    // 	merResp::updateDcmp(ll);
+    // }
 
 }

@@ -9,7 +9,8 @@
   deviance.
 }
 \usage{
-mkdevfun(mod, PLSBeta = FALSE, u0 = numeric(length(mod@re@u)), compDev = TRUE)
+mkdevfun(mod, nAGQ = 1L, u0 = numeric(length(mod@re@u)),
+         verbose = 0L, compDev = TRUE)
 }
 \arguments{
   \item{mod}{
@@ -21,10 +22,15 @@ mkdevfun(mod, PLSBeta = FALSE, u0 = numeric(length(mod@re@u)), compDev = TRUE)
     value, \code{0L}, creates the PIRLSBeta Laplace approximation in
     which the penalized iteratively reweighted least squares (PIRLS) algorithm
     is used to optimize all the coefficients.
-}
+  }
   \item{u0}{
     Starting value to use for \code{u} in the PIRLS or PIRLSBeta algorithm
-}
+  }
+  \item{verbose}{
+    integer value indicating level of verbosity in the output.  Values
+    greater than 1 cause iteration output during the PIRLS algorithm,
+    which can be very verbose.
+  }
   \item{compDev}{
     for \code{\linkS4class{lmerMod}} objects, should the compiled
     deviance evaluation be used?  A value of \code{FALSE} provides an

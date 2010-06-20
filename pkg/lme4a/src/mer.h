@@ -8,26 +8,26 @@
 
 namespace mer {
 				// utilities
-    double compareVecWt(  Rcpp::NumericVector const&,
-			  Rcpp::NumericVector const&,
-			  Rcpp::NumericVector const&);
-    void showCHM_DN(const_CHM_DN, std::string const&);
-    void showCHM_FR(const_CHM_FR, std::string const&);
-    void showCHM_SP(const_CHM_SP, std::string const&);
-    void showCHM_SP(const MatrixNs::chmSp&, std::string const&);
-    void showdMat(MatrixNs::ddenseMatrix const&, std::string const&);
-    void showdbl(const double*, const char*, int);
-    void showdbl(const Rcpp::NumericVector& vv, const char* nm);
-    void showincr(double,double,double,
-		  Rcpp::NumericVector const&, const char*);
-    void showint(const int*, const char*, int);
+    double compareVecWt(const Rcpp::NumericVector&,
+			const Rcpp::NumericVector&,
+			const Rcpp::NumericVector&);
+    void showCHM_DN    (const_CHM_DN, const std::string&);
+    void showCHM_FR    (const_CHM_FR, const std::string&);
+    void showCHM_SP    (const_CHM_SP, const std::string&);
+    void showCHM_SP    (const MatrixNs::chmSp&, const std::string&);
+    void showdMat      (const MatrixNs::ddenseMatrix&, const std::string&);
+    void showdbl       (const double*, const char*, int);
+    void showdbl       (const Rcpp::NumericVector&, const char*);
+    void showincr      (double, double, double,
+		        const Rcpp::NumericVector&, const char*);
+    void showint       (const int*, const char*, int);
 
     struct lengthFun : std::unary_function<Rcpp::RObject, R_len_t> {
-	inline R_len_t operator() (Rcpp::RObject const& x) {return Rf_length(SEXP(x));}
+	inline R_len_t operator() (const Rcpp::RObject& x) {return Rf_length(SEXP(x));}
     };
 
     struct nlevsFun : std::unary_function<Rcpp::RObject, R_len_t> {
-	inline R_len_t operator() (Rcpp::RObject const& x) {
+	inline R_len_t operator() (const Rcpp::RObject& x) {
 	    return Rf_length(Rf_getAttrib(SEXP(x), R_LevelsSymbol));
 	}
     };
@@ -44,7 +44,9 @@ namespace mer {
 	}
     };
 
-    Rcpp::NumericVector mkans(double, const Rcpp::NumericVector&, const Rcpp::NumericVector&);
+    Rcpp::NumericVector mkans(double,
+			      const Rcpp::NumericVector&,
+			      const Rcpp::NumericVector&);
 
     class reModule {
     protected:
@@ -69,17 +71,16 @@ namespace mer {
 	double                      ldL2() const {return d_ldL2;}
 	double                   sqrLenU() const {return d_sqrLenU;}
 
-	void reweight(Rcpp::NumericMatrix const&,
-		      Rcpp::NumericVector const&);
-	void setU(Rcpp::NumericVector const&,
-		  Rcpp::NumericVector const& = Rcpp::NumericVector(),
-		  double = 0.);
-	void solveU();
-//	void updateDcmp(Rcpp::List&) const;  //needs Matrix_0.999375-42 or later
-	void updateDcmp(Rcpp::List&);
-	void updateLambda(Rcpp::NumericVector const&);
-	void updateU(Rcpp::NumericVector const&);
-	void zeroU();
+	void reweight    (const Rcpp::NumericMatrix&,
+			  const Rcpp::NumericVector&);
+	void setU        (const Rcpp::NumericVector&,
+			  const Rcpp::NumericVector& = Rcpp::NumericVector(),
+			  double = 0.);
+	void solveU      ();
+//	void updateDcmp  (Rcpp::List&) const;
+	void updateLambda(const Rcpp::NumericVector&);
+	void updateU     (const Rcpp::NumericVector&);
+	void zeroU       ();
     };
 
     class reTrms : public reModule {
@@ -88,15 +89,16 @@ namespace mer {
     public:
 	reTrms(Rcpp::S4);
 
-	Rcpp::IntegerVector const& assign() const {return d_assign;}
+	const Rcpp::IntegerVector& assign() const {return d_assign;}
+	const Rcpp::List&            cnms() const {return d_cnms;}
+	const Rcpp::List&           flist() const {return d_flist;}
+
 	Rcpp::IntegerVector         nlevs() const; // number of levels per factor
 	Rcpp::IntegerVector         ncols() const; // number of columns per term
 	Rcpp::IntegerVector         nctot() const; // total number of columns per factor
 	Rcpp::IntegerVector       offsets() const; // offsets into b vector for each term
 	Rcpp::IntegerVector         terms(int) const; // 0-based indices of terms for a factor
 	Rcpp::List                condVar(double);
-	Rcpp::List const&            cnms() const {return d_cnms;}
-	Rcpp::List const&           flist() const {return d_flist;}
     };
 	
     class feModule {
@@ -112,7 +114,7 @@ namespace mer {
 // Don't want to use the name beta because the R include files remap it to Rf_beta
 	const Rcpp::NumericVector& getBeta() const {return  d_beta;}
 	double                       ldRX2() const {return  d_ldRX2;}
-	virtual void updateDcmp(Rcpp::List&) = 0;
+//	virtual void updateDcmp(Rcpp::List&) = 0;
     };
 
     class deFeMod : public feModule {
@@ -125,19 +127,19 @@ namespace mer {
     public:
 	deFeMod(Rcpp::S4 xp,int);
 
-	const MatrixNs::Cholesky   &RX() const{return d_RX;}
-	const MatrixNs::dgeMatrix   &X() const{return d_X;}
-	const MatrixNs::dgeMatrix &RZX() const{return d_RZX;}
+	const MatrixNs::Cholesky&   RX() const {return d_RX;}
+	const MatrixNs::dgeMatrix&   X() const {return d_X;}
+	const MatrixNs::dgeMatrix& RZX() const {return d_RZX;}
 
-	Rcpp::NumericVector updateBeta(Rcpp::NumericVector const&);
+	Rcpp::NumericVector updateBeta(const Rcpp::NumericVector&);
 
-	void reweight(cholmod_sparse      const*,
-		      Rcpp::NumericMatrix const&,
-		      Rcpp::NumericVector const&);
-	void solveBeta();
-	void updateDcmp(Rcpp::List&) ;
-	void updateRzxRx(MatrixNs::chmSp const&,
-			 MatrixNs::chmFr const&);
+	void reweight   (const cholmod_sparse*,
+			 const Rcpp::NumericMatrix&,
+			 const Rcpp::NumericVector&);
+	void solveBeta  ();
+//	void updateDcmp (Rcpp::List&);
+	void updateRzxRx(const MatrixNs::chmSp&,
+			 const MatrixNs::chmFr&);
     };
 
     class spFeMod : public feModule {
@@ -149,20 +151,20 @@ namespace mer {
 	spFeMod(Rcpp::S4 xp,int);
 	~spFeMod();
 
-	const MatrixNs::chmSp      &X() const{return d_X;}
-	const MatrixNs::chmSp    &RZX() const{return d_RZX;}
-	const MatrixNs::chmFr     &RX() const{return d_RX;}
+	const MatrixNs::chmSp&      X() const {return d_X;}
+	const MatrixNs::chmSp&    RZX() const {return d_RZX;}
+	const MatrixNs::chmFr&     RX() const {return d_RX;}
 
-	Rcpp::NumericVector updateBeta(Rcpp::NumericVector const&);
+	Rcpp::NumericVector updateBeta(const Rcpp::NumericVector&);
 
-	void reweight(cholmod_sparse      const*,
-		      Rcpp::NumericMatrix const&,
-		      Rcpp::NumericVector const&);
-	void solveBeta();
-//	void updateDcmp(Rcpp::List&) const; // needs Matrix_0.999375-42 or later
-	void updateDcmp(Rcpp::List&);
-	void updateRzxRx(MatrixNs::chmSp const&,
-			 MatrixNs::chmFr const&);
+	void reweight   (const cholmod_sparse*,
+			 const Rcpp::NumericMatrix&,
+			 const Rcpp::NumericVector&);
+	void solveBeta  ();
+//	void updateDcmp (Rcpp::List&) const; // needs Matrix_0.999375-42 or later
+//	void updateDcmp (Rcpp::List&);
+	void updateRzxRx(const MatrixNs::chmSp&,
+			 const MatrixNs::chmFr&);
     };
 
     class merResp {
@@ -171,31 +173,33 @@ namespace mer {
 	double               d_wrss;
 	Rcpp::NumericVector  d_offset, d_weights, d_y; // read-only slots
 	Rcpp::NumericVector  d_sqrtrwt, d_wtres, d_mu; // writeable slots
-	Rcpp::NumericMatrix  d_sqrtXwt;
+	Rcpp::NumericMatrix  d_sqrtXwt;                // writeable
     public:
 	merResp(Rcpp::S4);
 
-	const Rcpp::NumericVector      &mu() const{return d_mu;}
-	const Rcpp::NumericVector  &offset() const{return d_offset;}
-	const Rcpp::NumericMatrix &sqrtXwt() const{return d_sqrtXwt;}
-	const Rcpp::NumericVector &sqrtrwt() const{return d_sqrtrwt;}
-	const Rcpp::NumericVector   &wtres() const{return d_wtres;}
-	const Rcpp::S4                 &xp() const{return d_xp;}
+	Rcpp::NumericVector       devResid() const;
 
-	double                        wrss() const{return d_wrss;}
-	double                   updateWts(){return updateWrss();}
+	const Rcpp::NumericVector&      mu() const {return d_mu;}
+	const Rcpp::NumericVector&  offset() const {return d_offset;}
+	const Rcpp::NumericMatrix& sqrtXwt() const {return d_sqrtXwt;}
+	const Rcpp::NumericVector& sqrtrwt() const {return d_sqrtrwt;}
+	const Rcpp::NumericVector&   wtres() const {return d_wtres;}
+	const Rcpp::NumericVector&       y() const {return d_y;}
+	const Rcpp::S4&                 xp() const {return d_xp;}
+	double                        wrss() const {return d_wrss;}
+	double                   updateWts()       {return updateWrss();}
 	double                  updateWrss();
 
-	virtual void            updateDcmp(Rcpp::List&) const = 0;
+//	virtual void updateDcmp(Rcpp::List&) const = 0;
     };
 
     class lmerResp : public merResp {
 	int d_reml;
     public:
 	lmerResp(Rcpp::S4);
-	double Laplace(double,double,double)const;
-	double updateMu(Rcpp::NumericVector const&);
-	void updateDcmp(Rcpp::List&) const;
+
+	double Laplace (double,double,double)const;
+	double updateMu(const Rcpp::NumericVector&);
     };
 
     class glmerResp : public merResp {
@@ -203,17 +207,17 @@ namespace mer {
 	glm::glmFamily           family;
 	Rcpp::NumericVector  d_eta, d_n;
     public:
-	glmerResp(Rcpp::S4 xp);
+	glmerResp(Rcpp::S4);
 
 	Rcpp::NumericVector   devResid() const;
 
-	const Rcpp::NumericVector &eta() const{return d_eta;}
+	const Rcpp::NumericVector& eta() const {return d_eta;}
 
 	double                 Laplace(double,double,double) const;
-	double                updateMu(Rcpp::NumericVector const&);
+	double                updateMu(const Rcpp::NumericVector&);
 	double               updateWts();
 
-	void  updateDcmp(Rcpp::List&) const;
+//	void updateDcmp(Rcpp::List&) const;
     };
     
     class nlmerResp : public merResp {
@@ -222,9 +226,11 @@ namespace mer {
 	Rcpp::CharacterVector pnames;
     public:
 	nlmerResp(Rcpp::S4 xp);
-	double updateMu(Rcpp::NumericVector const &gamma);
-	double Laplace(double,double,double) const;
-	void  updateDcmp(Rcpp::List&) const;
+
+	double Laplace (double, double, double) const;
+	double updateMu(const Rcpp::NumericVector&);
+
+//	void  updateDcmp(Rcpp::List&) const;
     };
     
     enum Alg {Beta, U, BetaU};
@@ -241,19 +247,23 @@ namespace mer {
     public:
 	mer(Rcpp::S4&);
 
-	double Laplace  () const {
-	    return resp.Laplace(re.ldL2(), fe.ldRX2(), re.sqrLenU());
-	}
 	Rcpp::NumericVector LMMdeviance(const Rcpp::NumericVector&,
 					const Rcpp::NumericVector&);
-	double PIRLS      (Rcpp::NumericVector const&,int,Alg);
-	double setBetaU   (Rcpp::NumericVector const&,
-			   Rcpp::NumericVector const&,
-			   Rcpp::NumericVector const&,
-			   Rcpp::NumericVector const&,
-			   double,Alg);
-	double updateMu   ();
-	double updateWts  ();
+	Rcpp::NumericVector PIRLS      (const Rcpp::NumericVector&,
+					const Rcpp::NumericVector&,
+					const Rcpp::NumericVector&,
+					int,Alg);
+	Rcpp::List updateDcmp          (const Rcpp::NumericVector&,
+					const Rcpp::NumericVector&,
+					const Rcpp::NumericVector&);
+	double Laplace   () const;
+	double setBetaU  (const Rcpp::NumericVector&,
+			  const Rcpp::NumericVector&,
+			  const Rcpp::NumericVector&,
+			  const Rcpp::NumericVector&,
+			  double,Alg);
+	double updateMu  ();
+	double updateWts ();
 
 	int N()  const   {return resp.offset().size();}
 	int n()  const   {return  resp.wtres().size();}
@@ -264,7 +274,6 @@ namespace mer {
 
 	void solveCoef(Alg);
 	void updateRzxRx();
-	void updateDcmp(Rcpp::List&,Rcpp::NumericVector const&);
     };
     
     template<typename Tf, typename Tr>
@@ -290,6 +299,11 @@ namespace mer {
 	solveCoef(BetaU);
 	updateMu();
 	return mkans(Laplace(), fe.getBeta(), re.u());
+    }
+
+    template<typename Tf, typename Tr> inline
+    double mer<Tf,Tr>::Laplace() const {
+	return resp.Laplace(re.ldL2(), fe.ldRX2(), re.sqrLenU());
     }
 
     /** 
@@ -386,15 +400,18 @@ namespace mer {
 #define CM_SMIN 1.e-4
 
     template<typename Tf, typename Tr> inline
-    double mer<Tf,Tr>::PIRLS(Rcpp::NumericVector const& u0, int verb, Alg alg) {
+    Rcpp::NumericVector mer<Tf,Tr>::PIRLS(const Rcpp::NumericVector& theta,
+					  const Rcpp::NumericVector&  beta,
+					  const Rcpp::NumericVector&    u0, int verb, Alg alg) {
 	Rcpp::NumericVector bBase(p()), incB(p()), incU(q()), muBase(n()), uBase(q());
 	double crit, step, c0, c1;
 				// sqrtrwt and sqrtXwt must be set
-	crit = 10. * CM_TOL;
-	if (u0.size() != re.u().size())
-	    throw std::runtime_error("lengths of u0 and re.u() must match");
+	re.updateLambda(theta);
+	if (alg == U) fe.setBeta(beta);
 	re.setU(u0);
+
 	updateMu();		// using current beta and u
+	crit = 10. * CM_TOL;
 	for (int i = 0; crit >= CM_TOL && i < CM_MAXITER; i++) {
 				// store copies of mu, u and beta
 	    std::copy(resp.mu().begin(), resp.mu().end(), muBase.begin());
@@ -416,21 +433,32 @@ namespace mer {
 	    if (verb > 1)
 		Rprintf("   convergence criterion: %g\n", crit);
 	}
-	return Laplace();
+	return mkans(Laplace(), fe.getBeta(), re.u());
     } // PIRLS
 
     template<typename Tf, typename Tr> inline
-    void mer<Tf,Tr>::updateDcmp(Rcpp::List& ans, Rcpp::NumericVector const& pars) {
-	Rcpp::NumericVector th(nth()), beta(p()), u(q());
-	double *pp = pars.begin();
-	std::copy(pp, pp + nth(), th.begin());
-	std::copy(pp + nth(), pp + nth() + p(), beta.begin());
-	std::copy(pp + nth() + p(), pp + nth() + p() + q(), u.begin());
-	LMMdeviance(pars, u);
+    Rcpp::List mer<Tf,Tr>::updateDcmp(const Rcpp::NumericVector&   th,
+				      const Rcpp::NumericVector& beta,
+				      const Rcpp::NumericVector&    u) {
+	re.updateLambda(th);
+	re.setU(u);
 	fe.setBeta(beta);
-	(&resp)->updateDcmp(ans);
-	(&re)->updateDcmp(ans);
-	(&fe)->updateDcmp(ans);
+	updateMu();
+	updateWts();
+	re.reweight(resp.sqrtXwt(), resp.wtres());
+	fe.reweight(re.Ut(), resp.sqrtXwt(), resp.wtres());
+	fe.updateRzxRx(re.Lambda(), re.L());
+	return
+	    Rcpp::List::create(Rcpp::_["ldL2"]   = Rcpp::wrap(re.ldL2())
+			       ,Rcpp::_["ldRX2"]  = Rcpp::wrap(fe.ldRX2())
+			       ,Rcpp::_["mu"]     = Rcpp::clone(resp.mu())
+			       ,Rcpp::_["wtres"]  = Rcpp::clone(resp.wtres())
+			       ,Rcpp::_["devRes"] = resp.devResid()
+			       ,Rcpp::_["RX"]     = const_cast<SEXP>(fe.RX().sexp())
+			       ,Rcpp::_["RZX"]    = const_cast<SEXP>(fe.RZX().sexp())
+			       ,Rcpp::_["L"]      = const_cast<SEXP>(re.L().sexp())
+			       ,Rcpp::_["Lambda"] = const_cast<SEXP>(re.Lambda().sexp())
+		);
     }
 }
 
