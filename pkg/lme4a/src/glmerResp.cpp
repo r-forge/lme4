@@ -38,11 +38,9 @@ namespace mer{
 	return updateWrss();
     }
 
-    void glmerResp::updateDcmp(Rcpp::List& ll) const {
-	merResp::updateDcmp(ll);
-	Rcpp::List devcomp = ll["devcomp"];
-	Rcpp::NumericVector cmp = devcomp["cmp"];
-	Rcpp::NumericVector dr = devResid();
-	cmp["drsum"] = accumulate(dr.begin(), dr.end(), double());
-    }
+    // void glmerResp::updateDcmp(Rcpp::List& ll) const {
+    // 	merResp::updateDcmp(ll);
+    // 	Rcpp::NumericVector dr = devResid();
+    // 	ll["drsum"] = accumulate(dr.begin(), dr.end(), double());
+    // }
 }

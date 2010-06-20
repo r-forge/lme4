@@ -38,25 +38,7 @@ namespace mer{
 	return d_wrss;
     }
 
-    /** 
-     * Update the devcomp$cmp vector in place by calculating and
-     * installing the wrss (weighted residual sum of squares), pwrss
-     * (penalized weighted ...) and sigmaML elements.
-     * 
-     * @param cmp the devcomp list to update
-     */
-    void merResp::updateDcmp(Rcpp::List& ll) const {
-	Rcpp::List devcomp = ll["devcomp"];
-	Rcpp::NumericVector cmp = devcomp["cmp"];
-
-	double wrss = inner_product(d_wtres.begin(), d_wtres.end(),
-				    d_wtres.begin(), double());
-	double n = (double)d_y.size(), ussq = cmp["ussq"];
-	double pwrss = wrss + ussq;
-	cmp["wrss"] = wrss;
-	cmp["pwrss"] = pwrss;
-	cmp["sigmaML"] = sqrt(pwrss/n);
-	ll["mu"] = d_mu;
+    Rcpp::NumericVector merResp::devResid() const {
+	return Rcpp::NumericVector(0);
     }
-
 }

@@ -3,18 +3,18 @@
 #include "Syms.h"
 #include <R_ext/Rdynload.h>
 
-extern "C" SEXP merDeviance(SEXP,SEXP,SEXP,SEXP,SEXP);
+extern "C" SEXP merDeviance(SEXP,SEXP,SEXP,SEXP,SEXP,SEXP);
 //extern "C" SEXP feSetBeta(SEXP,SEXP);
 extern "C" SEXP reTrmsCondVar(SEXP,SEXP);
 //extern "C" SEXP reUpdateLambda(SEXP,SEXP);
 extern "C" SEXP testFam(SEXP,SEXP,SEXP);
 extern "C" SEXP updateRzxRx(SEXP);
-extern "C" SEXP updateDc(SEXP,SEXP);
+extern "C" SEXP updateDc(SEXP,SEXP,SEXP,SEXP);
 
 #define CALLDEF(name, n)  {#name, (DL_FUNC) &name, n}
 
 static R_CallMethodDef CallEntries[] = {
-    CALLDEF(merDeviance, 5),
+    CALLDEF(merDeviance, 6),
 
 //    CALLDEF(feSetBeta, 2),
 
@@ -41,7 +41,7 @@ static R_CallMethodDef CallEntries[] = {
 
     CALLDEF(testFam, 3),
     CALLDEF(updateRzxRx, 1),
-    CALLDEF(updateDc, 2),
+    CALLDEF(updateDc, 4),
     {NULL, NULL, 0}
 };
 

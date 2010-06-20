@@ -434,12 +434,48 @@ lmer2 <- function(formula, data, REML = TRUE, sparseX = FALSE,
         if (verbose) control$iprint <- 2L
         devfun <- mkdevfun(ans, compDev = compDev)
         opt <- bobyqa(ans@re@theta, devfun, ans@re@lower, control = control)
-        .Call(updateDc, ans)
-        ans@devcomp$cmp[ifelse(REML, "REML", "dev")] <- opt$fval
+        ans <- updateMod(ans, opt$par, opt$fval)
     }
     ans
 }
 
+updateMod <- function(mod, pars, fval) {
+    stopifnot(is(mod, "merMod"),
+              is.numeric(pars),
+              is.numeric(fval),
+              is.numeric(u <- attr(fval, "u")),
+              is.numeric(beta <- attr(fval, "beta")))
+    re <- mod@re
+    fe <- mod@fe
+    resp <- mod@resp
+    devcomp <- mod@devcomp
+    lower <- re@lower
+    stopifnot(length(pars) >= length(lower),
+              length(beta) == ncol(fe@X),
+              length(u) == nrow(re@Zt))
+    pars <- pars[seq_along(lower)]
+    lst <- .Call(updateDc, mod, pars, beta, u)
+    lst[ifelse(is(resp, "lmerResp") && resp@REML, "REML", "dev")] <- as.vector(fval)
+    lst["wrss"] <- wrss <- sum(lst[["wtres"]]^2)
+    lst["ussq"] <- ussq <- sum(u^2)
+    lst["pwrss"] <- pwrss <- wrss + ussq
+    lst["sigmaML"] <- sqrt(pwrss/length(resp@y))
+    lst["sigmaREML"] <- sqrt(pwrss/(length(resp@y)-length(beta)))
+    dc <- mod@devcomp
+    nms <- intersect(names(lst), names(dc$cmp))
+    dc$cmp[nms] <- unlist(lst[nms])
+    mod@re@theta <- pars
+    mod@fe@beta <- beta
+    mod@re@u <- u
+    mod@re@L <- lst[["L"]]
+    mod@re@Lambda <- lst[["Lambda"]]
+    mod@fe@RX <- lst[["RX"]]
+    mod@fe@RZX <- lst[["RZX"]]
+    mod@resp@mu <- lst[["mu"]]
+    mod@devcomp <- dc
+    mod
+}
+              
 ##' <description>
 ##' Returns a function that evaluates the deviance from parameter values
 ##' <details>
@@ -456,12 +492,12 @@ lmer2 <- function(formula, data, REML = TRUE, sparseX = FALSE,
 ##' evaluation using functions from the Matrix package only.
 ##' @return a function of one argument
 ##' @author Douglas Bates
-mkdevfun <- function(mod, nAGQ = 1L, u0 = numeric(length(mod@re@u)), compDev = TRUE) {
+mkdevfun <- function(mod, nAGQ = 1L, u0 = numeric(length(mod@re@u)), verbose = 0L, compDev = TRUE) {
     stopifnot(is(mod, "merMod"))
     resp <- mod@resp
+    beta0 <- numeric(length(mod@fe@beta))
     if (is(resp, "lmerResp")) {
-        q <- length(mod@re@u)
-        if (compDev) return(function(th) .Call(merDeviance, mod, th, numeric(q), 0L, 0L))
+        if (compDev) return(function(th) .Call(merDeviance, mod, th, beta0, u0, 0L, 3L))
         WtMat <- Diagonal(x = resp@sqrtrwt)
         return(function(th) {
             lower <- mod@re@lower
@@ -503,17 +539,10 @@ mkdevfun <- function(mod, nAGQ = 1L, u0 = numeric(length(mod@re@u)), compDev = T
             }
         })
     }
-    if (PLSBeta)
-        return(function(pars) {
-            .Call(reUpdateLambda, mod@re, pars)
-            .Call(PIRLS, mod, u0, verbose, 3L) # optimize u and beta
-        })
+    if (nAGQ == 0L)
+        return(function(pars) .Call(merDeviance, mod, pars, beta0, u0, verbose, 3L))
     thpars <- seq_along(mod@re@theta)
-    function(pars) {
-        .Call(feSetBeta, ans@fe, pars[-thpars])
-        .Call(reUpdateLambda, ans@re, pars[thpars])
-        .Call(PIRLS, ans, u0, verbose, 2L) # optimize u only
-    }
+    function(pars) .Call(merDeviance, mod, pars[thpars], pars[-thpars], u0, verbose, 2L)
 }
     
 ## being brave now:
@@ -650,28 +679,16 @@ PIRLSest <- function(ans, verbose, control, nAGQ) {
     if (verbose) control$iprint <- 2L
                                         # initial optimization of PLSBeta
     u0 <- numeric(length(ans@re@u))
-    devfun <- function(pars) {
-        .Call(reUpdateLambda, ans@re, pars)
-        .Call(PIRLS, ans, u0, verbose, 3L) # optimize u and beta
-    }
-    opt <- bobyqa(ans@re@theta, devfun, ans@re@lower, control = control)
-    if (nAGQ == 1L) {
-        u0[] <- ans@re@u 
+    opt <- bobyqa(ans@re@theta, mkdevfun(ans, 0L, verbose = verbose), ans@re@lower, control = control)
+    if (nAGQ > 0L) {
+        u0[] <- attr(opt$fval, "u")
         thpars <- seq_along(ans@re@theta)
-        devfun <- function(pars) {
-            .Call(feSetBeta, ans@fe, pars[-thpars])
-            .Call(reUpdateLambda, ans@re, pars[thpars])
-            .Call(PIRLS, ans, u0, verbose, 2L) # optimize u only
-        }
-        bb <- ans@fe@beta
-        opt <- bobyqa(c(ans@re@theta, bb), devfun,
+        bb <- attr(opt$fval, "beta")
+        opt <- bobyqa(c(opt$par, bb), mkdevfun(ans, nAGQ, verbose = verbose),
                       lower = c(ans@re@lower, rep.int(-Inf, length(bb))),
                       control = control)
-        .Call(updateRzxRx, ans)
     }
-    .Call(updateDc, ans)
-    ans@devcomp$cmp["dev"] <- opt$fval
-    ans
+    updateMod(ans, opt$par, opt$fval)
 }
 
 glmer2 <- function(formula, data, family = gaussian, sparseX = FALSE,
