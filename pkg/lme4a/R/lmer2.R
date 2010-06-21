@@ -303,7 +303,7 @@ setMethod("updateDcmp", signature(x = "merMod", dcmp = "list"),
           function (x, dcmp)
               updateDcmp(x@resp, updateDcmp(x@fe, updateDcmp(x@re, dcmp)))
           )
-          
+if (FALSE) {
 S4toEnv <- function(from) {
     stopifnot(isS4(from))
     ## and we want each to assign each of the slots of the slots
@@ -371,10 +371,7 @@ S4toEnv <- function(from) {
     environment(sP) <- environment(gP) <- environment(gB) <- rho
     new(envclass, setPars = sP, getPars = gP, getBounds = gB)
 }
-##setAs("lmerMod", "optenv",  function(from) .lmerM2env(from, "optenv"))
-##setAs("lmerMod", "lmerenv", function(from) .lmerM2env(from, "lmerenv"))
-##setAs("glmerMod", "glmerenv", function(from) .lmerM2env(from, "glmerenv"))
-##setAs("glmerMod",   "merenv", function(from) .lmerM2env(from, "glmerenv"))
+}
 
 lmer2 <- function(formula, data, REML = TRUE, sparseX = FALSE,
                   control = list(), start = NULL,
@@ -632,7 +629,7 @@ bootMer <- function(x, FUN, nsim = 1, seed = NULL, use.u = FALSE,
 
     ## Here, and below ("optimize"/"bobyqa") using the "logic" of lmer2() itself:
 ## lmer..Update <- if(is(x, "lmerSp")) lmerSpUpdate else lmerDeUpdate
-    devfun <- mkdevfun(x)
+#    devfun <- mkdevfun(x)
 ##    oneD <- length(x@re@theta) < 2
     theta0 <- x@re@theta
     ## just for the "boot" result -- TODOmaybe drop
@@ -655,10 +652,11 @@ bootMer <- function(x, FUN, nsim = 1, seed = NULL, use.u = FALSE,
         ##     if (d0 <= opt$objective) ## prefer theta == 0 when close
         ##         devfun(0) # -> theta  := 0  and update the rest
         ## } else {
-        bobyqa(theta0, devfun, x@re@lower, control = control)
+        opt <- bobyqa(theta0, mkdevfun(x), x@re@lower, control = control)
+        xx <- updateMod(x, opt$par, opt$fval)
             ## FIXME: also here, prefer \hat\sigma^2 == 0 (exactly)
 ##        }
-        foo <- tryCatch(FUN(x), error = function(e)e)
+        foo <- tryCatch(FUN(xx), error = function(e)e)
         if(verbose) { cat(sprintf("%5d :",i)); str(foo) }
         t.star[,i] <- if (inherits(foo, "error")) NA else foo
     }
