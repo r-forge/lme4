@@ -144,7 +144,7 @@ namespace mer{ // utilities defined here, class constructors and
 	ans.attr("u")    = u;
 	ans.attr("ldL2") = ldL2;
 	ans.attr("wrss") = wrss;
-	ans.attr("ussq") = ussq;
+	ans.attr("ussq") = ussq; // is this needed in addition to u?
 	return ans;
     }
 } // namespace mer
@@ -155,18 +155,22 @@ namespace mer{ // utilities defined here, class constructors and
  * 
  * @param xp merMod object
  * @param theta new value of variance component parameters
- * @param eta value of fixed-effects parameters (ignored unless alg == 2)
- 
+ * @param beta value of fixed-effects parameters (ignored unless alg == 2)
+ * @param u0 starting value for random effects (ignored unless alg == 2 or 3)
+ * @param verb level of verbosity, verb == 2 is very verbose
+ * @param alg alg == 1 => IRLS, alg == 2 => PIRLS, alg == 3 => PIRLSBeta
  * 
  * @return a deviance evaluation
  */
 
-RCPP_FUNCTION_6(NumericVector, merDeviance, S4 xp, NumericVector theta, NumericVector beta, NumericVector u0, int verb, int alg) {
+RCPP_FUNCTION_6(NumericVector, merDeviance, S4 xp, NumericVector theta,
+		NumericVector beta, NumericVector u0, int verb, int alg) {
     S4 re(xp.slot("re")), fe(xp.slot("fe")), resp(xp.slot("resp"));
     bool de = fe.is("deFeMod");
     if (!de && !fe.is("spFeMod"))
 	throw runtime_error("fe slot is neither deFeMod nor spFeMod");
-    int rtype = resp.is("lmerResp") ? 1 : (resp.is("glmerResp") ? 2 : (resp.is("nlmerResp") ? 3 : 0));
+    int rtype = resp.is("lmerResp") ? 1 : (resp.is("glmerResp") ? 2 :
+					   (resp.is("nlmerResp") ? 3 : 0));
     if (rtype == 0) throw runtime_error("unknown respMod type in merDeviance");
 
     if (alg < 1 || alg > 3) throw range_error("alg must be 1, 2 or 3");
@@ -176,10 +180,10 @@ RCPP_FUNCTION_6(NumericVector, merDeviance, S4 xp, NumericVector theta, NumericV
     case 1:
 	if (de) {
 	    mer::mer<mer::deFeMod,mer::lmerResp> lm(xp);
-	    return lm.LMMdeviance(theta, u0);
+	    return lm.LMMdeviance(theta);
 	} else {
 	    mer::mer<mer::spFeMod,mer::lmerResp> lm(xp);
-	    return lm.LMMdeviance(theta, u0);
+	    return lm.LMMdeviance(theta);
 	}
 	break;
     case 2:
@@ -202,19 +206,7 @@ RCPP_FUNCTION_6(NumericVector, merDeviance, S4 xp, NumericVector theta, NumericV
     }
     return NumericVector(0);
 }
-
 #if 0
-RCPP_FUNCTION_VOID_2(feSetBeta, S4 xp, NumericVector nbeta) {
-    mer::feModule fe(xp);
-    fe.setBeta(nbeta);
-}
-
-RCPP_FUNCTION_VOID_2(reUpdateLambda, S4 xp, NumericVector nth) {
-    mer::reModule re(xp);
-    re.updateLambda(nth);
-}
-#endif
-
 RCPP_FUNCTION_VOID_1(updateRzxRx, S4 xp) {
     S4 fe(xp.slot("fe")), resp(xp.slot("resp"));
     bool de = fe.is("deFeMod");
@@ -239,6 +231,7 @@ RCPP_FUNCTION_VOID_1(updateRzxRx, S4 xp) {
     } else 
 	throw runtime_error("resp slot is not glmerResp or nlmerResp in updateRzxRx");
 }
+#endif
 
 RCPP_FUNCTION_4(List, updateDc, S4 xp, NumericVector th, NumericVector beta, NumericVector u) {
     S4 fe(xp.slot("fe")), resp(xp.slot("resp"));

@@ -23,20 +23,15 @@ namespace mer{
 
     /** 
      * Update the wtres vector and return its sum of squares
-     *   wtres <- sqrtrwts * (y - mu)
+     *   wtres <- sqrtrwt * (y - mu)
      *   return(wrss <- sum(wtres^2))
      *
      * @return Updated weighted residual sum of squares
      */
     double merResp::updateWrss() {
-				// wtres <- y - mu
-	transform(d_y.begin(), d_y.end(), d_mu.begin(),
-		  d_wtres.begin(), minus<double>());
-				// wtres <- wtres * sqrtrwt
-	transform(d_wtres.begin(), d_wtres.end(), d_sqrtrwt.begin(),
-		  d_wtres.begin(), multiplies<double>());
-	d_wrss = inner_product(d_wtres.begin(), d_wtres.end(),
-			       d_wtres.begin(), double());
+	Rcpp::NumericVector tmp = (d_y - d_mu) * d_sqrtrwt;
+	d_wrss = inner_product(tmp.begin(), tmp.end(), tmp.begin(), double());
+	copy(tmp.begin(), tmp.end(), d_wtres.begin());
 	return d_wrss;
     }
 

@@ -2,11 +2,14 @@
 #include <R_ext/Lapack.h>
 #include <cctype>
 
+using namespace Rcpp;
+using namespace std;
+
 namespace MatrixNs{
     char chkchar(char x, std::string allowed) {
 	char X = toupper(x);
-	if (std::find(allowed.begin(), allowed.end(), X) == allowed.end())
-	    throw std::range_error("chkchar");
+	if (find(allowed.begin(), allowed.end(), X) == allowed.end())
+	    throw range_error("chkchar");
 	return X;
     }
 
@@ -44,7 +47,7 @@ namespace MatrixNs{
     Matrix::Matrix(Rcpp::S4 &xp)
 	: d_sexp(SEXP(xp)),
 	  d_dimnames(xp.slot("Dimnames")) {
-	Rcpp::IntegerVector Dim(xp.slot("Dim"));
+	IntegerVector Dim(xp.slot("Dim"));
 	d_nrow = Dim[0];
 	d_ncol = Dim[1];
     }
@@ -55,7 +58,7 @@ namespace MatrixNs{
 	  d_nrow(nr),
 	  d_ncol(nc) {
 	if (nr < 0 || nc < 0)
-	    throw std::range_error("Matrix(nr,nc)");
+	    throw range_error("Matrix(nr,nc)");
     }
 	
     int Matrix::nrow() const { return d_nrow; }
@@ -73,12 +76,12 @@ namespace MatrixNs{
 
     void dMatrix::setX(Rcpp::NumericVector const& nx) {
 	if (nx.size() != d_x.size())
-	    throw std::range_error("Size mismatch in setX");
-	std::copy(nx.begin(), nx.end(), d_x.begin());
+	    throw range_error("Size mismatch in setX");
+	copy(nx.begin(), nx.end(), d_x.begin());
     }
 
     void dMatrix::setX(Rcpp::NumericMatrix const& mm) {
-	setX(Rcpp::NumericVector(SEXP(mm)));
+	setX(NumericVector(SEXP(mm)));
     }
 
 // Check this: Do the dspMatrix and dtpMatrix classes pass this check?
@@ -202,6 +205,15 @@ namespace MatrixNs{
 	  triangularMatrix(ul,di) {
     }
 
+    void dtrMatrix::dtrtrs(char tr, double* v, int nb) const {
+	int info;
+	F77_CALL(dtrtrs)(&d_ul, &tr, &d_di, &d_nrow, &nb, d_x.begin(),
+			 &d_nrow, v, &d_nrow, &info);
+	if (info)
+	    Rf_error("Lapack routine %s returned error code %d",
+		     "dpotrs", info);
+    }
+
     dsyMatrix::dsyMatrix(Rcpp::S4& xp)
 	: ddenseMatrix(xp),
 	  symmetricMatrix(xp) {
@@ -261,7 +273,7 @@ namespace MatrixNs{
 		     "Cholesky::update(dpoMatrix)", d_nrow, d_ncol,
 		     A.nrow(), A.ncol());
 	d_ul = A.uplo();
-	std::copy(A.x().begin(), A.x().end(), d_x.begin());
+	copy(A.x().begin(), A.x().end(), d_x.begin());
 	int info;
 	F77_CALL(dpotrf)(&d_ul, &d_nrow, d_x.begin(), &d_nrow, &info);
 	if (info)
@@ -279,7 +291,7 @@ namespace MatrixNs{
 		     "Cholesky::update(dpoMatrix, dgeMatrix)", tr,
 		     d_nrow, d_ncol, Anr, Anc, Cnr, Cnc);
 	d_ul = C.uplo();
-	std::copy(C.x().begin(), C.x().end(), d_x.begin());
+	copy(C.x().begin(), C.x().end(), d_x.begin());
 	F77_CALL(dsyrk)(&d_ul, &tr, &d_nrow, NTR ? &Anc : &Anr, &alpha,
 			A.x().begin(), &Anr, &beta, d_x.begin(), &d_nrow);
 	int info;
@@ -312,41 +324,39 @@ namespace MatrixNs{
 	dpotrs(&v[0]);
     }
 
-    Rcpp::NumericMatrix Cholesky::solve(int sys, const_CHM_DN B) const {
-	if (sys != CHOLMOD_A) Rf_error("Code not yet written");
-	if ((int)B->nrow != d_nrow)
-	    Rf_error("%s (%d, %d) dimension mismatch (%d, %d)",
-		     "Cholesky::solve",
-		     d_nrow, d_ncol, B->nrow, B->ncol);
-	Rcpp::NumericMatrix ans(B->nrow, B->ncol);
-	double *bx = (double*)B->x;
-	std::copy(bx, bx + ans.size(), ans.begin());
-	dpotrs(ans.begin(), ans.ncol());
-	return ans;
-    }
-	
-    Rcpp::NumericMatrix Cholesky::solve(int                 sys,
-					Rcpp::NumericMatrix const&  B) const {
-	if (sys != CHOLMOD_A) Rf_error("Code not yet written");
+    void Cholesky::inPlaceSolve(int sys, Rcpp::NumericMatrix& B) const {
 	if (B.nrow() != d_nrow)
 	    Rf_error("%s (%d, %d) dimension mismatch (%d, %d)",
 		     "Cholesky::solve",
 		     d_nrow, d_ncol, B.nrow(), B.ncol());
-	Rcpp::NumericMatrix ans = clone(B);
-	dpotrs(ans.begin(), ans.ncol());
+	if (sys == CHOLMOD_A) return dpotrs(B.begin(), B.ncol());
+	if (sys == CHOLMOD_L)
+	    return dtrtrs((d_ul == 'U') ? 'T' : 'N', B.begin(), B.ncol());
+	if (sys == CHOLMOD_Lt)
+	    return dtrtrs((d_ul == 'U') ? 'N' : 'T', B.begin(), B.ncol());
+	throw runtime_error("Unknown sys argument for Cholesky::inPlaceSolve");
+    }
+
+    Rcpp::NumericMatrix Cholesky::solve(int sys, const_CHM_DN B) const {
+	NumericMatrix ans(B->nrow, B->ncol);
+	double *bx = (double*)B->x;
+	copy(bx, bx + ans.size(), ans.begin());
+	inPlaceSolve(sys, ans);
 	return ans;
     }
 	
-    Rcpp::NumericMatrix Cholesky::solve(int                 sys,
-					Rcpp::NumericVector const&  B) const {
-	if (sys != CHOLMOD_A) Rf_error("Code not yet written");
-	if (B.size() != d_nrow)
-	    Rf_error("%s (%d, %d) dimension mismatch (%d, %d)",
-		     "Cholesky::solve",
-		     d_nrow, d_ncol, B.size(), 1);
-	Rcpp::NumericMatrix ans(B.size(), 1);
-	std::copy(B.begin(), B.end(), ans.begin());
-	dpotrs(ans.begin(), ans.ncol());
+    Rcpp::NumericMatrix Cholesky::solve(int                      sys,
+					const Rcpp::NumericMatrix& B) const {
+	NumericMatrix ans = clone(B);
+	inPlaceSolve(sys, ans);
+	return ans;
+    }
+	
+    Rcpp::NumericMatrix Cholesky::solve(int                      sys,
+					const Rcpp::NumericVector& B) const {
+	NumericMatrix ans(B.size(), 1);
+	copy(B.begin(), B.end(), ans.begin());
+	inPlaceSolve(sys, ans);
 	return ans;
     }
 	
@@ -362,16 +372,16 @@ namespace MatrixNs{
     chmFr::chmFr(Rcpp::S4 xp)
 	: d_xp(xp)
     {
-	Rcpp::CharacterVector cl(SEXP(xp.attr("class")));
+	CharacterVector cl(SEXP(xp.attr("class")));
 	char *clnm = cl[0];
 	if (!xp.is("CHMfactor"))
 	    ::Rf_error("Class %s object passed to %s is not a %s",
 		       clnm, "chmFr::chmFr", "CHMfactor");
-	Rcpp::Dimension Dim(SEXP(xp.slot("Dim")));
-	Rcpp::IntegerVector colcount(SEXP(xp.slot("colcount"))),
+	Dimension Dim(SEXP(xp.slot("Dim")));
+	IntegerVector colcount(SEXP(xp.slot("colcount"))),
 	    perm(SEXP(xp.slot("perm"))),
 	    type(SEXP(xp.slot("type")));
-	Rcpp::NumericVector X(SEXP(xp.slot("x")));
+	NumericVector X(SEXP(xp.slot("x")));
 
 	minor = n = Dim[0];
 	Perm = perm.begin();
@@ -387,11 +397,11 @@ namespace MatrixNs{
 	z = (void*)NULL;
 	const char* msg = "dCHMfactor with is_super == %s is not %s";
 	if (is_super) {
-	    Rcpp::IntegerVector
+	    IntegerVector
 		Pi(SEXP(xp.slot("pi"))),
 		SUPER(SEXP(xp.slot("super"))),
 		S(SEXP(xp.slot("s")));
-	    Rcpp::NumericVector PX(SEXP(xp.slot("px")));
+	    NumericVector PX(SEXP(xp.slot("px")));
 
 	    if (!xp.is("dCHMsuper"))
 		::Rf_error(msg, "TRUE", "dCHMsuper");
@@ -405,7 +415,7 @@ namespace MatrixNs{
 	    s = (void*)S.begin();
 	    px = (void*)PX.begin();
 	} else {
-	    Rcpp::IntegerVector
+	    IntegerVector
 		I(SEXP(xp.slot("i"))),
 		NXT(SEXP(xp.slot("nxt"))),
 		NZ(SEXP(xp.slot("nz"))),
@@ -467,9 +477,9 @@ namespace MatrixNs{
 
     Rcpp::NumericMatrix chmFr::solve(int sys, const_CHM_DN b) const {
 	CHM_DN t1 = M_cholmod_solve(sys, (const_CHM_FR)this, b, &c);
-	Rcpp::NumericMatrix ans((int) t1->nrow, (int) t1->ncol);
+	NumericMatrix ans((int) t1->nrow, (int) t1->ncol);
 	double *tx = (double*)t1->x;
-	std::copy(tx, tx + ans.size(), ans.begin());
+	copy(tx, tx + ans.size(), ans.begin());
 	M_cholmod_free_dense(&t1, &c);
 	return ans;
     }
@@ -497,12 +507,12 @@ namespace MatrixNs{
 	: d_xp(xp)
     {
 	if (!xp.is("CsparseMatrix")) {
-	    Rcpp::CharacterVector cls = SEXP(xp.attr("class"));
+	    CharacterVector cls = SEXP(xp.attr("class"));
 	    char *clnm = cls[0];
 	    Rf_error("Class %s object passed to %s is not a %s",
 		     clnm, "chmSp::chmSp", "CsparseMatrix");
 	}
-	Rcpp::IntegerVector
+	IntegerVector
 	    Dim(xp.slot("Dim")), pp(xp.slot("p")), ii(xp.slot("i"));
 	nrow = Dim[0];
 	ncol = Dim[1];
@@ -512,7 +522,7 @@ namespace MatrixNs{
 	stype = 0;
 	if (!xp.is("generalMatrix")) {
 	    if (xp.is("symmetricMatrix")) {
-		Rcpp::CharacterVector uplo(SEXP(xp.slot("uplo")));
+		CharacterVector uplo(SEXP(xp.slot("uplo")));
 		char *UL = uplo[0];
 		stype = 1;
 		if (*UL == 'L' || *UL == 'l') stype = -1;
@@ -524,7 +534,7 @@ namespace MatrixNs{
 	sorted = (int)true;
 	xtype = -1;
 	if (xp.is("dsparseMatrix")) {
-	    Rcpp::NumericVector xx(SEXP(xp.slot("x")));
+	    NumericVector xx(SEXP(xp.slot("x")));
 	    x = xx.begin();
 	    xtype = CHOLMOD_REAL;
 	}
@@ -574,15 +584,15 @@ namespace MatrixNs{
 	nrow = nn.nrow;
 	sorted = nn.sorted;
 	int *pp = (int*)p, *nnp = (int*)(nn.p);
-	std::copy(nnp, nnp + ncol + 1, pp);
+	copy(nnp, nnp + ncol + 1, pp);
 	int *ip = (int*)i, *nni = (int*)(nn.i);
-	std::copy(nni, nni + nnznn, ip);
+	copy(nni, nni + nnznn, ip);
 	switch(xtype) {
 	case CHOLMOD_PATTERN:
 	    break;
 	case CHOLMOD_REAL: {
 	    double *xp = (double*)x, *nnx = (double*)(nn.x);
-	    std::copy(nnx, nnx + nnznn, xp);
+	    copy(nnx, nnx + nnznn, xp);
 	    break;
 	}
 	default:

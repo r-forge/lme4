@@ -34,7 +34,6 @@ static R_CallMethodDef CallEntries[] = {
     CALLDEF(reTrmsCondVar, 2),
 
     CALLDEF(testFam, 3),
-//    CALLDEF(updateRzxRx, 1),
     CALLDEF(updateDc, 4),
     {NULL, NULL, 0}
 };

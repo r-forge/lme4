@@ -5,7 +5,7 @@ using namespace MatrixNs;
 using namespace std;
 
 namespace mer{
-    reModule::reModule(S4 xp)
+    reModule::reModule(Rcpp::S4 xp)
 	: d_xp(             xp),
 	  d_L(     S4(clone(SEXP(xp.slot("L"))))),
 	  d_Lambda(S4(clone(SEXP(xp.slot("Lambda"))))),
@@ -71,8 +71,8 @@ namespace mer{
      * @param incr increment relative to the base
      * @param step step fraction
      */
-    void reModule::setU(Rcpp::NumericVector const &ubase,
-			Rcpp::NumericVector const &incr, double step) {
+    void reModule::setU(const Rcpp::NumericVector& ubase,
+			const Rcpp::NumericVector& incr, double step) {
 	int q = d_u.size();
 	if (ubase.size() != q)
 	    Rf_error("%s: expected %s.size() = %d, got %d",
@@ -86,35 +86,23 @@ namespace mer{
      * Solve for u (or the increment for u) only.
      * 
      */  
-    void reModule::solveU() {
-	NumericMatrix ans = d_L.solve(CHOLMOD_A, d_cu);
-	setU(NumericVector(SEXP(ans)));
+    double reModule::solveU() {
+	NumericMatrix c1 = d_L.solve(CHOLMOD_L, d_L.solve(CHOLMOD_P, d_cu));
+	double ans = inner_product(c1.begin(), c1.end(), c1.begin(), double());
+	NumericMatrix mm = d_L.solve(CHOLMOD_Pt, d_L.solve(CHOLMOD_Lt, c1));
+	copy(mm.begin(), mm.end(), d_u.begin());
+	return ans;
     }
-
-    // void reModule::updateDcmp(Rcpp::List& ll) const {
-    // 	ll["ldL2"] = d_ldL2;
-    // 	ll["ussq"] = d_sqrLenU;
-    // 	Rcpp::S4 L = d_L.S4();
-    // 	ll["L"]      = L;
-    // }
 
     /** 
      * Check and install new value of theta.  Update Lambda.
      * 
      * @param nt New value of theta
      */
-    void reModule::updateLambda(NumericVector const& nt) {
+    void reModule::updateLambda(const Rcpp::NumericVector& nt) {
 				// check that nt is feasible
 	if (any(nt < d_lower).is_true())
 	    throw runtime_error("updateLambda: theta not in feasible region");
-
-	// R_len_t nth = d_lower.size(), Lis = d_Lind.size();
-	// if (nt.size() != nth)
-	//     throw runtime_error("size mismatch of nt and d_lower in updateLambda");
-	// double *Lamx = (double*)d_Lambda.x, *ll = d_lower.begin(), *th = nt.begin();
-	// for (R_len_t i = 0; i < nth; ++i)
-	//     if (th[i] < ll[i])
-	// 	throw runtime_error("updateLambda: theta not in feasible region");
 				// update Lambda from theta and Lind
 	double *Lamx = (double*)d_Lambda.x, *th = nt.begin();
 	int *Li = d_Lind.begin();
@@ -126,7 +114,7 @@ namespace mer{
      * 
      * @param cu 
      */
-    void reModule::updateU(Rcpp::NumericVector const &cu) {
+    void reModule::updateU(const Rcpp::NumericVector& cu) {
 	NumericMatrix nu = d_L.solve(CHOLMOD_Pt, d_L.solve(CHOLMOD_Lt, cu));
 	setU(NumericVector(SEXP(nu)));
     }
@@ -134,8 +122,8 @@ namespace mer{
     /** 
      * Zero the contents of d_u and d_sqrLenU
      */
-    void reModule::zeroU() {
-	fill(d_u.begin(), d_u.end(), double());
-	d_sqrLenU = 0.;
-    }
+    // void reModule::zeroU() {
+    // 	fill(d_u.begin(), d_u.end(), double());
+    // 	d_sqrLenU = 0.;
+    // }
 }
