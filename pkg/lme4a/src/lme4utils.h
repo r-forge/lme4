@@ -52,7 +52,6 @@ cholmod_common c;
  * @param nn number of elements in src and dest
  *
  * @return dest
- * @fixme this and int_cpy should use a template
  */
 static inline double *dble_cpy(double *dest, const double *src, int nn)
 {
