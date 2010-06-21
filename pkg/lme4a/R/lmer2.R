@@ -125,12 +125,10 @@ mkReTrms <- function(bars, fr, s = 1L) {
 ##' @param contrasts a list of constrasts for factors in fr
 ##' @param reMod the reModule for the model
 ##' @param sparseX Logical indicator of sparse X
-## FIXME: Why not use s = 0 for indication of non-reweightable?
-##' @param s Number of columns in the sqrtXwt matrix
 ##'
 ##' @return an object that inherits from feModule
 mkFeModule <-
-    function(form, fr, contrasts, reMod, sparseX, s = 1L) {
+    function(form, fr, contrasts, reMod, sparseX) {
                                         # fixed-effects model matrix X
     nb <- nobars(form[[3]])
     if (is.null(nb)) nb <- 1
@@ -145,8 +143,7 @@ mkFeModule <-
                X = X,
                beta = numeric(p))
     ll$RX <-
-	if (sparseX)
-	    ## watch for the case that crossprod(ll$RZX) is more dense than X.X
+	if (sparseX)    # crossprod(ll$RZX) may be more dense than X.X
 	    Cholesky(crossprod(X) + crossprod(ll$RZX), LDL = FALSE)
 	else
 	    chol(crossprod(X))
@@ -199,7 +196,7 @@ mkRespMod <- function(fr, reMod, feMod, family = NULL,
         ll$y <- unname(ll$y)
         ll$eta <- family$linkfun(ll$mu)
         ll$sqrtrwt <- sqrt(ll$weights/family$variance(ll$mu))
-        ll$wtres <- ll$sqrtrwt * (ll$y - ll$mu)
+##        ll$wtres <- ll$sqrtrwt * (ll$y - ll$mu)
         ll$sqrtXwt <- matrix(ll$sqrtrwt * family$mu.eta(ll$eta))
         ll$family <- family
         ll <- ll[intersect(names(ll), slotNames("glmerResp"))]
@@ -208,7 +205,7 @@ mkRespMod <- function(fr, reMod, feMod, family = NULL,
     } else {
         ll$sqrtrwt <- sqrt(ll$weights)
         ll$y <- unname(as.numeric(y))
-        ll$wtres <- numeric(n)
+##        ll$wtres <- numeric(n)
         ll$mu <- numeric(n)
         if (is.null(nlenv)) {
             ll$Class <- "lmerResp"
@@ -444,7 +441,13 @@ updateMod <- function(mod, pars, fval) {
               is.numeric(pars),
               is.numeric(fval),
               is.numeric(u <- attr(fval, "u")),
-              is.numeric(beta <- attr(fval, "beta")))
+              is.numeric(beta <- attr(fval, "beta")),
+              is.numeric(ldL2 <- attr(fval, "ldL2")),
+              length(ldL2) == 1L,
+              is.numeric(wrss <- attr(fval, "wrss")),
+              length(wrss) == 1L,
+              is.numeric(ussq <- attr(fval, "ussq")),
+              length(ussq) == 1L)
     re <- mod@re
     fe <- mod@fe
     resp <- mod@resp
@@ -456,8 +459,8 @@ updateMod <- function(mod, pars, fval) {
     pars <- pars[seq_along(lower)]
     lst <- .Call(updateDc, mod, pars, beta, u)
     lst[ifelse(is(resp, "lmerResp") && resp@REML, "REML", "dev")] <- as.vector(fval)
-    lst["wrss"] <- wrss <- sum(lst[["wtres"]]^2)
-    lst["ussq"] <- ussq <- sum(u^2)
+    lst["wrss"] <- wrss
+    lst["ussq"] <- ussq
     lst["pwrss"] <- pwrss <- wrss + ussq
     lst["sigmaML"] <- sqrt(pwrss/length(resp@y))
     lst["sigmaREML"] <- sqrt(pwrss/(length(resp@y)-length(beta)))
@@ -678,13 +681,13 @@ bootMer <- function(x, FUN, nsim = 1, seed = NULL, use.u = FALSE,
 PIRLSest <- function(ans, verbose, control, nAGQ) {
     if (verbose) control$iprint <- 2L
                                         # initial optimization of PLSBeta
-    u0 <- numeric(length(ans@re@u))
-    opt <- bobyqa(ans@re@theta, mkdevfun(ans, 0L, verbose = verbose), ans@re@lower, control = control)
+    opt <- bobyqa(ans@re@theta, mkdevfun(ans, 0L, verbose = verbose),
+                  ans@re@lower, control = control)
     if (nAGQ > 0L) {
-        u0[] <- attr(opt$fval, "u")
         thpars <- seq_along(ans@re@theta)
         bb <- attr(opt$fval, "beta")
-        opt <- bobyqa(c(opt$par, bb), mkdevfun(ans, nAGQ, verbose = verbose),
+        opt <- bobyqa(c(opt$par, bb),
+                      mkdevfun(ans, nAGQ, attr(opt$fval, "u"), verbose),
                       lower = c(ans@re@lower, rep.int(-Inf, length(bb))),
                       control = control)
     }
@@ -739,7 +742,7 @@ glmer2 <- function(formula, data, family = gaussian, sparseX = FALSE,
     dcmp <- updateDcmp(reTrms, .dcmp())
     dcmp$dims[c("nAGQ")] <- nAGQ
 
-    feMod <- mkFeModule(formula, fr, contrasts, reTrms, sparseX, TRUE)
+    feMod <- mkFeModule(formula, fr, contrasts, reTrms, sparseX)
     respMod <- mkRespMod(fr, reTrms, feMod, family)
     ans <- new("merMod",
                call = mc,
@@ -841,8 +844,7 @@ nlmer2 <- function(formula, data, family = gaussian, start = NULL,
 
     fe.form <- nlform
     fe.form[[3]] <- formula[[3]]
-    feMod <- mkFeModule(fe.form, frE, contrasts, reTrms,
-                        sparseX = sparseX, s = s)
+    feMod <- mkFeModule(fe.form, frE, contrasts, reTrms, sparseX = sparseX)
                                         # should this check be in mkFeModule?
     p <- length(feMod@beta)
     if ((qrX <- qr(feMod@X))$rank < p)
@@ -980,10 +982,10 @@ setMethod("isREML", "merMod", function(x) as.logical(x@devcomp$dims["REML"]))
 setMethod("refitML", "merMod",
           function (x) {
               if (!isREML(x)) return(x)
-              x@fe@REML <- 0L
-              x@devcmp$dims["REML"] <- 0L
-              bobyqa(x@re@theta, mkdevfun(x), x@re@lower)
-              updateMod(x)
+              x@resp@REML <- 0L
+              x@devcomp$dims["REML"] <- 0L
+              opt <- bobyqa(x@re@theta, mkdevfun(x), x@re@lower)
+              updateMod(x, opt$par, opt$fval)
           })
 
 setMethod("getCall", "merMod",	function(x) x@call)

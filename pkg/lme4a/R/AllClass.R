@@ -376,13 +376,13 @@ setClass("merResp",
                         sqrtXwt = "matrix",
                         sqrtrwt = "numeric", # sqrt(residual weights)
                         weights = "numeric", # prior weights
-                        wtres = "numeric",   # weighted residuals
+##                        wtres = "numeric",   # weighted residuals
                         y = "numeric"),
          validity = function(object) {
              n <- length(object@y)
-             if (any(n != sapply(lapply(c("weights","sqrtrwt","mu","wtres"), slot,
-                     object = object), length)))
-                 return("lengths of weights, sqrtwt, mu and wtres must match length(y)")
+             if (any(n != sapply(lapply(c("weights","sqrtrwt","mu"#,"wtres"
+                     ), slot, object = object), length)))
+                 return("lengths of weights, sqrtwt and mu must match length(y)")
              lo <- length(object@offset)
              if (!lo || lo %% n)
                  return("length(offset) must be a positive multiple of length(y)")
@@ -439,6 +439,3 @@ setClass("merMod",
                         re      = "reModule",
                         fe      = "feModule",
                         resp    = "merResp"))
-##setClass("lmerMod", contains = "merMod")
-##setClass("glmerMod", contains = "merMod")
-##setClass("nlmerMod", contains = "merMod")
