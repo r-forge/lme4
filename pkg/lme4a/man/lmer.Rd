@@ -210,7 +210,7 @@ stopifnot(all.equal( coef(fm3.d), coef(fm3.s), tol = 1e-14),
               data = cbpp, family = binomial))
 ## using the PLSBeta algorithm only gets close to the optimum
 (gm1a <- glmer(cbind(incidence, size - incidence) ~ period + (1 | herd),
-               cbpp, binomial, nAGQ = 0L)
+               cbpp, binomial, nAGQ = 0L))
 ## nonlinear mixed models
 (nm1 <- nlmer2(circumference ~ SSlogis(age, Asym, xmid, scal) ~
                0 + Asym + xmid + scal + (0 + Asym|Tree),
