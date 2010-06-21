@@ -115,16 +115,14 @@ namespace mer {
      * Solve (V'V)beta = Vtr for beta.
      * 
      */
-    void spFeMod::solveBeta() {
+    double spFeMod::solveBeta() {
+// FIXME: This may be a bad idea.  d_RX may have a more complicated
+// structure than the factor of d_VtV.
 	d_RX.update(*d_VtV);
-	Rcpp::NumericMatrix ans = d_RX.solve(CHOLMOD_A, d_Vtr);
-	copy(ans.begin(), ans.end(), d_beta.begin());
+	Rcpp::NumericMatrix c1 = d_RX.solve(CHOLMOD_L, d_RX.solve(CHOLMOD_P, d_Vtr));
+	double ans = inner_product(c1.begin(), c1.end(), c1.begin(), double());
+	Rcpp::NumericMatrix mm = d_RX.solve(CHOLMOD_Pt, d_RX.solve(CHOLMOD_Lt, c1));
+	copy(mm.begin(), mm.end(), d_beta.begin());
+	return ans;
     }
-
-//    void spFeMod::updateDcmp(Rcpp::NumericVector& cmp) const {  // needs Matrix_0.999375-42 or later
-    // void spFeMod::updateDcmp(Rcpp::List& ll) {
-    // 	ll["ldRX2"] = d_ldRX2;
-    // 	Rcpp::S4 RX = d_RX.S4();
-    // 	ll["RX"] = RX;
-    // }
 }

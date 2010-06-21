@@ -135,6 +135,9 @@ namespace MatrixNs {
 	dtrMatrix(Rcpp::S4&);
 	dtrMatrix(int,char='U',char='N');
 
+//	void dtrtrs(char,Rcpp::NumericVector&) const;
+//	void dtrtrs(char,std::vector<double>&) const;
+	void dtrtrs(char,double*,int = 1) const;
     };
 
     class dsyMatrix : public ddenseMatrix, public symmetricMatrix {
@@ -160,15 +163,17 @@ namespace MatrixNs {
 	Rcpp::NumericMatrix solve(int,const Rcpp::NumericMatrix&) const;
 	Rcpp::NumericMatrix solve(int,const Rcpp::NumericVector&) const;
 
-	void update(const dpoMatrix&); // chol(A)
-	void update(const dgeMatrix&); // chol(crossprod(X))
-	void update(char,double,const dgeMatrix&,double,const dsyMatrix&);
+	double logDet2() const;
 
 	void dpotrs(Rcpp::NumericVector&) const;
 	void dpotrs(std::vector<double>&) const;
 	void dpotrs(double*, int = 1) const;
 
-	double logDet2() const;
+	void inPlaceSolve(int, Rcpp::NumericMatrix&) const;
+
+	void update(const dpoMatrix&); // chol(A)
+	void update(const dgeMatrix&); // chol(crossprod(X))
+	void update(char,double,const dgeMatrix&,double,const dsyMatrix&);
     };
 
     class chmDn : public cholmod_dense {
@@ -208,12 +213,12 @@ namespace MatrixNs {
 	const Rcpp::S4&  S4() const {return d_xp;}
 	const SEXPREC* sexp() const {return SEXP(d_xp);}
 	CHM_SP crossprod() const;
-	CHM_SP crossprod(const cholmod_sparse*, int sorted = 1) const;
-	CHM_SP crossprod(const chmSp&, int sorted = 1) const;
+	CHM_SP crossprod(const_CHM_SP, int = 1) const;
+	CHM_SP crossprod(const chmSp&, int = 1) const;
 
 	CHM_SP tcrossprod() const;
-	CHM_SP tcrossprod(const_CHM_SP, int sorted = 1) const;
-	CHM_SP tcrossprod(const chmSp&, int sorted = 1) const;
+	CHM_SP tcrossprod(const_CHM_SP, int = 1) const;
+	CHM_SP tcrossprod(const chmSp&, int = 1) const;
 
 	CHM_SP transpose(int values = 1) const;
 

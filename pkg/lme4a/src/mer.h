@@ -70,6 +70,7 @@ namespace mer {
 	const cholmod_sparse         *Ut() const {return d_Ut;}
 	const MatrixNs::chmSp        &Zt() const {return d_Zt;}
 	double                      ldL2() const {return d_ldL2;}
+	double                    solveU();
 	double                   sqrLenU() const {return d_sqrLenU;}
 
 	void reweight    (const Rcpp::NumericMatrix&,
@@ -77,11 +78,8 @@ namespace mer {
 	void setU        (const Rcpp::NumericVector&,
 			  const Rcpp::NumericVector& = Rcpp::NumericVector(),
 			  double = 0.);
-	void solveU      ();
-//	void updateDcmp  (Rcpp::List&) const;
 	void updateLambda(const Rcpp::NumericVector&);
 	void updateU     (const Rcpp::NumericVector&);
-	void zeroU       ();
     };
 
     class reTrms : public reModule {
@@ -98,7 +96,7 @@ namespace mer {
 	Rcpp::IntegerVector         ncols() const; // number of columns per term
 	Rcpp::IntegerVector         nctot() const; // total number of columns per factor
 	Rcpp::IntegerVector       offsets() const; // offsets into b vector for each term
-	Rcpp::IntegerVector         terms(int) const; // 0-based indices of terms for a factor
+	Rcpp::IntegerVector         terms(R_len_t) const; // 0-based indices of terms for a factor
 	Rcpp::List                condVar(double);
     };
 	
@@ -112,10 +110,9 @@ namespace mer {
 	void setBeta(Rcpp::NumericVector const&,
 		     Rcpp::NumericVector const& = Rcpp::NumericVector(),
 		     double = 0.);
-// Don't want to use the name beta because the R include files remap it to Rf_beta
+    // Don't use the name beta because the R include files remap it to Rf_beta
 	const Rcpp::NumericVector& getBeta() const {return  d_beta;}
 	double                       ldRX2() const {return  d_ldRX2;}
-//	virtual void updateDcmp(Rcpp::List&) = 0;
     };
 
     class deFeMod : public feModule {
@@ -134,11 +131,11 @@ namespace mer {
 
 	Rcpp::NumericVector updateBeta(const Rcpp::NumericVector&);
 
+	double solveBeta();
+
 	void reweight   (const cholmod_sparse*,
 			 const Rcpp::NumericMatrix&,
 			 const Rcpp::NumericVector&);
-	void solveBeta  ();
-//	void updateDcmp (Rcpp::List&);
 	void updateRzxRx(const MatrixNs::chmSp&,
 			 const MatrixNs::chmFr&);
     };
@@ -158,12 +155,11 @@ namespace mer {
 
 	Rcpp::NumericVector updateBeta(const Rcpp::NumericVector&);
 
+	double solveBeta();
+
 	void reweight   (const cholmod_sparse*,
 			 const Rcpp::NumericMatrix&,
 			 const Rcpp::NumericVector&);
-	void solveBeta  ();
-//	void updateDcmp (Rcpp::List&) const; // needs Matrix_0.999375-42 or later
-//	void updateDcmp (Rcpp::List&);
 	void updateRzxRx(const MatrixNs::chmSp&,
 			 const MatrixNs::chmFr&);
     };
@@ -218,7 +214,6 @@ namespace mer {
 	double                updateMu(const Rcpp::NumericVector&);
 	double               updateWts();
 
-//	void updateDcmp(Rcpp::List&) const;
     };
     
     class nlmerResp : public merResp {
@@ -230,8 +225,6 @@ namespace mer {
 
 	double Laplace (double, double, double) const;
 	double updateMu(const Rcpp::NumericVector&);
-
-//	void  updateDcmp(Rcpp::List&) const;
     };
     
     enum Alg {Beta, U, BetaU};
@@ -248,8 +241,7 @@ namespace mer {
     public:
 	mer(Rcpp::S4&);
 
-	Rcpp::NumericVector LMMdeviance(const Rcpp::NumericVector&,
-					const Rcpp::NumericVector&);
+	Rcpp::NumericVector LMMdeviance(const Rcpp::NumericVector&);
 	Rcpp::NumericVector PIRLS      (const Rcpp::NumericVector&,
 					const Rcpp::NumericVector&,
 					const Rcpp::NumericVector&,
@@ -293,9 +285,8 @@ namespace mer {
      * @return profiled deviance or REML criterion
      */
     template<typename Tf, typename Tr> inline
-    Rcpp::NumericVector mer<Tf,Tr>::LMMdeviance(const Rcpp::NumericVector& nt, const Rcpp::NumericVector& u0) {
+    Rcpp::NumericVector mer<Tf,Tr>::LMMdeviance(const Rcpp::NumericVector& nt) {
 	re.updateLambda(nt);
-	re.setU(u0);
 	updateWts();
 	solveCoef(BetaU);
 	updateMu();
@@ -452,10 +443,10 @@ namespace mer {
 	fe.reweight(re.Ut(), resp.sqrtXwt(), resp.wtres());
 	fe.updateRzxRx(re.Lambda(), re.L());
 	return
-	    Rcpp::List::create(Rcpp::_["ldL2"]   = Rcpp::wrap(re.ldL2())
-			       ,Rcpp::_["ldRX2"]  = Rcpp::wrap(fe.ldRX2())
+	    Rcpp::List::create(//Rcpp::_["ldL2"]   = Rcpp::wrap(re.ldL2()),
+			       Rcpp::_["ldRX2"]  = Rcpp::wrap(fe.ldRX2())
 			       ,Rcpp::_["mu"]     = Rcpp::clone(resp.mu())
-			       ,Rcpp::_["wtres"]  = Rcpp::clone(resp.wtres())
+//			       ,Rcpp::_["wtres"]  = Rcpp::clone(resp.wtres())
 			       ,Rcpp::_["devRes"] = resp.devResid()
 			       ,Rcpp::_["RX"]     = const_cast<SEXP>(fe.RX().sexp())
 			       ,Rcpp::_["RZX"]    = const_cast<SEXP>(fe.RZX().sexp())
