@@ -645,16 +645,16 @@ varpr <- function (x)
 ##' on the logarithmic scale, lsigma. The other parameters are on
 ##' the standard deviation scale, not the theta scale.
 ##'
-##' @param fm a fitted model of class lmerenv
+##' @param fm a fitted model of class merMod
 ##' @return a function for evaluating the deviance in the extended
 ##'     parameterization.  This is profiled with respect to the
 ##'     fixed-effects but not with respect to sigma.
 devfun2 <- function(fm)
 {
     stopifnot(is(fm, "merMod"), is(fm@resp, "lmerResp"))
+    fm1 <- refitML(fm)
     th <- fm1@re@theta
     lth <- length(th)
-    fm1 <- refitML(fm)
     rm(fm)
     basedev <- unname(deviance(fm1))
     sig <- sigma(fm1)
@@ -667,10 +667,11 @@ devfun2 <- function(fm)
         sigma <- exp(pars[np])
         sigsq <- sigma^2
         pp <- pars[-np]/sigma
-        fv <- .Call(merDeviance, fm1, pp)
-### FIXME: change this to a call to a function that updates the profiled deviance for any merMod
-## change the value of merDeviance to include ldL2, drsum, wrss, ussq, and pwrss
-        attr(fv,"ldL2") + (attr(fv,"wrss")+attr(fv,"ussq"))/sigsq + length(fm1@resp@y) * log(2 * pi * sigsq)
+        fv <- .Call(merDeviance, fm1, pp, fm1@fe@beta, fm1@re@u, 0L, 1L)
+        aa <- attr(fv,"ldL2") + (attr(fv,"wrss")+attr(fv,"ussq"))/sigsq +
+            length(fm1@resp@y) * log(2 * pi * sigsq)
+        mostattributes(aa) <- attributes(fv)
+        aa
     }
     opt <- c(sig * th, lsig)
     names(opt) <- c(sprintf(".sig%02d", seq_len(lth)), ".lsig")
@@ -762,7 +763,7 @@ setMethod("profile", "merMod",
                                  function(x) dd(mkpar(nvp, w, xx, x)),
                                  lower = lowvp[-w])
                   zz <- sign(xx - pw) * sqrt(ores$fval - base)
-                  c(zz, mkpar(nvp, w, xx, ores$par), fm1@fe@beta)
+                  c(zz, mkpar(nvp, w, xx, ores$par), attr(ores$fval, "beta"))
               }
 
 ### FIXME: The starting values for the conditional optimization should
@@ -799,16 +800,12 @@ setMethod("profile", "merMod",
               fmm1 <- dropX(fm1, j, est)
               fe.zeta <- function(fw) {
                   fmm1@resp@offset <- Xw * fw + offset
-                  ores <- bobyqa(thopt,
-                                 function(x) {
-                                     .Call(reUpdateLambda,fmm1@re,x)
-                                     .Call(LMMdeviance, fmm1)
-                                 },
+                  ores <- bobyqa(thopt, mkdevfun(fmm1),
                                  lower = fmm1@re@lower)
-                  .Call(updateDc, fmm1)
-                  sig <- sigma(fmm1)
+                  fv <- ores$fval
+                  sig <- sqrt((attr(fv, "wrss") + attr(fv, "ussq"))/length(Xw))
                   c(sign(fw - est) * sqrt(ores$fval - base),
-                    fmm1@re@theta * sig, log(sig), mkpar(p, j, fw, fmm1@fe@beta))
+                    ores$par * sig, log(sig), mkpar(p, j, fw, attr(fv, "beta")))
               }
               nres[1, ] <- pres[2, ] <- fe.zeta(est + delta * std)
               pp <- nvp + 1L + j
