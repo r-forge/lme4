@@ -186,13 +186,13 @@ nlmer2(formula, data, family = gaussian, start = NULL,
   The \code{\linkS4class{mer}} class, \code{\link[stats]{lm}}
 }
 \examples{
-## linear mixed models
+## linear mixed models - reference values from older code
 (fm1. <- lmer1(Reaction ~ Days + (Days|Subject), sleepstudy))
 (fm2. <- lmer1(Reaction ~ Days + (1|Subject) + (0+Days|Subject), sleepstudy))
 anova(fm1., fm2.)
 
-(fm1 <- lmer2(Reaction ~ Days + (Days|Subject), sleepstudy))
-(fm2 <- lmer2(Reaction ~ Days + (1|Subject) + (0+Days|Subject), sleepstudy))
+(fm1 <- lmer(Reaction ~ Days + (Days|Subject), sleepstudy))
+(fm2 <- lmer(Reaction ~ Days + (1|Subject) + (0+Days|Subject), sleepstudy))
 anova(fm1, fm2)
 
 ## dense vs sparse X  --------------------------
@@ -208,8 +208,9 @@ stopifnot(all.equal( coef(fm3.d), coef(fm3.s), tol = 1e-14),
 ## generalized linear mixed model
 (gm1 <- glmer(cbind(incidence, size - incidence) ~ period + (1 | herd),
               data = cbpp, family = binomial))
+## using the PLSBeta algorithm only gets close to the optimum
 (gm1a <- glmer(cbind(incidence, size - incidence) ~ period + (1 | herd),
-               cbpp, binomial, PLSBeta=TRUE))
+               cbpp, binomial, nAGQ = 0L)
 ## nonlinear mixed models
 (nm1 <- nlmer2(circumference ~ SSlogis(age, Asym, xmid, scal) ~
                0 + Asym + xmid + scal + (0 + Asym|Tree),
@@ -222,3 +223,19 @@ stopifnot(all.equal( coef(fm3.d), coef(fm3.s), tol = 1e-14),
 }
 \keyword{models}
 \keyword{methods}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
