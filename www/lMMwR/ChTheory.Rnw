@@ -10,6 +10,8 @@ options(width=74, show.signif.stars = FALSE,
 library(splines)
 library(lattice)
 library(Matrix)
+library(Rcpp)
+library(minqa)
 library(lme4a)
 @
 
@@ -236,7 +238,7 @@ function of both $\vec u$ and $\vec\beta$, the distinction between
 evaluating the joint density at $\vec y_{\text{obs}}$ to produce
 $h(\vec u)$ then integrating with respect to $\vec u$, as opposed to
 first integrating the joint density then evaluating at $\vec
-y_{\text{obs}}$ is not terribly important.  For other mixed models
+y_{\text{obs}}$, is not terribly important.  For other mixed models
 this distinction can be important.  In particular, generalized linear
 mixed models, described in Sect.~\ref{sec:GLMM}, are often used to
 model a discrete response, such as a binary response or a count,
@@ -858,13 +860,13 @@ evaluating the profiled deviance.  This level of detail is provided
 for those whose style of learning is more of a ``hands on'' style and
 for those who may want to program modifications of this approach.
 
-Consider our model \code{fm8}, fit as
-<<fm8reduxshow,eval=FALSE>>=
-fm8 <- lmer(Reaction ~ 1 + Days + (1 + Days|Subject), sleepstudy,
-            REML = 0, verbose = TRUE)
+Consider our model \code{fm08}, fit as
+<<fm08reduxshow,eval=FALSE>>=
+fm08 <- lmer(Reaction ~ 1 + Days + (1 + Days|Subject), sleepstudy,
+            REML=FALSE, verbose=1)
 @ 
-<<fm8redux,echo=FALSE>>=
-cat(paste(capture.output(fm8 <- lmer(Reaction ~ 1 + Days + (1 + Days|Subject),
+<<fm08redux,echo=FALSE>>=
+cat(paste(capture.output(fm08 <- lmer(Reaction ~ 1 + Days + (1 + Days|Subject),
                                      sleepstudy, REML = 0,
                                      verbose = TRUE))[1:4],
           collapse = "\n"), "\n...\n")
@@ -886,10 +888,10 @@ these fixed values are precomputed and stored separately under the
 names \code{XtX} ($\vec X\trans\vec X$), \code{Xty}, \code{ZtX}
 and \code{Zty}.
 
-To provide easy access to the objects in the environment of \code{fm8} we
+To provide easy access to the objects in the environment of \code{fm08} we
 attach it to the search path.
 <<attachrho>>=
-attach(env(fm8))
+#attach(env(fm08))
 @
 Please note that this is done here for illustration only.  The
 practice of attaching a list or a data frame or, less commonly, an
@@ -900,6 +902,7 @@ function to gain access by name to components of such composite
 objects.  For this section of code, however, using \code{with} or
 \code{within} would quickly become very tedious and we use
 \code{attach} instead.
+%% FIXME: Change this section to use the mkdevfun(obj, compDev = TRUE) result instead
 
 To update the matrix $\Lambda_\theta$ to a new value of $\vec\theta$
 we need to know which of the non-zeros in $\Lambda$ are updated from
@@ -914,24 +917,24 @@ the initial value of $\vec\theta=(1,0,1)$.  We begin by updating
 $\Lambda_\theta$ and forming the product
 $\vec U\trans=\Lambda_\theta\trans\vec Z\trans$
 <<updateLambda>>=
-str(Lambda)
-str(Lind)
-Lambda@x[] <- c(1,0,1)[Lind]
-str(Lambda@x)
-Ut <- crossprod(Lambda, Zt)
+str(fm08@re@Lambda)
+str(fm08@re@Lind)
+fm08@re@Lambda@x[] <- c(1,0,1)[fm08@re@Lind]
+str(fm08@re@Lambda@x)
+Ut <- crossprod(fm08@re@Lambda, fm08@re@Zt)
 @
 The Cholesky factor object, \code{L}, can be updated from \code{Ut}
 without forming $\vec U\trans\vec U+\vec I$ explicitly.  The optional
 argument \code{mult} to the \code{update} method specifies a multiple
 of the identity to be added to $\vec U\trans\vec U$
 <<updateL>>=
-L <- update(L, Ut, mult = 1)
+L <- update(fm08@re@L, Ut, mult = 1)
 @ 
 Then we evaluate \code{RZX} and \code{RX} according to (\ref{eq:RZXdef}) and
 (\ref{eq:RXdef})
 <<RZXandRX>>=
-RZX <- solve(L, solve(L, crossprod(Lambda, ZtX), sys = "P"), sys = "L")
-RX <- chol(XtX - crossprod(RZX))
+RZX <- solve(L, solve(L, crossprod(fm08@re@Lambda, fm08@re@Zt %*% fm08@fe@X), sys = "P"), sys = "L")
+#RX <- chol(crossprod(fm08@fe@X) - crossprod(RZX))
 @ 
 
 Solving (\ref{eq:bigPLS}) for $\tilde{\vec u}$ and
@@ -952,8 +955,8 @@ $\widehat{\vec\beta}_\theta$ is done in stages.  Writing $\vec c_u$ and $\vec c_
 \end{equation}
 we evaluate
 <<cu>>=
-cu <- solve(L, solve(L, crossprod(Lambda, Zty), sys = "P"), sys = "L")
-cbeta <- solve(t(RX), Xty - crossprod(RZX, cu))
+#cu <- solve(L, solve(L, crossprod(fm08@re@Lambda, fm08@resp@Utr), sys = "P"), sys = "L")
+#cbeta <- solve(t(RX), fm08@resp@Vtr - crossprod(RZX, cu))
 @ 
 
 The next set of equations to solve is
@@ -972,33 +975,34 @@ The next set of equations to solve is
   \end{bmatrix}
 \end{equation}
 <<stage2>>=
-fixef <- as.vector(solve(RX, cbeta))
-u <- solve(L, solve(L, cu - RZX %*% fixef, sys = "Lt"), sys = "Pt")
+#fixef <- as.vector(solve(RX, cbeta))
+#u <- solve(L, solve(L, cu - RZX %*% fixef, sys = "Lt"), sys = "Pt")
 @ 
 We can now create the conditional mean, \code{mu}, the penalized
 residual sum of squares, \code{prss}, the logarithm of the square
 of the determinant of $\vec L$, \code{ldL2}, and the profiled
 deviance, which, fortuitously, equals the value shown earlier.
 <<wrapup>>=
-mu <- gamma <- as.vector(crossprod(Ut, u) + X %*% fixef)
-prss <- sum(c(y - mu, as.vector(u))^2)
-ldL2 <- 2 * as.vector(determinant(L)$mod)
-(deviance <- ldL2 + nobs * (1 + log(2 * pi * prss/nobs)))
+#mu <- gamma <- as.vector(crossprod(Ut, u) + fm08@fe@X %*% fixef)
+#prss <- sum(c(fm08@resp@y - mu, as.vector(u))^2)
+#ldL2 <- 2 * as.vector(determinant(L)$mod)
+#nobs <- length(mu)
+#(deviance <- ldL2 + nobs * (1 + log(2 * pi * prss/nobs)))
 @ %$
 
-The last step is detach the environment of \code{fm8} from the search list
+The last step is detach the environment of \code{fm08} from the search list
 <<detachenv>>=
-detach()
+#detach()
 @ 
 to avoid later name clashes.
 <<cleanup,echo=FALSE,results=hide>>=
-rm(deviance, fixef, gamma, L, Lambda, ldL2, mu, prss, RX, RZX, u, Ut)
+#rm(deviance, fixef, gamma, L, ldL2, mu, prss, RX, RZX, u, Ut)
 @ 
 
 In terms of the calculations performed, these steps describe exactly
 the evaluation of the profiled deviance in \code{lmer}.  The actual
 function for evaluating the deviance, accessible as
-\code{fm8@setPars}, is a slightly modified version of what is shown
+\code{fm08@setPars}, is a slightly modified version of what is shown
 above.  However, the modifications are only to avoid creating copies
 of potentially large objects and to allow for cases where the model
 matrix, $\vec X$, is sparse.  In practice, unless the optional
@@ -1160,7 +1164,7 @@ The \emph{Laplace approximation} to the deviance is
 \begin{equation}
   \label{eq:Laplace}
   d(\vec\theta,\vec\beta,\sigma|\vec y_{\text{obs}})\approx
-  =n\log(2\pi\sigma^2)+2\log|\vec L_{\theta,\beta}|+
+  n\log(2\pi\sigma^2)+2\log|\vec L_{\theta,\beta}|+
   \frac{r^2_{\theta,\beta}}{\sigma^2},
 \end{equation}
 where the Cholesky factor, $\vec L_{\theta,\beta}$, and the penalized

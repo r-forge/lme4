@@ -25,16 +25,17 @@
 %% Do comment in and out different parts only here (not below):
 %% {keeps *.aux files, TOC, etc in a more consistent state}
 \includeonly{
-% dedication
+dedication%
 %,foreword
-%,preface
+,preface%
 %,acknow,
-%,acronym%
-%,ChIntro%
-%,ChMultiple%
+,acronym%
+,ChIntro%
+,ChMultiple%
 ,ChCovariates%
-%,ChLongitudinal%
-%,ChTheory%
+,ChLongitudinal%
+,ChTheory%
+,ChGLMMBinomial%
 }
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -62,6 +63,7 @@
 \include{ChCovariates}
 \include{ChLongitudinal}
 \include{ChTheory}
+\include{ChGLMMBinomial}
 
 \backmatter%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \bibliography{lMMwR}

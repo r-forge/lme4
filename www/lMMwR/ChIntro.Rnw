@@ -10,7 +10,12 @@ options(width=85, show.signif.stars = FALSE,
 library(splines)
 library(lattice)
 library(Matrix)
+library(Rcpp)
+library(minqa)
 library(lme4a)
+.f2 <- "%.2f"
+.f5 <- "%.5f"
+.f6 <- "%.6f"
 data(Rail, package = "MEMSS")
 fm01 <- lmer(Yield ~ 1 + (1|Batch), Dyestuff)
 fm01ML <- update(fm01, REML = FALSE)
@@ -108,7 +113,7 @@ represented by the random variable $\bc Y$.  (We use upper-case
 ``script'' characters to denote random variables.  The corresponding
 lower-case upright letter denotes a particular value of the random
 variable.) We observe the value, $\vec y$, of $\bc Y$.  We do not
-observe the value of $\bc B$.
+observe the value, $\vec b$, of $\bc B$.
 
 When formulating the model we describe the unconditional distribution
 of $\bc B$ and the conditional distribution, $(\bc
@@ -368,9 +373,9 @@ here.
 For models fit by the REML criterion the only statistic describing the
 model fit is the value of the REML criterion itself.  An alternative
 set of parameter estimates, the maximum likelihood estimates, are
-obtained by specifying the optional argument \code{REML = FALSE}.
+obtained by specifying the optional argument \code{REML=FALSE}.
 <<fm01ML>>=
-(fm01ML <- lmer(Yield ~ 1 + (1|Batch), Dyestuff, REML = FALSE))
+(fm01ML <- lmer(Yield ~ 1 + (1|Batch), Dyestuff, REML=FALSE))
 @ 
 (Notice that this code fragment also illustrates a way to condense
 the assignment and the display of the fitted model into a single
@@ -416,12 +421,12 @@ conflicts with this name.)  The line labeled \code{Batch} in the
 random effects table shows that the random effects added to the
 \code{(Intercept)} term, one for each level of the \code{Batch}
 factor, are modeled as random variables whose unconditional variance
-is estimated as \Sexpr{sprintf("%.2f", unlist(VarCorr(fm01)))} g$^2$
+is estimated as \Sexpr{sprintf(.f2, unlist(VarCorr(fm01)))} g$^2$
 in the REML fit and as
-\Sexpr{sprintf("%.2f", unlist(VarCorr(fm01ML)))} g$^2$
+\Sexpr{sprintf(.f2, unlist(VarCorr(fm01ML)))} g$^2$
 in the ML fit.  The corresponding standard deviations
-are \Sexpr{sprintf("%.2f", sqrt(VarCorr(fm01)[["Batch"]][1,1]))} g for the
-REML fit and \Sexpr{sprintf("%.2f", sqrt(VarCorr(fm01ML)[["Batch"]][1,1]))}
+are \Sexpr{sprintf(.f2, sqrt(VarCorr(fm01)[["Batch"]][1,1]))} g for the
+REML fit and \Sexpr{sprintf(.f2, sqrt(VarCorr(fm01ML)[["Batch"]][1,1]))}
 g for the ML fit.
 
 Note that the last column in the random effects summary table is the
@@ -440,7 +445,7 @@ the variance of the residuals (also in g$^2$) and its corresponding
 standard deviation.  For the REML fit the estimated standard deviation
 of the residuals is \Sexpr{round(attr(VarCorr(fm01), "sc"), 2)} g and
 for the ML fit it is also \Sexpr{round(attr(VarCorr(fm01ML), "sc"), 2)}
-g  (Generally these estimates do not need to be equal.  They happen
+g.  (Generally these estimates do not need to be equal.  They happen
 to be equal in this case because of the simple model form and the
 balanced data set.)
 
@@ -472,7 +477,7 @@ estimate $\widehat{\sigma}_1=0$ in both the REML
 @ 
 and the ML fits.
 <<fm02ML>>=
-(fm02ML <- update(fm02, REML = FALSE))
+(fm02ML <- update(fm02, REML=FALSE))
 @
 (Note the use of the \code{update} function to re-fit a model
 changing some of the arguments.  In a case like this, where the call
@@ -502,7 +507,7 @@ To reiterate, the model \code{fm02} corresponds to the linear model
 summary(fm02a <- lm(Yield ~ 1, Dyestuff2))
 @
 because the random effects are inert, in the sense that they have a
-variance of zero, and can be removed.  
+variance of zero, and hence can be removed.  
 
 Notice that the estimate of $\sigma$ from the linear model (called the
 \code{Residual standard error} in the output) corresponds to the
@@ -678,15 +683,15 @@ Sect.~\ref{sec:assessRE}.
 \subsection{Matrices and Vectors in the Fitted Model Object}
 \label{sec:FittedModel}
 
-The optional argument, \code{verbose = TRUE}, in a call to \code{lmer}
+The optional argument, \code{verbose=1}, in a call to \code{lmer}
 produces output showing the progress of the iterative optimization of
 $\tilde{d}(\vec\theta|\vec y)$.
 <<fm01MLverb>>=
-fm01ML <- lmer(Yield ~ 1|Batch, Dyestuff, REML = FALSE, verbose = TRUE)
+fm01ML <- lmer(Yield ~ 1|Batch, Dyestuff, REML=FALSE, verbose=1)
 @ 
-The algorithm converges in 6 iterations to a profiled deviance of
-\Sexpr{sprintf("%.5f", deviance(fm01ML))}
-at $\theta=$\Sexpr{sprintf("%.6f", fm01ML@getPars())}.
+The algorithm converges after 17 function evaluations to a profiled deviance of
+\Sexpr{sprintf(.f5, deviance(fm01ML))}
+at $\theta=$\Sexpr{sprintf(.f6, fm01ML@re@theta)}.
   
 The actual values of many of the matrices and vectors defined above
 are available as \emph{slots} of the fitted model object.  In general
@@ -734,10 +739,10 @@ identity matrix and the $30\times 6$ model matrix $\vec Z$, whose
 transpose is shown in Fig.~\ref{fig:fm01Ztimage}, consists of the
 indicator columns for \code{Batch}.  Because the data are balanced
 with respect to \code{Batch}, the Cholesky factor, $\vec L$ is also a
-multiple of the identity (you can check this with
-\code{image(fm01ML@re@L}).  The vectors $\vec u$ and $\vec b$ and
-the matrix $\vec X$ have the same names in \code{fm01ML@re}.  The
-vector $\beta$ is in \code{fm01ML@fe}.
+multiple of the identity (use \code{image(fm01ML@re@L)} to check if
+you wish).  The vector $\vec u$ is available in \code{fm01ML@re}.  The
+vector $\vec\beta$ and the model matrix $\vec X$ are in
+\code{fm01ML@fe}.
 
 \section{Assessing the Variability of the Parameter Estimates}
 \label{sec:variability}
