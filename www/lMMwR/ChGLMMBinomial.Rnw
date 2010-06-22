@@ -1,0 +1,181 @@
+\SweaveOpts{engine=R,eps=FALSE,pdf=TRUE,width=8,strip.white=all}
+\SweaveOpts{keep.source=TRUE}
+\SweaveOpts{prefix=TRUE,prefix.string=figs/GLMMB,include=TRUE}
+\setkeys{Gin}{width=\textwidth}
+
+<<preliminaries,echo=FALSE,print=FALSE,results=hide>>=
+options(width=74, show.signif.stars = FALSE,
+        lattice.theme = function() canonical.theme("pdf", color = FALSE),
+        str = strOptions(strict.width = "cut"))
+library(splines)
+library(lattice)
+library(Matrix)
+library(Rcpp)
+library(minqa)
+library(lme4a)
+data(Contraception, package = "mlmRev")
+if (file.exists("fm10.rda")) {load("fm10.rda")
+} else {
+    fm10 <- glmer(use ~ 1+age+I(age^2)+urban+livch+(1|district),
+                  Contraception, binomial)
+    save(fm10, file="fm10.rda")
+}
+@
+
+\chapter{Generalized Linear Mixed Models for Binary Responses}
+\label{chap:GLMMbinomial}
+
+In this chapter we consider mixed-effects models for data sets where
+the response is binary.  We retain the concept of the linear
+predictor, $\vec X\vec\beta+\vec Z\vec b$, depending on the
+fixed-effects parameters, $\vec\beta$, and the random effects, $\vec
+b$, with the corresponding model matrices, $\vec X$ and $\vec Z$,
+determining the conditional mean, $\vec\mu$, of the response, given
+the random effects, but the relationship is more general than that for
+the linear mixed model.  The linear predictor, which we shall write as
+$\vec\gamma$, determines $\vec\mu$ according to a \code{link
+  function}, $g$.  For historical reasons it is the function taking an
+element of $\vec\mu$ to the corresponding element of $\vec\gamma$ that
+is called the link.  The transformation in the opposite direction,
+from $\vec\gamma$ to $\vec\mu$, is called the \emph{inverse link}.
+
+As described in earlier chapters, models based on a Gaussian
+distribution for the response vector with its mean determined by the
+linear predictor are called linear models.  Models incorporating
+coefficients in a linear predictor but allowing for more general forms
+of the distribution of the response are called \emph{generalized
+  linear models}.  When the linear predictor incorporates random
+effects in addition to the fixed-effects parameters we call them
+\emph{generalized linear mixed models} (GLMMs) and fit such models
+with the \code{glmer} function.
+
+As in previous chapters, we will begin with an example to help
+illustrate these ideas.
+
+\section{Artificial contraception use in regions of Bangladesh}
+\label{sec:contraception}
+
+One of the test data sets from the Center
+for Multilevel Modelling, University of Bristol is derived from the
+1989 Bangladesh Fertility Survey, \citep{huq:cleland:1990}.  The data
+are a subsample of responses from 1934 women grouped in 60 districts
+and are available as the \code{Contraception} data set in the
+\code{mlmRev} package.
+
+<<strContra>>=
+str(Contraception)
+@ 
+The response of interest is \code{use} --- whether the woman chooses to use
+artificial contraception.  The covariates include the district in
+which the woman resides, the number of live children she currently
+has, her age and whether she is in a rural or an urban setting.
+
+Note that the \code{age} variable is centered about a particular age
+so some values are negative.  Regretably, the information on what the
+centering age was does not seem to be available.
+
+\subsection{Plotting the binary response}
+\label{sec:plottingbinary}
+
+Producing informative graphical displays of a binary response as it
+relates to covariates is somewhat more challenging that the
+corresponding plots for responses on a continuous scale.  If we were
+to plot the 1934 responses as 0/1 values versus, for example, the
+woman's centered age, we would end up with a rather uninformative plot
+because all the points would fall on one of two horizontal lines.
+
+One approach to illustrating the structure of the data more
+effectively is to add \emph{scatterplot smoother} lines
+(Fig.~\ref{fig:Contra1})
+\begin{figure}[tbp]
+  \centering
+<<Contra1,fig=TRUE,echo=FALSE,height=4>>=
+print(xyplot(ifelse(use == "Y", 1, 0) ~ age|urban, Contraception,
+             groups = livch, type = c("g", "smooth"),
+             auto.key = list(space = "top", points = FALSE,
+             lines = TRUE, columns = 4),
+             ylab = "Proportion", xlab = "Centered age"))
+@ 
+\caption[Contraception use versus centered age]{Contraception use
+  versus centered age for women in the Bangladesh Fertility Survey
+  1989.  Panels are determined by whether the woman is in an urban
+  setting or not.  Lines within the panels are scatterplot smoother
+  lines for women with 0, 1, 2 and 3 or more live children.}
+  \label{fig:Contra1}
+\end{figure}
+to show the trend in the response with respect to the covariate.  Once
+we have the smoother lines in such a plot we can omit the data points
+themselves, as we did here, because they add very little information.
+
+The first thing to notice about the plot is that the proportion of
+women using contraception is not linear in age, which makes sense.  A
+woman in the middle of this age range (probably corresponding to an
+age of about 25) is more likely to use artificial contraception than
+is a girl in her early teens or a woman in her forties.  We also see
+that women in an urban setting are more likely to use contraception
+than those in a rural setting and that women with no live children are
+less likely than women who have live children.  There do not seem to
+be strong differences between women who have 1, 2 or 3 or more
+children compared to the differences between women with children and
+those without children.
+
+Interestingly, the quadratic pattern with respect to age does not seem
+to have been noticed.  Comparisons of model fits through different
+software systems, as provided by the Center for Multilevel Modelling,
+incorporate only a linear term in age, even though the pattern is
+clearly nonlinear.  The lesson here is similar to what we have seen in
+other examples; careful plotting of the data should, whenever
+possible, precede attempts to fit models to the data.
+
+\subsection{Initial GLMM fit to the contraception data}
+\label{sec:ContraGLMM}
+
+As for the \code{lmer} function, the first two arguments to the
+\code{glmer} function for fitting generalized linear mixed models are
+the model formula and the name of the data frame.  The third argument
+to \code{glmer}, named \code{family}, describes the type of
+conditional distribution of the response given the random effects.
+Actually, as the name \code{family} implies, it contains more
+information than just the distribution type in that each distribution
+and link are described by several functions.  Certain distributions,
+including the binomial, have canonical link functions associated with
+them so if we specify just the distribution type we get the family
+with the canonical link.  Thus our initial fit is
+<<fm10,eval=FALSE>>=
+fm10 <- glmer(use ~ 1+age+I(age^2)+urban+livch+(1|district),
+              Contraception, binomial)
+@ 
+
+We use the optional argument \code{corr=FALSE} when displaying
+information on this fitted model because there are many fixed-effects
+coefficients with many entries in the correlation matrix.
+<<prfm10>>=
+print(fm10, corr=FALSE)
+@
+
+Recall from Chap.~\ref{chap:Covariates} that the default set of
+contrasts for a factor such as \code{livch} is the offsets relative to
+the reference level, in this case women who do not have any live
+children.  The coefficients labeled \code{livch1}, \code{livch2} and
+\code{livch3+} are all large relative to their standard errors but
+they are not that different from each other.  This confirms our
+earlier impression that the main distinction is between women with
+children and those without and, for those who do have children, the
+number of children is not as important.
+
+By incorporating a new variable \code{ch}, an indicator of whether the
+woman has any children, in the data
+<<Contrach>>=
+Contraception <- within(Contraception,
+                        ch <- factor(livch != 0, labels = c("N", "Y")))
+@ 
+we can fit the reduced model, \code{fm11}, with summary
+<<fm11,echo=FALSE>>=
+print(fm11 <- glmer(use ~ age + I(age^2) + urban + ch + (1|district),
+                  Contraception, binomial), corr = FALSE)
+@
+Comparing this fitted model to the previous one
+<<anovafm10fm11>>=
+anova(fm11,fm10)
+@ 
+indicates that the reduced model is adequate.
