@@ -9,16 +9,18 @@ options(show.signif.stars = FALSE,
 library(splines)
 library(lattice)
 library(Matrix)
+library(Rcpp)
+library(minqa)
 library(lme4a)
 data(ergoStool, package = "MEMSS")
-fm06 <- lmer(effort ~ 1 + (1|Subject) + (1|Type), ergoStool, REML=0)
+fm06 <- lmer(effort ~ 1 + (1|Subject) + (1|Type), ergoStool, REML=FALSE)
 if (file.exists("pr06.rda")) {
     load("pr06.rda")
 } else {
     pr06 <- profile(fm06)
     save(pr06, file = "pr06.rda")
 }
-fm07 <- lmer(effort ~ 1 + Type + (1|Subject), ergoStool, REML = 0)
+fm07 <- lmer(effort ~ 1 + Type + (1|Subject), ergoStool, REML=FALSE)
 if (file.exists("pr07.rda")) {
     load("pr07.rda")
 } else {
@@ -137,7 +139,7 @@ model with random effects for both \code{Subject} and \code{Type}.
 A model with random effects for both \code{Subject} and \code{Type} is
 fit in the same way that we fit such in Chap.~\ref{chap:Multiple},
 <<fm06>>=
-(fm06 <- lmer(effort ~ 1 + (1|Subject) + (1|Type), ergoStool, REML=0))
+(fm06 <- lmer(effort ~ 1 + (1|Subject) + (1|Type), ergoStool, REML=FALSE))
 @
 from which we determine that the mean effort to arise, across stool
 types and across subjects, is \Sexpr{sprintf(f3, fixef(fm06))} on this
@@ -153,7 +155,7 @@ the differences between subjects.  We could approach this question by
 fitting a reduced model, without random effects for \code{Type}, and
 comparing this fit to model \code{fm06} using a likelihood-ratio test.
 <<fm06a>>=
-fm06a <- lmer(effort ~ 1 + (1|Subject), ergoStool, REML=0)
+fm06a <- lmer(effort ~ 1 + (1|Subject), ergoStool, REML=FALSE)
 anova(fm06a, fm06)
 @
 The p-value in this test is very small, indicating that the more
@@ -425,10 +427,10 @@ level of a factor.
 <<fm07ab>>=
 pr07a <- profile(lmer(effort ~ 1 + Type + (1|Subject),
                      within(ergoStool, Type <- relevel(Type, "T2")),
-                     REML = 0))
+                     REML=FALSE))
 pr07b <- profile(lmer(effort ~ 1 + Type + (1|Subject),
                      within(ergoStool, Type <- relevel(Type, "T3")),
-                     REML = 0))
+                     REML=FALSE))
 @ 
 The other constrasts of interest are
 <<confintpr07ab>>=

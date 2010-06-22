@@ -4,10 +4,13 @@
 \setkeys{Gin}{width=\textwidth}
 <<preliminaries,echo=FALSE,print=FALSE,results=hide>>=
 options(lattice.theme = function() canonical.theme("pdf", color = FALSE),
-        str = strOptions(strict.width = "cut"))
+        str = strOptions(strict.width = "cut"), width=74,
+        show.signif.stars = FALSE)
 library(splines)
 library(lattice)
 library(Matrix)
+library(Rcpp)
+library(minqa)
 library(lme4a)
 fm03ML <- lmer(diameter ~ 1 + (1|plate) + (1|sample), Penicillin, REML=FALSE)
 fm04 <- lmer(strength ~ 1 + (1|sample) + (1|batch), Pastes, REML=FALSE)
@@ -52,8 +55,6 @@ if (!file.exists("figs/Multiple-fm05Limage.png")) {
     rm(ttt)
     dev.off()
 }
-options(width=74, show.signif.stars = FALSE,
-        str = strOptions(strict.width = "cut"))
 @
 
 \chapter{Models With Multiple Random-effects Terms}

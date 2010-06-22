@@ -1,9 +1,9 @@
 R = R-devel
-#R = R
+R = R
 R_CMD = LC_ALL=C $(R) CMD
 
 FRONT = DMBmacros.tex acronym.tex dedication.tex preface.tex # acknow.tex foreword.tex
-CHAPTERS = ChIntro ChMultiple ChCovariates ChLongitudinal ChTheory
+CHAPTERS = ChIntro ChMultiple ChCovariates ChLongitudinal ChTheory ChGLMMBinomial
 APPENDICES =
 RNW = $(CHAPTERS) $(APPENDICES)
 
@@ -38,12 +38,14 @@ all:  $(CHAPTERS:=.tex) $(RNW:=.R) $(RNW:=.tex) lMMwR.pdf lrgprt.pdf
 
 lMMwR.pdf: lMMwR.tex lMMwR.bib lMMwR.ind $(FRONT) $(RNW:=.tex) $(smlGRAPHS)
 
-lrgprt.tex: lMMwR.pdf
-	@echo "\\documentclass[letterpaper]{article}" > $@
-	@echo "\\usepackage{pdfpages}" >> $@
-	@echo "\\begin{document}" >> $@
-	@echo "\\includepdf[nup=1x1,pages=-,noautoscale=true,scale=1.25,offset=0mm -12mm]{lMMwR}" >> $@
-	@echo "\\end{document}" >> $@
+lrgprt.pdf: lMMwR.pdf
+
+#lrgprt.tex: lMMwR.pdf
+#	@echo "\\documentclass[letterpaper]{article}" > $@
+#	@echo "\\usepackage{pdfpages}" >> $@
+#	@echo "\\begin{document}" >> $@
+#	@echo "\\includepdf[nup=1x1,pages=-,noautoscale=true,scale=1.25,offset=0mm -12mm]{lMMwR}" >> $@
+#	@echo "\\end{document}" >> $@
 
 
 lMMwR.ind: lMMwR.idx
