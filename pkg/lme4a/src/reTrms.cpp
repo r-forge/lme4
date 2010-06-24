@@ -13,6 +13,7 @@ namespace mer{
     }
 
     Rcpp::IntegerVector reTrms::ncols() const {
+				// Needs Rcpp_0.8.3
 	return IntegerVector::import_transform(d_cnms.begin(), d_cnms.end(), lengthFun());
     }
 
@@ -24,6 +25,7 @@ namespace mer{
     }
 
     Rcpp::IntegerVector reTrms::nlevs() const {
+				// Needs Rcpp_0.8.3
 	return IntegerVector::import_transform(d_flist.begin(), d_flist.end(), nlevsFun());
     }
 

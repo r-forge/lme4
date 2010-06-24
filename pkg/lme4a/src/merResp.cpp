@@ -29,9 +29,15 @@ namespace mer{
      * @return Updated weighted residual sum of squares
      */
     double merResp::updateWrss() {
-	Rcpp::NumericVector tmp = (d_y - d_mu) * d_sqrtrwt;
+	Rcpp::NumericVector tmp = (d_y - d_mu) * d_sqrtrwt; // Needs Rcpp_0.8.3
 	d_wrss = inner_product(tmp.begin(), tmp.end(), tmp.begin(), double());
 	copy(tmp.begin(), tmp.end(), d_wtres.begin());
+	// transform(d_y.begin(), d_y.end(), d_mu.begin(),
+	// 	  d_wtres.begin(), minus<double>());
+	// transform(d_sqrtrwt.begin(), d_sqrtrwt.end(), d_wtres.begin(),
+	// 	  d_wtres.begin(), multiplies<double>());
+	// d_wrss = inner_product(d_wtres.begin(), d_wtres.end(),
+	// 		       d_wtres.begin(), double());
 	return d_wrss;
     }
 
