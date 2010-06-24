@@ -28,7 +28,7 @@ stopifnot(
 ###Bug ??: currently have
 ###B        c(0.5921429534113, rep(0.5114296867053, 3))
 ###B	  all.equal(unname(se1.d),
-###B		    ## lmer2:
+###B		    ## lmer:
 ###B		    c(0.5760119655646, rep(0.5186839846263, 3)), tol= 1e-10)
 ###B	  ,
 ###B	  all.equal(unname(se1.d),
@@ -52,7 +52,7 @@ range(t.fm7 <- coef(sfm7)[,"t value"])## -10.94173  10.61535
 m.t.7 <- mean(abs(t.fm7), trim = .01)
 ###B : now have     m.t.7= 1.55511602701
 stopifnot(all.equal(m.t.7, 1.55326394,   tol = 1.e-6), # had = 1e-5  # lmer1
-          all.equal(m.t.7, 1.5532709682, tol = 1.e-5)) # had = 1e-9  # lmer2
+          all.equal(m.t.7, 1.5532709682, tol = 1.e-5)) # had = 1e-9  # lmer
 hist.t <- cut(t.fm7, floor(min(t.fm7)) : ceiling(max(t.fm7)))
 cbind(table(hist.t))
 

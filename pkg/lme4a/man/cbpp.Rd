@@ -39,15 +39,15 @@
 }
 \examples{
 ## response as a matrix
-(m1 <- glmer1(cbind(incidence, size - incidence) ~ period + (1 | herd),
-               cbpp, binomial, verbose = TRUE))
-(m2 <- glmer2(cbind(incidence, size - incidence) ~ period + (1 | herd),
-               cbpp, binomial, verbose = 1))
+(m1 <- glmer(cbind(incidence, size - incidence) ~ period + (1 | herd),
+             cbpp, binomial, verbose = 1))
+(m2 <- glmer1(cbind(incidence, size - incidence) ~ period + (1 | herd),
+              cbpp, binomial, verbose = TRUE))
 ## response as a vector of probabilities and usage of argument "weights"
-m1p <- glmer1(incidence / size ~ period + (1 | herd), weights = size,
+m1p <- glmer(incidence / size ~ period + (1 | herd), weights = size,
+             cbpp, binomial, verbose = 1)
+m2p <- glmer1(incidence / size ~ period + (1 | herd), weights = size,
               cbpp, binomial, verbose = TRUE)
-m2p <- glmer2(incidence / size ~ period + (1 | herd), weights = size,
-              cbpp, binomial, verbose = 1)
 ## Confirm that these are equivalent:
 stopifnot(all.equal(fixef(m1), fixef(m1p), tol = 1e-11),
           all.equal(ranef(m1), ranef(m1p), tol = 1e-11),

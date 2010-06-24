@@ -19,7 +19,7 @@ showProc.time <- function() { ## CPU elapsed __since last called__
 (fm1a <- lmer(Reaction ~ Days + (Days|Subject), sleepstudy, REML = FALSE))
 (fm2 <- lmer(Reaction ~ Days + (1|Subject) + (0+Days|Subject), sleepstudy))
 
-## Now works for glmer2 (aka glmer)
+## Now works for glmer
 fm1. <- glmer(Reaction ~ Days + (Days|Subject), sleepstudy)
 ## default family=gaussian -> automatically calls  lmer()
 stopifnot(all.equal(fm1, fm1.))
@@ -69,15 +69,15 @@ stopifnot(all.equal(coef(summary(fm3)),
 				  c("Estimate", "Std. Error", "t value")))))
 showProc.time() #
 
-### {from ../man/lmer.Rd } --- compare lmer1 & lmer2 ---------------
+### {from ../man/lmer.Rd } --- compare lmer & lmer1 ---------------
 (fmX1 <- lmer1(Reaction ~ Days + (Days|Subject), sleepstudy))
 (fm.1 <- lmer1(Reaction ~ Days + (1|Subject) + (0+Days|Subject), sleepstudy))
 
-(fmX2 <- lmer2(Reaction ~ Days + (Days|Subject), sleepstudy))
-(fm.2 <- lmer2(Reaction ~ Days + (1|Subject) + (0+Days|Subject), sleepstudy))
+(fmX2 <- lmer(Reaction ~ Days + (Days|Subject), sleepstudy))
+(fm.2 <- lmer(Reaction ~ Days + (1|Subject) + (0+Days|Subject), sleepstudy))
 
 fmX1s <- lmer1(Reaction ~ Days + (Days|Subject), sleepstudy, sparseX=TRUE)
-fmX2s <- lmer2(Reaction ~ Days + (Days|Subject), sleepstudy, sparseX=TRUE)
+fmX2s <- lmer(Reaction ~ Days + (Days|Subject), sleepstudy, sparseX=TRUE)
 
 showProc.time() #
 

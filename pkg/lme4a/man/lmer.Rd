@@ -1,12 +1,10 @@
 \name{lmer}
 \alias{lmer}
 \alias{lmer1}
-\alias{lmer2}
 \alias{glmer}
 \alias{glmer1}
-\alias{glmer2}
 \alias{nlmer}
-\alias{nlmer2}
+\alias{nlmer1}
 \concept{LMM}% << so it's found; ditto for these:
 \concept{GLMM}
 \concept{NLMM}
@@ -17,35 +15,27 @@
 }
 \usage{
 lmer(formula, data, REML = TRUE, sparseX = FALSE,
-      control = list(), start = NULL, verbose = 0,
-      doFit = TRUE, compDev = TRUE,
-      subset, weights, na.action, offset,
-      contrasts = NULL, \dots)
+     control = list(), start = NULL, verbose = 0,
+     doFit = TRUE, compDev = TRUE, subset, weights,
+     na.action, offset, contrasts = NULL, \dots)
 
 glmer(formula, data, family = gaussian, sparseX = FALSE,
       control = list(), start = NULL, verbose = 0, nAGQ = 1,
       doFit = TRUE, subset, weights, na.action, offset,
       contrasts = NULL, mustart, etastart, \dots)
 
-nlmer(formula, data, family = gaussian, sparseX = FALSE,
-      start = NULL, verbose = 0, nAGQ = 1, doFit = TRUE, 
-      subset, weights, na.action, mustart, etastart,
+nlmer(formula, data, family = gaussian, start = NULL,
+      verbose = 0L, nAGQ = 1L, doFit = TRUE, subset, weights,
+      na.action, mustart, etastart, sparseX = FALSE,
       contrasts = NULL, control = list(), \dots)
 
 ##---------------------------------------------------------------------
-## Somewhat experimental Variants :
-##  -  lmer() is currently identical to  lmer2()
-##  - glmer() is currently identical to glmer2() :
+## Older, deprecated variants :
 
 lmer1(formula, data, REML = TRUE, sparseX = FALSE,
       control = list(), start = NULL, verbose = 0,
       doFit = TRUE, compDev = TRUE,
       optimizer = c("nlminb", "bobyqa", "optimize"),%% MM: add "optim"; it did not get stuck initially like nlminb
-      subset, weights, na.action, offset,
-      contrasts = NULL, \dots)
-lmer2(formula, data, REML = TRUE, sparseX = FALSE,
-      control = list(), start = NULL, verbose = 0,
-      doFit = TRUE, compDev = TRUE,
       subset, weights, na.action, offset,
       contrasts = NULL, \dots)
 
@@ -54,15 +44,12 @@ glmer1(formula, data, family = gaussian, sparseX = FALSE,
        verbose = 0, doFit = TRUE, subset, weights,
        na.action, offset, contrasts = NULL, nAGQ = 1,
        mustart, etastart, \dots)
-glmer2(formula, data, family = gaussian, sparseX = FALSE,
-      control = list(), start = NULL, verbose = 0, nAGQ = 1,
-      doFit = TRUE, subset, weights, na.action, offset,
-      contrasts = NULL, mustart, etastart, \dots)
 
-nlmer2(formula, data, family = gaussian, start = NULL,
-       verbose = 0, nAGQ = 1, doFit = TRUE, subset, weights,
-       na.action, mustart, etastart, sparseX = FALSE,
-       contrasts = NULL, control = list(), \dots)
+nlmer1(formula, data, family = gaussian, sparseX = FALSE,
+      start = NULL, verbose = 0, nAGQ = 1, doFit = TRUE, 
+      subset, weights, na.action, mustart, etastart,
+      contrasts = NULL, control = list(), \dots)
+
 }
 \arguments{
   \item{formula}{a two-sided linear formula object describing the
@@ -174,9 +161,6 @@ nlmer2(formula, data, family = gaussian, start = NULL,
       components of the fit (the model frame, the model matrices)
       are returned.}
   }
-
-  The \code{lmer2} name exists only for backwards compatibility.
-  Calling this function simply produces an equivalent call to \code{lmer}.
 }
 \value{
   An object of class \code{"\linkS4class{mer}"}, for which many methods
@@ -208,17 +192,17 @@ stopifnot(all.equal( coef(fm3.d), coef(fm3.s), tol = 1e-14),
 ## generalized linear mixed model
 (gm1 <- glmer(cbind(incidence, size - incidence) ~ period + (1 | herd),
               data = cbpp, family = binomial))
-## using the PLSBeta algorithm only gets close to the optimum
+## using nAGQ=0L only gets close to the optimum
 (gm1a <- glmer(cbind(incidence, size - incidence) ~ period + (1 | herd),
                cbpp, binomial, nAGQ = 0L))
 ## nonlinear mixed models
-(nm1 <- nlmer2(circumference ~ SSlogis(age, Asym, xmid, scal) ~
+(nm1 <- nlmer(circumference ~ SSlogis(age, Asym, xmid, scal) ~
+              0 + Asym + xmid + scal + (0 + Asym|Tree),
+              Orange,
+              start = c(Asym = 200, xmid = 725, scal = 350), verbose = 1))
+(nm1a <- nlmer(circumference ~ SSlogis(age, Asym, xmid, scal) ~
                0 + Asym + xmid + scal + (0 + Asym|Tree),
-               Orange,
-               start = c(Asym = 200, xmid = 725, scal = 350), verbose = 1))
-(nm1a <- nlmer2(circumference ~ SSlogis(age, Asym, xmid, scal) ~
-               0 + Asym + xmid + scal + (0 + Asym|Tree),
-               Orange, PLSBeta = TRUE,
+               Orange, nAGQ = 0L,
                start = c(Asym = 200, xmid = 725, scal = 350), verbose = 1))
 }
 \keyword{models}
