@@ -97,7 +97,7 @@ Correlation of Fixed Effects:
      (Intr)
 Days -0.184
 > 
-> ## Now works for glmer2 (aka glmer)
+> ## Now works for glmer
 > fm1. <- glmer(Reaction ~ Days + (Days|Subject), sleepstudy)
 > ## default family=gaussian -> automatically calls  lmer()
 > stopifnot(all.equal(fm1, fm1.))
@@ -192,9 +192,9 @@ Fixed effects:
 + 			  c(1,3), dimnames = list("(Intercept)",
 + 				  c("Estimate", "Std. Error", "t value")))))
 > showProc.time() #
-Time elapsed:  5.5 0.05 5.687 
+Time elapsed:  5.51 0.02 5.619 
 > 
-> ### {from ../man/lmer.Rd } --- compare lmer1 & lmer2 ---------------
+> ### {from ../man/lmer.Rd } --- compare lmer & lmer1 ---------------
 > (fmX1 <- lmer1(Reaction ~ Days + (Days|Subject), sleepstudy))
 Linear mixed model fit by REML  ['lmer']
 Formula: Reaction ~ Days + (Days | Subject) 
@@ -238,7 +238,7 @@ Correlation of Fixed Effects:
      (Intr)
 Days -0.184
 > 
-> (fmX2 <- lmer2(Reaction ~ Days + (Days|Subject), sleepstudy))
+> (fmX2 <- lmer(Reaction ~ Days + (Days|Subject), sleepstudy))
 Linear mixed model fit by REML ['merMod']
 Formula: Reaction ~ Days + (Days | Subject) 
    Data: sleepstudy 
@@ -259,7 +259,7 @@ Days          10.467      1.546    6.77
 Correlation of Fixed Effects:
      (Intr)
 Days -0.138
-> (fm.2 <- lmer2(Reaction ~ Days + (1|Subject) + (0+Days|Subject), sleepstudy))
+> (fm.2 <- lmer(Reaction ~ Days + (1|Subject) + (0+Days|Subject), sleepstudy))
 Linear mixed model fit by REML ['merMod']
 Formula: Reaction ~ Days + (1 | Subject) + (0 + Days | Subject) 
    Data: sleepstudy 
@@ -282,10 +282,10 @@ Correlation of Fixed Effects:
 Days -0.184
 > 
 > fmX1s <- lmer1(Reaction ~ Days + (Days|Subject), sleepstudy, sparseX=TRUE)
-> fmX2s <- lmer2(Reaction ~ Days + (Days|Subject), sleepstudy, sparseX=TRUE)
+> fmX2s <- lmer(Reaction ~ Days + (Days|Subject), sleepstudy, sparseX=TRUE)
 > 
 > showProc.time() #
-Time elapsed:  2.38 0.03 2.477 
+Time elapsed:  2.42 0.01 2.5 
 > 
 > for(nm in c("coef", "fixef", "ranef", "sigma",
 + 	     "model.matrix", "model.frame" , "terms")) {
@@ -504,7 +504,7 @@ $Subject
 
 > 
 > showProc.time() #
-Time elapsed:  2.7 0.02 2.75 
+Time elapsed:  2.7 0 2.723 
 > 
 > if (require('MASS', quietly = TRUE)) {
 +     bacteria$wk2 <- bacteria$week > 2
@@ -555,7 +555,7 @@ Correlation of Fixed Effects:
 trtdiag     -0.044              
 trtencourag  0.064 -0.495       
 wk2TRUE     -0.793  0.063 -0.056
-Time elapsed:  1.3 0.01 1.444 
+Time elapsed:  1.36 0.01 1.472 
 > 
 > ## Invalid factor specification -- used to seg.fault:
 > set.seed(1)
@@ -702,7 +702,7 @@ lagoon4 0.000  0.000  0.000
 +             )
 > 
 > showProc.time() #
-Time elapsed:  1.34 0 1.374 
+Time elapsed:  1.34 0 1.386 
 > 
 > ## Wrong formula gave a seg.fault at times:
 > set.seed(2)# !
@@ -722,7 +722,7 @@ Warning message:
 In Ops.factor(ff, x1) : + not meaningful for factors
 > 
 > showProc.time() #
-Time elapsed:  8.15 0 8.35 
+Time elapsed:  8.13 0.01 8.215 
 > 
 > ## Reordering of grouping factors should not change the internal structure
 > Pm1  <- lmer1(strength ~ (1|batch) + (1|sample), Pastes, doFit = FALSE)
@@ -805,5 +805,5 @@ m0  3 1636.5 1646.96 -815.26
 m1  4  606.6  620.52 -299.30 1031.9      1  < 2.2e-16
 > 
 > showProc.time()
-Time elapsed:  2.86 0 2.956 
+Time elapsed:  2.84 0 2.857 
 > 
