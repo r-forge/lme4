@@ -501,16 +501,20 @@ mkdevfun <- function(mod, nAGQ = 1L, u0 = numeric(length(mod@re@u)), verbose = 0
             u <- solve(L, solve(L, cu - RZX %*% beta, sys = "Lt"), sys = "Pt")
             mu <- (resp@offset + crossprod(mod@re@Zt, Lambda %*% u) + mod@fe@X %*% beta)@x
                                         # penalized, weighted residual sum of squares
-            pwrss <- sum(c((resp@y - mu)*resp@sqrtrwt, u@x)^2) 
-            ldL2 <- 2 * determinant(L)$mod
+            wrss <- sum(((resp@y - mu)*resp@sqrtrwt)^2)
+            ussq <- sum(u@x^2)
+            pwrss <- wrss + ussq
+            ldL2 <- as.vector(2 * determinant(L)$mod) 
             if (resp@REML) {
                 nmp <- length(mu) - length(beta)
-                ldRX2 <- 2 * determinant(RX)$mod
-                ldL2 + ldRX2 + nmp * (1 + log(2 * pi * pwrss/nmp))
+                ldRX2 <- as.vector(2 * determinant(RX)$mod)
+                ans <- ldL2 + ldRX2 + nmp * (1 + log(2 * pi * pwrss/nmp))
             } else {
                 n <- length(mu)
-                ldL2	     + n   * (1 + log(2 * pi * pwrss/n  ))
+                ans <- ldL2	     + n   * (1 + log(2 * pi * pwrss/n  ))
             }
+            structure(unname(ans), beta = beta, u = u@x, ldL2 = ldL2,
+                      wrss = wrss, ussq = ussq)
         })
     }
     if (nAGQ == 0L)
@@ -1056,6 +1060,7 @@ coefMer <- function(object, ...)
 
 setMethod("coef", signature(object = "merMod"), coefMer)
 
+## FIXME: Do we really need a separate devcomp extractor?  I suppose it can't hurt.
 setMethod("devcomp", "merMod", function(x, ...) x@devcomp)
 
 setMethod("getL", "reModule", function(x) x@L)
@@ -1306,3 +1311,162 @@ setMethod("summary", "merMod",
                          call = object@call
                          ), class = "summary.merenv")
       })
+
+## plots for the ranef.mer class
+
+dotplot.ranef.mer <- function(x, data, ...)
+{
+    prepanel.ci <- function(x, y, se, subscripts, ...) {
+        if (is.null(se)) return(list())
+        x <- as.numeric(x)
+        hw <- 1.96 * as.numeric(se[subscripts])
+        list(xlim = range(x - hw, x + hw, finite = TRUE))
+    }
+    panel.ci <- function(x, y, se, subscripts, pch = 16,
+                         horizontal = TRUE, col = dot.symbol$col,
+                         lty = dot.line$lty, lwd = dot.line$lwd,
+                         col.line = dot.line$col, levels.fos = unique(y),
+                         groups = NULL, ...)
+    {
+        x <- as.numeric(x)
+        y <- as.numeric(y)
+        dot.line <- trellis.par.get("dot.line")
+        dot.symbol <- trellis.par.get("dot.symbol")
+        sup.symbol <- trellis.par.get("superpose.symbol")
+        panel.abline(h = levels.fos, col = col.line, lty = lty, lwd = lwd)
+        panel.abline(v = 0, col = col.line, lty = lty, lwd = lwd)
+        if (!is.null(se)) {
+            se <- as.numeric(se[subscripts])
+            panel.segments( x - 1.96 * se, y, x + 1.96 * se, y, col = 'black')
+        }
+        panel.xyplot(x, y, pch = pch, ...)
+    }
+    f <- function(x, ...) {
+        ss <- stack(x)
+        ss$ind <- factor(as.character(ss$ind), levels = colnames(x))
+        ss$.nn <- rep.int(reorder(factor(rownames(x)), x[[1]]), ncol(x))
+        se <- NULL
+        if (!is.null(pv <- attr(x, "postVar")))
+            se <- unlist(lapply(1:(dim(pv)[1]), function(i) sqrt(pv[i, i, ])))
+        dotplot(.nn ~ values | ind, ss, se = se,
+                prepanel = prepanel.ci, panel = panel.ci,
+                xlab = NULL, ...)
+    }
+    lapply(x, f, ...)
+}
+
+plot.ranef.mer <- function(x, y, ...)
+{
+    lapply(x, function(x) {
+        cn <- lapply(colnames(x), as.name)
+        switch(min(ncol(x), 3),
+               qqmath(eval(substitute(~ x, list(x = cn[[1]]))), x, ...),
+               xyplot(eval(substitute(y ~ x,
+                                      list(y = cn[[1]],
+                                           x = cn[[2]]))), x, ...),
+               splom(~ x, ...))
+    })
+}
+
+foo  <- function(x, data, ...)  ## old version of qqmath.ranef.mer
+{
+    prepanel.ci <- function(x, y, se, subscripts, ...) {
+        y <- as.numeric(y)
+        se <- as.numeric(se[subscripts])
+        hw <- 1.96 * se
+        list(ylim = range(y - hw, y + hw, finite = TRUE))
+    }
+    panel.ci <- function(x, y, se, subscripts, pch = 16, ...)  {
+        panel.grid(h = -1,v = -1)
+        panel.abline(h = 0)
+        x <- as.numeric(x)
+        y <- as.numeric(y)
+        se <- as.numeric(se[subscripts])
+        ly <- y - 1.96 * se
+        uy <- y + 1.96 * se
+        panel.segments(x, y - 1.96*se, x, y + 1.96 * se,
+                       col = 'black')
+        panel.xyplot(x, y, pch = pch, ...)
+    }
+    f <- function(x) {
+        if (!is.null(pv <- attr(x, "postVar"))) {
+            cols <- 1:(dim(pv)[1])
+            se <- unlist(lapply(cols, function(i) sqrt(pv[i, i, ])))
+            nr <- nrow(x)
+            nc <- ncol(x)
+            ord <- unlist(lapply(x, order)) +
+                rep((0:(nc - 1)) * nr, each = nr)
+            rr <- 1:nr
+            ind <- gl(ncol(x), nrow(x), labels = names(x))
+            xyplot(unlist(x)[ord] ~
+                   rep(qnorm((rr - 0.5)/nr), ncol(x)) | ind[ord],
+                   se = se[ord], prepanel = prepanel.ci, panel = panel.ci,
+                   scales = list(y = list(relation = "free")),
+                   xlab = "Standard normal quantiles",
+                   ylab = NULL, aspect = 1, ...)
+        } else {
+            qqmath(~values|ind, stack(x),
+                   scales = list(y = list(relation = "free")),
+                   xlab = "Standard normal quantiles",
+                   ylab = NULL, ...)
+        }
+    }
+    lapply(x, f)
+}
+
+qqmath.ranef.mer <- function(x, data, ...)
+{
+    prepanel.ci <- function(x, y, se, subscripts, ...) {
+        x <- as.numeric(x)
+        se <- as.numeric(se[subscripts])
+        hw <- 1.96 * se
+        list(xlim = range(x - hw, x + hw, finite = TRUE))
+    }
+    panel.ci <- function(x, y, se, subscripts, pch = 16, ...)  {
+        panel.grid(h = -1,v = -1)
+        panel.abline(v = 0)
+        x <- as.numeric(x)
+        y <- as.numeric(y)
+        se <- as.numeric(se[subscripts])
+        panel.segments(x - 1.96 * se, y, x + 1.96 * se, y, col = 'black')
+        panel.xyplot(x, y, pch = pch, ...)
+    }
+    f <- function(x) {
+        if (!is.null(pv <- attr(x, "postVar"))) {
+            cols <- 1:(dim(pv)[1])
+            se <- unlist(lapply(cols, function(i) sqrt(pv[i, i, ])))
+            nr <- nrow(x)
+            nc <- ncol(x)
+            ord <- unlist(lapply(x, order)) +
+                rep((0:(nc - 1)) * nr, each = nr)
+            rr <- 1:nr
+            ind <- gl(ncol(x), nrow(x), labels = names(x))
+            xyplot(rep(qnorm((rr - 0.5)/nr), ncol(x)) ~ unlist(x)[ord] | ind[ord],
+                   se = se[ord], prepanel = prepanel.ci, panel = panel.ci,
+                   scales = list(x = list(relation = "free")),
+                   ylab = "Standard normal quantiles",
+                   xlab = NULL, aspect = 1, ...)
+        } else {
+            qqmath(~values|ind, stack(x),
+                   scales = list(y = list(relation = "free")),
+                   xlab = "Standard normal quantiles",
+                   ylab = NULL, ...)
+        }
+    }
+    lapply(x, f)
+}
+
+plot.coef.mer <- function(x, y, ...)
+{
+    ## remove non-varying columns from frames
+    reduced <- lapply(x, function(el)
+                      el[, !sapply(el, function(cc) all(cc == cc[1]))])
+    plot.ranef.mer(reduced, ...)
+}
+
+dotplot.coef.mer <- function(x, data, ...) {
+    mc <- match.call()
+    mc[[1]] <- as.name("dotplot.ranef.mer")
+    eval(mc)
+}
+

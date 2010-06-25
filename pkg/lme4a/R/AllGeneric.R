@@ -3,25 +3,6 @@ setGeneric("lmList",
                     na.action, offset, pool, ...)
            standardGeneric("lmList"))
 
-if (FALSE) {
-#' returns the parameter bounds
-setGeneric("getBounds", function(x, ...) standardGeneric("getBounds"),
-           valueClass = "matrix")
-
-#' returns the current parameter values
-setGeneric("getPars", function(x, ...) standardGeneric("getPars"), valueClass = "numeric")
-
-#' sets the parameter values
-setGeneric("setPars", function(x, pars, ...) standardGeneric("setPars"), valueClass = "numeric")
-}
-
-##' extract the environment associated with an object
-setGeneric("env", function(x, ...) standardGeneric("env"),
-           valueClass = "environment")
-
-##' extract the deviance components
-setGeneric("devcomp", function(x, ...) standardGeneric("devcomp"))
-
 ## utilities, *not* exported (yet ?)
 setGeneric("isREML", function(x) standardGeneric("isREML"),
 	   valueClass = "logical")
@@ -31,13 +12,15 @@ setGeneric("getCall", function(x) standardGeneric("getCall"),
 ## utilities, these *exported*:
 setGeneric("getL", function(x) standardGeneric("getL"))
 
+##' extract the deviance components
+setGeneric("devcomp", function(x, ...) standardGeneric("devcomp"))
+
+
 refitML <- function(x) {
     if (!isREML(x)) return(x)
     update(x, REML = FALSE)
 }
 setGeneric("refitML", function(x) standardGeneric("refitML"))
-
-
 
 fixed.effects <- function(object, ...) {
     ## fixed.effects was an alternative name for fixef
@@ -66,8 +49,4 @@ if (FALSE) {
 setGeneric("mcmcsamp",
            function(object, n = 1, verbose = FALSE, ...)
            standardGeneric("mcmcsamp"))
-}
-
-if (FALSE) {
-setGeneric("refit", function(object, newresp, ...) standardGeneric("refit"))
 }
