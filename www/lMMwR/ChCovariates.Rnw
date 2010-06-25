@@ -2,6 +2,7 @@
 \SweaveOpts{keep.source=TRUE}
 \SweaveOpts{prefix=TRUE,prefix.string=figs/Covariates,include=TRUE}
 \setkeys{Gin}{width=\textwidth}
+
 <<preliminaries,echo=FALSE,print=FALSE,results=hide>>=
 options(show.signif.stars = FALSE,
         lattice.theme = function() canonical.theme("pdf", color = FALSE),
@@ -12,7 +13,10 @@ library(Matrix)
 library(Rcpp)
 library(minqa)
 library(lme4a)
+data(Machines, package = "MEMSS")
 data(ergoStool, package = "MEMSS")
+.f4 <- "%.4f"
+.f1 <- "%.1f"
 fm06 <- lmer(effort ~ 1 + (1|Subject) + (1|Type), ergoStool, REML=FALSE)
 if (file.exists("pr06.rda")) {
     load("pr06.rda")
@@ -66,10 +70,136 @@ if (file.exists("ratbrain.rda")) {
 }
 @ 
 
-\chapter{Models Incorporating Covariates}
-\label{chap:Covariates}
+%% Practical issues: Number of levels of a factor
+%%  Model building - the tendency to over-model
+%%  Convergence to a singular variance-covariance matrix for the
+%%  random effects.
 
-In the previous chapter we fit models having different configurations of
+\chapter{Building Linear Mixed Models}
+\label{chap:Covariates}
+%% Topics - interactions
+In the previous chapter we incorporated the time covariate of
+longitudinal data into both the fixed-effects terms and the
+random-effects terms of linear mixed models.  In this chapter we will
+extend the use of covariates and discuss general approaches to
+building and assessing linear mixed models.
+
+Statistical model building is still somewhat more of an art than a
+science and there are many practical issues that we should bear in
+mind while engaged in it.  We discuss how some of the optional
+arguments to the \code{lmer} function can be used to check for
+possible problems.
+
+We begin with a discussion of categorical covariates and how they are
+incorporated in the fixed-effects terms.
+
+\section{Incorporating categorical covariates with fixed levels}
+\label{sec:categoricalcov}
+
+As we have seen in the earlier chapters, each random-effects terms in
+a linear mixed model is defined with respect to a \emph{grouping
+  factor}, which is a categorical covariate whose levels are regarded
+as a sample from a population of possible levels.  In some cases we
+may have other categorical covariates with a fixed set of levels (such
+as gender, with fixed levels male and female) that we wish to
+incorporate into the model.  Although incorporating such covariates
+into the model formula is straightforward, the interpretation of
+coefficients and the model's structure can be subtle.
+
+\subsection{The \texttt{Machines} Data}
+\label{sec:MachinesData}
+
+\citet[Table 23.1]{milliken09:_analy_messy_data} discuss data from an experiment to
+measure productivity on a manufacturing task according to the type of
+machine used and the operator.  No further details on the experiment
+are given and it is possible that these data, which are available as
+\code{Machines} in the \package{MEMSS} package, were constructed for
+illustration and are not observed data from an actual experiment.
+<<strMachines>>=
+str(Machines)
+xtabs(~ Machine + Worker, Machines)
+@ 
+
+The cross-tablulation shows that each of the six operators used each
+of the three machines on three occasions producing replicate
+observations of the ``subject-stimulus'' combinations.  Although the
+operators represent a sample from the population of potential
+operators, the three machines are the specific machines of interest.
+That is, we regard the levels of \code{Machine} as fixed levels and
+the levels of \code{Worker} as a random sample from a population.  In
+other studies we may regard the levels of the stimulus as a random
+sample from a population of stimuli.
+
+A plot of these data (Fig.~\ref{fig:Machinesplot})
+\begin{figure}[tbp]
+  \centering
+<<Machinesplot,fig=TRUE,echo=FALSE,height=3.5>>=
+print(dotplot(reorder(Worker, score) ~ score, Machines,
+              groups = Machine, 
+              xlab = "Quality and productivity score", 
+              ylab = "Worker", type = c("p","a"), 
+              auto.key = list(columns = 3, lines = TRUE), 
+              jitter.y = TRUE))
+@   
+\caption[Quality score by operator and machine]{A quality and
+  productivity score for each of six operators (the \code{Worker}
+  factor) on each of three machine types.}
+  \label{fig:Machinesplot}
+\end{figure}
+shows high reproducibility of measurements on the same
+operator-machine combination.  On each line the scores on a particular
+machine are tightly clustered.  There are considerable, apparently
+systematic, differences between machines and somewhat smaller
+differences between operators except for one unusual combination,
+operator 6 on machine B.  The pattern for operator 6 is very different
+from the pattern for the other five operators.  We will expect a
+significant interaction between the \code{Worker} and \code{Machine}
+factors because of this unusual pattern.  As we will see, we can
+incorporate such an interaction into a linear mixed model in different
+ways.
+
+\subsection{Comparing models with and without interactions}
+
+We fit and compare three models for these data: \code{fm10} without
+interactions, \code{fm11} with vector-valued random effects to allow
+for interactions, and \code{fm12} with interactions incorporated into
+a second simple scalar random-effects term.
+<<fm1012>>=
+fm10 <- lmer(score ~ Machine + (1|Worker), Machines, REML=FALSE)
+fm11 <- lmer(score ~ Machine + (Machine|Worker), Machines, REML=FALSE)
+fm12 <- lmer(score ~ Machine + (1|Worker) + (1|Machine:Worker), Machines, REML=FALSE)
+anova(fm10, fm11, fm12)
+@ 
+
+Notice that in the \code{anova} summary the order of the models has
+been rearranged according to the complexity of the models, as measured
+by the number of parameters to be estimated.  The simplest model,
+\code{fm10}, incorporates three fixed-effects parameters and two
+variance components.  Model \code{fm12}, with scalar random effects
+for \code{Worker} and for the \code{Machine:Worker} combination
+incorporates one additional variance component for a total of six
+parameters, while model \code{fm11} adds five variance-component
+parameters to those in \code{fm10}, for a total of 10 parameters.
+
+In the comparison of models \code{fm10} and \code{fm12} (i.e. the line
+labeled \code{fm12} in the \code{anova} table) we see that the
+additional parameter is highly significant.  The change in the
+deviance of \Sexpr{sprintf(.f4,deviance(fm10)-deviance(fm12))} (in the
+column labeled \code{Chisq}) at a cost of one additional parameter is
+huge; hence we prefer the more complex model \code{fm12}.  In the next
+line, which is the comparison of the more complex model \code{fm11} to
+the simpler model \code{fm12}, the change in the deviance is
+\Sexpr{sprintf(.f4,deviance(fm12)-deviance(fm11))} at a cost of 4
+additional parameters with a p-value of 
+\Sexpr{sprintf(.f1,100*pchisq(deviance(fm12)-deviance(fm11),4,lower=FALSE))}\%.
+In formal hypothesis tests we establish a boundary, often chosen to
+be 5\%, below which we regard the p-value as providing ``significant''
+evidence to prefer the more complex model and above which the results
+are regarded as representing an ``insignificant'' improvement.  Such
+boundaries, while arbitrary, help us to assess the numerical
+results and here we prefer model \code{fm12}, of intermediate complexity.
+
+fit models having different configurations of
 simple, scalar random effects but always with the same fixed-effects
 specification of an intercept, or overall mean response, only.
 
