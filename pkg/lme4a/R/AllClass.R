@@ -124,7 +124,6 @@ setClass("merResp",
                         sqrtXwt = "matrix",
                         sqrtrwt = "numeric", # sqrt(residual weights)
                         weights = "numeric", # prior weights
-##                        wtres = "numeric",   # weighted residuals
                         y = "numeric"),
          validity = function(object) {
              n <- length(object@y)
