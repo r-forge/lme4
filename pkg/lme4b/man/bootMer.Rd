@@ -57,7 +57,7 @@ bootMer(x, FUN, nsim=1, seed, use.u=FALSE, verbose=FALSE,
  \code{\link[boot]{boot.ci}} from package \pkg{boot}.
 }
 \examples{
-fm01ML <- lmer(Yield ~ 1|Batch, Dyestuff, REML = FALSE)
+fm01ML <- lmer1(Yield ~ 1|Batch, Dyestuff, REML = FALSE)
 ## see ?"profile-methods"
 mySumm <- function(.) { s <- sigma(.)
     c(beta =.@fe@beta, sigma = s, sig01 = s * .@re@theta) }
