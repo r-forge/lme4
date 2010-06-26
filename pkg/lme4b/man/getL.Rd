@@ -15,8 +15,8 @@
 getL(x)
 }
 \arguments{
-  \item{x}{a fitted model, result of \code{\link{lmer}()},
-    \code{\link{glmer}()}, or similar.}
+  \item{x}{a fitted model, result of \code{\link{lmer1}()},
+    \code{\link{glmer1}()}, or similar.}
 }
 \section{Methods}{
   \describe{
@@ -50,7 +50,7 @@ getL(x)
 % }
 \examples{
 ## (see  help(Penicillin)):
-fm1 <- lmer(diameter ~ (1|plate) + (1|sample), Penicillin)
+fm1 <- lmer1(diameter ~ (1|plate) + (1|sample), Penicillin)
 image(getL(fm1),
       sub = "Structure of random effects interaction in penicillin model")
 }

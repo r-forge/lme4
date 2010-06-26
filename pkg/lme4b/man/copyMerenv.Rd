@@ -23,7 +23,7 @@ copyMerenv(x)
   content that are true \emph{copies} of those in \code{x}.
 }
 \seealso{
-  \code{\link{lmer}}, \code{\linkS4class{merenv}}.
+  \code{\link{lmer1}}, \code{\linkS4class{merenv}}.
 }
 %\examples{
 %}

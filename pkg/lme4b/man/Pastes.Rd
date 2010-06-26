@@ -53,16 +53,16 @@ dotplot(sample ~ strength | batch, Pastes,
         ylab = "Sample within batch",
         xlab = "Paste strength", jitter.y = TRUE)
 ## Four equivalent models differing only in specification
-(fm1 <- lmer(strength ~ (1|batch) + (1|sample), Pastes))
-(fm2 <- lmer(strength ~ (1|batch/cask), Pastes))
-(fm3 <- lmer(strength ~ (1|batch) + (1|batch:cask), Pastes))
-(fm4 <- lmer(strength ~ (1|batch/sample), Pastes))
+(fm1 <- lmer1(strength ~ (1|batch) + (1|sample), Pastes))
+(fm2 <- lmer1(strength ~ (1|batch/cask), Pastes))
+(fm3 <- lmer1(strength ~ (1|batch) + (1|batch:cask), Pastes))
+(fm4 <- lmer1(strength ~ (1|batch/sample), Pastes))
 ## fm4 results in redundant labels on the sample:batch interaction
 head(ranef(fm4)[[1]])
 ## compare to fm1
 head(ranef(fm1)[[1]])
 ## This model is different and NOT appropriate for these data
-(fm5 <- lmer(strength ~ (1|batch) + (1|cask), Pastes))
+(fm5 <- lmer1(strength ~ (1|batch) + (1|cask), Pastes))
 
 image(getL(fm1),
       sub = "Structure of random effects interaction in pastes model")

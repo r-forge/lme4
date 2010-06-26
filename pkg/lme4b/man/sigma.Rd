@@ -30,10 +30,10 @@ sigma(object, \dots)
 }
 \value{A non-negative numeric scalar}
 \seealso{\code{\link{vcov}} typically uses \code{sigma()};
-  \code{\link{lmer}}, \code{\link{glmer}}.
+  \code{\link{lmer1}}, \code{\link{glmer1}}.
 }
 \examples{
-sigma(fm1 <- lmer(Yield ~ 1 + (1|Batch), Dyestuff)) # REML estimate
+sigma(fm1 <- lmer1(Yield ~ 1 + (1|Batch), Dyestuff)) # REML estimate
 sigma(update(fm1, REML = FALSE))     # ML estimate
 }
 \keyword{models}

@@ -1,9 +1,6 @@
 \name{lmer}
-\alias{lmer}
 \alias{lmer1}
-\alias{glmer}
 \alias{glmer1}
-\alias{nlmer}
 \alias{nlmer1}
 \concept{LMM}% << so it's found; ditto for these:
 \concept{GLMM}
@@ -14,21 +11,6 @@
   nonlinear mixed model.
 }
 \usage{
-lmer(formula, data, REML = TRUE, sparseX = FALSE,
-     control = list(), start = NULL, verbose = 0,
-     doFit = TRUE, compDev = TRUE, subset, weights,
-     na.action, offset, contrasts = NULL, \dots)
-
-glmer(formula, data, family = gaussian, sparseX = FALSE,
-      control = list(), start = NULL, verbose = 0, nAGQ = 1,
-      doFit = TRUE, subset, weights, na.action, offset,
-      contrasts = NULL, mustart, etastart, \dots)
-
-nlmer(formula, data, family = gaussian, start = NULL,
-      verbose = 0L, nAGQ = 1L, doFit = TRUE, subset, weights,
-      na.action, mustart, etastart, sparseX = FALSE,
-      contrasts = NULL, control = list(), \dots)
-
 ##---------------------------------------------------------------------
 ## Older, deprecated variants :
 
@@ -175,35 +157,37 @@ nlmer1(formula, data, family = gaussian, sparseX = FALSE,
 (fm2. <- lmer1(Reaction ~ Days + (1|Subject) + (0+Days|Subject), sleepstudy))
 anova(fm1., fm2.)
 
-(fm1 <- lmer(Reaction ~ Days + (Days|Subject), sleepstudy))
-(fm2 <- lmer(Reaction ~ Days + (1|Subject) + (0+Days|Subject), sleepstudy))
-anova(fm1, fm2)
+##(fm1 <- lmer(Reaction ~ Days + (Days|Subject), sleepstudy))
+##(fm2 <- lmer(Reaction ~ Days + (1|Subject) + (0+Days|Subject), sleepstudy))
+##anova(fm1, fm2)
 
 ## dense vs sparse X  --------------------------
 ## use more sensical example !!
-fm3.d <- lmer(Yield ~ 1|Batch, Dyestuff2)
-fm3.s <- lmer(Yield ~ 1|Batch, Dyestuff2, sparseX=TRUE)#-> warning
+##fm3.d <- lmer(Yield ~ 1|Batch, Dyestuff2)
+##fm3.s <- lmer(Yield ~ 1|Batch, Dyestuff2, sparseX=TRUE)#-> warning
 ## check "equality"
-stopifnot(all.equal( coef(fm3.d), coef(fm3.s), tol = 1e-14),
-          all.equal(sigma(fm3.d),sigma(fm3.s), tol = 1e-14),
-          TRUE)
+##stopifnot(all.equal( coef(fm3.d), coef(fm3.s), tol = 1e-14),
+##          all.equal(sigma(fm3.d),sigma(fm3.s), tol = 1e-14),
+##          TRUE)
 
 
 ## generalized linear mixed model
-(gm1 <- glmer(cbind(incidence, size - incidence) ~ period + (1 | herd),
+(gm1 <- glmer1(cbind(incidence, size - incidence) ~ period + (1 | herd),
               data = cbpp, family = binomial))
 ## using nAGQ=0L only gets close to the optimum
-(gm1a <- glmer(cbind(incidence, size - incidence) ~ period + (1 | herd),
+(gm1a <- glmer1(cbind(incidence, size - incidence) ~ period + (1 | herd),
                cbpp, binomial, nAGQ = 0L))
 ## nonlinear mixed models
-(nm1 <- nlmer(circumference ~ SSlogis(age, Asym, xmid, scal) ~
+if (FALSE) {
+(nm1 <- nlmer1(circumference ~ SSlogis(age, Asym, xmid, scal) ~
               0 + Asym + xmid + scal + (0 + Asym|Tree),
               Orange,
               start = c(Asym = 200, xmid = 725, scal = 350), verbose = 1))
-(nm1a <- nlmer(circumference ~ SSlogis(age, Asym, xmid, scal) ~
+(nm1a <- nlmer1(circumference ~ SSlogis(age, Asym, xmid, scal) ~
                0 + Asym + xmid + scal + (0 + Asym|Tree),
                Orange, nAGQ = 0L,
                start = c(Asym = 200, xmid = 725, scal = 350), verbose = 1))
+}
 }
 \keyword{models}
 \keyword{methods}
