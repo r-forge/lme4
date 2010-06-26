@@ -94,6 +94,6 @@ void R_init_lme4a(DllInfo *dll)
  *
  */
 extern "C"
-void R_unload_lme4(DllInfo *dll){
+void R_unload_lme4a(DllInfo *dll){
     M_cholmod_finish(&c);
 }
