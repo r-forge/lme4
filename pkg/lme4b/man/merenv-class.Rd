@@ -45,7 +45,7 @@
   subclasses can be created however, by calls of the form
   \code{new("lmerenv", ...)}.
   However, typically, these are are created directly, from
-  \code{\link{lmer}()},  \code{\link{glmer}()}, etc.
+  \code{\link{lmer1}()},  \code{\link{glmer1}()}, etc.
 }
 \section{Slots}{
   All slots are inherited from \code{"\linkS4class{optenv}"}.

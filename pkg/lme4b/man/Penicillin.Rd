@@ -47,7 +47,7 @@ dotplot(reorder(plate, diameter) ~ diameter, Penicillin, groups = sample,
         ylab = "Plate", xlab = "Diameter of growth inhibition zone (mm)",
         type = c("p", "a"), auto.key = list(columns = 3, lines = TRUE,
         title = "Penicillin sample"))
-(fm1 <- lmer(diameter ~ (1|plate) + (1|sample), Penicillin))
+(fm1 <- lmer1(diameter ~ (1|plate) + (1|sample), Penicillin))
 
 image(getL(fm1),
       sub = "Structure of random effects interaction in penicillin model")

@@ -9,13 +9,13 @@
 \description{
   Extract the components of the deviance from a \code{*lmer()} fit.
   This is a generic function with methods for all kinds of classes
-  returned from calls to \code{\link{lmer}}, \code{\link{glmer}}, etc.
+  returned from calls to \code{\link{lmer1}}, \code{\link{glmer1}}, etc.
 }
 \usage{
 devcomp(x, ...)
 }
 \arguments{
-  \item{x}{a model fit by \code{\link{lmer}}.}
+  \item{x}{a model fit by \code{\link{lmer1}}.}
   \item{\dots}{optional additional arguments.  None are used at present.}
 }
 \details{
@@ -44,9 +44,9 @@ devcomp(x, ...)
     fixed-effects parameter vector; \code{nmp}, \eqn{n-p}; and \code{q},
     the dimension of the random effects vector.}
 }
-\seealso{\code{\link{lmer}}, \code{\linkS4class{lmerenv}}}
+\seealso{\code{\link{lmer1}}, \code{\linkS4class{lmerenv}}}
 \examples{
-devcomp(lmer(Yield ~ 1 + (1|Batch), Dyestuff))
+devcomp(lmer1(Yield ~ 1 + (1|Batch), Dyestuff))
 }
 \keyword{models}
 \keyword{methods}

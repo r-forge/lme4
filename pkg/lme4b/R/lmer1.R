@@ -832,6 +832,11 @@ setMethod("isREML", "mer",	function(x) FALSE)
 setMethod("getCall", "merenv",	function(x) env(x)$call)
 setMethod("getCall", "mer",	function(x) x@call)
 
+refitML <- function(x) {
+    if (!isREML(x)) return(x)
+    update(x, REML = FALSE)
+}
+
 ##' <description>
 ##'
 ##' <details>
@@ -1332,5 +1337,68 @@ copyMerenv <- function(x) {
                 ls(envir = rho, all.names = TRUE))
     environment(gb) <- environment(gp) <- environment(sp) <- en
     new("lmerenv", setPars = sp, getPars = gp, getBounds = gb)
+}
+
+##' <description>
+##' Compute standard errors of fixed effects from an lmer()
+##'
+##' <details>
+##' @title
+##' @param object "lmerenv" object,
+##' @param RX the Cholesky factor (CHMfactor) L of ...
+##' @return numeric vector of length length(fixef(.))
+##' @author Doug Bates & Martin Maechler
+##' currently *not* exported on purpose
+unscaledVar <- function(object, RX = env(object)$RX)
+{
+    if (is(RX, "Cholesky")) return(diag(chol2inv(RX)))
+    stopifnot(is(RX, "CHMfactor"))
+    p <- ncol(RX)
+    if (p < 1) return(numeric(0))
+    p1 <- p - 1L
+    ei <- as(c(1, rep.int(0, p1)), "sparseMatrix")
+    DI <- function(i) {
+	ei@i <- i
+	sum(solve(RX, ei, sys = "L")@x^2)
+    }
+    as.vector(solve(RX, unlist(lapply(0:p1, DI)),
+		    system = "Pt"))
+}
+
+formatVC <- function(varc, digits = max(3, getOption("digits") - 2),
+                     useScale)
+### "format()" the 'VarCorr' matrix of the random effects -- for show()ing
+{
+    sc <- unname(attr(varc, "sc"))
+    recorr <- lapply(varc, attr, "correlation")
+    reStdDev <- c(lapply(varc, attr, "stddev"), if(useScale) list(Residual = sc))
+    reLens <- unlist(c(lapply(reStdDev, length)))
+    nr <- sum(reLens)
+    reMat <- array('', c(nr, 4),
+		   list(rep.int('', nr),
+			c("Groups", "Name", "Variance", "Std.Dev.")))
+    reMat[1+cumsum(reLens)-reLens, 1] <- names(reLens)
+    reMat[,2] <- c(unlist(lapply(varc, colnames)), if(useScale) "")
+    reMat[,3] <- format(unlist(reStdDev)^2, digits = digits)
+    reMat[,4] <- format(unlist(reStdDev), digits = digits)
+    if (any(reLens > 1)) {
+	maxlen <- max(reLens)
+	corr <-
+	    do.call("rBind",
+		    lapply(recorr,
+			   function(x) {
+			       x <- as(x, "matrix")
+			       cc <- format(round(x, 3), nsmall = 3)
+			       cc[!lower.tri(cc)] <- ""
+			       nr <- dim(cc)[1]
+			       if (nr >= maxlen) return(cc)
+			       cbind(cc, matrix("", nr, maxlen-nr))
+			   }))[, -maxlen, drop = FALSE]
+        if (nrow(corr) < nrow(reMat))
+            corr <- rbind(corr, matrix("", nr = nrow(reMat) - nrow(corr), nc = ncol(corr)))
+	colnames(corr) <- rep.int("", ncol(corr))
+        colnames(corr)[1] <- "Corr"
+	cbind(reMat, corr)
+    } else reMat
 }
 

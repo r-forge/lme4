@@ -59,7 +59,7 @@ dotplot(reorder(Batch, Yield) ~ Yield, Dyestuff,
 dotplot(reorder(Batch, Yield) ~ Yield, Dyestuff2,
         ylab = "Batch", jitter.y = TRUE, aspect = 0.3,
         type = c("p", "a"))
-(fm1 <- lmer(Yield ~ 1|Batch, Dyestuff))
-(fm2 <- lmer(Yield ~ 1|Batch, Dyestuff2))
+(fm1 <- lmer1(Yield ~ 1|Batch, Dyestuff))
+(fm2 <- lmer1(Yield ~ 1|Batch, Dyestuff2))
 }
 \keyword{datasets}

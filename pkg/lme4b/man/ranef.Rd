@@ -72,9 +72,9 @@ ranef(object, \dots)
   with \code{postVar = TRUE}.
 }
 \examples{
-fm1 <- lmer(Reaction ~ Days + (Days|Subject), sleepstudy)
-fm2 <- lmer(Reaction ~ Days + (1|Subject) + (0+Days|Subject), sleepstudy)
-fm3 <- lmer(diameter ~ (1|plate) + (1|sample), Penicillin)
+fm1 <- lmer1(Reaction ~ Days + (Days|Subject), sleepstudy)
+fm2 <- lmer1(Reaction ~ Days + (1|Subject) + (0+Days|Subject), sleepstudy)
+fm3 <- lmer1(diameter ~ (1|plate) + (1|sample), Penicillin)
 ranef(fm1)
 if(FALSE) { ## code not yet written -- FIXME
 str(rr1 <- ranef(fm1, postVar = TRUE))
