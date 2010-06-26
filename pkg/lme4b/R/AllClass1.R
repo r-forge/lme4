@@ -1,3 +1,12 @@
+## Class definitions for the package
+
+setClass("lmList",
+         representation(call = "call",
+                        pool = "logical"),
+         contains = "list")
+
+## TODO: export
+setClass("lmList.confint", contains = "array")
 
 ### Environment-based classes.  These will eventually replace the
 ### previous classes
