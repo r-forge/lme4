@@ -1,3 +1,10 @@
+2010-06-27  Douglas Bates  <bates@stat.wisc.edu>
+
+	* src/*, R/*, tests/*, man/*: Move code using the merenv
+	representation to yet another development package lme4b.  Adjust
+	documentation and tests for the current version which uses the
+	merMod representation only.
+
 2010-06-18  Douglas Bates  <bates@stat.wisc.edu>
 
 	* src/*.cpp, R/lmer2.R: Many changes to make the compiled code
