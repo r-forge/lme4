@@ -13,7 +13,7 @@
 \alias{model.frame,merMod-method}
 \alias{model.matrix,merMod-method}
 \alias{print,merMod-method}
-\alias{profile,merMod-method}
+%\alias{profile,merMod-method}
 \alias{ranef,merMod-method}
 \alias{show,merMod-method}
 \alias{sigma,merMod-method}

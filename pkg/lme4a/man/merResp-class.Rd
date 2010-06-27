@@ -5,6 +5,7 @@
 \alias{lmerResp-class}
 \alias{glmerResp-class}
 \alias{nlmerResp-class}
+\alias{nglmerResp-class}
 \title{"merResp" and derived classes}
 \description{
   The \code{"merResp"} class is the virtual base class of
