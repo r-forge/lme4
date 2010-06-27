@@ -14,13 +14,18 @@ namespace MatrixNs {
 	for (int i = 0; i < n; i++) {
 	    int vi = vpt[i];
 	    if (vi < 0 || n <= vi)
-		throw std::runtime_error("permutation elements must be in [0,n)");
+		throw runtime_error("permutation elements must be in [0,n)");
 	    if (chk[vi])
-		throw std::runtime_error("permutation is not a permutation");
+		throw runtime_error("permutation is not a permutation");
 	    chk[vi] = true;
 	}
     }
     
 }
 
-					       
+RCPP_FUNCTION_2(List, lme4_PermChk, IntegerVector perm, IntegerVector x) {
+    IntegerVector zerob = perm - 1; // 0-based indices
+    MatrixNs::Permutation pp(zerob);
+    return List::create(_["forw"] = pp.forward(x),
+			_["inv"] = pp.inverse(x));
+}
