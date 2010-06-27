@@ -255,11 +255,47 @@ namespace MatrixNs {
     public:
 	Permutation(Rcpp::IntegerVector&);
 
-	Rcpp::NumericVector forward(const Rcpp::NumericVector&) const;
-	Rcpp::NumericVector inverse(const Rcpp::NumericVector&) const;
-	void inPlaceFwd(Rcpp::NumericVector&) const;
-	void inPlaceInv(Rcpp::NumericVector&) const;
+	template<int Rtype>
+	Rcpp::Vector<Rtype> forward(const Rcpp::Vector<Rtype>&) const;
+	template<int Rtype>
+	Rcpp::Vector<Rtype> inverse(const Rcpp::Vector<Rtype>&) const;
+	template<int Rtype>
+	void inPlaceFwd(Rcpp::Vector<Rtype>&) const;
+	template<int Rtype>
+	void inPlaceInv(Rcpp::Vector<Rtype>&) const;
     };
+
+    template<int Rtype> inline
+    Rcpp::Vector<Rtype> Permutation::forward(const Rcpp::Vector<Rtype>& vv) const {
+    	if (vv.size() != n)
+	    throw std::runtime_error("size mismatch in permutation");
+	Rcpp::Vector<Rtype> ans(n);
+	int *ppt = d_perm.begin();
+	for (R_len_t i = 0; i < n; ++i) ans[i] = vv[ppt[i]];
+	return ans;
+    }
+
+    template<int Rtype> inline
+    Rcpp::Vector<Rtype> Permutation::inverse(const Rcpp::Vector<Rtype>& vv) const {
+    	if (vv.size() != n)
+	    throw std::runtime_error("size mismatch in permutation");
+	Rcpp::Vector<Rtype> ans(n);
+	int *ppt = d_perm.begin();
+	for (R_len_t i = 0; i < n; ++i) ans[ppt[i]] = vv[i];
+	return ans;
+    }
+    
+    template<int Rtype> inline
+    void Permutation::inPlaceFwd(Rcpp::Vector<Rtype>& vv) const {
+	Rcpp::Vector<Rtype> ans = forward(vv);
+	std::copy(ans.begin(), ans.end(), vv.begin());
+    }
+
+    template<int Rtype> inline
+    void Permutation::inPlaceInv(Rcpp::Vector<Rtype>& vv) const {
+	Rcpp::Vector<Rtype> ans = inverse(vv);
+	std::copy(ans.begin(), ans.end(), vv.begin());
+    }
 }
 
 #endif

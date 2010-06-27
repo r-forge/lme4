@@ -1,8 +1,7 @@
-#include "merenv.h"
 #include "Matrix.h"
-#include "Syms.h"
 #include <R_ext/Rdynload.h>
 
+extern "C" SEXP lme4_ghq(SEXP,SEXP);
 extern "C" SEXP merDeviance(SEXP,SEXP,SEXP,SEXP,SEXP,SEXP);
 extern "C" SEXP reTrmsCondVar(SEXP,SEXP);
 extern "C" SEXP testFam(SEXP,SEXP,SEXP);
@@ -13,23 +12,7 @@ extern "C" SEXP updateDc(SEXP,SEXP,SEXP,SEXP);
 static R_CallMethodDef CallEntries[] = {
     CALLDEF(merDeviance, 6),
 
-    CALLDEF(glmer_IRLS, 1),
-    CALLDEF(glmer_PIRLS, 1),
-    CALLDEF(glmer_PIRLSbeta, 1),
-    CALLDEF(glmer_update_RX, 1),
-
-
     CALLDEF(lme4_ghq, 1),
-    CALLDEF(lme4_dup_env_contents, 3),
-
-    CALLDEF(lmer_deviance, 2),
-    CALLDEF(lmer_validate, 1),
-
-    CALLDEF(merenv_update_Lambda_Ut, 2),
-
-    CALLDEF(merenvtrms_condVar, 2),
-    CALLDEF(merenvtrms_show, 1),
-    CALLDEF(merenvtrms_validate, 1),
 
     CALLDEF(reTrmsCondVar, 2),
 
@@ -56,38 +39,6 @@ void R_init_lme4a(DllInfo *dll)
 
     M_R_cholmod_start(&c);
     c.final_ll = 1;	    /* LL' form of simplicial factorization */
-
-    lme4_DimSym = install("Dim");
-    lme4_LSym = install("L");
-    lme4_LambdaSym = install("Lambda");
-    lme4_LindSym = install("Lind");
-    lme4_RXSym = install("RX");
-    lme4_RZXSym = install("RZX");
-    lme4_UtSym = install("Ut");
-    lme4_XSym = install("X");
-    lme4_ZtSym = install("Zt");
-    lme4_betaSym = install("beta");
-    lme4_familySym = install("family");
-    lme4_flistSym = install("flist");
-    lme4_gammaSym = install("gamma");
-    lme4_ghwSym = install("ghw");
-    lme4_ghxSym = install("ghx");
-    lme4_iSym = install("i");
-    lme4_ldL2Sym = install("ldL2");
-    lme4_muEtaSym = install("muEta");
-    lme4_muSym = install("mu");
-    lme4_nlmodelSym = install("nlmodel");
-    lme4_offsetSym = install("offset");
-    lme4_pSym = install("p");
-    lme4_pwrssSym = install("pwrss");
-    lme4_sqrtrwtSym = install("sqrtrWt");/* capital 'W' - as 'always' in "mer" class */
-    lme4_sqrtXwtSym = install("sqrtXWt");
-    lme4_thetaSym = install("theta");
-    lme4_uSym = install("u");
-    lme4_varSym = install("var");
-    lme4_weightsSym = install("weights");
-    lme4_xSym = install("x");
-    lme4_ySym = install("y");
 }
 
 /** Finalizer for lme4 called upon unloading the package.

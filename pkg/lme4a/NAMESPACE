@@ -52,24 +52,17 @@ importMethodsFrom("Matrix",
 ## re-export imported S4 generics
 export(AIC, BIC, logLik)
 ## and the rest (S3 generics; regular functions):
-export(VarCorr, bootMer, copyMerenv, devcomp, env, getL, # getCall,
-       glmer, glmer1, lmList, lmer, lmer1,
-       mkdevfun, nlmer, nlmer1, sigma, findbars, nobars, subbars, isNested)
+export(VarCorr, bootMer, devcomp, getL,
+       glmer, lmList, lmer, mkdevfun, nlmer,
+       sigma, findbars, nobars, subbars, isNested)
 
-exportClasses(lmList,
-	      ## export all super classes of e.g., "lmerenv",
-	      ## so users can query the class system :
-	      optenv, merenv, merenvtrms, lmerenv, glmerenv,
-              mer, lmer, glmer, reModule, reTrms,
-              feModule, deFeMod, spFeMod,
-              merResp, lmerResp, glmerResp, nlmerResp, nglmerResp,
-              merMod
-              )
+exportClasses(deFeMod, feModule, glmerResp, lmList, lmerResp, merMod,
+              merResp, nglmerResp, nlmerResp, reModule, reTrms, spFeMod)
 
-exportMethods(VarCorr, anova, bobyqa, coef, coerce, confint, deviance,
+exportMethods(VarCorr, anova, coef, coerce, confint, deviance,
               devcomp, fixef, formula, getL,
-              logLik, nlminb, model.frame, model.matrix, terms,
-              optimize, plot, print, profile, ranef,
+              logLik, model.frame, model.matrix, terms,
+              plot, print, profile, ranef,
               show, simulate, sigma, summary, update, vcov)
 
 S3method(plot, coef.mer)

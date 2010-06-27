@@ -21,16 +21,6 @@ namespace MatrixNs {
 	}
     }
     
-    Rcpp::NumericVector
-    Permutation::forward(Rcpp::NumericVector const& vv) const {
-	if (vv.size() != n)
-	    throw runtime_error("size mismatch in permutation");
-	NumericVector ans(n);
-	double *vpt = vv.begin(), *apt = ans.begin();
-	int *ppt = d_perm.begin();
-	for (int i = 0; i < n; ++i) apt[i] = vpt[ppt[i]];
-	return ans;
-    }
 }
 
 					       
