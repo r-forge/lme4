@@ -24,17 +24,11 @@ stopifnot(
 		    V.s <- vcov(fm1.s)#, tol = 1e-9
 	  ),
 	  all.equal(diag(V.d), unname(se1.d)^2, tol= 1e-12)
-###B	  ,
-###Bug ??: currently have
-###B        c(0.5921429534113, rep(0.5114296867053, 3))
-###B	  all.equal(unname(se1.d),
-###B		    ## lmer:
-###B		    c(0.5760119655646, rep(0.5186839846263, 3)), tol= 1e-10)
-###B	  ,
-###B	  all.equal(unname(se1.d),
-###B		    ## lmer1:
-###B		    c(0.5760122554859, rep(0.5186838382653, 3)), tol= 1e-6)
-	  )
+	  ,
+	  all.equal(unname(se1.d),
+                    c(0.576012259837672, rep.int(0.518683836068417,3)),
+                    tol = 1.e-8)
+          )
 
 ### -------------------------- a "large" example -------------------------
 str(InstEval)
@@ -42,19 +36,31 @@ str(InstEval)
 ## this works
 system.time(
 fm7 <- lmer(y ~ d + service + studage + lectage + (1|s),
-             data = InstEval, sparseX = TRUE, verbose = TRUE)
+             data = InstEval, sparseX=TRUE, verbose=1L, REML=FALSE)
 )
 system.time(sfm7 <- summary(fm7))
 fm7 # takes a while as it computes summary() again !
 
-range(t.fm7 <- coef(sfm7)[,"t value"])## -10.94173  10.61535
+range(t.fm7 <- coef(sfm7)[,"t value"])## -10.94173  10.61535 for REML, -11.03438  10.70103 for ML
 
 m.t.7 <- mean(abs(t.fm7), trim = .01)
-###B : now have     m.t.7= 1.55511602701
-stopifnot(all.equal(m.t.7, 1.55326394,   tol = 1.e-6), # had = 1e-5  # lmer1
-          all.equal(m.t.7, 1.5532709682, tol = 1.e-5)) # had = 1e-9  # lmer
+#stopifnot(all.equal(m.t.7, 1.55326395545110, tol = 1.e-9)) ##REML value
+stopifnot(all.equal(m.t.7, 1.56642013605506, tol = 1.e-9)) ## ML
+
 hist.t <- cut(t.fm7, floor(min(t.fm7)) : ceiling(max(t.fm7)))
 cbind(table(hist.t))
 
+system.time(fm8 <-
+            lmer(y ~ service * dept + studage + lectage +
+                 (1|s) + (1|d), InstEval, verbose = 1L, REML=FALSE))
+fm8
 
+system.time(fm9 <-
+            lmer(y ~ studage + lectage +
+                 (1|s) + (1|d) + (1|dept:service) + (1|dept),
+                 InstEval, verbose = 1L, REML=FALSE))
+fm9
+rr <- ranef(fm9, postVar = TRUE)
+qqmath(rr,strip=FALSE)$d
+dotplot(rr,strip=FALSE)$`dept:service`
 cat('Time elapsed: ', proc.time(),'\n') # for ``statistical reasons''

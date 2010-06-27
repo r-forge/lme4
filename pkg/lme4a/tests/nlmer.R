@@ -3,7 +3,6 @@ library(lme4a)
 allEQ <- function(x,y, tolerance = 4e-4, ...)
     all.equal.numeric(x,y, tolerance=tolerance, ...)
 
-## No summary method for nlmer objects yet so just check str
 (nm1 <- nlmer(circumference ~ SSlogis(age, Asym, xmid, scal) ~
               0 + Asym + xmid + scal + (0 + Asym|Tree),
               Orange, 
