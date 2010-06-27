@@ -954,7 +954,6 @@ updateMer <- function(object, formula., ..., evaluate = TRUE)
 
 setMethod("update", signature(object = "merMod"), updateMer)
 
-
 ## This is modeled a bit after  print.summary.lm :
 ## Prints *both*  'mer' and 'merenv' - as it uses summary(x) mainly
 printMerenv <- function(x, digits = max(3, getOption("digits") - 3),

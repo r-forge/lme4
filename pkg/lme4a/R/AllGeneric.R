@@ -20,6 +20,7 @@ refitML <- function(x) {
     if (!isREML(x)) return(x)
     update(x, REML = FALSE)
 }
+
 setGeneric("refitML", function(x) standardGeneric("refitML"))
 
 fixed.effects <- function(object, ...) {
