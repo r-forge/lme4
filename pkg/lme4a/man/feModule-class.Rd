@@ -40,5 +40,7 @@ No methods defined with class "feModule" in the signature.
 \seealso{\code{\linkS4class{merMod}}}
 \examples{
 showClass("deFeMod")
+showClass("feModule")
+showClass("spFeMod")
 }
 \keyword{classes}

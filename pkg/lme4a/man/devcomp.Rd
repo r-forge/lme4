@@ -2,10 +2,7 @@
 \title{Extract the components of the deviance}
 \alias{devcomp}
 \alias{devcomp-methods}
-\alias{devcomp,glmerenv-method}
 \alias{devcomp,merMod-method}
-\alias{devcomp,lmerenv-method}
-\alias{devcomp,mer-method}
 \description{
   Extract the components of the deviance from a \code{*lmer()} fit.
   This is a generic function with methods for all kinds of classes
@@ -24,14 +21,9 @@ devcomp(x, ...)
 }
 \section{Methods}{
   \describe{
-    \item{\code{signature(x = "glmerenv")}}{ }%% FIXME
-    \item{\code{signature(x = "glmerMod")}}{ }
-
-    \item{\code{signature(x = "lmerenv")}}{ }
-    \item{\code{signature(x = "lmerMod")}}{ }
-
-    \item{\code{signature(x = "mer")}}{ }
-}}
+    \item{\code{signature(x = "merMod")}}{ }
+  }
+}
 \value{a list of two named vectors
   \item{cmp }{Numeric components including \code{ldL2}, the logarithm of
     the square of the determinant of the sparse Cholesky factor,

@@ -1,10 +1,7 @@
 \name{lmer}
 \alias{lmer}
-\alias{lmer1}
 \alias{glmer}
-\alias{glmer1}
 \alias{nlmer}
-\alias{nlmer1}
 \concept{LMM}% << so it's found; ditto for these:
 \concept{GLMM}
 \concept{NLMM}
@@ -28,28 +25,6 @@ nlmer(formula, data, family = gaussian, start = NULL,
       verbose = 0L, nAGQ = 1L, doFit = TRUE, subset, weights,
       na.action, mustart, etastart, sparseX = FALSE,
       contrasts = NULL, control = list(), \dots)
-
-##---------------------------------------------------------------------
-## Older, deprecated variants :
-
-lmer1(formula, data, REML = TRUE, sparseX = FALSE,
-      control = list(), start = NULL, verbose = 0,
-      doFit = TRUE, compDev = TRUE,
-      optimizer = c("nlminb", "bobyqa", "optimize"),%% MM: add "optim"; it did not get stuck initially like nlminb
-      subset, weights, na.action, offset,
-      contrasts = NULL, \dots)
-
-glmer1(formula, data, family = gaussian, sparseX = FALSE,
-       compDev = TRUE, control = list(), start = NULL,
-       verbose = 0, doFit = TRUE, subset, weights,
-       na.action, offset, contrasts = NULL, nAGQ = 1,
-       mustart, etastart, \dots)
-
-nlmer1(formula, data, family = gaussian, sparseX = FALSE,
-      start = NULL, verbose = 0, nAGQ = 1, doFit = TRUE, 
-      subset, weights, na.action, mustart, etastart,
-      contrasts = NULL, control = list(), \dots)
-
 }
 \arguments{
   \item{formula}{a two-sided linear formula object describing the
@@ -96,13 +71,6 @@ nlmer1(formula, data, family = gaussian, sparseX = FALSE,
     model is fit immediately.}
   \item{compDev}{logical - should compiled code be used for the deviance
     evaluation during the optimization of the parameters estimates?}
-  \item{optimizer}{character - the name of the optimizer to use in
-    determining the parameter estimates.  The default is
-    \code{\link{nlminb}} from the \pkg{stats} package.  In some cases
-    the \code{bobyqa} optimizer from the \pkg{minqa} package has
-    proven faster and/or more reliable than \code{\link{nlminb}}.  For
-    one-dimensional problems (a single, simple, scalar random-effects
-    term), the \code{\link{optimize}} function can be used.}
   \item{subset, weights, na.action, offset, contrasts}{further model
     specification arguments as in \code{\link[stats]{lm}}; see there for
     details.}
@@ -171,10 +139,6 @@ nlmer1(formula, data, family = gaussian, sparseX = FALSE,
 }
 \examples{
 ## linear mixed models - reference values from older code
-(fm1. <- lmer1(Reaction ~ Days + (Days|Subject), sleepstudy))
-(fm2. <- lmer1(Reaction ~ Days + (1|Subject) + (0+Days|Subject), sleepstudy))
-anova(fm1., fm2.)
-
 (fm1 <- lmer(Reaction ~ Days + (Days|Subject), sleepstudy))
 (fm2 <- lmer(Reaction ~ Days + (1|Subject) + (0+Days|Subject), sleepstudy))
 anova(fm1, fm2)

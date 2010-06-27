@@ -3,8 +3,6 @@
 \alias{getL}
 \alias{getL-methods}
 \alias{getL,merMod-method}
-\alias{getL,mer-method}
-\alias{getL,merenv-method}
 \alias{getL,reModule-method}
 \description{
   Extract the Cholesky factor \eqn{L} from a \code{*mer} fitted object.
@@ -27,9 +25,9 @@ getL(x)
   }
 }
 \details{
-  The Cholesky factor \eqn{L} is a lower triangular \eqn{q \times q}{q x q}
-  matrix, defined by
-  \deqn{L L' = \Lambda' Z'Z \Lambda + I_q}{L L' = Lambda' Z'Z Lambda + I_q},
+  The Cholesky factor \eqn{L} is a lower triangular
+  \eqn{q \times q}{q x q} matrix, defined by
+  \deqn{L L' = \Lambda' Z'Z \Lambda + I_q}{L L' = Lambda' Z'Z Lambda + I_q}, 
   where \eqn{I_q} is the identity and
   \eqn{\Lambda = \Lambda_\theta = \Lambda(\theta)}{Lambda = Lambda(\theta)}
   is the relative covariance factor (typically lower triangular as
@@ -42,10 +40,8 @@ getL(x)
   \code{\linkS4class{CHMfactor}},
   (currently typically of class \code{\linkS4class{CHMsimpl}}.
 }
-\references{
-  Douglas Bates (2010).
-  Mixed Models with R.% FIXME
-}
+%\references{Douglas Bates (2010).  lme4: Mixed Models with R
+%}
 % \seealso{
 % }
 \examples{
