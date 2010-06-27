@@ -331,7 +331,6 @@ setMethod("updateDcmp", signature(x = "merMod", dcmp = "list"),
 lmer <- function(formula, data, REML = TRUE, sparseX = FALSE,
                  control = list(), start = NULL,
                  verbose = 0, doFit = TRUE, compDev = TRUE,
-                 ## TODO: optimizer = c("bobyqa", "nlminb", "optimize", "optim"),
                  subset, weights, na.action, offset,
                  contrasts = NULL, ...)
 {
@@ -430,6 +429,7 @@ updateMod <- function(mod, pars, fval) {
     pars <- pars[seq_along(lower)]
     lst <- .Call(updateDc, mod, pars, beta, u)
     lst[ifelse(is(resp, "lmerResp") && resp@REML, "REML", "dev")] <- as.vector(fval)
+    lst["ldL2"] <- ldL2
     lst["wrss"] <- wrss
     lst["ussq"] <- ussq
     lst["pwrss"] <- pwrss <- wrss + ussq
@@ -1182,10 +1182,50 @@ anovaLmer <- function(object, ...) {
 
 setMethod("anova", signature(object = "merMod"), anovaLmer)
 
+##' <description>
+##'
+##' <details>
+##' @title vcov(): Extract conditional covariance matrix of fixed effects
+##' @param sigma = sigma(object)
+##' @param correlation
+##' @param ...
+mkVcov <- function(sigma, RX, nmsX, correlation = TRUE, ...) {
+    V <- sigma^2 * chol2inv(RX)
+    if(is.null(rr <- tryCatch(as(V, "dpoMatrix"),
+                              error = function(e) NULL)))
+        stop("Computed variance-covariance matrix is not positive definite")
+    dimnames(rr) <- list(nmsX, nmsX)
+    if(correlation)
+        rr@factors$correlation <- as(rr, "corMatrix")
+    rr
+}
+
 setMethod("vcov", signature(object = "merMod"),
 	  function(object, correlation = TRUE, sigm = sigma(object), ...)
 	  mkVcov(sigm, RX = object@fe@RX, nmsX = colnames(object@fe@X),
 		 correlation=correlation, ...))
+
+## FIXME: Fold this into the VarCorr method
+mkVarCorr <- function(sc, cnms, nc, theta, flist) {
+    ncseq <- seq_along(nc)
+    thl <- split(theta, rep.int(ncseq, (nc * (nc + 1))/2))
+    ans <- lapply(ncseq, function(i)
+              {
+                  mm <- diag(nrow = nc[i])
+                  mm[lower.tri(mm, diag = TRUE)] <- thl[[i]]
+                  rownames(mm) <- cnms[[i]]
+                  val <- tcrossprod(sc * mm) # variance-covariance
+                  stddev <- sqrt(diag(val))
+                  correl <- t(val / stddev)/stddev
+                  diag(correl) <- 1
+                  attr(val, "stddev") <- stddev
+                  attr(val, "correlation") <- correl
+                  val
+              })
+    names(ans) <- names(flist)[attr(flist, "assign")]
+    attr(ans, "sc") <- sc
+    ans
+}
 
 setMethod("VarCorr", signature(x = "merMod"),
           function(x)
