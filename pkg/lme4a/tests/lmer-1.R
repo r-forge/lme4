@@ -24,42 +24,34 @@ fm1. <- glmer(Reaction ~ Days + (Days|Subject), sleepstudy)
 ## default family=gaussian -> automatically calls  lmer()
 stopifnot(all.equal(fm1, fm1.))
 ## Test against previous version in lmer1 (using bobyqa for consistency)
-(fm1. <- lmer1(Reaction ~ Days + (Days|Subject), sleepstudy, opt = "bobyqa"))
-stopifnot(all.equal(fm1@devcomp$cmp['REML'], fm1.@devcomp$cmp['REML']),
-          all.equal(fixef(fm1), fixef(fm1.)),
-          all.equal(fm1@re@theta, fm1.@theta, tol = 1.e-7),
-          all.equal(ranef(fm1), ranef(fm1.)))
+#(fm1. <- lmer1(Reaction ~ Days + (Days|Subject), sleepstudy, opt = "bobyqa"))
+#stopifnot(all.equal(fm1@devcomp$cmp['REML'], fm1.@devcomp$cmp['REML']),
+#          all.equal(fixef(fm1), fixef(fm1.)),
+#          all.equal(fm1@re@theta, fm1.@theta, tol = 1.e-7),
+#          all.equal(ranef(fm1), ranef(fm1.)))
 
 ## Test 'compDev = FALSE' (vs TRUE)
-fm1. <- lmer1(Reaction ~ Days + (Days|Subject), sleepstudy, opt = "bobyqa",
+fm1. <- lmer(Reaction ~ Days + (Days|Subject), sleepstudy,
               compDev = FALSE)#--> use R code (not C) for deviance computation
 stopifnot(all.equal(fm1@devcomp$cmp['REML'], fm1.@devcomp$cmp['REML']),
           all.equal(fixef(fm1), fixef(fm1.)),
-          all.equal(fm1@re@theta, fm1.@theta, tol = 1.e-7),
-          all.equal(ranef(fm1), ranef(fm1.)))
-if (FALSE) {
-    L1 <- as.list(env(   fm1. @ env))
-    L2 <- as.list(env(as(fm1, "lmerenv")))
-    ns <- intersect((n1 <- names(L1)),
-                    (n2 <- names(L2)))
-    n1[!(n1 %in% ns)] #    lmer1() extras
-    n2[!(n2 %in% ns)] # new-lmer() extras
-    ns <- ns[!(ns %in% c("call", "compDev"))]# they will certainly differ by that ...
-    all.equal(L1[ns], L2[ns])
+          all.equal(fm1@re@theta, fm1.@re@theta, tol = 1.e-7),
+          all.equal(ranef(fm1), ranef(fm1.), tol = 1.e-7))
 
-}
 stopifnot(all.equal(fixef(fm1), fixef(fm2), tol = 1.e-13),
           all.equal(unname(fixef(fm1)),
                     c(251.405104848485, 10.467285959595), tol = 1e-13),
 	  all.equal(cov2cor(vcov(fm1))["(Intercept)", "Days"],
 		    -0.13755, tol=1e-4))
 
+fm1ML <- lme4a:::refitML(fm1)
+fm2ML <- lme4a:::refitML(fm2)
 if(getRversion() > "2.11.0") {
-    print(AIC(fm1, fm2))
-    print(BIC(fm1, fm2))
+    print(AIC(fm1ML, fm2ML))
+    print(BIC(fm1ML, fm2ML))
 } else {
-    print(AIC(fm1)); print(AIC(fm2))
-    print(BIC(fm1)); print(BIC(fm2))
+    print(AIC(fm1ML)); print(AIC(fm2ML))
+    print(BIC(fm1ML)); print(BIC(fm2ML))
 }
 
 (fm3 <- lmer(Yield ~ 1|Batch, Dyestuff2))
@@ -70,13 +62,13 @@ stopifnot(all.equal(coef(summary(fm3)),
 showProc.time() #
 
 ### {from ../man/lmer.Rd } --- compare lmer & lmer1 ---------------
-(fmX1 <- lmer1(Reaction ~ Days + (Days|Subject), sleepstudy))
-(fm.1 <- lmer1(Reaction ~ Days + (1|Subject) + (0+Days|Subject), sleepstudy))
+#(fmX1 <- lmer1(Reaction ~ Days + (Days|Subject), sleepstudy))
+#(fm.1 <- lmer1(Reaction ~ Days + (1|Subject) + (0+Days|Subject), sleepstudy))
 
 (fmX2 <- lmer(Reaction ~ Days + (Days|Subject), sleepstudy))
 (fm.2 <- lmer(Reaction ~ Days + (1|Subject) + (0+Days|Subject), sleepstudy))
 
-fmX1s <- lmer1(Reaction ~ Days + (Days|Subject), sleepstudy, sparseX=TRUE)
+#fmX1s <- lmer1(Reaction ~ Days + (Days|Subject), sleepstudy, sparseX=TRUE)
 fmX2s <- lmer(Reaction ~ Days + (Days|Subject), sleepstudy, sparseX=TRUE)
 
 showProc.time() #
@@ -85,22 +77,22 @@ for(nm in c("coef", "fixef", "ranef", "sigma",
 	     "model.matrix", "model.frame" , "terms")) {
     cat(sprintf("%15s : ", nm))
     FUN <- get(nm)
-    F.fmX1s <- FUN(fmX1s)
+#    F.fmX1s <- FUN(fmX1s)
     F.fmX2s <- FUN(fmX2s)
     if(nm == "model.matrix") {
-        F.fmX1s <- as(F.fmX1s, "denseMatrix")
+#        F.fmX1s <- as(F.fmX1s, "denseMatrix")
         F.fmX2s <- as(F.fmX2s, "denseMatrix")
 	FF <- function(.) as(FUN(.), "generalMatrix")
     } else FF <- FUN
     stopifnot(
-	      all.equal( FF(fmX1), F.fmX1s, tol =  1e-6)
-	      ,
-	      all.equal( FF(fmX2), F.fmX1s, tol = 9e-6)
+#	      all.equal( FF(fmX1), F.fmX1s, tol =  1e-6)
+#	      ,
+	      all.equal( FF(fmX2), F.fmX2s, tol = 9e-6)
               ,
-              all.equal(F.fmX2s,   F.fmX1s, tol = 6e-6)
-              ,
-              all.equal(FUN(fm.1), FUN(fm.2), tol = 6e-6)
-              ,
+#              all.equal(F.fmX2s,   F.fmX1s, tol = 6e-6)
+#              ,
+#              all.equal(FUN(fm.1), FUN(fm.2), tol = 6e-6)
+#              ,
               TRUE)
     cat("[Ok]\n")
 }
@@ -119,13 +111,13 @@ stopifnot(dim(ranef(fm2l)[[1]]) == c(18, 2),
 ## generalized linear mixed model
 ## TODO: (1) move these to ./glmer-ex.R
 ## ----  (2) "rationalize" with ../man/cbpp.Rd
-m1e <- glmer1(cbind(incidence, size - incidence) ~ period + (1 | herd),
-              family = binomial, data = cbpp, doFit = FALSE)
+#m1e <- glmer1(cbind(incidence, size - incidence) ~ period + (1 | herd),
+#              family = binomial, data = cbpp, doFit = FALSE)
 ## now
-bobyqa(m1e, control = list(iprint = 2L))
+#bobyqa(m1e, control = list(iprint = 2L))
 m1 <- glmer(cbind(incidence, size - incidence) ~ period + (1 | herd),
             family = binomial, data = cbpp, verbose = 1)
-stopifnot(is((cm1 <- coef(m1e)), "coef.mer"),
+stopifnot(is((cm1 <- coef(m1)), "coef.mer"),
 	  dim(cm1$herd) == c(15,4),
 	  all.equal(fixef(m1), ##  these values are those of "old-lme4":
 		    c(-1.39853504914, -0.992334711,
@@ -134,7 +126,7 @@ stopifnot(is((cm1 <- coef(m1e)), "coef.mer"),
                     check.attr=FALSE)
 	  )
 ## Deviance for the new algorithm is lower, eventually we should change the previous test
-stopifnot(deviance(m1) <= deviance(m1e))
+#stopifnot(deviance(m1) <= deviance(m1e))
 ## Simple example by Andrew Gelman (2006-01-10) ----
 n.groups <- 10 ; n.reps <- 2
 n <- length(group.id <- gl(n.groups, n.reps))
@@ -145,6 +137,7 @@ y <- rnorm (n, a.group[group.id], 1)
 ## fit and summarize the model
 fit.1 <- lmer (y ~ 1 + (1 | group.id))
 coef (fit.1)# failed in Matrix 0.99-6
+## FIXME: show of a summary object is not yet defined
 (sf1 <- summary(fit.1)) # show() is as without summary()
 stopifnot(all.equal(fixef(fit.1), c("(Intercept)" = 1.571312129)),
 	  all.equal(ranef(fit.1)[["group.id"]][,"(Intercept)"],
@@ -316,16 +309,16 @@ stopifnot(identical(ranef(m0), ranef(m1)),
 showProc.time() #
 
 ## Reordering of grouping factors should not change the internal structure
-Pm1  <- lmer1(strength ~ (1|batch) + (1|sample), Pastes, doFit = FALSE)
-Pm2  <- lmer1(strength ~ (1|sample) + (1|batch), Pastes, doFit = FALSE)
+#Pm1  <- lmer1(strength ~ (1|batch) + (1|sample), Pastes, doFit = FALSE)
+#Pm2  <- lmer1(strength ~ (1|sample) + (1|batch), Pastes, doFit = FALSE)
 P2.1 <- lmer (strength ~ (1|batch) + (1|sample), Pastes, doFit = FALSE)
 P2.2 <- lmer (strength ~ (1|sample) + (1|batch), Pastes, doFit = FALSE)
 
 ## The environments of Pm1 and Pm2 should be identical except for
 ## "call" and "frame":
-stopifnot(all.EQ(env(Pm1), env(Pm2)),
-          all.EQ(S4_2list(P2.1),
-                 S4_2list(P2.2)))
+## stopifnot(all.EQ(env(Pm1), env(Pm2)),
+##           all.EQ(S4_2list(P2.1),
+##                  S4_2list(P2.2)))
 
 ## glmer - Modeling overdispersion as "mixture" aka
 ## ----- - *ONE* random effect *PER OBSERVATION" -- example inspired by Ben Bolker:
@@ -344,6 +337,7 @@ stopifnot(all.EQ(env(Pm1), env(Pm2)),
 ##'                                   log(lambda(x_i)) = b_1 + b_2 * x + G_{f(i)} + I_i
 ##'    and G_k ~ N(0, \sigma_f);  I_i ~ N(0, \sigma_I)
 ##' @author Ben Bolker and Martin Maechler
+set.seed(1)
 rPoisGLMMi <- function(ng, nr, sd=c(f = 1, ind = 0.5), b=c(1,2))
 {
   stopifnot(nr >= 1, ng >= 1,
