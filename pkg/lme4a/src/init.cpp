@@ -2,6 +2,7 @@
 #include <R_ext/Rdynload.h>
 
 extern "C" SEXP lme4_ghq(SEXP,SEXP);
+extern "C" SEXP lme4_PermChk(SEXP,SEXP);
 extern "C" SEXP merDeviance(SEXP,SEXP,SEXP,SEXP,SEXP,SEXP);
 extern "C" SEXP reTrmsCondVar(SEXP,SEXP);
 extern "C" SEXP testFam(SEXP,SEXP,SEXP);
@@ -10,12 +11,10 @@ extern "C" SEXP updateDc(SEXP,SEXP,SEXP,SEXP);
 #define CALLDEF(name, n)  {#name, (DL_FUNC) &name, n}
 
 static R_CallMethodDef CallEntries[] = {
-    CALLDEF(merDeviance, 6),
-
     CALLDEF(lme4_ghq, 1),
-
+    CALLDEF(lme4_PermChk, 2),
+    CALLDEF(merDeviance, 6),
     CALLDEF(reTrmsCondVar, 2),
-
     CALLDEF(testFam, 3),
     CALLDEF(updateDc, 4),
     {NULL, NULL, 0}
