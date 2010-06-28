@@ -45,7 +45,7 @@ range(t.fm7 <- coef(sfm7)[,"t value"])## -10.94173  10.61535 for REML, -11.03438
 
 m.t.7 <- mean(abs(t.fm7), trim = .01)
 #stopifnot(all.equal(m.t.7, 1.55326395545110, tol = 1.e-9)) ##REML value
-stopifnot(all.equal(m.t.7, 1.56642013605506, tol = 1.e-9)) ## ML
+stopifnot(all.equal(m.t.7, 1.56642013605506, tol = 1.e-6)) ## ML
 
 hist.t <- cut(t.fm7, floor(min(t.fm7)) : ceiling(max(t.fm7)))
 cbind(table(hist.t))
