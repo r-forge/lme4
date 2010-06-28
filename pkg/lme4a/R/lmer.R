@@ -1407,6 +1407,7 @@ plot.ranef.mer <- function(x, y, ...)
     })
 }
 
+if (FALSE) {
 foo  <- function(x, data, ...)  ## old version of qqmath.ranef.mer
 {
     prepanel.ci <- function(x, y, se, subscripts, ...) {
@@ -1452,6 +1453,7 @@ foo  <- function(x, data, ...)  ## old version of qqmath.ranef.mer
     }
     lapply(x, f)
 }
+}
 
 qqmath.ranef.mer <- function(x, data, ...)
 {
@@ -1484,7 +1486,7 @@ qqmath.ranef.mer <- function(x, data, ...)
                    se = se[ord], prepanel = prepanel.ci, panel = panel.ci,
                    scales = list(x = list(relation = "free")),
                    ylab = "Standard normal quantiles",
-                   xlab = NULL, aspect = 1, ...)
+                   xlab = NULL, ...)
         } else {
             qqmath(~values|ind, stack(x),
                    scales = list(y = list(relation = "free")),
