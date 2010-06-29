@@ -206,32 +206,6 @@ RCPP_FUNCTION_6(NumericVector, merDeviance, S4 xp, NumericVector theta,
     }
     return NumericVector(0);
 }
-#if 0
-RCPP_FUNCTION_VOID_1(updateRzxRx, S4 xp) {
-    S4 fe(xp.slot("fe")), resp(xp.slot("resp"));
-    bool de = fe.is("deFeMod");
-    if (!de && !fe.is("spFeMod"))
-	throw runtime_error("fe slot is neither deFeMod nor spFeMod");
-    if (resp.is("glmerResp")) {
-	if (de) {
-	    mer::mer<mer::deFeMod,mer::glmerResp> glmr(xp);
-	    glmr.updateRzxRx();
-	} else {
-	    mer::mer<mer::spFeMod,mer::glmerResp> glmr(xp);
-	    glmr.updateRzxRx();
-	}
-    } else if (resp.is("nlmerResp")) {
-	if (de) {
-	    mer::mer<mer::deFeMod,mer::nlmerResp> nlmr(xp);
-	    nlmr.updateRzxRx();
-	} else {
-	    mer::mer<mer::spFeMod,mer::nlmerResp> nlmr(xp);
-	    nlmr.updateRzxRx();
-	}
-    } else 
-	throw runtime_error("resp slot is not glmerResp or nlmerResp in updateRzxRx");
-}
-#endif
 
 RCPP_FUNCTION_4(List, updateDc, S4 xp, NumericVector th, NumericVector beta, NumericVector u) {
     S4 fe(xp.slot("fe")), resp(xp.slot("resp"));
@@ -272,3 +246,4 @@ RCPP_FUNCTION_2(List, reTrmsCondVar, S4 xp, double scale) {
     mer::reTrms trms(xp);
     return trms.condVar(scale);
 }
+    
