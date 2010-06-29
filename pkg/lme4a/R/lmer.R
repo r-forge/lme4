@@ -1092,9 +1092,9 @@ anovaLmer <- function(object, ...) {
     dots <- list(...)
     .sapply <- function(L, FUN, ...) unlist(lapply(L, FUN, ...))
     modp <- {
-	as.logical(.sapply(dots, is, "lmerenv")) |
+#	as.logical(.sapply(dots, is, "lmerenv")) |
 	as.logical(.sapply(dots, is, "merMod")) |
-	as.logical(.sapply(dots, is, "lmer")) |
+#	as.logical(.sapply(dots, is, "lmer")) |
 	as.logical(.sapply(dots, is, "lm")) }
     if (any(modp)) {			# multiple models - form table
 	opts <- dots[!modp]
@@ -1104,6 +1104,7 @@ anovaLmer <- function(object, ...) {
 	names(mods) <- sub("@env$", '', mNms) # <- hack
 	mods <- lapply(mods, refitML)
 
+        devs <- sapply(mods, deviance)
 	llks <- lapply(mods, logLik)
         ii <- order(Df <- .sapply(llks, attr, "df"))
 	mods <- mods[ii]
@@ -1128,7 +1129,8 @@ anovaLmer <- function(object, ...) {
 			  AIC = .sapply(llks, AIC),
 			  BIC = .sapply(llks, BIC),
 			  logLik = llk,
-			  "Chisq" = chisq,
+                          deviance = -2*llk,
+			  Chisq = chisq,
 			  "Chi Df" = dfChisq,
 			  "Pr(>Chisq)" = pchisq(chisq, dfChisq, lower = FALSE),
 			  row.names = names(mods), check.names = FALSE)
@@ -1143,24 +1145,19 @@ anovaLmer <- function(object, ...) {
     }
     else { ## ------ single model ---------------------
 	dc <- devcomp(object)
-	p <- dc$dims[["p"]]
+	p <- dc$dims["p"]
 	asgn <- object@fe @ X @ assign
-	stopifnot(length(asgn) == p)
-	## ss <- fixef(object)# wrong !
-
-        stop("one-argument anova() not yet implemented")
-
-        ## really need something like the old update_projection C code :
-        ## an  R  equivalent would be fine, too.
-
-### From here on,  1:1--copy of "old lme4" :
-        ss <- (.Call(mer_update_projection, object)[[2]])^2
-        names(ss) <- names(object@fixef)
+	stopifnot(length(asgn) == p,
+                  is(object@fe, "deFeMod"), # haven't worked out sparse version
+                  is(object@re, "reTrms"))  # things are really weird with no re terms
+        ss <- ((object@fe@RX %*% object@fe@beta)@x)^2
+        names(ss) <- colnames(object@fe@X)
         terms <- terms(object)
-        nmeffects <- attr(terms, "term.labels")
-	if ("(Intercept)" %in% names(ss))
+        nmeffects <- setdiff(attr(terms, "term.labels"), names(object@re@flist))
+        if ("(Intercept)" %in% names(ss))
 	    nmeffects <- c("(Intercept)", nmeffects)
 	ss <- unlist(lapply(split(ss, asgn), sum))
+        stopifnot(length(ss) == length(nmeffects))
 	df <- unlist(lapply(split(asgn,	 asgn), length))
 	## dfr <- unlist(lapply(split(dfr, asgn), function(x) x[1]))
 	ms <- ss/df
@@ -1249,7 +1246,7 @@ setMethod("VarCorr", signature(x = "merMod"),
 ##' @return numeric vector of length length(fixef(.))
 ##' @author Doug Bates & Martin Maechler
 ##' currently *not* exported on purpose
-unscaledVar <- function(object, RX = env(object)$RX)
+unscaledVar <- function(object, RX = object@fe@RX)
 {
     if (is(RX, "Cholesky")) return(diag(chol2inv(RX)))
     stopifnot(is(RX, "CHMfactor"))
