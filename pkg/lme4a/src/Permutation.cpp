@@ -24,7 +24,10 @@ namespace MatrixNs {
 }
 
 RCPP_FUNCTION_2(List, lme4_PermChk, IntegerVector perm, IntegerVector x) {
-    IntegerVector zerob = perm - 1; // 0-based indices
+    IntegerVector zerob = clone(perm); // modifyable copy
+    int bb = *(std::min_element(zerob.begin(), zerob.end()));
+    if (bb != 0)
+	std::transform(zerob.begin(), zerob.end(), zerob.begin(), bind2nd(minus<int>(), bb));
     MatrixNs::Permutation pp(zerob);
     return List::create(_["forw"] = pp.forward(x),
 			_["inv"] = pp.inverse(x));
