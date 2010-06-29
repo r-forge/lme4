@@ -443,10 +443,8 @@ namespace mer {
 	fe.reweight(re.Ut(), resp.sqrtXwt(), resp.wtres());
 	fe.updateRzxRx(re.Lambda(), re.L());
 	return
-	    Rcpp::List::create(//Rcpp::_["ldL2"]   = Rcpp::wrap(re.ldL2()),
-			       Rcpp::_["ldRX2"]  = Rcpp::wrap(fe.ldRX2())
+	    Rcpp::List::create(Rcpp::_["ldRX2"]   = Rcpp::wrap(fe.ldRX2())
 			       ,Rcpp::_["mu"]     = Rcpp::clone(resp.mu())
-//			       ,Rcpp::_["wtres"]  = Rcpp::clone(resp.wtres())
 			       ,Rcpp::_["devRes"] = resp.devResid()
 			       ,Rcpp::_["RX"]     = const_cast<SEXP>(fe.RX().sexp())
 			       ,Rcpp::_["RZX"]    = const_cast<SEXP>(fe.RZX().sexp())
