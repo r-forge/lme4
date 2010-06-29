@@ -67,7 +67,7 @@ namespace mer {
 	if (d_beta.size() == 0) return 0.;
 	MatrixNs::Cholesky chol(d_V);
 	copy(d_Vtr.begin(), d_Vtr.end(), d_beta.begin());
-// FIXME: do this in two stages so that the result can be returned
+// FIXME: do this in two stages so that the intermediate result can be returned
 	chol.dpotrs(d_beta);
 	return 0.;
     }
