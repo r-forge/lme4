@@ -28,6 +28,7 @@ importClassesFrom("Matrix",
                   dgeMatrix,
                   dpoMatrix,
                   dsCMatrix,
+                  ddenseModelMatrix,
                   nCHMsimpl,
                   nCHMsuper,
                   symmetricMatrix)
