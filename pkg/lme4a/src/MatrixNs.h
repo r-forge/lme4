@@ -248,7 +248,7 @@ namespace MatrixNs {
 	CHM_SP spsolve(int sys, const_CHM_SP b) const;
 	CHM_SP spsolve(int sys, const chmSp&b) const;
     };
-
+#if 0
     class Permutation {
 	Rcpp::IntegerVector d_perm;
 	int n;
@@ -296,6 +296,7 @@ namespace MatrixNs {
 	Rcpp::Vector<Rtype> ans = inverse(vv);
 	std::copy(ans.begin(), ans.end(), vv.begin());
     }
+#endif
 }
 
 #endif

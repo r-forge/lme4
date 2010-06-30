@@ -7,10 +7,9 @@ importFrom("graphics", plot)
 importFrom("nlme", fixef, ranef, VarCorr)
 importFrom("stats4", AIC, BIC, logLik)# so S4 methods are used!
 importFrom("stats",
-           anova, coef, confint, profile,
-           deviance, formula, model.frame, model.matrix,
-           nlminb, optimize, predict, resid, residuals, simulate,
-           terms, vcov)
+           anova, coef, confint, fitted, deviance, formula,
+           model.frame, model.matrix, predict, profile,
+           resid, residuals, simulate, terms, vcov)
 importFrom("minqa", bobyqa)
 
 importClassesFrom("Matrix",
