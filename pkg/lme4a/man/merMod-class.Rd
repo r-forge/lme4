@@ -6,6 +6,7 @@
 \alias{coef,merMod-method}
 %\alias{devcomp,merMod-method}
 \alias{deviance,merMod-method}
+\alias{fitted,merMod-method}
 %\alias{fixef,merMod-method}
 \alias{formula,merMod-method}
 %\alias{getL,merMod-method}

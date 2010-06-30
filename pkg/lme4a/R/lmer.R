@@ -1032,6 +1032,8 @@ printMerenv <- function(x, digits = max(3, getOption("digits") - 3),
 
 setMethod("print", "merMod", printMerenv)
 setMethod("show",  "merMod", function(object) printMerenv(object))
+setMethod("fitted", "merMod", function(object) object@resp@mu)
+
 
 ## coef() method for all kinds of "mer", "*merMod", ... objects
 ## ------  should work with fixef() + ranef()  alone
