@@ -24,7 +24,8 @@ namespace mer{
 	
     double glmerResp::updateMu(Rcpp::NumericVector const &gamma) {
 	copy(gamma.begin(), gamma.end(), d_eta.begin());
-	family.linkInv(d_mu, d_eta);
+	Rcpp::NumericVector li = family.linkInv(d_eta);
+	copy(li.begin(), li.end(), d_mu.begin());
 	return updateWrss();
     }
 

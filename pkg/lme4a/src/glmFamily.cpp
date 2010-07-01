@@ -25,63 +25,61 @@ namespace glm {
 	pt = llink[0]; link = string(pt);
 	
 	if (!lnks.count("identity")) { // initialize the static maps
-	    lnks["log"] = &log;
+	    lnks["log"]                  = &log;
 	    muEtas["log"] = linvs["log"] = &exp;
 	    
-	    lnks["sqrt"] = &sqrt;
-	    linvs["sqrt"] = &sqrf;
-	    muEtas["sqrt"] = &twoxf;
+	    lnks["sqrt"]                 = &sqrt;
+	    linvs["sqrt"]                = &sqrf;
+	    muEtas["sqrt"]               = &twoxf;
 	    
-	    lnks["identity"] = linvs["identity"] = &identf;
-	    muEtas["identity"] = &onef;
+	    lnks["identity"]             = &identf;
+	    linvs["identity"]            = &identf;
+	    muEtas["identity"]           = &onef;
 	    
-	    lnks["inverse"] = linvs["inverse"] = &inversef;
-	    muEtas["inverse"] = &invderivf;
+	    lnks["inverse"]              = &inversef;
+	    linvs["inverse"]             = &inversef;
+	    muEtas["inverse"]            = &invderivf;
 	    
-	    lnks["logit"] = &logitLink;
-	    linvs["logit"] = &logitLinkInv;
-	    muEtas["logit"] = &logitMuEta;
+	    lnks["logit"]                = &logitLink;
+	    linvs["logit"]               = &logitLinkInv;
+	    muEtas["logit"]              = &logitMuEta;
 	    
-	    lnks["probit"] = &probitLink;
-	    linvs["probit"] = &probitLinkInv;
-	    muEtas["probit"] = &probitMuEta;
+	    lnks["probit"]               = &probitLink;
+	    linvs["probit"]              = &probitLinkInv;
+	    muEtas["probit"]             = &probitMuEta;
 	    
-	    varFuncs["Gamma"] = &sqrf;             // x^2
-	    varFuncs["binomial"] = &x1mxf;         // x * (1 - x)
-	    varFuncs["inverse.gaussian"] = &cubef; // x^3
-	    varFuncs["gaussian"] = &onef;	   // 1
-	    varFuncs["poisson"] = &identf;	   // x
+	    varFuncs["Gamma"]            = &sqrf;   // x^2
+	    varFuncs["binomial"]         = &x1mxf;  // x * (1 - x)
+	    varFuncs["inverse.gaussian"] = &cubef;  // x^3
+	    varFuncs["gaussian"]         = &onef;   // 1
+	    varFuncs["poisson"]          = &identf; // x
 	}
     }
 
-    void
-    glmFamily::linkFun(Rcpp::NumericVector &eta, Rcpp::NumericVector const &mu) {
+    Rcpp::NumericVector
+    glmFamily::linkFun(Rcpp::NumericVector const &mu) const {
 	if (lnks.count(link)) {
-	    transform(mu.begin(), mu.end(), eta.begin(), lnks[link]);
+	    return NumericVector::import_transform(mu.begin(), mu.end(), lnks[link]);
 	} else {
-	    Function linkfun = lst["linkfun"];
-	    NumericVector ans = linkfun(mu);
-	    copy(ans.begin(), ans.end(), eta.begin());
+	    Function linkfun = ((const_cast<glmFamily*>(this))->lst)["linkfun"];
+	    return linkfun(mu);
 	}
     }
-
-    void
-    glmFamily::linkInv(Rcpp::NumericVector &mu, Rcpp::NumericVector const &eta) {
+    
+    Rcpp::NumericVector
+    glmFamily::linkInv(Rcpp::NumericVector const &eta) const {
 	if (linvs.count(link)) {
-	    transform(eta.begin(), eta.end(), mu.begin(), linvs[link]);
+	    return NumericVector::import_transform(eta.begin(), eta.end(), linvs[link]);
 	} else {
-	    Function linkinv = lst["linkinv"];
-	    NumericVector ans = linkinv(eta);
-	    copy(ans.begin(), ans.end(), mu.begin());
+	    Function linkinv = ((const_cast<glmFamily*>(this))->lst)["linkinv"];
+	    return linkinv(eta);
 	}
     }
     
     Rcpp::NumericVector
     glmFamily::muEta(Rcpp::NumericVector const &eta) const {
 	if (muEtas.count(link)) {
-	    NumericVector ans(eta.size());
-	    transform(eta.begin(), eta.end(), ans.begin(), muEtas[link]);
-	    return ans;
+	    return NumericVector::import_transform(eta.begin(), eta.end(), muEtas[link]);
 	}
 	Function mu_eta = ((const_cast<glmFamily*>(this))->lst)["mu.eta"];
 	return mu_eta(eta);
@@ -90,9 +88,7 @@ namespace glm {
     Rcpp::NumericVector
     glmFamily::variance(Rcpp::NumericVector const &mu) const {
 	if (varFuncs.count(link)) {
-	    NumericVector ans(mu.size());
-	    transform(mu.begin(), mu.end(), ans.begin(), varFuncs[link]);
-	    return ans;
+	    return NumericVector::import_transform(mu.begin(), mu.end(), varFuncs[link]);
 	}
 	Function vv = ((const_cast<glmFamily*>(this))->lst)["variance"];
 	return vv(mu);
@@ -110,14 +106,10 @@ namespace glm {
 RCPP_FUNCTION_3(Rcpp::NumericVector,testFam,Rcpp::List fp,Rcpp::NumericVector x,std::string which) {
     glm::glmFamily fam(fp);
     if (which == "linkinv") {
-	Rcpp::NumericVector ans(x.size());
-	fam.linkInv(ans, x);
-	return ans;
+	return fam.linkInv(x);
     }
     if (which == "linkfun") {
-	Rcpp::NumericVector ans(x.size());
-	fam.linkFun(ans, x);
-	return ans;
+	return fam.linkFun(x);
     }
     if (which == "mu.eta") {
 	return fam.muEta(x);
