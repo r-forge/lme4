@@ -186,8 +186,6 @@ namespace mer {
 	double                        wrss() const {return d_wrss;}
 	double                   updateWts()       {return updateWrss();}
 	double                  updateWrss();
-
-//	virtual void updateDcmp(Rcpp::List&) const = 0;
     };
 
     class lmerResp : public merResp {
@@ -213,7 +211,6 @@ namespace mer {
 	double                 Laplace(double,double,double) const;
 	double                updateMu(const Rcpp::NumericVector&);
 	double               updateWts();
-
     };
     
     class nlmerResp : public merResp {
@@ -236,8 +233,8 @@ namespace mer {
     template<typename Tf, typename Tr>  
     class mer {
 	reModule re;
-	Tr resp;
-	Tf fe;
+	Tr     resp;
+	Tf       fe;
     public:
 	mer(Rcpp::S4&);
 
