@@ -11,7 +11,7 @@ namespace glm {
     public:
 	modelMatrix(Rcpp::S4&);
 	
-	Rcpp::NumericVector const& getBeta() {return d_beta;}
+	Rcpp::NumericVector const& getBeta() const {return d_beta;}
 
 	void setBeta(Rcpp::NumericVector const&,
 		     Rcpp::NumericVector const& = Rcpp::NumericVector(),
@@ -20,9 +20,9 @@ namespace glm {
     
     class deModMat : public modelMatrix {
 	MatrixNs::dgeMatrix   d_X, d_V;
-	MatrixNs::dpoMatrix      d_VtV;
+	MatrixNs::Cholesky         d_R;
     public:
-	deModMat(Rcpp::S4&,int);
+	deModMat(Rcpp::S4,R_len_t);
 	
 	MatrixNs::dgeMatrix const& X() {return d_X;}
 
@@ -33,11 +33,15 @@ namespace glm {
     
     template<typename Tm, typename Tr>
     class mod {
-	Tm     mm;
 	Tr   resp;
+	Tm     mm;
     public:
 	mod(Rcpp::S4&);
 
+	double   setCoef(Rcpp::NumericVector const& base,
+			 Rcpp::NumericVector const& incr,
+			 double                     step);
+	double solveBeta();
 	double  updateMu();
 	double updateWts();
 	int N()  const   {return resp.offset().size();}
@@ -45,7 +49,6 @@ namespace glm {
 	int p()  const   {return  mm.getBeta().size();}
 
 	Rcpp::List IRLS(int verb);
-	double solveBeta();
     };
 
     template<typename Tm, typename Tr>
@@ -59,7 +62,7 @@ namespace glm {
      * from the linear predictor.  Some resp modules also update other
      * information, such as the sqrtXwt matrix. 
      *
-     * @return the *penalized*, weighted residual sum of squares
+     * @return the weighted residual sum of squares
      */
     template<typename Tm, typename Tr> inline
     double mod<Tm,Tr>::updateMu() {
@@ -73,6 +76,13 @@ namespace glm {
 	return resp.updateMu(gamma);
     }	
 
+    template<typename Tm, typename Tr> inline
+    double mod<Tm,Tr>::setCoef(Rcpp::NumericVector const& base,
+			       Rcpp::NumericVector const& incr,
+			       double                     step) {
+	mm.setBeta(base, incr, step);
+	return updateMu();
+    }	
     /**
      * Update the weighted residuals, wrss, sqrtrwt, sqrtXwt, U,
      * cu, UtV, VtV and Vtr.
@@ -107,12 +117,12 @@ namespace glm {
 	    std::copy(mm.getBeta().begin(), mm.getBeta().end(), incB.begin());
 	    for (c1 = c0, step = 1.; c0 <= c1 && step > CM_SMIN;
 		 step /= 2.) {
-		c1 = mm.setBeta(bBase, incB, step);
+		c1 = setCoef(bBase, incB, step);
 		if (verb > 1) {
-		    showincr(step, c0, c1, mm.getBeta(), "beta");
+		    mer::showincr(step, c0, c1, mm.getBeta(), "beta");
 		}
 	    }
-	    crit = compareVecWt(muBase, resp.mu(), resp.sqrtrwt());
+	    crit = mer::compareVecWt(muBase, resp.mu(), resp.sqrtrwt());
 	    if (verb > 1)
 		Rprintf("   convergence criterion: %g\n", crit);
 	}
