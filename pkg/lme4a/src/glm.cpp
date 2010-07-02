@@ -1,3 +1,4 @@
+#include "mer.h"
 #include "glm.h"
 #include <R_ext/BLAS.h>
 
@@ -27,11 +28,11 @@ namespace glm {
 	}
     }
 
-    deModMat::deModMat(Rcpp::S4 &xp, int n)
+    deModMat::deModMat(Rcpp::S4 xp, R_len_t n)
 	: modelMatrix(               xp),
 	  d_X(   Rcpp::S4(xp.slot("X"))),
 	  d_V(          n,   d_X.ncol()),
-	  d_VtV(           d_beta.size()) {
+	  d_R(                      d_X) {
     }
 
     /** 
@@ -71,5 +72,17 @@ namespace glm {
 	    }
 	}
 	d_V.dgemv('T', 1., wtres, 0., d_Vtr);
+	d_R.update(d_V);
     }
+    
+    double deModMat::solveBeta() {
+	copy(d_Vtr.begin(), d_Vtr.end(), d_beta.begin());
+	d_R.dpotrs(d_beta.begin());
+	return 0.;
+    }
+}
+
+RCPP_FUNCTION_2(Rcpp::List, glmIRLS, Rcpp::S4 xp, int verb) {
+    glm::mod<glm::deModMat,mer::glmerResp> m(xp);
+    return m.IRLS(verb);
 }
