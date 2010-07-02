@@ -29,6 +29,14 @@ cholmod_common c;
 #define _(String) (String)
 #endif
 
+#ifdef __GNUC__
+# undef alloca
+# define alloca(x) __builtin_alloca((x))
+#elif defined(__sun) || defined(_AIX)
+/* this is necessary (and sufficient) for Solaris 10 and AIX 6: */
+# include <alloca.h>
+#endif
+
 // Inlined utilties
 
 
