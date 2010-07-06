@@ -6,33 +6,35 @@ using namespace std;
 using namespace MatrixNs;
 
 namespace glm {
-    modelMatrix::modelMatrix(Rcpp::S4 &xp)
+    predModule::predModule(Rcpp::S4& xp)
 	: d_xp(                     xp),
-	  d_beta(SEXP(xp.slot("beta"))),
-	  d_Vtr(          d_beta.size()) {
+	  d_coef(SEXP(xp.slot("coef"))),
+	  d_Vtr(          d_coef.size()) {
     }
     
-    void modelMatrix::setBeta(Rcpp::NumericVector const& bbase,
-			      Rcpp::NumericVector const&  incr,
-			      double                      step) {
-	// FIXME: have feModule inherit from modelMatrix so this is not repeated.
-	R_len_t p = d_beta.size();
+    void predModule::setCoef(Rcpp::NumericVector const& cbase,
+			     Rcpp::NumericVector const&  incr,
+			     double                      step) {
+	// FIXME: have feModule inherit from predModule so this is not repeated.
+	R_len_t p = d_coef.size();
 	if (p == 0) return;
-	if (bbase.size() != p)
-	    throw runtime_error("feModule::setBeta size mismatch of beta and bbase");
+	if (cbase.size() != p)
+	    throw runtime_error("feModule::setCoef size mismatch of coef and cbase");
 	if (step == 0.) {
-	    std::copy(bbase.begin(), bbase.end(), d_beta.begin());
+	    std::copy(cbase.begin(), cbase.end(), d_coef.begin());
 	} else {
-	    Rcpp::NumericVector res = bbase + incr * step;
-	    std::copy(res.begin(), res.end(), d_beta.begin());
+//	    Rcpp::NumericVector res = cbase + incr * step;  // needs Rcpp_0.8.3
+//	    copy(res.begin(), res.end(), d_coef.begin());
+	    double *cb = cbase.begin(), *inc = incr.begin(), *cc = d_coef.begin();
+	    for (R_len_t i = 0; i < p; i++) cc[i] = cb[i] + inc[i] * step;
 	}
     }
 
-    deModMat::deModMat(Rcpp::S4 xp, R_len_t n)
-	: modelMatrix(               xp),
-	  d_X(   Rcpp::S4(xp.slot("X"))),
-	  d_V(          n,   d_X.ncol()),
-	  d_R(                      d_X) {
+    dPredModule::dPredModule(Rcpp::S4 xp, R_len_t n)
+	: predModule(                  xp),
+	  d_X(     Rcpp::S4(xp.slot("X"))),
+	  d_V(            n,   d_X.ncol()),
+	  d_fac( Rcpp::S4(xp.slot("fac"))) {
     }
 
     /** 
@@ -42,9 +44,9 @@ namespace glm {
      * @param Xwt square root of the weights for the model matrices
      * @param wtres weighted residuals
      */
-    void deModMat::reweight(Rcpp::NumericMatrix   const&   Xwt,
+    void dPredModule::reweight(Rcpp::NumericMatrix   const&   Xwt,
 			    Rcpp::NumericVector   const& wtres) {
-	if (d_beta.size() == 0) return;
+	if (d_coef.size() == 0) return;
 	chmDn cXwt(Xwt);
 	if (Xwt.size() != d_X.nrow())
 	    Rf_error("%s: dimension mismatch %s(%d,%d), %s(%d,%d)",
@@ -72,19 +74,22 @@ namespace glm {
 	    }
 	}
 	d_V.dgemv('T', 1., wtres, 0., d_Vtr);
-	d_R.update(d_V);
+	d_fac.update(d_V);
     }
     
-    double deModMat::solveBeta() {
-	copy(d_Vtr.begin(), d_Vtr.end(), d_beta.begin());
-	d_R.dpotrs(d_beta.begin());
-	return 0.;
+    double dPredModule::solveCoef(double wrss) {
+	copy(d_Vtr.begin(), d_Vtr.end(), d_coef.begin());
+	d_fac.dtrtrs('T', d_coef.begin()); // solve R'c = Vtr
+	double ans = sqrt(inner_product(d_coef.begin(), d_coef.end(),
+					d_coef.begin(), double())/wrss);
+	d_fac.dtrtrs('N', d_coef.begin()); // solve R beta = c;
+	return ans;
     }
 
-    spModMat::spModMat(Rcpp::S4 xp, R_len_t n)
-	: modelMatrix(               xp),
-	  d_X(   Rcpp::S4(xp.slot("X"))),
-	  d_F(   Rcpp::S4(xp.slot("RX"))) {
+    sPredModule::sPredModule(Rcpp::S4 xp, R_len_t n)
+	: predModule(                  xp),
+	  d_X(     Rcpp::S4(xp.slot("X"))),
+	  d_fac(  Rcpp::S4(xp.slot("fac"))) {
     }
 
     /** 
@@ -94,9 +99,9 @@ namespace glm {
      * @param Xwt square root of the weights for the model matrices
      * @param wtres weighted residuals
      */
-    void spModMat::reweight(Rcpp::NumericMatrix   const&   Xwt,
+    void sPredModule::reweight(Rcpp::NumericMatrix   const&   Xwt,
 			    Rcpp::NumericVector   const& wtres) {
-	if (d_beta.size() == 0) return;
+	if (d_coef.size() == 0) return;
 	double one = 1., zero = 0.;
 	int Wnc = Xwt.ncol(), Wnr = Xwt.nrow(),
 	    Xnc = d_X.ncol, Xnr = d_X.nrow;
@@ -109,35 +114,37 @@ namespace glm {
 	    d_V = M_cholmod_copy_sparse(&d_X, &c);
 	    chmDn csqrtX(Xwt);
 	    M_cholmod_scale(&csqrtX, CHOLMOD_ROW, d_V, &c);
-	} else throw runtime_error("spModMat::reweight: multiple columns in Xwt");
-// FIXME rewrite this using the triplet representation
+	} else throw runtime_error("sPredModule::reweight: multiple columns in Xwt");
+// FIXME write this combination using the triplet representation
 	
 	chmDn cVtr(d_Vtr);
 	const chmDn cwtres(wtres);
 	M_cholmod_sdmult(d_V, 'T', &one, &zero, &cwtres, &cVtr, &c);
 
 	CHM_SP Vt = M_cholmod_transpose(d_V, 1/*values*/, &c);
-	d_F.update(*Vt);
+	d_fac.update(*Vt);
 	M_cholmod_free_sparse(&Vt, &c);
     }
 
-    double spModMat::solveBeta() {
-	Rcpp::NumericMatrix bb = d_F.solve(CHOLMOD_A, d_Vtr);
-	copy(bb.begin(), bb.end(), d_beta.begin());
-
-	return 0.;
+    double sPredModule::solveCoef(double wrss) {
+	Rcpp::NumericMatrix cc = d_fac.solve(CHOLMOD_L, d_fac.solve(CHOLMOD_P, d_Vtr));
+	double ans = sqrt(inner_product(cc.begin(), cc.end(),
+					cc.begin(), double())/wrss);
+	Rcpp::NumericMatrix bb = d_fac.solve(CHOLMOD_Pt, d_fac.solve(CHOLMOD_Lt, cc));
+	copy(bb.begin(), bb.end(), d_coef.begin());
+	return ans;
     }
 
 
 }
 
 RCPP_FUNCTION_2(Rcpp::List, glmIRLS, Rcpp::S4 xp, int verb) {
-    Rcpp::S4 mm = xp.slot("mm");
-    if (mm.is("deFeMod")) {
-	glm::mod<glm::deModMat,mer::glmerResp> m(xp);
+    Rcpp::S4 pm = xp.slot("pred");
+    if (pm.is("dPredModule")) {
+	glm::mod<glm::dPredModule,mer::glmerResp> m(xp);
 	return m.IRLS(verb);
-    } else if(mm.is("spFeMod")) {
-	glm::mod<glm::spModMat,mer::glmerResp> m(xp);
+    } else if(pm.is("sPredModule")) {
+	glm::mod<glm::sPredModule,mer::glmerResp> m(xp);
 	return m.IRLS(verb);
-    } else throw runtime_error("Unknown model matrix type");
+    } else throw runtime_error("Unknown linear predictor module type");
 }

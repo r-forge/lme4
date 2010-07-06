@@ -64,6 +64,12 @@ namespace MatrixNs{
     int Matrix::nrow() const { return d_nrow; }
     int Matrix::ncol() const { return d_ncol; }
 
+    modelMatrix::modelMatrix(Rcpp::S4 &xp)
+	: d_assign(   xp.slot("assign")),
+	  d_contrasts(xp.slot("contrasts")) {
+    }
+
+
     dMatrix::dMatrix(Rcpp::S4& xp)
 	: Matrix(xp),
 	  d_x(SEXP(xp.slot("x"))) {
@@ -193,6 +199,11 @@ namespace MatrixNs{
 		     C.nrow(), C.ncol());
 	F77_CALL(dgemm)(&trA, &trB, &M, &N, &K, &alpha, d_x.begin(), &d_nrow,
 			B.x().begin(), &Bnr, &beta, C.x().begin(), &M);
+    }
+
+    ddenseModelMatrix::ddenseModelMatrix(Rcpp::S4 xp)
+	: dgeMatrix(  xp),
+	  modelMatrix(xp) {
     }
 
     dtrMatrix::dtrMatrix(Rcpp::S4& xp)
