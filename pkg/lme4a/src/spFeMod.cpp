@@ -88,7 +88,7 @@ namespace mer {
 	    Xnc = d_X.ncol, Xnr = d_X.nrow;
 	if (sqrtXwt.size() != (int)d_X.nrow)
 	    Rf_error("%s: dimension mismatch %s(%d,%d), %s(%d,%d)",
-		     "deFeMod::reweight", "X", Xnr, Xnc,
+		     "spFeMod::reweight", "X", Xnr, Xnc,
 		     "Xwt", Wnr, Wnc);
 	if (Wnc == 1) {
 	    if (d_V) M_cholmod_free_sparse(&d_V, &c);
