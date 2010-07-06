@@ -80,9 +80,64 @@ namespace glm {
 	d_R.dpotrs(d_beta.begin());
 	return 0.;
     }
+
+    spModMat::spModMat(Rcpp::S4 xp, R_len_t n)
+	: modelMatrix(               xp),
+	  d_X(   Rcpp::S4(xp.slot("X"))),
+	  d_F(   Rcpp::S4(xp.slot("RX"))) {
+    }
+
+    /** 
+     * Update V, VtV and Vtr
+     * 
+     * @param Ut from the reModule
+     * @param Xwt square root of the weights for the model matrices
+     * @param wtres weighted residuals
+     */
+    void spModMat::reweight(Rcpp::NumericMatrix   const&   Xwt,
+			    Rcpp::NumericVector   const& wtres) {
+	if (d_beta.size() == 0) return;
+	double one = 1., zero = 0.;
+	int Wnc = Xwt.ncol(), Wnr = Xwt.nrow(),
+	    Xnc = d_X.ncol, Xnr = d_X.nrow;
+	if (Xwt.size() != (int)d_X.nrow)
+	    Rf_error("%s: dimension mismatch %s(%d,%d), %s(%d,%d)",
+		     "deFeMod::reweight", "X", Xnr, Xnc,
+		     "Xwt", Wnr, Wnc);
+	if (Wnc == 1) {
+	    if (d_V) M_cholmod_free_sparse(&d_V, &c);
+	    d_V = M_cholmod_copy_sparse(&d_X, &c);
+	    chmDn csqrtX(Xwt);
+	    M_cholmod_scale(&csqrtX, CHOLMOD_ROW, d_V, &c);
+	} else throw runtime_error("spModMat::reweight: multiple columns in Xwt");
+// FIXME rewrite this using the triplet representation
+	
+	chmDn cVtr(d_Vtr);
+	const chmDn cwtres(wtres);
+	M_cholmod_sdmult(d_V, 'T', &one, &zero, &cwtres, &cVtr, &c);
+
+	CHM_SP Vt = M_cholmod_transpose(d_V, 1/*values*/, &c);
+	d_F.update(*Vt);
+	M_cholmod_free_sparse(&Vt, &c);
+    }
+
+    double spModMat::solveBeta() {
+	Rcpp::NumericMatrix bb = d_F.solve(CHOLMOD_A, d_Vtr);
+	copy(bb.begin(), bb.end(), d_beta.begin());
+
+	return 0.;
+    }
+
+
 }
 
 RCPP_FUNCTION_2(Rcpp::List, glmIRLS, Rcpp::S4 xp, int verb) {
-    glm::mod<glm::deModMat,mer::glmerResp> m(xp);
-    return m.IRLS(verb);
+    Rcpp::S4 mm = xp.slot("mm");
+    if (mm.is("deFeMod")) {
+	glm::mod<glm::deModMat,mer::glmerResp> m(xp);
+	return m.IRLS(verb);
+    } else if(mm.is("spFeMod")) {
+	glm::mod<glm::spModMat,mer::glmerResp> m(xp);
+	return m.IRLS(verb);
+    } else throw runtime_error("Unknown model matrix type");
 }

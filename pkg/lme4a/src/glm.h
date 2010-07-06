@@ -31,6 +31,20 @@ namespace glm {
 	double solveBeta();
     };
     
+    class spModMat : public modelMatrix {
+	MatrixNs::chmSp        d_X;
+	MatrixNs::chmFr        d_F;
+	CHM_SP                 d_V;
+    public:
+	spModMat(Rcpp::S4,R_len_t);
+	
+	MatrixNs::chmSp const& X() {return d_X;}
+
+	void reweight(Rcpp::NumericMatrix const&,
+		      Rcpp::NumericVector const&);
+	double solveBeta();
+    };
+    
     template<typename Tm, typename Tr>
     class mod {
 	Tr   resp;
