@@ -236,8 +236,7 @@ namespace MatrixNs {
 
 	const Rcpp::S4&  S4() const {return d_xp;}
 	const SEXPREC* sexp() const {return SEXP(d_xp);}
-//      double logDet2() const {   // Need Matrix_0.999375-42 or later
-	double logDet2();
+	double logDet2() const;   // Need Matrix_0.999375-41 or later
 
 	void update(const cholmod_sparse&, double Imult = 0.); 
 
