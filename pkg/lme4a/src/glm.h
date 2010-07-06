@@ -4,71 +4,72 @@
 
 #include "mer.h"
 namespace glm {
-    class modelMatrix {
+    class predModule {
     protected:
 	Rcpp::S4                      d_xp;
-	Rcpp::NumericVector  d_beta, d_Vtr;
+	Rcpp::NumericVector  d_coef, d_Vtr;
     public:
-	modelMatrix(Rcpp::S4&);
+	predModule(Rcpp::S4&);
 	
-	Rcpp::NumericVector const& getBeta() const {return d_beta;}
+	Rcpp::NumericVector const& getCoef() const {return d_coef;}
 
-	void setBeta(Rcpp::NumericVector const&,
+	void setCoef(Rcpp::NumericVector const&,
 		     Rcpp::NumericVector const& = Rcpp::NumericVector(),
 		     double = 0.);
     };
     
-    class deModMat : public modelMatrix {
-	MatrixNs::dgeMatrix   d_X, d_V;
-	MatrixNs::Cholesky         d_R;
+    class dPredModule : public predModule {
+	MatrixNs::ddenseModelMatrix   d_X;
+	MatrixNs::dgeMatrix           d_V;
+	MatrixNs::Cholesky          d_fac;
     public:
-	deModMat(Rcpp::S4,R_len_t);
+	dPredModule(Rcpp::S4,R_len_t); // Maybe use int instead of R_len_t?
 	
-	MatrixNs::dgeMatrix const& X() {return d_X;}
+	MatrixNs::ddenseModelMatrix const& X() {return d_X;}
 
 	void reweight(Rcpp::NumericMatrix const&,
 		      Rcpp::NumericVector const&);
-	double solveBeta();
+	double solveCoef(double);
     };
     
-    class spModMat : public modelMatrix {
-	MatrixNs::chmSp        d_X;
-	MatrixNs::chmFr        d_F;
-	CHM_SP                 d_V;
+    class sPredModule : public predModule {
+	MatrixNs::chmSp          d_X;
+	MatrixNs::chmFr        d_fac;
+	CHM_SP                   d_V;
     public:
-	spModMat(Rcpp::S4,R_len_t);
+	sPredModule(Rcpp::S4,R_len_t);
 	
 	MatrixNs::chmSp const& X() {return d_X;}
 
 	void reweight(Rcpp::NumericMatrix const&,
 		      Rcpp::NumericVector const&);
-	double solveBeta();
+	double solveCoef(double);
     };
     
-    template<typename Tm, typename Tr>
+    template<typename Tp, typename Tr>
     class mod {
 	Tr   resp;
-	Tm     mm;
+	Tp   pred;
     public:
 	mod(Rcpp::S4&);
 
 	double   setCoef(Rcpp::NumericVector const& base,
 			 Rcpp::NumericVector const& incr,
 			 double                     step);
-	double solveBeta();
+	double solveCoef(double);
 	double  updateMu();
 	double updateWts();
-	int N()  const   {return resp.offset().size();}
-	int n()  const   {return  resp.wtres().size();}
-	int p()  const   {return  mm.getBeta().size();}
+	int N()  const   {return  resp.offset().size();}
+	int n()  const   {return   resp.wtres().size();}
+	int p()  const   {return pred.getCoef().size();}
 
 	Rcpp::List IRLS(int verb);
     };
 
-    template<typename Tm, typename Tr>
-    inline mod<Tm,Tr>::mod(Rcpp::S4& xp)
+    template<typename Tp, typename Tr>
+    inline mod<Tp,Tr>::mod(Rcpp::S4& xp)
 	: resp (Rcpp::S4(xp.slot("resp"))),
-	  mm   (Rcpp::S4(xp.slot("mm")), resp.mu().size()) {
+	  pred (Rcpp::S4(xp.slot("pred")), resp.mu().size()) {
     }
 
     /** 
@@ -78,23 +79,23 @@ namespace glm {
      *
      * @return the weighted residual sum of squares
      */
-    template<typename Tm, typename Tr> inline
-    double mod<Tm,Tr>::updateMu() {
+    template<typename Tp, typename Tr> inline
+    double mod<Tp,Tr>::updateMu() {
 	Rcpp::NumericVector const& offset = resp.offset();
 	Rcpp::NumericVector gamma(offset.size());
 	std::copy(offset.begin(), offset.end(), gamma.begin());
 
 	MatrixNs::chmDn gg(gamma);
-	if (mm.getBeta().size() > 0)
-	    mm.X().dmult('N', 1., 1., MatrixNs::chmDn(mm.getBeta()), gg);
+	if (pred.getCoef().size() > 0)
+	    pred.X().dmult('N', 1., 1., MatrixNs::chmDn(pred.getCoef()), gg);
 	return resp.updateMu(gamma);
     }	
 
-    template<typename Tm, typename Tr> inline
-    double mod<Tm,Tr>::setCoef(Rcpp::NumericVector const& base,
+    template<typename Tp, typename Tr> inline
+    double mod<Tp,Tr>::setCoef(Rcpp::NumericVector const& base,
 			       Rcpp::NumericVector const& incr,
 			       double                     step) {
-	mm.setBeta(base, incr, step);
+	pred.setCoef(base, incr, step);
 	return updateMu();
     }	
     /**
@@ -103,44 +104,45 @@ namespace glm {
      *
      * @return penalized, weighted residual sum of squares
      */
-    template<typename Tf, typename Tr> inline
-    double mod<Tf,Tr>::updateWts() {
+    template<typename Tp, typename Tr> inline
+    double mod<Tp,Tr>::updateWts() {
 	double ans = resp.updateWts();
-	mm.reweight(resp.sqrtXwt(), resp.wtres());
+	pred.reweight(resp.sqrtXwt(), resp.wtres());
 	return ans;
     }
     
-    template<typename Tf, typename Tr> inline
-    double mod<Tf,Tr>::solveBeta() {
-	return mm.solveBeta();
+    template<typename Tp, typename Tr> inline
+    double mod<Tp,Tr>::solveCoef(double dd) {
+	return pred.solveCoef(dd);
     }
 
-    template<typename Tf, typename Tr> inline
-    Rcpp::List mod<Tf,Tr>::IRLS(int verb) {
-	Rcpp::NumericVector bBase(p()), incB(p()), muBase(n());
+    template<typename Tp, typename Tr> inline
+    Rcpp::List mod<Tp,Tr>::IRLS(int verb) {
+	Rcpp::NumericVector cBase(p()), incr(p());
 	double crit, step, c0, c1;
+	size_t iter = 0;
 				// sqrtrwt and sqrtXwt must be set
 	updateMu();		// using current beta
-	crit = 10. * CM_TOL;
-	for (int i = 0; crit >= CM_TOL && i < CM_MAXITER; i++) {
-				// store copies of mu and beta
-	    std::copy(resp.mu().begin(), resp.mu().end(), muBase.begin());
-	    std::copy(mm.getBeta().begin(), mm.getBeta().end(), bBase.begin());
+	do {
+	    if (++iter > CM_MAXITER)
+		throw std::runtime_error("IRLS MAXITER exceeded");
+				// store a copy of the coefficients
+	    std::copy(pred.getCoef().begin(), pred.getCoef().end(), cBase.begin());
 	    c0 = updateWts();
-	    solveBeta();
-	    std::copy(mm.getBeta().begin(), mm.getBeta().end(), incB.begin());
-	    for (c1 = c0, step = 1.; c0 <= c1 && step > CM_SMIN;
-		 step /= 2.) {
-		c1 = setCoef(bBase, incB, step);
-		if (verb > 1) {
-		    mer::showincr(step, c0, c1, mm.getBeta(), "beta");
-		}
-	    }
-	    crit = mer::compareVecWt(muBase, resp.mu(), resp.sqrtrwt());
-	    if (verb > 1)
-		Rprintf("   convergence criterion: %g\n", crit);
-	}
-	return Rcpp::List::create(Rcpp::_["beta"] = mm.getBeta());
+	    crit = solveCoef(c0);
+	    if (verb > 1) Rprintf("  convergence criterion: %g\n", crit);
+	    std::copy(pred.getCoef().begin(), pred.getCoef().end(), incr.begin());
+	    step = 2.;
+	    do {
+		if ((step /= 2.) < CM_SMIN)
+		    throw std::runtime_error("IRLS step factor reduced beyond SMIN");
+		c1 = setCoef(cBase, incr, step);
+		if (verb > 1)
+		    mer::showincr(step, c0, c1, pred.getCoef(), "coef");
+	    } while (c1 >= c0);
+	} while (crit >= CM_TOL);
+
+	return Rcpp::List::create(Rcpp::_["beta"] = pred.getCoef());
     } // IRLS
 }
     

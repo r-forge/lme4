@@ -184,3 +184,13 @@ setClass("merMod",
                         re      = "reModule",
                         fe      = "feModule",
                         resp    = "merResp"))
+
+setClass("predModule",
+         representation(coef = "numeric", "VIRTUAL"))
+
+setClass("dPredModule",
+         representation(X  = "ddenseModelMatrix", fac = "Cholesky"), contains = "predModule")
+
+setClass("sPredModule",
+         representation(X  = "dsparseModelMatrix", fac = "CHMfactor"), contains = "predModule")
+

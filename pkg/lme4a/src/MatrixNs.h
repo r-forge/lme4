@@ -37,9 +37,9 @@ namespace MatrixNs {
 
     class Matrix {
     protected:
-	SEXP d_sexp;
+	SEXP           d_sexp;
 	Rcpp::List d_dimnames;
-	int d_nrow, d_ncol;
+	int    d_nrow, d_ncol;
     public:
 	Matrix(Rcpp::S4&);
 	Matrix(int,int);
@@ -47,6 +47,17 @@ namespace MatrixNs {
 	int ncol() const;
 	const SEXPREC* sexp() const {return d_sexp ? d_sexp : R_NilValue;}
 //	operator SEXP() const {return d_sexp ? d_sexp : R_NilValue;}
+    };
+
+    class modelMatrix {
+    protected:
+	Rcpp::IntegerVector    d_assign;
+	Rcpp::List          d_contrasts;
+    public:
+	modelMatrix(Rcpp::S4&);
+
+	Rcpp::IntegerVector const& assign() const {return d_assign;}
+	Rcpp::List const&       contrasts() const {return d_contrasts;}
     };
 
     class dMatrix : public Matrix {
@@ -67,6 +78,7 @@ namespace MatrixNs {
 	ddenseMatrix(Rcpp::S4&);
 	ddenseMatrix(int,int);
     };
+
 
 // C++ classes mirroring virtual S4 structure classes do not inherit
 // from Matrix, so as to avoid multiple definitions of Dim and
@@ -121,14 +133,25 @@ namespace MatrixNs {
 	dgeMatrix(Rcpp::S4);
 	dgeMatrix(int,int);
 
-	int  dmult(char,double,double, const chmDn&,chmDn&) const;
-	void dgemv(char,double,const Rcpp::NumericVector&,
+	int  dmult(char,double,double,chmDn const&,chmDn&) const;
+	void dgemv(char,double,Rcpp::NumericVector const&,
 		   double,Rcpp::NumericVector&) const;
-	void dgemv(char,double,const Rcpp::NumericVector&,
+	void dgemv(char,double,Rcpp::NumericVector const&,
 		   double,double*) const;
-	void dgemm(char,char,double,const dgeMatrix&,
+	void dgemm(char,char,double,dgeMatrix const&,
 		   double,dgeMatrix&) const;
     };
+
+// Inherits from dgeMatrix, not ddenseMatrix as in the R class
+// definition so that the dmult method is available.  Note: we need to
+// use a method that is defined for both dense and sparse matrices,
+// which, at present, means using the chmDn class for the vector arguments.
+
+    class ddenseModelMatrix : public dgeMatrix, public modelMatrix {
+    public:
+	ddenseModelMatrix(Rcpp::S4);
+    };
+
 
     class dtrMatrix : public ddenseMatrix, public triangularMatrix {
     public:
