@@ -151,100 +151,6 @@ mkFeModule <-
 }
 
 ##' <description>
-##' Create a module from a class inheriting from merResp - currently
-##' lmerResp, glmerResp or nlmerResp.
-##' <details>
-##' @title Create a module inheriting from merResp
-##' @param fr model frame
-##' @param reMod the random-effects module for the model
-##' @param feMod the fixed-effects module for the model
-##' @param family the optional glm family (glmerResp only)
-##' @param nlenv the nonlinear model evaluation environment (nlmerResp only)
-##' @param nlmod the nonlinear model function (nlmerResp only)
-##' @param checknl should computation stop if the number of levels of
-##    a grouping factor is not less than the number of observations?
-##' @return an merResp object
-##' @author Douglas Bates
-mkRespMod <- function(fr, reMod, feMod, family = NULL,
-                      nlenv = NULL, nlmod = NULL, checknl = NULL)
-{
-    n <- nrow(fr)
-    N <- nrow(feMod@X)
-                                        # components of the model frame
-    y <- model.response(fr)
-    # avoid problems with 1D arrays, but keep names
-    if(length(dim(y)) == 1) {
-        nm <- rownames(y)
-        dim(y) <- NULL
-        if(!is.null(nm)) names(y) <- nm
-    }
-    weights <- model.weights(fr)
-    if (is.null(weights)) weights <- rep.int(1, n)
-    else if (any(weights < 0))
-        stop(gettext("negative weights not allowed", domain = "R-lme4"))
-    offset <- model.offset(fr)
-    if (is.null(offset)) offset <- numeric(N)
-    if (length(offset) == 1) offset <- rep.int(offset, N)
-    else if (length(offset) != N)
-        stop(gettextf("number of offsets (%d) should be %d (s * n)",
-                      length(offset), N), domain = "R-lme4")
-    p <- ncol(feMod@X)
-    q <- nrow(reMod@Zt)
-    ll <- list(weights = unname(weights), offset = unname(offset))
-    if (!is.null(family)) {
-        ll$y <- y                       # may get overwritten later
-        rho <- new.env()
-        rho$etastart <- model.extract(fr, "etastart")
-        rho$mustart <- model.extract(fr, "mustart")
-        rho$nobs <- n
-        if (is.character(family))
-            family <- get(family, mode = "function", envir = parent.frame(3))
-        if (is.function(family)) family <- family()
-        eval(family$initialize, rho)
-        family$initialize <- NULL       # remove clutter from str output
-        if(is.null(checknl))
-            checknl <- !(family$family %in% c("binomial", "poisson"))
-        ll$mu <- unname(rho$mustart)
-        lr <- as.list(rho)
-        ll[names(lr)] <- lr             # may overwrite y, weights, etc.
-        ll$weights <- unname(ll$weights)
-        ll$y <- unname(ll$y)
-        ll$eta <- family$linkfun(ll$mu)
-        ll$sqrtrwt <- sqrt(ll$weights/family$variance(ll$mu))
-        ll$sqrtXwt <- matrix(ll$sqrtrwt * family$mu.eta(ll$eta))
-        ll$family <- family
-        ll <- ll[intersect(names(ll), slotNames("glmerResp"))]
-        ll$n <- unname(rho$n)           # for the family$aic function
-        ll$Class <- "glmerResp"
-    } else {
-        ll$sqrtrwt <- sqrt(ll$weights)
-        ll$y <- unname(as.numeric(y))
-        ll$mu <- numeric(n)
-        if (is.null(nlenv)) {
-            ll$Class <- "lmerResp"
-            ll$REML <- p
-            ll$sqrtXwt <- matrix(ll$sqrtrwt)
-        } else {
-            ll$Class <- "nlmerResp"
-            ll$nlenv <- nlenv
-            ll$nlmod <- Quote(nlmod)
-            eta <- eval(nlmod, nlenv)
-            ll$sqrtXwt <- attr(eta, "gradient")
-            if (is.null(ll$sqrtXwt))
-                stop("The nonlinear model in nlmer must return a gradient attribute")
-            ll$pnames <- colnames(ll$sqrtXwt)
-        }
-        if(is.null(checknl)) checknl <- TRUE # non-glmer case
-    }
-    if(checknl && is(reMod, "reTrms") &&
-       any(n <= (nlev <- sapply(reMod@flist, function(fac) length(levels(fac))))))
-	stop("Number of levels of a grouping factor for the random effects\n",
-	     "must be less than the number of observations")
-    do.call("new", ll)
-}
-
-
-##' <description>
 ##' Generic function to update the dimensions component of the devcomp
 ##' slot in a merMod object.  The devcomp slot is passed from module
 ##' to module accumulating information along the way.
@@ -253,7 +159,6 @@ mkRespMod <- function(fr, reMod, feMod, family = NULL,
 ##' @param x object on which the update is based
 ##' @param dcmp current value of the devcomp slot
 ##' @return updated devcomp slot
-##' @author Douglas Bates
 setGeneric("updateDcmp", function(x, dcmp) standardGeneric("updateDcmp"), valueClass = "list")
 setMethod("updateDcmp", signature(x = "reTrms", dcmp = "list"),
           function(x, dcmp) {
@@ -292,20 +197,20 @@ setMethod("updateDcmp", signature(x = "lmerResp", dcmp = "list"),
               dcmp$dims["REML"] <- x@REML
               dcmp
           })
-setMethod("updateDcmp", signature(x = "glmerResp", dcmp = "list"),
+setMethod("updateDcmp", signature(x = "glmRespMod", dcmp = "list"),
           function(x, dcmp) {
               dcmp <- .respBase(x, dcmp)
               dcmp$dims["GLMM"] <- 1L
               dcmp$dims["useSc"] <- 0L
               dcmp
           })
-setMethod("updateDcmp", signature(x = "nlmerResp", dcmp = "list"),
+setMethod("updateDcmp", signature(x = "nlsRespMod", dcmp = "list"),
           function(x, dcmp) {
               dcmp <- .respBase(x, dcmp)
               dcmp$dims["NLMM"] <- 1L
               dcmp
           })
-setMethod("updateDcmp", signature(x = "nglmerResp", dcmp = "list"),
+setMethod("updateDcmp", signature(x = "nglmRespMod", dcmp = "list"),
           function(x, dcmp) {
               dcmp <- .respBase(x, dcmp)
               dcmp$dims["GLMM"] <- 1L
@@ -368,16 +273,19 @@ lmer <- function(formula, data, REML = TRUE, sparseX = FALSE,
     fr <- eval(mf, parent.frame())
                                         # random effects and terms modules
     reTrms <- mkReTrms(findbars(formula[[3]]), fr)
+    if (any(sapply(lapply(reTrms@flist, levels), length) >= ncol(reTrms@Zt)))
+        stop("number of levels of each grouping factor must be less than number of obs")
     dcmp <- updateDcmp(reTrms, .dcmp())
                                         # fixed-effects module
     feMod <- mkFeModule(formula, fr, contrasts, reTrms, sparseX)
-    respMod <- mkRespMod(fr, reTrms, feMod)
-    if (!REML) respMod@REML <- 0L
+    rr <- mkRespMod(fr)
+    class(rr) <- "lmerResp"
+    rr@REML <- ifelse(REML, ncol(feMod@X), 0L)
     ans <- new("merMod",
                call = mc,
-               devcomp = updateDcmp(respMod, updateDcmp(feMod, dcmp)),
+               devcomp = updateDcmp(rr, updateDcmp(feMod, dcmp)),
                frame = fr,
-	       re = reTrms, fe = feMod, resp = respMod)
+	       re = reTrms, fe = feMod, resp = rr)
     if (doFit) {                        # optimize estimates
         if (verbose) control$iprint <- 2L
         devfun <- mkdevfun(ans, compDev = compDev)
@@ -405,7 +313,6 @@ lmer <- function(formula, data, REML = TRUE, sparseX = FALSE,
 ##' function as arguments but that would entail an extra deviance
 ##' function evaluation, which can be expensive for exotic models.)
 ##' @return the updated merMod object
-##' @author Douglas Bates
 updateMod <- function(mod, pars, fval) {
     stopifnot(is(mod, "merMod"),
               is.numeric(pars),
@@ -465,7 +372,6 @@ updateMod <- function(mod, pars, fval) {
 ##' evaluation be used?  Setting compDev to FALSE provides an
 ##' evaluation using functions from the Matrix package only.
 ##' @return a function of one argument
-##' @author Douglas Bates
 mkdevfun <- function(mod, nAGQ = 1L, u0 = numeric(length(mod@re@u)), verbose = 0L, compDev = TRUE) {
     stopifnot(is(mod, "merMod"))
     resp <- mod@resp
@@ -715,7 +621,7 @@ glmer <- function(formula, data, family = gaussian, sparseX = FALSE,
     dcmp$dims[c("nAGQ")] <- nAGQ
 
     feMod <- mkFeModule(formula, fr, contrasts, reTrms, sparseX)
-    respMod <- mkRespMod(fr, reTrms, feMod, family)
+    respMod <- mkRespMod(fr, family)
     ans <- new("merMod",
                call = mc,
                devcomp = updateDcmp(respMod, updateDcmp(feMod, dcmp)),
@@ -816,8 +722,7 @@ nlmer <- function(formula, data, family = gaussian, start = NULL,
     if ((qrX <- qr(feMod@X))$rank < p)
         stop(gettextf("rank of X = %d < ncol(X) = %d", qrX$rank, p))
     feMod@beta <- qr.coef(qrX, unlist(lapply(pnames, get, envir = nlenv)))
-    respMod <- mkRespMod(fr, reTrms, feMod, nlenv = nlenv, nlmod = nlmod)
-    respMod@pnames <- pnames
+    respMod <- mkRespMod(fr, nlenv = nlenv, nlmod = nlmod)
     ans <- new("merMod",
                call = mc,
                devcomp = updateDcmp(respMod, updateDcmp(feMod, dcmp)),
@@ -1315,7 +1220,7 @@ setMethod("summary", "merMod",
           REML <- isREML(object)
 
           fam <- NULL
-          if(is(resp, "glmerResp")) fam <- resp@family
+          if(is(resp, "glmRespMod")) fam <- resp@family
           coefs <- cbind("Estimate" = fixef(object),
                          "Std. Error" = sig * sqrt(unscaledVar(RX = object@fe@RX)))
           if (nrow(coefs) > 0) {

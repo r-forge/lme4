@@ -27,11 +27,18 @@ importClassesFrom("Matrix",
                   dgeMatrix,
                   dpoMatrix,
                   dsCMatrix,
-                  ddenseModelMatrix,
-                  dsparseModelMatrix,
                   modelMatrix,
                   denseModelMatrix,
                   sparseModelMatrix,
+                  ddenseModelMatrix,
+                  dsparseModelMatrix,
+                  predModule,
+                  dPredModule,
+                  sPredModule,
+#                  family,
+                  respModule,
+                  glmRespMod,
+                  nlsRespMod,
                   nCHMsimpl,
                   nCHMsuper,
                   symmetricMatrix)
@@ -60,9 +67,8 @@ export(VarCorr, bootMer, devcomp, getL,
        glmer, lmList, lmer, mkdevfun, nlmer,
        sigma, findbars, nobars, subbars, isNested)
 
-exportClasses(deFeMod, feModule, glmerResp, lmList, lmerResp, merMod,
-              merResp, nglmerResp, nlmerResp, reModule, reTrms, spFeMod,
-              predModule, dPredModule, sPredModule)
+exportClasses(deFeMod, feModule, lmerResp, lmList, merMod,
+              reModule, reTrms, spFeMod)
 
 exportMethods(VarCorr, anova, coef, coerce, confint, deviance,
               devcomp, fixef, formula, getL,
