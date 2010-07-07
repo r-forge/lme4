@@ -351,7 +351,8 @@ namespace MatrixNs{
     Rcpp::NumericMatrix Cholesky::solve(int sys, const_CHM_DN B) const {
 	NumericMatrix ans(B->nrow, B->ncol);
 	double *bx = (double*)B->x;
-	copy(bx, bx + ans.size(), ans.begin());
+	int sz = B->nrow * B->ncol;
+	copy(bx, bx + sz, ans.begin());
 	inPlaceSolve(sys, ans);
 	return ans;
     }
@@ -488,8 +489,9 @@ namespace MatrixNs{
     Rcpp::NumericMatrix chmFr::solve(int sys, const_CHM_DN b) const {
 	CHM_DN t1 = M_cholmod_solve(sys, (const_CHM_FR)this, b, &c);
 	NumericMatrix ans((int) t1->nrow, (int) t1->ncol);
+	int sz = t1->nrow * t1->ncol;
 	double *tx = (double*)t1->x;
-	copy(tx, tx + ans.size(), ans.begin());
+	copy(tx, tx + sz, ans.begin());
 	M_cholmod_free_dense(&t1, &c);
 	return ans;
     }

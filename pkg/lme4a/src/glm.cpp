@@ -48,7 +48,7 @@ namespace glm {
 			    Rcpp::NumericVector   const& wtres) {
 	if (d_coef.size() == 0) return;
 	chmDn cXwt(Xwt);
-	if (Xwt.size() != d_X.nrow())
+	if ((Xwt.rows() * Xwt.cols()) != d_X.nrow())
 	    Rf_error("%s: dimension mismatch %s(%d,%d), %s(%d,%d)",
 		     "deFeMod::reweight", "X", d_X.nrow(), d_X.ncol(),
 		     "Xwt", Xwt.nrow(), Xwt.ncol());
@@ -100,12 +100,12 @@ namespace glm {
      * @param wtres weighted residuals
      */
     void sPredModule::reweight(Rcpp::NumericMatrix   const&   Xwt,
-			    Rcpp::NumericVector   const& wtres) {
+			       Rcpp::NumericVector   const& wtres) {
 	if (d_coef.size() == 0) return;
 	double one = 1., zero = 0.;
 	int Wnc = Xwt.ncol(), Wnr = Xwt.nrow(),
 	    Xnc = d_X.ncol, Xnr = d_X.nrow;
-	if (Xwt.size() != (int)d_X.nrow)
+	if ((Xwt.rows() * Xwt.cols()) != (int)d_X.nrow)
 	    Rf_error("%s: dimension mismatch %s(%d,%d), %s(%d,%d)",
 		     "deFeMod::reweight", "X", Xnr, Xnc,
 		     "Xwt", Wnr, Wnc);

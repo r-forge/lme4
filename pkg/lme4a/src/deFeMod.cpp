@@ -28,7 +28,7 @@ namespace mer {
 	if (d_beta.size() == 0) return;
 	chmDn cXwt(Xwt);
 	double one = 1., zero = 0.;
-	if (Xwt.size() != d_X.nrow())
+	if ((Xwt.rows() * Xwt.cols()) != d_X.nrow())
 	    Rf_error("%s: dimension mismatch %s(%d,%d), %s(%d,%d)",
 		     "deFeMod::reweight", "X", d_X.nrow(), d_X.ncol(),
 		     "Xwt", Xwt.nrow(), Xwt.ncol());

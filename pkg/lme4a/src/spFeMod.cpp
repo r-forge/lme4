@@ -80,22 +80,22 @@ namespace mer {
      * @param wtres weighted residuals
      */
     void spFeMod::reweight(cholmod_sparse      const*      Ut,
-			   Rcpp::NumericMatrix const& sqrtXwt,
+			   Rcpp::NumericMatrix const&     Xwt,
 			   Rcpp::NumericVector const&   wtres) {
 	double one = 1., zero = 0.;
 	if (d_beta.size() == 0) return;
-	int Wnc = sqrtXwt.ncol(), Wnr = sqrtXwt.nrow(),
+	int Wnc = Xwt.ncol(), Wnr = Xwt.nrow(),
 	    Xnc = d_X.ncol, Xnr = d_X.nrow;
-	if (sqrtXwt.size() != (int)d_X.nrow)
+	if ((Xwt.rows() * Xwt.cols()) != (int)d_X.nrow)
 	    Rf_error("%s: dimension mismatch %s(%d,%d), %s(%d,%d)",
 		     "spFeMod::reweight", "X", Xnr, Xnc,
 		     "Xwt", Wnr, Wnc);
 	if (Wnc == 1) {
 	    if (d_V) M_cholmod_free_sparse(&d_V, &c);
 	    d_V = M_cholmod_copy_sparse(&d_X, &c);
-	    chmDn csqrtX(sqrtXwt);
+	    chmDn csqrtX(Xwt);
 	    M_cholmod_scale(&csqrtX, CHOLMOD_ROW, d_V, &c);
-	} else throw runtime_error("spFeMod::reweight: multiple columns in sqrtXwt");
+	} else throw runtime_error("spFeMod::reweight: multiple columns in Xwt");
 // FIXME rewrite this using the triplet representation
 	
 	if (d_UtV) M_cholmod_free_sparse(&d_UtV, &c);
