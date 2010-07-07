@@ -169,8 +169,8 @@ RCPP_FUNCTION_6(NumericVector, merDeviance, S4 xp, NumericVector theta,
     bool de = fe.is("deFeMod");
     if (!de && !fe.is("spFeMod"))
 	throw runtime_error("fe slot is neither deFeMod nor spFeMod");
-    int rtype = resp.is("lmerResp") ? 1 : (resp.is("glmerResp") ? 2 :
-					   (resp.is("nlmerResp") ? 3 : 0));
+    int rtype = resp.is("lmerResp") ? 1 : (resp.is("glmRespMod") ? 2 :
+					   (resp.is("nlsRespMod") ? 3 : 0));
     if (rtype == 0) throw runtime_error("unknown respMod type in merDeviance");
 
     if (alg < 1 || alg > 3) throw range_error("alg must be 1, 2 or 3");
@@ -221,7 +221,7 @@ RCPP_FUNCTION_4(List, updateDc, S4 xp, NumericVector th, NumericVector beta, Num
 	    return lm.updateDcmp(th, beta, u);
 	}
     }
-    if (resp.is("glmerResp")) {
+    if (resp.is("glmRespMod")) {
 	if (de) {
 	    mer::mer<mer::deFeMod,mer::glmerResp> glmr(xp);
 	    return glmr.updateDcmp(th, beta, u);
@@ -229,7 +229,7 @@ RCPP_FUNCTION_4(List, updateDc, S4 xp, NumericVector th, NumericVector beta, Num
 	    mer::mer<mer::spFeMod,mer::glmerResp> glmr(xp);
 	    return glmr.updateDcmp(th, beta, u);
 	}
-    } else if (resp.is("nlmerResp")) {
+    } else if (resp.is("nlsRespMod")) {
 	if (de) {
 	    mer::mer<mer::deFeMod,mer::nlmerResp> nlmr(xp);
 	    return nlmr.updateDcmp(th, beta, u);
@@ -239,7 +239,7 @@ RCPP_FUNCTION_4(List, updateDc, S4 xp, NumericVector th, NumericVector beta, Num
 	}
     }
 
-    throw runtime_error("resp slot is not lmerResp or glmerResp or nlmerResp");
+    throw runtime_error("resp slot is not lmerResp or glmRespMod or nlsRespMod");
 }    
 
 RCPP_FUNCTION_2(List, reTrmsCondVar, S4 xp, double scale) {
