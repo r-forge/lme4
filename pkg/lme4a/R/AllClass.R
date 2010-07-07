@@ -10,7 +10,7 @@ setClass("lmList.confint", contains = "array")
 
 ## -------------------- lmer-related Classes --------------------------------
 
-setOldClass("family")
+## setOldClass("family")
 ## and  "data.frame', "logLik", "environment" are already defined
 
 ##' Random-effects module.
@@ -113,84 +113,12 @@ setClass("spFeMod",
              TRUE
          })
 
-##' mer response module
-##' y, offset and mu are as expected.  Note that length(offset) can be a multiple of length(y)
-##' weights are the prior weights
-##' sqrtrwt and sqrtXwt are the square roots of residual and X weights
-##' wtres is the vector of weighted residuals
-setClass("merResp",
-         representation(mu = "numeric",
-                        offset = "numeric",
-                        sqrtXwt = "matrix",
-                        sqrtrwt = "numeric", # sqrt(residual weights)
-                        weights = "numeric", # prior weights
-                        y = "numeric"),
-         validity = function(object) {
-             n <- length(object@y)
-             if (any(n != sapply(lapply(c("weights","sqrtrwt","mu"#,"wtres"
-                     ), slot, object = object), length)))
-                 return("lengths of weights, sqrtwt and mu must match length(y)")
-             lo <- length(object@offset)
-             if (!lo || lo %% n)
-                 return("length(offset) must be a positive multiple of length(y)")
-             if (length(object@sqrtXwt) != lo)
-                 return("length(sqrtXwt) must equal length(offset)")
-             if (nrow(object@sqrtXwt) != n)
-                 return("nrow(sqrtXwt) != length(y)")
-             TRUE
-         })
-
-setClass("lmerResp", representation(REML = "integer"),
-         contains = "merResp")
-
-##' glmer response module
-setClass("glmerResp",
-         representation(family =  "family",
-                        eta =    "numeric",
-                        n =      "numeric"), # for evaluation of the aic
-         contains = "merResp",
-         validity = function(object) {
-             if (length(object@eta) != length(object@y))
-                 return("lengths of eta and y must match")
-         })
-
-##' nlmer response module
-setClass("nlmerResp",
-         representation(nlenv = "environment",
-                        nlmod = "call",
-                        pnames = "character"),
-         contains = "merResp",
-         validity = function(object) {
-             n <- length(object@y)
-             N <- length(object@offset)
-             s <- N %/% n
-             lpn <- length(object@pnames)
-             if (lpn != s) return(sprintf("length(pnames) = %d != s = %d", lpn, s))
-             dd <- dim(object@sqrtXwt)
-             if (!all(dd == c(n, s))) {
-                 return(sprintf("dim(gradient) = (%d, %d), n = %d, s = %d",
-                                dd[1], dd[2], n, s))
-             }
-             TRUE
-         })
-
-##' nglmer response module
-setClass("nglmerResp", contains = c("glmerResp", "nlmerResp"))
-
 setClass("merMod",
          representation(call    = "call",
                         devcomp = "list",
 			frame   = "data.frame", # "model.frame" is not S4-ized yet
                         re      = "reModule",
                         fe      = "feModule",
-                        resp    = "merResp"))
+                        resp    = "respModule"))
 
-setClass("predModule",
-         representation(coef = "numeric", "VIRTUAL"))
-
-setClass("dPredModule",
-         representation(X  = "ddenseModelMatrix", fac = "Cholesky"), contains = "predModule")
-
-setClass("sPredModule",
-         representation(X  = "dsparseModelMatrix", fac = "CHMfactor"), contains = "predModule")
-
+setClass("lmerResp", representation(REML = "integer"), contains = "respModule")
