@@ -12,12 +12,16 @@ namespace mer {
 			   Rcpp::NumericVector const&  incr,
 			   double                      step) {
 	R_len_t p = d_beta.size();
-	if (p == 0) return;
 	if (bbase.size() != p)
 	    throw runtime_error("feModule::setBeta size mismatch of beta and bbase");
-	
-	Rcpp::NumericVector // Needs Rcpp_0.8.3
-	    res = (step == 0.) ? bbase : bbase + incr * step;
-	copy(res.begin(), res.end(), d_beta.begin());
+	if (p == 0) return;
+	if (step == 0.) {
+	    std::copy(bbase.begin(), bbase.end(), d_beta.begin());
+	} else {
+//	    Rcpp::NumericVector res = cbase + incr * step;  // needs Rcpp_0.8.3
+//	    copy(res.begin(), res.end(), d_coef.begin());
+	    double *cb = bbase.begin(), *inc = incr.begin(), *cc = d_beta.begin();
+	    for (R_len_t i = 0; i < p; i++) cc[i] = cb[i] + inc[i] * step;
+	}
     }
 }

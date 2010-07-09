@@ -59,7 +59,10 @@ namespace glm {
     Rcpp::NumericVector
     glmFamily::linkFun(Rcpp::NumericVector const &mu) const {
 	if (lnks.count(link)) {
-	    return NumericVector::import_transform(mu.begin(), mu.end(), lnks[link]);
+//	    return NumericVector::import_transform(mu.begin(), mu.end(), lnks[link]);
+	    NumericVector ans = NumericVector(mu.size());
+	    transform(mu.begin(), mu.end(), ans.begin(), lnks[link]);
+	    return ans;
 	} else {
 	    Function linkfun = ((const_cast<glmFamily*>(this))->lst)["linkfun"];
 	    return linkfun(mu);
@@ -69,7 +72,10 @@ namespace glm {
     Rcpp::NumericVector
     glmFamily::linkInv(Rcpp::NumericVector const &eta) const {
 	if (linvs.count(link)) {
-	    return NumericVector::import_transform(eta.begin(), eta.end(), linvs[link]);
+//	    return NumericVector::import_transform(eta.begin(), eta.end(), linvs[link]);
+	    NumericVector ans = NumericVector(eta.size());
+	    transform(eta.begin(), eta.end(), ans.begin(), linvs[link]);
+	    return ans;
 	} else {
 	    Function linkinv = ((const_cast<glmFamily*>(this))->lst)["linkinv"];
 	    return linkinv(eta);
@@ -79,7 +85,10 @@ namespace glm {
     Rcpp::NumericVector
     glmFamily::muEta(Rcpp::NumericVector const &eta) const {
 	if (muEtas.count(link)) {
-	    return NumericVector::import_transform(eta.begin(), eta.end(), muEtas[link]);
+//	    return NumericVector::import_transform(eta.begin(), eta.end(), muEtas[link]);
+	    NumericVector ans = NumericVector(eta.size());
+	    transform(eta.begin(), eta.end(), ans.begin(), muEtas[link]);
+	    return ans;
 	}
 	Function mu_eta = ((const_cast<glmFamily*>(this))->lst)["mu.eta"];
 	return mu_eta(eta);
@@ -88,7 +97,10 @@ namespace glm {
     Rcpp::NumericVector
     glmFamily::variance(Rcpp::NumericVector const &mu) const {
 	if (varFuncs.count(link)) {
-	    return NumericVector::import_transform(mu.begin(), mu.end(), varFuncs[link]);
+//	    return NumericVector::import_transform(mu.begin(), mu.end(), varFuncs[link]);
+	    NumericVector ans = NumericVector(mu.size());
+	    transform(mu.begin(), mu.end(), ans.begin(), varFuncs[link]);
+	    return ans;
 	}
 	Function vv = ((const_cast<glmFamily*>(this))->lst)["variance"];
 	return vv(mu);

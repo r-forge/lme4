@@ -14,27 +14,35 @@ namespace mer{
 
     Rcpp::IntegerVector reTrms::ncols() const {
 				// Needs Rcpp_0.8.3
-	return IntegerVector::import_transform(d_cnms.begin(), d_cnms.end(), lengthFun());
+//	return IntegerVector::import_transform(d_cnms.begin(), d_cnms.end(), lengthFun());
+	IntegerVector ans(d_cnms.size());
+	transform(d_cnms.begin(), d_cnms.end(), ans.begin(), lengthFun());
+	return ans;
     }
 
     Rcpp::IntegerVector reTrms::nctot() const {
 	IntegerVector ans(d_flist.size()), nc = ncols();
+	int *asg = d_assign.begin(), *ansp = ans.begin(), *ncp = nc.begin(), nnc = nc.size();
 	fill(ans.begin(), ans.end(), int());
-	for (R_len_t i = 0; i < nc.size(); ++i) ans[d_assign[i] - 1] += nc[i];
+	for (int i = 0; i < nnc; i++) ansp[asg[i] - 1] += ncp[i];
 	return ans;
     }
 
     Rcpp::IntegerVector reTrms::nlevs() const {
 				// Needs Rcpp_0.8.3
-	return IntegerVector::import_transform(d_flist.begin(), d_flist.end(), nlevsFun());
+//	return IntegerVector::import_transform(d_flist.begin(), d_flist.end(), nlevsFun());
+	IntegerVector ans(d_flist.size());
+	transform(d_flist.begin(), d_flist.end(), ans.begin(), nlevsFun());
+	return ans;
     }
 
     Rcpp::IntegerVector reTrms::offsets() const {
-	IntegerVector nc = ncols(), nl = nlevs(), ans(d_cnms.size());
-	int offset = 0;
-	for (R_len_t i = 0; i < ans.size(); ++i) {
-	    ans[i] = offset;
-	    offset += nc[i] * nl[d_assign[i] - 1];
+	int *asgn = d_assign.begin(), ntrm = d_cnms.size();
+	IntegerVector ans(ntrm), nc = ncols(), nl = nlevs();
+	int *ansp = ans.begin(), *ncp = nc.begin(),  *nlp = nl.begin(), offset = 0;
+	for (R_len_t i = 0; i < ntrm; ++i) {
+	    ansp[i] = offset;
+	    offset += ncp[i] * nlp[asgn[i] - 1];
 	}
 	return ans;
     }
@@ -42,9 +50,9 @@ namespace mer{
     Rcpp::IntegerVector reTrms::terms(R_len_t ii) const {
 	R_len_t ip1 = ii + 1;   // for matching 1-based indices in d_assign
 	IntegerVector ans(count(d_assign.begin(), d_assign.end(), ip1));
-	int ai = 0;
+	int *asgn = d_assign.begin(), ai = 0;
 	for (R_len_t i = 0; i < d_assign.size(); ++i)
-	    if (d_assign[i] == ip1) ans[ai++] = i;
+	    if (asgn[i] == ip1) ans[ai++] = i;
 	return ans;
     }
 

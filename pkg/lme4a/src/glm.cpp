@@ -17,9 +17,9 @@ namespace glm {
 			     double                      step) {
 	// FIXME: have feModule inherit from predModule so this is not repeated.
 	R_len_t p = d_coef.size();
-	if (p == 0) return;
 	if (cbase.size() != p)
-	    throw runtime_error("feModule::setCoef size mismatch of coef and cbase");
+	    throw runtime_error("predModule::setCoef size mismatch of coef and cbase");
+	if (p == 0) return;
 	if (step == 0.) {
 	    std::copy(cbase.begin(), cbase.end(), d_coef.begin());
 	} else {
