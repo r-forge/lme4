@@ -32,13 +32,12 @@ importClassesFrom("Matrix",
                   sparseModelMatrix,
                   ddenseModelMatrix,
                   dsparseModelMatrix,
-                  predModule,
-                  dPredModule,
-                  sPredModule,
-#                  family,
-                  respModule,
-                  glmRespMod,
-                  nlsRespMod,
+#                  predModule,
+#                  dPredModule,
+#                  sPredModule,
+#                  respModule,
+#                  glmRespMod,
+#                  nlsRespMod,
                   nCHMsimpl,
                   nCHMsuper,
                   symmetricMatrix)
@@ -69,6 +68,9 @@ export(VarCorr, bootMer, devcomp, getL,
 
 exportClasses(deFeMod, feModule, lmerResp, lmList, merMod,
               reModule, reTrms, spFeMod)
+
+## To be removed when exported from Matrix
+exportClasses(respModule, glmRespMod, nlsRespMod)
 
 exportMethods(VarCorr, anova, coef, coerce, confint, deviance,
               devcomp, fixef, formula, getL,
