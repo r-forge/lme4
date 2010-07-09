@@ -5,11 +5,11 @@ sigma(object, \dots)
 }
 \alias{sigma}
 %\alias{sigma,mer-method}
-\alias{sigma,merenv-method}
+\alias{sigma,merMod-method}
 \description{
   Return the estimate of the common scale parameter from a fitted model
   object, typically a mixed-effects model of class
-  \code{\linkS4class{lmerenv}}, or \code{\linkS4class{glmerenv}}, etc.
+  \code{"\linkS4class{merMod}"}.
 }
 \arguments{
   \item{object}{a fitted model object of a suitable class}

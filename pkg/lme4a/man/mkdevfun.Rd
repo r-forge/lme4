@@ -32,9 +32,10 @@ mkdevfun(mod, nAGQ = 1L, u0 = numeric(length(mod@re@u)),
     which can be very verbose.
   }
   \item{compDev}{
-    for \code{\linkS4class{lmerMod}} objects, should the compiled
+    should the compiled
     deviance evaluation be used?  A value of \code{FALSE} provides an
     evaluation function using functions from the Matrix package only.
+    (Only available for \code{lmer} model objects).
 }
 }
 \details{
@@ -42,10 +43,10 @@ mkdevfun(mod, nAGQ = 1L, u0 = numeric(length(mod@re@u)),
   does not update any slots in \code{mod}, thus it can be used to fit
   variations on a fitted model without modifying the original object.
   
-  For \code{\linkS4class{lmerMod}} objects the argument of the resulting
+  For \code{lmer} model objects the argument of the resulting
   function is the variance component parameter, \code{theta}, with lower
-  bound \code{mod@re@lower}.  For \code{\linkS4class{glmerMod}} or
-  \code{\linkS4class{nlmerMod}} objects with \code{nAGQ = 0} the
+  bound \code{mod@re@lower}.  For \code{glmer} or
+  \code{nlmer} model objects with \code{nAGQ = 0} the
   argument is also \code{theta}.  However, when {nAGQ > 0} the argument
   is \code{c(theta, beta)}.
 }

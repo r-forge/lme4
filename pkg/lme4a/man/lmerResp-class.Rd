@@ -5,8 +5,8 @@
 \title{"lmerResp" class}
 \description{
   The \code{"lmerResp"} class is a trivial extension of the
-  \code{\linkS4class{respModule}} class from the \pkg{Matrix}
-  package.  It adds an integer scalar slot, \code{REML}, which is either
+  \code{\linkS4class{respModule}} class% from the \pkg{Matrix} package.
+  It adds an integer scalar slot, \code{REML}, which is either
   zero, for maximum likelihood estimation, or \code{p}, the number of
   columns in the fixed-effects model matrix, for REML estimation.
 }

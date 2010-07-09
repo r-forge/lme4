@@ -3,10 +3,7 @@
 \docType{methods}
 \alias{ranef}
 \alias{ranef-methods}
-\alias{ranef,mer-method}
-\alias{ranef,merenv-method}
-\alias{ranef,merenvtrms-method}
-\alias{ranef,environment-method}
+\alias{ranef,merMod-method}
 \title{Extract the modes of the random effects}
 \description{
   A generic function to extract the conditional modes of the random
@@ -16,14 +13,12 @@
 }
 \usage{
 ranef(object, \dots)
-\S4method{ranef}{mer}(object, postVar = FALSE, drop = FALSE, \dots)
-\S4method{ranef}{merenv}(object, \dots)
-\S4method{ranef}{merenvtrms}(object, postVar = FALSE, drop = FALSE,
+\S4method{ranef}{merMod}(object, postVar = FALSE, drop = FALSE,
    whichel = names(ans), \dots)
 }
 \arguments{
   \item{object}{an object of a class of fitted models with random
-    effects, typically an \code{"\linkS4class{mer}"} object.}
+    effects, typically an \code{"\linkS4class{merMod}"} object.}
   \item{postVar}{an optional logical argument indicating if the
     conditional variance-covariance matrices, also called the
     \dQuote{posterior variances}, of the random effects should be

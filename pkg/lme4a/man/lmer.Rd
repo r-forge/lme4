@@ -131,11 +131,11 @@ nlmer(formula, data, family = gaussian, start = NULL,
   }
 }
 \value{
-  An object of class \code{"\linkS4class{mer}"}, for which many methods
+  An object of class \code{"\linkS4class{merMod}"}, for which many methods
   are available.  See there for details.
 }
 \seealso{
-  The \code{\linkS4class{mer}} class, \code{\link[stats]{lm}}
+  The \code{\linkS4class{merMod}} class, \code{\link[stats]{lm}}
 }
 \examples{
 ## linear mixed models - reference values from older code
