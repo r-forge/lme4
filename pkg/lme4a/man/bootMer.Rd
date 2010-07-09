@@ -9,7 +9,7 @@ bootMer(x, FUN, nsim=1, seed, use.u=FALSE, verbose=FALSE,
   Perform model-based (Semi-)parametric bootstrap for mixed models.
 
   Currently, the semi-parametric variant is not yet implemented,
-  and we only provide a method for \code{\linkS4class{lmerMod}} classes,
+  and we only provide a method for \code{\linkS4class{merMod}} classes,
   i.e., \code{\link{lmer}} results.
 
   The working name for bootMer() was \dQuote{simulestimate()}, as it is

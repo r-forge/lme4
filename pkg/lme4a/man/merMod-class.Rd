@@ -15,9 +15,9 @@
 \alias{model.matrix,merMod-method}
 \alias{print,merMod-method}
 %\alias{profile,merMod-method}
-\alias{ranef,merMod-method}
+%\alias{ranef,merMod-method}
 \alias{show,merMod-method}
-\alias{sigma,merMod-method}
+%\alias{sigma,merMod-method}
 \alias{simulate,merMod-method}
 \alias{summary,merMod-method}
 \alias{terms,merMod-method}
@@ -29,7 +29,7 @@
 \description{
   A mixed-effects model represented as a \code{\linkS4class{reModule}}
   for the random effects, an \code{\linkS4class{feModule}} for the
-  fixed-effects parameters and an \code{\linkS4class{merResp}} module
+  fixed-effects parameters and an \code{\linkS4class{respModule}} module
   for the response.
 }
 \section{Objects from the Class}{
@@ -52,7 +52,7 @@
     \item{\code{fe}:}{An \code{\linkS4class{feModule}} object
       representing the fixed-effects parameters and various matrices
       associated with them.}
-    \item{\code{resp}:}{An \code{\linkS4class{merResp}} object containing
+    \item{\code{resp}:}{An \code{\linkS4class{respModule}} object containing
 	information on the response, the fitted values, the residuals
 	and various forms of weights.  According to the class of this
 	object the model is a linear mixed model (\code{\link{lmer}}), a
@@ -90,7 +90,7 @@
 
 \seealso{\code{\link{lmer}}, \code{\link{glmer}}, \code{\link{nlmer}},
   \code{\linkS4class{reModule}}, \code{\linkS4class{feModule}},
-  \code{\linkS4class{merResp}}
+  \code{\linkS4class{respModule}}
 }
 \examples{
 showClass("merMod")

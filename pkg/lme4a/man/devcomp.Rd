@@ -36,7 +36,7 @@ devcomp(x, ...)
     fixed-effects parameter vector; \code{nmp}, \eqn{n-p}; and \code{q},
     the dimension of the random effects vector.}
 }
-\seealso{\code{\link{lmer}}, \code{\linkS4class{lmerenv}}}
+\seealso{\code{\link{lmer}}, \code{\linkS4class{merMod}}}
 \examples{
 devcomp(lmer(Yield ~ 1 + (1|Batch), Dyestuff))
 }
