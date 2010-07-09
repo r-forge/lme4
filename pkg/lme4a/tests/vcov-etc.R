@@ -38,6 +38,7 @@ system.time(
 fm7 <- lmer(y ~ d + service + studage + lectage + (1|s),
              data = InstEval, sparseX=TRUE, verbose=1L, REML=FALSE)
 )
+if (nchar(Sys.getenv("_LME4_LONG_TESTS_")) > 0) {
 system.time(sfm7 <- summary(fm7))
 fm7 # takes a while as it computes summary() again !
 
@@ -63,4 +64,5 @@ fm9
 rr <- ranef(fm9, postVar = TRUE)
 qqmath(rr,strip=FALSE)$d
 dotplot(rr,strip=FALSE)$`dept:service`
+}
 cat('Time elapsed: ', proc.time(),'\n') # for ``statistical reasons''
