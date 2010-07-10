@@ -236,6 +236,7 @@ r2.
 
 ## Failure to specify a random effects term - used to give an obscure message
 ## Ensure *NON*-translated message; works on Linux,... :
+if(.Platform$OS.type == "unix") {
 Sys.setlocale("LC_MESSAGES", "C")
 tc <- tryCatch(
 	       m2 <- glmer(incidence / size ~ period, weights = size,
@@ -244,6 +245,7 @@ tc <- tryCatch(
 stopifnot(inherits(tc, "error"),
 	  identical(tc$message,
 		    "No random effects terms specified in formula"))
+}
 
 ### mcmcsamp() :
 ## From: Andrew Gelman <gelman@stat.columbia.edu>
