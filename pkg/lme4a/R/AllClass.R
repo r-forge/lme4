@@ -156,7 +156,7 @@ setClass("merMod",
 
 setClass("lmerResp", representation(REML = "integer"), contains = "respModule")
 
-
+if (FALSE) {
 setOldClass("family")
 
 ##' glm response module
@@ -192,3 +192,4 @@ setClass("nlsRespMod",
 
 ##' nglm response module
 setClass("nglmRespMod", contains = c("glmRespMod", "nlsRespMod"))
+}
