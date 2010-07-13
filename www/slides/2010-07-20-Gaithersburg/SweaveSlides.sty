@@ -1,0 +1,67 @@
+\NeedsTeXFormat{LaTeX2e}
+\ProvidesPackage{SweaveSlides}
+\RequirePackage{fancyvrb}
+\RequirePackage[english]{babel}
+\RequirePackage{bm}
+\RequirePackage{xspace}
+%\RequirePackage[utf8x]{inputenc}
+\RequirePackage{inputenc}
+\RequirePackage{paralist}
+\newenvironment{Schunk}{\par\begin{minipage}{\textwidth}}{\end{minipage}}
+\definecolor{Sinput}{rgb}{0,0,0.56}
+\definecolor{Scode}{rgb}{0,0,0.56}
+\definecolor{Soutput}{rgb}{0.56,0,0}
+\DefineVerbatimEnvironment{Sinput}{Verbatim}
+{formatcom={\color{Sinput}},fontsize=\small}
+\DefineVerbatimEnvironment{Soutput}{Verbatim}
+{formatcom={\color{Soutput}},fontsize=\footnotesize}
+\DefineVerbatimEnvironment{Scode}{Verbatim}
+{formatcom={\color{Scode}},fontsize=\small}
+\newcommand{\bc}[1]{\ensuremath{\bm{\mathcal{#1}}}}
+\newcommand{\code}[1]{{\color{Sinput}\small\texttt{#1}}}
+\newcommand{\R}{\Emph{R}\xspace}
+\newcommand{\SPLUS}{\Emph{S-PLUS}}
+\newcommand{\Emph}[1]{\emph{\color{Scode}#1}}
+\newcommand{\abs}{\operatorname{abs}}
+
+\newcommand{\trans}{\ensuremath{^\prime}}
+\mode<handout>{\usetheme{default}}
+\mode<beamer>{%
+%%  \usetheme{Madrid}%  default = blue, lines above and below
+%%  \usetheme{Antibes}%  cleaner - should take one line off the top
+%  \usetheme{Bergen}% takes up too much space on the left - no room for text
+%  \usetheme{Berkeley}% too much info on left side squeezes the text region
+%  \usetheme{Berlin}%  too much info on top and bottom - text overflows
+%  \usetheme{Boadilla}% clean - maybe too clean - author info on bottom
+%  \usetheme{Copenhagen}% too much info on the top - author info on bottom
+%%  \usetheme{Darmstadt}% clean - no author info - may be best choice
+%  \usetheme{Dresden}% like Darmstadt with author info on the bottom
+%%  \usetheme{Frankfurt}% clean as Darmstadt - may be a good choice
+%  \usetheme{Goettingen}% uses right side - too much info
+%  \usetheme{Hannover}% like Goettingen but uses left side
+%  \usetheme{Ilmenau}% like Berlin - text overflows
+%  \usetheme{JuanLesPins}% like Antibes - text overflows
+%  \usetheme{Luebeck}% too much info on top and bottom
+%  \usetheme{Madrid}%
+%  \usetheme{Malmoe}% like Luebeck - too much info
+%  \usetheme{Marburg}% uses right side - nice gradient but too much info
+%  \usetheme{Montpellier}% very clean but too much info on top - text overflows
+%  \usetheme{PaloAlto}% uses both left side and top - too much info - text overflows
+%  \usetheme{Pittsburgh}% very clean - right flush frametitles - text overflows
+%%  \usetheme{Rochester}% clean - frametitles only - no section references
+  \usetheme{Singapore}% best choice.
+%  \usetheme{Szeged}% too much info on top and bottom
+%  \usetheme{Warsaw}% too much info on top and bottom
+  \setbeamercovered{transparent}%
+%  \pgfdeclareimage[height=0.5cm]{R-logo}{Rlogo}%
+%  \logo{\pgfuseimage{R-logo}}%
+}
+\usefonttheme[onlymath]{serif}
+\AtBeginSubsection[]{%
+  \begin{frame}<beamer>%
+    \frametitle{Outline}%
+    \tableofcontents[currentsection,currentsubsection]%
+  \end{frame}
+}
+\InputIfFileExists{SweaveSlides.cfg}{}{}
+
