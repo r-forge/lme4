@@ -28,7 +28,7 @@ library(lattice)
 library(Matrix)
 library(lme4a)
 lattice.options(default.theme = function() standard.theme())
-lattice.options(default.theme = function() standard.theme(color=FALSE))
+#lattice.options(default.theme = function() standard.theme(color=FALSE))
 @ 
 
 \section[Definition]{Generalized Linear Mixed Models}
