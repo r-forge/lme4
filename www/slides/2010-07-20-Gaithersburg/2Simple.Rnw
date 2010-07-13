@@ -27,7 +27,7 @@ library(lattice)
 library(Matrix)
 library(lme4a)
 lattice.options(default.theme = function() standard.theme())
-lattice.options(default.theme = function() standard.theme(color=FALSE))
+#lattice.options(default.theme = function() standard.theme(color=FALSE))
 if (exists("classroom.rda")) {
     load("classroom.rda")
 } else {
@@ -50,20 +50,20 @@ if (exists("classroom.rda")) {
   \item You can produce packages for private or in-house use or you
     can contribute your package to the Comprehensive R Archive Network
     (CRAN), \url{http://cran.R-project.org}
-  \item We will be using the \Emph{lme4} package from CRAN.
+  \item We will be using the \Emph{lme4a} package from R-forge.
     Install it from the \Emph{Packages} menu item or with
 <<installlme4,eval=FALSE>>=
-install.packages("lme4")
+install.packages("lme4a", repos="http://r-forge.r-project.org")
 @ 
 \item You only need to install a package once.  If a new version
   becomes available you can update (see the menu item).
 \item To use a package in an R session you attach it using
 <<require,eval=FALSE>>=
-require(lme4)
+require(lme4a)
 @ 
   or
 <<attach,eval=FALSE>>=
-library(lme4)
+library(lme4a)
 @ 
   (This usage causes widespread confusion of the terms ``package'' and ``library''.)
   \end{itemize}
@@ -79,10 +79,10 @@ library(lme4)
     of the data sets in a package.
     \begin{Schunk}
       \begin{Sinput}
-> data(package = "lme4")        
+> data(package = "lme4a")        
       \end{Sinput}
       \begin{Soutput}
-Data sets in package 'lme4':
+Data sets in package 'lme4a':
 
 Dyestuff                Yield of dyestuff by batch
 Dyestuff2               Yield of dyestuff by batch
@@ -413,11 +413,11 @@ be printed.  Generally the results of assignments are not printed.)
 invisible(update(fm1, verbose = TRUE))
 @ 
 \begin{itemize}
-\item The first number on each line is the iteration count --- iteration
-  0 is at the starting value for $\bm\theta$.
-\item The second number is the profiled deviance or profiled REML
-  criterion --- the quantity being minimized.
-\item The third and subsequent numbers are the parameter vector $\bm\theta$.
+\item The lines include a ``trust region'' radius, the cumulative
+  number of function evaluations, the profiled deviance or profiled
+  REML criterion (i.e. the quantity being minimized) and the
+  components of the parameter vector,
+  $\bm\theta$. 
 \end{itemize}
 \end{frame}
 
@@ -453,7 +453,7 @@ print(dotplot(reorder(Batch, Yield) ~ Yield, Dyestuff2,
 \begin{frame}[fragile]
   \frametitle{Fitting the model to Dyestuff2}
 <<fm1A>>=
-(fm1A <- lmer(Yield ~ 1 + (1|Batch), Dyestuff2, verbose = TRUE))
+(fm1A <- lmer(Yield ~ 1 + (1|Batch), Dyestuff2, REML=FALSE))
 @   
 \end{frame}
 \begin{frame}[fragile]
