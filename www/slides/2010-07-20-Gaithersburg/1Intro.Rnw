@@ -27,13 +27,13 @@ options(width=69,show.signif.stars=FALSE)
   \begin{description}
   \item[www.R-project.org] Main web site for the R Project
   \item[cran.R-project.org] Comprehensive R Archive Network primary site
-  \item[cran.fr.R-project.org] Main France mirror for CRAN
+  \item[cran.us.R-project.org] Main U.S. mirror for CRAN
   \item[R-forge.R-project.org] R-Forge, development site for many
     public R packages.  This is also the URL of the repository for
     installing the development versions of the \code{lme4} and
     \code{Matrix} packages, if you are so inclined.
   \item[lme4.R-forge.R-project.org] development site for the \code{lme4} package
-  \item[lme4.R-forge.R-project.org/slides/2009-07-07-Rennes] web site for this tutorial
+  \item[lme4.R-forge.R-project.org/slides/2010-07-20-Gaithersburg] web site for this tutorial
   \end{description}
 \end{frame}
 
@@ -144,7 +144,7 @@ head(InsectSprays)
   \begin{itemize}
   \item Assigning a data object to a new name creates a copy.
   \item You can save a data object to a file, typically with the
-    extension \code{.rda}, using the \code{save} function.
+    extension \code{.rda} or \code{.Rdata}, using the \code{save} function.
   \item To restore the object you \code{load} the file.
   \end{itemize}
 <<saverestore>>=
