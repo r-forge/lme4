@@ -73,7 +73,7 @@ exportClasses(deFeMod, feModule, lmerResp, lmList, merMod,
 exportClasses(respModule, glmRespMod, nlsRespMod)
 
 exportMethods(VarCorr, anova, coef, coerce, confint, deviance,
-              devcomp, fixef, formula, getL,
+              devcomp, fitted, fixef, formula, getL,
               logLik, model.frame, model.matrix, terms,
               plot, print, profile, ranef,
               show, simulate, sigma, summary, update, vcov)
