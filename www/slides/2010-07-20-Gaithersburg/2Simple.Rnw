@@ -22,12 +22,12 @@
 \SweaveOpts{prefix=TRUE,prefix.string=figs/simple,include=TRUE}
 \setkeys{Gin}{width=\textwidth}
 <<preliminaries,echo=FALSE,results=hide>>=
-options(width=69,show.signif.stars=FALSE)
+options(width=69,show.signif.stars=FALSE,str=strOptions(strict.width="cut"))
 library(lattice)
 library(Matrix)
 library(lme4a)
 lattice.options(default.theme = function() standard.theme())
-#lattice.options(default.theme = function() standard.theme(color=FALSE))
+lattice.options(default.theme = function() standard.theme(color=FALSE))
 if (exists("classroom.rda")) {
     load("classroom.rda")
 } else {
@@ -197,8 +197,7 @@ op <- options(digits=5)
 \begin{frame}[fragile]
   \frametitle{Extracting information from the fitted model}
   \begin{itemize}
-  \item \code{fm1} is an object of class \code{"mer"} (mixed-effects
-    representation). 
+  \item \code{fm1} is an object of class \code{"merMod"}
   \item There are many \Emph{extractor} functions that can be applied
     to such objects.
   \end{itemize}
@@ -427,7 +426,9 @@ invisible(update(fm1, verbose = TRUE))
   \item We have been careful to state the variance of the random
     effects is $\ge0$.
   \item For some data sets the maximum likelihood or REML estimate,
-    $\widehat{\sigma_b^2}$ is zero.
+    $\widehat{\sigma_b^2}$ ends up as exactly zero.  That is, the
+    optimal parameter value is on the boundary of the region of
+    allowable values.
   \item Box and Tiao (1973) provide simulated data with a structure
     like the \code{Dyestuff} data illustrating this.
   \end{itemize}
