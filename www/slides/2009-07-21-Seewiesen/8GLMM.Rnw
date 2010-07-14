@@ -479,7 +479,7 @@ print(xyplot(ifelse(use == "Y", 1, 0) ~ age|urban, Contraception,
   \frametitle{Preliminary model using Laplacian approximation}
   \begin{center}
 <<cm1,echo=FALSE>>=
-print(cm1 <- lmer(use ~ age + I(age^2) + urban + livch + (1|district), 
+print(cm1 <- glmer(use ~ age + I(age^2) + urban + livch + (1|district), 
              Contraception, binomial), corr = FALSE)
 @ 
   \end{center}
