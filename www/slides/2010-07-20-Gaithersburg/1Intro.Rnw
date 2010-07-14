@@ -18,7 +18,7 @@
 \SweaveOpts{prefix=TRUE,prefix.string=figs/Intro,include=TRUE}
 \setkeys{Gin}{width=\textwidth}
 <<preliminaries,echo=FALSE,results=hide>>=
-options(width=69,show.signif.stars=FALSE)
+options(width=69,show.signif.stars=FALSE,str=strOptions(strict.width = "cut"))
 @ 
 
 \section[Web site]{Web site and following the R code}
@@ -336,7 +336,7 @@ if (file.exists("classroom.rda")) {
 \begin{frame}[fragile]
   \frametitle{Determining unique rows in a data frame}
   \begin{itemize}
-  \item One disadvantage of keeping data in the wide format is
+  \item One disadvantage of keeping data in the long format is
     redundancy and the possibility of inconsistency.
   \item In the first set of exercises you are asked to create a data
     frame \code{classroom} from a csv file available on the Internet.
@@ -349,4 +349,6 @@ if (file.exists("classroom.rda")) {
 <<clasuniq>>=
 str(unique(subset(classroom, select = c(schoolid,housepov))))
 @ 
+Because there are 107 unique combinations and 107 schools,
+\code{housepov} is consistent with \code{schoolid}.
 \end{frame}
