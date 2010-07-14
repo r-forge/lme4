@@ -1,12 +1,12 @@
 ###################################################
 ### chunk number 1: preliminaries
 ###################################################
-options(width=69,show.signif.stars=FALSE)
+options(width=69,show.signif.stars=FALSE,str=strOptions(strict.width="cut"))
 library(lattice)
 library(Matrix)
 library(lme4a)
 lattice.options(default.theme = function() standard.theme())
-#lattice.options(default.theme = function() standard.theme(color=FALSE))
+lattice.options(default.theme = function() standard.theme(color=FALSE))
 if (exists("classroom.rda")) {
     load("classroom.rda")
 } else {
