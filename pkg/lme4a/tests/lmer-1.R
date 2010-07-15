@@ -32,7 +32,7 @@ stopifnot(all.equal(fm1, fm1.))
 
 ## Test 'compDev = FALSE' (vs TRUE)
 fm1. <- lmer(Reaction ~ Days + (Days|Subject), sleepstudy,
-              compDev = FALSE)#--> use R code (not C) for deviance computation
+             compDev = FALSE)#--> use R code (not C) for deviance computation
 stopifnot(all.equal(fm1@devcomp$cmp['REML'], fm1.@devcomp$cmp['REML']),
           all.equal(fixef(fm1), fixef(fm1.)),
           all.equal(fm1@re@theta, fm1.@re@theta, tol = 1.e-7),
@@ -136,9 +136,10 @@ a.group <- rnorm(n.groups, 1, 2)
 y <- rnorm (n, a.group[group.id], 1)
 ## fit and summarize the model
 fit.1 <- lmer (y ~ 1 + (1 | group.id))
-coef (fit.1)# failed in Matrix 0.99-6
-## FIXME: show of a summary object is not yet defined
-(sf1 <- summary(fit.1)) # show() is as without summary()
+coef (fit.1)
+## check show( <"summary.mer"> ):
+(sf1 <- summary(fit.1)) # --> now looks as for fit.1
+
 stopifnot(all.equal(fixef(fit.1), c("(Intercept)" = 1.571312129)),
 	  all.equal(ranef(fit.1)[["group.id"]][,"(Intercept)"],
 		   c(1.80469, -1.80977, 1.61465, 1.54083, -0.1332,

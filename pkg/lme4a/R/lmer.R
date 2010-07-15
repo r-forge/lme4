@@ -190,7 +190,7 @@ setMethod("updateDcmp", signature(x = "spFeMod", dcmp = "list"),
     dcmp$dims[c("useSc")] <- 1L
     dcmp
 }
-    
+
 setMethod("updateDcmp", signature(x = "lmerResp", dcmp = "list"),
           function(x, dcmp) {
               dcmp <- .respBase(x, dcmp)
@@ -356,7 +356,7 @@ updateMod <- function(mod, pars, fval) {
     mod@devcomp <- dc
     mod
 }
-              
+
 ##' <description>
 ##' Returns a function that evaluates the deviance from parameter values
 ##' <details>
@@ -410,7 +410,7 @@ mkdevfun <- function(mod, nAGQ = 1L, u0 = numeric(length(mod@re@u)), verbose = 0
             wrss <- sum(((resp@y - mu)*resp@sqrtrwt)^2)
             ussq <- sum(u@x^2)
             pwrss <- wrss + ussq
-            ldL2 <- as.vector(2 * determinant(L)$mod) 
+            ldL2 <- as.vector(2 * determinant(L)$mod)
             if (resp@REML) {
                 nmp <- length(mu) - length(beta)
                 ldRX2 <- as.vector(2 * determinant(RX)$mod)
@@ -629,7 +629,7 @@ glmer <- function(formula, data, family = gaussian, sparseX = FALSE,
 	       re = reTrms, fe = feMod, resp = respMod)
     if (!doFit) return(ans)
     ans <- PIRLSest(ans, verbose, control, nAGQ)
-    
+
 }## {glmer}
 
 ##' Fit a nonlinear mixed-effects model
@@ -638,7 +638,7 @@ glmer <- function(formula, data, family = gaussian, sparseX = FALSE,
 ##' @param data an optional data frame containing the variables named in
 ##'    \code{formula}.  By default the variables are taken from the
 ##'    environment from which \code{nlmer} is called.
-##' @param family 
+##' @param family
 ##' @param start starting estimates for the nonlinear model
 ##'    parameters, as a named numeric vector
 ##' @param verbose integer scalar passed to nlminb.  If negative then
@@ -654,13 +654,13 @@ glmer <- function(formula, data, family = gaussian, sparseX = FALSE,
 ##'    \code{\link[stats]{lm}}; see there for details.
 ##' @param na.action  further model specifications as in
 ##'    \code{\link[stats]{lm}}; see there for details.
-##' @param mustart 
-##' @param etastart 
-##' @param sparseX 
+##' @param mustart
+##' @param etastart
+##' @param sparseX
 ##' @param contrasts  further model specifications as in
 ##'    \code{\link[stats]{lm}}; see there for details.
 ##' @param control a list of control parameters passed to bobyqa.
-##' @param ... 
+##' @param ...
 
 ##' @return an object of S4 class "merMod"
 nlmer <- function(formula, data, family = gaussian, start = NULL,
@@ -734,7 +734,7 @@ nlmer <- function(formula, data, family = gaussian, start = NULL,
 ## Methods for the merMod class
 setMethod("fixef",  "merMod", function(object, ...)
           structure(object@fe@beta, names = dimnames(object@fe@X)[[2]]))
- 
+
 setMethod("formula",  "merMod", function(x, ...) formula(x@call, ...))
 
 ##' Extract the random effects.
@@ -779,7 +779,7 @@ setMethod("ranef", signature(object = "merMod"),
               stopifnot(is(whichel, "character"))
               whchL <- names(ans) %in% whichel
               ans <- ans[whchL]
-              
+
               if (postVar) {
                   vv <- .Call(reTrmsCondVar, re, sigma(object))
                   for (i in seq_along(ans))
@@ -897,7 +897,7 @@ printMerenv <- function(x, digits = max(3, getOption("digits") - 3),
 	    correlation <- p <= 20
 	    if(!correlation) {
 		nam <- deparse(substitute(x)) # << TODO: improve if this is called from show()
-		cat(sprintf(paste("\nCorrelation matrix not shown, as p = %d > 20.",
+		cat(sprintf(paste("\nCorrelation matrix not shown by default, as p = %d > 20.",
 				  "Use print(%s, correlation=TRUE)  or",
 				  "    vcov(%s)	 if you need it\n", sep="\n"),
 			    p, nam, nam))
@@ -938,6 +938,9 @@ printMerenv <- function(x, digits = max(3, getOption("digits") - 3),
 setMethod("print", "merMod", printMerenv)
 setMethod("show",  "merMod", function(object) printMerenv(object))
 setMethod("fitted", "merMod", function(object) object@resp@mu)
+
+setMethod("print", "summary.mer", printMerenv)
+setMethod("show",  "summary.mer", function(object) printMerenv(object))
 
 
 ## coef() method for all kinds of "mer", "*merMod", ... objects
@@ -1109,6 +1112,18 @@ setMethod("vcov", signature(object = "merMod"),
 	  mkVcov(sigm, RX = object@fe@RX, nmsX = colnames(object@fe@X),
 		 correlation=correlation, ...))
 
+setMethod("vcov", "summary.mer",
+	  function(object, correlation = TRUE, ...)
+      {
+	  if(!is.null(object$vcov))
+	      vcov
+	  else if(!is.null(FE <- object$fe))
+	      mkVcov(object$sigma, RX = FE@RX, nmsX = colnames(FE@X),
+		     correlation=correlation, ...)
+	  else stop("Both 'vcov' and 'fe' components are missing.  You need\n",
+		    "at least one TRUE in summary(..,  varcov = *, keep.X = *)")
+      })
+
 ## FIXME: Fold this into the VarCorr method
 mkVarCorr <- function(sc, cnms, nc, theta, flist) {
     ncseq <- seq_along(nc)
@@ -1206,12 +1221,21 @@ formatVC <- function(varc, digits = max(3, getOption("digits") - 2),
     } else reMat
 }
 
+##' <description>
+##'
+##' @title Summary Method for *mer() fits, i.e., "merMod" objects
+##' @param object
+##' @param varcov logical indicating if vcov(.) should be computed and stored.
+##' @param keep.X logical indicating if the 'fe' component of object should be stored;
+##'   the default is true when 'varcov' is false, as we then need fe for vcov()
+##' @param ...
+##' @return S3 class "summary.mer", basically a list .....
 setMethod("summary", "merMod",
-          function(object, varcov = FALSE, ...)
+          function(object, varcov = FALSE, keep.X = !varcov, ...)
       {
           resp <- object@resp
           devC <- object@devcomp
-          dd <-devC$dims
+          dd <- devC$dims
           cmp <- devC$cmp
           ## FIXME: You can't count on re@flist unless is(re, "reTrms")
           flist <- object@re@flist
@@ -1248,14 +1272,25 @@ setMethod("summary", "merMod",
                          ngrps = sapply(flist, function(x) length(levels(x))),
                          coefficients = coefs,
                          sigma = sig,
-                         vcov = if(varcov) vcov(object),
+                         vcov = if(varcov) vcov(object, correlation=TRUE, sigm=sig),
+                         fe = if(keep.X) object@fe,
                          varcor = varcor, # and use formatVC(.) for printing.
                          AICtab= AICstats,
                          call = object@call
-                         ), class = "summary.merenv")
+                         ), class = "summary.mer")
       })
 
-## plots for the ranef.mer class
+setMethod("summary", "summary.mer",
+	  function(object, varcov = FALSE, ...)
+      {
+	  if(varcov && is.null(object$vcov))
+	      object$vcov <- vcov(object, correlation=TRUE, sigm = object$sigma)
+	  object
+      })
+
+
+
+### Plots for the ranef.mer class ----------------------------------------
 
 dotplot.ranef.mer <- function(x, data, ...)
 {
@@ -1357,7 +1392,7 @@ foo  <- function(x, data, ...)  ## old version of qqmath.ranef.mer
     }
     lapply(x, f)
 }
-}
+}## end{ unused }
 
 qqmath.ranef.mer <- function(x, data, ...)
 {

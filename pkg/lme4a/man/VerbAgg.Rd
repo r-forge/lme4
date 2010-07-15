@@ -39,6 +39,10 @@
 }
 \examples{
 str(VerbAgg)
+## Show how  r2 := h(resp) is defined:
+with(VerbAgg, stopifnot( identical(r2, {
+     r <- factor(resp, ordered=FALSE); levels(r) <- c("N","Y","Y"); r})))
+
 xtabs(~ item + resp, VerbAgg)
 xtabs(~ btype + resp, VerbAgg)
 round(100 * ftable(prop.table(xtabs(~ situ + mode + resp, VerbAgg), 1:2), 1))

@@ -1,4 +1,5 @@
 \name{merMod-class}
+\title{Class "merMod" of Fitted Mixed-Effect Models}
 \Rdversion{1.1}
 \docType{class}
 \alias{merMod-class}
@@ -24,8 +25,12 @@
 \alias{update,merMod-method}
 \alias{VarCorr,merMod-method}
 \alias{vcov,merMod-method}
-
-\title{Class "merMod"}
+% FIXME ? : "summary.mer" is not documented
+\alias{print,summary.mer-method}
+\alias{show,summary.mer-method}
+\alias{summary,summary.mer-method}
+\alias{vcov,summary.mer-method}
+%
 \description{
   A mixed-effects model represented as a \code{\linkS4class{reModule}}
   for the random effects, an \code{\linkS4class{feModule}} for the
