@@ -127,27 +127,23 @@ mkReTrms <- function(bars, fr, s = 1L) {
 ##' @param sparseX Logical indicator of sparse X
 ##'
 ##' @return an object that inherits from feModule
-mkFeModule <-
-    function(form, fr, contrasts, reMod, sparseX) {
-                                        # fixed-effects model matrix X
-    nb <- nobars(form[[3]])
-    if (is.null(nb)) nb <- 1
-    form[[3]] <- nb
-    X <- model.Matrix(form, fr, contrasts, sparse = sparseX)
-    N <- nrow(X)
+mkFeModule <- function(form, fr, contrasts, reMod, sparseX)
+{
+    ## fixed-effects model matrix X - remove random parts from formula:
+    form[[3]] <- if(is.null(nb <- nobars(form[[3]]))) 1 else nb
+    X <- model.Matrix(form, fr, contrasts, sparse = sparseX,
+		      row.names = FALSE)
     p <- ncol(X)
-    rownames(X) <- NULL
     ZtX <- reMod@Zt %*% X
-    ll <- list(Class = ifelse(sparseX, "spFeMod", "deFeMod"),
-               RZX = ZtX,
-               X = X,
-               beta = numeric(p))
-    ll$RX <-
-	if (sparseX)    # crossprod(ll$RZX) may be more dense than X.X
-	    Cholesky(crossprod(X) + crossprod(ll$RZX), LDL = FALSE)
-	else
-	    chol(crossprod(X))
-    do.call("new", ll)
+    new(if(sparseX) "spFeMod" else "deFeMod",
+	RZX = ZtX,
+	X = X,
+	beta = numeric(p),
+	RX = {
+	    if (sparseX)    # crossprod(ZtX) may be more dense than X.X
+		Cholesky(crossprod(X) + crossprod(ZtX), LDL = FALSE)
+	    else
+		chol(crossprod(X)) })
 }
 
 ##' <description>
@@ -293,7 +289,8 @@ lmer <- function(formula, data, REML = TRUE, sparseX = FALSE,
         ans <- updateMod(ans, opt$par, opt$fval)
     }
     ans
-}
+}## { lmer }
+
 ##' <description>
 ##' Update the components of an merMod object from the results of an
 ##' optimization.  To maintain proper semantics for an R function the
