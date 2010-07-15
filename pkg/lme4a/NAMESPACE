@@ -69,9 +69,6 @@ export(VarCorr, bootMer, devcomp, getL,
 exportClasses(deFeMod, feModule, lmerResp, lmList, merMod,
               reModule, reTrms, spFeMod)
 
-## To be removed when exported from Matrix
-exportClasses(respModule, glmRespMod, nlsRespMod)
-
 exportMethods(VarCorr, anova, coef, coerce, confint, deviance,
               devcomp, fitted, fixef, formula, getL,
               logLik, model.frame, model.matrix, terms,
