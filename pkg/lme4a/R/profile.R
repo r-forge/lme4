@@ -1,7 +1,7 @@
 setGeneric("dropX",
            function(x, which, fw) standardGeneric("dropX"))
 
-##' Drop the which'th column from X in an lmerDe object
+##' Drop the which'th column from X in an merMod object
 
 ##' Drop the which'th column from the fixed-effects model matrix in
 ##' fe, the deFeMod slot.  Add fw times the dropped column to
@@ -13,7 +13,7 @@ setGeneric("dropX",
 ##' @param fw the value of the which'th fixed effect which will
 ##'     be held constant.
 
-##' @return a revised lmerDe object
+##' @return a revised merMod object
 setMethod("dropX", "merMod",
           function(x, which, fw)
       {

@@ -156,7 +156,7 @@ setClass("merMod",
 
 setClass("lmerResp", representation(REML = "integer"), contains = "respModule")
 
-if (FALSE) {
+if (FALSE) { ## these are part of Matrix (>= 0.999375-42):
 setOldClass("family")
 
 ##' glm response module

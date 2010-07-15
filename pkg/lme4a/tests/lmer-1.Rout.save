@@ -1,5 +1,5 @@
 
-R version 2.11.1 (2010-05-31)
+R version 2.11.1 Patched (2010-07-09 r52506)
 Copyright (C) 2010 The R Foundation for Statistical Computing
 ISBN 3-900051-07-0
 
@@ -110,7 +110,7 @@ Days -0.184
 > 
 > ## Test 'compDev = FALSE' (vs TRUE)
 > fm1. <- lmer(Reaction ~ Days + (Days|Subject), sleepstudy,
-+               compDev = FALSE)#--> use R code (not C) for deviance computation
++              compDev = FALSE)#--> use R code (not C) for deviance computation
 Warning message:
 In determinant(x, TRUE) : This version of the Matrix package returns
 |determinant(L)| instead of determinant(A), i.e., a
@@ -164,7 +164,7 @@ Fixed effects:
 + 			  c(1,3), dimnames = list("(Intercept)",
 + 				  c("Estimate", "Std. Error", "t value")))))
 > showProc.time() #
-Time elapsed:  6.96 0.02 7.394 
+Time elapsed:  2.899 0.011 2.931 
 > 
 > ### {from ../man/lmer.Rd } --- compare lmer & lmer1 ---------------
 > #(fmX1 <- lmer1(Reaction ~ Days + (Days|Subject), sleepstudy))
@@ -217,7 +217,7 @@ Days -0.184
 > fmX2s <- lmer(Reaction ~ Days + (Days|Subject), sleepstudy, sparseX=TRUE)
 > 
 > showProc.time() #
-Time elapsed:  1.54 0.01 1.606 
+Time elapsed:  0.682 0.002 0.688 
 > 
 > for(nm in c("coef", "fixef", "ranef", "sigma",
 + 	     "model.matrix", "model.frame" , "terms")) {
@@ -289,7 +289,7 @@ rhobeg =  0.3119361 , rhoend =  3.119361e-07
  3.1e-06:  56:      100.095;0.642389 -1.39893 -0.992315 -1.12866 -1.58031 
  3.1e-07:  66:      100.095;0.642392 -1.39894 -0.992310 -1.12865 -1.58030 
 At return
- 79:     100.09497: 0.642392 -1.39894 -0.992310 -1.12865 -1.58030
+ 76:     100.09497: 0.642392 -1.39894 -0.992310 -1.12865 -1.58030
 > stopifnot(is((cm1 <- coef(m1)), "coef.mer"),
 + 	  dim(cm1$herd) == c(15,4),
 + 	  all.equal(fixef(m1), ##  these values are those of "old-lme4":
@@ -309,7 +309,7 @@ At return
 > y <- rnorm (n, a.group[group.id], 1)
 > ## fit and summarize the model
 > fit.1 <- lmer (y ~ 1 + (1 | group.id))
-> coef (fit.1)# failed in Matrix 0.99-6
+> coef (fit.1)
 $group.id
    (Intercept)
 1    3.3760015
@@ -325,74 +325,22 @@ $group.id
 
 attr(,"class")
 [1] "coef.mer"
-> ## FIXME: show of a summary object is not yet defined
-> (sf1 <- summary(fit.1)) # show() is as without summary()
-$methTitle
-[1] "Linear mixed model fit by REML"
+> ## check show( <"summary.mer"> ):
+> (sf1 <- summary(fit.1)) # --> now looks as for fit.1
+Linear mixed model fit by REML ['summary.mer']
+Formula: y ~ 1 + (1 | group.id) 
+REML criterion at convergence: 73.4034 
 
-$devcomp
-$devcomp$cmp
-      ldL2      ldRX2       wrss       ussq      pwrss      drsum        dev 
-26.8452812  0.3112042  7.0877876  5.5996445 12.6874321         NA         NA 
-      REML    sigmaML  sigmaREML 
-73.4034352  0.7964745  0.8171656 
+Random effects:
+ Groups   Name        Variance Std.Dev.
+ group.id (Intercept) 4.5579   2.1349  
+ Residual             0.6678   0.8172  
+Number of obs: 20, groups: group.id, 10
 
-$devcomp$dims
-     N      n    nmp    nth      p      q   nAGQ  useSc reTrms   spFe   REML 
-    20     20     19      1      1     10     NA      1      1      0      1 
-  GLMM   NLMM 
-     0      0 
-
-
-$isLmer
-[1] TRUE
-
-$useScale
-[1] TRUE
-
-$logLik
-'log Lik.' NA (df=3)
-
-$family
-NULL
-
-$ngrps
-group.id 
-      10 
-
-$coefficients
-            Estimate Std. Error  t value
-(Intercept) 1.571312  0.6994118 2.246619
-
-$sigma
-[1] 0.8171656
-
-$vcov
-NULL
-
-$varcor
-$varcor$group.id
-            (Intercept)
-(Intercept)    4.557889
-attr(,"stddev")
-(Intercept) 
-   2.134921 
-attr(,"correlation")
-            (Intercept)
-(Intercept)           1
-
-attr(,"sc")
-[1] 0.8171656
-
-$AICtab
-    REML 
-73.40344 
-
-$call
-lmer(formula = y ~ 1 + (1 | group.id))
-
-attr(,"class")
-[1] "summary.merenv"
+Fixed effects:
+            Estimate Std. Error t value
+(Intercept)   1.5713     0.6994   2.247
+> 
 > stopifnot(all.equal(fixef(fit.1), c("(Intercept)" = 1.571312129)),
 + 	  all.equal(ranef(fit.1)[["group.id"]][,"(Intercept)"],
 + 		   c(1.80469, -1.80977, 1.61465, 1.54083, -0.1332,
@@ -424,7 +372,7 @@ $Subject
 
 > 
 > showProc.time() #
-Time elapsed:  2.15 0 2.178 
+Time elapsed:  1 0.006 1.019 
 > 
 > if (require('MASS', quietly = TRUE)) {
 +     bacteria$wk2 <- bacteria$week > 2
@@ -475,7 +423,7 @@ Correlation of Fixed Effects:
 trtdiag     -0.044              
 trtencourag  0.064 -0.495       
 wk2TRUE     -0.793  0.063 -0.056
-Time elapsed:  1.06 0.01 1.107 
+Time elapsed:  0.555 0.02 0.664 
 > 
 > ## Invalid factor specification -- used to seg.fault:
 > set.seed(1)
@@ -567,15 +515,16 @@ lagoon4 0.000  0.000  0.000
 > 
 > ## Failure to specify a random effects term - used to give an obscure message
 > ## Ensure *NON*-translated message; works on Linux,... :
-> Sys.setlocale("LC_MESSAGES", "C")
-[1] "C"
-> tc <- tryCatch(
+> if(.Platform$OS.type == "unix") {
++ Sys.setlocale("LC_MESSAGES", "C")
++ tc <- tryCatch(
 + 	       m2 <- glmer(incidence / size ~ period, weights = size,
 + 			   family = binomial, data = cbpp)
 + 	       , error = function(.) .)
-> stopifnot(inherits(tc, "error"),
++ stopifnot(inherits(tc, "error"),
 + 	  identical(tc$message,
 + 		    "No random effects terms specified in formula"))
++ }
 > 
 > ### mcmcsamp() :
 > ## From: Andrew Gelman <gelman@stat.columbia.edu>
@@ -622,7 +571,7 @@ lagoon4 0.000  0.000  0.000
 +             )
 > 
 > showProc.time() #
-Time elapsed:  1.44 0.01 1.455 
+Time elapsed:  0.764 0.001 0.77 
 > 
 > ## Wrong formula gave a seg.fault at times:
 > set.seed(2)# !
@@ -642,7 +591,7 @@ Warning message:
 In Ops.factor(ff, x1) : + not meaningful for factors
 > 
 > showProc.time() #
-Time elapsed:  9.77 0.03 9.834 
+Time elapsed:  4.311 0.001 4.334 
 > 
 > ## Reordering of grouping factors should not change the internal structure
 > #Pm1  <- lmer1(strength ~ (1|batch) + (1|sample), Pastes, doFit = FALSE)
@@ -721,10 +670,10 @@ Data: dd
 Models:
 m0: y ~ x + (1 | f)
 m1: y ~ x + (1 | f) + (1 | obs)
-   Df     AIC     BIC  logLik  Chisq Chi Df Pr(>Chisq)
-m0  3 1177.09 1187.53 -585.54                         
-m1  4  622.21  636.14 -307.11 556.87      1  < 2.2e-16
+   Df     AIC     BIC  logLik deviance  Chisq Chi Df Pr(>Chisq)
+m0  3 1177.09 1187.53 -585.54  1171.09                         
+m1  4  622.21  636.14 -307.11   614.21 556.87      1  < 2.2e-16
 > 
 > showProc.time()
-Time elapsed:  2.2 0 2.214 
+Time elapsed:  1.037 0.006 1.044 
 > 
