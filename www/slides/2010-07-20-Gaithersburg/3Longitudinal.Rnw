@@ -26,6 +26,8 @@ options(width=65,show.signif.stars=FALSE,str=strOptions(strict.width="cut"))
 library(lattice)
 library(Matrix)
 library(lme4a)
+data(Multilocation, package = "SASmixed")
+attr(Multilocation, "ginfo") <-NULL
 lattice.options(default.theme = function() standard.theme())
 #lattice.options(default.theme = function() standard.theme(color=FALSE))
 @ 
@@ -393,4 +395,318 @@ balance in the experiment.
   \item Most of the prediction intervals for the random effects
     overlap zero.
   \end{itemize}
+\end{frame}
+
+\section[Other interactions]{Other forms of interactions}
+
+\begin{frame}\frametitle{Random slopes and interactions}
+  \begin{itemize}
+  \item In the \code{sleepstudy} model fits we allowed for random
+    effects for \code{Days} by \code{Subject}.
+  \item These random effects can be considered as an interaction
+    between the fixed-effects covariate \code{Days} and the
+    random-effects factor \code{Subject}.
+  \item When we have both fixed-levels categorical covariates and
+    random-levels categorical covariates we have many different ways
+    in which interactions can be expressed.
+  \item Often the wide range of options provides ``enough rope to hang
+    yourself'' in the sense that it is very easy to create an
+    overly-complex model.
+  \end{itemize}
+\end{frame}
+
+\begin{frame}
+  [fragile]
+  \frametitle{The \code{Multilocation} data set}
+  \begin{itemize}
+  \item Data from a multi-location trial of several treatments are
+    described in section 2.8 of Littell, Milliken, Stroup and
+    Wolfinger (1996) \textbf{SAS System for Mixed Models} and are
+    available as \code{Multilocation} in package \code{SASmixed}.
+  \item Littell et al. don't cite the source of the data.  Apparently
+    \code{Adj} is an adjusted response of some sort for 4 different
+    treatments applied at each of 3 blocks in each of 9 locations.
+    Because \code{Block} is implicitly nested in \code{Location}, the
+    \code{Grp} interaction variable was created.
+  \end{itemize}
+<<Multilocation>>=
+str(Multilocation)
+@ 
+\end{frame}
+
+\begin{frame}
+  [fragile]
+  \frametitle{Response by \code{Grp} and \code{Trt}}
+<<Multiplot1,fig=TRUE,echo=FALSE,height=5>>=
+print(dotplot(reorder(Grp, Adj) ~ Adj, Multilocation,
+              groups=Trt, type=c("p","a"),
+              auto.key=list(columns=4,lines=TRUE)))
+@
+\begin{itemize}
+\item From this one plot (Littell et al. do not provide any plots but
+  instead immediately jump into fitting several ``cookie-cutter''
+  models) we see that there are differences between locations, not as
+  much between blocks within location, and that treatment 2 is
+  providing a lower adjusted response.
+\end{itemize}
+\end{frame}
+
+\begin{frame}
+  [fragile]
+  \frametitle{Response by \code{Block} and \code{Trt} within \code{Location}}
+<<Multiplot2,fig=TRUE,echo=FALSE>>=
+ll <- with(Multilocation, reorder(Location, Adj))
+print(dotplot(reorder(reorder(Grp, Adj), as.numeric(ll)) ~ Adj|ll, Multilocation,
+              groups=Trt, type=c("p","a"), strip=FALSE, strip.left=TRUE, layout=c(1,9),
+              auto.key=list(columns=4,lines=TRUE),
+              scales = list(y=list(relation="free"))))
+@   
+\end{frame}
+
+\begin{frame}
+  \frametitle{Fixed-levels categorical covariates and ``contrasts''}
+  \begin{itemize}
+  \item In this experiment we are interested in comparing the
+    effectiveness of these four levels of \code{Trt}.
+  \item That is, the levels of \code{Trt} are fixed levels and we
+    should incorporate them in the fixed-effects part of the model.
+  \item Unlike the situation with random effects, we cannot separately
+    estimate ``effects'' for each level of a categorical covariate in
+    the fixed-effects and an overall intercept term.
+  \item Even if we suppress the intercept term we still encounter
+    redundancies in trying to estimate effects for each level when we
+    have more than one categorical covariate in the fixed-effects
+    terms.
+  \item Because of this we estimate coefficients for ``contrasts''
+    associated with the levels of a factor.  If we have $k$ levels we
+    generate $k-1$ contrasts.
+  \item The default contrasts (called \code{contr.treatment}) measure
+    changes relative to a reference level which is the first level of
+    the factor.  Other contrasts can be used when particular
+    comparisons are of interest.
+  \end{itemize}
+\end{frame}
+
+\begin{frame}
+  [fragile]
+  \frametitle{A simple model for \code{Trt} controlling for \code{Grp}}
+<<fm3>>=
+print(fm3 <- lmer(Adj ~ Trt + (1|Grp), Multilocation), corr=FALSE)
+@   
+\end{frame}
+
+\begin{frame}
+  [fragile]
+  \frametitle{Interpretation of the results}
+  \begin{itemize}
+  \item We see that the variability between the Location/Block
+    combinations (levels of \code{Grp})  is greater than the residual
+    variability, indicating the importance of controlling for it.
+  \item The contrast between levels 2 and 1 of \code{Trt}, labeled
+    \code{Trt2} is the greatest difference and apparently significant.
+  \item If we wish to evaluate the ``significance'' of the levels of
+    \code{Trt} as a group, however, we should fit the trivial
+    model and perform a LRT.
+  \end{itemize}
+<<lrt>>=
+fm4 <- lmer(Adj ~ 1 + (1|Grp), Multilocation)
+anova(fm4, fm3)
+@   
+\end{frame}
+
+\begin{frame}
+  [fragile]
+  \frametitle{\code{Location} as a fixed-effect}
+  \begin{itemize}
+  \item We have seen that \code{Location} has a substantial effect on
+    \code{Adj}.  If we are interested in these specific 9 locations
+    we could incorporate them as fixed-effects parameters.
+  \item Instead of examining 8 coefficients separately we will
+    consider their cumulative effect using the single-argument form of
+    \code{anova}.
+  \end{itemize}
+<<fm5>>=
+anova(fm5 <- lmer(Adj ~ Location + Trt + (1|Grp), Multilocation))
+@   
+\end{frame}
+
+\begin{frame}
+  [fragile]
+  \frametitle{An interaction between fixed-effects factors}
+  \begin{itemize}
+  \item We could ask if there is an interaction between the levels of
+    \code{Trt} and those of \code{Location} considered as fixed effects.
+  \end{itemize}
+<<fm6>>=
+anova(fm6 <- lmer(Adj ~ Location*Trt + (1|Grp), Multilocation))
+anova(fm5, fm6)
+@   
+\end{frame}
+
+\begin{frame}
+  [fragile]
+  \frametitle{Considering levels of \code{Location} as random effects}
+<<fm7>>=
+print(fm7 <- lmer(Adj ~ Trt + (1|Location) + (1|Grp), Multilocation), corr = FALSE)
+@   
+\end{frame}
+
+\begin{frame}
+  [fragile]
+  \frametitle{Is \code{Grp} needed in addition to \code{Location}?}
+  \begin{itemize}
+  \item At this point we may want to check whether the random effect
+    for \code{Block} within \code{Location} is needed in addition to
+    the random effect for \code{Location}.
+  \end{itemize}
+<<fm8>>=
+fm8 <- lmer(Adj ~ Trt + (1|Location), Multilocation)
+anova(fm8, fm7)
+@   
+\begin{itemize}
+\item Apparently not, but we may want to revisit this issue after
+  checking for interactions.
+\end{itemize}
+\end{frame}
+
+\begin{frame}
+  \frametitle{Ways of modeling random/fixed interactions}
+  \begin{itemize}
+  \item There are two ways we can model the interaction between a
+    fixed-levels factor (\code{Trt}) and a random-levels factor
+    (\code{Location}, as we are currently viewing this factor).
+  \item The first, and generally preferable, way is to incorporate a
+    simple scalar random-effects term with the interaction as the grouping
+    factor.
+  \item The second, more complex, way is to use vector-valued random
+    effects for the random-levels factor.  We must be careful when
+    using this approach because it often produces a degenerate model,
+    but not always obviously degenerate.
+  \end{itemize}
+\end{frame}
+
+\begin{frame}
+  [fragile]
+  \frametitle{Scalar random effects for interaction}
+<<fm9>>=
+(fm9 <- lmer(Adj ~ Trt + (1|Trt:Location) + (1|Location), Multilocation, REML=FALSE))
+@   
+\end{frame}
+
+\begin{frame}
+  [fragile]
+  \frametitle{Both interaction and Block-level random effects}
+<<fm10>>=
+(fm10 <- update(fm9, . ~ . + (1|Grp)))
+@   
+\end{frame}
+
+\begin{frame}
+  [fragile]
+  \frametitle{Scalar interaction random effects are still not significant}
+<<anovafm10>>=
+anova(fm10, fm8)
+@   
+\begin{itemize}
+\item We have switched to ML fits because we are comparing models
+  using \code{anova}.  In a comparative \code{anova} any REML fits are
+  refit as ML before comparison so we start with the ML fits.
+\item In model \code{fm9} the estimated variance for the scalar
+  interaction random effects was exactly zero in the ML fit.  In
+  \code{fm10} the estimate is positive but still not significant.
+\end{itemize}
+\end{frame}
+
+\begin{frame}
+  [fragile]
+  \frametitle{Vector-valued random effects}
+  \begin{itemize}
+  \item An alternative formulation for an interaction between
+    \code{Trt} and \code{Location} (viewed as a random-levels factor)
+    is to use vector-valued random effects.
+  \item We have used a similar construct in model \code{fm1} with
+    vector-valued random effects (intercept and slope) for each level
+    of \code{Subject}.
+  \item One way to fit such a model is
+<<fm11,eval=FALSE>>=
+fm11 <- lmer(Adj ~ Trt + (Trt|Location) + (1|Grp), Multilocation, REML=FALSE)
+@ 
+but interpretation is easier when fit as
+<<fm11,eval=FALSE>>=
+fm11 <- lmer(Adj ~ Trt + (0+Trt|Location) + (1|Grp), Multilocation, REML=FALSE)
+@ 
+  \end{itemize}
+\end{frame}
+\begin{frame}
+  [fragile]
+  \frametitle{Examining correlation of random effects}
+  \begin{itemize}
+  \item The random effects summary for \code{fm11}
+<<echo=FALSE>>=
+cat(paste(capture.output(print(fm11))[4:15], collapse="\n"), "\n")
+@   
+shows very high correlations between the random effects for the levels
+of \code{Trt} within each level of \code{Location}.
+\item Such a situation pass by unnoticed if estimates of variances and
+  covariances are all that is reported.
+\item In this case (and many other similar cases) the
+  variance-covariance matrix of the vector-valued random effects is
+  effectively singular.
+  \end{itemize}
+\end{frame}
+
+\begin{frame}
+  \frametitle{Singular variance-covariance for random effects}
+  \begin{itemize}
+  \item When we incorporate too many fixed-effects terms in a model we
+    often find out about it because the standard errors of
+    coefficients become very large.
+  \item For random effects terms, especially those that are
+    vector-valued, overparameterization is sometimes more difficult to detect.
+  \item The REML and ML criteria for mixed-effects models seek to
+    balance the complexity of the model versus the fidelity of the
+    fitted values to the observed responses.
+  \item The way ``complexity'' is measured in this case, a model with a singular
+    variance-covariance matrix for the random effects is considered a
+    good thing - it is optimally simple.
+  \item When we have only scalar random-effects terms singularity
+    means that one of the variance components must be exactly zero
+    (and ``near singularity'' means very close to zero).
+  \end{itemize}
+\end{frame}
+
+\begin{frame}
+  [fragile]
+  \frametitle{Detecting singular random effects}
+  \begin{itemize}
+  \item The \code{Lambda} slot in a \code{merMod} object is the
+    triangular factor of the variance-covariance matrix.
+  \item We can directly assess its condition number using the
+    \code{kappa} (condition number) or \code{rcond} (reciprocal
+    condition number) functions.  Large condition numbers are bad.
+  \item We do need to be cautious when we have a large number of
+    levels for the grouping factors because \code{Lambda} will be
+    \textbf{very} large (but also very sparse).  At present the
+    \code{kappa} and \code{rcond} functions transform the sparse
+    matrix to a dense matrix, which could take a very long time.
+  \end{itemize}
+<<fm11kappa>>=
+kappa(fm11@re@Lambda)
+rcond(fm11@re@Lambda)
+@   
+\end{frame}
+
+\begin{frame}
+  [fragile]
+  \frametitle{Using verbose model fits}
+  \begin{itemize}
+  \item An alternative, which is recommended whenever you have doubts
+    about a model fit, is to use \code{verbose=TRUE} (the lines don't wrap and we miss the interesting part here).
+  \end{itemize}
+<<fm11verb,echo=FALSE>>=
+fm11 <- lmer(Adj ~ Trt + (0+Trt|Location) + (1|Grp), Multilocation, REML=FALSE, verbose=TRUE)
+@   
+<<fm11>>=
+fm11@re@theta
+@   
 \end{frame}
