@@ -5,6 +5,8 @@ options(width=65,show.signif.stars=FALSE,str=strOptions(strict.width="cut"))
 library(lattice)
 library(Matrix)
 library(lme4a)
+data(Multilocation, package = "SASmixed")
+attr(Multilocation, "ginfo") <-NULL
 lattice.options(default.theme = function() standard.theme())
 #lattice.options(default.theme = function() standard.theme(color=FALSE))
 
@@ -139,5 +141,123 @@ print(xyplot(Reaction ~ Days | Subject, sleepstudy, aspect = "xy",
 ###################################################
 print(dotplot(ranef(fm1,post=TRUE),
               scales = list(x = list(relation = 'free')))[["Subject"]])
+
+
+###################################################
+### chunk number 14: Multilocation
+###################################################
+str(Multilocation)
+
+
+###################################################
+### chunk number 15: Multiplot1
+###################################################
+print(dotplot(reorder(Grp, Adj) ~ Adj, Multilocation,
+              groups=Trt, type=c("p","a"),
+              auto.key=list(columns=4,lines=TRUE)))
+
+
+###################################################
+### chunk number 16: Multiplot2
+###################################################
+ll <- with(Multilocation, reorder(Location, Adj))
+print(dotplot(reorder(reorder(Grp, Adj), as.numeric(ll)) ~ Adj|ll, Multilocation,
+              groups=Trt, type=c("p","a"), strip=FALSE, strip.left=TRUE, layout=c(1,9),
+              auto.key=list(columns=4,lines=TRUE),
+              scales = list(y=list(relation="free"))))
+
+
+###################################################
+### chunk number 17: fm3
+###################################################
+print(fm3 <- lmer(Adj ~ Trt + (1|Grp), Multilocation), corr=FALSE)
+
+
+###################################################
+### chunk number 18: lrt
+###################################################
+fm4 <- lmer(Adj ~ 1 + (1|Grp), Multilocation)
+anova(fm4, fm3)
+
+
+###################################################
+### chunk number 19: fm5
+###################################################
+anova(fm5 <- lmer(Adj ~ Location + Trt + (1|Grp), Multilocation))
+
+
+###################################################
+### chunk number 20: fm6
+###################################################
+anova(fm6 <- lmer(Adj ~ Location*Trt + (1|Grp), Multilocation))
+anova(fm5, fm6)
+
+
+###################################################
+### chunk number 21: fm7
+###################################################
+print(fm7 <- lmer(Adj ~ Trt + (1|Location) + (1|Grp), Multilocation), corr = FALSE)
+
+
+###################################################
+### chunk number 22: fm8
+###################################################
+fm8 <- lmer(Adj ~ Trt + (1|Location), Multilocation)
+anova(fm8, fm7)
+
+
+###################################################
+### chunk number 23: fm9
+###################################################
+(fm9 <- lmer(Adj ~ Trt + (1|Trt:Location) + (1|Location), Multilocation, REML=FALSE))
+
+
+###################################################
+### chunk number 24: fm10
+###################################################
+(fm10 <- update(fm9, . ~ . + (1|Grp)))
+
+
+###################################################
+### chunk number 25: anovafm10
+###################################################
+anova(fm10, fm8)
+
+
+###################################################
+### chunk number 26: fm11 eval=FALSE
+###################################################
+## fm11 <- lmer(Adj ~ Trt + (Trt|Location) + (1|Grp), Multilocation, REML=FALSE)
+
+
+###################################################
+### chunk number 27: fm11 eval=FALSE
+###################################################
+## fm11 <- lmer(Adj ~ Trt + (0+Trt|Location) + (1|Grp), Multilocation, REML=FALSE)
+
+
+###################################################
+### chunk number 28: 
+###################################################
+cat(paste(capture.output(print(fm11))[4:15], collapse="\n"), "\n")
+
+
+###################################################
+### chunk number 29: fm11kappa
+###################################################
+kappa(fm11@re@Lambda)
+rcond(fm11@re@Lambda)
+
+
+###################################################
+### chunk number 30: fm11verb
+###################################################
+fm11 <- lmer(Adj ~ Trt + (0+Trt|Location) + (1|Grp), Multilocation, REML=FALSE, verbose=TRUE)
+
+
+###################################################
+### chunk number 31: fm11
+###################################################
+fm11@re@theta
 
 
