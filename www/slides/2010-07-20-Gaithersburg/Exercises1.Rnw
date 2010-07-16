@@ -1,4 +1,4 @@
-\documentclass[11pt,a4rpaper]{article}
+\documentclass[11pt,letterpaper]{article}
 \usepackage[top=1.1in,bottom=1in,left=0.9in,headheight=14pt,right=0.9in]{geometry}
 \usepackage{paralist,mdwlist,Sweave,amsmath,amsbsy,graphicx,alltt,fancyhdr,url}
 \SweaveOpts{engine=R,eps=FALSE,width=10,height=6.5,strip.white=all}
@@ -10,8 +10,8 @@
 \DefineVerbatimEnvironment{Soutput}{Verbatim}
 {formatcom={\vspace{-2.5ex}},fontfamily=courier,fontseries=b,fontsize=\small}
 \usepackage{fancyhdr}
-\lhead{\sf Mixed-effects models workshop}\chead{\sf Exercises \#1}
-\rhead{\sf 2009-07-21 (p. \thepage)}
+\lhead{\sf Mixed-effects models tutorial}\chead{\sf Exercises \#1}
+\rhead{\sf 2010-07-20 (p. \thepage)}
 \lfoot{\sf Loading data from a file and examining it}\cfoot{}\rfoot{}
 \pagestyle{fancy}
 \newcommand{\code}[1]{\texttt{\small #1}}
