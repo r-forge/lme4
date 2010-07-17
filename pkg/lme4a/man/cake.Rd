@@ -51,7 +51,7 @@ print(fm1, corr=FALSE)
 fm2 <- lmer(angle ~ recipe + temperature + (1|recipe:replicate), cake, REML= FALSE)
 print(fm2, corr=FALSE)
 fm3 <- lmer(angle ~ recipe + temp        + (1|recipe:replicate), cake, REML= FALSE)
-print(fm3, corr=FALSE)
+fm3
 
 ## and now "choose" :
 anova(fm3, fm2, fm1)

@@ -55,7 +55,7 @@ setClass("reModule",
 ##'
 ##'
 setClass("reTrms",
-         representation(flist = "list", cnms = "list"),
+         representation(flist = "list", cnms = "list", nLevs = "integer"),
          contains = "reModule",
          validity = function(object)
      {
@@ -75,6 +75,8 @@ setClass("reTrms",
              length(cnms) == length(asgn))
              return("list of column names, cnms, must match asgn attribute in length")
          nlev <- sapply(flist, function(fac) length(levels(fac)))
+	 if(!all(nlev == object@nLevs))
+	     return("'nLevs' is not consistent length(levels(.)) of 'flist'")
          nc <- sapply(object@cnms, length)
          q <- nrow(object@Zt)
          if (sum(nc * nlev[asgn]) != q)

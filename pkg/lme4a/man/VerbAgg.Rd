@@ -51,5 +51,12 @@ if (require(lattice)) {
     densityplot(~ Anger, person, groups = Gender, auto.key = list(columns = 2),
                 xlab = "Trait Anger score (STAXI)")
 }
+
+\dontrun{## takes about 15 sec
+fmVA <- glmer(r2 ~ (Anger + Gender + btype + situ)^2 +
+                   (1|id) + (1|item),
+              family = binomial, data = VerbAgg)
+fmVA
+}
 }
 \keyword{datasets}

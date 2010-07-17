@@ -36,7 +36,7 @@ mkReTrms <- function(bars, fr, s = 1L) {
 	list(ff = ff, sm = sm, nl = nl, cnms = colnames(mm))
     }
     blist <- lapply(bars, mkBlist)
-    nl <- sapply(blist, "[[", "nl")     # no. of levels per term
+    nl <- unlist(lapply(blist, "[[", "nl"))# no. of levels per term
 
     ## order terms stably by decreasing number of levels in the factor
     if (any(diff(nl)) > 0) {
@@ -46,18 +46,15 @@ mkReTrms <- function(bars, fr, s = 1L) {
     }
     Zt <- do.call(rBind, lapply(blist, "[[", "sm"))
     q <- nrow(Zt)
-    ll <- list(Zt = Zt, u = numeric(q))
 
     ## Create and install Lambda, Lind, etc.  This must be done after
     ## any potential reordering of the terms.
     cnms <- lapply(blist, "[[", "cnms")
     nc <- sapply(cnms, length)          # no. of columns per term
-    ncTrms <- nc
     nth <- as.integer((nc * (nc+1))/2)  # no. of parameters per term
     nb <- nc * nl                       # no. of random effects per term
     stopifnot(sum(nb) == q)
-
-    ll$theta <- numeric(sum(nth))
+    thet <- numeric(sum(nth))
 
     boff <- cumsum(c(0L, nb))           # offsets into b
     thoff <- cumsum(c(0L, nth))         # offsets into theta
@@ -80,36 +77,35 @@ mkReTrms <- function(bars, fr, s = 1L) {
                                           thoff[i]))
                            })))
 ### FIXME: change this to t(Lambda) before extracting the Lind
-    ll$Lind <- as.integer(Lambda@x)
-
+    ll <- list(Class = "reTrms", Zt = Zt, u = numeric(q), nLevs = nl,
+               theta = thet, Lind = as.integer(Lambda@x))
     ## lower bounds on theta elements are 0 if on diagonal, else -Inf
-    ll$lower <- -Inf * (ll$theta + 1)
+    ll$lower <- -Inf * (thet + 1)
     ll$lower[unique(diag(Lambda))] <- 0
     ll$theta[] <- is.finite(ll$lower)   # initial values of theta are 0 off-diagonal, 1 on
     Lambda@x[] <- ll$theta[ll$Lind]     # initialize elements of Lambda
     ll$Lambda <- Lambda
 
-    ll$Ut <- crossprod(Lambda, Zt)
-    ll$Class <- "reTrms"
-    if (s > 1) { ## Ut is the sum of vertical sections of Zt
-        N <- ncol(Zt)
-        ll$Ut <- Reduce("+",
-                        lapply(split(seq_len(N),
-                                     rep.int(seq_len(s),
-                                             rep.int(N %/% s, s))),
-                               function(cols) Zt[, cols]))
-    }
+    ll$Ut <-
+	if (s > 1) { ## Ut is the sum of vertical sections of Zt
+	    N <- ncol(Zt)
+	    Reduce("+",
+		   lapply(split(seq_len(N),
+				rep.int(seq_len(s),
+					rep.int(N %/% s, s))),
+			  function(cols) Zt[, cols]))
+	}
+	else crossprod(Lambda, Zt)
 
     ll$L <- Cholesky(tcrossprod(ll$Ut), LDL = FALSE, Imult = 1)
                                         # massage the factor list
     fl <- lapply(blist, "[[", "ff")
-    asgn <- seq_along(fl)
                                         # check for repeated factors
     fnms <- names(fl)
     if (length(fnms) > length(ufn <- unique(fnms))) {
         fl <- fl[match(ufn, fnms)]
         asgn <- match(fnms, ufn)
-    }
+    } else asgn <- seq_along(fl)
     names(fl) <- ufn
     fl <- do.call(data.frame, c(fl, check.names = FALSE))
     attr(fl, "assign") <- asgn
@@ -269,7 +265,7 @@ lmer <- function(formula, data, REML = TRUE, sparseX = FALSE,
     fr <- eval(mf, parent.frame())
                                         # random effects and terms modules
     reTrms <- mkReTrms(findbars(formula[[3]]), fr)
-    if (any(sapply(lapply(reTrms@flist, levels), length) >= ncol(reTrms@Zt)))
+    if (any(reTrms@nLevs >= ncol(reTrms@Zt)))
         stop("number of levels of each grouping factor must be less than number of obs")
     dcmp <- updateDcmp(reTrms, .dcmp())
                                         # fixed-effects module
@@ -1121,16 +1117,53 @@ setMethod("vcov", "summary.mer",
 		    "at least one TRUE in summary(..,  varcov = *, keep.X = *)")
       })
 
-## FIXME: Fold this into the VarCorr method
-mkVarCorr <- function(sc, cnms, nc, theta, flist) {
+
+### "FIXME": instead of 'Lambda', it is sufficient
+##  ------   to just keep a list of the small lower triangular blocks
+## 'Li' from above;  then, Lambda = bdiag({<Li>}), i.e.  do.call(bdiag, blocksLambda(..))
+blocksLambda <- function(re) {
+    if (!is(re, "reTrms")) stop("only works for \"reTrms\"")
+    cnms <- re@cnms
+    nc <- unlist(lapply(cnms, length),recursive=FALSE) # no. of columns per term
+    ncseq <- seq_along(nc)
+    thl <- split(re@theta, rep.int(ncseq, (nc * (nc + 1))/2))
+    structure(lapply(ncseq, function(i)
+		 {
+		     ## Li := \Lambda_i, the i-th block diagonal of \Lambda(\theta)
+		     Li <- diag(nrow = nc[i])
+		     Li[lower.tri(Li, diag = TRUE)] <- thl[[i]]
+		     rownames(Li) <- cnms[[i]]
+		     Li
+		 }),
+	      names = {fl <- re@flist; names(fl)[attr(fl, "assign")]},
+	      ncols = nc,
+	      nLevs = re@nLevs)
+}
+if(FALSE) { ## Now we can easily "build" Lambda (inside the 're'):
+    re <- mod@re
+    bL <- lme4a:::blocksLambda(re)
+    print( sapply(bL, rcond) ) ## reciprocal condition numbers
+    identical(re@Lambda, as(Matrix:::.bdiag(rep.int(bL, attr(bL,"nLevs"))),
+			    "CsparseMatrix"))
+}
+setMethod("rcond", signature(x = "reTrms", norm = "character"),
+          function(x, norm, ...)
+          sapply(blocksLambda(x), rcond, norm=norm))
+
+
+## Keep this separate, as it encapsulates the computation
+## w/o explicit use of S4 modules
+mkVarCorr <- function(sc, cnms, nc, theta, nms) {
     ncseq <- seq_along(nc)
     thl <- split(theta, rep.int(ncseq, (nc * (nc + 1))/2))
     ans <- lapply(ncseq, function(i)
               {
-                  mm <- diag(nrow = nc[i])
-                  mm[lower.tri(mm, diag = TRUE)] <- thl[[i]]
-                  rownames(mm) <- cnms[[i]]
-                  val <- tcrossprod(sc * mm) # variance-covariance
+		  ## Li := \Lambda_i, the i-th block diagonal of \Lambda(\theta)
+		  Li <- diag(nrow = nc[i])
+		  Li[lower.tri(Li, diag = TRUE)] <- thl[[i]]
+		  rownames(Li) <- cnms[[i]]
+		  ## val := \Sigma_i = \sigma^2 \Lambda_i \Lambda_i', the
+		  val <- tcrossprod(sc * Li) # variance-covariance
                   stddev <- sqrt(diag(val))
                   correl <- t(val / stddev)/stddev
                   diag(correl) <- 1
@@ -1138,21 +1171,22 @@ mkVarCorr <- function(sc, cnms, nc, theta, flist) {
                   attr(val, "correlation") <- correl
                   val
               })
-    names(ans) <- names(flist)[attr(flist, "assign")]
+    if(is.character(nms)) names(ans) <- nms
     attr(ans, "sc") <- sc
     ans
 }
 
 setMethod("VarCorr", signature(x = "merMod"),
-          function(x)
+          function(x, sigma, rdig)# <- 3 args from nlme
       {
-          re <- x@re
-          if (!is(re, "reTrms"))
-              stop("VarCorr methods require reTrms, not just reModule")
-          cnms <- re@cnms
-          nc <- sapply(cnms, length)      # no. of columns per term
-          mkVarCorr(sigma(x), cnms=cnms, nc = nc,
-                    theta=re@theta, flist=re@flist)
+	  if (!is(re <- x@re, "reTrms"))
+	      stop("VarCorr methods require reTrms, not just reModule")
+	  cnms <- re@cnms
+	  if(missing(sigma)) # "bug": fails via default 'sigma=sigma(x)'
+	      sigma <- sigma(x)
+	  nc <- sapply(cnms, length)	  # no. of columns per term
+	  mkVarCorr(sigma, cnms=cnms, nc=nc, theta = re@theta,
+		    nms = {fl <- re@flist; names(fl)[attr(fl, "assign")]})
       })
 
 ##' <description>
@@ -1234,8 +1268,6 @@ setMethod("summary", "merMod",
           devC <- object@devcomp
           dd <- devC$dims
           cmp <- devC$cmp
-          ## FIXME: You can't count on re@flist unless is(re, "reTrms")
-          flist <- object@re@flist
           useSc <- as.logical(dd["useSc"])
           sig <- sigma(object)
           REML <- isREML(object)
@@ -1261,12 +1293,14 @@ setMethod("summary", "merMod",
                     deviance = deviance(object))
               }
           }
-          varcor <- VarCorr(object)
+	  ## FIXME: You can't count on object@re@flist,
+	  ##        nor compute VarCorr() unless is(re, "reTrms"):
+	  varcor <- VarCorr(object)
                                         # use S3 class for now
           structure(list(methTitle = mName,
                          devcomp = devC, isLmer = is(resp, "lmerResp"), useScale = useSc,
                          logLik = llik, family = fam,
-                         ngrps = sapply(flist, function(x) length(levels(x))),
+			 ngrps = sapply(object@re@flist, function(x) length(levels(x))),
                          coefficients = coefs,
                          sigma = sig,
                          vcov = if(varcov) vcov(object, correlation=TRUE, sigm=sig),
@@ -1446,4 +1480,3 @@ dotplot.coef.mer <- function(x, data, ...) {
     mc[[1]] <- as.name("dotplot.ranef.mer")
     eval(mc)
 }
-

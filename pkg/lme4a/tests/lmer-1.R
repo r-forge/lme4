@@ -8,16 +8,18 @@ S4_2list <- function(obj) {
     sn <- slotNames(obj)
     structure(lapply(sn, slot, object = obj), .Names = sn)
 }
-showProc.time <- function() { ## CPU elapsed __since last called__
-    .ot <- .pc
-    .pc <<- proc.time()
-    cat('Time elapsed: ', (.pc - .ot)[1:3],'\n')
-}
-.pc <- proc.time()
+showProc.time <- local({
+    pct <- proc.time()
+    function() { ## CPU elapsed __since last called__
+	ot <- pct ; pct <<- proc.time()
+	cat('Time elapsed: ', (pct - ot)[1:3],'\n')
+    }
+})
 
 (fm1 <- lmer(Reaction ~ Days + (Days|Subject), sleepstudy))
 (fm1a <- lmer(Reaction ~ Days + (Days|Subject), sleepstudy, REML = FALSE))
 (fm2 <- lmer(Reaction ~ Days + (1|Subject) + (0+Days|Subject), sleepstudy))
+anova(fm1, fm2)
 
 ## Now works for glmer
 fm1. <- glmer(Reaction ~ Days + (Days|Subject), sleepstudy)
@@ -67,6 +69,9 @@ showProc.time() #
 
 (fmX2 <- lmer(Reaction ~ Days + (Days|Subject), sleepstudy))
 (fm.2 <- lmer(Reaction ~ Days + (1|Subject) + (0+Days|Subject), sleepstudy))
+## check update(<mer>, <formula>):
+fm.3 <- update(fmX2, . ~ Days + (1|Subject) + (0+Days|Subject))
+stopifnot(all.equal(fm.2, fm.3))
 
 #fmX1s <- lmer1(Reaction ~ Days + (Days|Subject), sleepstudy, sparseX=TRUE)
 fmX2s <- lmer(Reaction ~ Days + (Days|Subject), sleepstudy, sparseX=TRUE)
