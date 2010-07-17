@@ -7,13 +7,11 @@ importFrom("graphics", plot)
 importFrom("nlme", fixef, ranef, VarCorr)
 importFrom("stats4", AIC, BIC, logLik)# so S4 methods are used!
 importFrom("stats",
-           anova, coef, confint, fitted, deviance, formula,
+           anova, coef, confint, deviance, fitted, formula,
            model.frame, model.matrix, predict, profile,
            resid, residuals, simulate, terms, vcov)
 ## yes, this is ugly:
-if(utils::packageDescription("Matrix")$Version < package_version("0.999375-43")) {
-   importFrom("stats", formula)
-} else {
+if(utils::packageDescription("Matrix")$Version >= package_version("0.999375-43")) {
    importFrom("Matrix", formula)
 }
 
@@ -57,6 +55,7 @@ importMethodsFrom("Matrix",
                   crossprod,
                   determinant,
                   diag,
+		  rcond,
                   solve,
                   summary,
                   t,
@@ -76,7 +75,7 @@ exportClasses(deFeMod, feModule, lmerResp, lmList, merMod,
 exportMethods(VarCorr, anova, coef, coerce, confint, deviance,
               devcomp, fitted, fixef, formula, getL,
               logLik, model.frame, model.matrix, terms,
-              plot, print, profile, ranef,
+	      plot, print, profile, ranef, rcond,
               show, simulate, sigma, summary, update, vcov)
 
 S3method(plot, coef.mer)

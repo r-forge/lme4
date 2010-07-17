@@ -50,4 +50,3 @@ stopifnot(dim(CIpr) == c(3,2),
           all.equal(unname(CIpr[2,]),c(3.64362, 4.21446), tol=1e-6))
 }
 \keyword{methods}
-

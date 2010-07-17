@@ -159,31 +159,19 @@ stopifnot(all.equal( coef(fm3.d), coef(fm3.s), tol = 1e-14),
 ## using nAGQ=0L only gets close to the optimum
 (gm1a <- glmer(cbind(incidence, size - incidence) ~ period + (1 | herd),
                cbpp, binomial, nAGQ = 0L))
-## nonlinear mixed models
-(nm1 <- nlmer(circumference ~ SSlogis(age, Asym, xmid, scal) ~
+
+## nonlinear mixed models --- 3-part formulas ---
+
+nm1 <- nlmer(circumference ~ SSlogis(age, Asym, xmid, scal) ~
+             0 + Asym + xmid + scal + (0 + Asym|Tree),
+             Orange, start = c(Asym = 200, xmid = 725, scal = 350),
+             verbose = 1)
+nm1
+nm1a <- nlmer(circumference ~ SSlogis(age, Asym, xmid, scal) ~
               0 + Asym + xmid + scal + (0 + Asym|Tree),
-              Orange,
-              start = c(Asym = 200, xmid = 725, scal = 350), verbose = 1))
-(nm1a <- nlmer(circumference ~ SSlogis(age, Asym, xmid, scal) ~
-               0 + Asym + xmid + scal + (0 + Asym|Tree),
-               Orange, nAGQ = 0L,
-               start = c(Asym = 200, xmid = 725, scal = 350), verbose = 1))
+              Orange, start = c(Asym = 200, xmid = 725, scal = 350),
+              verbose = 1, nAGQ = 0L)
+nm1a
 }
 \keyword{models}
 \keyword{methods}
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-

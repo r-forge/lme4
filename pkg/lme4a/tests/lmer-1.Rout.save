@@ -1,5 +1,5 @@
 
-R version 2.11.1 Patched (2010-07-09 r52506)
+R version 2.11.1 Patched (2010-07-16 r52549)
 Copyright (C) 2010 The R Foundation for Statistical Computing
 ISBN 3-900051-07-0
 
@@ -25,12 +25,13 @@ Type 'q()' to quit R.
 +     sn <- slotNames(obj)
 +     structure(lapply(sn, slot, object = obj), .Names = sn)
 + }
-> showProc.time <- function() { ## CPU elapsed __since last called__
-+     .ot <- .pc
-+     .pc <<- proc.time()
-+     cat('Time elapsed: ', (.pc - .ot)[1:3],'\n')
-+ }
-> .pc <- proc.time()
+> showProc.time <- local({
++     pct <- proc.time()
++     function() { ## CPU elapsed __since last called__
++ 	ot <- pct ; pct <<- proc.time()
++ 	cat('Time elapsed: ', (pct - ot)[1:3],'\n')
++     }
++ })
 > 
 > (fm1 <- lmer(Reaction ~ Days + (Days|Subject), sleepstudy))
 Linear mixed model fit by REML ['merMod']
@@ -96,6 +97,14 @@ Days          10.467      1.560    6.71
 Correlation of Fixed Effects:
      (Intr)
 Days -0.184
+> anova(fm1, fm2)
+Data: sleepstudy
+Models:
+fm2: Reaction ~ Days + (1 | Subject) + (0 + Days | Subject)
+fm1: Reaction ~ Days + (Days | Subject)
+    Df    AIC    BIC  logLik deviance  Chisq Chi Df Pr(>Chisq)
+fm2  5 1762.0 1778.0 -876.00   1752.0                         
+fm1  6 1763.9 1783.1 -875.97   1751.9 0.0639      1     0.8004
 > 
 > ## Now works for glmer
 > fm1. <- glmer(Reaction ~ Days + (Days|Subject), sleepstudy)
@@ -111,12 +120,6 @@ Days -0.184
 > ## Test 'compDev = FALSE' (vs TRUE)
 > fm1. <- lmer(Reaction ~ Days + (Days|Subject), sleepstudy,
 +              compDev = FALSE)#--> use R code (not C) for deviance computation
-Warning message:
-In determinant(x, TRUE) : This version of the Matrix package returns
-|determinant(L)| instead of determinant(A), i.e., a
-*DIFFERENT* value.
- If still necessary, do change your code, following http://matrix.r-forge.r-project.org
-
 > stopifnot(all.equal(fm1@devcomp$cmp['REML'], fm1.@devcomp$cmp['REML']),
 +           all.equal(fixef(fm1), fixef(fm1.)),
 +           all.equal(fm1@re@theta, fm1.@re@theta, tol = 1.e-7),
@@ -164,7 +167,7 @@ Fixed effects:
 + 			  c(1,3), dimnames = list("(Intercept)",
 + 				  c("Estimate", "Std. Error", "t value")))))
 > showProc.time() #
-Time elapsed:  2.899 0.011 2.931 
+Time elapsed:  3.25 0.03 3.279 
 > 
 > ### {from ../man/lmer.Rd } --- compare lmer & lmer1 ---------------
 > #(fmX1 <- lmer1(Reaction ~ Days + (Days|Subject), sleepstudy))
@@ -212,12 +215,15 @@ Days          10.467      1.560    6.71
 Correlation of Fixed Effects:
      (Intr)
 Days -0.184
+> ## check update(<mer>, <formula>):
+> fm.3 <- update(fmX2, . ~ Days + (1|Subject) + (0+Days|Subject))
+> stopifnot(all.equal(fm.2, fm.3))
 > 
 > #fmX1s <- lmer1(Reaction ~ Days + (Days|Subject), sleepstudy, sparseX=TRUE)
 > fmX2s <- lmer(Reaction ~ Days + (Days|Subject), sleepstudy, sparseX=TRUE)
 > 
 > showProc.time() #
-Time elapsed:  0.682 0.002 0.688 
+Time elapsed:  0.86 0 0.864 
 > 
 > for(nm in c("coef", "fixef", "ranef", "sigma",
 + 	     "model.matrix", "model.frame" , "terms")) {
@@ -372,7 +378,7 @@ $Subject
 
 > 
 > showProc.time() #
-Time elapsed:  1 0.006 1.019 
+Time elapsed:  1.03 0 1.022 
 > 
 > if (require('MASS', quietly = TRUE)) {
 +     bacteria$wk2 <- bacteria$week > 2
@@ -423,7 +429,7 @@ Correlation of Fixed Effects:
 trtdiag     -0.044              
 trtencourag  0.064 -0.495       
 wk2TRUE     -0.793  0.063 -0.056
-Time elapsed:  0.555 0.02 0.664 
+Time elapsed:  0.51 0 0.512 
 > 
 > ## Invalid factor specification -- used to seg.fault:
 > set.seed(1)
@@ -571,7 +577,7 @@ lagoon4 0.000  0.000  0.000
 +             )
 > 
 > showProc.time() #
-Time elapsed:  0.764 0.001 0.77 
+Time elapsed:  0.76 0 0.767 
 > 
 > ## Wrong formula gave a seg.fault at times:
 > set.seed(2)# !
@@ -591,7 +597,7 @@ Warning message:
 In Ops.factor(ff, x1) : + not meaningful for factors
 > 
 > showProc.time() #
-Time elapsed:  4.311 0.001 4.334 
+Time elapsed:  4.6 0 4.595 
 > 
 > ## Reordering of grouping factors should not change the internal structure
 > #Pm1  <- lmer1(strength ~ (1|batch) + (1|sample), Pastes, doFit = FALSE)
@@ -675,5 +681,5 @@ m0  3 1177.09 1187.53 -585.54  1171.09
 m1  4  622.21  636.14 -307.11   614.21 556.87      1  < 2.2e-16
 > 
 > showProc.time()
-Time elapsed:  1.037 0.006 1.044 
+Time elapsed:  1.27 0 1.266 
 > 
