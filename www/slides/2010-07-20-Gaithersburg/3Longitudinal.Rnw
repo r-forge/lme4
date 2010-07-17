@@ -28,8 +28,15 @@ library(Matrix)
 library(lme4a)
 data(Multilocation, package = "SASmixed")
 attr(Multilocation, "ginfo") <-NULL
+data(Early, package="mlmRev")
 lattice.options(default.theme = function() standard.theme())
-#lattice.options(default.theme = function() standard.theme(color=FALSE))
+lattice.options(default.theme = function() standard.theme(color=FALSE))
+if (file.exists("fm11.rda")) {
+    load("fm11.rda")
+} else {
+    fm11 <- lmer(Adj ~ Trt + (0+Trt|Location) + (1|Grp), Multilocation, REML=FALSE)
+    save(fm11, file="fm11.rda")
+}
 @ 
 
 \section[sleepstudy]{Longitudinal data: sleepstudy}
@@ -473,13 +480,11 @@ print(dotplot(reorder(reorder(Grp, Adj), as.numeric(ll)) ~ Adj|ll, Multilocation
   \item Unlike the situation with random effects, we cannot separately
     estimate ``effects'' for each level of a categorical covariate in
     the fixed-effects and an overall intercept term.
-  \item Even if we suppress the intercept term we still encounter
-    redundancies in trying to estimate effects for each level when we
-    have more than one categorical covariate in the fixed-effects
-    terms.
-  \item Because of this we estimate coefficients for ``contrasts''
-    associated with the levels of a factor.  If we have $k$ levels we
-    generate $k-1$ contrasts.
+  \item We could suppress the intercept term but even then we still
+    encounter redundancies in effects for each level when we have more
+    than one categorical covariate in the fixed-effects.
+  \item Because of this we estimate coefficients for $k-1$ ``contrasts''
+    associated with the $k$ levels of a factor.
   \item The default contrasts (called \code{contr.treatment}) measure
     changes relative to a reference level which is the first level of
     the factor.  Other contrasts can be used when particular
@@ -647,7 +652,7 @@ cat(paste(capture.output(print(fm11))[4:15], collapse="\n"), "\n")
 @   
 shows very high correlations between the random effects for the levels
 of \code{Trt} within each level of \code{Location}.
-\item Such a situation pass by unnoticed if estimates of variances and
+\item Such a situation may pass by unnoticed if estimates of variances and
   covariances are all that is reported.
 \item In this case (and many other similar cases) the
   variance-covariance matrix of the vector-valued random effects is
@@ -659,8 +664,7 @@ of \code{Trt} within each level of \code{Location}.
   \frametitle{Singular variance-covariance for random effects}
   \begin{itemize}
   \item When we incorporate too many fixed-effects terms in a model we
-    often find out about it because the standard errors of
-    coefficients become very large.
+    usually find out because the standard errors become very large.
   \item For random effects terms, especially those that are
     vector-valued, overparameterization is sometimes more difficult to detect.
   \item The REML and ML criteria for mixed-effects models seek to
@@ -701,7 +705,8 @@ rcond(fm11@re@Lambda)
   \frametitle{Using verbose model fits}
   \begin{itemize}
   \item An alternative, which is recommended whenever you have doubts
-    about a model fit, is to use \code{verbose=TRUE} (the lines don't wrap and we miss the interesting part here).
+    about a model fit, is to use \code{verbose=TRUE} (the lines don't
+    wrap and we miss the interesting part here).
   \end{itemize}
 <<fm11verb,echo=FALSE>>=
 fm11 <- lmer(Adj ~ Trt + (0+Trt|Location) + (1|Grp), Multilocation, REML=FALSE, verbose=TRUE)
@@ -709,4 +714,87 @@ fm11 <- lmer(Adj ~ Trt + (0+Trt|Location) + (1|Grp), Multilocation, REML=FALSE, 
 <<fm11>>=
 fm11@re@theta
 @   
+\end{frame}
+
+\begin{frame}
+  \frametitle{What to watch for in the verbose output}
+  \begin{itemize}
+  \item In this model the criterion is being optimized with respect to
+    11 parameters.
+  \item These are the variance component parameters, $\bm\theta$.  The
+    fixed-effects coefficients, $\bm\beta$, and the common scale
+    parameter, $\sigma$, are at their conditionally optimal values.
+  \item Generally it is more difficult to estimate a variance
+    parameter (either a variance or a covariance) than it is to
+    estimate a coefficient.  Estimating 11 such parameters requires a
+    considerable amount of information.
+  \item Some of these parameters are required to be non-negative.
+    When they become zero or close to zero ($2.7\times10^{-7}$, in
+    this case) the variance-covariance matrix is degenerate.
+  \item The \code{@re@lower} slot contains the lower bounds.
+    Parameter components for which \code{@re@lower} is \code{-Inf} are
+    unbounded.  The ones to check are those for which \code{@re@lower}
+    is \code{0}.
+  \end{itemize}
+\end{frame}
+
+\begin{frame}
+  [fragile]
+  \frametitle{Another example of singular variance-covariance}
+  \begin{itemize}
+  \item The \code{Early} data in the \code{mlmRev} package are from a
+    study on early childhood cognitive development as influenced by a
+    treatment.  These data are discussed in \textbf{Applied
+      Longitudinal Data Analysis} (2003) by Singer and Willett.
+  \item A model with random effects for slope and intercept is
+  \end{itemize}
+<<fm12>>=
+Early <- within(Early, tos <- age-0.5)
+fm12 <- lmer(cog ~ tos+trt:tos+(tos|id), Early, verbose=TRUE)
+@   
+\end{frame}
+
+\begin{frame}
+  [fragile]
+  \frametitle{Fitted model for the Early data}
+<<fm12show,echo=FALSE>>=
+print(fm12, corr=FALSE)
+@   
+Here is it obvious that there is a problem.  However, Singer and
+Willett did not detect this in model fits from SAS PROC MIXED or
+MLWin, which reported a covariance estimate.
+\end{frame}
+
+\begin{frame}
+  \frametitle{Other practical issues}
+  \begin{itemize}
+  \item In some disciplines there is an expectation that data will be
+    analyzed starting with the most complex model and evaluating terms
+    according to their p-values.
+  \item This can be appropriate for carefully balanced, designed
+    experiments.  It is rarely a good approach on observational,
+    imbalanced data.
+  \item Bear in mind that this approach was formulated when graphical
+    and computational capabilities were very limited.
+  \item A more appropriate modern approach is to explore the data
+    graphically and to fit models sequentially, comparing these fitted
+    models with tests such as the LRT.
+  \end{itemize}
+\end{frame}
+\begin{frame}
+  \frametitle{Fixed-effects or random-effects?}
+  \begin{itemize}
+  \item Earlier we described the distinction between fixed and
+    random effects as dependent on the repeatability of the levels.
+  \item This is the basis for the distinction but the number of levels
+    observed must also be considered.
+  \item Fitting mixed-effects models requires data from several levels
+    of the grouping factor.  Even when a factor represents a random
+    selection (say sample transects in an ecological study) it is not
+    practical to estimate a variance component from only two or three
+    observed levels.
+  \item At the other extreme, a census of a large number of levels can
+    be modeled with random effects even though the observed levels are
+    not a sample.
+  \end{itemize}
 \end{frame}
