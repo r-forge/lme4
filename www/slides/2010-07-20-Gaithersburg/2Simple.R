@@ -6,8 +6,8 @@ library(lattice)
 library(Matrix)
 library(lme4a)
 lattice.options(default.theme = function() standard.theme())
-lattice.options(default.theme = function() standard.theme(color=FALSE))
-if (exists("classroom.rda")) {
+#lattice.options(default.theme = function() standard.theme(color=FALSE))
+if (file.exists("classroom.rda")) {
     load("classroom.rda")
 } else {
     classroom <- within(read.csv("http://www-personal.umich.edu/~bwest/classroom.csv"),
@@ -17,6 +17,7 @@ if (exists("classroom.rda")) {
                         sex <- factor(sex, labels = c("M","F"))
                         minority <- factor(minority, labels = c("N", "Y"))
                     })
+    save(classroom, file="classroom.rda")
 }
 
 

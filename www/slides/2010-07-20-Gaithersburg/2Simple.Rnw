@@ -482,8 +482,8 @@ fm1@call
   \code{Batch} with $n_1=6$ levels.  Thus $q=6$.
 \item The model matrix $\bm Z$ is the $30\times 6$ matrix of
   indicators of the levels of \code{Batch}.
-\item The relative variance-covariance matrix, $\bm\Sigma$, is a
-  nonnegative multiple of the $6\times 6$ identity matrix $\bm I_6$.
+\item The variance-covariance matrix, $\bm\Sigma$, is a
+  nonnegative multiple of the $6\times 6$ identity matrix, $\bm I_6$.
 \item The fixed-effects parameter vector, $\bm\beta$, is of length
   $p=1$.  All the elements of the $30\times 1$ model matrix $\bm X$
   are unity.
@@ -806,8 +806,8 @@ anova(fm4M, fm3M)
 \begin{frame}
   \frametitle{Recap of the analysis of the Pastes data}
   \begin{itemize}
-  \item The data consist of $n=60$ observations on $q_1=30$ samples
-    nested within $q_2=10$ batches.  
+  \item The data consist of $n=60$ observations on $n_1=30$ samples
+    nested within $n_2=10$ batches.  
   \item The data are labelled with a \code{cask} factor with $3$
     levels but that is an implicitly nested factor.  Create the
     explicit factor \code{sample} and ignore \code{cask} from then

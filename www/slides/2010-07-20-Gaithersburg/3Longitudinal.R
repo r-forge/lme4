@@ -7,8 +7,15 @@ library(Matrix)
 library(lme4a)
 data(Multilocation, package = "SASmixed")
 attr(Multilocation, "ginfo") <-NULL
+data(Early, package="mlmRev")
 lattice.options(default.theme = function() standard.theme())
 #lattice.options(default.theme = function() standard.theme(color=FALSE))
+if (file.exists("fm11.rda")) {
+    load("fm11.rda")
+} else {
+    fm11 <- lmer(Adj ~ Trt + (0+Trt|Location) + (1|Grp), Multilocation, REML=FALSE)
+    save(fm11, file="fm11.rda")
+}
 
 
 ###################################################
@@ -259,5 +266,18 @@ fm11 <- lmer(Adj ~ Trt + (0+Trt|Location) + (1|Grp), Multilocation, REML=FALSE, 
 ### chunk number 31: fm11
 ###################################################
 fm11@re@theta
+
+
+###################################################
+### chunk number 32: fm12
+###################################################
+Early <- within(Early, tos <- age-0.5)
+fm12 <- lmer(cog ~ tos+trt:tos+(tos|id), Early, verbose=TRUE)
+
+
+###################################################
+### chunk number 33: fm12show
+###################################################
+print(fm12, corr=FALSE)
 
 
