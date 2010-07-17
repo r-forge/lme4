@@ -10,6 +10,13 @@ importFrom("stats",
            anova, coef, confint, fitted, deviance, formula,
            model.frame, model.matrix, predict, profile,
            resid, residuals, simulate, terms, vcov)
+## yes, this is ugly:
+if(utils::packageDescription("Matrix")$Version < package_version("0.999375-43")) {
+   importFrom("stats", formula)
+} else {
+   importFrom("Matrix", formula)
+}
+
 importFrom("minqa", bobyqa)
 
 importClassesFrom("Matrix",
@@ -28,10 +35,8 @@ importClassesFrom("Matrix",
                   dpoMatrix,
                   dsCMatrix,
                   modelMatrix,
-                  denseModelMatrix,
-                  sparseModelMatrix,
-                  ddenseModelMatrix,
-                  dsparseModelMatrix,
+                  denseModelMatrix,  ddenseModelMatrix,
+                  sparseModelMatrix, dsparseModelMatrix,
                   predModule,
                   dPredModule,
                   sPredModule,
@@ -51,7 +56,6 @@ importMethodsFrom("Matrix",
                   coerce,
                   crossprod,
                   determinant,
-                  diag,
                   diag,
                   solve,
                   summary,
