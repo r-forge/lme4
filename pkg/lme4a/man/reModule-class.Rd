@@ -36,9 +36,9 @@
     \item{\code{flist}:}{list of grouping factors from the
       random-effects terms (\code{"reTrms"} only).  Its \code{assign}
       attribute matches terms with grouping factors.}
-    \item{\code{nLevs}:}{number of levels of each grouping factor.  Is
-      identical to \code{sapply(flist, function(f) length(levels(f)))},
-      saved, as often used.}
+%%-nL    \item{\code{nLevs}:}{number of levels of each grouping factor.  Is
+%%-nL      identical to \code{sapply(flist, function(f) length(levels(f)))},
+%%-nL      saved, as often used.}
     \item{\code{cnms}:}{list of column names from random-effects terms
       (\code{"reTrms"} only).}
   }

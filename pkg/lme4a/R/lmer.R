@@ -77,7 +77,7 @@ mkReTrms <- function(bars, fr, s = 1L) {
                                           thoff[i]))
                            })))
 ### FIXME: change this to t(Lambda) before extracting the Lind
-    ll <- list(Class = "reTrms", Zt = Zt, u = numeric(q), nLevs = nl,
+    ll <- list(Class = "reTrms", Zt = Zt, u = numeric(q), ##-nL nLevs = nl,
                theta = thet, Lind = as.integer(Lambda@x))
     ## lower bounds on theta elements are 0 if on diagonal, else -Inf
     ll$lower <- -Inf * (thet + 1)
@@ -265,7 +265,8 @@ lmer <- function(formula, data, REML = TRUE, sparseX = FALSE,
     fr <- eval(mf, parent.frame())
                                         # random effects and terms modules
     reTrms <- mkReTrms(findbars(formula[[3]]), fr)
-    if (any(reTrms@nLevs >= ncol(reTrms@Zt)))
+##-nL if (any(reTrms@nLevs >= ncol(reTrms@Zt)))
+    if (any(unlist(lapply(reTrms@flist, nlevels)) >= ncol(reTrms@Zt)))
         stop("number of levels of each grouping factor must be less than number of obs")
     dcmp <- updateDcmp(reTrms, .dcmp())
                                         # fixed-effects module
@@ -1127,6 +1128,7 @@ blocksLambda <- function(re) {
     nc <- unlist(lapply(cnms, length),recursive=FALSE) # no. of columns per term
     ncseq <- seq_along(nc)
     thl <- split(re@theta, rep.int(ncseq, (nc * (nc + 1))/2))
+    fl <- re@flist
     structure(lapply(ncseq, function(i)
 		 {
 		     ## Li := \Lambda_i, the i-th block diagonal of \Lambda(\theta)
@@ -1135,9 +1137,11 @@ blocksLambda <- function(re) {
 		     rownames(Li) <- cnms[[i]]
 		     Li
 		 }),
-	      names = {fl <- re@flist; names(fl)[attr(fl, "assign")]},
+	      names = names(fl)[attr(fl, "assign")],
 	      ncols = nc,
-	      nLevs = re@nLevs)
+              nLevs = sapply(fl, nlevels)
+	      ##-nL nLevs = re@nLevs
+              )
 }
 if(FALSE) { ## Now we can easily "build" Lambda (inside the 're'):
     re <- mod@re
