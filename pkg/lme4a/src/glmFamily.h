@@ -6,14 +6,17 @@
 #include <Rmath.h>
 
 namespace glm {
+    // Map (associative array) of functions returning double from a double
     typedef std::map<std::string, double(*)(double)> fmap;
 
     class glmFamily {
-	std::string family, link;
-	Rcpp::List           lst;
+	std::string family, link; // as in the R glm family
+	Rcpp::List           lst; // original list from R
     public:
 	glmFamily(SEXP);
-	
+				// Application of functions from the family
+				// The scalar transformations use
+				// compiled code when available 
 	Rcpp::NumericVector  linkFun(Rcpp::NumericVector const&) const;
 	Rcpp::NumericVector  linkInv(Rcpp::NumericVector const&) const;
 	Rcpp::NumericVector devResid(
@@ -23,6 +26,7 @@ namespace glm {
 	Rcpp::NumericVector    muEta(Rcpp::NumericVector const&) const;
 	Rcpp::NumericVector variance(Rcpp::NumericVector const&) const;
     private:
+	// Class (as opposed to instance) members storing the scalar functions
 	static fmap
  	    devs,			//< scalar deviance functions
 	    lnks,			//< scalar link functions
@@ -30,8 +34,11 @@ namespace glm {
 	    muEtas,			//< scalar muEta functions
 	    varFuncs;			//< scalar variance functions
     
+	// Thresholds common to the class (FIXME: we should eliminate
+	// most of these)
 	static double epsilon, INVEPS, LTHRESH, MLTHRESH;
 
+	// Scalar functions that will used in transform applications
 	static inline double         cubef(double x) {return x * x * x;}
 	static inline double        identf(double x) {return x;}
 	static inline double     invderivf(double x) {return -1/(x * x);}

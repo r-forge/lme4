@@ -6,11 +6,13 @@ using namespace Rcpp;
 using namespace std;
 
 namespace glm {
+    // Establish the values for the class constants
     double glmFamily::epsilon = numeric_limits<double>::epsilon();
     double glmFamily::INVEPS = 1. / glmFamily::epsilon;
     double glmFamily::LTHRESH = 30.;
     double glmFamily::MLTHRESH = -30.;
     
+    // initialize the function maps to an empty map
     fmap glmFamily::linvs = fmap();
     fmap glmFamily::lnks = fmap();
     fmap glmFamily::muEtas = fmap();
@@ -24,7 +26,9 @@ namespace glm {
 	char *pt = fam[0]; family = string(pt);
 	pt = llink[0]; link = string(pt);
 	
-	if (!lnks.count("identity")) { // initialize the static maps
+	// initialize the static maps.  The identity link is
+	// guaranteed to be initialized if any maps are initialized
+	if (!lnks.count("identity")) { 
 	    lnks["log"]                  = &log;
 	    muEtas["log"] = linvs["log"] = &exp;
 	    
@@ -58,13 +62,17 @@ namespace glm {
 
     Rcpp::NumericVector
     glmFamily::linkFun(Rcpp::NumericVector const &mu) const {
-	if (lnks.count(link)) {
+	if (lnks.count(link)) {	// sapply the known scalar function
+// Needs Rcpp_0.8.3 or later
 //	    return NumericVector::import_transform(mu.begin(), mu.end(), lnks[link]);
 	    NumericVector ans = NumericVector(mu.size());
 	    transform(mu.begin(), mu.end(), ans.begin(), lnks[link]);
 	    return ans;
-	} else {
+	} else {		// use the R function
 	    Function linkfun = ((const_cast<glmFamily*>(this))->lst)["linkfun"];
+	    // The const_cast is needed so that this member function
+	    // can be const and also use the extraction of a list
+	    // component. 
 	    return linkfun(mu);
 	}
     }
@@ -114,6 +122,9 @@ namespace glm {
 	return devres(y, mu, weights);
     }
 }
+
+// Externally-callable function for testing the link, inverse link,
+// mu.eta and variance functions.
 
 RCPP_FUNCTION_3(Rcpp::NumericVector,testFam,Rcpp::List fp,Rcpp::NumericVector x,std::string which) {
     glm::glmFamily fam(fp);
