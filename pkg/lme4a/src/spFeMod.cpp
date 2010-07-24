@@ -28,7 +28,7 @@ namespace mer {
      * @return cu - RZX %*% beta
      */
     Rcpp::NumericVector spFeMod::updateBeta(Rcpp::NumericVector const &cu) {
-	Rcpp::NumericVector ans = clone(cu);
+	Rcpp::NumericVector ans(cu.size());
 	copy(cu.begin(), cu.end(), ans.begin());
 	copy(d_Vtr.begin(), d_Vtr.end(), d_beta.begin());
 	chmDn cbeta(d_beta), cans(ans);

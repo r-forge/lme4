@@ -129,12 +129,11 @@ mkFeModule <- function(form, fr, contrasts, reMod, sparseX)
     form[[3]] <- if(is.null(nb <- nobars(form[[3]]))) 1 else nb
     X <- model.Matrix(form, fr, contrasts, sparse = sparseX,
 		      row.names = FALSE)
-    p <- ncol(X)
     ZtX <- reMod@Zt %*% X
     new(if(sparseX) "spFeMod" else "deFeMod",
 	RZX = ZtX,
 	X = X,
-	beta = numeric(p),
+	beta = numeric(ncol(X)),
 	RX = {
 	    if (sparseX)    # crossprod(ZtX) may be more dense than X.X
 		Cholesky(crossprod(X) + crossprod(ZtX), LDL = FALSE)

@@ -44,6 +44,10 @@ namespace mer {
 	}
     };
 
+    // Add the fixed effects parameters and the random effects values
+    // as attributes of the deviance or REML criterion.  The purpose
+    // is to be able to treat the deviance or REML as the objective in
+    // an optimization but also retain some of the status information.
     Rcpp::NumericVector mkans(double,
 			      const Rcpp::NumericVector&,
 			      const Rcpp::NumericVector&,
