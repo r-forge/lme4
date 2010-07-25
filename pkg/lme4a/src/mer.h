@@ -74,6 +74,7 @@ namespace mer {
 	const cholmod_sparse         *Ut() const {return d_Ut;}
 	const MatrixNs::chmSp        &Zt() const {return d_Zt;}
 	double                      ldL2() const {return d_ldL2;}
+	// used in PIRLS when beta is not part of the solution
 	double                    solveU();
 	double                   sqrLenU() const {return d_sqrLenU;}
 
@@ -83,6 +84,7 @@ namespace mer {
 			  const Rcpp::NumericVector& = Rcpp::NumericVector(),
 			  double = 0.);
 	void updateLambda(const Rcpp::NumericVector&);
+	// used in PIRLSbeta for solving for both u and beta
 	void updateU     (const Rcpp::NumericVector&);
     };
 
@@ -242,6 +244,9 @@ namespace mer {
     public:
 	mer(Rcpp::S4&);
 
+	// These return a scalar numeric value but as an R vector so
+	// that it can have attributes attached to it.  See the mkans
+	// function.
 	Rcpp::NumericVector LMMdeviance(const Rcpp::NumericVector&);
 	Rcpp::NumericVector PIRLS      (const Rcpp::NumericVector&,
 					const Rcpp::NumericVector&,
