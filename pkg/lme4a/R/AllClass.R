@@ -87,66 +87,33 @@ setClass("reTrms",
      })
 
 ##' Fixed-effects module
-setClass("feModule", representation(beta = "numeric", "VIRTUAL"))
+#setClass("feModule", representation(coef = "numeric", "VIRTUAL"))
 
 .feValid <- function(object) {
     p <- ncol(object@X)
-    if (ncol(object@RZX) != p || ncol(object@RX) != p)
-        return("Number of columns in X, RZX, and RX must match")
+    if (ncol(object@RZX) != p || ncol(object@fac) != p)
+        return("Number of columns in X, RZX, and fac must match")
     TRUE
 }
 
 ##' Dense fixed-effects module
 setClass("deFeMod",
-         representation(RZX = "dgeMatrix",
-                        RX  =  "Cholesky",
-			X   = "dgeMatrix"),
-         contains = "feModule",
+         representation(RZX = "dgeMatrix"),
+##                        fac  =  "Cholesky",
+##			X   = "dgeMatrix"),
+         contains = "dPredModule",
          validity = .feValid)
 
 ##' Sparse fixed-effects module
 setClass("spFeMod",
-         representation(RZX = "dgCMatrix",
-                        RX =  "CHMfactor",
-                        X =   "dgCMatrix"),
-         contains = "feModule",
+         representation(RZX = "dgCMatrix"),
+##                        fac =  "CHMfactor",
+##                        X =   "dgCMatrix"),
+         contains = "sPredModule",
          validity = function(object) {
              if (is(rr <- .feValid(object), "character")) return(rr)
-             if (isLDL(object@RX))
-                 return("RX must be an LL factor, not LDL")
-             TRUE
-         })
-
-## To be removed after Matrix_0.999375-42 is released.
-
-## Response modules for models with a linear predictor, which can
-## include linear models, generalized linear models, nonlinear models
-## and generalized nonlinear models.
-
-## y, offset and mu are as expected.  Note that length(offset) can be a multiple of length(y)
-## weights are the prior weights
-## sqrtrwt and sqrtXwt are the square roots of residual and X weights
-
-setClass("respModule",
-         representation(mu = "numeric",      # of length n
-                        offset = "numeric",  # of length n * k
-                        sqrtXwt = "matrix",  # of dim(.) == dim(X) == (n, k)
-                        sqrtrwt = "numeric", # sqrt(residual weights)
-                        weights = "numeric", # prior weights
-                        wtres = "numeric",
-                        y = "numeric"),
-         validity = function(object) {
-             n <- length(object@y)
-             if (any(n != sapply(lapply(c("weights","sqrtrwt","mu","wtres"
-                     ), slot, object = object), length)))
-                 return("lengths of weights, sqrtwt and mu must match length(y)")
-             lo <- length(object@offset)
-             if (!lo || lo %% n)
-                 return("length(offset) must be a positive multiple of length(y)")
-             if (length(object@sqrtXwt) != lo)
-                 return("length(sqrtXwt) must equal length(offset)")
-             if (nrow(object@sqrtXwt) != n)
-                 return("nrow(sqrtXwt) != length(y)")
+             if (isLDL(object@fac))
+                 return("fac must be an LL factor, not LDL")
              TRUE
          })
 
@@ -155,7 +122,7 @@ setClass("merMod",
                         devcomp = "list",
 			frame   = "data.frame", # "model.frame" is not S4-ized yet
                         re      = "reModule",
-                        fe      = "feModule",
+                        fe      = "predModule",
                         resp    = "respModule"))
 
 setClass("lmerResp", representation(REML = "integer"), contains = "respModule")

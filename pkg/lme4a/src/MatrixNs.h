@@ -235,6 +235,8 @@ namespace MatrixNs {
 
 	const Rcpp::S4&  S4() const {return d_xp;}
 	const SEXPREC* sexp() const {return SEXP(d_xp);}
+	int              nr() const {return nrow;}
+	int              nc() const {return ncol;}
 	CHM_SP crossprod() const;
 	CHM_SP crossprod(const_CHM_SP, int = 1) const;
 	CHM_SP crossprod(const chmSp&, int = 1) const;

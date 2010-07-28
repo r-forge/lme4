@@ -133,8 +133,8 @@ mkFeModule <- function(form, fr, contrasts, reMod, sparseX)
     new(if(sparseX) "spFeMod" else "deFeMod",
 	RZX = ZtX,
 	X = X,
-	beta = numeric(ncol(X)),
-	RX = {
+	coef = numeric(ncol(X)),
+	fac = {
 	    if (sparseX)    # crossprod(ZtX) may be more dense than X.X
 		Cholesky(crossprod(X) + crossprod(ZtX), LDL = FALSE)
 	    else
@@ -161,13 +161,13 @@ setMethod("updateDcmp", signature(x = "reTrms", dcmp = "list"),
 setMethod("updateDcmp", signature(x = "deFeMod", dcmp = "list"),
           function(x, dcmp) {
               dcmp$dims["spFe"] <- 0L
-              dcmp$dims["p"] <- length(x@beta)
+              dcmp$dims["p"] <- length(x@coef)
               dcmp
           })
 setMethod("updateDcmp", signature(x = "spFeMod", dcmp = "list"),
           function(x, dcmp) {
               dcmp$dims["spFe"] <- 1L
-              dcmp$dims["p"] <- length(x@beta)
+              dcmp$dims["p"] <- length(x@coef)
               dcmp
           })
 
@@ -339,11 +339,11 @@ updateMod <- function(mod, pars, fval) {
     nms <- intersect(names(lst), names(dc$cmp))
     dc$cmp[nms] <- unlist(lst[nms])
     mod@re@theta <- pars
-    mod@fe@beta <- beta
+    mod@fe@coef <- beta
     mod@re@u <- u
     mod@re@L <- lst[["L"]]
     mod@re@Lambda <- lst[["Lambda"]]
-    mod@fe@RX <- lst[["RX"]]
+    mod@fe@fac <- lst[["RX"]]
     mod@fe@RZX <- lst[["RZX"]]
     mod@resp@mu <- lst[["mu"]]
     mod@devcomp <- dc
@@ -368,7 +368,7 @@ updateMod <- function(mod, pars, fval) {
 mkdevfun <- function(mod, nAGQ = 1L, u0 = numeric(length(mod@re@u)), verbose = 0L, compDev = TRUE) {
     stopifnot(is(mod, "merMod"))
     resp <- mod@resp
-    beta0 <- numeric(length(mod@fe@beta))
+    beta0 <- numeric(length(mod@fe@coef))
     if (is(resp, "lmerResp")) {
         if (compDev) return(function(th) .Call(merDeviance, mod, th, beta0, u0, 0L, 3L))
         WtMat <- Diagonal(x = resp@sqrtrwt)
@@ -433,7 +433,7 @@ setMethod("simulate", "merMod",
 
 	  n <- nrow(X <- object@fe @ X)
 	  ## result will be matrix  n x nsim :
-	  as.vector(X %*% object@fe @ beta) +  # fixed-effect contribution
+	  as.vector(X %*% object@fe @ coef) +  # fixed-effect contribution
 	      sigma(object) * (## random-effects contribution:
 			       if(use.u) {
 				   object@re @ u
@@ -498,7 +498,7 @@ bootMer <- function(x, FUN, nsim = 1, seed = NULL, use.u = FALSE,
         q <- ncol(U)
     }
     Zt <- x@re @ Zt
-    X.beta <- as.vector(X %*% x@fe @ beta) # fixed-effect contribution
+    X.beta <- as.vector(X %*% x@fe @ coef) # fixed-effect contribution
     sigm.x <- sigma(x)
 
     ## Here, and below ("optimize"/"bobyqa") using the "logic" of lmer2() itself:
@@ -507,7 +507,7 @@ bootMer <- function(x, FUN, nsim = 1, seed = NULL, use.u = FALSE,
 ##    oneD <- length(x@re@theta) < 2
     theta0 <- x@re@theta
     ## just for the "boot" result -- TODOmaybe drop
-    mle <- list(beta = x@fe @ beta, theta = theta0, sigma = sigm.x)
+    mle <- list(beta = x@fe @ coef, theta = theta0, sigma = sigm.x)
 
     t.star <- matrix(t0, nr = length(t0), nc = nsim)
     for(i in 1:nsim) {
@@ -711,10 +711,10 @@ nlmer <- function(formula, data, family = gaussian, start = NULL,
     fe.form[[3]] <- formula[[3]]
     feMod <- mkFeModule(fe.form, frE, contrasts, reTrms, sparseX = sparseX)
                                         # should this check be in mkFeModule?
-    p <- length(feMod@beta)
+    p <- length(feMod@coef)
     if ((qrX <- qr(feMod@X))$rank < p)
         stop(gettextf("rank of X = %d < ncol(X) = %d", qrX$rank, p))
-    feMod@beta <- qr.coef(qrX, unlist(lapply(pnames, get, envir = nlenv)))
+    feMod@coef <- qr.coef(qrX, unlist(lapply(pnames, get, envir = nlenv)))
     respMod <- mkRespMod(fr, nlenv = nlenv, nlmod = nlmod)
     ans <- new("merMod",
                call = mc,
@@ -726,7 +726,7 @@ nlmer <- function(formula, data, family = gaussian, start = NULL,
 
 ## Methods for the merMod class
 setMethod("fixef",  "merMod", function(object, ...)
-          structure(object@fe@beta, names = dimnames(object@fe@X)[[2]]))
+          structure(object@fe@coef, names = dimnames(object@fe@X)[[2]]))
 
 setMethod("formula",  "merMod", function(x, ...) formula(x@call, ...))
 
@@ -1053,7 +1053,7 @@ anovaLmer <- function(object, ...) {
 	stopifnot(length(asgn) == p,
                   is(object@fe, "deFeMod"), # haven't worked out sparse version
                   is(object@re, "reTrms"))  # things are really weird with no re terms
-        ss <- ((object@fe@RX %*% object@fe@beta)@x)^2
+        ss <- ((object@fe@fac %*% object@fe@coef)@x)^2
         names(ss) <- colnames(object@fe@X)
         terms <- terms(object)
         nmeffects <- setdiff(attr(terms, "term.labels"), names(object@re@flist))
@@ -1102,7 +1102,7 @@ mkVcov <- function(sigma, RX, nmsX, correlation = TRUE, ...) {
 
 setMethod("vcov", signature(object = "merMod"),
 	  function(object, correlation = TRUE, sigm = sigma(object), ...)
-	  mkVcov(sigm, RX = object@fe@RX, nmsX = colnames(object@fe@X),
+	  mkVcov(sigm, RX = object@fe@fac, nmsX = colnames(object@fe@X),
 		 correlation=correlation, ...))
 
 setMethod("vcov", "summary.mer",
@@ -1111,7 +1111,7 @@ setMethod("vcov", "summary.mer",
 	  if(!is.null(object$vcov))
 	      vcov
 	  else if(!is.null(FE <- object$fe))
-	      mkVcov(object$sigma, RX = FE@RX, nmsX = colnames(FE@X),
+	      mkVcov(object$sigma, RX = FE@fac, nmsX = colnames(FE@X),
 		     correlation=correlation, ...)
 	  else stop("Both 'vcov' and 'fe' components are missing.  You need\n",
 		    "at least one TRUE in summary(..,  varcov = *, keep.X = *)")
@@ -1202,7 +1202,7 @@ setMethod("VarCorr", signature(x = "merMod"),
 ##' @return numeric vector of length length(fixef(.))
 ##' @author Doug Bates & Martin Maechler
 ##' currently *not* exported on purpose
-unscaledVar <- function(object, RX = object@fe@RX)
+unscaledVar <- function(object, RX = object@fe@fac)
 {
     if (is(RX, "Cholesky")) return(diag(chol2inv(RX)))
     stopifnot(is(RX, "CHMfactor"))
@@ -1278,7 +1278,7 @@ setMethod("summary", "merMod",
           fam <- NULL
           if(is(resp, "glmRespMod")) fam <- resp@family
           coefs <- cbind("Estimate" = fixef(object),
-                         "Std. Error" = sig * sqrt(unscaledVar(RX = object@fe@RX)))
+                         "Std. Error" = sig * sqrt(unscaledVar(RX = object@fe@fac)))
           if (nrow(coefs) > 0) {
               coefs <- cbind(coefs, coefs[,1]/coefs[,2], deparse.level=0)
               colnames(coefs)[3] <- paste(if(useSc) "t" else "z", "value")

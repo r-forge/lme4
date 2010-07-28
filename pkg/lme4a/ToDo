@@ -1,9 +1,10 @@
 -----
-For the Poisson and Binomial families, set useSc to be FALSE.  Modify
-the print and VarCorr methods to honor the useSc setting.
+Do not profile out a common scale factor for any of the glm families.
+This will remove the need for the useSc setting.
 -----
-Consider different classes for different model types (maybe not, that
-got too complicated in the past).
+Allow for the reModule class to inherit from predModule.  This will
+involve changing the representation of the reModule classes to contain
+Z rather than Zt, which may be a better idea anyway.
 -----
 Consider the steps in reimplementing AGQ.  First you need to find the
 conditional modes, then evaluate the conditional variances, then step
@@ -22,10 +23,6 @@ this will mean a single grouping factor only.
 -----
 Allow for a matrix of responses in lmer so multiple fits can be
 performed without needing to regenerate the model matrices.
------
-Modify the one-argument form of the anova method for lmer objects (yet
-  again) to calculate the F ratios.  It is the df, not the ratio that
-  is controversial.
 -----
 Determine what a "coef" function should do for multiple, possibly
   non-nested, grouping  factors.

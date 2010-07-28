@@ -1,4 +1,4 @@
-#include "mer.h"
+#include "respModule.h"
 
 using namespace std;
 
@@ -20,7 +20,8 @@ namespace mer{
     }
 
     double lmerResp::updateMu(Rcpp::NumericVector const &gamma) {
-	copy(gamma.begin(), gamma.end(), d_mu.begin());
+	transform(gamma.begin(), gamma.end(), d_offset.begin(),
+		  d_mu.begin(), plus<double>());
 	return updateWrss();
     }
 

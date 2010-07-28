@@ -1,10 +1,21 @@
-#include "mer.h"
+#include "reModule.h"
 
 using namespace Rcpp;
 using namespace MatrixNs;
 using namespace std;
 
 namespace mer{
+    struct lengthFun : std::unary_function<Rcpp::RObject, R_len_t> {
+	inline R_len_t operator() (const Rcpp::RObject& x) {
+	    return Rf_length(SEXP(x));}
+    };
+
+    struct nlevsFun : std::unary_function<Rcpp::RObject, R_len_t> {
+	inline R_len_t operator() (const Rcpp::RObject& x) {
+	    return Rf_length(Rf_getAttrib(SEXP(x), R_LevelsSymbol));
+	}
+    };
+
     reTrms::reTrms(Rcpp::S4 xp)
 	: reModule(xp),
 	  d_flist(xp.slot("flist")),

@@ -1,4 +1,4 @@
-#include "mer.h"
+#include "reModule.h"
 
 using namespace Rcpp;
 using namespace MatrixNs;
@@ -15,6 +15,14 @@ namespace mer{
 	  d_u(              d_L.n),       
 	  d_cu(             d_L.n) {
 	d_Ut = (CHM_SP)NULL;
+    }
+
+    Rcpp::NumericVector reModule::linPred() const {
+	NumericVector bb(d_u.size()), ans(d_Zt.nc());
+	chmDn cans(ans), cbb(bb);
+	d_Lambda.dmult('N',1.,0.,chmDn(d_u),cbb);
+	d_Zt.dmult('T',1.,0.,cbb,cans);
+	return ans;
     }
 
     /** 

@@ -1,16 +1,17 @@
 \name{feModule-class}
 \Rdversion{1.1}
 \docType{class}
-\alias{feModule-class}
+%\alias{feModule-class}
 \alias{deFeMod-class}
 \alias{spFeMod-class}
 \title{Class "deFeMod"}
 \description{
-  The \code{"feModule"} class is the virtual base class of
-  fixed-effects modules for mixed-effects models.  Classes that inherit from
-  \code{"feModule"} are \code{"deFeMod"} and \code{"spFeMod"}, the
-  distinction being whether the model matrix is a dense ("de") or a
-  sparse ("sp") matrix.
+  The \code{"deFeMod"} and \code{"spFeMod"} classes are response module
+  classes for the fixed-effects terms in a mixed model.  They inherit
+  from the \code{"\linkS4class{predModule}"} classes
+  \code{"\linkS4class{dPredModule}"} and
+  \code{"\linkS4class{sPredModule}"}, respectively and contain
+  additional slots related to the random-effects module.
 }
 \section{Objects from the Class}{
   Objects from these classes are usually created as part of
@@ -23,15 +24,8 @@
       decomposition for the penalized least squares problem - of class 
       \code{"\linkS4class{dgeMatrix}"} for \code{"deFeMod"} objects or
       \code{"\linkS4class{dgCMatrix}"} for \code{"spFeMod"} objects.}
-    \item{\code{RX}:}{The lower-right part of the Cholesky
-      decomposition for the penalized least squares problem - of class 
-      \code{"\linkS4class{Cholesky}"} for \code{"deFeMod"} objects or
-      \code{"\linkS4class{CHMfactor}"} for \code{"spFeMod"} objects.}
-    \item{\code{X}:}{Model matrix for the fixed-effects parameters - of
-      class \code{"\linkS4class{dgeMatrix}"} for \code{"deFeMod"}
-      objects or \code{"\linkS4class{dgCMatrix}"} for \code{"spFeMod"}
-      objects.} 
-    \item{\code{beta}:}{Numeric vector of fixed-effects parameters}
+    \item{\code{coef}, \code{X}, \code{fac}:}{Inherited from the
+      appropriate \code{"\linkS4class{predModule}"} class.}
   }
 }
 \section{Methods}{
@@ -40,7 +34,6 @@ No methods defined with class "feModule" in the signature.
 \seealso{\code{\linkS4class{merMod}}}
 \examples{
 showClass("deFeMod")
-showClass("feModule")
 showClass("spFeMod")
 }
 \keyword{classes}

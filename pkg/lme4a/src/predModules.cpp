@@ -1,21 +1,20 @@
-#include "mer.h"
-#include "glm.h"
+#include "predModules.h"
 #include <R_ext/BLAS.h>
+#include "utilities.h"
 
 using namespace std;
 using namespace MatrixNs;
 
-namespace glm {
+namespace matMod {
     predModule::predModule(Rcpp::S4& xp)
-	: d_xp(                     xp),
-	  d_coef(SEXP(xp.slot("coef"))),
-	  d_Vtr(          d_coef.size()) {
+	: d_xp(                                  xp),
+	  d_coef(Rcpp::clone(SEXP(xp.slot("coef")))),
+	  d_Vtr(                      d_coef.size()) {
     }
     
     void predModule::setCoef(Rcpp::NumericVector const& cbase,
 			     Rcpp::NumericVector const&  incr,
 			     double                      step) {
-	// FIXME: have feModule inherit from predModule so this is not repeated.
 	R_len_t p = d_coef.size();
 	if (cbase.size() != p)
 	    throw runtime_error("predModule::setCoef size mismatch of coef and cbase");
@@ -30,27 +29,32 @@ namespace glm {
 	}
     }
 
-    dPredModule::dPredModule(Rcpp::S4 xp, R_len_t n)
+    dPredModule::dPredModule(Rcpp::S4 xp, int n)
 	: predModule(                  xp),
 	  d_X(     Rcpp::S4(xp.slot("X"))),
 	  d_V(            n,   d_X.ncol()),
 	  d_fac( Rcpp::S4(xp.slot("fac"))) {
     }
 
+    Rcpp::NumericVector dPredModule::linPred() const {
+	Rcpp::NumericVector ans(d_X.nrow());
+	d_X.dgemv('N', 1., d_coef, 0., ans);
+	return ans;
+    }
+
     /** 
      * Update V, VtV and Vtr
      * 
-     * @param Ut from the reModule
      * @param Xwt square root of the weights for the model matrices
      * @param wtres weighted residuals
      */
     void dPredModule::reweight(Rcpp::NumericMatrix   const&   Xwt,
-			    Rcpp::NumericVector   const& wtres) {
+			       Rcpp::NumericVector   const& wtres) {
 	if (d_coef.size() == 0) return;
 	chmDn cXwt(Xwt);
 	if ((Xwt.rows() * Xwt.cols()) != d_X.nrow())
 	    Rf_error("%s: dimension mismatch %s(%d,%d), %s(%d,%d)",
-		     "deFeMod::reweight", "X", d_X.nrow(), d_X.ncol(),
+		     "dPredModule::reweight", "X", d_X.nrow(), d_X.ncol(),
 		     "Xwt", Xwt.nrow(), Xwt.ncol());
 	int Wnc = Xwt.ncol(), Wnr = Xwt.nrow(),
 	    Xnc = d_X.ncol(), Xnr = d_X.nrow();
@@ -77,7 +81,14 @@ namespace glm {
 	d_fac.update(d_V);
     }
     
+    /** 
+     * Solve (V'V)coef = Vtr for coef.
+     *
+     * @param wrss weighted residual sum of squares (defaults to 1.)
+     * @return convergence criterion
+     */
     double dPredModule::solveCoef(double wrss) {
+	if (d_coef.size() == 0) return 0.;
 	copy(d_Vtr.begin(), d_Vtr.end(), d_coef.begin());
 	d_fac.dtrtrs('T', d_coef.begin()); // solve R'c = Vtr
 	double ans = sqrt(inner_product(d_coef.begin(), d_coef.end(),
@@ -86,16 +97,27 @@ namespace glm {
 	return ans;
     }
 
-    sPredModule::sPredModule(Rcpp::S4 xp, R_len_t n)
+    sPredModule::sPredModule(Rcpp::S4 xp, int n)
 	: predModule(                  xp),
 	  d_X(     Rcpp::S4(xp.slot("X"))),
 	  d_fac(  Rcpp::S4(xp.slot("fac"))) {
+	d_V = (CHM_SP)NULL;
+    }
+
+    Rcpp::NumericVector sPredModule::linPred() const {
+	Rcpp::NumericVector ans(d_X.nr());
+	chmDn cans(ans);
+	d_X.dmult('N',1.,0.,chmDn(d_coef),cans);
+	return ans;
     }
 
     /** 
-     * Update V, VtV and Vtr
+     * Update V, Vtr and fac
+     *
+     * Note: May want to update fac in a separate operation.  For the
+     * fixed-effects modules this will update the factor twice because
+     * it is separately updated in updateRzxRx.
      * 
-     * @param Ut from the reModule
      * @param Xwt square root of the weights for the model matrices
      * @param wtres weighted residuals
      */
@@ -127,24 +149,15 @@ namespace glm {
     }
 
     double sPredModule::solveCoef(double wrss) {
-	Rcpp::NumericMatrix cc = d_fac.solve(CHOLMOD_L, d_fac.solve(CHOLMOD_P, d_Vtr));
+	Rcpp::NumericMatrix
+	    cc = d_fac.solve(CHOLMOD_L, d_fac.solve(CHOLMOD_P, d_Vtr));
 	double ans = sqrt(inner_product(cc.begin(), cc.end(),
 					cc.begin(), double())/wrss);
-	Rcpp::NumericMatrix bb = d_fac.solve(CHOLMOD_Pt, d_fac.solve(CHOLMOD_Lt, cc));
+	Rcpp::NumericMatrix
+	    bb = d_fac.solve(CHOLMOD_Pt, d_fac.solve(CHOLMOD_Lt, cc));
 	copy(bb.begin(), bb.end(), d_coef.begin());
 	return ans;
     }
 
-
 }
 
-RCPP_FUNCTION_2(Rcpp::List, glmIRLS, Rcpp::S4 xp, int verb) {
-    Rcpp::S4 pm = xp.slot("pred");
-    if (pm.is("dPredModule")) {
-	glm::mod<glm::dPredModule,mer::glmerResp> m(xp);
-	return m.IRLS(verb);
-    } else if(pm.is("sPredModule")) {
-	glm::mod<glm::sPredModule,mer::glmerResp> m(xp);
-	return m.IRLS(verb);
-    } else throw runtime_error("Unknown linear predictor module type");
-}
