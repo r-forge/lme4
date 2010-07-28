@@ -1,17 +1,36 @@
 useDynLib(lme4a, .registration=TRUE)
 
+## Import non-base functions we need explicitly,
+## notably for which we define methods:
+
+
+## FIXME -- really need all these three ??
 import("grid")
 import("lattice")
 import("splines")
+
 importFrom("graphics", plot)
 importFrom("nlme", fixef, ranef, VarCorr)
 importFrom("stats4", AIC, BIC, logLik)# so S4 methods are used!
 importFrom("stats",
            anova, coef, confint, deviance, fitted, formula,
            model.frame, model.matrix, predict, profile,
-           resid, residuals, simulate, terms, vcov)
+           resid, residuals, simulate, terms, vcov
+           )
+importFrom("Matrix", update)# S4
 
 importFrom("minqa", bobyqa)
+
+importClassesFrom("MatrixModels",
+                  modelMatrix,
+                  denseModelMatrix,  ddenseModelMatrix,
+                  sparseModelMatrix, dsparseModelMatrix,
+                  predModule,
+                  dPredModule,
+                  sPredModule,
+                  respModule,
+                  glmRespMod,
+                  nlsRespMod)
 
 importClassesFrom("Matrix",
                   CHMfactor,
@@ -28,18 +47,14 @@ importClassesFrom("Matrix",
                   dgeMatrix,
                   dpoMatrix,
                   dsCMatrix,
-                  modelMatrix,
-                  denseModelMatrix,  ddenseModelMatrix,
-                  sparseModelMatrix, dsparseModelMatrix,
-                  predModule,
-                  dPredModule,
-                  sPredModule,
-                  respModule,
-                  glmRespMod,
-                  nlsRespMod,
                   nCHMsimpl,
                   nCHMsuper,
                   symmetricMatrix)
+
+## from MatrixModels, too {not just from 'stats'}:
+importMethodsFrom("MatrixModels",
+                  coef, fitted, formula, residuals,
+                  update)
 
 importMethodsFrom("Matrix",
                   "%*%",
@@ -55,8 +70,7 @@ importMethodsFrom("Matrix",
                   solve,
                   summary,
                   t,
-                  tcrossprod,
-                  update)
+                  tcrossprod)
 
 ## re-export imported S4 generics
 export(AIC, BIC, logLik)
