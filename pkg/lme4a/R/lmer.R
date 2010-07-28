@@ -930,7 +930,7 @@ printMerenv <- function(x, digits = max(3, getOption("digits") - 3),
 
 setMethod("print", "merMod", printMerenv)
 setMethod("show",  "merMod", function(object) printMerenv(object))
-setMethod("fitted", "merMod", function(object) object@resp@mu)
+setMethod("fitted", "merMod", function(object,...) object@resp@mu)
 
 setMethod("print", "summary.mer", printMerenv)
 setMethod("show",  "summary.mer", function(object) printMerenv(object))
