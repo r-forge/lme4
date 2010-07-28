@@ -1,8 +1,9 @@
-#include "mer.h"
+#include "respModule.h"
 
 using namespace std;
 
 namespace mer{
+
     glmerResp::glmerResp(Rcpp::S4 xp)
 	: merResp(    xp),
 	  family(SEXP(xp.slot("family"))),
@@ -23,11 +24,18 @@ namespace mer{
     }
 	
     double glmerResp::updateMu(Rcpp::NumericVector const &gamma) {
-	copy(gamma.begin(), gamma.end(), d_eta.begin());
+	transform(gamma.begin(), gamma.end(), d_offset.begin(),
+		  d_eta.begin(), plus<double>());
 	Rcpp::NumericVector li = family.linkInv(d_eta);
 	copy(li.begin(), li.end(), d_mu.begin());
 	return updateWrss();
     }
+
+    struct sqrtquotFun : std::binary_function<double,double,double> {
+	inline double operator() (double x, double y) {
+	    return sqrt(x / y);
+	}
+    };
 
     double glmerResp::updateWts() {
 	Rcpp::NumericVector mueta = family.  muEta(d_eta),

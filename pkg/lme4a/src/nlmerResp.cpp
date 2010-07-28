@@ -1,4 +1,4 @@
-#include "mer.h"
+#include "respModule.h"
 
 using namespace std;
 
@@ -20,7 +20,8 @@ namespace mer{
 
     double nlmerResp::updateMu(Rcpp::NumericVector const &gamma) {
 	int n = d_y.size();
-	double *gg = gamma.begin();
+	Rcpp::NumericVector gam = gamma + d_offset; // needs Rcpp_0.8.3 or later
+	double *gg = gam.begin();
 
 	for (int p = 0; p < pnames.size(); p++) {
 	    string pn(pnames[p]);

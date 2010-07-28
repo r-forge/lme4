@@ -1,5 +1,18 @@
 setGeneric("dropX",
            function(x, which, fw) standardGeneric("dropX"))
+## This is a hack.  The preferred approach is to write a
+## subset method for the ddenseModelMatrix and dsparseModelMatrix
+## classes
+
+.modelMatrixDrop <- function(mm, w) {
+    ll <- list(Class = class(mm),
+               assign = mm@assign[-w],
+               contrasts = mm@contrasts)
+    X <- mm[, -w, drop = FALSE]
+    ll <- c(ll, lapply(structure(slotNames(X), .Names=slotNames(X)),
+                       function(nm) slot(X, nm)))
+    do.call("new", ll)
+}
 
 ##' Drop the which'th column from X in an merMod object
 
@@ -21,15 +34,15 @@ setMethod("dropX", "merMod",
           fw <- as.numeric(fw)[1]
           fe <- x@fe
           resp <- x@resp
-          p <- length(fe@beta)
+          p <- length(fe@coef)
           stopifnot(0 < w, w <= p)
           Xw <-fe@X[, w, drop = TRUE]
-          X <- fe@X[, -w, drop = FALSE]
+          X <- .modelMatrixDrop(fe@X, w)
           VtV <- crossprod(X)
           ll <- list(Class = class(fe),
-                     beta = fe@beta[-w],
+                     coef = fe@coef[-w],
                      RZX = fe@RZX[, -w, drop = FALSE],
-                     RX = chol(VtV),
+                     fac = chol(VtV),
                      X = X)
           ## offset calculated from fixed parameter value
           resp@offset <- Xw * fw + resp@offset
@@ -396,7 +409,7 @@ devfun2 <- function(fm)
         sigma <- exp(pars[np])
         sigsq <- sigma^2
         pp <- pars[-np]/sigma
-        fv <- .Call(merDeviance, fm1, pp, fm1@fe@beta, fm1@re@u, 0L, 1L)
+        fv <- .Call(merDeviance, fm1, pp, fm1@fe@coef, fm1@re@u, 0L, 1L)
         aa <- attr(fv,"ldL2") + (attr(fv,"wrss")+attr(fv,"ussq"))/sigsq +
             length(fm1@resp@y) * log(2 * pi * sigsq)
         mostattributes(aa) <- attributes(fv)
@@ -407,7 +420,7 @@ devfun2 <- function(fm)
     attr(ans, "optimum") <- c(opt, fixef(fm1)) # w/ names()
     attr(ans, "basedev") <- basedev
     attr(ans, "thopt") <- th
-    attr(ans, "stderr") <- sig * sqrt(unscaledVar(RX = fm1@fe@RX))
+    attr(ans, "stderr") <- sig * sqrt(unscaledVar(RX = fm1@fe@fac))
     class(ans) <- "devfun"
     ans
 }
@@ -424,7 +437,7 @@ setMethod("profile", "merMod",
           fm1 <- environment(dd)$fm1
           X.orig <- fm1@fe@X
           n <- length(fm1@resp@y)
-          p <- length(fm1@fe@beta)
+          p <- length(fm1@fe@coef)
 
           ans <- lapply(opt <- attr(dd, "optimum"), function(el) NULL)
           bakspl <- forspl <- ans

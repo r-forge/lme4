@@ -60,7 +60,7 @@ bootMer(x, FUN, nsim=1, seed, use.u=FALSE, verbose=FALSE,
 fm01ML <- lmer(Yield ~ 1|Batch, Dyestuff, REML = FALSE)
 ## see ?"profile-methods"
 mySumm <- function(.) { s <- sigma(.)
-    c(beta =.@fe@beta, sigma = s, sig01 = s * .@re@theta) }
+    c(beta =.@fe@coef, sigma = s, sig01 = s * .@re@theta) }
 (t0 <- mySumm(fm01ML)) # just three parameters
 
 ## 3.8s (on a 5600 MIPS 64bit fast(year 2009) desktop "AMD Phenom(tm) II X4 925"):

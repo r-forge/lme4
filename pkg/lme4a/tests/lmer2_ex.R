@@ -38,7 +38,7 @@ chkLmers <- function(form, data, verbose = FALSE,
               ,
               Eq(m2@re, m2.@re)
               ,
-              Eq(m2@fe@beta, m2.@fe@beta)
+              Eq(m2@fe@coef, m2.@fe@coef)
               ,
               ## and now compare with the "old" (class 'mer')
 #              Eq(unname(fixef(m)), m2@fe@beta)

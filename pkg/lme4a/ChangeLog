@@ -1,3 +1,32 @@
+2010-07-28  Douglas Bates  <bates@stat.wisc.edu>
+
+	* NAMESPACE, src/*, R/AllClass.R: Remove the feModule class.  The
+	actual classes of fixed-effects modules, deFeMod and spFeMod, now
+	inherit from predModule in the Matrix package (soon to be moved to
+	the matrixModels package).  The coefficients are now named "coef",
+	not "beta", requiring changes in several source, R and test files.
+
+	* src/predModules.{h,cpp}: Compiled code for the predModules
+	classes.  Eventually this will be moved to the matrixModels
+	package.  The predModules classes, including deFeMod and spFeMod,
+	have a linPred method to return (the modules contribution to) the
+	linear predictor.  The updateMu method for the mer::mer template
+	adds the contributions of the fixed and random effects modules.
+
+	* src/respModule.h, src/[gn]lmerResp.cpp: The respModule classes
+	now have add the offset to the linear predictor before updating mu.
+
+	* src/reModule.h (mer): ssre class for random effects consisting
+	of a single, simple, scalar random effects term.  Such models are
+	trivial for linear mixed models but for GLMMs they are widely used
+	and would be the primary application of adaptive Gauss-Hermite
+	quadrature. This class is not yet incorporated in the model
+	representations. 
+
+	* src/utilities.{h,cpp}: The utility functions have been moved to
+	separate source and header files.  The file structure now, I hope,
+	reflects the logical organization more closely.
+
 2010-06-27  Douglas Bates  <bates@stat.wisc.edu>
 
 	* src/*, R/*, tests/*, man/*: Move code using the merenv

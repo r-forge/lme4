@@ -1,4 +1,20 @@
 -----
+Switch the deFeMod and spFeMod classes to inherit from the
+corresponding predModule classes.  The coefficient vector is now
+called "coef" instead of "beta".
+-----
+Switch the definition of the respModule updateMu method so that it
+will add the offset to the input gamma.  The method for the linear
+predictor module will return a Rcpp::NumericVector object rather than
+updating a numeric vector.  Addition will be done externally.
+-----
+For the Poisson and Binomial families, set useSc to be FALSE.  Modify
+the print and VarCorr methods to honor the useSc setting.
+-----
+Create the respModule and predModule classes. 
+-----
+Define reModule and feModule classes.
+-----
 Fix up the specifications of the result of getBounds.  It should be a
 matrix with two columns.
 -----

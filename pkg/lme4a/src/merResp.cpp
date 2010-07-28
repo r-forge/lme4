@@ -1,8 +1,14 @@
-#include "mer.h"
+#include "respModule.h"
 
 using namespace std;
 
 namespace mer{
+    struct sqrtFun : std::unary_function<double,double> {
+	inline double operator() (double x) {
+	    return sqrt(x);
+	}
+    };
+
     merResp::merResp(Rcpp::S4 xp)
 	: d_xp(                      xp),
 	  d_offset(                  xp.slot("offset")),

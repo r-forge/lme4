@@ -65,7 +65,7 @@ export(VarCorr, bootMer, devcomp, getL,
        glmer, lmList, lmer, mkdevfun, nlmer,
        sigma, findbars, nobars, subbars, isNested)
 
-exportClasses(deFeMod, feModule, lmerResp, lmList, merMod,
+exportClasses(deFeMod, lmerResp, lmList, merMod,
               reModule, reTrms, spFeMod)
 
 exportMethods(VarCorr, anova, coef, coerce, confint, deviance,

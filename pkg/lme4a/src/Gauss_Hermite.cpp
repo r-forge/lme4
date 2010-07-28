@@ -2,6 +2,7 @@
 #include <cmath>
 using namespace std;
 using namespace Rcpp;
+
 namespace mer {
 
     /**
@@ -10,7 +11,6 @@ namespace mer {
      *
      * Derived from Fortran code in package 'glmmML'
      *
-     * @param N order of the Hermite polynomial
      * @param x zeros of the polynomial, abscissas for AGQ
      * @param w weights used in AGQ
      */
@@ -93,7 +93,7 @@ namespace mer {
 /**
  * Return zeros and weights of Hermite polynomial of order n as a list
  *
- * @param np pointer to a scalar integer SEXP
+ * @param n number of quadrature points
  * @return a list with two components, the abscissas and the weights.
  *
  */
