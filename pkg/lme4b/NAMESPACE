@@ -52,7 +52,7 @@ importMethodsFrom("Matrix",
 ## re-export imported S4 generics
 export(AIC, BIC, logLik)
 ## and the rest (S3 generics; regular functions):
-export(VarCorr, #bootMer,
+export(VarCorr, 
        copyMerenv, devcomp, env, getL, # getCall,
        glmer1, lmList, lmer1,
        nlmer1, sigma, findbars, nobars, subbars, isNested)
@@ -69,19 +69,19 @@ exportMethods(VarCorr, anova, bobyqa, coef, coerce, #confint,
               logLik, nlminb, model.frame, model.matrix, terms,
               optimize,# plot,
               print,
-              #profile,
+              profile,
               ranef,
               show,
               #simulate,
               sigma, summary, update, vcov)
 
-#S3method(plot, coef.mer)
-#S3method(dotplot, coef.mer)
-#S3method(plot, ranef.mer)
-#S3method(qqmath, ranef.mer)
-#S3method(dotplot, ranef.mer)
+S3method(plot, coef.mer)
+S3method(dotplot, coef.mer)
+S3method(plot, ranef.mer)
+S3method(qqmath, ranef.mer)
+S3method(dotplot, ranef.mer)
 ## profile() related:
-#S3method(xyplot, thpr)
-#S3method(confint, thpr)
-#S3method(splom, thpr)
-#S3method(log, thpr)
+S3method(xyplot, thpr)
+S3method(confint, thpr)
+S3method(splom, thpr)
+S3method(log, thpr)

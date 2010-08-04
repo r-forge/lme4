@@ -1320,25 +1320,6 @@ setMethod("coef", signature(object = "mer"), coefMer)
 
 ## For Matrix API change (Oct.2009) - silence the warning:
 assign("det_CHMfactor.warn", FALSE, envir = Matrix:::.MatrixEnv)
-
-##' Create a deep copy of an merenv object.
-##' @param x an lmerenv object to copy
-
-##' @return a copy of x
-copyMerenv <- function(x) {
-    stopifnot(is(x, "merenv"))
-    gb <- x@getBounds
-    gp <- x@getPars
-    sp <- x@setPars
-    rho <- env(x)
-    en <- .Call(lme4_dup_env_contents,
-                new.env(parent = parent.env(rho)),
-                rho,
-                ls(envir = rho, all.names = TRUE))
-    environment(gb) <- environment(gp) <- environment(sp) <- en
-    new("lmerenv", setPars = sp, getPars = gp, getBounds = gb)
-}
-
 ##' <description>
 ##' Compute standard errors of fixed effects from an lmer()
 ##'
