@@ -15,22 +15,10 @@ importFrom("stats4", AIC, BIC, logLik)# so S4 methods are used!
 importFrom("stats",
            anova, coef, confint, deviance, fitted, formula,
            model.frame, model.matrix, predict, profile,
-           resid, residuals, simulate, terms, vcov
-           )
-importFrom("Matrix", update)# S4
+           resid, residuals, simulate, terms, #update,
+           vcov)
 
 importFrom("minqa", bobyqa)
-
-importClassesFrom("MatrixModels",
-                  modelMatrix,
-                  denseModelMatrix,  ddenseModelMatrix,
-                  sparseModelMatrix, dsparseModelMatrix,
-                  predModule,
-                  dPredModule,
-                  sPredModule,
-                  respModule,
-                  glmRespMod,
-                  nlsRespMod)
 
 importClassesFrom("Matrix",
                   CHMfactor,
@@ -50,6 +38,17 @@ importClassesFrom("Matrix",
                   nCHMsimpl,
                   nCHMsuper,
                   symmetricMatrix)
+
+importClassesFrom("MatrixModels",
+                  modelMatrix,
+                  denseModelMatrix,  ddenseModelMatrix,
+                  sparseModelMatrix, dsparseModelMatrix,
+                  predModule,
+                  dPredModule,
+                  sPredModule,
+                  respModule,
+                  glmRespMod,
+                  nlsRespMod)
 
 ## from MatrixModels, too {not just from 'stats'}:
 importMethodsFrom("MatrixModels",
