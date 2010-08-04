@@ -52,6 +52,10 @@ namespace glm {
 	    linvs["probit"]              = &probitLinkInv;
 	    muEtas["probit"]             = &probitMuEta;
 	    
+//	    lnks["cloglog"]              = &cloglogLink;
+	    linvs["cloglog"]             = &cloglogLinkInv;
+	    muEtas["cloglog"]            = &cloglogMuEta;
+	    
 	    varFuncs["Gamma"]            = &sqrf;   // x^2
 	    varFuncs["binomial"]         = &x1mxf;  // x * (1 - x)
 	    varFuncs["inverse.gaussian"] = &cubef;  // x^3

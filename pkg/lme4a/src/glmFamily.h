@@ -53,23 +53,41 @@ namespace glm {
 	static inline double      finite01(double x) { // truncate to [eps, 1 - eps]
 	    return std::max(epsilon, std::min(1. - epsilon, x));
 	}
-	static inline double  logitLinkInv(double x) {
+	static inline double   logitLinkInv(double x) {
 	    return Rf_plogis(x, 0., 1., 1, 0);
 	}
-	static inline double     logitLink(double x) {
+	static inline double      logitLink(double x) {
 	    return Rf_qlogis(x, 0., 1., 1, 0);
 	}
-	static inline double    logitMuEta(double x) {
+	static inline double     logitMuEta(double x) {
 	    return Rf_dlogis(x, 0., 1., 0);
 	}
-	static inline double probitLinkInv(double x) {
+	static inline double  probitLinkInv(double x) {
 	    return Rf_pnorm5(x, 0., 1., 1, 0);
 	}
-	static inline double    probitLink(double x) {
+	static inline double     probitLink(double x) {
 	    return Rf_qnorm5(x, 0., 1., 1, 0);
 	}
-	static inline double   probitMuEta(double x) {
+	static inline double    probitMuEta(double x) {
 	    return Rf_dnorm4(x, 0., 1., 0);
+	}
+	static inline double
+	pgumbel(double q, double loc, double scale, int lower_tail) {
+	    q = (q - loc) / scale;
+	    q = -exp(q);
+	    return lower_tail ? -expm1(q) : exp(q);
+	}
+	static inline double cloglogLinkInv(double x) {
+	    return pgumbel(x, 0., 1., 1);
+	}
+	static inline double
+	dgumbel(double x, double loc, double scale, int give_log) {
+	    x = (x - loc) / scale;
+	    x = -exp(-x) - x - log(scale);
+	    return give_log ? x : exp(x);
+	}
+	static inline double   cloglogMuEta(double x) {
+	    return dgumbel(x, 0., 1., 0);
 	}
     };
 }
