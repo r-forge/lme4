@@ -33,7 +33,7 @@
 \examples{
 str(Contraception)
 summary(Contraception)
-(fm1 <- lmer(use ~ urban+age+livch+(1|district), Contraception, binomial))
-(fm2 <- lmer(use ~ urban+age+livch+(urban|district), Contraception, binomial))
+(fm1 <- glmer(use ~ urban+age+livch+(1|district), Contraception, binomial))
+(fm2 <- glmer(use ~ urban+age+livch+(urban|district), Contraception, binomial))
 }
 \keyword{datasets}
