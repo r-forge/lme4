@@ -327,26 +327,47 @@ updateMod <- function(mod, pars, fval) {
               length(beta) == ncol(fe@X),
               length(u) == nrow(re@Zt))
     pars <- pars[seq_along(lower)]
-    lst <- .Call(updateDc, mod, pars, beta, u)
-    lst[ifelse(is(resp, "lmerResp") && resp@REML, "REML", "dev")] <- as.vector(fval)
-    lst["ldL2"] <- ldL2
-    lst["wrss"] <- wrss
-    lst["ussq"] <- ussq
-    lst["pwrss"] <- pwrss <- wrss + ussq
-    lst["sigmaML"] <- sqrt(pwrss/length(resp@y))
-    lst["sigmaREML"] <- sqrt(pwrss/(length(resp@y)-length(beta)))
-    dc <- mod@devcomp
-    nms <- intersect(names(lst), names(dc$cmp))
-    dc$cmp[nms] <- unlist(lst[nms])
-    mod@re@theta <- pars
-    mod@fe@coef <- beta
-    mod@re@u <- u
-    mod@re@L <- lst[["L"]]
-    mod@re@Lambda <- lst[["Lambda"]]
-    mod@fe@fac <- lst[["RX"]]
-    mod@fe@RZX <- lst[["RZX"]]
-    mod@resp@mu <- lst[["mu"]]
-    mod@devcomp <- dc
+    ## Avoid the compiled functions for this one update
+    ## lst <- .Call(updateDc, mod, pars, beta, u)
+    re@Lambda@x[] <- pars[re@Lind]      # update Lambda
+    re@theta <- pars
+    ## FIXME: Create the reModule as inheriting from respModule with Z
+    ## %*% Lambda as the model matrix X and u as coef.  Then the only
+    ## thing that needs to be changed is to allow the multiple of the
+    ## identity in the update of fac.
+    resp <- MatrixModels:::updateWts(MatrixModels:::updateMu(resp,
+                                                             as.vector(crossprod(re@Zt,
+                                                                                 re@Lambda %*% u)
+                                                                       + fe@X %*% beta)))
+    
+    fe@coef <- beta
+    fe <- MatrixModels:::reweight(fe, resp@sqrtXwt, resp@wtres)
+    ## reweight the re module.  This should eventually be a method.
+    WtMat <- Diagonal(x=as.vector(resp@sqrtXwt))
+    ## FIXME: the previous calculation will not work for an nlsRespMod
+    Ut <- crossprod(re@Lambda, re@Zt %*% WtMat)
+    re@L <- update(re@L, Ut, 1)
+    V <- WtMat %*% fe@X
+    UtV <- Ut %*% V
+    fe@RZX <- solve(re@L, solve(re@L, UtV, sys = "P"), sys = "L")
+    fe@fac <- if (is(V, "sparseMatrix")) {
+        Cholesky(crossprod(V) - crossprod(fe@RZX)) # update instead?
+    } else {
+        chol(crossprod(V) - crossprod(fe@RZX))
+    }
+    dc <- mod@devcomp$cmp
+    dc["ldRX2"] <- 2 * determinant(fe@fac, log = TRUE)$modulus
+    dc[ifelse(is(resp, "lmerResp") && resp@REML, "REML", "dev")] <- as.vector(fval)
+    dc["ldL2"] <- ldL2
+    dc["wrss"] <- wrss
+    dc["ussq"] <- ussq
+    dc["pwrss"] <- pwrss <- wrss + ussq
+    dc["sigmaML"] <- sqrt(pwrss/length(resp@y))
+    dc["sigmaREML"] <- sqrt(pwrss/(length(resp@y)-length(beta)))
+    mod@devcomp$cmp <- dc
+    mod@re <- re
+    mod@fe <- fe
+    mod@resp <- resp
     mod
 }
 
