@@ -19,14 +19,14 @@ mubinom <-
                 pmin(pmax(eps, rbeta(100, 3, 0.1)), oneMeps)), as.numeric)
 
 tst.fam <- function(fam, lst, Rname)
-    lapply(lst, function(x)
-           checkEquals(fam[[Rname]](x),
-                       .Call(lme4a:::testFam, fam, x, Rname)))
+    unlist(lapply(lst, function(x)
+                  checkEquals(fam[[Rname]](x),
+                              .Call(lme4a:::testFam, fam, x, Rname))))
 tst.lnki <- function(fam, lst) tst.fam(fam, lst, "linkinv")
 tst.link <- function(fam, lst) tst.fam(fam, lst, "linkfun")
 tst.muEta <- function(fam, lst) tst.fam(fam, lst, "mu.eta")
 
-test.uncons.lnki.R <- function() { # check linkinv for unconstrained eta
+test.uncons.lnki <- function() { # check linkinv for unconstrained eta
     tst.lnki(binomial(), etas)     # binomial with default, logit link
     tst.muEta(binomial(), etas)
     tst.lnki(binomial("probit"), etas)  # binomial with probit link
@@ -39,7 +39,7 @@ test.uncons.lnki.R <- function() { # check linkinv for unconstrained eta
     tst.muEta(gaussian(), etas)
 }
 
-test.pos.lnki.R <- function() {  # check linkinv for positive eta only
+test.pos.lnki <- function() {  # check linkinv for positive eta only
     set.seed(1)
     tst.lnki(Gamma(), etapos)           # gamma family
     tst.muEta(Gamma(), etapos)
@@ -47,17 +47,17 @@ test.pos.lnki.R <- function() {  # check linkinv for positive eta only
     tst.muEta(inverse.gaussian(), etapos)    
 }
 
-test.binom.link.R <- function() {       # check link for binomial mu
+test.binom.link <- function() {       # check link for binomial mu
     tst.link(binomial(), mubinom)
     tst.link(binomial("probit"), mubinom)
 }
 
-test.pos.link.R <- function() {         # check link for positive mu
+test.pos.link <- function() {         # check link for positive mu
     tst.link(poisson(), etapos)
     tst.link(Gamma(), etapos)
     tst.link(inverse.gaussian(), etapos)    
 }
 
-test.uncons.link.R <- function() {   # check link for unconstrained mu
+test.uncons.link <- function() {   # check link for unconstrained mu
     tst.link(gaussian(), etas)
 }

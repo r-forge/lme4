@@ -36,7 +36,7 @@ namespace glm {
     
 	// Thresholds common to the class (FIXME: we should eliminate
 	// most of these)
-	static double epsilon, INVEPS, LTHRESH, MLTHRESH;
+	static double epsilon, INVEPS;//, LTHRESH, MLTHRESH;
 
 	// Scalar functions that will used in transform applications
 	static inline double         cubef(double x) {return x * x * x;}
@@ -71,23 +71,26 @@ namespace glm {
 	static inline double    probitMuEta(double x) {
 	    return Rf_dnorm4(x, 0., 1., 0);
 	}
-	static inline double
-	pgumbel(double q, double loc, double scale, int lower_tail) {
+	// cumulative probability function of the complement of the
+	// Gumbel distribution (i.e. pgumbel(x,0.,1.,0) == 1-pgumbel2(-x,0.,1.,0))
+	static inline double	
+	pgumbel2(double q, double loc, double scale, int lower_tail) {
 	    q = (q - loc) / scale;
 	    q = -exp(q);
 	    return lower_tail ? -expm1(q) : exp(q);
 	}
 	static inline double cloglogLinkInv(double x) {
-	    return pgumbel(x, 0., 1., 1);
+	    return pgumbel2(x, 0., 1., 1);
 	}
+	//density of the complement of the Gumbel distribution
 	static inline double
-	dgumbel(double x, double loc, double scale, int give_log) {
+	dgumbel2(double x, double loc, double scale, int give_log) {
 	    x = (x - loc) / scale;
-	    x = -exp(-x) - x - log(scale);
+	    x = x - exp(x) - log(scale);
 	    return give_log ? x : exp(x);
 	}
 	static inline double   cloglogMuEta(double x) {
-	    return dgumbel(x, 0., 1., 0);
+	    return dgumbel2(x, 0., 1., 0);
 	}
     };
 }

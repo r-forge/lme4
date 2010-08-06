@@ -1,3 +1,18 @@
+2010-08-06  Douglas Bates  <bates@stat.wisc.edu>
+
+	* src/merResp.cpp: Use Rcpp "sugar" expressions now that
+	Rcpp_0.8.5 is out.
+
+	* inst/unitTests/runit.compDev.R (test.compDev): Create a
+	legitimate test function (previous code was not being tested).
+
+	* inst/unitTests/runit.link.R: Clean up function names and output
+	from tst.fam.
+
+	* src/glmFamily.h: Added pgumbel2 and dgumbel2 based on code in
+	Rune Haubo's ordinal package.  These give the cloglog link inverse
+	and mu.eta functions.
+
 2010-07-28  Douglas Bates  <bates@stat.wisc.edu>
 
 	* NAMESPACE, src/*, R/AllClass.R: Remove the feModule class.  The
