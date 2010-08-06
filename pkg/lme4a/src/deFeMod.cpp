@@ -7,10 +7,7 @@ namespace mer {
     deFeMod::deFeMod(Rcpp::S4 xp, int n)
 	: matMod::dPredModule(                  xp, n),
 	  d_RZX(Rcpp::clone(Rcpp::S4(xp.slot("RZX")))),
-//	  d_X(              Rcpp::S4(xp.slot("X"))),
-//	  d_RX( Rcpp::clone(Rcpp::S4(xp.slot("RX")))),
 	  d_UtV(d_RZX.nrow(), d_RZX.ncol()),
-//	  d_V(             n,   d_X.ncol()),
 	  d_VtV(             d_coef.size()) {
     }
 
@@ -35,52 +32,6 @@ namespace mer {
      	M_cholmod_sdmult(Ut, 0/*trans*/, &one, &zero, &cV, &cUtV, &c);
      	d_VtV.dsyrk(d_V, 1., 0.);
     }
-
-    // void deFeMod::reweight(cholmod_sparse        const*    Ut,
-    // 			   Rcpp::NumericMatrix   const&   Xwt,
-    // 			   Rcpp::NumericVector   const& wtres) {
-    // 	if (d_coef.size() == 0) return;
-    // 	chmDn cXwt(Xwt);
-    // 	double one = 1., zero = 0.;
-    // 	if ((Xwt.rows() * Xwt.cols()) != d_X.nrow())
-    // 	    Rf_error("%s: dimension mismatch %s(%d,%d), %s(%d,%d)",
-    // 		     "deFeMod::reweight", "X", d_X.nrow(), d_X.ncol(),
-    // 		     "Xwt", Xwt.nrow(), Xwt.ncol());
-    // 	int Wnc = Xwt.ncol(), Wnr = Xwt.nrow(),
-    // 	    Xnc = d_X.ncol(), Xnr = d_X.nrow();
-    // 	double *V = d_V.x().begin(), *X = d_X.x().begin();
-
-    // 	if (Wnc == 1) {
-    // 	    for (int j = 0; j < Xnc; j++) 
-    // 		transform(Xwt.begin(), Xwt.end(), X + j*Xnr,
-    // 			       V + j*Xnr, multiplies<double>());
-    // 	} else {
-    // 	    int i1 = 1;
-    // 	    double one = 1., zero = 0.;
-    // 	    Rcpp::NumericVector tmp(Xnr), mm(Wnc); 
-    // 	    fill(mm.begin(), mm.end(), 1.);
-    // 	    for (int j = 0; j < Xnc; j++) {
-    // 		transform(Xwt.begin(), Xwt.end(), X + j*Xnr,
-    // 			       tmp.begin(), multiplies<double>());
-    // 		F77_CALL(dgemv)("N", &Wnr, &Wnc, &one, tmp.begin(),
-    // 				&Wnr, mm.begin(), &i1, &zero,
-    // 				V + j * Wnr, &i1);
-    // 	    }
-    // 	}
-    // 	d_V.dgemv('T', 1., wtres, 0., d_Vtr);
-    // 	chmDn cUtV(d_UtV), cV(d_V);
-    // 	M_cholmod_sdmult(Ut, 0/*trans*/, &one, &zero, &cV, &cUtV, &c);
-    // 	d_VtV.dsyrk(d_V, 1., 0.);
-    // }
-
-//     double deFeMod::solveBeta() {
-// 	if (d_beta.size() == 0) return 0.;
-// 	MatrixNs::Cholesky chol(d_V);
-// 	copy(d_Vtr.begin(), d_Vtr.end(), d_beta.begin());
-// // FIXME: do this in two stages so that the intermediate result can be returned
-// 	chol.dpotrs(d_beta);
-// 	return 0.;
-//     }
 
     /** 
      * Update RZX and RX
