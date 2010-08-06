@@ -1,5 +1,11 @@
 2010-08-06  Douglas Bates  <bates@stat.wisc.edu>
 
+	* R/lmer.R (updateMod): Bypass the call to the compiled function
+	updateDc and use pure R code based on MatrixModels ideas.  (Also
+	the compiled function was causing memory protection problems.)
+	Right now R CMD check will fail on the nlmer examples until I
+	write the more complicated reweight methods.
+
 	* src/merResp.cpp: Use Rcpp "sugar" expressions now that
 	Rcpp_0.8.5 is out.
 
