@@ -15,8 +15,9 @@ importFrom("stats4", AIC, BIC, logLik)# so S4 methods are used!
 importFrom("stats",
            anova, coef, confint, deviance, fitted, formula,
            model.frame, model.matrix, predict, profile,
-           resid, residuals, simulate, terms, #update,
-           vcov)
+           resid, residuals, simulate, terms
+           , update
+           , vcov)
 
 importFrom("minqa", bobyqa)
 
@@ -39,6 +40,15 @@ importClassesFrom("Matrix",
                   nCHMsuper,
                   symmetricMatrix)
 
+importFrom("MatrixModels"
+           , getCall
+           , mkRespMod
+           , reweightPred
+#           , update
+           , updateMu
+           , updateWts
+           )
+
 importClassesFrom("MatrixModels",
                   modelMatrix,
                   denseModelMatrix,  ddenseModelMatrix,
@@ -55,21 +65,23 @@ importMethodsFrom("MatrixModels",
                   coef, fitted, formula, residuals,
                   update)
 
-importMethodsFrom("Matrix",
-                  "%*%",
-                  Cholesky,
-                  as.vector,
-                  chol,
-                  chol2inv,
-                  coerce,
-                  crossprod,
-                  determinant,
-                  diag,
-		  rcond,
-                  solve,
-                  summary,
-                  t,
-                  tcrossprod)
+importMethodsFrom("Matrix"
+                  , "%*%"
+                  , Cholesky
+                  , as.vector
+                  , chol
+                  , chol2inv
+                  , coerce
+                  , crossprod
+                  , determinant
+                  , diag
+		  , rcond
+                  , solve
+                  , summary
+                  , t
+                  , tcrossprod
+                  , update
+                  )
 
 ## re-export imported S4 generics
 export(AIC, BIC, logLik)

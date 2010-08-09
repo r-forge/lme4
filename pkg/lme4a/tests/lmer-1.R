@@ -4,10 +4,10 @@ options(show.signif.stars = FALSE)
 
 source(system.file("test-tools.R", package = "Matrix"))# identical3() etc
 all.EQ <- function(u,v, ...) all.equal.X(u, v, except = c("call", "frame"), ...)
-S4_2list <- function(obj) {
-    sn <- slotNames(obj)
-    structure(lapply(sn, slot, object = obj), .Names = sn)
-}
+##S4_2list <- function(obj) {   # no longer used
+#    sn <- slotNames(obj)
+#    structure(lapply(sn, slot, object = obj), .Names = sn)
+#}
 showProc.time <- local({
     pct <- proc.time()
     function() { ## CPU elapsed __since last called__
@@ -34,7 +34,7 @@ stopifnot(all.equal(fm1, fm1.))
 
 ## Test 'compDev = FALSE' (vs TRUE)
 fm1. <- lmer(Reaction ~ Days + (Days|Subject), sleepstudy,
-             compDev = FALSE)#--> use R code (not C) for deviance computation
+             compDev = FALSE)#--> use R code (not C++) for deviance computation
 stopifnot(all.equal(fm1@devcomp$cmp['REML'], fm1.@devcomp$cmp['REML']),
           all.equal(fixef(fm1), fixef(fm1.)),
           all.equal(fm1@re@theta, fm1.@re@theta, tol = 1.e-7),
