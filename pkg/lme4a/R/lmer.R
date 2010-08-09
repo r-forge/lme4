@@ -327,21 +327,19 @@ updateMod <- function(mod, pars, fval) {
               length(beta) == ncol(fe@X),
               length(u) == nrow(re@Zt))
     pars <- pars[seq_along(lower)]
-    ## Avoid the compiled functions for this one update
-    ## lst <- .Call(updateDc, mod, pars, beta, u)
+
     re@Lambda@x[] <- pars[re@Lind]      # update Lambda
     re@theta <- pars
+    re@u <- u
     ## FIXME: Create the reModule as inheriting from respModule with Z
     ## %*% Lambda as the model matrix X and u as coef.  Then the only
     ## thing that needs to be changed is to allow the multiple of the
     ## identity in the update of fac.
-    resp <- MatrixModels:::updateWts(MatrixModels:::updateMu(resp,
-                                                             as.vector(crossprod(re@Zt,
-                                                                                 re@Lambda %*% u)
-                                                                       + fe@X %*% beta)))
+    resp <- updateWts(updateMu(resp, as.vector(crossprod(re@Zt, re@Lambda %*% u)
+                                               + fe@X %*% beta)))
     
     fe@coef <- beta
-    fe <- MatrixModels:::reweight(fe, resp@sqrtXwt, resp@wtres)
+    fe <- reweightPred(fe, resp@sqrtXwt, resp@wtres)
     ## reweight the re module.  This should eventually be a method.
     WtMat <- Diagonal(x=as.vector(resp@sqrtXwt))
     ## FIXME: the previous calculation will not work for an nlsRespMod
