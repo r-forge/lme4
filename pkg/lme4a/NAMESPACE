@@ -13,9 +13,10 @@ importFrom("graphics", plot)
 importFrom("nlme", fixef, ranef, VarCorr)
 importFrom("stats4", AIC, BIC, logLik)# so S4 methods are used!
 importFrom("stats",
-           anova, coef, confint, deviance, fitted, formula,
+           anova, coef, coefficients, confint, deviance,
+           fitted, fitted.values, formula,
            model.frame, model.matrix, predict, profile,
-           resid, residuals, simulate, terms
+           residuals, resid, simulate, terms
            , update
            , vcov)
 
@@ -60,9 +61,10 @@ importClassesFrom("MatrixModels",
                   glmRespMod,
                   nlsRespMod)
 
-## from MatrixModels, too {not just from 'stats'}:
+## from MatrixModels, methods too {not just generics from 'stats'}:
 importMethodsFrom("MatrixModels",
-                  coef, fitted, formula, residuals,
+                  coef, coefficients, fitted, fitted.values,
+                  formula, residuals, resid,
                   update)
 
 importMethodsFrom("Matrix"
