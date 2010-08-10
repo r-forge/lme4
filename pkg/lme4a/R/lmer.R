@@ -76,7 +76,6 @@ mkReTrms <- function(bars, fr, s = 1L) {
                                           rep.int(nl[i], length(ii))) +
                                           thoff[i]))
                            })))
-### FIXME: change this to t(Lambda) before extracting the Lind
     ll <- list(Class = "reTrms", Zt = Zt, u = numeric(q), ##-nL nLevs = nl,
                theta = thet, Lind = as.integer(Lambda@x))
     ## lower bounds on theta elements are 0 if on diagonal, else -Inf
@@ -349,7 +348,7 @@ updateMod <- function(mod, pars, fval) {
     UtV <- Ut %*% V
     fe@RZX <- solve(re@L, solve(re@L, UtV, sys = "P"), sys = "L")
     fe@fac <- if (is(V, "sparseMatrix")) {
-        Cholesky(crossprod(V) - crossprod(fe@RZX)) # update instead?
+        Cholesky(crossprod(V) - crossprod(fe@RZX), LDL = FALSE) # update instead?
     } else {
         chol(crossprod(V) - crossprod(fe@RZX))
     }
