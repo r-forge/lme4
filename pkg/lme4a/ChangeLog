@@ -1,3 +1,7 @@
+2010-08-10  Douglas Bates  <bates@stat.wisc.edu>
+
+	* R/lmer.R (updateMod): Enforce LL decomposition for fe@fac with sparseX
+
 2010-08-09  Douglas Bates  <bates@stat.wisc.edu>
 
 	* tests/lmer-1.R (S4_2list): Deprecate vestigial function.
