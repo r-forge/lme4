@@ -20,12 +20,10 @@ namespace matMod {
 	    throw runtime_error("predModule::setCoef size mismatch of coef and cbase");
 	if (p == 0) return;
 	if (step == 0.) {
-	    std::copy(cbase.begin(), cbase.end(), d_coef.begin());
+	    copy(cbase.begin(), cbase.end(), d_coef.begin());
 	} else {
-//	    Rcpp::NumericVector res = cbase + incr * step;  // needs Rcpp_0.8.3
-//	    copy(res.begin(), res.end(), d_coef.begin());
-	    double *cb = cbase.begin(), *inc = incr.begin(), *cc = d_coef.begin();
-	    for (R_len_t i = 0; i < p; i++) cc[i] = cb[i] + inc[i] * step;
+	    Rcpp::NumericVector res = cbase + incr * step;
+	    copy(res.begin(), res.end(), d_coef.begin());
 	}
     }
 
@@ -78,7 +76,6 @@ namespace matMod {
 	    }
 	}
 	d_V.dgemv('T', 1., wtres, 0., d_Vtr);
-	d_fac.update(d_V);
     }
     
     /** 
@@ -90,6 +87,7 @@ namespace matMod {
     double dPredModule::solveCoef(double wrss) {
 	if (d_coef.size() == 0) return 0.;
 	copy(d_Vtr.begin(), d_Vtr.end(), d_coef.begin());
+	d_fac.update(d_V);
 	d_fac.dtrtrs('T', d_coef.begin()); // solve R'c = Vtr
 	double ans = sqrt(inner_product(d_coef.begin(), d_coef.end(),
 					d_coef.begin(), double())/wrss);
