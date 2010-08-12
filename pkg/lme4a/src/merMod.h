@@ -41,7 +41,7 @@ namespace mer {
 					const Rcpp::NumericVector&,
 					double,Alg);
 	double updateMu                ();
-	double updateWts               ();
+	double updateWts               (Alg);
 
 	int N()  const   {return resp.offset().size();}
 	int n()  const   {return  resp.wtres().size();}
@@ -72,7 +72,7 @@ namespace mer {
     template<typename Tf, typename Tr> inline
     Rcpp::NumericVector mer<Tf,Tr>::LMMdeviance(const Rcpp::NumericVector& nt) {
 	re.updateLambda(nt);
-	updateWts();
+	updateWts(BetaU);
 	solveCoef(BetaU);
 	updateMu();
 	return mkans(Laplace(), fe.coef(), re.u(),
@@ -159,12 +159,12 @@ namespace mer {
      * @return penalized, weighted residual sum of squares
      */
     template<typename Tf, typename Tr> inline
-    double mer<Tf,Tr>::updateWts() {
+    double mer<Tf,Tr>::updateWts(Alg alg) {
 	double ans = resp.updateWts();
 	ans += re.sqrLenU();
-	re.reweight(resp.sqrtXwt(), resp.wtres());
-	fe.reweight(resp.sqrtXwt(), resp.wtres());
-	fe.updateUtV(re.Ut());
+	if (alg != Beta) re.reweight(resp.sqrtXwt(), resp.wtres());
+	if (alg != U) fe.reweight(resp.sqrtXwt(), resp.wtres());
+	if (alg == BetaU) fe.updateUtV(re.Ut());
 	return ans;
     }
 
@@ -190,7 +190,7 @@ namespace mer {
 	    std::copy(resp.mu().begin(), resp.mu().end(), muBase.begin());
 	    std::copy(re.u().begin(), re.u().end(), uBase.begin());
 	    std::copy(fe.coef().begin(), fe.coef().end(), bBase.begin());
-	    c0 = updateWts();
+	    c0 = updateWts(alg);
 	    solveCoef(alg);
 	    std::copy(fe.coef().begin(), fe.coef().end(), incB.begin());
 	    std::copy(re.u().begin(), re.u().end(), incU.begin());
@@ -218,7 +218,7 @@ namespace mer {
 	re.setU(u);
 	fe.setCoef(beta);
 	updateMu();
-	updateWts();
+	updateWts(BetaU);
 	re.reweight(resp.sqrtXwt(), resp.wtres());
 	fe.reweight(resp.sqrtXwt(), resp.wtres());
 	fe.updateUtV(re.Ut());
