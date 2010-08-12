@@ -1,3 +1,13 @@
+2010-08-12  Douglas Bates  <bates@stat.wisc.edu>
+
+	* src/merMod.h: updateWts according to alg
+
+	* src/MatrixNs.cpp: Fixed typo in error message.
+
+	* src/predModules.cpp: Use Rcpp sugar construction.  Update fac in
+	solveCoef not in reweight (was causing problems in PIRLS with
+	alg = U).
+
 2010-08-10  Douglas Bates  <bates@stat.wisc.edu>
 
 	* R/lmer.R (updateMod): Enforce LL decomposition for fe@fac with sparseX
