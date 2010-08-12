@@ -222,7 +222,7 @@ namespace MatrixNs{
 			 &d_nrow, v, &d_nrow, &info);
 	if (info)
 	    Rf_error("Lapack routine %s returned error code %d",
-		     "dpotrs", info);
+		     "dtrtrs", info);
     }
 
     dsyMatrix::dsyMatrix(Rcpp::S4& xp)
