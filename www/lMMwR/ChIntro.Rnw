@@ -1207,9 +1207,7 @@ dotplot(ranef(fm01ML, postVar = TRUE))
 @ 
 (Fig.~\ref{fig:fm01preddot}), which provides linear spacing
 \begin{figure}[tbp]
-  \sidecaption[t]
-  \setkeys{Gin}{width=1.5in}
-<<fm01predqq,fig=TRUE,echo=FALSE,results=hide,width=3.5,height=3.5>>=
+<<fm01predqq,fig=TRUE,echo=FALSE,results=hide,height=2>>=
 print(qqmath(ranef(fm01ML, postVar=TRUE), strip = FALSE))
 @   
 \caption{95\% prediction intervals on the random effects in
@@ -1220,8 +1218,8 @@ of the levels on the y axis, or using
 <<fm01predqqshow,eval=FALSE>>=
 qqmath(ranef(fm01ML, postVar=TRUE))
 @
-(Fig.~\ref{fig:fm01predqq}), where the intervals are plotted versus
-quantiles of the standard normal.
+(Fig.~\ref{fig:fm01predqq}), where the intervals are plotted with
+spacing determined by quantiles of the standard normal distribution.
 
 The dotplot is preferred when there are only a few levels of the
 grouping factor, as in this case.  When there are hundreds or
