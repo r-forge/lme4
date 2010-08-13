@@ -79,10 +79,11 @@ if (file.exists("ratbrain.rda")) {
 \label{chap:Covariates}
 %% Topics - interactions
 In the previous chapter we incorporated the time covariate of
-longitudinal data into both the fixed-effects terms and the
+longitudinal data in both the fixed-effects terms and the
 random-effects terms of linear mixed models.  In this chapter we will
-extend the use of covariates and discuss general approaches to
-building and assessing linear mixed models.
+extend the use of covariates, both numeric and categorical, in linear
+mixed models and discuss general approaches to building and assessing
+these models.
 
 Statistical model building is still somewhat more of an art than a
 science and there are many practical issues that we should bear in
@@ -96,8 +97,8 @@ incorporated in the fixed-effects terms.
 \section{Incorporating categorical covariates with fixed levels}
 \label{sec:categoricalcov}
 
-As we have seen in the earlier chapters, each random-effects terms in
-a linear mixed model is defined with respect to a \emph{grouping
+As we have seen in the earlier chapters, each random-effects term
+ina linear mixed model is defined with respect to a \emph{grouping
   factor}, which is a categorical covariate whose levels are regarded
 as a sample from a population of possible levels.  In some cases we
 may have other categorical covariates with a fixed set of levels (such
@@ -109,12 +110,13 @@ coefficients and the model's structure can be subtle.
 \subsection{The \texttt{Machines} Data}
 \label{sec:MachinesData}
 
-\citet[Table 23.1]{milliken09:_analy_messy_data} discuss data from an experiment to
-measure productivity on a manufacturing task according to the type of
-machine used and the operator.  No further details on the experiment
-are given and it is possible that these data, which are available as
-\code{Machines} in the \package{MEMSS} package, were constructed for
-illustration and are not observed data from an actual experiment.
+\citet[Table 23.1]{milliken09:_analy_messy_data} discuss data from an
+experiment measuring productivity on a manufacturing task according to
+the type of machine used and the operator.  No further details on the
+experiment are given and it is possible that these data, which are
+available as \code{Machines} in the \package{MEMSS} package, were
+constructed for illustration and are not observed data from an actual
+experiment.
 <<strMachines>>=
 str(Machines)
 xtabs(~ Machine + Worker, Machines)
@@ -127,10 +129,10 @@ operators represent a sample from the population of potential
 operators, the three machines are the specific machines of interest.
 That is, we regard the levels of \code{Machine} as fixed levels and
 the levels of \code{Worker} as a random sample from a population.  In
-other studies we may regard the levels of the stimulus as a random
-sample from a population of stimuli.
+other subject/stimulus studies we may regard the levels of the
+stimulus as a random sample from a population of stimuli.
 
-A plot of these data (Fig.~\ref{fig:Machinesplot})
+We can see in Fig.~\ref{fig:Machinesplot}
 \begin{figure}[tbp]
   \centering
 <<Machinesplot,fig=TRUE,echo=FALSE,height=3.5>>=
@@ -146,59 +148,181 @@ print(dotplot(reorder(Worker, score) ~ score, Machines,
   factor) on each of three machine types.}
   \label{fig:Machinesplot}
 \end{figure}
-shows high reproducibility of measurements on the same
-operator-machine combination.  On each line the scores on a particular
-machine are tightly clustered.  There are considerable, apparently
-systematic, differences between machines and somewhat smaller
-differences between operators except for one unusual combination,
-operator 6 on machine B.  The pattern for operator 6 is very different
-from the pattern for the other five operators.  We will expect a
-significant interaction between the \code{Worker} and \code{Machine}
-factors because of this unusual pattern.  As we will see, we can
-incorporate such an interaction into a linear mixed model in different
-ways.
+that, while the scores for each machine-operator combination are
+tightly clustered, there are considerable, apparently systematic,
+differences between machines and somewhat smaller differences between
+operators.  The pattern across operators for each of the machines is
+similar except for one unusual combination, operator 6 on machine B.
+For the other five operators the scores on machine A are less than
+those on machine B which are less than those on Machine C but for
+operator 6 the scores on machine B are less than those on machine A.
+We expect our models to show a significant interaction between the
+\code{Worker} and \code{Machine} factors because of this unusual
+pattern.  As we will see, we can incorporate such an interaction into
+a linear mixed model in two different ways.
 
 \subsection{Comparing models with and without interactions}
 
-We fit and compare three models for these data: \code{fm10} without
-interactions, \code{fm11} with vector-valued random effects to allow
-for interactions, and \code{fm12} with interactions incorporated into
+We fit and compare three models for these data: \code{fm08} without
+interactions, \code{fm09} with vector-valued random effects to allow
+for interactions, and \code{fm10} with interactions incorporated into
 a second simple scalar random-effects term.
-<<fm1012>>=
-fm10 <- lmer(score ~ Machine + (1|Worker), Machines, REML=FALSE)
-fm11 <- lmer(score ~ Machine + (Machine|Worker), Machines, REML=FALSE)
-fm12 <- lmer(score ~ Machine + (1|Worker) + (1|Machine:Worker), Machines, REML=FALSE)
-anova(fm10, fm11, fm12)
+<<fm0810>>=
+fm08 <- lmer(score ~ Machine + (1|Worker), Machines, REML=FALSE)
+fm09 <- lmer(score ~ Machine + (Machine|Worker), Machines, REML=FALSE)
+fm10 <- lmer(score ~ Machine + (1|Worker) + (1|Machine:Worker),
+             Machines, REML=FALSE)
+anova(fm08, fm09, fm10)
 @ 
 
 Notice that in the \code{anova} summary the order of the models has
 been rearranged according to the complexity of the models, as measured
 by the number of parameters to be estimated.  The simplest model,
-\code{fm10}, incorporates three fixed-effects parameters and two
-variance components.  Model \code{fm12}, with scalar random effects
-for \code{Worker} and for the \code{Machine:Worker} combination
-incorporates one additional variance component for a total of six
-parameters, while model \code{fm11} adds five variance-component
-parameters to those in \code{fm10}, for a total of 10 parameters.
+\code{fm08}, incorporates three fixed-effects parameters and two
+variance component parameters --- a total of 5 parameters, the number
+displayed in the column labeled \code{Df}.  Model \code{fm10}, with
+scalar random effects for \code{Worker} and for the
+\code{Machine:Worker} combination incorporates one additional variance
+component for a total of six parameters, while model \code{fm09} adds
+five variance-component parameters to those in \code{fm08}, for a
+total of 10 parameters.
 
-In the comparison of models \code{fm10} and \code{fm12} (i.e. the line
-labeled \code{fm12} in the \code{anova} table) we see that the
+In the comparison of models \code{fm08} and \code{fm10} (i.e. the line
+labeled \code{fm10} in the \code{anova} table) we see that the
 additional parameter is highly significant.  The change in the
-deviance of \Sexpr{sprintf(.f4,deviance(fm10)-deviance(fm12))} (in the
+deviance of \Sexpr{sprintf(.f4,deviance(fm08)-deviance(fm10))} (in the
 column labeled \code{Chisq}) at a cost of one additional parameter is
-huge; hence we prefer the more complex model \code{fm12}.  In the next
-line, which is the comparison of the more complex model \code{fm11} to
-the simpler model \code{fm12}, the change in the deviance is
-\Sexpr{sprintf(.f4,deviance(fm12)-deviance(fm11))} at a cost of 4
+huge; hence we prefer the more complex model \code{fm10}.  In the next
+line, which is the comparison of the more complex model \code{fm09} to
+the simpler model \code{fm10}, the change in the deviance is
+\Sexpr{sprintf(.f4,deviance(fm10)-deviance(fm09))} at a cost of 4
 additional parameters with a p-value of 
-\Sexpr{sprintf(.f1,100*pchisq(deviance(fm12)-deviance(fm11),4,lower=FALSE))}\%.
+\Sexpr{sprintf(.f1,100*pchisq(deviance(fm10)-deviance(fm09),4,lower=FALSE))}\%.
 In formal hypothesis tests we establish a boundary, often chosen to
 be 5\%, below which we regard the p-value as providing ``significant''
 evidence to prefer the more complex model and above which the results
 are regarded as representing an ``insignificant'' improvement.  Such
 boundaries, while arbitrary, help us to assess the numerical
-results and here we prefer model \code{fm12}, of intermediate complexity.
+results and here we prefer model \code{fm10}, of intermediate complexity.
 
+A display of this fitted model,
+<<fm10>>=
+fm10
+@
+shows that the estimated standard deviations for the \code{Worker}
+random-effects and for \code{Machine:Worker} random effects are
+comparable and both are larger than the estimated residual standard
+deviation.  This is consistent with our discussion of the patterns in
+Fig.~\ref{fig:Machinesplot}.
+
+Furthermore, a plot of the prediction intervals on the random effects
+(Fig.~\ref{fig:fm10ranef})
+\begin{figure}[tbp]
+  \centering
+<<fm10ranef,fig=TRUE,echo=FALSE,height=5.5>>=  
+qrr10 <- dotplot(ranef(fm10, postVar = TRUE), strip = FALSE)
+print(qrr10[[1]], pos = c(0,0,1,0.75), more = TRUE)
+print(qrr10[[2]], pos = c(0,0.65,1,1))
+@ 
+\caption[Random effects prediction intervals for model \code{fm10}]{95\%
+  prediction intervals on the random effects for model
+  \code{fm10} fit to the \code{Machines} data.  The intervals in the
+  upper panel are those for levels of the \code{Worker} factor.  Those
+  in the lower panel correspond to levels of the \code{Machine:Worker} interaction.}
+  \label{fig:fm10ranef}
+\end{figure}
+shows that \code{B:6} is the dominant interaction.  In fact, the
+prediction interval for this level of the interaction is the only prediction interval
+that does not contain zero.
+
+For model \code{fm10} the interpretation of the random effects
+parameter estimates and the random effects themselves is similar to
+those for the models in Chap.~\ref{chap:Multiple}.  The interpretation
+of the fixed-effects coefficients is somewhat different.
+
+\subsection{Coefficients for factors in the fixed effects}
+\label{sec:coefficients}
+
+The models fit in previous chapters incorporated categorical
+covariates, represented as factors, in the random effects but not in
+the fixed effects.  We have seen that a simple, scalar random effects
+term contributes one coefficient to the linear predictor, $\vec
+X\vec\beta+\vec Z\vec b$, for each level of the grouping factor.  For
+many of these models there was a single fixed-effects coefficient,
+labeled \code{(Intercept)}, in the parameter $\vec\beta$.  This
+coefficient represents a typical response value when it is the only
+fixed-effect coefficient.
+
+When we have a factor in the fixed-effects part of the model formula,
+however, we cannot simultaneously estimate an \code{(Intercept)}
+coefficient and ``effects'' for each of the levels of the factor
+because there would be a redundancy in the coefficients.  Suppose we
+had an \code{(Intercept)} coefficient and three separate effects for
+the levels of the \code{Machine} factor.  If we were to add a
+constant, say 2.6, to each of the effects coefficients and subtract
+2.6 from the \code{(Intercept)} we would generate the same set of
+fitted values and hence the same likelihood.  We would not be able to
+define a unique set of maximum likelihood estimates,
+$\widehat{\vec\beta}$.
+
+In \R{} this redundancy is removed by applying \code{contrasts} to the
+levels of a factor when it is incorporated in the fixed-effects part
+of a linear predictor formula, and we can choose which contrasts are
+used when fitting a model.  To show the effect of changing the
+contrasts we will refit model \code{fm10} with different contrasts for
+the \code{Machine} factor and examine the estimated fixed effects.  We
+can either extract the fixed-effects coefficient estimates by themselves
+<<fm10fixef>>=
+fixef(fm10)
+@ 
+or extract the coefficients and their standard errors and t ratios
+<<coefsumfm10>>=
+coef(summary(fm10))
+@
+for comparisons.  To save on typing we will use \code{update} to fit
+the modified models.  Recall that \code{update} applied to a fitted
+model allows us to re-fit the model with changes that we specify in
+subsequent arguments.
+
+First let's consider how the model changes if we suppress the
+intercept coefficient, which we can do by appending \code{- 1} to the
+model formula. The \code{update} function allows us to do this by
+writing a model formula with dots indicating ``what was there in
+the original fit''.  Thus
+<<fm10noint>>=
+(fm10a <- update(fm10, . ~ . - 1))
+@
+Notice that there are three fixed-effects coefficients in this model
+fit, just as there are in model \code{fm10}.  All we have done by
+suppressing the intercept is to estimate a different set of
+coefficients in the fixed effects.  The log-likelihood and the various
+statistics summarizing the fit are the same --- for example,
+<<AICfm10a10>>=
+AIC(fm10a,fm10)
+@ 
+Even the fitted values are the same
+<<fittedfm10afm10,eval=FALSE>>=
+all.equal(fitted(fm10a), fitted(fm10))
+@ 
+<<mufm10afm10,echo=FALSE>>=
+all.equal(fm10@resp@mu, fm10a@resp@mu)
+@
+
+There are several things to note about model \code{fm10a} compared to model \code{fm10}.  First, we can see that the 
+To see some of the approaches to removing this redundancy, including the defau
+If we suppress the intercept we can estimate one coefficient for each level of the factor
+<<fm10a>>=
+coef(summary(update(fm10, . ~ . + 0)))
+@ 
+
+unless we impose additional \code{estimability conditions} on the
+coefficients.  
+
+
+
+only one of the prediction intervals for the interaction that does not 
+
+In both models \code{fm09} and \code{fm10}  we incorporate the \code{Machine} factor is in
 fit models having different configurations of
 simple, scalar random effects but always with the same fixed-effects
 specification of an intercept, or overall mean response, only.
