@@ -52,9 +52,10 @@ Sect.~\ref{sec:memod}.
 As described in Sect.~\ref{sec:memod}, a linear mixed-effects model is
 based on two vector-valued random variables: the $q$-dimensional
 vector of random effects, $\bc B$, and the $n$-dimensional response
-vector, $\bc Y$.  Equation (\ref{eq:LMMdist}) defines the unconditional distribution of $\bc B$ and the
-conditional distribution of $\bc Y$, given $\bc B=\vec b$, as
-multivariate Gaussian distributions of the form
+vector, $\bc Y$.  Equation (\ref{eq:LMMdist}) defines the
+unconditional distribution of $\bc B$ and the conditional distribution
+of $\bc Y$, given $\bc B=\vec b$, as multivariate Gaussian
+distributions of the form
 \begin{displaymath}
   \begin{aligned}
     (\bc Y|\bc B=\vec b)&\sim\mathcal{N}(\vec X\vec\beta+\vec Z\vec
@@ -309,7 +310,7 @@ On the deviance scale we have
 \end{equation}
 Because (\ref{eq:devh}) describes the negative log density,
 $\tilde{\vec u}$ will be the value of $\vec u$ that minimizes the
-expression on the right of (\ref{eq:devh}).
+expression on the right hand side of (\ref{eq:devh}).
 
 The only part of the right hand side of (\ref{eq:devh}) that depends on
 $\vec u$ is the numerator of the second term.  Thus
@@ -415,7 +416,7 @@ the time and storage required to evaluate $\vec L_\theta$ in large
 problems.  We write the effect of the permutation as multiplication by
 a $q\times q$ \emph{permutation matrix}, $\vec P$, although in
 practice we apply the permutation without ever constructing $\vec
-P$.  That is, the matrix $\vec P$ is only a notational convenience
+P$.  That is, the matrix $\vec P$ is a notational convenience
 only.
 
 The matrix $\vec P$ consists of permuted columns of the identity
@@ -448,13 +449,14 @@ matrix with positive diagonal elements satisfying
    = \vec P\left(\Lambda_\theta\trans\vec Z\trans\vec Z\Lambda_\theta
    +\vec I_q\right)\vec P\trans.
 \end{equation}
-Note that we now require that the diagonal elements of
-$\Lambda_\theta$ be positive.  Problems~\ref{pr:th:posdef} and
-\ref{pr:th:posdiag} indicate why we can require this.
-Because the diagonal elements of $\Lambda_\theta$ are positive, its
-determinant, $|\Lambda_\theta|$, which, for a triangular matrix such as
-$\Lambda_\theta$, is simply the product of its diagonal elements, is
-also positive.
+(Problems~\ref{pr:th:posdef} and \ref{pr:th:posdiag} outline the steps
+in showing that we can require the diagonal elements of
+$\Lambda_\theta$ to be positive, not just non-negative.)
+Problems~\ref{pr:th:posdef} and \ref{pr:th:posdiag} indicate why we
+can require this.  Because the diagonal elements of $\Lambda_\theta$
+are positive, its determinant, $|\Lambda_\theta|$, which, for a
+triangular matrix such as $\Lambda_\theta$, is simply the product of
+its diagonal elements, is also positive.
 
 Many sparse matrix methods, including the sparse Cholesky
 decomposition, are performed in two stages: the \emph{symbolic phase}
@@ -466,11 +468,11 @@ permutation, $\vec P$, need only be done once.  Evaluation of $\vec
 L_\theta$ for subsequent values of $\vec\theta$ requires only the
 numeric phase, which typically is much faster than the symbolic phase.
 
-The permutation, $\vec P$, serves two purposes.  The first and most
-important purpose is to reduce the number of non-zeros in the factor,
+The permutation, $\vec P$, serves two purposes.  The first, and more
+important purpose, is to reduce the number of non-zeros in the factor,
 $\vec L_\theta$.  The factor is potentially non-zero at every non-zero
 location in the lower triangle of the matrix being decomposed.
-However, as we saw in Fig.~\ref{fig:fm2LambdaLimage} of
+However, as we saw in Fig.~\ref{fig:fm03LambdaLimage} of
 Sect.~\ref{sec:PenicillinModel}, there may be positions in the factor
 that get filled-in even though they are known to be zero in the matrix
 being decomposed.  The \emph{fill-reducing permutation} is chosen
@@ -516,7 +518,7 @@ is straightforward to solve (\ref{eq:LMMPLSsolP}) for $\tilde{\vec u}$
 because $\vec L_\theta$ is triangular.
 
 In Sect.~\ref{sec:stepByStep} we will describe the steps in
-determining this solution.  First, though, we should show that the
+determining this solution but first we will show that the
 solution, $\tilde{\vec u}$, and the value of the objective at the
 solution, $r^2_{\theta,\beta}$, do allow us to evaluate the deviance.
 
@@ -753,16 +755,15 @@ The argument for preferring $\widehat{\sigma^2_R}$ to
 $\widehat{\sigma^2_{L}}$ as an estimate of $\sigma^2$ is that the
 numerator in both estimates is the sum of squared residuals at
 $\widehat{\vec\beta}$ and, although the residual vector, $\vec
-y_{\text{obs}}-\vec X\widehat{\vec\beta}$, is an $n$-dimensional vector,
-the residual at $\widehat{\vec\theta}$ satisfies $p$ linearly
-independent constraints, $\vec X\trans(\vec y_{\text{obs}}-\vec
-X\widehat{\vec\beta})=\vec 0$. That is, the residual at
-$\widehat{\vec\theta}$ is the projection of the observed response
-vector, $\vec y_{\text{obs}}$, into an $(n-p)$-dimensional linear
-subspace of the $n$-dimensional response space.  The estimate
-$\widehat{\sigma^2_R}$ takes into account the fact that $\sigma^2$ is
-estimated from residuals that have only $n-p$ \emph{degrees of
-  freedom}.
+y_{\text{obs}}-\vec X\widehat{\vec\beta}$, is an $n$-dimensional
+vector, it satisfies $p$ linearly independent constraints, $\vec
+X\trans(\vec y_{\text{obs}}-\vec X\widehat{\vec\beta})=\vec 0$. That
+is, the residual at $\widehat{\vec\beta}$ is the projection of the
+observed response vector, $\vec y_{\text{obs}}$, into an
+$(n-p)$-dimensional linear subspace of the $n$-dimensional response
+space.  The estimate $\widehat{\sigma^2_R}$ takes into account the
+fact that $\sigma^2$ is estimated from residuals that have only $n-p$
+\emph{degrees of freedom}.
 
 Another argument often put forward for REML estimation is that
 $\widehat{\sigma^2_R}$ is an \emph{unbiased} estimate of $\sigma^2$,
@@ -851,7 +852,106 @@ the REML estimate of $\vec\beta$.
 \section{Step-by-step Evaluation of the Profiled Deviance}
 \label{sec:stepByStep}
 
-As we have seen, an object returned by \code{lmer} contains an
+An object returned by \code{lmer} is an S4-classed
+object~\citep{R:Chambers:2008} of class \code{"merMod"}.  A special
+utility function, \code{mkdevfun}, creates a function to evaluate the
+deviance from such an object.  Because the deviance evaluation
+function many be called many, many times for different values of the
+model parameters and may need to handle large data structures very
+efficiently, the default deviance evaluator uses compiled code, that
+is written in C++ using the facilities of the \package{Rcpp} package~\citep{Rcpp}.
+As such, this function is not very illuminating
+<<mkdevfun1>>=
+fm08 <- lmer(Reaction ~ 1 + Days + (1+Days|Subject),
+             sleepstudy, REML=FALSE)
+(df1 <- mkdevfun(fm08))
+@
+unless you are willing to go digging in to the source code for the
+compiled function called \code{merDeviance}.
+
+However, if we set the optional argument \code{compDev=FALSE} and
+suppress the compiled deviance evaluation then the deviance function 
+follows the deviance evaluation in more easily understood \R{}
+constructions.
+<<mkdevfun2>>=
+df2 <- mkdevfun(fm08, compDev=FALSE)
+head(df2)
+@ 
+
+Providing for an \R{}-based evaluation of the deviance, in addition to
+the compiled code, allows us to check for consistent results.  For
+example, suppose that we wished to check that the compiled and
+\R{}-based deviance functions agreed at the initial values of the
+parameter $\vec\theta=[1,0,1]\trans$ 
+<<df12eval>>=
+all.equal(df1(c(1,0,1)), df2(c(1,0,1)))
+@ 
+
+Without going into detail let us just point out that, because the
+function \code{df2} is created within another function,
+\code{mkdevfun}, \code{df2} has access to the structures in the model,
+\code{fm08}, which internally is identified as \code{mod}.  The
+deviance evaluation uses the value of $\vec\theta$, called \code{th},
+and information in three of the model slots: the random-effects
+structure, called \code{re}, the fixed-effects structure, called
+\code{fe}, and the response structure, called \code{resp}.  There is
+also a diagonal matrix of weights, called \code{WtMat}, available to
+this function but for our evaluation that matrix is the identity and
+we will ignore it.
+
+The function, with line numbers, is
+<<df2full,echo=FALSE>>=
+head(df2, 45)
+@ 
+
+Lines 3 to 9 create local versions of $\Lambda$ and $\vec L$ from
+the information in the \code{re} slot and the argument \code{th}.  
+
+In lines 3 to 5 the argument \code{th} is checked for correct mode and
+length and whether it violates the lower bounds stored in the
+\code{lower} slot.
+
+In lines 6 and 7 the current value of $\Lambda$ is created from a
+template, stored in the \code{Lambda} slot, the value of \code{th} and
+the \code{Lind} index vector, which maps elements of $\vec\theta$ to
+the non-zero elements of $\Lambda$.
+
+As mentioned above, \code{WtMat} is the identity in this case so line
+8 amounts to assigning the matrix in the \code{Zt} slot to the local
+variable \code{Ut}.  Then line 9 evaluates the sparse Cholesky factor,
+\code{L}, by updating the template in the \code{L} slot.  The optional
+argument, \code{mult=1}, to the \code{update} method is the multiple
+of the identity matrix to add to the \code{tcrossprod} of the second
+argument.  This produces the factor $\vec L_\theta$ defined in
+eqn.~\ref{eq:sparseCholeskyP}.
+
+Lines 10 to 14 produce $\vec Z\trans\vec y$, $\vec X\trans\vec y$ and
+$\vec Z\trans\vec X$, taking into account possible weights, from the
+\code{sqrtrwt} (square root of the residual weights) slot, and/or an
+offset, from the \code{offset} slot.  To avoid confusion when
+incorporating weights, these values are stored as \code{Utr},
+\code{Vtr} and \code{UtV}.
+
+Because the \R{}-based evaluation function, \code{df2}, must be able
+to handle non-default values of arguments such as \code{weights} and
+\code{offset} to the \code{lmer} function, we will skip over some of
+the details and concentrate on the parts that correspond to formulas
+in the previous section.
+
+First we derive the matrix $\Lambda_\theta$ from $\vec\theta$.  A
+template version of $\Lambda$ is stored in the random-effects
+structure slot, called \code{re}, of the model object.  The
+\code{Lind} slot contains an index vector indicating which element of
+\code{theta} is to be used to replace an element of the \code{x} slot
+in \code{Lambda}
+<<theta>>=
+theta <- c(1, 0, 1)
+Lambda <- fm08@re @ Lambda
+Lambda@x <- theta[fm08@re @ Lind] 
+@ 
+
+object~\citep{R:Chambers:2008} containing a set of well-defined
+``slots''.  For evaluation of the devai
 environment, accessed with the \code{env} extractor.  This environment
 contains several matrices and vectors that are used in the evaluation
 of the profiled deviance.  In this section we use these matrices and
