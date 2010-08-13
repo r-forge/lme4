@@ -16,14 +16,14 @@ setClass("lmList.confint", contains = "array")
 ##' Random-effects module.
 ##'
 ##' Zt is the transpose of the sparse model matrix.  The number of
-##' rows in Zt may be a multiple of the number of columns in Ut.
+##' columns in Zt may be a multiple of the number of columns in Ut.
 
 setClass("reModule",
          representation(L = "CHMfactor",
                         Lambda = "dgCMatrix",
                         Lind = "integer",
 ## I think that Ut can be removed except that it is still used in "simulate" and "bootMer"
-                        Ut = "dgCMatrix",## U := Z Lambda; Ut := U' = Lambda' Z' = Lambda' Zt
+##                        Ut = "dgCMatrix",## U := Z Lambda; Ut := U' = Lambda' Z' = Lambda' Zt
                         Zt = "dgCMatrix",## = Z'
                         lower = "numeric",
                         theta = "numeric",
@@ -32,8 +32,10 @@ setClass("reModule",
              q <- nrow(object@Zt)
              if (!all(dim(object@Lambda) == q))
                  return("Lambda must be q by q where q = nrow(Zt)")
-             if (nrow(object@Ut) != q || nrow(object@L) != q)
-                 return("Number of rows in Zt, L and Ut must match")
+#             if (nrow(object@Ut) != q || nrow(object@L) != q)
+#                 return("Number of rows in Zt, L and Ut must match")
+             if (nrow(object@L) != q)                 
+                 return("Number of rows in Zt and L must match")
              if (length(object@u) != q)
                  return("length(u) must be q = nrow(Zt)")
              if (length(object@Lind) != length(object@Lambda@x))
