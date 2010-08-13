@@ -214,7 +214,9 @@ print(qrr2[[2]], pos = c(0,0.65,1,1))
 @ 
 \caption[Random effects prediction intervals for model \code{fm03}]{95\%
   prediction intervals on the random effects for model
-  \code{fm03} fit to the \code{Penicillin} data.}
+  \code{fm03} fit to the \code{Penicillin} data.  The intervals in the
+  upper panel are those for levels of the \code{sample} factor.  Those
+  in the lower panel correspond to levels of the \code{plate} factor.}
   \label{fig:fm03ranef}
 \end{figure}
 confirm that the conditional distribution of the random effects for
@@ -328,6 +330,8 @@ the interval divided by the estimate.
 <<fm03confintrel>>=
 confint(pr03)[1:2,]/c(0.8455722, 1.770648)
 @ 
+(We have switched from the REML estimates shown in the display of
+\code{fm03} to the ML estimates of the standard deviations.)
 
 The lack of precision in the estimate of $\sigma_2$ is a consequence
 of only having 6 distinct levels of the \code{sample} factor.  The
