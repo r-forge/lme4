@@ -85,18 +85,17 @@ mkReTrms <- function(bars, fr, s = 1L) {
     Lambda@x[] <- ll$theta[ll$Lind]     # initialize elements of Lambda
     ll$Lambda <- Lambda
 
-    ll$Ut <-
-	if (s > 1) { ## Ut is the sum of vertical sections of Zt
-	    N <- ncol(Zt)
-	    Reduce("+",
-		   lapply(split(seq_len(N),
-				rep.int(seq_len(s),
-					rep.int(N %/% s, s))),
-			  function(cols) Zt[, cols]))
-	}
-	else crossprod(Lambda, Zt)
+    Ut <- if (s > 1) { ## Ut is the sum of vertical sections of Zt
+        N <- ncol(Zt)
+        Reduce("+",
+               lapply(split(seq_len(N),
+                            rep.int(seq_len(s),
+                                    rep.int(N %/% s, s))),
+                      function(cols) Zt[, cols]))
+    }
+    else crossprod(Lambda, Zt)
 
-    ll$L <- Cholesky(tcrossprod(ll$Ut), LDL = FALSE, Imult = 1)
+    ll$L <- Cholesky(tcrossprod(Ut), LDL = FALSE, Imult = 1)
                                         # massage the factor list
     fl <- lapply(blist, "[[", "ff")
                                         # check for repeated factors
@@ -456,7 +455,7 @@ setMethod("simulate", "merMod",
 			       if(use.u) {
 				   object@re @ u
 			       } else {
-				   U <- t(object@re @ Ut)
+				   U <- crossprod(object@re@Zt, object@re@Lambda)
 				   q <- ncol(U)
 				   as(U %*% matrix(rnorm(q * nsim), nc = nsim), "matrix")
 			       }
@@ -512,7 +511,7 @@ bootMer <- function(x, FUN, nsim = 1, seed = NULL, use.u = FALSE,
     if(use.u) {
         u <- x@re @ u
     } else {
-        U <- t(x@re @ Ut)
+        U <- crossprod(x@re @ Zt, x@re @ Lambda)
         q <- ncol(U)
     }
     Zt <- x@re @ Zt
