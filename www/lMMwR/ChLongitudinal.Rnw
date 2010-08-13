@@ -391,7 +391,7 @@ the \code{Subject} factor, as we would expect from the simple, scalar
 random-effects term \code{(1|Subject)}.  The pattern of zeros and
 non-zeros in the second group of 18 columns is determined by the
 indicators of the grouping factor, \code{Subject}, and the values of
-the non-zeros are determined by the \code{Days} factor.  In other
+the non-zeros are determined by the \code{Days} covariate.  In other
 words, these columns are formed by the \emph{interaction} of the
 numeric covariate, \code{Days}, and the categorical covariate,
 \code{Subject}.
@@ -705,7 +705,7 @@ for \code{fm07}]{Comparison of the within-subject estimates of the
   an arrow are the within-subject estimates and conditional modes of
   the random for a particular subject.  The arrow points from the
   within-subject estimate to the conditional mode for the
-  mixed-effects model.  The subject identifier number is at the head
+  mixed-effects model.  The subject identifier number is at the tail
   of each arrow.}
   \label{fig:shrinkage}
 \end{figure}
