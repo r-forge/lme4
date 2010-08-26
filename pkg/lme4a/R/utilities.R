@@ -1,13 +1,11 @@
 ### Utilities for parsing the mixed model formula
 
-##' Determine random-effects expressions from a formula
-
 ##' From the right hand side of a formula for a mixed-effects model,
 ##' determine the pairs of expressions that are separated by the
 ##' vertical bar operator.
 
+##' @title Determine random-effects expressions from a formula
 ##' @param term a mixed-model formula
-
 ##' @return pairs of expressions that were separated by vertical bars
 findbars <- function(term)
 {
@@ -55,12 +53,12 @@ findbars <- function(term)
     expandSlash(fb(term))
 }
 
-##' Omit terms separated by vertical bars in a formula
-##'
 ##' Remove the random-effects terms from a mixed-effects formula,
 ##' thereby producing the fixed-effects formula.
+##'
+##' @title Omit terms separated by vertical bars in a formula
 ##' @param term the right-hand side of a mixed-model formula
-
+##'
 ##' @return the fixed-effects part of the formula
 nobars <- function(term)
 {
@@ -81,13 +79,14 @@ nobars <- function(term)
     term
 }
 
-##' "Sub[stitute] Bars"
-
 ##' Substitute the '+' function for the '|' function in a mixed-model
 ##' formula.  This provides a formula suitable for the current
 ##' model.frame function.
+##'
+##' @title "Sub[stitute] Bars"
+##'
 ##' @param term a mixed-model formula
-
+##'
 ##' @return the formula with all | operators replaced by +
 ##' @note this function is called recursively
 subbars <- function(term)
@@ -104,18 +103,17 @@ subbars <- function(term)
     term
 }
 
-##' Is f1 nested within f2?
-##'
 ##' Does every level of f1 occur in conjunction with exactly one level
 ##' of f2? The function is based on converting a triplet sparse matrix
 ##' to a compressed column-oriented form in which the nesting can be
 ##' quickly evaluated.
 ##'
+##' @title Is f1 nested within f2?
+##'
 ##' @param f1 factor 1
 ##' @param f2 factor 2
-
+##'
 ##' @return TRUE if factor 1 is nested within factor 2
-
 isNested <- function(f1, f2)
 {
     f1 <- as.factor(f1)

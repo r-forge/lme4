@@ -14,18 +14,17 @@ setGeneric("dropX",
     do.call("new", ll)
 }
 
-##' Drop the which'th column from X in an merMod object
-
 ##' Drop the which'th column from the fixed-effects model matrix in
 ##' fe, the deFeMod slot.  Add fw times the dropped column to
 ##' resp@offset and store values to implement
 ##' profiling of the fixed-effects parameters.
-
+##'
+##' @title Drop the which'th column from X in an merMod object
+##'
 ##' @param obj
 ##' @param which the column to drop.  Must have 1 <= which <= ncol(obj@fe@X)
 ##' @param fw the value of the which'th fixed effect which will
 ##'     be held constant.
-
 ##' @return a revised merMod object
 setMethod("dropX", "merMod",
           function(x, which, fw)
@@ -317,19 +316,16 @@ splom.thpr <-
     splom(~ pfr, lower.panel = lp, upper.panel = up, diag.panel = dp, ...)
 }
 
-##' Transform an lmer profile to the logarithm scale
-
 ##' Transform an lmer profile to the scale of the logarithm of the
 ##' standard deviation of the random effects.
-
+##' @title Transform an lmer profile to the logarithm scale
 ##' @param x an object that inherits from class "thpr"
 ##' @param base the base of the logarithm.  Defaults to natural
 ##'        logarithms
-
+##'
 ##' @return an lmer profile like x with all the .sigNN parameters
 ##'      replaced by .lsigNN.  The forward and backward splines for
 ##'      these parameters are recalculated.
-
 log.thpr <- function (x, base = exp(1))
 {
     cn <- colnames(x)
@@ -377,16 +373,12 @@ varpr <- function (x)
     x
 }
 
-##' <description>
-##'
-##' <details>
-##' @title Return a function for evaluation of the deviance.
-##'
 ##' The deviance is profiled with respect to the fixed-effects
 ##' parameters but not with respect to sigma, which is expressed
 ##' on the logarithmic scale, lsigma. The other parameters are on
 ##' the standard deviation scale, not the theta scale.
 ##'
+##' @title Return a function for evaluation of the deviance.
 ##' @param fm a fitted model of class merMod
 ##' @return a function for evaluating the deviance in the extended
 ##'     parameterization.  This is profiled with respect to the
