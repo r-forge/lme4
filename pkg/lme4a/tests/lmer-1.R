@@ -4,10 +4,10 @@ options(show.signif.stars = FALSE)
 
 source(system.file("test-tools.R", package = "Matrix"))# identical3() etc
 all.EQ <- function(u,v, ...) all.equal.X(u, v, except = c("call", "frame"), ...)
-##S4_2list <- function(obj) {   # no longer used
-#    sn <- slotNames(obj)
-#    structure(lapply(sn, slot, object = obj), .Names = sn)
-#}
+S4_2list <- function(obj) {   # no longer used
+   sn <- slotNames(obj)
+   structure(lapply(sn, slot, object = obj), .Names = sn)
+}
 showProc.time <- local({
     pct <- proc.time()
     function() { ## CPU elapsed __since last called__
@@ -87,7 +87,8 @@ for(nm in c("coef", "fixef", "ranef", "sigma",
     if(nm == "model.matrix") {
 #        F.fmX1s <- as(F.fmX1s, "denseMatrix")
         F.fmX2s <- as(F.fmX2s, "denseMatrix")
-	FF <- function(.) as(FUN(.), "generalMatrix")
+	FF <- function(.) {r <- FUN(.); row.names(r) <- NULL
+			   as(r, "generalMatrix") }
     } else FF <- FUN
     stopifnot(
 #	      all.equal( FF(fmX1), F.fmX1s, tol =  1e-6)
@@ -324,9 +325,9 @@ P2.2 <- lmer (strength ~ (1|sample) + (1|batch), Pastes, doFit = FALSE)
 
 ## The environments of Pm1 and Pm2 should be identical except for
 ## "call" and "frame":
-## stopifnot(all.EQ(env(Pm1), env(Pm2)),
-##           all.EQ(S4_2list(P2.1),
-##                  S4_2list(P2.2)))
+stopifnot(## all.EQ(env(Pm1), env(Pm2)),
+	  all.EQ(S4_2list(P2.1),
+		 S4_2list(P2.2)))
 
 ## glmer - Modeling overdispersion as "mixture" aka
 ## ----- - *ONE* random effect *PER OBSERVATION" -- example inspired by Ben Bolker:
