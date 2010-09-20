@@ -1,0 +1,154 @@
+\documentclass[11pt,a4rpaper]{article}
+\usepackage[top=1.1in,bottom=1in,left=0.9in,headheight=14pt,right=0.9in]{geometry}
+\usepackage{paralist,mdwlist,Sweave,amsmath,amsbsy,graphicx,alltt,fancyhdr,url}
+\SweaveOpts{engine=R,eps=FALSE,width=10,height=6.5,strip.white=all}
+\SweaveOpts{prefix=TRUE,prefix.string=figs/ex2,include=TRUE}
+\setkeys{Gin}{width=\textwidth}
+\DefineVerbatimEnvironment{Sinput}{Verbatim}
+{formatcom={\vspace{-1.5ex}},fontshape=sl,
+  fontfamily=courier,fontseries=b, fontsize=\small}
+\DefineVerbatimEnvironment{Soutput}{Verbatim}
+{formatcom={\vspace{-2.5ex}},fontfamily=courier,fontseries=b,fontsize=\small}
+\usepackage{fancyhdr}
+\lhead{\sf Mixed-effects models workshop}\chead{\sf Exercises \#3}
+\rhead{\sf 2009-07-22 (p. \thepage)}
+\lfoot{\sf Models with simple, scalar random effects}\cfoot{}\rfoot{}
+\pagestyle{fancy}
+\newcommand{\code}[1]{\texttt{\small #1}}
+\newcommand{\R}{\textsf{R}}
+<<initial,echo=FALSE,print=FALSE>>=
+options(width=80, show.signif.stars = FALSE)
+library(lattice)
+lattice.options(default.theme = standard.theme(color = FALSE))
+set.seed(123454321)
+@
+
+\begin{document}
+Install the MEMSS package that contains data sets
+from the book "Mixed-effects Models in S and S-PLUS" that I wrote with
+Jos\'{e} Pinheiro.
+\begin{enumerate}
+\item Check the structure of the \code{Rail} data and the
+  documentation for it.  It is a simple, one-factor, balanced design,
+  similar to the \code{Dyestuff} data.  
+  \begin{enumerate}
+  \item Plot the data in a form that seems appropriate - perhaps a
+    dotplot by \code{Rail} sorted by increasing \code{travel} time
+    joining the means of the travel times.  Note that you probably
+    don't want to use a comparative boxplot because there are only
+    three observations per rail and you don't want to ``summarize''
+    three observations with five summary statistics.
+  \item Fit a model with \code{travel} as the response and a simple,
+    scalar random-effects term for the variable \code{Rail}.  Use the
+    REML criterion, which is the default.  Check the dotplot (i.e. the
+    ``caterpillar'' plot) for the random effects.
+  \item Refit the model using maximum likelihood.  Check the parameter
+    estimates and, in the case of the fixed-effects parameter, its
+    standard error.  In what ways have the parameter estimates changed?
+    In particular, which parameter estimates have not changed?
+  \end{enumerate}
+
+\item Consider the \code{ergostool} data; check its stucture and
+  summary.  The stool types are fixed, the subjects in the experiment
+  are chosen at random.  The structure of the data are similar to the
+  \code{Penicillin} data (unreplicated, completely crossed) but here
+  we will consider the \code{Type} factor to have fixed levels.
+  \begin{enumerate}
+  \item Plot the data.  You may want to consider a plot similar to
+    that of the \code{Penicillin} data shown on the slides.
+  \item Fit a mixed-effects model to these data with fixed-effects for
+    \code{Type} and a simple, scalar random effect for each level of
+    \code{Subject}.  A suitable formula could be\\[2ex]
+    
+<<formulaergo1,echo=FALSE>>=
+effort ~ 1 + Type + (1|Subject)
+@
+What does the \code{(Intercept)} coefficient represent?  What do the
+other fixed-effects terms represent?  Change the formula to\\[2ex]
+
+<<formulaergo1,echo=FALSE>>=
+effort ~ 0 + Type + (1|Subject)
+@
+which suppresses the intercept term.  What do the fixed-effects parameters represent now?
+
+\item Fit a model with random effects for \code{Type} and for
+  \code{Subject}.  Check the fixed-effects parameter (the
+  \code{(Intercept)} and the conditional means of the random effects.
+  Check the caterpillar plot for the random-effects for the
+  \code{Type} factor.  How do the random effects compare to the
+  corresponding fixed-effects parameters from the previous part in
+  precision and position?
+  \end{enumerate}
+\item The \code{MathAchieve} data are similar to the \code{classroom}
+  data but with school identifiers only.  The variable \code{MEANSES}
+  is the mean socio-economic status for students in the school.
+  \begin{enumerate}
+  \item Check that \code{MEANSES} is defined consistently within a
+    school.  That is, check that each school has exactly one value for
+    \code{MEANSES}.
+  \item Determine the distribution of the number of students per
+    school.  You can use \code{xtabs} to get a count of the number of
+    students in each school, then summarize that distribution, perhaps
+    by a densityplot.  Do you think you will be able to estimate
+    school effects reasonably precisely?
+  \item Fit a model with fixed effects for \code{Sex}, \code{Minority}
+    and \code{MEANSES} and simple scalar random effects for
+    \code{School}.  Compare the magnitudes of the estimates for the
+    \code{Sex} and \code{Minority} terms to the shifts that you might
+    observe in, say, comparative density plots.
+  \item Check the caterpillar plot of the random effects for school.
+    Are there schools that seem clearly better or clearly worse than
+    the typical school?
+  \item Fit a model with the previous fixed-effects term plus a
+    Sex/Minority interaction term.  A suitable formula would be\\[2ex]
+    
+<<SexMform,echo=FALSE>>=
+MathAch ~ Sex * Minority + MEANSES + (1|School)
+@
+Is the interaction term significant?
+
+\item (Optional) Other school-level covariates are given in the data
+  frame \code{MathAchSchool}.  Consider how you could merge these with
+  the current variables (see \code{?merge}).  Examine these variables
+  both graphically and by fitting and comparing models.
+  \end{enumerate}
+
+\item Consider the \code{RatPupWeight} data.  Check its structure and
+  a summary.
+  \begin{enumerate}
+  \item Plot the data using an xyplot of the weight versus litter size
+    with scatterplot smoother lines according to sex.  Do you think
+    there will be significant effects on weight due to the litter size
+    and to the sex of the pup?
+  \item Consider the pattern with respect to litter size.  Replot
+    versus the logarithm of the litter size.  Does that enhance the
+    linearity of the plot?
+  \item Plot weight versus litter size or logarithm of litter size,
+    whichever seems reasonable to you with groups according to the
+    treatment.  Do you expect significant effects due to treatment?
+
+  \item Fit a mixed-effects model with random effects according to
+    litter and with whatever fixed-effects terms you consider
+    appropriate.  Expand or contract the model as you see fit.
+  \item Notice the outlier --- one rat pup was unusually low weight.
+    Investigate the effect on your conclusions of omitting this
+    observation.
+  \end{enumerate}
+
+\item Consider the \code{Wheat} data.  Check its structure, summary and documentation.
+  \begin{enumerate}
+  \item Plot the \code{DryMatter} by \code{Moisture} with groups for
+    fertilizer.  Try a log transformation of the \code{DryMatter}.
+    Does that help to stabilize the patterns?
+
+  \item Fit and analyze a mixed-effects model with random effects for
+    \code{Tray}.
+  \end{enumerate}
+
+\end{enumerate}
+\end{document}
+
+%%% Local Variables: 
+%%% mode: latex
+%%% TeX-master: t
+%%% End: 
