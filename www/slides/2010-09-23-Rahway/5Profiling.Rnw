@@ -1,0 +1,407 @@
+% NOTE -- ONLY EDIT THE .Rnw FILE!!!  The .tex file is
+% likely to be overwritten.
+
+\documentclass[dvipsnames,pdflatex,beamer]{beamer}
+%\documentclass[letterpaper,11pt,notitlepage]{article}\usepackage{beamerarticle}
+\mode<article>{\usepackage[text={6.2in,9in},centering]{geometry}}
+\mode<beamer>{\usetheme{Boadilla}\usecolortheme{seahorse}\usecolortheme{rose}}
+\usepackage{SweaveSlides}
+\title[Profiling]{Mixed models in R using the lme4 package\\Part 5: Inference based on profiled deviance}
+\SweaveOpts{engine=R,eps=FALSE,pdf=TRUE,width=10,height=6.5,strip.white=all}
+\SweaveOpts{prefix=TRUE,prefix.string=figs/profiling,include=TRUE}
+\SweaveOpts{keep.source=TRUE}
+\mode<beamer>{\setkeys{Gin}{width=\textwidth}}
+\mode<article>{\setkeys{Gin}{width=0.8\textwidth}}
+\usepackage{SweaveSlides}
+<<preliminaries,echo=FALSE,results=hide>>=
+options(width=65,show.signif.stars=FALSE,str=strOptions(strict.width="cut"))
+library(lattice)
+library(Matrix)
+library(MatrixModels)
+library(Rcpp)
+library(minqa)
+library(lme4a)
+lattice.options(default.theme = function() standard.theme())
+#lattice.options(default.theme = function() standard.theme(color=FALSE))
+if (file.exists("classroom.rda")) {
+    load("classroom.rda")
+} else {
+    classroom <- within(read.csv("http://www-personal.umich.edu/~bwest/classroom.csv"),
+                    {
+                        classid <- factor(classid)
+                        schoolid <- factor(schoolid)
+                        sex <- factor(sex, labels = c("M","F"))
+                        minority <- factor(minority, labels = c("N", "Y"))
+                    })
+    save(classroom, file="classroom.rda")
+}
+if (file.exists("pr1.rda")) {
+    load("pr1.rda")
+} else {
+    pr1 <- profile(fm1M <- lmer(Yield ~ 1+(1|Batch), Dyestuff, REML=FALSE))
+    save(pr1, fm1M, file="pr1.rda")
+}
+if (file.exists("pr8.rda")) {
+    load("pr8.rda")
+} else {
+    pr8 <- profile(fm8 <- lmer(mathgain ~
+           mathkind + minority + ses + (1|classid) + (1|schoolid), classroom, REML=FALSE))
+    save(pr8, fm8, file="pr8.rda")
+}
+@ 
+\begin{document}
+
+\mode<article>{\maketitle\tableofcontents}
+\mode<presentation>{\frame{\titlepage}}
+\mode<presentation>{\frame{\frametitle{Outline}\tableofcontents[pausesections,hideallsubsections]}}
+
+
+\section{Profiling the deviance}
+
+\begin{frame}\frametitle{Likelihood ratio tests and deviance}
+  \begin{itemize}
+  \item In section 2 we described the use of likelihood ratio tests
+    (LRTs) to compare a reduced model (say, one that omits a
+    random-effects term) to the full model.
+  \item The test statistic in an LRT is the change in the deviance,
+    which is negative twice the log-likelihood.
+  \item We always use maximum likelihood fits (i.e. \code{REML=FALSE})
+    to evaluate the deviance.
+  \item In general we calculate p-values for a LRT from a $\chi^2$
+    distribution with degrees of freedom equal to the difference in
+    the number of parameters in the models.
+  \item The important thing to note is that a likelihood ratio test is
+    based on fitting the model under each set of conditions.
+  \end{itemize}
+\end{frame}
+
+\begin{frame}\frametitle{Profiling the deviance versus one parameter}
+  \begin{itemize}
+  \item There is a close relationship between confidence intervals and
+    hypothesis tests on a single parameter.  When,
+    e.g. $H_0:\beta_1=\beta_{1,0}$ versus $H_a:\beta_1\ne\beta_{1,0}$
+    is \textbf{not} rejected at level $\alpha$ then $\beta_{1,0}$ is
+    in a $1-\alpha$ confidence interval on the parameter $\beta_1$.
+  \item For linear fixed-effects models it is possible to determine
+    the change in the deviance from fitting the full model only.  For
+    mixed-effects models we need to fit the full model and all the
+    reduced models to perform the LRTs.
+  \item In practice we fit some of them and use interpolation.  The
+    \code{profile} function evaluates such a ``profile'' of the change
+    in the deviance versus each of the parameters in the model.
+  \end{itemize}
+\end{frame}
+
+\begin{frame}\frametitle{Transforming the LRT statistic}
+  \begin{itemize}
+  \item The LRT statistic for a test of a fixed value of a single
+    parameter would have a $\chi^2_1$ distribution, which is the
+    square of a standard normal.
+  \item If a symmetric confidence interval were appropriate for the
+    parameter, the LRT statistic would be quadratic with respect to
+    the parameter.
+  \item We plot the square root of the LRT statistic because it is
+    easier to assess whether the plot looks like a straight line than
+    it is to assess if it looks like a quadratic.
+  \item To accentuate the straight line behavior we use the signed
+    square root transformation which returns the negative square root
+    to the left of the estimate and the positive square root to the right.
+  \item This quantity can be compared to a standard normal.  We write
+    it as $\zeta$
+  \end{itemize}
+\end{frame}
+
+\section{Plotting the profiled deviance}
+
+
+\begin{frame}[fragile]
+  \frametitle{Evaluating and plotting the profile}
+\mode<article>{Figure~\ref{fig:pr1plot} is produced as}
+<<pr1,eval=FALSE>>=
+pr1 <- profile(fm1M <- lmer(Yield ~ 1+(1|Batch), Dyestuff, REML=FALSE))
+xyplot(pr1, aspect=1.3)
+@ 
+\begin{figure}[tb]
+  \centering
+<<pr1plot,fig=TRUE,echo=FALSE,height=4>>=
+print(xyplot(pr1, aspect=1.3, layout=c(3,1)))
+@ 
+  \mode<article>{\caption{Profile plot of the parameters in model \code{fm1M}}\label{fig:pr1plot}}
+\end{figure}
+
+\begin{itemize}
+\item The parameters are $\sigma_b$, $\log(\sigma)$ ($\sigma$ is the
+  residual standard deviation) and $\mu$.  The vertical lines delimit
+  50\%, 80\%, 90\%, 95\% and 99\% confidence intervals.
+\end{itemize}
+\end{frame}
+
+\begin{frame}[fragile]
+  \mode<beamer>{\frametitle{Alternative profile plot}}
+\mode<article>{Figure~\ref{fig:pr1plot2} is produced as}
+<<pr1plot2show,eval=FALSE>>=
+xyplot(pr1, aspect=0.7, absVal=TRUE)
+@ 
+\begin{figure}[tb]
+  \centering
+<<pr1plot2,fig=TRUE,echo=FALSE,height=3>>=
+print(xyplot(pr1, aspect=0.7, absVal=TRUE, strip=FALSE, strip.left=TRUE,layout=c(3,1)))
+@
+  \mode<article>{\caption{Alternative profile plot using \code{absVal=TRUE} for the parameters in model \code{lm1}}\label{fig:pr1plot2}}
+\end{figure}
+Numerical values of the confidence interval limits are obtained from
+the method for the \code{confint} generic
+<<confintpr1>>=
+confint(pr1)
+@ 
+\end{frame}
+
+\begin{frame}[fragile]\frametitle{Changing the confidence level}
+As for other methods for the \code{confint} generic, we use
+\code{level=}$\alpha$ to obtain a confidence level other than the
+default of $0.95$.
+<<confintpr1.99>>=
+confint(pr1, level=0.99)
+@ 
+Note that the lower 99\% confidence limit for $\sigma_1$ is undefined.
+\end{frame}
+
+\begin{frame}[fragile]\frametitle{Interpreting the univariate plots}
+  \begin{itemize}
+  \item A univariate profile $\zeta$ plot is read like a normal probability plot
+    \begin{itemize}
+    \item a sigmoidal (elongated ``S''-shaped) pattern like that for
+      the \code{(Intercept)} parameter indicates overdispersion
+      relative to the normal distribution.
+    \item a bending pattern, usually flattening to the right of the
+      estimate, indicates skewness of the estimator and warns us that
+      the confidence intervals will be asymmetric
+    \item a straight line indicates that the confidence intervals
+      based on the quantiles of the standard normal distribution are suitable
+    \end{itemize}
+
+  \item Note that the only parameter providing a more-or-less straight
+    line is $\sigma$ and this plot is on the scale of $\log(\sigma)$
+    not $\sigma$ or, even worse, $\sigma^2$.
+  \item We should expect confidence intervals on $\sigma^2$ to be
+    asymmetric.  In the simplest case of a variance estimate from an
+    i.i.d. normal sample the confidence interval is derived from
+    quantiles of a $\chi^2$ distribution which is quite asymmetric
+    (although many software packages provide standard errors of
+    variance component estimates as if they were meaningful).
+  \end{itemize}
+\end{frame}
+
+\begin{frame}[fragile]
+  \mode<beamer>{\frametitle{Profile $\zeta$ plots for $\log(\sigma)$,$\sigma$ and $\sigma^2$}}
+  \begin{figure}[tb]
+    \centering
+<<sigmaprof,fig=TRUE,echo=FALSE,height=4>>=
+zeta <- sqrt(qchisq(c(0.5,0.8,0.9,0.95,0.99), 1))
+zeta <- c(-rev(zeta), 0, zeta)
+spl <- attr(pr1, "forward")[[2]]
+endpts <- predict(attr(pr1, "backward")[[2]], zeta)$y
+
+fr <- data.frame(zeta = rep.int(zeta, 3),
+                 endpts = c(endpts, exp(endpts), exp(2*endpts)),
+                 pnm = gl(3, length(zeta)))
+print(xyplot(zeta ~ endpts|pnm, fr, type = "h",
+             scales = list(x = list(relation = "free")),
+             xlab = NULL, ylab = expression(zeta), aspect = 1.3,
+             strip = strip.custom(
+             factor.levels = expression(log(sigma), sigma, sigma^2)),
+             panel = function(...) {
+                 panel.grid(h = -1, v = -1)
+                 panel.abline(h=0)
+                 panel.xyplot(...)
+                 ll <- current.panel.limits()$xlim
+                 lims <- switch(panel.number(), ll, log(ll), log(ll)/2)
+                 pr <- predict(spl, seq(lims[1], lims[2], len = 101))
+                 panel.lines(switch(panel.number(),
+                                    pr$x,
+                                    exp(pr$x),
+                                    exp(pr$x * 2)), pr$y)
+             }))
+@   
+   \mode<article>{\caption{Profile $\zeta$ plots for $\log(\sigma)$,$\sigma$ and $\sigma^2$ in model \code{fm1ML}}\label{fig:sigmaprof}}
+  \end{figure}
+\mode<article>{In Fig.~\ref{fig:sigmaprof}}
+\begin{itemize}
+\item We can see moderate asymmetry on the scale of $\sigma$ and
+  stronger asymmetry on the scale of $\sigma^2$.
+\item The issue of which of the ML or REML estimates of $\sigma^2$ are
+  closer to being unbiased is a red herring.  $\sigma^2$ is not a
+  sensible scale on which to evaluate the expected value of an estimator.
+\end{itemize}
+\end{frame}
+
+\begin{frame}[fragile]
+  \mode<beamer>{\frametitle{Profile $\zeta$ plots for $\log(\sigma_1)$,$\sigma_1$ and $\sigma^2_1$}}
+  \begin{figure}[tb]
+    \centering
+<<sigma1prof,fig=TRUE,echo=FALSE,height=4>>=
+zeta <- sqrt(qchisq(c(0.5,0.8,0.9,0.95,0.99), 1))
+zeta <- c(-rev(zeta), 0, zeta)
+spl <- attr(pr1, "forward")[[1]]
+endpts <- predict(attr(pr1, "backward")[[1]], zeta)$y
+
+fr <- data.frame(zeta = rep.int(zeta, 3),
+                 endpts = c(log(endpts), endpts, endpts^2),
+                 pnm = gl(3, length(zeta)))
+## A mighty kludge here
+fr[1,] <- c(NA, 1.5, 1)
+fr[12,] <- c(NA, 0, 2)
+print(xyplot(zeta ~ endpts|pnm, fr, type = "h",
+             scales = list(x = list(relation = "free")),
+             xlab = NULL, ylab = expression(zeta), aspect = 1.3,
+             strip = strip.custom(
+             factor.levels = expression(log(sigma[1]), sigma[1], sigma[1]^2)),
+             panel = function(...) {
+                 panel.grid(h = -1, v = -1)
+                 panel.abline(h = 0)
+                 panel.xyplot(...)
+                 ll <- (current.panel.limits()$xlim)[2]
+                 lims <- switch(panel.number(),
+                                c(1.5, exp(ll)),
+                                c(0, ll),
+                                c(0, sqrt(ll)))
+                 pr <- predict(spl, seq(lims[1], lims[2], len = 101))
+                 panel.lines(switch(panel.number(),
+                                    log(pr$x),
+                                    pr$x,
+                                    pr$x^2), pr$y)
+             }))
+@   
+\mode<article>{\caption{Profile $\zeta$ plots for $\log(\sigma_1)$,$\sigma_1$ and $\sigma^2_1$ in model \code{fm1ML}}\label{fig:sigma1prof}}
+  \end{figure}
+  \mode<article>{In Fig.~\ref{fig:sigma1prof} we see}
+\begin{itemize}
+\item For $\sigma_1$ the situation is more complicated because 0 is
+  within the range of reasonable values.  The profile flattens as
+  $\sigma\rightarrow0$ which means that intervals on $\log(\sigma)$
+  are unbounded.
+\item Obviously the estimator of $\sigma^2_1$ is terribly skewed yet
+  most software ignores this and provides standard errors on variance
+  component estimates.
+\end{itemize}
+\end{frame}
+
+\section{Profile pairs}
+
+\begin{frame}\frametitle{Profile pairs plots}
+  \begin{itemize}
+  \item The information from the profile can be used to produce
+    pairwise projections of likelihood contours.  These correspond to
+    pairwise joint confidence regions.
+  \item Such a plot (next slide) can be somewhat confusing at first
+    glance.
+  \item Concentrate initially on the panels above the diagonal where
+    the axes are the parameters in the scale shown in the diagonal
+    panels.  The contours correspond to 50\%, 80\%, 90\%, 95\% and
+    99\% pairwise confidence regions.
+  \item The two lines in each panel are ``profile traces'', which are
+    the conditional estimate of one parameter given a value of the other.
+  \item The actual interpolation of the contours is performed on the
+    $\zeta$ scale which is shown in the panels below the diagonal.
+  \end{itemize}
+\end{frame}
+
+\begin{frame}[fragile]
+  \mode<beamer>{\frametitle{Profile pairs for model \textbf{fm1}}}
+  \mode<article>{Figure~\ref{fig:pr1pairs} is produced by}
+<<pr1pairsshow,eval=FALSE>>=
+splom(pr1)
+@   
+\begin{figure}[tb]
+  \centering
+<<pr1pairs,echo=FALSE,fig=TRUE,height=6>>=
+print(splom(pr1))
+@   
+  \mode<article>{\caption{Profile pairs for model \textbf{fm1}}\label{fig:pr1pairs}}
+\end{figure}
+\end{frame}
+
+\section[Covariates]{Profiling models with fixed-effects for covariates}
+
+\begin{frame}[fragile]\frametitle{About those p-values}
+  \begin{itemize}
+  \item Statisticians have been far too successful in propagating
+    concepts of hypothesis testing and p-values, to the extent that
+    quoting p-values is essentially a requirement for publication in
+    some disciplines.
+  \item When models were being fit by hand calculation it was
+    important to use any trick we could come up with to simplify the
+    calculation.  Often the results were presented in terms of the
+    simplified calculation without reference to the original idea of
+    comparing models.
+  \item We often still present model comparisons as properties of
+    ``terms'' in the model without being explicit about the underlying
+    comparison of models with the term and without the term.
+  \item The approach I recommend for assessing the importance of
+    particular terms in the fixed-effects part of the model is to fit
+    with and without then use a likelihood ratio test (the
+    \code{anova} function).
+  \end{itemize}
+\end{frame}
+
+\begin{frame}[fragile]\frametitle{Hypothesis tests versus confidence intervals}
+  \begin{itemize}
+  \item As mentioned earlier, hypothesis tests and confidence
+    intervals are two sides of the same coin.
+  \item For a categorical covariate, it often makes sense to ask ``Is
+    there a signficant effect for this factor?'' which we could answer
+    with a p-value.  We may, in addition, want to know how large the
+    effect is and how precisely we have estimated it, i.e. a
+    confidence interval.
+  \item For a continuous covariate we generally want to know the
+    coefficient estimate and its precision (i.e. a confidence
+    interval) in preference to a p-value for a hypothesis test.
+  \item When we have many observations and only a moderate number of
+    fixed and random effects, the distribution of the fixed-effects
+    coefficients' estimators is well-approximated by a multivariate
+    normal derived from the estimates, their standard errors and correlations.
+  \item With comparatively few observations it is worthwhile using
+    profiling to check on the sensistivity of the fit to the values of
+    the coefficients.
+  \item As we have seen, estimates of variance components can be
+    poorly behaved and it is worthwhile using profiling to check their precision.
+  \end{itemize}
+\end{frame}
+
+\begin{frame}[fragile]
+  \mode<beamer>{\frametitle{Profiling a model for the \texttt{classroom} data}}
+<<pr8,eval=FALSE>>=
+pr8 <- profile(fm8 <- lmer(mathgain ~ mathkind + minority +
+               ses + (1|classid) + (1|schoolid), classroom, REML=FALSE))
+@ 
+\begin{figure}[tb]
+  \centering
+<<pr8plot,echo=FALSE,fig=TRUE,height=3>>=
+print(xyplot(pr8, absVal=TRUE, aspect=0.7, layout=c(4,2), strip=FALSE,
+             strip.left=TRUE, skip=rep.int(c(FALSE,TRUE,FALSE),c(3,1,4))))
+@ 
+  \mode<article>{\caption{Profile $\zeta$ plots for a model for the \texttt{classroom} data}\label{fig:pr8plot}}
+\end{figure}
+\mode<article>{From Fig.~\ref{fig:pr8plot} we see}
+\begin{itemize}
+\item The fixed-effects coefficient estimates (top row) have good
+  normal approximations (i.e. a 95\% confidence intervals will be closely
+  approximated by estimate $\pm$ 1.96 $\times$ standard error).
+\item The estimators of $\sigma_1$, $\sigma_2$ and $\log(\sigma)$ are
+  also well approximated by a normal.  If anything, the estimators of
+  $\sigma_1$ and $\sigma_2$ are skewed to the left rather than skewed
+  to the right.
+\end{itemize}
+\end{frame}
+
+\begin{frame}[fragile]
+  \mode<beamer>{\frametitle{Profile pairs for many parameters}}
+  \begin{figure}[tb]
+    \centering
+<<pr8pairs,echo=FALSE,fig=TRUE,height=6.5>>=
+print(splom(pr8))
+@   
+    \mode<article>{\caption{Profile pairs plot for a model fit to the \texttt{classroom} data.}\label{fig:pr8pairs}}
+  \end{figure}
+\end{frame}
+\end{document}
