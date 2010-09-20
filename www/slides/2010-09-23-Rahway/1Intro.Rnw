@@ -192,8 +192,7 @@ with(Formaldehyde, carb * optden)
     copy.  To change the stored object you must assign the result
     to the name.
 <<within>>=
-sprays <- within(sprays, sqrtcount <- sqrt(count))
-str(sprays)
+str(sprays <- within(sprays, sqrtcount <- sqrt(count)))
 @ 
   \end{itemize}
 \end{frame}
