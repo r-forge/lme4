@@ -188,9 +188,8 @@ splom.thpr <-
         }
     }
     ## panel function for lower triangle
-    lp <- function(x, y, groups, subscripts, ...) {
-        tr <- traces[[eval.parent(expression(j))]][[
-            eval.parent(expression(i))]]
+    lp <- function(x, y, groups, subscripts, i, j, ...) {
+        tr <- traces[[j]][[i]]
         grid::pushViewport(viewport(xscale = c(-1.07, 1.07) * mlev,
                               yscale = c(-1.07, 1.07) * mlev))
         dd <- sapply(current.panel.limits(), diff)/50
@@ -206,11 +205,11 @@ splom.thpr <-
         popViewport(1)
     }
     ## panel function for upper triangle
-    up <- function(x, y, groups, subscripts, ...) {
+    up <- function(x, y, groups, subscripts, i, j, ...) {
         ## panels are transposed so reverse i and j
-        i <- eval.parent(expression(j))
-        j <- eval.parent(expression(i))
-        tr <- traces[[j]][[i]]
+        jj <- i
+        ii <- j
+        tr <- traces[[jj]][[ii]]
         ll <- tr$ll
         pts <- ll$pts
         limits <- current.panel.limits()
@@ -218,11 +217,11 @@ splom.thpr <-
         psji <- predict(tr$sji)
         ## do the actual plotting
         panel.grid(h = -1, v = -1)
-        llines(predy(bsp[[i]], psij$x), predy(bsp[[j]], psij$y), ...)
-        llines(predy(bsp[[i]], psji$y), predy(bsp[[j]], psji$x), ...)
+        llines(predy(bsp[[ii]], psij$x), predy(bsp[[jj]], psij$y), ...)
+        llines(predy(bsp[[ii]], psji$y), predy(bsp[[jj]], psji$x), ...)
         for (k in seq_along(levels))
-            llines(predy(bsp[[i]], pts[k, , 2]),
-                   predy(bsp[[j]], pts[k, , 1]), ...)
+            llines(predy(bsp[[ii]], pts[k, , 2]),
+                   predy(bsp[[jj]], pts[k, , 1]), ...)
     }
     dp <- function(x = NULL,            # diagonal panel
                    varname = NULL, limits, at = NULL, lab = NULL,
@@ -246,9 +245,9 @@ splom.thpr <-
                    axis.line.alpha = axis.line$alpha,
                    axis.line.lty = axis.line$lty,
                    axis.line.lwd = axis.line$lwd,
+                   i, j, 
                    ...)
     {
-        j <- eval.parent(expression(j))
         n.var <- eval.parent(expression(n.var))
         add.text <- trellis.par.get("add.text")
         axis.line <- trellis.par.get("axis.line")
