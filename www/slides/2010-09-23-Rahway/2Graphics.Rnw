@@ -5,9 +5,9 @@
 %\documentclass[letterpaper,11pt,notitlepage]{article}\usepackage{beamerarticle}
 \mode<article>{\usepackage[text={6.2in,9in},centering]{geometry}}
 \mode<beamer>{\usetheme{Boadilla}\usecolortheme{seahorse}\usecolortheme{rose}}
-\title[Lattice and ggplot2]{Mixed models in R using the lme4 package\\Part 2: R Graphics with lattice and ggplot2}
+\title[Lattice graphics]{Mixed models in R using the lme4 package\\Part 2: lattice graphics in R}
 \SweaveOpts{engine=R,eps=FALSE,pdf=TRUE,width=10,height=6.5,strip.white=all}
-\SweaveOpts{prefix=TRUE,prefix.string=figs/profiling,include=TRUE}
+\SweaveOpts{prefix=TRUE,prefix.string=figs/graphics,include=TRUE}
 \SweaveOpts{keep.source=TRUE}
 \mode<beamer>{\setkeys{Gin}{width=\textwidth}}
 \mode<article>{\setkeys{Gin}{width=0.8\textwidth}}
@@ -15,7 +15,6 @@
 <<preliminaries,echo=FALSE,results=hide>>=
 options(width=65,show.signif.stars=FALSE,str=strOptions(strict.width="cut"))
 library(lattice)
-library(ggplot2)
 @ 
 \begin{document}
 
@@ -354,7 +353,7 @@ print(bwplot(reorder(spray,count) ~ sqrt(count), InsectSprays,
 bwplot(reorder(spray,count) ~ sqrt(count), InsectSprays, aspect = 0.2)
 @   
 \begin{center}
-<<horbwcomp,echo=FALSE,fig=TRUE,height=3.5>>=
+<<horbwcomp,echo=FALSE,fig=TRUE,height=3>>=
 print(bwplot(reorder(spray,count) ~ sqrt(count), InsectSprays, aspect = 0.2,
              xlab = expression(sqrt("count"))))
 @   
@@ -419,6 +418,18 @@ print(dotplot(reorder(spray,count) ~ sqrt(count), InsectSprays,
     variable work best with the category on the vertical axis.
     Consider reordering the levels of the category if they do not have
     a natural order.
+  \end{itemize}
+\end{frame}
+
+\begin{frame}
+  \frametitle{ggplot2 -- another advanced graphics system for R}
+  \begin{itemize}
+  \item Another advanced graphics package for \R{} is \code{ggplot2}
+    by Hadley Wickham (a recent Iowa State Stats Ph.D., now at Rice).
+  \item His book, \emph{ggplot2: Elegant graphics for Data Analysis},
+    is worth examining.
+  \item The core chapter introducing the basic function called
+    \code{qplot} can be obtained from Hadley's web site \code{had.co.nz}
   \end{itemize}
 \end{frame}
 \end{document}

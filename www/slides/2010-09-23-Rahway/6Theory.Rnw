@@ -6,12 +6,16 @@
 \mode<article>{\usepackage[text={6.2in,9in},centering]{geometry}}
 \mode<beamer>{\usetheme{Boadilla}\usecolortheme{seahorse}\usecolortheme{rose}}
 \usepackage{SweaveSlides}
-\title[Theory]{Mixed models in R using the lme4 package\\Part 4: Theory of linear mixed models}
+\usepackage{amssymb}
+\date[Sept 24, 2010]{Merck, Sharp \& Dohme; Rahway, NJ\\Sept 24, 2010}
+\title[Theory of LMMs]{Mixed models in R using the lme4 package\\Part 6: Theory of linear mixed models}
 \SweaveOpts{engine=R,eps=FALSE,pdf=TRUE,width=10,height=6.5,strip.white=all}
 \SweaveOpts{prefix=TRUE,prefix.string=figs/theory,include=TRUE}
 \SweaveOpts{keep.source=TRUE}
 \mode<beamer>{\setkeys{Gin}{width=\textwidth}}
 \mode<article>{\setkeys{Gin}{width=0.8\textwidth}}
+\newcommand{\bLt}{\ensuremath{\bm\Lambda_\theta}}
+\begin{document}
 <<preliminaries,echo=FALSE,results=hide>>=
 options(width=69,show.signif.stars=FALSE)
 library(lattice)
@@ -56,25 +60,7 @@ simplemer <- function(flist, y, X, REML = TRUE, super = FALSE)
     rho$L <- Cholesky(tcrossprod(rho$Zt), LDL = FALSE, Imult = 1, super = super)
     return(rho)
 }
-
-profDev <- function(rho, theta) {
-    stopifnot(is.numeric(theta), length(theta) == length(rho$nlev))
-    Ut <- crossprod(Diagonal(x = rep.int(theta, rho$nlev)), rho$Zt)
-    L <- update(rho$L, Ut, mult = 1)
-    cu <- solve(L, solve(L, Ut %*% rho$y, sys = "P"), sys = "L")
-    RZX <- solve(L, solve(L, Ut %*% rho$X, sys = "P"), sys = "L")
-    RX <- chol(rho$XtX - crossprod(RZX))
-    cb <- solve(t(RX), crossprod(rho$X, rho$y) - crossprod(RZX, cu))
-    beta <- solve(RX, cb)
-    u <- solve(L, solve(L, cu - RZX %*% beta, sys = "Lt"), sys = "Pt")
-    fitted <- as.vector(crossprod(Ut, u) + rho$X %*% beta)
-    prss <- sum(c(rho$y - fitted, as.vector(u))^2) # penalized residual sum of squares
-    n <- length(fitted);  p <- ncol(RX)
-    if (rho$REML) return(determinant(L)$mod + 2*determinant(RX)$mod +
-                         (n-p)*(1+log(2*pi*prss/(n-p))))
-    determinant(L)$mod + n * (1 + log(2*pi*prss/n))}
 @ 
-\begin{document}
 
 \mode<article>{\maketitle\tableofcontents}
 \mode<presentation>{\frame{\titlepage}}
@@ -95,7 +81,7 @@ profDev <- function(rho, theta) {
     \end{displaymath}
     and the unconditional distribution
     \begin{displaymath}
-      \bc B\sim\mathcal{N}\left(\bm 0,\bm\Sigma(\bm\theta)\right) .
+      \bc B\sim\mathcal{N}\left(\bm 0,\bm\Sigma_\theta\right) .
     \end{displaymath}
     These distributions depend on the parameters $\bm\beta$,
     $\bm\theta$ and $\sigma$.
@@ -108,19 +94,19 @@ profDev <- function(rho, theta) {
 \end{frame}
 
 \begin{frame}
-  \frametitle{Properties of $\bm\Sigma(\bm\theta)$; generating it}
+  \frametitle{Properties of $\bm\Sigma_\theta$; generating it}
   \begin{itemize}
   \item Because it is a variance-covariance matrix, the $q\times q$ 
-    $\bm\Sigma(\bm\theta)$ must be symmetric and \Emph{positive
+    $\bm\Sigma_\theta$ must be symmetric and \Emph{positive
       semi-definite}, which means, in effect, that it has a ``square
     root'' --- there must be another matrix that, when
-    multiplied by its transpose, gives $\bm\Sigma(\bm\theta)$.
+    multiplied by its transpose, gives $\bm\Sigma_\theta$.
   \item We never really form $\bm\Sigma$; we always work with the
-    \Emph{relative covariance factor}, $\bm\Lambda(\bm\theta)$,
+    \Emph{relative covariance factor}, $\bLt$,
     defined so that
     \begin{displaymath}
-      \bm\Sigma(\bm\theta)=
-      \sigma^2\bm\Lambda(\bm\theta)\bm\Lambda\trans(\bm\theta)
+      \bm\Sigma_\theta=
+      \sigma^2\bLt\bm\Lambda\trans_\theta
     \end{displaymath}
     where $\sigma^2$ is the same variance parameter as in $(\bc Y|\bc
     B=\bm b)$.
@@ -128,16 +114,14 @@ profDev <- function(rho, theta) {
     random-effects vector, $\bc U$, such that
     \begin{displaymath}
       \bc U\sim\mathcal{N}\left(\bm 0,\sigma^2\bm I_q\right),\:
-      \bc B=\bm\Lambda(\bm\theta)\bc U\Rightarrow
+      \bc B=\bLt\bc U\Rightarrow
       \text{Var}(\bc B)=\sigma^2\bm\Lambda\bm\Lambda\trans=\bm\Sigma .
     \end{displaymath}
   \item The linear predictor expression becomes
     \begin{displaymath}
       \bm Z\bm b+\bm X\bm\beta=
-      \bm Z\bm\Lambda(\bm\theta)\bm u+\bm X\bm\beta=
-      \bm U(\bm\theta)\bm u+\bm X\bm\beta
+      \bm Z\bLt\bm u+\bm X\bm\beta
     \end{displaymath}
-    where $\bm U(\bm\theta)=\bm Z\bm\Lambda(\bm\theta)$.
   \end{itemize}
 \end{frame}
 
@@ -154,18 +138,18 @@ profDev <- function(rho, theta) {
       \begin{aligned}
         f_{\bc Y,\bc U}(\bm y,\bm u)&
         =f_{\bc Y|\bc U}(\bm y|\bm u)\,f_{\bc U}(\bm u)\\
-        &=\frac{\exp(-\frac{1}{2\sigma^2}\|\bm y-\bm X\bm\beta-\bm U\bm u\|^2)}
+        &=\frac{\exp(-\frac{1}{2\sigma^2}\|\bm y-\bm X\bm\beta-\bm Z\bLt\bm u\|^2)}
         {(2\pi\sigma^2)^{n/2}}\;
         \frac{\exp(-\frac{1}{2\sigma^2}\|\bm u\|^2)}{(2\pi\sigma^2)^{q/2}}\\
         &=\frac{\exp(-
-          \left[\|\bm y-\bm X\bm\beta-\bm U\bm u\|^2+\|\bm u\|^2\right]/(2\sigma^2))}
+          \left[\|\bm y-\bm X\bm\beta-\bm Z\bLt\bm u\|^2+\|\bm u\|^2\right]/(2\sigma^2))}
         {(2\pi\sigma^2)^{(n+q)/2}}
       \end{aligned}
     \end{displaymath}
   \item $(\bc U|\bc Y=\bm y)$ is also Gaussian so its mean is its mode. I.e.
     \begin{displaymath}
       \bm\mu_{\bc U|\bc Y}=\arg\min_{\bm u}
-      \left[\left\|\bm y-\bm X\bm\beta-\bm U(\bm\theta)\bm u\right\|^2 +
+      \left[\left\|\bm y-\bm X\bm\beta-\bm Z\bLt\bm u\right\|^2 +
       \left\|\bm u\right\|^2\right]
     \end{displaymath}
   \end{itemize}
@@ -176,9 +160,9 @@ profDev <- function(rho, theta) {
 \begin{frame}
   \frametitle{Minimizing a penalized sum of squared residuals}  
   \begin{itemize}
-  \item An expression like $\|\bm y-\bm X\bm\beta-\bm U(\bm\theta)\bm
+  \item An expression like $\|\bm y-\bm X\bm\beta-\bm Z\bLt\bm
     u\|^2 + \|\bm u\|^2$ is called a \Emph{penalized sum of squared
-      residuals} because $\|\bm y-\bm X\bm\beta-\bm U(\bm\theta)\bm
+      residuals} because $\|\bm y-\bm X\bm\beta-\bm Z\bLt\bm
     u\|^2$ is a sum of squared residuals and $\|\bm u\|^2$ is a
     penalty on the size of the vector $\bm u$.
   \item Determining $\bm\mu_{\bc U|\bc Y}$ as the minimizer of
@@ -190,7 +174,7 @@ profDev <- function(rho, theta) {
     \begin{displaymath}
       \bm\mu_{\bc U|\bc Y}=\arg\min_{\bm u}\left\|
         \begin{bmatrix}\bm y-\bm X\bm\beta\\\bm 0\end{bmatrix}-
-        \begin{bmatrix}\bm U(\bm\theta)\\\bm I_q\end{bmatrix}
+        \begin{bmatrix}\bm Z\bLt\\\bm I_q\end{bmatrix}
         \bm u\right\|^2
     \end{displaymath}
     This is sometimes called a \Emph{pseudo-data} approach because we
@@ -204,22 +188,21 @@ profDev <- function(rho, theta) {
   \begin{itemize}
   \item The conditional mean satisfies the equations
     \begin{displaymath}
-      [\bm U(\bm\theta)\bm U\trans(\bm\theta)+\bm I_q]
-      \bm\mu_{\bc U|\bc Y}=\bm U\trans(\bm y-\bm X\bm\beta) .
+      \left(\bm Z\bLt\bLt\trans\bm Z\trans+\bm I_q\right)
+      \bm\mu_{\bc U|\bc Y}=\bLt\trans\bm Z\trans(\bm y-\bm X\bm\beta) .
     \end{displaymath}
   \item This would be interesting but not very important were it not
     for the fact that we actually can solve that system for
     $\bm\mu_{\bc U|\bc Y}$ even when its dimension, $q$, is
     very, very large.
-  \item Recall that $\bm U(\bm\theta)=\bm Z\bm\Lambda(\bm\theta)$.
-    Because $\bm Z$ is generated from indicator columns for the
-    grouping factors, it is sparse.  $\bm U$ is also very sparse.
+  \item Because $\bm Z$ is generated from indicator columns for the
+    grouping factors, it is sparse.  $\bm Z\bLt$ is also very sparse.
   \item There are sophisticated and efficient ways of calculating a
     sparse Cholesky factor, which is a sparse, lower-triangular matrix
-    $\bm L(\bm\theta)$ that satisfies
+    $\bm L_\theta$ that satisfies
     \begin{displaymath}
-      \bm L(\bm\theta)\bm L\trans(\bm\theta)=
-      \bm U(\bm\theta)\trans\bm U(\bm\theta)+\bm I_q
+      \bm L_\theta\bm L\trans_\theta=
+      \bLt\trans\bm Z\trans\bm Z\bLt+\bm I_q
     \end{displaymath}
     and, from that, solving for $\bm\mu_{\bc U|\bc Y}$.
   \end{itemize}
@@ -227,18 +210,18 @@ profDev <- function(rho, theta) {
 \section[Cholesky]{The sparse Cholesky factor}
 
 \begin{frame}
-  \frametitle{The sparse Choleksy factor, $\bm L(\bm\theta)$}
+  \frametitle{The sparse Choleksy factor, $\bm L_\theta$}
   \begin{itemize}
   \item Because the ability to evaluate the sparse Cholesky factor,
-    $\bm L(\bm\theta)$, is the key to the computational methods in the
+    $\bm L_\theta$, is the key to the computational methods in the
     \code{lme4} package, we consider this in detail.
-  \item In practice we will evaluate $\bm L(\bm\theta)$ for many
+  \item In practice we will evaluate $\bm L_\theta$ for many
     different values of $\bm\theta$ when determining the ML or REML
     estimates of the parameters.
   \item As described in Davis (2006), \S4.6, the calculation is
     performed in two steps: in the \Emph{symbolic decomposition} we
     determine the position of the nonzeros in $\bm L$ from those in
-    $\bm U$ then, in the \Emph{numeric decomposition}, we determine
+    $\bm Z\bLt$ then, in the \Emph{numeric decomposition}, we determine
     the numerical values in those positions.  Although the
     numeric decomposition may be done dozens, perhaps hundreds
     of times as we iterate on $\bm\theta$, the symbolic decomposition is
@@ -255,11 +238,11 @@ profDev <- function(rho, theta) {
     This matrix is just a re-ordering of the columns of $\bm I_q$ and
     has an orthogonality property, $\bm P\bm P\trans=\bm
     P\trans\bm P=\bm I_q$.
-  \item When $\bm P$ is used, the factor $\bm L(\bm\theta)$ is defined
+  \item When $\bm P$ is used, the factor $\bm L_\theta$ is defined
     to be the sparse, lower-triangular matrix that satisfies
     \begin{displaymath}
-      \bm L(\bm\theta)\bm L\trans(\bm\theta)=\bm P
-      \left[\bm U\trans(\bm\theta)\bm U(\bm\theta)+\bm I_q\right]
+      \bm L_\theta\bm L\trans_\theta=\bm P
+      \left[\bLt\trans\bm Z\trans_\theta\bm Z\bLt+\bm I_q\right]
       \bm P\trans
     \end{displaymath}
   \item In the \code{Matrix} package for \R, the \code{Cholesky}
@@ -275,14 +258,14 @@ profDev <- function(rho, theta) {
   \frametitle{Applications to models with simple, scalar random effects}
   \begin{itemize}
   \item Recall that, for a model with simple, scalar random-effects
-    terms only, the matrix $\bm\Sigma(\bm\theta)$ is block-diagonal
+    terms only, the matrix $\bm\Sigma_\theta$ is block-diagonal
     in $k$ blocks and the $i$th block is $\sigma_i^2\bm I_{n_i}$ where
     $n_i$ is the number of levels in the $i$th grouping factor.
-  \item The matrix $\bm\Lambda(\bm\theta)$ is also block-diagonal with
+  \item The matrix $\bLt$ is also block-diagonal with
     the $i$th block being $\theta_i\bm I_{n_i}$, where
     $\theta_i=\sigma_i/\sigma$.
   \item Given the grouping factors for the model and a value of
-    $\bm\theta$ we produce $\bm U$ then $\bm L$, using \code{Cholesky}
+    $\bm\theta$ we produce $\bm Z\bLt$ then $\bm L$, using \code{Cholesky}
     the first time then \code{update}.
   \item To avoid recalculating we assign
     \begin{description}
@@ -290,8 +273,8 @@ profDev <- function(rho, theta) {
     \item[\code{nlev}] number of levels in each factor
     \item[\code{Zt}] the transpose of the model matrix, $\bm Z$
     \item[\code{theta}] current value of $\bm\theta$
-    \item[\code{Lambda}] current $\bm\Lambda(\bm\theta)$
-    \item[\code{Ut}] transpose of $\bm U(\bm\theta)=\bm Z\bm\Lambda(\bm\theta)$
+    \item[\code{Lambda}] current $\bLt$
+    \item[\code{Ut}] transpose of $\bm Z\bLt$
     \end{description}
   \end{itemize}
 \end{frame}
@@ -309,10 +292,11 @@ str(L <- Cholesky(tcrossprod(Ut), LDL = FALSE, Imult = 1))
 @   
 \end{frame}
 \begin{frame}[fragile]
-  \frametitle{Images of $\bm U\trans\bm U+\bm I$ and $\bm L$}
+  \frametitle{Images of $\bLt\trans\bm Z\trans\bm Z\bLt+\bm I$ and $\bm L$}
   \begin{center}
 <<Penicillinimage,fig=TRUE,echo=FALSE,height=5>>=
-print(image(tcrossprod(Ut), xlab = NULL, ylab = NULL, sub = "U'U+I"),
+print(image(tcrossprod(Ut), xlab = NULL, ylab = NULL,
+            sub = expression(Lambda*"'Z"*"'Z"*Lambda+"I")),
       pos = c(0,0,0.47,1), more = TRUE)
 print(image(L, xlab = NULL, ylab = NULL, sub = "L"),
       pos = c(0.47,0,1,1))
@@ -320,8 +304,8 @@ print(image(L, xlab = NULL, ylab = NULL, sub = "L"),
   \end{center}
 \begin{itemize}
 \item Note that there are nonzeros in the lower right of $\bm L$ in
-  positions that are zero in the lower triangle of $\bm U\trans\bm
-  U+\bm I$.  This is described as ``fill-in''.
+  positions that are zero in the lower triangle of $\bLt\trans\bm Z\trans\bm
+  Z\bLt+\bm I_q$.  This is described as ``fill-in''.
 \end{itemize}
 \end{frame}
 \begin{frame}[fragile]
@@ -390,7 +374,8 @@ str(L@perm)
   \frametitle{Image of the factor for the Pastes data}
   \begin{center}
 <<Pastesimage,fig=TRUE,echo=FALSE,height=5>>=
-print(image(tcrossprod(Ut), xlab = NULL, ylab = NULL, sub = "U'U+I"),
+print(image(tcrossprod(Ut), xlab = NULL, ylab = NULL, 
+            sub = expression(Lambda*"'Z"*"'Z"*Lambda+"I")),
       split = c(1,1,2,1), more = TRUE)
 print(image(L, xlab = NULL, ylab = NULL, sub = "L"),
       split = c(2,1,2,1))
@@ -417,17 +402,17 @@ print(image(L, xlab = NULL, ylab = NULL, sub = "L"),
     the integral in the denominator, which, it turns out, is exactly
     the likelihood, $L(\bm\theta,\bm\beta,\sigma^2|\bm y)$, that we
     want to maximize.
-  \item The Cholesky factor, $\bm L(\bm\theta)$ is the
+  \item The Cholesky factor, $\bm L_\theta$ is the
     key to doing this because
     \begin{displaymath}
-      \bm P\trans\bm L(\bm\theta)\bm L\trans(\bm\theta)\bm P
+      \bm P\trans\bm L_\theta\bm L\trans_\theta\bm P
       \bm\mu_{\bc U|\bc Y}=
-      \bm U\trans(\bm y-\bm X\bm\beta) .
+      \bLt\trans\bm Z\trans(\bm y-\bm X\bm\beta) .
     \end{displaymath}
     Although the \code{Matrix} package provides a one-step
     \code{solve} method for this, we write it in stages:
     \begin{enumerate}
-    \item Solve $\bm L\bm c_{\bm u}=\bm P\bm U\trans(\bm y-\bm
+    \item Solve $\bm L\bm c_{\bm u}=\bm P\bLt\trans\bm Z\trans(\bm y-\bm
       X\bm\beta)$ for $\bm c_{\bm u}$.
     \item Solve $\bm L\trans\bm P\bm\mu=\bm c_{\bm u}$ for $\bm
       P\bm\mu_{\bc U|\bc Y}$ and $\bm\mu_{\bc U|\bc Y}$ as $\bm
@@ -440,7 +425,7 @@ print(image(L, xlab = NULL, ylab = NULL, sub = "L"),
   \begin{itemize}
   \item The exponent of $f_{\bc Y,\bc U}(\bm y,\bm u)$ can now be written
     \begin{displaymath}
-      \|\bm y-\bm X\bm\beta-\bm U\bm u\|^2+\|\bm u\|^2=
+      \|\bm y-\bm X\bm\beta-\bm Z\bLt\bm u\|^2+\|\bm u\|^2=
       r^2(\bm\theta,\bm\beta)+
       \|\bm L\trans\bm P(\bm u-\bm\mu_{\bc U|\bc Y})\|^2.
     \end{displaymath}
@@ -473,7 +458,7 @@ print(image(L, xlab = NULL, ylab = NULL, sub = "L"),
     \begin{displaymath}
       -2\ell(\bm\theta,\bm\beta,\sigma|\bm y)=
       n\log(2\pi\sigma^2)+\frac{r^2(\bm\theta,\bm\beta)}{\sigma^2}+
-      \log(|\bm L(\bm\theta)|^2)
+      \log(|\bm L_\theta|^2)
     \end{displaymath}
   \item We wish to minimize the deviance.  Its dependence on $\sigma$
     is straightforward.  Given values of the other parameters, we can
@@ -483,7 +468,7 @@ print(image(L, xlab = NULL, ylab = NULL, sub = "L"),
     \end{displaymath}
     producing the \Emph{profiled deviance}
     \begin{displaymath}
-    -2\tilde{\ell}(\bm\theta,\bm\beta|\bm y)=\log(|\bm L(\bm\theta)|^2)+
+    -2\tilde{\ell}(\bm\theta,\bm\beta|\bm y)=\log(|\bm L_\theta|^2)+
       n\left[1+\log\left(\frac{2\pi r^2(\bm\theta,\bm\beta)}{n}\right)\right]
     \end{displaymath}
   \item However, an even greater simplification is possible because
@@ -496,30 +481,30 @@ print(image(L, xlab = NULL, ylab = NULL, sub = "L"),
   \begin{itemize}
   \item Because the deviance depends on $\bm\beta$ only through
     $r^2(\bm\theta,\bm\beta)$ we can obtain the conditional estimate,
-    $\widehat{\bm\beta}(\bm\theta)$, by extending the PLS problem to
+    $\widehat{\bm\beta}_\theta$, by extending the PLS problem to
     \begin{displaymath}
-      r^2(\bm\theta)=\min_{\bm u,\bm\beta}
-      \left[\left\|\bm y-\bm X\bm\beta-\bm U(\bm\theta)\bm u\right\|^2 +
+      r^2_\theta=\min_{\bm u,\bm\beta}
+      \left[\left\|\bm y-\bm X\bm\beta-\bm Z\bLt\bm u\right\|^2 +
       \left\|\bm u\right\|^2\right]
     \end{displaymath}
     with the solution satisfying the equations
     \begin{displaymath}
       \begin{bmatrix}
-        \bm U(\bm\theta)\trans\bm U(\bm\theta)+\bm I_q & \bm
-        U(\bm\theta)\trans\bm X\\
-        \bm X\trans\bm U(\bm\theta) & \bm X\trans\bm X
+        \bLt\trans\bm Z\trans\bm Z\bLt+\bm I_q & \bm
+        U_\theta\trans\bm X\\
+        \bm X\trans\bm Z\bLt & \bm X\trans\bm X
       \end{bmatrix}
       \begin{bmatrix}
-        \bm\mu_{\bc U|\bc Y}\\\widehat{\bm\beta}(\bm\theta)
+        \bm\mu_{\bc U|\bc Y}\\\widehat{\bm\beta}_\theta
       \end{bmatrix}=
-      \begin{bmatrix}\bm U(\bm\theta)\trans\bm y\\\bm X\trans\bm y .
+      \begin{bmatrix}\bLt\trans\bm Z\trans\bm y\\\bm X\trans\bm y .
       \end{bmatrix}
     \end{displaymath}
   \item The profiled deviance, which is a function of $\bm\theta$
     only, is
     \begin{displaymath}
-      -2\tilde{\ell}(\bm\theta)=\log(|\bm L(\bm\theta)|^2)+
-      n\left[1+\log\left(\frac{2\pi r^2(\bm\theta)}{n}\right)\right]
+      -2\tilde{\ell}(\bm\theta)=\log(|\bm L_\theta|^2)+
+      n\left[1+\log\left(\frac{2\pi r^2_\theta}{n}\right)\right]
     \end{displaymath}
   \end{itemize}
 \end{frame}
@@ -529,14 +514,14 @@ print(image(L, xlab = NULL, ylab = NULL, sub = "L"),
   \item For brevity we will no longer show the dependence of matrices
     and vectors on the parameter $\bm\theta$.
   \item As before we use the sparse Cholesky decomposition, with $\bm
-    L$ and $\bm P$ satisfying $\bm L\bm L\trans=\bm P(\bm U\trans\bm
-    U+\bm I)$ and $\bm c_{\bm u}$, the solution to $\bm L\bm c_{\bm
-      u}=\bm P\bm U\trans\bm y$.
+    L$ and $\bm P$ satisfying $\bm L\bm L\trans=\bm P(\bLt\trans\bm Z\trans\bm
+    Z\bLt+\bm I)$ and $\bm c_{\bm u}$, the solution to $\bm L\bm c_{\bm
+      u}=\bm P\bLt\trans\bm Z\trans\bm y$.
   \item We extend the decomposition with the $q\times p$ matrix $\bm
     R_{ZX}$, the upper triangular $p\times p$ matrix $\bm R_X$, and
     the $p$-vector $\bm c_{\bm\beta}$ satisfying
     \begin{align*}
-      \bm L\bm R_{ZX}&=\bm P\bm U\trans\bm X\\
+      \bm L\bm R_{ZX}&=\bm P\bLt\trans\bm Z\trans\bm X\\
       \bm R_X\trans\bm R_X&=\bm X\trans\bm X-\bm R_{ZX}\trans\bm R_{ZX}\\
       \bm R_X\trans\bm c_{\bm\beta}&=\bm X\trans\bm y-\bm
       R_{ZX}\trans\bm c_{\bm u}
@@ -552,8 +537,8 @@ print(image(L, xlab = NULL, ylab = NULL, sub = "L"),
         \bm 0            & \bm R_X
       \end{bmatrix}=
       \begin{bmatrix}
-        \bm U\trans\bm U+\bm I & \bm U\trans\bm X\\
-        \bm X\trans\bm U       & \bm X\trans\bm X
+        \bLt\trans\bm Z\trans\bm Z\bLt+\bm I & \bLt\trans\bm Z\trans\bm X\\
+        \bm X\trans\bm Z\bLt       & \bm X\trans\bm X
       \end{bmatrix} .
     \end{displaymath}
   \end{itemize}
@@ -563,8 +548,8 @@ print(image(L, xlab = NULL, ylab = NULL, sub = "L"),
   \begin{itemize}
   \item Finally we solve
     \begin{align*}
-      \bm R_X\widehat{\bm\beta}(\bm\theta)&=\bm c_{\bm\beta}\\
-      \bm L\trans\bm P\bm\mu_{\bc U|\bc Y}&=\bm c_{\bm u}-\bm R_{ZX}\widehat{\bm\beta}(\bm\theta)
+      \bm R_X\widehat{\bm\beta}_\theta&=\bm c_{\bm\beta}\\
+      \bm L\trans\bm P\bm\mu_{\bc U|\bc Y}&=\bm c_{\bm u}-\bm R_{ZX}\widehat{\bm\beta}_\theta
     \end{align*}
   \item The profiled REML criterion also can be expressed simply.
     The criterion is
@@ -578,7 +563,7 @@ print(image(L, xlab = NULL, ylab = NULL, sub = "L"),
     scale, the profiled REML criterion is
     \begin{displaymath}
       -2\tilde{\ell}_R(\bm\theta)=\log(|\bm L|^2)+\log(|\bm R_x|^2)+
-      (n-p)\left[1+\log\left(\frac{2\pi r^2(\bm\theta)}{n-p}\right)\right]
+      (n-p)\left[1+\log\left(\frac{2\pi r^2_\theta}{n-p}\right)\right]
     \end{displaymath}
   \item These calculations can be expressed in a few lines of \R code.
     Assume \code{rho} contains \code{y}, \code{X}, \code{Zt}, \code{REML}, \code{L},
@@ -620,7 +605,7 @@ invisible(lmer(mathgain ~ mathkind + minority + ses + (1|classid) + (1|schoolid)
 \end{frame}
 
 \begin{frame}[fragile]
-  \frametitle{Checking profDev, nlminb applied to profDev}
+  \frametitle{Checking profDev, bobyqa applied to profDev}
 <<profDev1>>=
 ls.str(rho <- with(classroom, simplemer(list(classid, schoolid), mathgain, model.matrix(~ mathkind + minority + ses), REML = FALSE)))
 invisible(bobyqa(c(0.836158, 0.489669), function(x) profDev(rho, x), lower = c(0,0), control = list(iprint = 2L)))
@@ -634,27 +619,27 @@ invisible(bobyqa(c(0.836158, 0.489669), function(x) profDev(rho, x), lower = c(0
     structure like the \code{rho} environment shown above.  The
     optimization of the profiled deviance or the profiled REML
     criterion happens within this environment.
-  \item The creation of $\bm\Lambda(\bm\theta)$ is somewhat more
+  \item The creation of $\bLt$ is somewhat more
     complex for models with vector-valued random effects but not
     excessively so.
   \item Some care is taken to avoid allocating storage for large
     objects during each function evaluation.  Many of the objects
     created in \code{profDev} are updated in place within \code{lmer}.
 
-  \item Once the optimizer, \code{nlminb}, has converged some
+  \item Once the optimizer, \code{bobyqa}, has converged some
     additional information for the summary is calculated.
   \end{itemize}
 \end{frame}
 
-\begin{frame}\frametitle{Recap}
+\begin{frame}\frametitle{Summary}
   \begin{itemize}
   \item For a linear mixed model, even one with a huge number of
     observations and random effects like the model for the grade point
     scores, evaluation of the ML or REML profiled deviance, given a
     value of $\bm\theta$, is straightforward.  It involves updating
-    $\bm\Lambda$, $\bm U$, $\bm L$, $\bm R_{ZX}$, $\bm R_{X}$,
+    $\bLt$, $\bm L_\theta$, $\bm R_{ZX}$, $\bm R_{X}$,
     calculating the penalized residual sum of squares,
-    $r^2(\bm\theta)$ and two determinants of triangular matrices.
+    $r^2_\theta$ and two determinants of triangular matrices.
   \item The profiled deviance can be optimized as a function of
     $\bm\theta$ only.  The dimension of $\bm\theta$ is usually very
     small.  For the grade point scores there are only three components
