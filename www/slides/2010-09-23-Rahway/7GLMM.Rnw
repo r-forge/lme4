@@ -13,6 +13,7 @@
 \SweaveOpts{keep.source=TRUE}
 \mode<beamer>{\setkeys{Gin}{width=\textwidth}}
 \mode<article>{\setkeys{Gin}{width=0.8\textwidth}}
+\newcommand{\bLt}{\ensuremath{\bm\Lambda_\theta}}
 <<preliminaries,echo=FALSE,results=hide>>=
 options(width = 70, show.signif.stars = FALSE)
 data(Contraception, package = "mlmRev")
@@ -59,22 +60,21 @@ lattice.options(default.theme = function() standard.theme())
     \begin{compactitem}
     \item $\bc Y$ the response variable
     \item $\bm{\mathcal{B}}$ the (possibly correlated) random effects
-    \item $\bc U$ the orthogonal random effects
+    \item $\bc U$ the orthogonal random effects, such that $\bc B=\bLt\bc U$
     \end{compactitem}
   \item Parameters
     \begin{compactitem}
-    \item $\bm{\beta}$ - fixed-effects coefficients
+    \item $\bm\beta$ - fixed-effects coefficients
     \item $\sigma$ - the common scale parameter (not always used)
-    \item $\bm{\theta}$ - parameters that determine
-      $\mathrm{Var}(\bc B)=\sigma^2\bm\Lambda\bm\Lambda\trans$ 
+    \item $\bm\theta$ - parameters that determine
+      $\mathrm{Var}(\bc B)=\sigma^2\bLt\bLt\trans$ 
     \end{compactitem}
   \item Some matrices
      \begin{compactitem}
      \item $\bm{X}$ the $n\times p$ model matrix for $\bm{\beta}$
      \item $\bm{Z}$ the $n\times q$ model matrix for $\bm b$
      \item $\bm{P}$ fill-reducing $q\times q$ permutation (from $\bm Z$)
-     \item $\bm\Lambda(\bm\theta)$ relative covariance factor, s.t. $\text{Var}(\bc B)=\sigma^2\bm\Lambda\bm\Lambda\trans$
-     \item $\bm U(\bm\theta)=\bm Z\bm\Lambda(\bm\theta)$
+     \item $\bLt$ relative covariance factor, s.t. $\text{Var}(\bc B)=\sigma^2\bLt\bLt\trans$
      \end{compactitem}
    \end{itemize}
  \end{frame}
@@ -84,27 +84,27 @@ lattice.options(default.theme = function() standard.theme())
   \begin{itemize}
   \item For GLMMs, the marginal distribution,
     $\bm{\mathcal{B}}\sim\mathcal{N}\left(\bm
-      0,\bm\Sigma(\bm\theta)\right)$ is the same as in LMMs except
+      0,\bm\Sigma_\theta\right)$ is the same as in LMMs except
     that $\sigma^2$ is omitted.  We define
     $\bc U\sim\mathcal{N}(\bm 0,\bm I_q)$ such that
-    $\bm{\mathcal{B}}=\bm\Lambda(\bm\theta)\bc U$.
+    $\bm{\mathcal{B}}=\bLt\bc U$.
   \item For GLMMs we retain some of the properties of the conditional
-    distribution
+    distribution for a LMM
     \begin{displaymath}
       (\bc Y|\bc U=\bm u)\sim
       \mathcal{N}\left(\bm\mu_{\bc Y|\bc U},\sigma^2\bm
         I\right)\text{ where }
       \bm\mu_{\bc Y|\bc U}(\bm u)=
-      \bm X\bm\beta+\bm Z\bm\Lambda\bm u
+      \bm X\bm\beta+\bm Z\bLt\bm u
     \end{displaymath}
     Specifically
     \begin{itemize}
-    \item The distribution $\bc Y|\bm{\mathcal{U}=\bm u}$ depends
+    \item The conditional distribution, $\bc Y|\bm{\mathcal{U}=\bm u}$, depends
       on $\bm u$ only through the conditional mean,
       $\bm\mu_{\bc Y|\bc U}(\bm u)$.
     \item Elements of $\bc Y$ are \Emph{conditionally
-        independent}.  That is, the distribution of
-      $\bc Y|\bm{\mathcal{U}=\bm u}$  is completely
+        independent}.  That is, the distribution,
+      $\bc Y|\bc U=\bm u$,  is completely
       specified by the univariate, conditional distributions,
       $\mathcal{Y}_i|\bc U,i=1,\dots,n$.
     \item These univariate, conditional distributions all have the same
@@ -151,7 +151,7 @@ lattice.options(default.theme = function() standard.theme())
     on $\mu$, such as $0<\mu<1$ (Bernoulli) or $0<\mu$ (Poisson), we
     cannot define the conditional mean,
     $\bm\mu_{\bc Y|\bc U}$, to be equal to the
-    linear predictor, $\bm X\bm\beta+\bm U(\bm\theta)\bm u$,
+    linear predictor, $\bm X\bm\beta+\bm X\bLt\bm u$,
     which is unbounded.
   \item We choose an invertible, univariate \Emph{link function}, $g$,
     such that $\eta=g(\mu)$ is unconstrained.  The vector-valued link
@@ -300,11 +300,11 @@ print(xyplot(linkinv(eta) ~ eta, type = c("g","l"),
     $\mathcal{Y}_i|\bc U$ is discrete or continuous.
   \item The linear predictor is
     $\bm g(\bm\mu_{\bc Y|\bc U})=\bm\eta=\bm
-    X\bm\beta+\bm U(\bm\theta)\bm u$.
+    X\bm\beta+\bm Z\bLt\bm u$.
     Alternatively, we can write the conditional mean of
     $\bc Y$, given $\bc U$, as
     \begin{displaymath}
-      \bm\mu_{\bc Y|\bc U}(\bm u)= \bm g^{-1}\left(\bm X\bm\beta+ \bm U(\bm\theta)\bm u\right)
+      \bm\mu_{\bc Y|\bc U}(\bm u)= \bm g^{-1}\left(\bm X\bm\beta+\bm Z\bLt\bm u\right)
     \end{displaymath}
   \end{itemize}
 \end{frame}
@@ -362,8 +362,8 @@ print(xyplot(linkinv(eta) ~ eta, type = c("g","l"),
     as a nonlinear least squares problem with update, $\bm\delta_{\bm
       u}$, given by
     \begin{displaymath}
-      \bm P\left(\bm U\bm M\bm W\bm M\bm U\trans+\bm I\right)\bm P\trans
-      \bm\delta_{\bm u}=\bm U\bm M\bm W(\bm y-\bm\mu) - \bm u
+      \bm P\left(\bLt\trans\bm Z\trans\bm M\bm W\bm M\bm Z\bLt+\bm I_q\right)\bm P\trans
+      \bm\delta_{\bm u}=\bLt\trans\bm Z\trans\bm M\bm W(\bm y-\bm\mu) - \bm u
     \end{displaymath}
     where $\bm M=d\bm\mu/d\bm\eta$ is the (diagonal) Jacobian matrix.
     Recall that for the canonical link, $\bm M=
@@ -377,12 +377,12 @@ print(xyplot(linkinv(eta) ~ eta, type = c("g","l"),
     evaluate the update is
     \begin{displaymath}
       \bm L\bm L\trans =
-      \bm P\left(\bm U\bm M\bm W\bm M\bm U\trans+\bm I\right)\bm P\trans
+      \bm P\left(\bLt\trans\bm Z\trans\bm M\bm W\bm M\bm Z\bLt+\bm I_q\right)\bm P\trans
     \end{displaymath}
     or
     \begin{displaymath}
       \bm L\bm L\trans =
-      \bm P\left(\bm U\bm M\bm U\trans+\bm I\right)\bm P\trans
+      \bm P\left(\bLt\trans\bm Z\trans\bm M\bm Z\bLt+\bm I_q\right)\bm P\trans
     \end{displaymath}
     if we are using the canonical link.
   \item The integrand of the likelihood is approximately a constant
@@ -411,8 +411,7 @@ print(xyplot(linkinv(eta) ~ eta, type = c("g","l"),
   \item It is likely that modifying the PIRLS algorithm to optimize
     simultaneously on $\bm u$ and $\bm\beta$ would result in a value
     that is very close to the deviance profiled over $\bm\beta$.
-  \item Another approach, which is being implemented as a Google
-    Summer of Code project, is adaptive Gauss-Hermite quadrature
+  \item Another approach is adaptive Gauss-Hermite quadrature
     (AGQ).  This has a similar structure to the Laplace approximation
     but is based on more evaluations of the unscaled conditional
     density near the conditional modes.  It is only appropriate for
@@ -429,8 +428,8 @@ print(xyplot(linkinv(eta) ~ eta, type = c("g","l"),
   \item One of the data sets in the \code{"mlmRev"} package, derived
     from data files available on the multilevel modelling web site, is
     from a fertility survey of women in Bangladesh.
-  \item One of the responses is whether or not the woman currently
-    uses artificial contraception (i.e. a binary response)
+  \item One of the (binary) responses recorded is whether or not the
+    woman currently uses artificial contraception.
   \item Covariates included the woman's age (on a centered scale),
     the number of live children she had, whether she lived in an urban
     or rural setting, and the district in which she lived.
@@ -474,8 +473,6 @@ print(xyplot(ifelse(use == "Y", 1, 0) ~ age|urban, Contraception,
   \end{itemize}
 \end{frame}
 
-\subsection{Fitting a preliminary model}
-
 \begin{frame}[fragile]
   \frametitle{Preliminary model using Laplacian approximation}
   \begin{center}
@@ -493,7 +490,7 @@ print(cm1 <- glmer(use ~ age + I(age^2) + urban + livch + (1|district),
   \item There is a highly significant quadratic term in \code{age}.
   \item The linear term in \code{age} is not significant but we retain
     it because the \code{age} scale has been centered at an arbitrary
-    (and unknown) value.
+    value (which, unfortunately, is not provided with the data).
   \item The \code{urban} factor is highly significant (as indicated by
     the plot).
   \item Levels of \code{livch} greater than 0 are significantly
@@ -613,16 +610,16 @@ print(plot(ranef(cm4), type = c("g","p"), aspect = 1)$district)
 \begin{frame}[fragile]
   \frametitle{Nested simple, scalar random effects versus vector-valued}
 <<cm5,echo=FALSE>>=
-(cm5 <- glmer(use ~ age*ch + I(age^2) + urban + (1|urban:district) + (1|district),
-              Contraception, binomial))
+print(cm5 <- glmer(use ~ age*ch + I(age^2) + urban + (1|urban:district) + (1|district),
+                   Contraception, binomial), corr=FALSE)
 @
 \end{frame}
 
 \begin{frame}[fragile]
   \frametitle{Using the interaction term only}
 <<cm6,echo=FALSE>>=
-(cm6 <- glmer(use ~ age*ch + I(age^2) + urban + (1|urban:district),
-              Contraception, binomial))
+print(cm6 <- glmer(use ~ age*ch + I(age^2) + urban + (1|urban:district),
+                   Contraception, binomial), corr=FALSE)
 @
 \end{frame}
 
@@ -649,13 +646,34 @@ anova(cm6,cm5,cm4)
   \item Observational data tend to be unbalanced and have many more
     covariates than data from a designed experiment.  Formulating a
     model is typically more difficult than in a designed experiment.
-  \item A generalized linear model is fit by adding a value, typically
-    \code{binomial} or \code{poisson}, for the optional argument
-    \code{family} in the call to \code{lmer}.
-  \item MCMC sampling is not provided for GLMMs at present but will be
+  \item A generalized linear model is fit with the function
+    \code{glmer()} which requires a \code{family} argument.  Typical
+    values are \code{binomial} or \code{poisson}
+  \item Profiling is not provided for GLMMs at present but will be
     added.
   \item We use likelihood-ratio tests and z-tests in the model
     building.
+  \end{itemize}
+\end{frame}
+
+\begin{frame}
+  \frametitle{A word about overdispersion}
+  \begin{itemize}
+  \item In many application areas using ``pseudo'' distribution
+    families, such as \code{quasibinomial} and \code{quasipoisson}, is
+    a popular and well-accepted technique for accomodating variability
+    that is apparently larger than would be expected from a binomial
+    or a Poisson distribution.
+  \item This amounts to adding an extra parameter, like $\sigma$, the
+    common scale parameter in a LMM, to the distribution of the response.
+  \item It is possible to form an estimate of such a quantity during
+    the IRLS algorithm but it is an artificial construct.  There is no
+    probability distribution with such a parameter.
+  \item I find it difficult to define maximum likelihood estimates
+    without a probability model.  It is not clear how this
+    ``distribution which is not a distribution'' could be incorporated
+    into a GLMM.  This, of course, does not stop people from doing it
+    but I don't know what the estimates from such a model would mean.
   \end{itemize}
 \end{frame}
 
