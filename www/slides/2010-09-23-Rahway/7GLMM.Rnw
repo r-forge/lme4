@@ -7,7 +7,7 @@
 \mode<beamer>{\usetheme{Boadilla}\usecolortheme{seahorse}\usecolortheme{rose}}
 \usepackage{SweaveSlides}
 \date[Sept 24, 2010]{Merck, Sharp \& Dohme; Rahway, NJ\\Sept 24, 2010}
-\title[GLMM]{Mixed models in R using the lme4 package\\Part 5: Generalized linear mixed models}
+\title[GLMM]{Mixed models in R using the lme4 package\\Part 7: Generalized linear mixed models}
 \SweaveOpts{engine=R,eps=FALSE,pdf=TRUE,width=10,height=6.5,strip.white=all}
 \SweaveOpts{prefix=TRUE,prefix.string=figs/GLMM,include=TRUE}
 \SweaveOpts{keep.source=TRUE}
