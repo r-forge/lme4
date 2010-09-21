@@ -6,6 +6,7 @@
 \mode<article>{\usepackage[text={6.2in,9in},centering]{geometry}}
 \mode<beamer>{\usetheme{Boadilla}\usecolortheme{seahorse}\usecolortheme{rose}}
 \usepackage{SweaveSlides}
+\date[Sept 24, 2010]{Merck, Sharp \& Dohme; Rahway, NJ\\Sept 24, 2010}
 \title[GLMM]{Mixed models in R using the lme4 package\\Part 5: Generalized linear mixed models}
 \SweaveOpts{engine=R,eps=FALSE,pdf=TRUE,width=10,height=6.5,strip.white=all}
 \SweaveOpts{prefix=TRUE,prefix.string=figs/GLMM,include=TRUE}
@@ -655,6 +656,30 @@ anova(cm6,cm5,cm4)
     added.
   \item We use likelihood-ratio tests and z-tests in the model
     building.
+  \end{itemize}
+\end{frame}
+
+\section{Summary}
+\label{sec:summary}
+
+\begin{frame}
+  \frametitle{Summary}
+  \begin{itemize}
+  \item GLMMs allow for the conditional distribution, $\mc Y|\bm B=\bm
+    b$, to be other than a Gaussian.  A Bernoulli (or, more generally,
+    a binomial) distribution is used to model binary or binomial
+    responses.  A Poisson distribution is used to model responses that
+    are counts.
+  \item The conditional mean depends upon the linear predictor, $\bm
+    X\bm\beta+\bm Z\bm b$, through the inverse link function, $\bm g^{-1}$.
+  \item The conditional mode of the random effects, given the observed
+    data, $\bm y$, is determined through penalized iteratively
+    reweighted least squares (PIRLS).
+  \item We optimize the Laplace approximation at the conditional mode
+    to determine the mle's of the parameters.  In some simple cases, a
+    more accurate approximation, adaptive Gauss-Hermite quadrature
+    (AGQ), can be used instead, at the expense of greater
+    computational complexity.
   \end{itemize}
 \end{frame}
 \end{document}
