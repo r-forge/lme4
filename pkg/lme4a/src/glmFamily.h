@@ -34,9 +34,8 @@ namespace glm {
 	    muEtas,			//< scalar muEta functions
 	    varFuncs;			//< scalar variance functions
     
-	// Thresholds common to the class (FIXME: we should eliminate
-	// most of these)
-	static double epsilon, INVEPS;//, LTHRESH, MLTHRESH;
+	// Thresholds common to the class
+	static double epsilon;
 
 	// Scalar functions that will used in transform applications
 	static inline double         cubef(double x) {return x * x * x;}
@@ -47,12 +46,12 @@ namespace glm {
 	static inline double          sqrf(double x) {return x * x;}
 	static inline double         twoxf(double x) {return 2 * x;}
 	static inline double         x1mxf(double x) {return std::max(epsilon, x * (1 - x));}
-	static inline double     finitePos(double x) { // truncate to [eps, 1/eps]
-	    return std::max(epsilon, std::min(INVEPS, x));
-	}
-	static inline double      finite01(double x) { // truncate to [eps, 1 - eps]
-	    return std::max(epsilon, std::min(1. - epsilon, x));
-	}
+	// static inline double     finitePos(double x) { // truncate to [eps, 1/eps]
+	//     return std::max(epsilon, std::min(INVEPS, x));
+	// }
+	// static inline double      finite01(double x) { // truncate to [eps, 1 - eps]
+	//     return std::max(epsilon, std::min(1. - epsilon, x));
+	// }
 	static inline double   logitLinkInv(double x) {
 	    return Rf_plogis(x, 0., 1., 1, 0);
 	}
