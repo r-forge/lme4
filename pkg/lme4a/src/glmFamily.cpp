@@ -8,7 +8,7 @@ using namespace std;
 namespace glm {
     // Establish the values for the class constants
     double glmFamily::epsilon = numeric_limits<double>::epsilon();
-    double glmFamily::INVEPS = 1. / glmFamily::epsilon;
+//    double glmFamily::INVEPS = 1. / glmFamily::epsilon;
 //    double glmFamily::LTHRESH = 30.;
 //    double glmFamily::MLTHRESH = -30.;
     
@@ -114,22 +114,18 @@ namespace glm {
     }
 }
 
-// Externally-callable function for testing the link, inverse link,
-// mu.eta and variance functions.
 
-RCPP_FUNCTION_3(Rcpp::NumericVector,testFam,Rcpp::List fp,Rcpp::NumericVector x,std::string which) {
-    glm::glmFamily fam(fp);
-    if (which == "linkinv") {
-	return fam.linkInv(x);
-    }
-    if (which == "linkfun") {
-	return fam.linkFun(x);
-    }
-    if (which == "mu.eta") {
-	return fam.muEta(x);
-    }
-    if (which == "variance") {
-	return fam.variance(x);
-    }
-    throw runtime_error("Unknown which value in testFam");
+RCPP_MODULE(glm) {
+
+    class_<glm::glmFamily>( "glmFamily" )
+
+    .constructor(init_1<List>())
+
+    .method("linkFun",        &glm::glmFamily::linkFun)
+    .method("linkInv",        &glm::glmFamily::linkInv)
+    .method("muEta",          &glm::glmFamily::muEta)
+    .method("devResid",       &glm::glmFamily::devResid)
+    .method("variance",       &glm::glmFamily::variance)
+    ;
+
 }
