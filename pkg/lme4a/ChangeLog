@@ -1,3 +1,9 @@
+2010-11-05  Douglas Bates  <bates@stat.wisc.edu>
+
+	* src/glmFamily.cpp,init.cpp,glmFamily.h (RCPP_MODULE): Replace
+	testFam function by an Rcpp Module.  Clean up static variables
+	that are no longer used.
+
 2010-09-30  Douglas Bates  <bates@stat.wisc.edu>
 
 	* man/ranef.Rd, man/fixef.Rd: Remove or replace ficticious
