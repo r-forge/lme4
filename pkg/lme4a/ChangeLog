@@ -1,3 +1,7 @@
+2010-11-17  Douglas Bates  <bates@stat.wisc.edu>
+
+	* src/Makevars: using backticks now.
+
 2010-11-05  Douglas Bates  <bates@stat.wisc.edu>
 
 	* src/glmFamily.cpp,init.cpp,glmFamily.h (RCPP_MODULE): Replace
