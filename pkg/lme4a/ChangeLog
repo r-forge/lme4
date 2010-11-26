@@ -1,3 +1,9 @@
+2010-11-26  Douglas Bates  <bates@stat.wisc.edu>
+
+	* src/Makevars: restored the $FLIBS etc. parts that I accidently
+	deleted in previous modifications. (Thanks to Ben Bolker for
+	spotting that.)
+
 2010-11-17  Douglas Bates  <bates@stat.wisc.edu>
 
 	* src/Makevars: using backticks now.
