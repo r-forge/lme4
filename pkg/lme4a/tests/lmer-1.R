@@ -8,6 +8,7 @@ S4_2list <- function(obj) {   # no longer used
    sn <- slotNames(obj)
    structure(lapply(sn, slot, object = obj), .Names = sn)
 }
+## Is now (2010-09-03) in Matrix' test-tools.R above
 showProc.time <- local({
     pct <- proc.time()
     function() { ## CPU elapsed __since last called__
