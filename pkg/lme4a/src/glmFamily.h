@@ -8,15 +8,25 @@
 namespace glm {
     // Map (associative array) of functions returning double from a double
     typedef std::map<std::string, double(*)(double)> fmap;
+    typedef std::map<std::string,
+		     double(*)(double,double,double)> drmap;
 
     class glmFamily {
-	std::string family, link; // as in the R glm family
+    protected:
 	Rcpp::List           lst; // original list from R
+	std::string d_family, d_link; // as in the R glm family
+	Rcpp::Function d_devRes, d_linkfun, d_linkinv, d_muEta, d_variance;
     public:
-	glmFamily(SEXP);
-				// Application of functions from the family
-				// The scalar transformations use
-				// compiled code when available 
+	glmFamily(Rcpp::List) throw (std::runtime_error);
+
+	const std::string& fam() const {return d_family;}
+	const std::string& lnk() const {return d_link;}
+
+	// initialize the associative arrays of scalar functions
+	void initMaps();
+	
+	// Application of functions from the family
+	// The scalar transformations use compiled code when available 
 	Rcpp::NumericVector  linkFun(Rcpp::NumericVector const&) const;
 	Rcpp::NumericVector  linkInv(Rcpp::NumericVector const&) const;
 	Rcpp::NumericVector devResid(
@@ -26,16 +36,21 @@ namespace glm {
 	Rcpp::NumericVector    muEta(Rcpp::NumericVector const&) const;
 	Rcpp::NumericVector variance(Rcpp::NumericVector const&) const;
     private:
-	// Class (as opposed to instance) members storing the scalar functions
+	// Class members that are maps storing the scalar functions
 	static fmap
- 	    devs,			//< scalar deviance functions
-	    lnks,			//< scalar link functions
-	    linvs,			//< scalar linkinv functions
-	    muEtas,			//< scalar muEta functions
-	    varFuncs;			//< scalar variance functions
-    
+	    lnks,		// scalar link functions
+	    linvs,		// scalar linkinv functions
+	    muEtas,		// scalar muEta functions
+	    varFuncs;		// scalar variance functions
+	static drmap devRes;
+	
 	// Thresholds common to the class
 	static double epsilon;
+
+	// Utility for deviance residuals
+	static inline double y_log_y(double y, double mu) {
+	    return y ? y*log(y/mu) : 0;
+	}
 
 	// Scalar functions that will used in transform applications
 	static inline double         cubef(double x) {return x * x * x;}
@@ -45,29 +60,25 @@ namespace glm {
 	static inline double          onef(double x) {return 1;}
 	static inline double          sqrf(double x) {return x * x;}
 	static inline double         twoxf(double x) {return 2 * x;}
-	static inline double         x1mxf(double x) {return std::max(epsilon, x * (1 - x));}
-	// static inline double     finitePos(double x) { // truncate to [eps, 1/eps]
-	//     return std::max(epsilon, std::min(INVEPS, x));
-	// }
-	// static inline double      finite01(double x) { // truncate to [eps, 1 - eps]
-	//     return std::max(epsilon, std::min(1. - epsilon, x));
-	// }
-	static inline double   logitLinkInv(double x) {
+	static inline double         x1mxf(double x) {
+	    return std::max(epsilon, x * (1 - x));
+	}
+	static inline double  logitLinkInv(double x) {
 	    return Rf_plogis(x, 0., 1., 1, 0);
 	}
-	static inline double      logitLink(double x) {
+	static inline double     logitLink(double x) {
 	    return Rf_qlogis(x, 0., 1., 1, 0);
 	}
-	static inline double     logitMuEta(double x) {
+	static inline double    logitMuEta(double x) {
 	    return Rf_dlogis(x, 0., 1., 0);
 	}
-	static inline double  probitLinkInv(double x) {
+	static inline double probitLinkInv(double x) {
 	    return Rf_pnorm5(x, 0., 1., 1, 0);
 	}
-	static inline double     probitLink(double x) {
+	static inline double    probitLink(double x) {
 	    return Rf_qnorm5(x, 0., 1., 1, 0);
 	}
-	static inline double    probitMuEta(double x) {
+	static inline double   probitMuEta(double x) {
 	    return Rf_dnorm4(x, 0., 1., 0);
 	}
 	// cumulative probability function of the complement of the
@@ -81,6 +92,7 @@ namespace glm {
 	static inline double cloglogLinkInv(double x) {
 	    return pgumbel2(x, 0., 1., 1);
 	}
+
 	//density of the complement of the Gumbel distribution
 	static inline double
 	dgumbel2(double x, double loc, double scale, int give_log) {
@@ -90,6 +102,28 @@ namespace glm {
 	}
 	static inline double   cloglogMuEta(double x) {
 	    return dgumbel2(x, 0., 1., 0);
+	}
+	
+	// deviance residuals functions
+	static inline double
+	BinomialDevRes(double y, double mu, double wt) {
+	    return 2 * wt * (y_log_y(y, mu) + y_log_y(1 - y, 1 - mu));
+	}
+	static inline double logYMu(double y, double mu) {
+	    return y ? log(y/mu) : 0;
+	}
+	static inline double
+	GammaDevRes   (double y, double mu, double wt) {
+	    return -2 * wt * (logYMu(y, mu) - (y - mu)/mu);
+	}
+	static inline double
+	GaussianDevRes(double y, double mu, double wt) {
+	    double res = y - mu;
+	    return wt * res * res;
+	}
+	static inline double
+	PoissonDevRes (double y, double mu, double wt) {
+	    return 2 * wt * (y_log_y(y, mu) - (y - mu));
 	}
     };
 }

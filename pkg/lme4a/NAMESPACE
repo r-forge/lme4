@@ -1,4 +1,5 @@
-useDynLib(lme4a, .registration=TRUE)
+useDynLib(lme4a)
+#useDynLib(lme4a, .registration=TRUE)
 
 ## Import non-base functions we need explicitly,
 ## notably for which we define methods:
@@ -8,6 +9,7 @@ useDynLib(lme4a, .registration=TRUE)
 import("grid")
 import("lattice")
 import("splines")
+import("Rcpp")
 
 importFrom("graphics", plot)
 importFrom("nlme", fixef, ranef, VarCorr)
@@ -88,9 +90,25 @@ importMethodsFrom("Matrix"
 ## re-export imported S4 generics
 export(AIC, BIC, logLik)
 ## and the rest (S3 generics; regular functions):
-export(VarCorr, bootMer, devcomp, getL,
-       glmer, lmList, lmer, mkdevfun, nlmer,
-       sigma, findbars, nobars, subbars, isNested)
+export(VarCorr,
+       bootMer,
+       densePred,
+       devcomp,
+       findbars,
+       getL,
+       glmFamily,
+       glmResp,
+       glmer,
+       isNested,
+       lmList,
+       lmResp,
+       lmer,
+       mkdevfun,
+       nlmer,
+       nobars,
+       sigma,
+       subbars
+       )
 
 exportClasses(deFeMod, lmerResp, lmList, merMod,
               reModule, reTrms, spFeMod)

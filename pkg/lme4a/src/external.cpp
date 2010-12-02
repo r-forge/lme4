@@ -21,6 +21,7 @@ using namespace std;
 
 RCPP_FUNCTION_6(NumericVector, merDeviance, S4 xp, NumericVector theta,
 		NumericVector beta, NumericVector u0, int verb, int alg) {
+BEGIN_RCPP
     S4 re(xp.slot("re")), fe(xp.slot("fe")), resp(xp.slot("resp"));
     bool de = fe.is("deFeMod");
     if (!de && !fe.is("spFeMod"))
@@ -61,9 +62,11 @@ RCPP_FUNCTION_6(NumericVector, merDeviance, S4 xp, NumericVector theta,
 	}
     }
     return NumericVector(0);
+END_RCPP
 }
 
 RCPP_FUNCTION_4(List, updateDc, S4 xp, NumericVector th, NumericVector beta, NumericVector u) {
+BEGIN_RCPP
     S4 fe(xp.slot("fe")), resp(xp.slot("resp"));
     bool de(fe.is("deFeMod"));
     if (!de && !fe.is("spFeMod"))
@@ -96,14 +99,18 @@ RCPP_FUNCTION_4(List, updateDc, S4 xp, NumericVector th, NumericVector beta, Num
     }
 
     throw runtime_error("resp slot is not lmerResp or glmRespMod or nlsRespMod");
+END_RCPP
 }    
 
 RCPP_FUNCTION_2(List, reTrmsCondVar, S4 xp, double scale) {
+BEGIN_RCPP
     mer::reTrms trms(xp);
     return trms.condVar(scale);
+END_RCPP
 }
     
 RCPP_FUNCTION_2(Rcpp::List, glmIRLS, Rcpp::S4 xp, int verb) {
+BEGIN_RCPP
     Rcpp::S4 pm = xp.slot("pred");
     if (pm.is("dPredModule")) {
 	glm::mod<matMod::dPredModule,mer::glmerResp> m(xp);
@@ -112,4 +119,5 @@ RCPP_FUNCTION_2(Rcpp::List, glmIRLS, Rcpp::S4 xp, int verb) {
 	glm::mod<matMod::sPredModule,mer::glmerResp> m(xp);
 	return m.IRLS(verb);
     } else throw runtime_error("Unknown linear predictor module type");
+END_RCPP
 }
