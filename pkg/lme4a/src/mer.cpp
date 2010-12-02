@@ -105,12 +105,13 @@ namespace mer{ // utilities defined here, class constructors and
      */
     double compareVecWt(NumericVector const& v1,
 			NumericVector const& v2,
-			NumericVector const& wt) {
+			NumericVector const& wt) throw(std::runtime_error) {
 	int n = v1.size();
 	double num, d1, d2;
 	if (v2.size() != n || wt.size() != n)
-	    Rf_error("%s: size mismatch, %d != %d or != %d\n",
-		     "compareVecWt", n, v2.size(), wt.size());
+	    throw std::runtime_error("size mismatch");
+	    // Rf_error("%s: size mismatch, %d != %d or != %d\n",
+	    // 	     "compareVecWt", n, v2.size(), wt.size());
 	vector<double> a(n);
 
 	transform(v1.begin(), v1.end(), v2.begin(),

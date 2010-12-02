@@ -80,18 +80,19 @@ namespace mer{
      * @param step step fraction
      */
     void reModule::setU(const Rcpp::NumericVector& ubase,
-			const Rcpp::NumericVector& incr, double step) {
+			const Rcpp::NumericVector& incr, double step) throw(std::runtime_error) {
 	int q = d_u.size();
 	if (ubase.size() != q)
-	    Rf_error("%s: expected %s.size() = %d, got %d",
-		     "reModule::setU", "ubase", q, ubase.size());
+	    throw std::runtime_error("size mismatch");
+	    // Rf_error("%s: expected %s.size() = %d, got %d",
+	    // 	     "reModule::setU", "ubase", q, ubase.size());
 //	NumericVector res = (step == 0.) ? ubase : ubase + incr * step; // Needs Rcpp_0.8.3
 //	copy(res.begin(), res.end(), d_u.begin());
 	if (step == 0.) {
 	    copy(ubase.begin(), ubase.end(), d_u.begin());
 	} else {
 	    if (incr.size() != q)
-	 	throw runtime_error("reModule::setU size mismatch of u and incr");
+	 	throw std::runtime_error("reModule::setU size mismatch of u and incr");
 	    transform(incr.begin(), incr.end(), d_u.begin(),
 	 	      bind2nd(multiplies<double>(), step));
 	    transform(ubase.begin(), ubase.end(),

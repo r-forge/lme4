@@ -1,15 +1,19 @@
 #include "Matrix.h"
 #include <R_ext/Rdynload.h>
 
+#if 0
+
 extern "C" SEXP glmIRLS(SEXP,SEXP);
 extern "C" SEXP lme4_ghq(SEXP);
 extern "C" SEXP merDeviance(SEXP,SEXP,SEXP,SEXP,SEXP,SEXP);
 extern "C" SEXP reTrmsCondVar(SEXP,SEXP);
 extern "C" SEXP updateDc(SEXP,SEXP,SEXP,SEXP);
+extern "C" SEXP _rcpp_module_boot_lme4();
 
 #define CALLDEF(name, n)  {#name, (DL_FUNC) &name, n}
 
 static R_CallMethodDef CallEntries[] = {
+    CALLDEF(_rcpp_module_boot_lme4, 0),
     CALLDEF(glmIRLS, 2),
     CALLDEF(lme4_ghq, 1),
     CALLDEF(merDeviance, 6),
@@ -17,6 +21,8 @@ static R_CallMethodDef CallEntries[] = {
     CALLDEF(updateDc, 4),
     {NULL, NULL, 0}
 };
+
+#endif
 
 /** cholmod_common struct local to the package */
 cholmod_common c;
@@ -30,9 +36,10 @@ cholmod_common c;
 extern "C"
 void R_init_lme4a(DllInfo *dll)
 {
+#if 0
     R_registerRoutines(dll, NULL, CallEntries, NULL, NULL);
     R_useDynamicSymbols(dll, (Rboolean)FALSE);
-
+#endif
 
     M_R_cholmod_start(&c);
     c.final_ll = 1;	    /* LL' form of simplicial factorization */

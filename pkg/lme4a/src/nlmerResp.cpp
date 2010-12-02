@@ -18,7 +18,7 @@ namespace mer{
 	return ldL2 + n * (1 + log(lnum / n));
     }
 
-    double nlmerResp::updateMu(Rcpp::NumericVector const &gamma) {
+    double nlmerResp::updateMu(Rcpp::NumericVector const &gamma) throw(std::runtime_error) {
 	int n = d_y.size();
 	Rcpp::NumericVector gam = gamma + d_offset; // needs Rcpp_0.8.3 or later
 	double *gg = gam.begin();
@@ -30,7 +30,8 @@ namespace mer{
 	}
 	Rcpp::NumericVector rr = nlmod.eval(SEXP(nlenv));
 	if (rr.size() != n)
-	    Rf_error("Length mu = %d, expected %d", rr.size(), n);
+	    throw std::runtime_error("dimension mismatch");
+//	    Rf_error("Length mu = %d, expected %d", rr.size(), n);
 	copy(rr.begin(), rr.end(), d_mu.begin());
 	Rcpp::NumericMatrix rrg = rr.attr("gradient");
 	copy(rrg.begin(), rrg.end(), d_sqrtXwt.begin());

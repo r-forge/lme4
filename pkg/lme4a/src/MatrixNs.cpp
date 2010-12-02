@@ -91,10 +91,11 @@ namespace MatrixNs{
     }
 
 // Check this: Do the dspMatrix and dtpMatrix classes pass this check?
-    ddenseMatrix::ddenseMatrix(Rcpp::S4 &xp) : dMatrix(xp) {
+    ddenseMatrix::ddenseMatrix(Rcpp::S4 &xp) throw (std::runtime_error) : dMatrix(xp) {
 	if (!d_x.size() == d_nrow * d_ncol)
-	    ::Rf_error("%s: Dim = (%d, %d) is inconsistent with x.size() = %d",
-		       "ddenseMatrix::ddenseMatrix", d_nrow, d_ncol, d_x.size());
+	    throw std::runtime_error("dimension mismatch");
+	    // ::Rf_error("%s: Dim = (%d, %d) is inconsistent with x.size() = %d",
+	    // 	       "ddenseMatrix::ddenseMatrix", d_nrow, d_ncol, d_x.size());
     }
 
     ddenseMatrix::ddenseMatrix(int nr, int nc)
@@ -158,27 +159,29 @@ namespace MatrixNs{
     }
 
     void dgeMatrix::dgemv(char Tr, double alpha, Rcpp::NumericVector const &X,
-			  double beta, double *Y) const {
+			  double beta, double *Y) const throw (std::runtime_error) {
 	int i1 = 1;
 	char tr = Trans(Tr);
 	bool NTR = tr == 'N';
 	if (X.size() != (NTR ? d_ncol : d_nrow))
-	    Rf_error("dgemv \"%c\", dim mismatch (%d, %d), X(%d)",
-		     tr, d_nrow, d_ncol, X.size());
+	    throw std::runtime_error("dimension mismatch");
+	    // Rf_error("dgemv \"%c\", dim mismatch (%d, %d), X(%d)",
+	    // 	     tr, d_nrow, d_ncol, X.size());
 	F77_CALL(dgemv)(&tr, &d_nrow, &d_ncol, &alpha, d_x.begin(), &d_nrow,
 			X.begin(), &i1, &beta, Y, &i1);
     }
 
     void dgeMatrix::dgemv(char Tr, double alpha,
 			  Rcpp::NumericVector const &X, double beta,
-			  Rcpp::NumericVector &Y) const {
+			  Rcpp::NumericVector &Y) const throw (std::runtime_error) {
 	int i1 = 1;
 	char tr = Trans(Tr);
 	bool NTR = tr == 'N';
 	if (X.size() != (NTR ? d_ncol : d_nrow) ||
 	    Y.size() != (NTR ? d_nrow : d_ncol))
-	    Rf_error("dgemv \"%c\", dim mismatch (%d, %d), X(%d), Y(%d)",
-		     tr, d_nrow, d_ncol, X.size(), Y.size());
+	    throw std::runtime_error("dimension mismatch");
+	    // Rf_error("dgemv \"%c\", dim mismatch (%d, %d), X(%d), Y(%d)",
+	    // 	     tr, d_nrow, d_ncol, X.size(), Y.size());
 	F77_CALL(dgemv)(&tr, &d_nrow, &d_ncol, &alpha, d_x.begin(),
 			&d_nrow, X.begin(), &i1, &beta,
 			Y.begin(), &i1);
@@ -186,7 +189,7 @@ namespace MatrixNs{
 
     void dgeMatrix::dgemm(char TRA, char TRB,
 			  double alpha, const dgeMatrix &B,
-			  double beta, dgeMatrix &C) const {
+			  double beta, dgeMatrix &C) const throw (std::runtime_error) {
 	char trA = Trans(TRA), trB = Trans(TRB);
 	bool NTA = trA == 'N', NTB = trB == 'N';
 	int M = NTA ? d_nrow : d_ncol,
@@ -194,9 +197,10 @@ namespace MatrixNs{
 	    K = NTA ? d_ncol : d_nrow;
 	int Bnr = B.nrow();
 	if (NTB ? B.ncol() : B.nrow() != K || C.nrow() != M || C.ncol() != N)
-	    Rf_error("dgemm \"%c,%c\", dim mismatch (%d, %d), (%d,%d), (%d,%d)",
-		     trA, trB, d_nrow, d_ncol, B.nrow(), B.ncol(),
-		     C.nrow(), C.ncol());
+	    throw std::runtime_error("dimension mismatch");
+	    // Rf_error("dgemm \"%c,%c\", dim mismatch (%d, %d), (%d,%d), (%d,%d)",
+	    // 	     trA, trB, d_nrow, d_ncol, B.nrow(), B.ncol(),
+	    // 	     C.nrow(), C.ncol());
 	F77_CALL(dgemm)(&trA, &trB, &M, &N, &K, &alpha, d_x.begin(), &d_nrow,
 			B.x().begin(), &Bnr, &beta, C.x().begin(), &M);
     }
@@ -216,13 +220,13 @@ namespace MatrixNs{
 	  triangularMatrix(ul,di) {
     }
 
-    void dtrMatrix::dtrtrs(char tr, double* v, int nb) const {
+    void dtrMatrix::dtrtrs(char tr, double* v, int nb) const throw (std::runtime_error) {
 	int info;
 	F77_CALL(dtrtrs)(&d_ul, &tr, &d_di, &d_nrow, &nb, d_x.begin(),
 			 &d_nrow, v, &d_nrow, &info);
-	if (info)
-	    Rf_error("Lapack routine %s returned error code %d",
-		     "dtrtrs", info);
+	if (info) throw std::runtime_error("Lapack routine dtrtrs returned an error code");
+	    // Rf_error("Lapack routine %s returned error code %d",
+	    // 	     "dtrtrs", info);
     }
 
     dsyMatrix::dsyMatrix(Rcpp::S4& xp)
@@ -235,11 +239,12 @@ namespace MatrixNs{
 	  symmetricMatrix(ul) {
     }
 
-    void dsyMatrix::dsyrk(dgeMatrix const& A, double alpha, double beta) {
+    void dsyMatrix::dsyrk(dgeMatrix const& A, double alpha, double beta) throw (std::runtime_error) {
 	if (d_nrow != A.ncol())
-	    Rf_error("%s dimension mismatch, (%d,%d) vs A(%d,%d)",
-		     "dsyMatrix::dsyrk", d_nrow, d_ncol,
-		     A.nrow(), A.ncol());
+	    throw std::runtime_error("dimension mismatch");
+	    // Rf_error("%s dimension mismatch, (%d,%d) vs A(%d,%d)",
+	    // 	     "dsyMatrix::dsyrk", d_nrow, d_ncol,
+	    // 	     A.nrow(), A.ncol());
 	int Anr = A.nrow();
 	F77_CALL(dsyrk)(&d_ul, "T", &d_nrow, &Anr, &alpha,
 			A.x().begin(), &Anr, &beta, d_x.begin(), &d_nrow);
@@ -262,11 +267,12 @@ namespace MatrixNs{
 	update(A);
     }
 
-    void Cholesky::update(dgeMatrix const& A) {
+    void Cholesky::update(dgeMatrix const& A) throw (std::runtime_error) {
 	if (d_nrow != A.ncol())
-	    Rf_error("%s dimension mismatch, (%d,%d) vs A(%d,%d)",
-		     "Cholesky::update(dgeMatrix)", d_nrow, d_ncol,
-		     A.nrow(), A.ncol());
+	    throw std::runtime_error("dimension mismatch");
+	    // Rf_error("%s dimension mismatch, (%d,%d) vs A(%d,%d)",
+	    // 	     "Cholesky::update(dgeMatrix)", d_nrow, d_ncol,
+	    // 	     A.nrow(), A.ncol());
 	double alpha = 1., beta = 0.;
 	int Anr = A.nrow();
 	F77_CALL(dsyrk)(&d_ul, "T", &d_nrow, &Anr, &alpha,
@@ -274,33 +280,37 @@ namespace MatrixNs{
 	int info;
 	F77_CALL(dpotrf)(&d_ul, &d_nrow, d_x.begin(), &d_nrow, &info);
 	if (info)
-	    Rf_error("Lapack routine %s returned error code %d",
-		     "dpotrf", info);
+	    throw std::runtime_error("Lapack routine dpotrf returned error code");
+	    // Rf_error("Lapack routine %s returned error code %d",
+	    // 	     "dpotrf", info);
     }
 
-    void Cholesky::update(dpoMatrix const &A) {
+    void Cholesky::update(dpoMatrix const &A) throw (std::runtime_error) {
 	if (d_nrow != A.nrow())
-	    Rf_error("%s dimension mismatch, (%d,%d) vs A(%d,%d)",
-		     "Cholesky::update(dpoMatrix)", d_nrow, d_ncol,
-		     A.nrow(), A.ncol());
+	    throw std::runtime_error("dimension mismatch");
+	    // Rf_error("%s dimension mismatch, (%d,%d) vs A(%d,%d)",
+	    // 	     "Cholesky::update(dpoMatrix)", d_nrow, d_ncol,
+	    // 	     A.nrow(), A.ncol());
 	d_ul = A.uplo();
 	copy(A.x().begin(), A.x().end(), d_x.begin());
 	int info;
 	F77_CALL(dpotrf)(&d_ul, &d_nrow, d_x.begin(), &d_nrow, &info);
 	if (info)
-	    Rf_error("Lapack routine %s returned error code %d",
-		     "dpotrf", info);
+	    throw std::runtime_error("Lapack routine dpotrf returned error code");
+	    // Rf_error("Lapack routine %s returned error code %d",
+	    // 	     "dpotrf", info);
     }
 
     void Cholesky::update(char Tr, double alpha, const dgeMatrix &A,
-			  double beta, const dsyMatrix &C) {
+			  double beta, const dsyMatrix &C) throw (std::runtime_error) {
 	const char tr = Trans(Tr);
 	const bool NTR = tr == 'N';
-	int Anr = A.nrow(), Anc = A.ncol(), Cnr = C.nrow(), Cnc = C.ncol();
+	int Anr = A.nrow(), Anc = A.ncol(), Cnr = C.nrow(); //, Cnc = C.ncol();
 	if (d_nrow != Cnr || NTR ? Anr : Anc != d_nrow)
-	    Rf_error("%s(\"%c\") dimension mismatch, (%d,%d), A(%d,%d), C(%d,%d)",
-		     "Cholesky::update(dpoMatrix, dgeMatrix)", tr,
-		     d_nrow, d_ncol, Anr, Anc, Cnr, Cnc);
+	    throw std::runtime_error("dimension mismatch");
+	    // Rf_error("%s(\"%c\") dimension mismatch, (%d,%d), A(%d,%d), C(%d,%d)",
+	    // 	     "Cholesky::update(dpoMatrix, dgeMatrix)", tr,
+	    // 	     d_nrow, d_ncol, Anr, Anc, Cnr, Cnc);
 	d_ul = C.uplo();
 	copy(C.x().begin(), C.x().end(), d_x.begin());
 	F77_CALL(dsyrk)(&d_ul, &tr, &d_nrow, NTR ? &Anc : &Anr, &alpha,
@@ -308,44 +318,49 @@ namespace MatrixNs{
 	int info;
 	F77_CALL(dpotrf)(&d_ul, &d_nrow, d_x.begin(), &d_nrow, &info);
 	if (info)
-	    Rf_error("Lapack routine %s returned error code %d",
-		     "dpotrf", info);
+	    throw std::runtime_error("Lapack routine dpotrf returned error code");
+	    // Rf_error("Lapack routine %s returned error code %d",
+	    // 	     "dpotrf", info);
     }
 
-    void Cholesky::dpotrs(double *v, int nb) const {
+    void Cholesky::dpotrs(double *v, int nb) const throw (std::runtime_error) {
 	int info;
 	F77_CALL(dpotrs)(&d_ul, &d_nrow, &nb, d_x.begin(), &d_nrow,
 			 v, &d_nrow, &info);
 	if (info)
-	    Rf_error("Lapack routine %s returned error code %d",
-		     "dpotrs", info);
+	    throw std::runtime_error("Lapack routine dpotrs returned error code");
+	    // Rf_error("Lapack routine %s returned error code %d",
+	    // 	     "dpotrs", info);
     }
 
-    void Cholesky::dpotrs(Rcpp::NumericVector &v) const {
+    void Cholesky::dpotrs(Rcpp::NumericVector &v) const throw (std::runtime_error) {
 	if (v.size() != d_nrow)
-	    Rf_error("%s (%d, %d) dimension mismatch (%d, %d)",
-		     "Cholesky::dpotrs", d_nrow, d_ncol, v.size(), 1);
+	    throw std::runtime_error("dimension mismatch");
+	    // Rf_error("%s (%d, %d) dimension mismatch (%d, %d)",
+	    // 	     "Cholesky::dpotrs", d_nrow, d_ncol, v.size(), 1);
 	dpotrs(v.begin());
     }
 
-    void Cholesky::dpotrs(std::vector<double> &v) const {
+    void Cholesky::dpotrs(std::vector<double> &v) const throw (std::runtime_error) {
 	if ((int)v.size() != d_nrow)
-	    Rf_error("%s (%d, %d) dimension mismatch (%d, %d)",
-		     "Cholesky::dpotrs", d_nrow, d_ncol, v.size(), 1);
+	    throw std::runtime_error("dimension mismatch");
+	    // Rf_error("%s (%d, %d) dimension mismatch (%d, %d)",
+	    // 	     "Cholesky::dpotrs", d_nrow, d_ncol, v.size(), 1);
 	dpotrs(&v[0]);
     }
 
-    void Cholesky::inPlaceSolve(int sys, Rcpp::NumericMatrix& B) const {
+    void Cholesky::inPlaceSolve(int sys, Rcpp::NumericMatrix& B) const throw (std::runtime_error) {
 	if (B.nrow() != d_nrow)
-	    Rf_error("%s (%d, %d) dimension mismatch (%d, %d)",
-		     "Cholesky::solve",
-		     d_nrow, d_ncol, B.nrow(), B.ncol());
+	    throw std::runtime_error("dimension mismatch");
+	    // Rf_error("%s (%d, %d) dimension mismatch (%d, %d)",
+	    // 	     "Cholesky::solve",
+	    // 	     d_nrow, d_ncol, B.nrow(), B.ncol());
 	if (sys == CHOLMOD_A) return dpotrs(B.begin(), B.ncol());
 	if (sys == CHOLMOD_L)
 	    return dtrtrs((d_ul == 'U') ? 'T' : 'N', B.begin(), B.ncol());
 	if (sys == CHOLMOD_Lt)
 	    return dtrtrs((d_ul == 'U') ? 'N' : 'T', B.begin(), B.ncol());
-	throw runtime_error("Unknown sys argument for Cholesky::inPlaceSolve");
+	throw std::runtime_error("Unknown sys argument for Cholesky::inPlaceSolve");
     }
 
     Rcpp::NumericMatrix Cholesky::solve(int sys, const_CHM_DN B) const {
@@ -381,14 +396,15 @@ namespace MatrixNs{
 	return ans;
     }
 
-    chmFr::chmFr(Rcpp::S4 xp)
+    chmFr::chmFr(Rcpp::S4 xp)  throw (std::runtime_error)
 	: d_xp(xp)
     {
 	CharacterVector cl(SEXP(xp.attr("class")));
-	char *clnm = cl[0];
+//	char *clnm = cl[0];
 	if (!xp.is("CHMfactor"))
-	    ::Rf_error("Class %s object passed to %s is not a %s",
-		       clnm, "chmFr::chmFr", "CHMfactor");
+	    throw std::runtime_error("Incorrect S4 class on argument");
+	    // ::Rf_error("Class %s object passed to %s is not a %s",
+	    // 	       clnm, "chmFr::chmFr", "CHMfactor");
 	Dimension Dim(SEXP(xp.slot("Dim")));
 	IntegerVector colcount(SEXP(xp.slot("colcount"))),
 	    perm(SEXP(xp.slot("perm"))),
@@ -415,8 +431,8 @@ namespace MatrixNs{
 		S(SEXP(xp.slot("s")));
 	    NumericVector PX(SEXP(xp.slot("px")));
 
-	    if (!xp.is("dCHMsuper"))
-		::Rf_error(msg, "TRUE", "dCHMsuper");
+	    if (!xp.is("dCHMsuper")) throw std::runtime_error(msg);
+		// ::Rf_error(msg, "TRUE", "dCHMsuper");
 	    xsize = X.size();
 	    ssize = S.size();
 	    maxcsize = type[4];
@@ -434,8 +450,8 @@ namespace MatrixNs{
 		P(SEXP(xp.slot("p"))),
 		PRV(SEXP(xp.slot("prv")));
 
-	    if (!xp.is("dCHMsimpl"))
-		::Rf_error(msg, "FALSE", "dCHMsimpl");
+	    if (!xp.is("dCHMsimpl"))  throw std::runtime_error(msg);
+//		::Rf_error(msg, "FALSE", "dCHMsimpl");
 	    nzmax = X.size();
 	    p = (void*)P.begin();
 	    i = (void*)I.begin();
@@ -515,15 +531,15 @@ namespace MatrixNs{
 				 (const_CHM_SP)&b, &c);
     }
     
-    chmSp::chmSp(Rcpp::S4 xp)
+    chmSp::chmSp(Rcpp::S4 xp) throw (std::runtime_error)
 	: d_xp(xp)
     {
-	if (!xp.is("CsparseMatrix")) {
-	    CharacterVector cls = SEXP(xp.attr("class"));
-	    char *clnm = cls[0];
-	    Rf_error("Class %s object passed to %s is not a %s",
-		     clnm, "chmSp::chmSp", "CsparseMatrix");
-	}
+	if (!xp.is("CsparseMatrix")) throw std::runtime_error("Incorrect S4 class on argument");
+//	    CharacterVector cls = SEXP(xp.attr("class"));
+//	    char *clnm = cls[0];
+	//     Rf_error("Class %s object passed to %s is not a %s",
+	// 	     clnm, "chmSp::chmSp", "CsparseMatrix");
+	// }
 	IntegerVector
 	    Dim(xp.slot("Dim")), pp(xp.slot("p")), ii(xp.slot("i"));
 	nrow = Dim[0];
@@ -551,11 +567,12 @@ namespace MatrixNs{
 	    xtype = CHOLMOD_REAL;
 	}
 	if (xp.is("nsparseMatrix")) xtype = CHOLMOD_PATTERN;
-	if (xp.is("zsparseMatrix")) {
-	    xtype = CHOLMOD_COMPLEX;
-	    Rf_error("Not yet defined zsparseMatrix?");
-	}
-	if (xtype == -1) Rf_error("Unknown (logical?) sparse Matrix type");
+	if (xp.is("zsparseMatrix")) throw std::runtime_error("Not yet defined zsparseMatrix?");
+	// {
+	    // xtype = CHOLMOD_COMPLEX;
+	    // Rf_error("Not yet defined zsparseMatrix?");
+	// }
+	if (xtype == -1) throw std::runtime_error("Unknown (logical?) sparse Matrix type");
     }
 
 /// Wrap the CHM_SP so the chmSp destructor can call M_cholmod_free_sparse
@@ -587,7 +604,7 @@ namespace MatrixNs{
 				&beta, &src, &dest, &c);
     }
 
-    void chmSp::update(cholmod_sparse const &nn) {
+    void chmSp::update(cholmod_sparse const &nn) throw (std::runtime_error) {
 	size_t nnznn = M_cholmod_nnz((const_CHM_SP)&nn, &c);
 	if (nn.ncol != ncol || nnznn > nzmax || xtype != nn.xtype ||
 	    itype != nn.itype || dtype != nn.dtype || packed != nn.packed)
@@ -608,7 +625,7 @@ namespace MatrixNs{
 	    break;
 	}
 	default:
-	    Rf_error("Unsupported CHOLMOD xtype in %s", "chmSp::update");
+	    throw std::runtime_error("Unsupported CHOLMOD xtype in chmSp::update");
 	}
     }
 

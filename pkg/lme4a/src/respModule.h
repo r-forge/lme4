@@ -14,7 +14,7 @@ namespace mer {
 	Rcpp::NumericVector  d_sqrtrwt, d_wtres, d_mu; // writeable slots
 	Rcpp::NumericMatrix  d_sqrtXwt;                // writeable
     public:
-	merResp(Rcpp::S4);
+	merResp(Rcpp::S4) throw (std::runtime_error) ;
 
 	Rcpp::NumericVector       devResid() const;
 
@@ -63,7 +63,7 @@ namespace mer {
 	nlmerResp(Rcpp::S4 xp);
 
 	double Laplace (double, double, double) const;
-	double updateMu(const Rcpp::NumericVector&);
+	double updateMu(const Rcpp::NumericVector&) throw(std::runtime_error);
     };
     
 }

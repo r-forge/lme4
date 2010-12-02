@@ -9,7 +9,7 @@ namespace mer{
 	}
     };
 
-    merResp::merResp(Rcpp::S4 xp)
+    merResp::merResp(Rcpp::S4 xp)  throw (std::runtime_error)
 	: d_xp(                      xp),
 	  d_offset(                  xp.slot("offset")),
 	  d_weights(                 xp.slot("weights")),
@@ -20,9 +20,11 @@ namespace mer{
 	  d_sqrtXwt(d_y.size(), d_offset.size()/d_y.size()) {
 	int n = d_y.size(), os = d_offset.size();
 	if (d_mu.size() != n || d_weights.size() != n || d_sqrtrwt.size() != n)
-	    Rf_error("y, mu, sqrtrwt and weights slots must have equal lengths");
+	    throw std::runtime_error("y, mu, sqrtrwt and weights slots must have equal lengths");
+//	    Rf_error("y, mu, sqrtrwt and weights slots must have equal lengths");
 	if (os < 1 || os % n)
-	    Rf_error("length(offset) must be a positive multiple of length(y)");
+	    throw std::runtime_error("length(offset) must be a positive multiple of length(y)");
+//	    Rf_error("length(offset) must be a positive multiple of length(y)");
 	transform(d_weights.begin(), d_weights.end(), d_sqrtrwt.begin(), sqrtFun());
 	copy(d_sqrtrwt.begin(), d_sqrtrwt.end(), d_sqrtXwt.begin());
     }

@@ -75,7 +75,7 @@ namespace MatrixNs {
 
     class ddenseMatrix : public dMatrix {
     public:
-	ddenseMatrix(Rcpp::S4&);
+	ddenseMatrix(Rcpp::S4&) throw (std::runtime_error);
 	ddenseMatrix(int,int);
     };
 
@@ -135,11 +135,11 @@ namespace MatrixNs {
 
 	int  dmult(char,double,double,chmDn const&,chmDn&) const;
 	void dgemv(char,double,Rcpp::NumericVector const&,
-		   double,Rcpp::NumericVector&) const;
+		   double,Rcpp::NumericVector&) const throw (std::runtime_error);
 	void dgemv(char,double,Rcpp::NumericVector const&,
-		   double,double*) const;
+		   double,double*) const throw (std::runtime_error);
 	void dgemm(char,char,double,dgeMatrix const&,
-		   double,dgeMatrix&) const;
+		   double,dgeMatrix&) const throw (std::runtime_error);
     };
 
 // Inherits from dgeMatrix, not ddenseMatrix as in the R class
@@ -160,7 +160,7 @@ namespace MatrixNs {
 
 //	void dtrtrs(char,Rcpp::NumericVector&) const;
 //	void dtrtrs(char,std::vector<double>&) const;
-	void dtrtrs(char,double*,int = 1) const;
+	void dtrtrs(char,double*,int = 1) const throw(std::runtime_error);
     };
 
     class dsyMatrix : public ddenseMatrix, public symmetricMatrix {
@@ -168,7 +168,7 @@ namespace MatrixNs {
 	dsyMatrix(Rcpp::S4&);
 	dsyMatrix(int,char='U');
 
-	void dsyrk(dgeMatrix const&,double,double);
+	void dsyrk(dgeMatrix const&,double,double) throw (std::runtime_error);
     };
 
     class dpoMatrix : public dsyMatrix {
@@ -188,15 +188,16 @@ namespace MatrixNs {
 
 	double logDet2() const;
 
-	void dpotrs(Rcpp::NumericVector&) const;
-	void dpotrs(std::vector<double>&) const;
-	void dpotrs(double*, int = 1) const;
+	void dpotrs(Rcpp::NumericVector&) const throw (std::runtime_error);
+	void dpotrs(std::vector<double>&) const throw (std::runtime_error);
+	void dpotrs(double*, int = 1) const throw (std::runtime_error);
 
-	void inPlaceSolve(int, Rcpp::NumericMatrix&) const;
+	void inPlaceSolve(int, Rcpp::NumericMatrix&) const throw (std::runtime_error);
 
-	void update(const dpoMatrix&); // chol(A)
-	void update(const dgeMatrix&); // chol(crossprod(X))
-	void update(char,double,const dgeMatrix&,double,const dsyMatrix&);
+	void update(const dpoMatrix&) throw (std::runtime_error); // chol(A)
+	void update(const dgeMatrix&) throw (std::runtime_error); // chol(crossprod(X))
+	void update(char,double,const dgeMatrix&,double,const dsyMatrix&)
+	    throw (std::runtime_error);
     };
 
     class chmDn : public cholmod_dense {
@@ -231,7 +232,7 @@ namespace MatrixNs {
     class chmSp : public cholmod_sparse { 
 	Rcpp::S4        d_xp;
     public:
-	chmSp(Rcpp::S4);
+	chmSp(Rcpp::S4) throw(std::runtime_error);
 
 	const Rcpp::S4&  S4() const {return d_xp;}
 	const SEXPREC* sexp() const {return SEXP(d_xp);}
@@ -251,13 +252,13 @@ namespace MatrixNs {
 	int dmult(char,double,double,const chmDn&,chmDn&) const;
 	
 	void scale(int,const chmDn&);
-	void update(const cholmod_sparse&);
+	void update(const cholmod_sparse&) throw(std::runtime_error);
     };
 
     class chmFr : public cholmod_factor {
 	Rcpp::S4        d_xp;
     public:
-	chmFr(Rcpp::S4);
+	chmFr(Rcpp::S4) throw (std::runtime_error);
 
 	const Rcpp::S4&  S4() const {return d_xp;}
 	const SEXPREC* sexp() const {return SEXP(d_xp);}
