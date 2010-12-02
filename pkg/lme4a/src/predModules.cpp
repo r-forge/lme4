@@ -47,13 +47,14 @@ namespace matMod {
      * @param wtres weighted residuals
      */
     void dPredModule::reweight(Rcpp::NumericMatrix   const&   Xwt,
-			       Rcpp::NumericVector   const& wtres) {
+			       Rcpp::NumericVector   const& wtres) throw(std::runtime_error) {
 	if (d_coef.size() == 0) return;
 	chmDn cXwt(Xwt);
 	if ((Xwt.rows() * Xwt.cols()) != d_X.nrow())
-	    Rf_error("%s: dimension mismatch %s(%d,%d), %s(%d,%d)",
-		     "dPredModule::reweight", "X", d_X.nrow(), d_X.ncol(),
-		     "Xwt", Xwt.nrow(), Xwt.ncol());
+	    throw std::runtime_error("dimension mismatch");
+	    // Rf_error("%s: dimension mismatch %s(%d,%d), %s(%d,%d)",
+	    // 	     "dPredModule::reweight", "X", d_X.nrow(), d_X.ncol(),
+	    // 	     "Xwt", Xwt.nrow(), Xwt.ncol());
 	int Wnc = Xwt.ncol(), Wnr = Xwt.nrow(),
 	    Xnc = d_X.ncol(), Xnr = d_X.nrow();
 	double *V = d_V.x().begin(), *X = d_X.x().begin();
@@ -120,15 +121,16 @@ namespace matMod {
      * @param wtres weighted residuals
      */
     void sPredModule::reweight(Rcpp::NumericMatrix   const&   Xwt,
-			       Rcpp::NumericVector   const& wtres) {
+			       Rcpp::NumericVector   const& wtres) throw(std::runtime_error) {
 	if (d_coef.size() == 0) return;
 	double one = 1., zero = 0.;
-	int Wnc = Xwt.ncol(), Wnr = Xwt.nrow(),
-	    Xnc = d_X.ncol, Xnr = d_X.nrow;
+	int Wnc = Xwt.ncol();//, Wnr = Xwt.nrow(),
+//	    Xnc = d_X.ncol, Xnr = d_X.nrow;
 	if ((Xwt.rows() * Xwt.cols()) != (int)d_X.nrow)
-	    Rf_error("%s: dimension mismatch %s(%d,%d), %s(%d,%d)",
-		     "deFeMod::reweight", "X", Xnr, Xnc,
-		     "Xwt", Wnr, Wnc);
+	    throw std::runtime_error("dimension mismatch");
+	    // Rf_error("%s: dimension mismatch %s(%d,%d), %s(%d,%d)",
+	    // 	     "deFeMod::reweight", "X", Xnr, Xnc,
+	    // 	     "Xwt", Wnr, Wnc);
 	if (Wnc == 1) {
 	    if (d_V) M_cholmod_free_sparse(&d_V, &c);
 	    d_V = M_cholmod_copy_sparse(&d_X, &c);

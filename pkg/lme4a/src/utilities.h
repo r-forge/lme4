@@ -8,7 +8,7 @@
 namespace mer {
     double compareVecWt(const Rcpp::NumericVector&,
 			const Rcpp::NumericVector&,
-			const Rcpp::NumericVector&);
+			const Rcpp::NumericVector&) throw(std::runtime_error);
     void showCHM_DN    (const_CHM_DN, const std::string&);
     void showCHM_FR    (const_CHM_FR, const std::string&);
     void showCHM_SP    (const_CHM_SP, const std::string&);

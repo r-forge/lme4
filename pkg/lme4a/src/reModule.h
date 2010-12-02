@@ -69,7 +69,7 @@ namespace mer {
 			  const Rcpp::NumericVector&);
 	void setU        (const Rcpp::NumericVector&,
 			  const Rcpp::NumericVector& = Rcpp::NumericVector(),
-			  double = 0.);
+			  double = 0.) throw (std::runtime_error) ;
 	void updateLambda(const Rcpp::NumericVector&);
 	// used in PIRLSbeta for solving for both u and beta
 	void updateU     (const Rcpp::NumericVector&);
