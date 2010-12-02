@@ -387,7 +387,8 @@ mkdevfun <- function(mod, nAGQ = 1L, u0 = numeric(length(mod@re@u)), verbose = 0
     resp <- mod@resp
     beta0 <- numeric(length(mod@fe@coef))
     if (is(resp, "lmerResp")) {
-        if (compDev) return(function(th) .Call(merDeviance, mod, th, beta0, u0, 0L, 3L))
+        if (compDev) return(function(th) .Call("merDeviance", mod, th, beta0, u0, 0L, 3L, PACKAGE="lme4a"))
+##        if (compDev) return(function(th) .Call(merDeviance, mod, th, beta0, u0, 0L, 3L)
         WtMat <- Diagonal(x = resp@sqrtrwt)
         return(function(th) {
             lower <- mod@re@lower
@@ -434,9 +435,11 @@ mkdevfun <- function(mod, nAGQ = 1L, u0 = numeric(length(mod@re@u)), verbose = 0
         })
     }
     if (nAGQ == 0L)
-        return(function(pars) .Call(merDeviance, mod, pars, beta0, u0, verbose, 3L))
+#        return(function(pars) .Call(merDeviance, mod, pars, beta0, u0, verbose, 3L))
+        return(function(pars) .Call("merDeviance", mod, pars, beta0, u0, verbose, 3L, PACKAGE="lme4a"))
     thpars <- seq_along(mod@re@theta)
-    function(pars) .Call(merDeviance, mod, pars[thpars], pars[-thpars], u0, verbose, 2L)
+#    function(pars) .Call(merDeviance, mod, pars[thpars], pars[-thpars], u0, verbose, 2L)
+    function(pars) .Call("merDeviance", mod, pars[thpars], pars[-thpars], u0, verbose, 2L, PACKAGE="lme4a")
 }
 
 setMethod("simulate", "merMod",
@@ -791,7 +794,8 @@ setMethod("ranef", signature(object = "merMod"),
               ans <- ans[whchL]
 
               if (postVar) {
-                  vv <- .Call(reTrmsCondVar, re, sigma(object))
+#                  vv <- .Call(reTrmsCondVar, re, sigma(object))
+                  vv <- .Call("reTrmsCondVar", re, sigma(object), PACKAGE="lme4a")
                   for (i in seq_along(ans))
                       attr(ans[[i]], "postVar") <- vv[[i]]
               }
