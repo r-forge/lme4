@@ -1,3 +1,19 @@
+2010-12-02  Douglas Bates  <bates@stat.wisc.edu>
+
+	* NAMESPACE: export glmFamily, glmResp, lmResp
+
+	* src/glmFamily.h, src/glmFamily.cpp: upgrade to the version in
+	the RcppModels package.
+
+	* DESCRIPTION (Suggests): remove coda as we no longer use it.
+
+	* R/lmer.R, R/profile.R, R/zzz.R, src/Module.cpp, src/init.c: Remove
+	registration of external symbols until we can get it cooperating
+	with the Module code.
+
+	* src/external.cpp: Add BEGIN_RCPP/END_RCPP for externally visible
+	functions.
+
 2010-11-26  Douglas Bates  <bates@stat.wisc.edu>
 
 	* src/Makevars: restored the $FLIBS etc. parts that I accidently
