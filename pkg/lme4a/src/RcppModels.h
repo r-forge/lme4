@@ -6,7 +6,6 @@
 namespace glm {
     class lmResp {
     public:
-	lmResp() {}
 	lmResp(Rcpp::NumericVector y) throw (std::runtime_error);
 	lmResp(Rcpp::NumericVector y, Rcpp::NumericVector weights)
 	    throw (std::runtime_error);
