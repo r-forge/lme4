@@ -76,7 +76,7 @@ namespace glm {
 	  // d_linkinv(wrap(ll["linkinv"])),
 	  // d_muEta(wrap(ll["mu.eta"])),
 	  // d_variance(wrap(ll["variance"])) {
-	if (as<string>(lst.attr("class")) != "family")
+	if (!lst.inherits("family"))
 	    throw std::runtime_error("glmFamily requires a list of (S3) class \"family\"");
  	CharacterVector ff = lst["family"], lnk = lst["link"];
  	d_family = as<std::string>(ff);
