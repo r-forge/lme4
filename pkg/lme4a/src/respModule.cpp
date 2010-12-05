@@ -25,6 +25,7 @@ namespace mer {
 	throw (std::runtime_error)
 	: d_y(y), d_weights(y.size(), 1.0), d_offset(y.size()),
 	  d_mu(y.size()), d_sqrtrwt(y.size()),
+	  d_wtres(y.size()),
 	  d_sqrtXwt(y.size(), 1.0) {
 	init();
     }
@@ -32,7 +33,7 @@ namespace mer {
     merResp::merResp(Rcpp::NumericVector y, Rcpp::NumericVector weights)
 	throw (std::runtime_error)
 	: d_y(y), d_weights(weights), d_offset(y.size()),
-	  d_mu(y.size()), d_sqrtrwt(y.size()),
+	  d_mu(y.size()), d_sqrtrwt(y.size()), d_wtres(y.size()),
 	  d_sqrtXwt(y.size(), 1) {
 	if (weights.size() != y.size())
 	    throw std::runtime_error(
@@ -43,7 +44,7 @@ namespace mer {
     merResp::merResp(Rcpp::NumericVector y, Rcpp::NumericVector weights,
 	Rcpp::NumericVector offset) throw (std::runtime_error)
 	: d_y(y), d_weights(weights), d_offset(offset),
-	  d_mu(y.size()), d_sqrtrwt(y.size()),
+	  d_mu(y.size()), d_sqrtrwt(y.size()), d_wtres(y.size()),
 	  d_sqrtXwt(y.size(), 1) {
 	int nn = y.size();
 	if (weights.size() != nn || offset.size() != nn)
@@ -55,6 +56,7 @@ namespace mer {
     void merResp::init() {
 	d_sqrtrwt = sqrt(d_weights);
 	std::copy(d_sqrtrwt.begin(), d_sqrtrwt.end(), d_sqrtXwt.begin());
+	updateWrss();
     }
 
     /** 
