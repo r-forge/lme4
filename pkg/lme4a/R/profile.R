@@ -190,6 +190,7 @@ splom.thpr <-
     ## panel function for lower triangle
     lp <- function(x, y, groups, subscripts, i, j, ...) {
         tr <- traces[[j]][[i]]
+browser()
         grid::pushViewport(viewport(xscale = c(-1.07, 1.07) * mlev,
                               yscale = c(-1.07, 1.07) * mlev))
         dd <- sapply(current.panel.limits(), diff)/50
@@ -202,7 +203,7 @@ splom.thpr <-
         with(ll$tki, lsegments(y - dd[1], x, y + dd[1], x, ...))
         with(ll$tkj, lsegments(x, y - dd[2], x, y + dd[2], ...))
         for (k in seq_along(levels)) llines(ll$pts[k, , ], ...)
-        popViewport(1)
+        grid::popViewport(1)
     }
     ## panel function for upper triangle
     up <- function(x, y, groups, subscripts, i, j, ...) {
@@ -308,7 +309,7 @@ splom.thpr <-
                        line.alpha = axis.line.alpha,
                        line.lty = axis.line.lty,
                        line.lwd = axis.line.lwd)
-            popViewport(1)
+            grid::popViewport(1)
         }
     }
 
