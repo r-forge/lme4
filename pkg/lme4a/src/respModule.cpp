@@ -81,17 +81,17 @@ namespace mer {
 	updateWrss();
     }
 
-    lmerResp::lmerResp(bool rr, Rcpp::NumericVector y)
+    lmerResp::lmerResp(int rr, Rcpp::NumericVector y)
 	throw (std::runtime_error)
 	: merResp(y), d_reml(rr) {
     }
 
-    lmerResp::lmerResp(bool rr, Rcpp::NumericVector y, Rcpp::NumericVector weights)
+    lmerResp::lmerResp(int rr, Rcpp::NumericVector y, Rcpp::NumericVector weights)
 	throw (std::runtime_error)
 	: merResp(y, weights), d_reml(rr) {
     }
 
-    lmerResp::lmerResp(bool rr, Rcpp::NumericVector y, Rcpp::NumericVector weights,
+    lmerResp::lmerResp(int rr, Rcpp::NumericVector y, Rcpp::NumericVector weights,
 	Rcpp::NumericVector offset) throw (std::runtime_error)
 	: merResp(y, weights, offset), d_reml(rr) {
     }
