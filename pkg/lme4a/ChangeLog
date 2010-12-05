@@ -1,5 +1,8 @@
 2010-12-05  Douglas Bates  <bates@stat.wisc.edu>
 
+	* tests/lmer-1.Rout.save: update comparison output for changes in
+	lmer-1.R
+	
 	* man/feModule-class.Rd, man/lmerResp.Rd, man/glmerResp.Rd,
 	man/glmFamily.Rd: update documentation.
 
