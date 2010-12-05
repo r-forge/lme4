@@ -36,7 +36,6 @@ stopifnot(all.equal(fm1, fm1.))
 ## Test 'compDev = FALSE' (vs TRUE)
 fm1. <- lmer(Reaction ~ Days + (Days|Subject), sleepstudy,
              compDev = FALSE)#--> use R code (not C++) for deviance computation
-if (FALSE)                   # for some reason these results don't agree
 stopifnot(all.equal(fm1@devcomp$cmp['REML'], fm1.@devcomp$cmp['REML']),
           all.equal(fixef(fm1), fixef(fm1.)),
           all.equal(fm1@re@theta, fm1.@re@theta, tol = 1.e-7),
@@ -262,9 +261,11 @@ stopifnot(inherits(tc, "error"),
 ## Date: Wed, 18 Jan 2006 22:00:53 -0500
 
 if (FALSE) {  # mcmcsamp still needs work
-    has.coda <- require(coda)
-    if(!has.coda)
-        cat("'coda' package not available; some outputs will look suboptimal\n")
+    ## NB: Need to restore coda to the Suggests: field of DESCRIPTION
+    ## file if this code block is reinstated.
+    ## has.coda <- require(coda)
+    ## if(!has.coda)
+    ##     cat("'coda' package not available; some outputs will look suboptimal\n")
 
     ## Very simple example
     y <- 1:10
