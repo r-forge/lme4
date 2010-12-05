@@ -1,5 +1,8 @@
 2010-12-05  Douglas Bates  <bates@stat.wisc.edu>
 
+	* DESCRIPTION (Maintainer): Added Ben to authors and changed
+	maintainer address.  Removed RcppArmadillo from dependencies.
+
 	* src/init.cpp (CallEntries): Corrected a typo that was preventing
 	symbol registration.
 
