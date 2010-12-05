@@ -1,3 +1,11 @@
+2010-12-05  Douglas Bates  <bates@stat.wisc.edu>
+
+	* src/respModule.h, src/respModule.cpp (lmerResp): d_reml needs to
+	be an int, not bool.
+
+	* tests/lmer-1.R: restored tests comparing compDev=FALSE and default.
+
+
 2010-12-02  Douglas Bates  <bates@stat.wisc.edu>
 
 	* NAMESPACE: export glmFamily, glmResp, lmResp
