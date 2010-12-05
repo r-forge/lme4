@@ -5,7 +5,7 @@ etas <-
     lapply(list(-8:8,             # equal spacing to asymptotic area
                 runif(20, -8, 8), # random sample from wide uniform dist
                 rnorm(20, 0, 8),  # random sample from wide normal dist
-                -10^30, rnorm(10, 0, 4), 10^30), as.numeric)
+                c(-10^30, rnorm(10, 0, 4), 10^30)), as.numeric)
 etapos <-
     lapply(list(1:20,
                 rexp(20),
@@ -18,13 +18,21 @@ mubinom <-
                 pmin(pmax(eps, rbeta(100, 0.1, 3)), oneMeps),
                 pmin(pmax(eps, rbeta(100, 3, 0.1)), oneMeps)), as.numeric)
 
-tst.fam <- function(fam, lst, Rname)
+tst.lnki <- function(fam, lst) {
+    ff <- glmFamily$new(fam)
     unlist(lapply(lst, function(x)
-                  checkEquals(fam[[Rname]](x),
-                              .Call(lme4a:::testFam, fam, x, Rname))))
-tst.lnki <- function(fam, lst) tst.fam(fam, lst, "linkinv")
-tst.link <- function(fam, lst) tst.fam(fam, lst, "linkfun")
-tst.muEta <- function(fam, lst) tst.fam(fam, lst, "mu.eta")
+                  checkEquals(fam$linkinv(x), ff$linkInv(x))))
+}
+tst.link <- function(fam, lst) {
+    ff <- glmFamily$new(fam)
+    unlist(lapply(lst, function(x)
+                  checkEquals(fam$linkfun(x), ff$linkFun(x))))
+}
+tst.muEta <- function(fam, lst) {
+    ff <- glmFamily$new(fam)
+    unlist(lapply(lst, function(x)
+                  checkEquals(fam$mu.eta(x), ff$muEta(x))))
+}
 
 test.uncons.lnki <- function() { # check linkinv for unconstrained eta
     tst.lnki(binomial(), etas)     # binomial with default, logit link
@@ -33,6 +41,8 @@ test.uncons.lnki <- function() { # check linkinv for unconstrained eta
     tst.muEta(binomial("probit"), etas)
     tst.lnki(binomial("cloglog"), etas)  # binomial with cloglog link
     tst.muEta(binomial("cloglog"), etas)
+    tst.lnki(binomial("cauchit"), etas)  # binomial with cauchit link
+    tst.muEta(binomial("cauchit"), etas)
     tst.lnki(poisson(), etas)         # Poisson with default, log link
     tst.muEta(poisson(), etas)
     tst.lnki(gaussian(), etas)  # Gaussian with default, identity link
@@ -47,12 +57,12 @@ test.pos.lnki <- function() {  # check linkinv for positive eta only
     tst.muEta(inverse.gaussian(), etapos)    
 }
 
-test.binom.link <- function() {       # check link for binomial mu
+test.binom.link <- function() {         # check link for binomial mu
     tst.link(binomial(), mubinom)
     tst.link(binomial("probit"), mubinom)
 }
 
-test.pos.link <- function() {         # check link for positive mu
+test.pos.link <- function() {           # check link for positive mu
     tst.link(poisson(), etapos)
     tst.link(Gamma(), etapos)
     tst.link(inverse.gaussian(), etapos)    
@@ -61,3 +71,5 @@ test.pos.link <- function() {         # check link for positive mu
 test.uncons.link <- function() {   # check link for unconstrained mu
     tst.link(gaussian(), etas)
 }
+
+## ToDo: Add checks on variance functions
