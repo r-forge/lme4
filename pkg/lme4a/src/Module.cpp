@@ -23,9 +23,9 @@ using namespace mer;
 class_<lmerResp>("lmerResp")
 
     .constructor<S4>()
-    .constructor<bool,NumericVector>()
-    .constructor<bool,NumericVector,NumericVector>()
-    .constructor<bool,NumericVector,NumericVector,NumericVector>()
+    .constructor<int,NumericVector>()
+    .constructor<int,NumericVector,NumericVector>()
+    .constructor<int,NumericVector,NumericVector,NumericVector>()
 
 //    .property("devResid", &lmerResp::devResid)
     .property("mu",       &lmerResp::mu)
