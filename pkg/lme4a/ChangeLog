@@ -1,5 +1,14 @@
 2010-12-05  Douglas Bates  <bates@stat.wisc.edu>
 
+	* man/feModule-class.Rd, man/lmerResp.Rd, man/glmerResp.Rd,
+	man/glmFamily.Rd: update documentation.
+
+	* src/Module.cpp (glmerResp constructor): declare first argument
+	as int, not bool.
+
+	* src/respModule.cpp (merResp): initialize the wtres vector and
+	evaluate it in the init method.
+
 	* DESCRIPTION (Maintainer): Added Ben to authors and changed
 	maintainer address.  Removed RcppArmadillo from dependencies.
 
