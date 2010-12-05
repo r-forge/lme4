@@ -38,13 +38,13 @@ namespace mer {
 
     class lmerResp : public merResp {
     private:
-	bool d_reml;
+	int d_reml;
     public:
 	lmerResp(Rcpp::S4) throw (std::runtime_error);
-	lmerResp(bool,Rcpp::NumericVector) throw (std::runtime_error);
-	lmerResp(bool,Rcpp::NumericVector,Rcpp::NumericVector)
+	lmerResp(int,Rcpp::NumericVector) throw (std::runtime_error);
+	lmerResp(int,Rcpp::NumericVector,Rcpp::NumericVector)
 	    throw (std::runtime_error);
-	lmerResp(bool,Rcpp::NumericVector,Rcpp::NumericVector,
+	lmerResp(int,Rcpp::NumericVector,Rcpp::NumericVector,
 		 Rcpp::NumericVector) throw (std::runtime_error);
 
 	const Rcpp::NumericVector&      mu() const {return d_mu;}
