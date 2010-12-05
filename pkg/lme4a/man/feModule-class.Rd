@@ -1,7 +1,7 @@
 \name{feModule-class}
 \Rdversion{1.1}
 \docType{class}
-%\alias{feModule-class}
+\alias{feModule-class}
 \alias{deFeMod-class}
 \alias{spFeMod-class}
 \title{Class "deFeMod"}
@@ -11,7 +11,9 @@
   from the \code{"\linkS4class{predModule}"} classes
   \code{"\linkS4class{dPredModule}"} and
   \code{"\linkS4class{sPredModule}"}, respectively and contain
-  additional slots related to the random-effects module.
+  additional slots related to the random-effects module.  These
+  additional slots are inherited from the
+  \code{"\linkS4class{feModule}"} class.
 }
 \section{Objects from the Class}{
   Objects from these classes are usually created as part of
