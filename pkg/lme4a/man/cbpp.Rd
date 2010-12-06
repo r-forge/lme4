@@ -57,5 +57,12 @@ for(m in c(m1, m1p)) {
 stopifnot(all.equal(logLik(m1), logLik(m1p), tol = 1e-11),
           all.equal(AIC(m1),    AIC(m1p),    tol = 1e-11),
           all.equal(BIC(m1),    BIC(m1p),    tol = 1e-11))
+
+## GLMM with individual-level variability (accounting for overdispersion)
+cbpp$obs <- 1:nrow(cbpp)
+(m2 <- glmer(cbind(incidence, size - incidence) ~ period +
+    (1 | herd) +  (1|obs),
+              family = binomial, data = cbpp))
+
 }
 \keyword{datasets}
