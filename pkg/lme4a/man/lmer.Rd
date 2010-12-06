@@ -160,6 +160,14 @@ stopifnot(all.equal( coef(fm3.d), coef(fm3.s), tol = 1e-14),
 (gm1a <- glmer(cbind(incidence, size - incidence) ~ period + (1 | herd),
                cbpp, binomial, nAGQ = 0L))
 
+## GLMM with individual-level variability (accounting for overdispersion)
+cbpp$obs <- 1:nrow(cbpp)
+(gm2 <- glmer(cbind(incidence, size - incidence) ~ period +
+    (1 | herd) +  (1|obs),
+              family = binomial, data = cbpp))
+anova(gm1,gm2)
+
+
 ## nonlinear mixed models --- 3-part formulas ---
 
 nm1 <- nlmer(circumference ~ SSlogis(age, Asym, xmid, scal) ~
