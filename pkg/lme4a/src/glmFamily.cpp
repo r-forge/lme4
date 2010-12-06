@@ -76,8 +76,14 @@ namespace glm {
 	  // d_linkinv(wrap(ll["linkinv"])),
 	  // d_muEta(wrap(ll["mu.eta"])),
 	  // d_variance(wrap(ll["variance"])) {
+#if RCPP_VERSION > Rcpp_Version(0,8,9)
 	if (!lst.inherits("family"))
 	    throw std::runtime_error("glmFamily requires a list of (S3) class \"family\"");
+#else
+	std::string fam = as<std::string>(lst.attr("class"));
+	if (fam != "family")
+	    throw std::runtime_error("glmFamily requires a list of (S3) class \"family\"");
+#endif
  	CharacterVector ff = lst["family"], lnk = lst["link"];
  	d_family = as<std::string>(ff);
  	d_link = as<std::string>(lnk);
@@ -90,35 +96,52 @@ namespace glm {
 	if (!lnks.count("identity")) initMaps();
     }
 
-// The following member functions should be declared const but the
-// Function class call method doesn't yet allow that.
-
     Rcpp::NumericVector
     glmFamily::linkFun(Rcpp::NumericVector const &mu) const {
 	if (lnks.count(d_link))
 	    return NumericVector::import_transform(mu.begin(), mu.end(), lnks[d_link]);
+#if RCPP_VERSION > Rcpp_Version(0,8,9)
 	return d_linkfun(mu);
+#else
+	Function linkfun = ((const_cast<glmFamily*>(this))->lst)["linkfun"];
+	return linkfun(mu);
+#endif
     }
     
     Rcpp::NumericVector
     glmFamily::linkInv(Rcpp::NumericVector const &eta) const {
 	if (linvs.count(d_link))
 	    return NumericVector::import_transform(eta.begin(), eta.end(), linvs[d_link]);
+#if RCPP_VERSION > Rcpp_Version(0,8,9)
 	return d_linkinv(eta);
+#else
+	Function linkinv = ((const_cast<glmFamily*>(this))->lst)["linkinv"];
+	return linkinv(eta);
+#endif
     }
 
     Rcpp::NumericVector
     glmFamily::muEta(Rcpp::NumericVector const &eta) const {
 	if (muEtas.count(d_link))
 	    return NumericVector::import_transform(eta.begin(), eta.end(), muEtas[d_link]);
+#if RCPP_VERSION > Rcpp_Version(0,8,9)
 	return d_muEta(eta);
+#else
+	Function muEta = ((const_cast<glmFamily*>(this))->lst)["mu.eta"];
+	return muEta(eta);
+#endif
     }
     
     Rcpp::NumericVector
     glmFamily::variance(Rcpp::NumericVector const &mu) const {
 	if (varFuncs.count(d_link))
 	    return NumericVector::import_transform(mu.begin(), mu.end(), varFuncs[d_link]);
+#if RCPP_VERSION > Rcpp_Version(0,8,9)
 	return d_variance(mu);
+#else
+	Function varFunc = ((const_cast<glmFamily*>(this))->lst)["variance"];
+	return varFunc(mu);
+#endif
     }
     
     Rcpp::NumericVector
@@ -135,6 +158,11 @@ namespace glm {
 		aa[i] = f(yy[i], mm[i], ww[i]);
 	    return ans;
 	}
+#if RCPP_VERSION > Rcpp_Version(0,8,9)
 	return d_devRes(y, mu, weights);
+#else
+	Function devRes = ((const_cast<glmFamily*>(this))->lst)["dev.resids"];
+	return devRes(y, mu, weights);
+#endif
     }
 }
