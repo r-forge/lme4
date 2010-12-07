@@ -31,6 +31,11 @@ namespace mer {
 	void updateRzxRx(MatrixNs::chmSp const&,
 			 MatrixNs::chmFr const&);
 	void updateUtV(   cholmod_sparse const*);
+	// Need to define this extractor here too for Rcpp module
+	double     ldRX2() const {return  d_ldRX2;}
+	const Rcpp::NumericVector&  coef() const {return d_coef;}
+	const Rcpp::NumericVector&   Vtr() const {return d_Vtr;}
+	const MatrixNs::dgeMatrix&     V() const {return d_V;}
     };
 
     class spFeMod : public feModule, public matMod::sPredModule {

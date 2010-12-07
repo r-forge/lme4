@@ -1,5 +1,6 @@
 #include "glmFamily.h"
 #include "respModule.h"
+#include "feModule.h"
 
 using namespace Rcpp;
 
@@ -86,9 +87,25 @@ class_<glmerResp>("glmerResp")
     .property("y",             &glmerResp::y,
 	      "numeric response vector - const")
 
-    .method("updateMu",      &glmerResp::updateMu,
+    .method("updateMu",        &glmerResp::updateMu,
 	    "update mu and derived quantities from a new value of eta")
-    .method("updateWts",     &glmerResp::updateWts,
+    .method("updateWts",       &glmerResp::updateWts,
 	    "update the residual and X weights.")
+    ;
+
+class_<deFeMod>("deFeMod")
+
+    .constructor<S4,int>()
+
+    .property("coef",          &deFeMod::coef,
+	      "coefficient vector")
+    .property("Vtr",           &deFeMod::Vtr,
+	      "weighted cross product of model matrix and residual")
+    .property("ldRX2",         &deFeMod::ldRX2,
+	      "log of the square of the determinant of RX")
+    .property("V",             &deFeMod::V,
+	      "scaled model matrix")
+    .method("updateBeta",      &deFeMod::updateBeta,
+	    "update the coefficient vector given cu")
     ;
 }

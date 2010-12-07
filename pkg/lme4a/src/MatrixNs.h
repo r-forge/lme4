@@ -5,16 +5,27 @@
 #ifndef LME4_MATRIX_H
 #define LME4_MATRIX_H
 
-//#include <RcppCommon.h>
+#include <RcppCommon.h>
+// forward declarations
+namespace MatrixNs {
+    class dtrMatrix;
+    class dgeMatrix;
+    class dsyMatrix;
+    class dpoMatrix;
+}
 
-// namespace Rcpp {
-//     template <int RTYPE> class Vector;
-//     template <int RTYPE> class Matrix;
-//     class S4;
-//     typedef Vector<REALSXP> NumericVector;
-//     typedef Vector<VECSXP>  List;
-//     typedef Matrix<REALSXP> NumericMatrix;
-// }
+namespace Rcpp {
+    namespace traits {
+	template <> class
+	is_convertible<SEXP,MatrixNs::dtrMatrix> : public true_type{};
+	template <> class
+	is_convertible<SEXP,MatrixNs::dgeMatrix> : public true_type{};
+	template <> class
+	is_convertible<SEXP,MatrixNs::dsyMatrix> : public true_type{};
+	template <> class
+	is_convertible<SEXP,MatrixNs::dpoMatrix> : public true_type{};
+    }
+}
 
 #include <Rcpp.h>
 #include <Matrix.h>
@@ -140,7 +151,8 @@ namespace MatrixNs {
 		   double,double*) const throw (std::runtime_error);
 	void dgemm(char,char,double,dgeMatrix const&,
 		   double,dgeMatrix&) const throw (std::runtime_error);
-    };
+	operator SEXP() const;
+   };
 
 // Inherits from dgeMatrix, not ddenseMatrix as in the R class
 // definition so that the dmult method is available.  Note: we need to
@@ -158,8 +170,7 @@ namespace MatrixNs {
 	dtrMatrix(Rcpp::S4&);
 	dtrMatrix(int,char='U',char='N');
 
-//	void dtrtrs(char,Rcpp::NumericVector&) const;
-//	void dtrtrs(char,std::vector<double>&) const;
+	operator SEXP() const;
 	void dtrtrs(char,double*,int = 1) const throw(std::runtime_error);
     };
 
@@ -168,13 +179,16 @@ namespace MatrixNs {
 	dsyMatrix(Rcpp::S4&);
 	dsyMatrix(int,char='U');
 
-	void dsyrk(dgeMatrix const&,double,double) throw (std::runtime_error);
+	operator SEXP() const;
+	void dsyrk(dgeMatrix const&,double,double)
+	    throw (std::runtime_error);
     };
 
     class dpoMatrix : public dsyMatrix {
     public:
 	dpoMatrix(Rcpp::S4&);
 	dpoMatrix(int,char='U');
+	operator SEXP() const;
     };
 
     class Cholesky : public dtrMatrix {
@@ -322,6 +336,17 @@ namespace MatrixNs {
 	std::copy(ans.begin(), ans.end(), vv.begin());
     }
 #endif
+}
+
+namespace Rcpp {
+    template <>
+    SEXP wrap<MatrixNs::dgeMatrix>(const MatrixNs::dgeMatrix& m);
+    template <>
+    SEXP wrap<MatrixNs::dtrMatrix>(const MatrixNs::dtrMatrix& m);
+    template <>
+    SEXP wrap<MatrixNs::dsyMatrix>(const MatrixNs::dsyMatrix& m);
+    template <>
+    SEXP wrap<MatrixNs::dpoMatrix>(const MatrixNs::dpoMatrix& m);
 }
 
 #endif

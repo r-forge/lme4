@@ -47,7 +47,8 @@ namespace matMod {
      * @param wtres weighted residuals
      */
     void dPredModule::reweight(Rcpp::NumericMatrix   const&   Xwt,
-			       Rcpp::NumericVector   const& wtres) throw(std::runtime_error) {
+			       Rcpp::NumericVector   const& wtres)
+	throw(std::runtime_error) {
 	if (d_coef.size() == 0) return;
 	chmDn cXwt(Xwt);
 	if ((Xwt.rows() * Xwt.cols()) != d_X.nrow())
