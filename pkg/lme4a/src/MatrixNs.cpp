@@ -205,6 +205,17 @@ namespace MatrixNs{
 			B.x().begin(), &Bnr, &beta, C.x().begin(), &M);
     }
 
+    dgeMatrix::operator SEXP() const {
+	S4 ans("dgeMatrix");
+	ans.slot("x") = clone(d_x);
+	ans.slot("Dimnames") = clone(d_dimnames);
+	IntegerVector dd(2);
+	dd[0] = d_nrow;
+	dd[1] = d_ncol;
+	ans.slot("Dim") = dd;
+	return ans;
+    }
+
     ddenseModelMatrix::ddenseModelMatrix(Rcpp::S4 xp)
 	: dgeMatrix(  xp),
 	  modelMatrix(xp) {
@@ -229,6 +240,20 @@ namespace MatrixNs{
 	    // 	     "dtrtrs", info);
     }
 
+    dtrMatrix::operator SEXP() const {
+	S4 ans("dtrMatrix");
+	ans.slot("x") = clone(d_x);
+	ans.slot("Dimnames") = clone(d_dimnames);
+	IntegerVector dd(2);
+	dd[0] = d_nrow;
+	dd[1] = d_ncol;
+	ans.slot("Dim") = dd;
+	ans.slot("uplo") = uplo() == 'U' ? "U" : "L";	
+	ans.slot("diag") = diag() == 'U' ? "U" : "N";
+	return ans;
+    }
+
+
     dsyMatrix::dsyMatrix(Rcpp::S4& xp)
 	: ddenseMatrix(xp),
 	  symmetricMatrix(xp) {
@@ -250,12 +275,36 @@ namespace MatrixNs{
 			A.x().begin(), &Anr, &beta, d_x.begin(), &d_nrow);
     }
 
+    dsyMatrix::operator SEXP() const {
+	S4 ans("dsyMatrix");
+	ans.slot("x") = clone(d_x);
+	ans.slot("Dimnames") = clone(d_dimnames);
+	IntegerVector dd(2);
+	dd[0] = d_nrow;
+	dd[1] = d_ncol;
+	ans.slot("Dim") = dd;
+	ans.slot("uplo") = uplo() == 'U' ? "U" : "L";
+	return ans;
+    }
+
     dpoMatrix::dpoMatrix(Rcpp::S4& xp)
 	: dsyMatrix(xp) {
     }
 
     dpoMatrix::dpoMatrix(int nr, char ul)
 	: dsyMatrix(nr, ul) {
+    }
+
+    dpoMatrix::operator SEXP() const {
+	S4 ans("dpoMatrix");
+	ans.slot("x") = clone(d_x);
+	ans.slot("Dimnames") = clone(d_dimnames);
+	IntegerVector dd(2);
+	dd[0] = d_nrow;
+	dd[1] = d_ncol;
+	ans.slot("Dim") = dd;
+	ans.slot("uplo") = uplo() == 'U' ? "U" : "L";
+	return ans;
     }
 
     Cholesky::Cholesky(Rcpp::S4 xp)
@@ -757,3 +806,13 @@ namespace MatrixNs{
 
 }
 
+namespace Rcpp {
+    template <> SEXP
+    wrap<MatrixNs::dgeMatrix>(const MatrixNs::dgeMatrix& m) {return m;}
+    template <> SEXP
+    wrap<MatrixNs::dtrMatrix>(const MatrixNs::dtrMatrix& m) {return m;}
+    template <> SEXP
+    wrap<MatrixNs::dsyMatrix>(const MatrixNs::dsyMatrix& m) {return m;}
+    template <> SEXP
+    wrap<MatrixNs::dpoMatrix>(const MatrixNs::dpoMatrix& m) {return m;}
+}

@@ -33,7 +33,8 @@ namespace matMod {	   // matMod is the namespace for matrixModels
 	Rcpp::NumericVector linPred() const;
 
 	void reweight(Rcpp::NumericMatrix const&,
-		      Rcpp::NumericVector const&) throw(std::runtime_error);
+		      Rcpp::NumericVector const&)
+	    throw(std::runtime_error);
 	double solveCoef(double = 1.);
     };
     
@@ -56,5 +57,4 @@ namespace matMod {	   // matMod is the namespace for matrixModels
     
 }
 
-#endif /* LME4_GLM_H */
-
+#endif // LME4_PREDMODULES_H 
