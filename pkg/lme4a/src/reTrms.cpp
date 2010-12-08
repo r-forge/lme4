@@ -24,11 +24,7 @@ namespace mer{
     }
 
     Rcpp::IntegerVector reTrms::ncols() const {
-				// Needs Rcpp_0.8.3
-//	return IntegerVector::import_transform(d_cnms.begin(), d_cnms.end(), lengthFun());
-	IntegerVector ans(d_cnms.size());
-	transform(d_cnms.begin(), d_cnms.end(), ans.begin(), lengthFun());
-	return ans;
+	return IntegerVector::import_transform(d_cnms.begin(), d_cnms.end(), lengthFun());
     }
 
     Rcpp::IntegerVector reTrms::nctot() const {
@@ -40,8 +36,7 @@ namespace mer{
     }
 
     Rcpp::IntegerVector reTrms::nlevs() const {
-				// Needs Rcpp_0.8.3
-//	return IntegerVector::import_transform(d_flist.begin(), d_flist.end(), nlevsFun());
+	return IntegerVector::import_transform(d_flist.begin(), d_flist.end(), nlevsFun());
 	IntegerVector ans(d_flist.size());
 	transform(d_flist.begin(), d_flist.end(), ans.begin(), nlevsFun());
 	return ans;
