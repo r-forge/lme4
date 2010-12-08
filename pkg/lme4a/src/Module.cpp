@@ -1,6 +1,7 @@
 #include "glmFamily.h"
 #include "respModule.h"
 #include "feModule.h"
+#include "reModule.h"
 
 using namespace Rcpp;
 
@@ -107,5 +108,56 @@ class_<deFeMod>("deFeMod")
 	      "scaled model matrix")
     .method("updateBeta",      &deFeMod::updateBeta,
 	    "update the coefficient vector given cu")
+    ;
+
+class_<reModule>("reModule")
+
+    .constructor<S4>()
+
+    .property("sqrLenU",       &reModule::sqrLenU,
+	      "squared length of u, the orthogonal random effects")
+    .property("linPred",       &reModule::linPred,
+	      "linear predictor contribution")
+    .property("ldL2",          &reModule::ldL2,
+	      "logarithm of the square of the determinant of L")
+    .property("cu",            &reModule::cu,
+	      "intermediate solution of for u")
+    .property("lower",         &reModule::lower,
+	      "lower bounds on the theta parameters")
+    .property("u",             &reModule::u,
+	      "orthonormal random effects vector")
+
+    .method("updateLambda",    &reModule::updateLambda,
+	    "check and install new value of theta, update Lambda")
+    .method("reweight",        &reModule::reweight,
+	    "update L, Ut and cu for new weights")
+    .method("setU",            &reModule::reweight,
+	    "update L, Ut and cu for new weights")
+    .method("solveU",          &reModule::solveU,
+	    "solve for u (or the increment for u) only.  Returns squared length of c1")
+    ;
+
+class_<reTrms>("reTrms")
+    .constructor<S4>()
+
+    .property("assign",        &reTrms::assign,
+	      "assignment of terms to grouping factors")
+    .property("cnms",          &reTrms::assign,
+	      "list of column names per term")
+    .property("flist",         &reTrms::flist,
+	      "list of grouping factors")
+    .property("ncols",         &reTrms::ncols,
+	      "number of columns per term")
+    .property("nctot",         &reTrms::ncols,
+	      "total number of columns per grouping factor")
+    .property("nlevs",         &reTrms::nlevs,
+	      "number of levels per grouping factor (after removing unused levels)")
+    .property("offsets",       &reTrms::offsets,
+	      "offsets per term into random effects")
+
+    .method("terms",         &reTrms::terms,
+	    "returns the terms associated with a grouping factor (argument is a 1-based index)")
+    .method("condVar",       &reTrms::condVar,
+	    "returns a list of 3D arrays, argument is scalar scale factor")
     ;
 }
