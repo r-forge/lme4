@@ -1,3 +1,14 @@
+2010-12-08  Douglas Bates  <bates@stat.wisc.edu>
+
+	* src/reModule.h, src/reModule.cpp: Remove cached value of sqrLenU
+	and calculate it on the fly.  (That way you don't need to worry
+	about whether the cached value is updated every time.)
+
+	* src/Module.cpp: add reModule and reTrms classes.
+
+	* src/reTrms.cpp: Uncomment sugar formulations (had been
+	suppressed before Rcpp_0.8.3 was released).
+
 2010-12-07  Douglas Bates  <bates@stat.wisc.edu>
 
 	* src/MatrixNs.cpp, src/MatrixNs.h, src/feModule.h,
