@@ -109,6 +109,8 @@ export(VarCorr,
        nlmer,
 #       nlmerResp,       
        nobars,
+       reModule,
+       reTrms,
        sigma,
        subbars
        )
