@@ -10,7 +10,7 @@ namespace mer {
 	MatrixNs::chmSp     d_Z;
 	Rcpp::IntegerVector d_ff;
 	Rcpp::NumericVector d_L, d_u, d_cu;
-	double              d_ldL2, d_sqrLenU;
+	double              d_ldL2;
 	CHM_SP              d_Ut;
     public:
 	ssre(Rcpp::S4);
@@ -22,7 +22,7 @@ namespace mer {
 	double                      ldL2() const {return d_ldL2;}
 	// used in PIRLS when beta is not part of the solution
 	double                    solveU();
-	double                   sqrLenU() const {return d_sqrLenU;}
+	double                   sqrLenU() const {return sum(d_u * d_u);}
 
 	void reweight    (const Rcpp::NumericMatrix&,
 			  const Rcpp::NumericVector&);
@@ -41,7 +41,7 @@ namespace mer {
 	MatrixNs::chmSp     d_Lambda, d_Zt;
 	Rcpp::IntegerVector d_Lind;
 	Rcpp::NumericVector d_lower, d_u, d_cu;
-	double              d_ldL2, d_sqrLenU;
+	double              d_ldL2;
 	CHM_SP              d_Ut;
     public:
 	reModule(Rcpp::S4);
@@ -51,7 +51,7 @@ namespace mer {
 	double                       ldL2() const {return d_ldL2;}
 	// used in PIRLS when beta is not part of the solution
 	double                     solveU();
-	double                    sqrLenU() const {return d_sqrLenU;}
+	double                    sqrLenU() const {return sum(d_u * d_u);}
 
 	MatrixNs::chmFr     const&      L() const {return d_L;}
 	MatrixNs::chmSp     const& Lambda() const {return d_Lambda;}
