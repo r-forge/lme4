@@ -209,10 +209,7 @@ namespace MatrixNs{
 	S4 ans("dgeMatrix");
 	ans.slot("x") = clone(d_x);
 	ans.slot("Dimnames") = clone(d_dimnames);
-	IntegerVector dd(2);
-	dd[0] = d_nrow;
-	dd[1] = d_ncol;
-	ans.slot("Dim") = dd;
+	ans.slot("Dim") = IntegerVector::create(d_nrow, d_ncol);
 	return ans;
     }
 
@@ -244,10 +241,7 @@ namespace MatrixNs{
 	S4 ans("dtrMatrix");
 	ans.slot("x") = clone(d_x);
 	ans.slot("Dimnames") = clone(d_dimnames);
-	IntegerVector dd(2);
-	dd[0] = d_nrow;
-	dd[1] = d_ncol;
-	ans.slot("Dim") = dd;
+	ans.slot("Dim") = IntegerVector::create(d_nrow, d_ncol);
 	ans.slot("uplo") = uplo() == 'U' ? "U" : "L";	
 	ans.slot("diag") = diag() == 'U' ? "U" : "N";
 	return ans;
@@ -279,10 +273,7 @@ namespace MatrixNs{
 	S4 ans("dsyMatrix");
 	ans.slot("x") = clone(d_x);
 	ans.slot("Dimnames") = clone(d_dimnames);
-	IntegerVector dd(2);
-	dd[0] = d_nrow;
-	dd[1] = d_ncol;
-	ans.slot("Dim") = dd;
+	ans.slot("Dim") = IntegerVector::create(d_nrow, d_ncol);
 	ans.slot("uplo") = uplo() == 'U' ? "U" : "L";
 	return ans;
     }
@@ -299,10 +290,7 @@ namespace MatrixNs{
 	S4 ans("dpoMatrix");
 	ans.slot("x") = clone(d_x);
 	ans.slot("Dimnames") = clone(d_dimnames);
-	IntegerVector dd(2);
-	dd[0] = d_nrow;
-	dd[1] = d_ncol;
-	ans.slot("Dim") = dd;
+	ans.slot("Dim") = IntegerVector::create(d_nrow, d_ncol);
 	ans.slot("uplo") = uplo() == 'U' ? "U" : "L";
 	return ans;
     }
@@ -445,6 +433,17 @@ namespace MatrixNs{
 	return ans;
     }
 
+    Cholesky::operator SEXP() const {
+	S4 ans("Cholesky");
+// FIXME: Don't use cut-and-paste programming here.
+	ans.slot("x") = clone(d_x);
+	ans.slot("Dimnames") = clone(d_dimnames);
+	ans.slot("Dim") = IntegerVector::create(d_nrow, d_ncol);
+	ans.slot("uplo") = uplo() == 'U' ? "U" : "L";	
+	ans.slot("diag") = diag() == 'U' ? "U" : "N";
+	return ans;
+    }
+
     chmFr::chmFr(Rcpp::S4 xp)  throw (std::runtime_error)
 	: d_xp(xp)
     {
@@ -510,6 +509,13 @@ namespace MatrixNs{
 	    prev = (void*)PRV.begin();
 	}
     }
+
+    chmFr::operator SEXP() const //throw (std::runtime_error)
+    {
+	// need to decide between dCHMsuper and dCHMsimpl and undo the steps in the constructor
+	return R_NilValue;
+    }
+
 
     // chmFr::chmFr(CHM_FR xp) : cholmod_factor(), pp(xp) {
     // 	n = xp->n;
@@ -579,18 +585,14 @@ namespace MatrixNs{
 	return M_cholmod_spsolve(sys, (const CHM_FR)this,
 				 (const_CHM_SP)&b, &c);
     }
+
     
     chmSp::chmSp(Rcpp::S4 xp) throw (std::runtime_error)
 	: d_xp(xp)
     {
-	if (!xp.is("CsparseMatrix")) throw std::runtime_error("Incorrect S4 class on argument");
-//	    CharacterVector cls = SEXP(xp.attr("class"));
-//	    char *clnm = cls[0];
-	//     Rf_error("Class %s object passed to %s is not a %s",
-	// 	     clnm, "chmSp::chmSp", "CsparseMatrix");
-	// }
-	IntegerVector
-	    Dim(xp.slot("Dim")), pp(xp.slot("p")), ii(xp.slot("i"));
+	if (!xp.is("CsparseMatrix"))
+	    throw std::runtime_error("Incorrect S4 class on argument");
+	IntegerVector Dim(xp.slot("Dim")), pp(xp.slot("p")), ii(xp.slot("i"));
 	nrow = Dim[0];
 	ncol = Dim[1];
 	p = (void*)pp.begin();
@@ -616,12 +618,43 @@ namespace MatrixNs{
 	    xtype = CHOLMOD_REAL;
 	}
 	if (xp.is("nsparseMatrix")) xtype = CHOLMOD_PATTERN;
-	if (xp.is("zsparseMatrix")) throw std::runtime_error("Not yet defined zsparseMatrix?");
-	// {
-	    // xtype = CHOLMOD_COMPLEX;
-	    // Rf_error("Not yet defined zsparseMatrix?");
-	// }
+	if (xp.is("zsparseMatrix")) 
+	{
+	    xtype = CHOLMOD_COMPLEX;
+	    throw std::runtime_error("Not yet defined zsparseMatrix?");
+	}
 	if (xtype == -1) throw std::runtime_error("Unknown (logical?) sparse Matrix type");
+    }
+
+    chmSp::operator SEXP() const //throw (std::runtime_error)
+    {
+	S4 ans;
+	if (xtype != CHOLMOD_REAL || xtype != CHOLMOD_PATTERN)
+	    throw std::runtime_error("chmSp object must have xtype of REAL or PATTERN");
+	if (xtype == CHOLMOD_REAL) {
+	    if (stype) ans = S4("dsCMatrix");
+	    else ans = S4("dgCMatrix");
+	} else {
+	    if (stype) ans = S4("nsCMatrix");
+	    else ans = S4("ngCMatrix");
+	}
+	ans.slot("Dim") = IntegerVector::create(nrow, ncol);
+	int *ppt = (int*)p, *ipt = (int*) i;
+	int nx = *(ppt + ncol + 1);
+	IntegerVector pp(ppt, ppt + ncol + 1), ii(ipt, ipt + nx);
+	ans.slot("p") = pp;
+	ans.slot("i") = ii;
+	if (xtype == CHOLMOD_REAL) {
+	    double *xpt = (double*) x;
+	    NumericVector xx(xpt, xpt + nx);
+	    ans.slot("x") = xx;
+	}
+	if (stype) {
+	    if (stype == 1) ans.slot("uplo") = "U";
+	    else if (stype == -1) ans.slot("uplo") = "L";
+	    else throw std::runtime_error("unknown stype");
+	}
+	return ans;
     }
 
 /// Wrap the CHM_SP so the chmSp destructor can call M_cholmod_free_sparse
