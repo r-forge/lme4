@@ -12,6 +12,10 @@ namespace MatrixNs {
     class dgeMatrix;
     class dsyMatrix;
     class dpoMatrix;
+    class Cholesky;
+    class chmDn;
+    class chmSp;
+    class chmFr;
 }
 
 namespace Rcpp {
@@ -24,6 +28,14 @@ namespace Rcpp {
 	is_convertible<SEXP,MatrixNs::dsyMatrix> : public true_type{};
 	template <> class
 	is_convertible<SEXP,MatrixNs::dpoMatrix> : public true_type{};
+	template <> class
+	is_convertible<SEXP,MatrixNs::Cholesky> : public true_type{};
+	template <> class
+	is_convertible<SEXP,MatrixNs::chmDn> : public true_type{};
+	template <> class
+	is_convertible<SEXP,MatrixNs::chmSp> : public true_type{};
+	template <> class
+	is_convertible<SEXP,MatrixNs::chmFr> : public true_type{};
     }
 }
 
@@ -212,6 +224,7 @@ namespace MatrixNs {
 	void update(const dgeMatrix&) throw (std::runtime_error); // chol(crossprod(X))
 	void update(char,double,const dgeMatrix&,double,const dsyMatrix&)
 	    throw (std::runtime_error);
+	operator SEXP() const;
     };
 
     class chmDn : public cholmod_dense {
@@ -239,6 +252,7 @@ namespace MatrixNs {
 //	    const double *ee = begin() + nrow * ncol;
 //	    return ee;
 //	}
+	operator SEXP() const;
 //    protected:
 //	CHM_DN pp;
     };
@@ -248,7 +262,7 @@ namespace MatrixNs {
     public:
 	chmSp(Rcpp::S4) throw(std::runtime_error);
 
-	const Rcpp::S4&  S4() const {return d_xp;}
+//	const Rcpp::S4&  S4() const {return d_xp;}
 	const SEXPREC* sexp() const {return SEXP(d_xp);}
 	int              nr() const {return nrow;}
 	int              nc() const {return ncol;}
@@ -267,6 +281,8 @@ namespace MatrixNs {
 	
 	void scale(int,const chmDn&);
 	void update(const cholmod_sparse&) throw(std::runtime_error);
+	// operator SEXP() const throw (std::runtime_error);
+	operator SEXP() const;
     };
 
     class chmFr : public cholmod_factor {
@@ -274,9 +290,9 @@ namespace MatrixNs {
     public:
 	chmFr(Rcpp::S4) throw (std::runtime_error);
 
-	const Rcpp::S4&  S4() const {return d_xp;}
+//	const Rcpp::S4&  S4() const {return d_xp;}
 	const SEXPREC* sexp() const {return SEXP(d_xp);}
-	double logDet2() const;   // Need Matrix_0.999375-41 or later
+	double      logDet2() const;
 
 	void update(const cholmod_sparse&, double Imult = 0.); 
 
@@ -286,6 +302,8 @@ namespace MatrixNs {
 
 	CHM_SP spsolve(int sys, const_CHM_SP b) const;
 	CHM_SP spsolve(int sys, const chmSp&b) const;
+	// operator SEXP() const throw (std::runtime_error);
+	operator SEXP() const;
     };
 #if 0
     class Permutation {
@@ -347,6 +365,12 @@ namespace Rcpp {
     SEXP wrap<MatrixNs::dsyMatrix>(const MatrixNs::dsyMatrix& m);
     template <>
     SEXP wrap<MatrixNs::dpoMatrix>(const MatrixNs::dpoMatrix& m);
+    template <>
+    SEXP wrap<MatrixNs::Cholesky>(const MatrixNs::Cholesky& m);
+    template <>
+    SEXP wrap<MatrixNs::chmFr>(const MatrixNs::chmFr& m);
+    template <>
+    SEXP wrap<MatrixNs::chmSp>(const MatrixNs::chmSp& m);
 }
 
 #endif
