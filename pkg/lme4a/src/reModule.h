@@ -29,7 +29,7 @@ namespace mer {
 	void setU        (const Rcpp::NumericVector&,
 			  const Rcpp::NumericVector& = Rcpp::NumericVector(),
 			  double = 0.);
-	void updateLambda(const Rcpp::NumericVector&);
+	void setTheta(const Rcpp::NumericVector&);
 	// used in PIRLSbeta for solving for both u and beta
 	void updateU     (const Rcpp::NumericVector&);
     };
@@ -40,7 +40,7 @@ namespace mer {
 	MatrixNs::chmFr     d_L;
 	MatrixNs::chmSp     d_Lambda, d_Zt;
 	Rcpp::IntegerVector d_Lind;
-	Rcpp::NumericVector d_lower, d_u, d_cu;
+	Rcpp::NumericVector d_lower, d_theta, d_u, d_cu;
 	double              d_ldL2;
 	CHM_SP              d_Ut;
     public:
@@ -59,6 +59,7 @@ namespace mer {
 
 	Rcpp::NumericVector const&     cu() const {return d_cu;}
 	Rcpp::NumericVector const&  lower() const {return d_lower;}
+	Rcpp::NumericVector const&  theta() const {return d_theta;}
  	Rcpp::NumericVector const&      u() const {return d_u;}
 
 	Rcpp::NumericVector       linPred() const;
@@ -70,7 +71,7 @@ namespace mer {
 	void setU        (const Rcpp::NumericVector&,
 			  const Rcpp::NumericVector& = Rcpp::NumericVector(),
 			  double = 0.) throw (std::runtime_error) ;
-	void updateLambda(const Rcpp::NumericVector&);
+	void setTheta    (const Rcpp::NumericVector&);
 	// used in PIRLSbeta for solving for both u and beta
 	void updateU     (const Rcpp::NumericVector&);
     };

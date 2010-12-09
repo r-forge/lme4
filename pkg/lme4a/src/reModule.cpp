@@ -12,6 +12,7 @@ namespace mer{
 	  d_Zt(          S4(xp.slot("Zt"))),
 	  d_Lind(           xp.slot("Lind")),
 	  d_lower(          xp.slot("lower")),
+	  d_theta(          xp.slot("theta")),
 	  d_u(              d_L.n),       
 	  d_cu(             d_L.n) {
 	d_Ut = (CHM_SP)NULL;
@@ -107,16 +108,17 @@ namespace mer{
      * 
      * @param nt New value of theta
      */
-    void reModule::updateLambda(const Rcpp::NumericVector& nt) {
+    void reModule::setTheta(const Rcpp::NumericVector& nt) {
 	R_len_t nth = d_lower.size();
 	if (nt.size() != nth)
-	    throw runtime_error("updateLambda: size mismatch of nt and d_lower");
+	    throw runtime_error("setTheta: size mismatch of nt and d_lower");
 	if (any(nt < d_lower).is_true()) // check that nt is feasible
-	    throw runtime_error("updateLambda: theta not in feasible region");
+	    throw runtime_error("setTheta: theta not in feasible region");
+	copy(nt.begin(), nt.end(), d_theta.begin());
 				// update Lambda from theta and Lind
-	double *Lamx = (double*)d_Lambda.x, *th = nt.begin();
-	int *Li = d_Lind.begin();
-	for (R_len_t i = 0; i < d_Lind.size(); i++) Lamx[i] = th[Li[i] - 1];
+	double *Lamx = (double*)d_Lambda.x, *th = d_theta.begin();
+	int *Li = d_Lind.begin(), nLind = d_Lind.size();
+	for (R_len_t i = 0; i < nLind; i++) Lamx[i] = th[Li[i] - 1];
     }
 
     /** 

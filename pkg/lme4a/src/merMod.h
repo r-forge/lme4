@@ -71,7 +71,7 @@ namespace mer {
      */
     template<typename Tf, typename Tr> inline
     Rcpp::NumericVector mer<Tf,Tr>::LMMdeviance(const Rcpp::NumericVector& nt) {
-	re.updateLambda(nt);
+	re.setTheta(nt);
 	updateWts(BetaU);
 	solveCoef(BetaU);
 	updateMu();
@@ -179,7 +179,7 @@ namespace mer {
 	Rcpp::NumericVector bBase(p()), incB(p()), incU(q()), muBase(n()), uBase(q());
 	double crit, step, c0, c1;
 				// sqrtrwt and sqrtXwt must be set
-	re.updateLambda(theta);
+	re.setTheta(theta);
 	if (alg == U) fe.setCoef(beta);
 	re.setU(u0);
 
@@ -214,7 +214,7 @@ namespace mer {
     Rcpp::List mer<Tf,Tr>::updateDcmp(const Rcpp::NumericVector&   th,
 				      const Rcpp::NumericVector& beta,
 				      const Rcpp::NumericVector&    u) {
-	re.updateLambda(th);
+	re.setTheta(th);
 	re.setU(u);
 	fe.setCoef(beta);
 	updateMu();
