@@ -121,14 +121,14 @@ class_<reModule>("reModule")
     .property("ldL2",          &reModule::ldL2,
 	      "logarithm of the square of the determinant of L")
     .property("cu",            &reModule::cu,
-	      "intermediate solution of for u")
+	      "intermediate solution for u")
     .property("lower",         &reModule::lower,
 	      "lower bounds on the theta parameters")
+    .property("theta",         &reModule::theta,   &reModule::setTheta,
+	      "current value of variance component parameters")
     .property("u",             &reModule::u,
 	      "orthonormal random effects vector")
 
-    .method("updateLambda",    &reModule::updateLambda,
-	    "check and install new value of theta, update Lambda")
     .method("reweight",        &reModule::reweight,
 	    "update L, Ut and cu for new weights")
     .method("setU",            &reModule::reweight,
@@ -142,13 +142,13 @@ class_<reTrms>("reTrms")
 
     .property("assign",        &reTrms::assign,
 	      "assignment of terms to grouping factors")
-    .property("cnms",          &reTrms::assign,
+    .property("cnms",          &reTrms::cnms,
 	      "list of column names per term")
     .property("flist",         &reTrms::flist,
 	      "list of grouping factors")
     .property("ncols",         &reTrms::ncols,
 	      "number of columns per term")
-    .property("nctot",         &reTrms::ncols,
+    .property("nctot",         &reTrms::nctot,
 	      "total number of columns per grouping factor")
     .property("nlevs",         &reTrms::nlevs,
 	      "number of levels per grouping factor (after removing unused levels)")
@@ -156,7 +156,7 @@ class_<reTrms>("reTrms")
 	      "offsets per term into random effects")
 
     .method("terms",         &reTrms::terms,
-	    "returns the terms associated with a grouping factor (argument is a 1-based index)")
+	    "returns the terms associated with a grouping factor (argument is a 0-based index)")
     .method("condVar",       &reTrms::condVar,
 	    "returns a list of 3D arrays, argument is scalar scale factor")
     ;
