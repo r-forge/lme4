@@ -1,5 +1,7 @@
 2010-12-09  Douglas Bates  <bates@stat.wisc.edu>
 
+	* src/MatrixNs.h, src/MatrixNs.cpp: Extended operator SEXP() methods.
+
 	* src/reModule.h, src/reModule.cpp, src/Module.cpp, src/merMod.h:
 	change name of reModule::updateLambda to reModule::setTheta, cache
 	the current value of theta and incorporate it as a read-write
