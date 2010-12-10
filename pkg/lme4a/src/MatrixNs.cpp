@@ -444,9 +444,7 @@ namespace MatrixNs{
 	return ans;
     }
 
-    chmFr::chmFr(Rcpp::S4 xp)  throw (std::runtime_error)
-	: d_xp(xp)
-    {
+    chmFr::chmFr(Rcpp::S4 xp)  throw (std::runtime_error) {
 	CharacterVector cl(SEXP(xp.attr("class")));
 //	char *clnm = cl[0];
 	if (!xp.is("CHMfactor"))
@@ -510,8 +508,7 @@ namespace MatrixNs{
 	}
     }
 
-    chmFr::operator SEXP() const //throw (std::runtime_error)
-    {
+    chmFr::operator SEXP() const throw (std::runtime_error) {
 	// need to decide between dCHMsuper and dCHMsimpl and undo the steps in the constructor
 	return R_NilValue;
     }
@@ -587,9 +584,7 @@ namespace MatrixNs{
     }
 
     
-    chmSp::chmSp(Rcpp::S4 xp) throw (std::runtime_error)
-	: d_xp(xp)
-    {
+    chmSp::chmSp(Rcpp::S4 xp) throw (std::runtime_error) {
 	if (!xp.is("CsparseMatrix"))
 	    throw std::runtime_error("Incorrect S4 class on argument");
 	IntegerVector Dim(xp.slot("Dim")), pp(xp.slot("p")), ii(xp.slot("i"));
@@ -626,10 +621,9 @@ namespace MatrixNs{
 	if (xtype == -1) throw std::runtime_error("Unknown (logical?) sparse Matrix type");
     }
 
-    chmSp::operator SEXP() const //throw (std::runtime_error)
-    {
+    chmSp::operator SEXP() const throw (std::runtime_error) {
 	S4 ans;
-	if (xtype != CHOLMOD_REAL || xtype != CHOLMOD_PATTERN)
+	if (xtype != CHOLMOD_REAL && xtype != CHOLMOD_PATTERN)
 	    throw std::runtime_error("chmSp object must have xtype of REAL or PATTERN");
 	if (xtype == CHOLMOD_REAL) {
 	    if (stype) ans = S4("dsCMatrix");
@@ -640,7 +634,7 @@ namespace MatrixNs{
 	}
 	ans.slot("Dim") = IntegerVector::create(nrow, ncol);
 	int *ppt = (int*)p, *ipt = (int*) i;
-	int nx = *(ppt + ncol + 1);
+	int nx = ppt[ncol];
 	IntegerVector pp(ppt, ppt + ncol + 1), ii(ipt, ipt + nx);
 	ans.slot("p") = pp;
 	ans.slot("i") = ii;
@@ -848,4 +842,8 @@ namespace Rcpp {
     wrap<MatrixNs::dsyMatrix>(const MatrixNs::dsyMatrix& m) {return m;}
     template <> SEXP
     wrap<MatrixNs::dpoMatrix>(const MatrixNs::dpoMatrix& m) {return m;}
+    template <> SEXP
+    wrap<MatrixNs::Cholesky>(const MatrixNs::Cholesky& m) {return m;}
+    template <> SEXP
+    wrap<MatrixNs::chmSp>(const MatrixNs::chmSp& m) {return m;}
 }
