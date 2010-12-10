@@ -106,6 +106,14 @@ class_<deFeMod>("deFeMod")
 	      "log of the square of the determinant of RX")
     .property("V",             &deFeMod::V,
 	      "scaled model matrix")
+    .property("RX",            &deFeMod::RX,
+	      "Cholesky factor")
+    .property("RZX",           &deFeMod::RZX,
+	      "Off-diagonal block in large Cholesky factor")
+    .property("UtV",           &deFeMod::UtV,
+	      "Weighted crossproduct")
+    .property("VtV",           &deFeMod::VtV,
+	      "Weighted crossproduct")
     .method("updateBeta",      &deFeMod::updateBeta,
 	    "update the coefficient vector given cu")
     ;
@@ -128,11 +136,15 @@ class_<reModule>("reModule")
 	      "current value of variance component parameters")
     .property("u",             &reModule::u,
 	      "orthonormal random effects vector")
+    .property("Zt",            &reModule::Zt,
+	      "transpose of the model matrix for the random effects")
+    .property("Lambda",        &reModule::Lambda,
+	      "relative covariance factor")
 
     .method("reweight",        &reModule::reweight,
 	    "update L, Ut and cu for new weights")
-    .method("setU",            &reModule::reweight,
-	    "update L, Ut and cu for new weights")
+    .method("setU",            &reModule::setU,
+	    "set a new value of u, possibly with an increment and step")
     .method("solveU",          &reModule::solveU,
 	    "solve for u (or the increment for u) only.  Returns squared length of c1")
     ;
