@@ -227,10 +227,10 @@ namespace mer {
 	    Rcpp::List::create(Rcpp::_["ldRX2"]   = Rcpp::wrap(fe.ldRX2())
 			       ,Rcpp::_["mu"]     = Rcpp::clone(resp.mu())
 			       ,Rcpp::_["devRes"] = resp.devResid()
-			       ,Rcpp::_["RX"]     = const_cast<SEXP>(fe.RX().sexp())
-			       ,Rcpp::_["RZX"]    = const_cast<SEXP>(fe.RZX().sexp())
-			       ,Rcpp::_["L"]      = const_cast<SEXP>(re.L().sexp())
-			       ,Rcpp::_["Lambda"] = const_cast<SEXP>(re.Lambda().sexp())
+			       ,Rcpp::_["RX"]     = fe.RX()
+			       ,Rcpp::_["RZX"]    = fe.RZX()
+			       ,Rcpp::_["L"]      = re.L()
+			       ,Rcpp::_["Lambda"] = re.Lambda()
 		);
     }
 }
