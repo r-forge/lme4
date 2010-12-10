@@ -13,7 +13,7 @@ namespace MatrixNs {
     class dsyMatrix;
     class dpoMatrix;
     class Cholesky;
-    class chmDn;
+//    class chmDn;
     class chmSp;
     class chmFr;
 }
@@ -30,8 +30,8 @@ namespace Rcpp {
 	is_convertible<SEXP,MatrixNs::dpoMatrix> : public true_type{};
 	template <> class
 	is_convertible<SEXP,MatrixNs::Cholesky> : public true_type{};
-	template <> class
-	is_convertible<SEXP,MatrixNs::chmDn> : public true_type{};
+//	template <> class
+//	is_convertible<SEXP,MatrixNs::chmDn> : public true_type{};
 	template <> class
 	is_convertible<SEXP,MatrixNs::chmSp> : public true_type{};
 	template <> class
@@ -258,12 +258,9 @@ namespace MatrixNs {
     };
 
     class chmSp : public cholmod_sparse { 
-	Rcpp::S4        d_xp;
     public:
 	chmSp(Rcpp::S4) throw(std::runtime_error);
 
-//	const Rcpp::S4&  S4() const {return d_xp;}
-	const SEXPREC* sexp() const {return SEXP(d_xp);}
 	int              nr() const {return nrow;}
 	int              nc() const {return ncol;}
 	CHM_SP crossprod() const;
@@ -281,17 +278,13 @@ namespace MatrixNs {
 	
 	void scale(int,const chmDn&);
 	void update(const cholmod_sparse&) throw(std::runtime_error);
-	// operator SEXP() const throw (std::runtime_error);
-	operator SEXP() const;
+	operator SEXP() const throw (std::runtime_error);
     };
 
     class chmFr : public cholmod_factor {
-	Rcpp::S4        d_xp;
     public:
 	chmFr(Rcpp::S4) throw (std::runtime_error);
 
-//	const Rcpp::S4&  S4() const {return d_xp;}
-	const SEXPREC* sexp() const {return SEXP(d_xp);}
 	double      logDet2() const;
 
 	void update(const cholmod_sparse&, double Imult = 0.); 
@@ -302,8 +295,7 @@ namespace MatrixNs {
 
 	CHM_SP spsolve(int sys, const_CHM_SP b) const;
 	CHM_SP spsolve(int sys, const chmSp&b) const;
-	// operator SEXP() const throw (std::runtime_error);
-	operator SEXP() const;
+	operator SEXP() const throw (std::runtime_error);
     };
 #if 0
     class Permutation {
@@ -367,8 +359,8 @@ namespace Rcpp {
     SEXP wrap<MatrixNs::dpoMatrix>(const MatrixNs::dpoMatrix& m);
     template <>
     SEXP wrap<MatrixNs::Cholesky>(const MatrixNs::Cholesky& m);
-    template <>
-    SEXP wrap<MatrixNs::chmFr>(const MatrixNs::chmFr& m);
+//    template <>
+//    SEXP wrap<MatrixNs::chmFr>(const MatrixNs::chmFr& m);
     template <>
     SEXP wrap<MatrixNs::chmSp>(const MatrixNs::chmSp& m);
 }
