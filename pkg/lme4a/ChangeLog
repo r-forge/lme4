@@ -1,3 +1,13 @@
+2010-12-10  Douglas Bates  <bates@stat.wisc.edu>
+
+	* src/merMod.h: use newly created wrap templated functions instead
+	of the sexp method for chmFr and chmSp objects.
+
+	* src/MatrixNs.h, src/MatrixNs.cpp: wrap the chmSp class, remove
+	members d_xp and methods sexp and S4.
+
+	* src/Module.cpp: Added properties to reModule and deFeMod.
+
 2010-12-09  Douglas Bates  <bates@stat.wisc.edu>
 
 	* src/MatrixNs.h, src/MatrixNs.cpp: Extended operator SEXP() methods.
