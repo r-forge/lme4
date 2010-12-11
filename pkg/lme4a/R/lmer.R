@@ -335,7 +335,7 @@ updateMod <- function(mod, pars, fval) {
     ## identity in the update of fac.
     resp <- updateWts(updateMu(resp, as.vector(crossprod(re@Zt, re@Lambda %*% u)
                                                + fe@X %*% beta)))
-    
+
     fe@coef <- beta
     fe <- reweightPred(fe, resp@sqrtXwt, resp@wtres)
     ## reweight the re module.  This should eventually be a method.
@@ -613,6 +613,8 @@ glmer <- function(formula, data, family = gaussian, sparseX = FALSE,
 	    warning("extra arguments ", paste(names(l...), sep=", "),
 		    " are disregarded")
     }
+    if (family$family %in% c("quasibinomial", "quasipoisson", "quasi"))
+        stop('"quasi" families cannot be used in glmer')
 
     nAGQ <- as.integer(nAGQ)[1]
     if (nAGQ > 1) warning("nAGQ > 1 has not been implemented, using Laplace")
