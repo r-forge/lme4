@@ -613,9 +613,11 @@ glmer <- function(formula, data, family = gaussian, sparseX = FALSE,
 	    warning("extra arguments ", paste(names(l...), sep=", "),
 		    " are disregarded")
     }
+    if(is.character(family))
+      family <- get(family, mode = "function", envir = parent.frame(2))
+    if(is.function(family)) family <- family()
     if (family$family %in% c("quasibinomial", "quasipoisson", "quasi"))
         stop('"quasi" families cannot be used in glmer')
-
     nAGQ <- as.integer(nAGQ)[1]
     if (nAGQ > 1) warning("nAGQ > 1 has not been implemented, using Laplace")
     stopifnot(length(formula <- as.formula(formula)) == 3)
