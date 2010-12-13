@@ -444,14 +444,12 @@ namespace MatrixNs{
 	return ans;
     }
 
-    chmFr::chmFr(Rcpp::S4 xp)  throw (std::runtime_error)
+    chmFr::chmFr(Rcpp::S4 xp)  throw (wrongS4) 
 	: d_xp(xp) {
-	CharacterVector cl(SEXP(xp.attr("class")));
-//	char *clnm = cl[0];
+// FIXME?: Should this be a std::string instead to ensure that a destructor is called?
+	const char* clz = as<const char*>(xp.attr("class"));
 	if (!xp.is("CHMfactor"))
-	    throw std::runtime_error("Incorrect S4 class on argument");
-	    // ::Rf_error("Class %s object passed to %s is not a %s",
-	    // 	       clnm, "chmFr::chmFr", "CHMfactor");
+	    throw wrongS4(clz, "chmFr::chmFr", "CHMfactor");
 	Dimension Dim(SEXP(xp.slot("Dim")));
 	IntegerVector colcount(SEXP(xp.slot("colcount"))),
 	    perm(SEXP(xp.slot("perm"))),
@@ -470,7 +468,6 @@ namespace MatrixNs{
 	itype = CHOLMOD_LONG;
 	dtype = 0;  // CHOLMOD_DOUBLE
 	z = (void*)NULL;
-	const char* msg = "dCHMfactor with is_super == %s is not %s";
 	if (is_super) {
 	    IntegerVector
 		Pi(SEXP(xp.slot("pi"))),
@@ -478,8 +475,8 @@ namespace MatrixNs{
 		S(SEXP(xp.slot("s")));
 	    NumericVector PX(SEXP(xp.slot("px")));
 
-	    if (!xp.is("dCHMsuper")) throw std::runtime_error(msg);
-		// ::Rf_error(msg, "TRUE", "dCHMsuper");
+	    if (!xp.is("dCHMsuper"))
+		throw wrongS4(clz, "is_super = TRUE", "dCHMsuper");
 	    xsize = X.size();
 	    ssize = S.size();
 	    maxcsize = type[4];
@@ -497,8 +494,8 @@ namespace MatrixNs{
 		P(SEXP(xp.slot("p"))),
 		PRV(SEXP(xp.slot("prv")));
 
-	    if (!xp.is("dCHMsimpl"))  throw std::runtime_error(msg);
-//		::Rf_error(msg, "FALSE", "dCHMsimpl");
+	    if (!xp.is("dCHMsimpl")) 
+		throw wrongS4(clz, "is_super = FALSE", "dCHMsimpl");
 	    nzmax = X.size();
 	    p = (void*)P.begin();
 	    i = (void*)I.begin();
@@ -585,10 +582,11 @@ namespace MatrixNs{
     }
 
     
-    chmSp::chmSp(Rcpp::S4 xp) throw (std::runtime_error)
+    chmSp::chmSp(Rcpp::S4 xp) throw (wrongS4) 
 	: d_xp(xp) {
 	if (!xp.is("CsparseMatrix"))
-	    throw std::runtime_error("Incorrect S4 class on argument");
+	    throw wrongS4(as<const char*>(xp.slot("class")), "chmSp::chmSp",
+			  "CsparseMatrix");
 	IntegerVector Dim(xp.slot("Dim")), pp(xp.slot("p")), ii(xp.slot("i"));
 	nrow = Dim[0];
 	ncol = Dim[1];
@@ -686,7 +684,8 @@ namespace MatrixNs{
 	size_t nnznn = M_cholmod_nnz((const_CHM_SP)&nn, &c);
 	if (nn.ncol != ncol || nnznn > nzmax || xtype != nn.xtype ||
 	    itype != nn.itype || dtype != nn.dtype || packed != nn.packed)
-	    Rf_error("%s: matrices not conformable", "chmSp::update");
+	    throw std::runtime_error("chmSp::update: matrices not conformable");
+//	    Rf_error("%s: matrices not conformable", "chmSp::update");
 	stype = nn.stype;
 	nrow = nn.nrow;
 	sorted = nn.sorted;
