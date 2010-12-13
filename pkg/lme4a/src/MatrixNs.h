@@ -58,6 +58,21 @@ namespace MatrixNs {
     char Trans(std::string const&);
     char Trans(const SEXPREC*);
 
+    class wrongS4 : public std::exception {
+    public:
+	wrongS4(const char* S4class, const char* meth,
+		const char* desired)
+	    : d_clz(strdup(S4class)), d_methNm(strdup(meth)), d_desired(strdup(desired)) {
+	}
+	inline const char* what() const throw(){
+	    return Rcpp::sprintf<100>("Class %s object passed to %s is not a %s",
+				d_clz, d_methNm, d_desired);
+	}
+	~wrongS4() throw(){free(d_clz); free(d_methNm); free(d_desired);}
+    private:
+	const char *d_clz, *d_methNm, *d_desired;
+    };
+
     class Matrix {
     protected:
 	SEXP           d_sexp;
@@ -260,7 +275,7 @@ namespace MatrixNs {
     class chmSp : public cholmod_sparse { 
 	Rcpp::S4    d_xp;
     public:
-	chmSp(Rcpp::S4) throw(std::runtime_error);
+	chmSp(Rcpp::S4) throw(wrongS4);
 
 	int              nr() const {return nrow;}
 	int              nc() const {return ncol;}
@@ -285,7 +300,7 @@ namespace MatrixNs {
     class chmFr : public cholmod_factor {
 	Rcpp::S4     d_xp;
     public:
-	chmFr(Rcpp::S4) throw (std::runtime_error);
+	chmFr(Rcpp::S4) throw (wrongS4);
 
 	double      logDet2() const;
 
