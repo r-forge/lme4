@@ -130,6 +130,8 @@ class_<reModule>("reModule")
 	      "logarithm of the square of the determinant of L")
     .property("cu",            &reModule::cu,
 	      "intermediate solution for u")
+    .property("Lind",          &reModule::Lind,
+	      "1-based index vector into theta for Lambda@x")
     .property("lower",         &reModule::lower,
 	      "lower bounds on the theta parameters")
     .property("theta",         &reModule::theta,   &reModule::setTheta,

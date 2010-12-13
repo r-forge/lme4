@@ -57,6 +57,8 @@ namespace mer {
 	MatrixNs::chmSp     const& Lambda() const {return d_Lambda;}
 	MatrixNs::chmSp     const&     Zt() const {return d_Zt;}
 
+	Rcpp::IntegerVector const&   Lind() const {return d_Lind;}
+
 	Rcpp::NumericVector const&     cu() const {return d_cu;}
 	Rcpp::NumericVector const&  lower() const {return d_lower;}
 	Rcpp::NumericVector const&  theta() const {return d_theta;}
@@ -71,8 +73,9 @@ namespace mer {
 	void setU        (const Rcpp::NumericVector&,
 			  const Rcpp::NumericVector& = Rcpp::NumericVector(),
 			  double = 0.) throw (std::runtime_error) ;
-	void setTheta    (const Rcpp::NumericVector&);
-	// used in PIRLSbeta for solving for both u and beta
+	void setTheta    (const Rcpp::NumericVector&)
+	    throw (std::runtime_error);
+	// used in PIRLSbeta to solve for u only
 	void updateU     (const Rcpp::NumericVector&);
     };
 
