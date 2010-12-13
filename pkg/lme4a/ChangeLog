@@ -1,3 +1,15 @@
+2010-12-13  Douglas Bates  <bates@stat.wisc.edu>
+
+	* src/reModule.h, src/reModule.cpp, src/Module.cpp: Export Lind,
+	declare setTheta to throw an exception.
+
+	* src/MatrixNs.h, src/MatrixNs.cpp: Reinstate data member S4 d_xp
+	in chmSp and chmFr to protect the contents of the S4 object used
+	to create the C++ object.
+
+	* src/Permutation.cpp: use sugar expression for creating 0-based
+	indices.
+
 2010-12-10  Douglas Bates  <bates@stat.wisc.edu>
 
 	* src/merMod.h: use newly created wrap templated functions instead
