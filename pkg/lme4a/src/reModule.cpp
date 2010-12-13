@@ -108,7 +108,8 @@ namespace mer{
      * 
      * @param nt New value of theta
      */
-    void reModule::setTheta(const Rcpp::NumericVector& nt) {
+    void reModule::setTheta(const Rcpp::NumericVector& nt)
+	throw (std::runtime_error) {
 	R_len_t nth = d_lower.size();
 	if (nt.size() != nth)
 	    throw runtime_error("setTheta: size mismatch of nt and d_lower");
