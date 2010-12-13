@@ -258,6 +258,7 @@ namespace MatrixNs {
     };
 
     class chmSp : public cholmod_sparse { 
+	Rcpp::S4    d_xp;
     public:
 	chmSp(Rcpp::S4) throw(std::runtime_error);
 
@@ -282,6 +283,7 @@ namespace MatrixNs {
     };
 
     class chmFr : public cholmod_factor {
+	Rcpp::S4     d_xp;
     public:
 	chmFr(Rcpp::S4) throw (std::runtime_error);
 

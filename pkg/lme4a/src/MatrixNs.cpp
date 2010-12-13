@@ -444,7 +444,8 @@ namespace MatrixNs{
 	return ans;
     }
 
-    chmFr::chmFr(Rcpp::S4 xp)  throw (std::runtime_error) {
+    chmFr::chmFr(Rcpp::S4 xp)  throw (std::runtime_error)
+	: d_xp(xp) {
 	CharacterVector cl(SEXP(xp.attr("class")));
 //	char *clnm = cl[0];
 	if (!xp.is("CHMfactor"))
@@ -584,7 +585,8 @@ namespace MatrixNs{
     }
 
     
-    chmSp::chmSp(Rcpp::S4 xp) throw (std::runtime_error) {
+    chmSp::chmSp(Rcpp::S4 xp) throw (std::runtime_error)
+	: d_xp(xp) {
 	if (!xp.is("CsparseMatrix"))
 	    throw std::runtime_error("Incorrect S4 class on argument");
 	IntegerVector Dim(xp.slot("Dim")), pp(xp.slot("p")), ii(xp.slot("i"));
