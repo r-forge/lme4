@@ -1,3 +1,8 @@
+2010-12-14  Douglas Bates  <bates@stat.wisc.edu>
+
+	* src/Module.cpp, src/MatrixNs.h, src/MatrixNs.cpp, NAMESPACE:
+	export the chmSp class and wrap the chmFr class.
+
 2010-12-13  Douglas Bates  <bates@stat.wisc.edu>
 
 	* src/reModule.h, src/reModule.cpp, src/Module.cpp: Export Lind,
