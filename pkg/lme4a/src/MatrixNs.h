@@ -13,7 +13,6 @@ namespace MatrixNs {
     class dsyMatrix;
     class dpoMatrix;
     class Cholesky;
-//    class chmDn;
     class chmSp;
     class chmFr;
 }
@@ -30,8 +29,6 @@ namespace Rcpp {
 	is_convertible<SEXP,MatrixNs::dpoMatrix> : public true_type{};
 	template <> class
 	is_convertible<SEXP,MatrixNs::Cholesky> : public true_type{};
-//	template <> class
-//	is_convertible<SEXP,MatrixNs::chmDn> : public true_type{};
 	template <> class
 	is_convertible<SEXP,MatrixNs::chmSp> : public true_type{};
 	template <> class
@@ -66,11 +63,11 @@ namespace MatrixNs {
 	}
 	inline const char* what() const throw(){
 	    return Rcpp::sprintf<100>("Class %s object passed to %s is not a %s",
-				d_clz, d_methNm, d_desired);
+				      d_clz, d_methNm, d_desired).c_str();
 	}
 	~wrongS4() throw(){free(d_clz); free(d_methNm); free(d_desired);}
     private:
-	const char *d_clz, *d_methNm, *d_desired;
+	char *d_clz, *d_methNm, *d_desired;
     };
 
     class Matrix {
@@ -84,7 +81,6 @@ namespace MatrixNs {
 	int nrow() const;
 	int ncol() const;
 	const SEXPREC* sexp() const {return d_sexp ? d_sexp : R_NilValue;}
-//	operator SEXP() const {return d_sexp ? d_sexp : R_NilValue;}
     };
 
     class modelMatrix {
@@ -255,21 +251,12 @@ namespace MatrixNs {
 	chmDn(Rcpp::NumericMatrix const&);
     	chmDn(ddenseMatrix&);
     	chmDn(ddenseMatrix const&);
-//	chmDn(CHM_DN);
-//	~chmDn() {if (pp) ::M_cholmod_free_dense(&pp, &c);}
 
 	int nr() const { return nrow; }
 	int nc() const { return ncol; }
 	double* begin() {return (double*)x;} // template this
-//	const double* begin() {return const (double*)x;}
 	double* end() {return begin() + nrow * ncol;}
-//	const double* end() {
-//	    const double *ee = begin() + nrow * ncol;
-//	    return ee;
-//	}
 	operator SEXP() const;
-//    protected:
-//	CHM_DN pp;
     };
 
     class chmSp : public cholmod_sparse { 
@@ -279,6 +266,9 @@ namespace MatrixNs {
 
 	int              nr() const {return nrow;}
 	int              nc() const {return ncol;}
+	int             nnz() const {return ((int*)p)[ncol];}
+	int           nzMax() const {return nzmax;}
+
 	CHM_SP crossprod() const;
 	CHM_SP crossprod(const_CHM_SP, int = 1) const;
 	CHM_SP crossprod(const chmSp&, int = 1) const;
@@ -376,8 +366,8 @@ namespace Rcpp {
     SEXP wrap<MatrixNs::dpoMatrix>(const MatrixNs::dpoMatrix& m);
     template <>
     SEXP wrap<MatrixNs::Cholesky>(const MatrixNs::Cholesky& m);
-//    template <>
-//    SEXP wrap<MatrixNs::chmFr>(const MatrixNs::chmFr& m);
+    template <>
+    SEXP wrap<MatrixNs::chmFr>(const MatrixNs::chmFr& m);
     template <>
     SEXP wrap<MatrixNs::chmSp>(const MatrixNs::chmSp& m);
 }

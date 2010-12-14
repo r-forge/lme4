@@ -95,6 +95,7 @@ export(AIC, BIC, logLik)
 export(VarCorr,
        bootMer,
        devcomp,
+       chmSp,
        deFeMod,
        findbars,
        getL,

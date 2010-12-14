@@ -446,7 +446,6 @@ namespace MatrixNs{
 
     chmFr::chmFr(Rcpp::S4 xp)  throw (wrongS4) 
 	: d_xp(xp) {
-// FIXME?: Should this be a std::string instead to ensure that a destructor is called?
 	const char* clz = as<const char*>(xp.attr("class"));
 	if (!xp.is("CHMfactor"))
 	    throw wrongS4(clz, "chmFr::chmFr", "CHMfactor");
@@ -507,42 +506,34 @@ namespace MatrixNs{
     }
 
     chmFr::operator SEXP() const throw (std::runtime_error) {
-	// need to decide between dCHMsuper and dCHMsimpl and undo the steps in the constructor
-	return R_NilValue;
+// Should this clone d_xp before wrapping?
+	if (!d_xp) return wrap(d_xp);
+
+	std::string clz = (is_super) ? "dCHMsuper" : "dCHMsimpl";
+	S4 ans(clz);
+	ans.slot("Dim") = IntegerVector::create(n, n);
+	ans.slot("perm") = IntegerVector((int*)Perm, (int*)Perm + n);
+	ans.slot("colcount") = IntegerVector((int*)ColCount, (int*)ColCount + n);
+	int ntype = is_super ? 6 : 4;
+	IntegerVector type(ntype);
+	type[0] = ordering;
+	type[1] = (is_ll ? 1 : 0);
+	type[2] = is_super;
+	type[3] = (is_monotonic ? 1 : 0);
+	if (is_super) {		// fill in later
+	} else {
+	    int *ppt = (int*)p;
+	    int nx = ppt[n];
+	    ans.slot("x") = NumericVector((double*)x, (double*)x + nx);
+	    ans.slot("p") = IntegerVector(ppt, ppt + n + 1);
+	    ans.slot("i") = IntegerVector((int*)i, (int*)i + nx);
+	    ans.slot("nz") = IntegerVector((int*)nz, (int*)nz + n);
+	    ans.slot("nxt") = IntegerVector((int*)next, (int*)next + n + 2);
+	    ans.slot("prv") = IntegerVector((int*)prev, (int*)prev + n + 2);
+	}
+	return ans;
     }
 
-
-    // chmFr::chmFr(CHM_FR xp) : cholmod_factor(), pp(xp) {
-    // 	n = xp->n;
-    // 	minor = xp->minor;
-    // 	Perm = xp->Perm;
-    // 	ColCount = xp->ColCount;
-    // 	nzmax = xp->nzmax;
-    // 	p = xp->p;
-    // 	i = xp->i;
-    // 	x = xp->x;
-    // 	z = xp->z;
-    // 	nz = xp->nz;
-    // 	next = xp->next;
-    // 	prev = xp->prev;
-    // 	nsuper = xp->nsuper;
-    // 	ssize = xp->ssize;
-    // 	xsize = xp->xsize;
-    // 	maxcsize = xp->maxcsize;
-    // 	maxesize = xp->maxesize;
-    // 	super = xp->super;
-    // 	pi = xp->pi;
-    // 	px = xp->px;
-    // 	s = xp->s;
-    // 	ordering = xp->ordering;
-    // 	is_ll = xp->is_ll;
-    // 	is_super = xp->is_super;
-    // 	is_monotonic = xp->is_monotonic;
-    // 	itype = xp->itype;
-    // 	xtype = xp->xtype;
-    // 	dtype = xp->dtype;
-    // }
-		    
     void chmFr::update(cholmod_sparse const &A, double Imult) {
 	M_cholmod_factorize_p((const_CHM_SP)&A, &Imult,
 			      (int*)NULL, (size_t) 0, this, &c);
@@ -650,24 +641,6 @@ namespace MatrixNs{
 	}
 	return ans;
     }
-
-/// Wrap the CHM_SP so the chmSp destructor can call M_cholmod_free_sparse
-    // chmSp::chmSp(CHM_SP xp) : cholmod_sparse(), pp(xp) {
-    // 	nrow = xp->nrow;
-    // 	ncol = xp->ncol;
-    // 	nzmax = xp->nzmax;
-    // 	p = xp->p;
-    // 	i = xp->i;
-    // 	nz = xp->nz;
-    // 	x = xp->x;
-    // 	z = xp->z;
-    // 	stype = xp->stype;
-    // 	itype = xp->itype;
-    // 	xtype = xp->xtype;
-    // 	dtype = xp->dtype;
-    // 	packed = xp->packed;
-    // 	sorted = xp->sorted;
-    // }
 
     CHM_SP chmSp::transpose(int values) const {
 	return M_cholmod_transpose((const_CHM_SP)this, values, &c);
@@ -845,6 +818,8 @@ namespace Rcpp {
     wrap<MatrixNs::dpoMatrix>(const MatrixNs::dpoMatrix& m) {return m;}
     template <> SEXP
     wrap<MatrixNs::Cholesky>(const MatrixNs::Cholesky& m) {return m;}
+    template <> SEXP
+    wrap<MatrixNs::chmFr>(const MatrixNs::chmFr& m) {return m;}
     template <> SEXP
     wrap<MatrixNs::chmSp>(const MatrixNs::chmSp& m) {return m;}
 }
