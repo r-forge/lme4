@@ -13,11 +13,26 @@ class_<glm::glmFamily>("glmFamily")
 
     .property("family", &glm::glmFamily::fam)
     .property("link",   &glm::glmFamily::lnk)
+
     .method("linkFun",  &glm::glmFamily::linkFun)
     .method("linkInv",  &glm::glmFamily::linkInv)
     .method("muEta",    &glm::glmFamily::muEta)
     .method("devResid", &glm::glmFamily::devResid)
     .method("variance", &glm::glmFamily::variance)
+    ;
+
+class_<MatrixNs::chmSp>("chmSp")
+
+    .constructor<S4>()
+
+    .property("nrow",  &MatrixNs::chmSp::nr,
+	      "number of rows")
+    .property("ncol",  &MatrixNs::chmSp::nc,
+	      "number of columns")
+    .property("nnz",   &MatrixNs::chmSp::nnz,
+	      "number of non-zeros")
+    .property("nzmax", &MatrixNs::chmSp::nzMax,
+	      "maximum number of non-zeros")
     ;
 
 using namespace mer;
@@ -142,6 +157,8 @@ class_<reModule>("reModule")
 	      "transpose of the model matrix for the random effects")
     .property("Lambda",        &reModule::Lambda,
 	      "relative covariance factor")
+    .property("L",             &reModule::L,
+	      "sparse Cholesky factor")
 
     .method("reweight",        &reModule::reweight,
 	    "update L, Ut and cu for new weights")
