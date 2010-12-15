@@ -136,6 +136,7 @@ class_<deFeMod>("deFeMod")
 class_<reModule>("reModule")
 
     .constructor<S4>()
+    .constructor<S4,S4,S4,IntegerVector,NumericVector>()
 
     .property("sqrLenU",       &reModule::sqrLenU,
 	      "squared length of u, the orthogonal random effects")
