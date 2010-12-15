@@ -613,6 +613,8 @@ namespace MatrixNs{
     }
 
     chmSp::operator SEXP() const throw (std::runtime_error) {
+	if (d_xp) return wrap(d_xp);
+
 	S4 ans;
 	if (xtype != CHOLMOD_REAL && xtype != CHOLMOD_PATTERN)
 	    throw std::runtime_error("chmSp object must have xtype of REAL or PATTERN");
