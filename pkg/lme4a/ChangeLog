@@ -1,5 +1,8 @@
 2010-12-15  Douglas Bates  <bates@stat.wisc.edu>
 
+	* src/Module.cpp, src/reModule.h, src/reModule.cpp: New
+	constructor for reModule, exported in the C++ module.
+
 	* src/MatrixNs.cpp: the SEXP() operator on chmSp just returns the
 	S4 object when available (same with chmFr).
 

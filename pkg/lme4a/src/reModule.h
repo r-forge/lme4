@@ -36,7 +36,6 @@ namespace mer {
 	    
     class reModule {
     protected:
-	Rcpp::S4            d_xp;
 	MatrixNs::chmFr     d_L;
 	MatrixNs::chmSp     d_Lambda, d_Zt;
 	Rcpp::IntegerVector d_Lind;
@@ -45,6 +44,9 @@ namespace mer {
 	CHM_SP              d_Ut;
     public:
 	reModule(Rcpp::S4);
+	reModule(Rcpp::S4, Rcpp::S4, Rcpp::S4,
+		 Rcpp::IntegerVector, Rcpp::NumericVector)
+	    throw(MatrixNs::wrongS4);
 
 	cholmod_sparse      const*     Ut() const {return d_Ut;}
 
@@ -65,8 +67,6 @@ namespace mer {
  	Rcpp::NumericVector const&      u() const {return d_u;}
 
 	Rcpp::NumericVector       linPred() const;
-
-	Rcpp::S4            const&     xp() const {return d_xp;}
 
 	void reweight    (const Rcpp::NumericMatrix&,
 			  const Rcpp::NumericVector&);

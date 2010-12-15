@@ -6,8 +6,7 @@ using namespace std;
 
 namespace mer{
     reModule::reModule(Rcpp::S4 xp)
-	: d_xp(             xp),
-	  d_L(     S4(clone(SEXP(xp.slot("L"))))),
+	: d_L(     S4(clone(SEXP(xp.slot("L"))))),
 	  d_Lambda(S4(clone(SEXP(xp.slot("Lambda"))))),
 	  d_Zt(          S4(xp.slot("Zt"))),
 	  d_Lind(           xp.slot("Lind")),
@@ -16,6 +15,14 @@ namespace mer{
 	  d_u(              d_L.n),       
 	  d_cu(             d_L.n) {
 	d_Ut = (CHM_SP)NULL;
+    }
+
+    reModule::reModule(Rcpp::S4 Zt, Rcpp::S4 Lambda, Rcpp::S4 L,
+	Rcpp::IntegerVector Lind, Rcpp::NumericVector lower)
+	throw (MatrixNs::wrongS4)
+	: d_L(L), d_Lambda(Lambda), d_Zt(Zt), d_Lind(Lind),
+	  d_lower(lower), d_theta(lower.size()), d_u(d_Lambda.nr()),
+	  d_cu(d_Lambda.nr()) {
     }
 
     Rcpp::NumericVector reModule::linPred() const {
