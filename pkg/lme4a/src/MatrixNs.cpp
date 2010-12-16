@@ -80,6 +80,10 @@ namespace MatrixNs{
 	  d_x(nx) {
     }
 
+    dMatrix::dMatrix(int nr, int nc, Rcpp::NumericVector x)
+	: Matrix(nr, nc), d_x(x) {
+    }
+
     void dMatrix::setX(Rcpp::NumericVector const& nx) {
 	if (nx.size() != d_x.size())
 	    throw range_error("Size mismatch in setX");
@@ -100,6 +104,10 @@ namespace MatrixNs{
 
     ddenseMatrix::ddenseMatrix(int nr, int nc)
 	: dMatrix(nr, nc, nr * nc) {
+    }
+
+    ddenseMatrix::ddenseMatrix(int nr, int nc, Rcpp::NumericVector vv)
+	: dMatrix(nr, nc, vv) {
     }
 
     compMatrix::compMatrix(Rcpp::S4& xp)
@@ -137,6 +145,10 @@ namespace MatrixNs{
 
     dgeMatrix::dgeMatrix(int nr, int nc)
 	: ddenseMatrix(nr, nc) {
+    }
+
+    dgeMatrix::dgeMatrix(Rcpp::NumericMatrix mm)
+	: ddenseMatrix(mm.nrow(), mm.ncol(), mm) {
     }
 
     int dgeMatrix::dmult(char Tr, double alpha, double beta, 
@@ -302,6 +314,10 @@ namespace MatrixNs{
     Cholesky::Cholesky(dgeMatrix A, char ul)
 	: dtrMatrix(A.ncol(), ul) {
 	update(A);
+    }
+
+    Cholesky::Cholesky(int nc, char ul)
+	: dtrMatrix(nc, ul) {
     }
 
     void Cholesky::update(dgeMatrix const& A) throw (std::runtime_error) {

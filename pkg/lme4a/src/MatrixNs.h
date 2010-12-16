@@ -100,6 +100,7 @@ namespace MatrixNs {
     public:
 	dMatrix(Rcpp::S4&);
 	dMatrix(int,int,int=0);
+	dMatrix(int,int,Rcpp::NumericVector);
 
 	const Rcpp::NumericVector& x() const {return d_x;}
 	Rcpp::NumericVector& X() {return d_x;}
@@ -111,6 +112,7 @@ namespace MatrixNs {
     public:
 	ddenseMatrix(Rcpp::S4&) throw (std::runtime_error);
 	ddenseMatrix(int,int);
+	ddenseMatrix(int,int,Rcpp::NumericVector);
     };
 
 
@@ -166,6 +168,7 @@ namespace MatrixNs {
     public:
 	dgeMatrix(Rcpp::S4);
 	dgeMatrix(int,int);
+	dgeMatrix(Rcpp::NumericMatrix);
 
 	int  dmult(char,double,double,chmDn const&,chmDn&) const;
 	void dgemv(char,double,Rcpp::NumericVector const&,
@@ -218,6 +221,7 @@ namespace MatrixNs {
     public:
 	Cholesky(Rcpp::S4);
 	Cholesky(dgeMatrix, char = 'U');
+	Cholesky(int, char = 'U');
 
 	Rcpp::NumericMatrix solve(int,const_CHM_DN) const;
 	Rcpp::NumericMatrix solve(int,const Rcpp::NumericMatrix&) const;
