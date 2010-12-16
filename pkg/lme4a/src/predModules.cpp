@@ -7,11 +7,14 @@ using namespace MatrixNs;
 
 namespace matMod {
     predModule::predModule(Rcpp::S4& xp)
-	: d_xp(                                  xp),
-	  d_coef(Rcpp::clone(SEXP(xp.slot("coef")))),
+	: d_coef(Rcpp::clone(SEXP(xp.slot("coef")))),
 	  d_Vtr(                      d_coef.size()) {
     }
-    
+
+    predModule::predModule(int ncoef)
+	: d_coef(ncoef), d_Vtr(ncoef) {
+    }
+
     void predModule::setCoef(Rcpp::NumericVector const& cbase,
 			     Rcpp::NumericVector const&  incr,
 			     double                      step) {
@@ -32,6 +35,11 @@ namespace matMod {
 	  d_X(     Rcpp::S4(xp.slot("X"))),
 	  d_V(            n,   d_X.ncol()),
 	  d_fac( Rcpp::S4(xp.slot("fac"))) {
+    }
+
+    dPredModule::dPredModule(Rcpp::NumericMatrix mm, int n)
+        : predModule(mm.ncol()), d_X(mm), d_V(n, mm.ncol()),
+	  d_fac(mm.ncol(), mm.ncol()) {
     }
 
     Rcpp::NumericVector dPredModule::linPred() const {

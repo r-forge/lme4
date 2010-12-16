@@ -8,10 +8,10 @@
 namespace matMod {	   // matMod is the namespace for matrixModels
     class predModule {
     protected:
-	Rcpp::S4                      d_xp;
 	Rcpp::NumericVector  d_coef, d_Vtr;
     public:
 	predModule(Rcpp::S4&);
+	predModule(int);
 	
 	Rcpp::NumericVector const& coef() const {return d_coef;}
 	Rcpp::NumericVector const&  Vtr() const {return  d_Vtr;}
@@ -23,14 +23,16 @@ namespace matMod {	   // matMod is the namespace for matrixModels
     
     class dPredModule : public predModule {
     protected:
-	MatrixNs::ddenseModelMatrix   d_X;
+	MatrixNs::dgeMatrix           d_X;
+//	MatrixNs::ddenseModelMatrix   d_X;
 	MatrixNs::dgeMatrix           d_V;
 	MatrixNs::Cholesky          d_fac;
     public:
 	dPredModule(Rcpp::S4,int);
+	dPredModule(Rcpp::NumericMatrix,int);
 	
-	MatrixNs::ddenseModelMatrix const& X() const {return d_X;}
-	Rcpp::NumericVector linPred() const;
+	MatrixNs::dgeMatrix const& X() const {return d_X;}
+	Rcpp::NumericVector  linPred() const;
 
 	void reweight(Rcpp::NumericMatrix const&,
 		      Rcpp::NumericVector const&)
