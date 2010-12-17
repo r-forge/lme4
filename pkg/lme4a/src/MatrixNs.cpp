@@ -60,9 +60,6 @@ namespace MatrixNs{
 	if (nr < 0 || nc < 0)
 	    throw range_error("Matrix(nr,nc)");
     }
-	
-    int Matrix::nrow() const { return d_nrow; }
-    int Matrix::ncol() const { return d_ncol; }
 
     modelMatrix::modelMatrix(Rcpp::S4 &xp)
 	: d_assign(   xp.slot("assign")),
@@ -254,8 +251,8 @@ namespace MatrixNs{
 	ans.slot("x") = clone(d_x);
 	ans.slot("Dimnames") = clone(d_dimnames);
 	ans.slot("Dim") = IntegerVector::create(d_nrow, d_ncol);
-	ans.slot("uplo") = uplo() == 'U' ? "U" : "L";	
-	ans.slot("diag") = diag() == 'U' ? "U" : "N";
+	ans.slot("uplo") = (d_ul == 'U') ? "U" : "L";	
+	ans.slot("diag") = (d_di == 'U') ? "U" : "N";
 	return ans;
     }
 
@@ -317,7 +314,7 @@ namespace MatrixNs{
     }
 
     Cholesky::Cholesky(int nc, char ul)
-	: dtrMatrix(nc, ul) {
+	: dtrMatrix(nc, ul, 'N') {
     }
 
     void Cholesky::update(dgeMatrix const& A) throw (std::runtime_error) {
@@ -455,8 +452,8 @@ namespace MatrixNs{
 	ans.slot("x") = clone(d_x);
 	ans.slot("Dimnames") = clone(d_dimnames);
 	ans.slot("Dim") = IntegerVector::create(d_nrow, d_ncol);
-	ans.slot("uplo") = uplo() == 'U' ? "U" : "L";	
-	ans.slot("diag") = diag() == 'U' ? "U" : "N";
+	ans.slot("uplo") = (d_ul == 'U') ? "U" : "L";	
+	ans.slot("diag") = "N";
 	return ans;
     }
 
@@ -546,6 +543,7 @@ namespace MatrixNs{
 	    ans.slot("nz") = IntegerVector((int*)nz, (int*)nz + n);
 	    ans.slot("nxt") = IntegerVector((int*)next, (int*)next + n + 2);
 	    ans.slot("prv") = IntegerVector((int*)prev, (int*)prev + n + 2);
+	    ans.slot("type") = type;
 	}
 	return ans;
     }

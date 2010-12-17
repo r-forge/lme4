@@ -78,8 +78,9 @@ namespace MatrixNs {
     public:
 	Matrix(Rcpp::S4&);
 	Matrix(int,int);
-	int nrow() const;
-	int ncol() const;
+
+	int nrow() const {return d_nrow;}
+	int ncol() const {return d_ncol;}
 	const SEXPREC* sexp() const {return d_sexp ? d_sexp : R_NilValue;}
     };
 
@@ -99,7 +100,7 @@ namespace MatrixNs {
 	Rcpp::NumericVector d_x;
     public:
 	dMatrix(Rcpp::S4&);
-	dMatrix(int,int,int=0);
+	dMatrix(int,int,int);
 	dMatrix(int,int,Rcpp::NumericVector);
 
 	const Rcpp::NumericVector& x() const {return d_x;}

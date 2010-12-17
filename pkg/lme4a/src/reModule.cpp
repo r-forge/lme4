@@ -23,6 +23,7 @@ namespace mer{
 	: d_L(L), d_Lambda(Lambda), d_Zt(Zt), d_Lind(Lind),
 	  d_lower(lower), d_theta(lower.size()), d_u(d_Lambda.nr()),
 	  d_cu(d_Lambda.nr()) {
+	d_Ut = (CHM_SP)NULL;
     }
 
     Rcpp::NumericVector reModule::linPred() const {
@@ -31,6 +32,11 @@ namespace mer{
 	d_Lambda.dmult('N',1.,0.,chmDn(d_u),cbb);
 	d_Zt.dmult('T',1.,0.,cbb,cans);
 	return ans;
+    }
+
+    Rcpp::XPtr<cholmod_sparse> reModule::Utp() const {
+	Rcpp::XPtr<cholmod_sparse> p(d_Ut);
+	return p;
     }
 
     /** 

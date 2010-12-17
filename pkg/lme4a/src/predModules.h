@@ -34,9 +34,6 @@ namespace matMod {	   // matMod is the namespace for matrixModels
 	MatrixNs::dgeMatrix const& X() const {return d_X;}
 	Rcpp::NumericVector  linPred() const;
 
-	void reweight(Rcpp::NumericMatrix const&,
-		      Rcpp::NumericVector const&)
-	    throw(std::runtime_error);
 	double solveCoef(double = 1.);
     };
     

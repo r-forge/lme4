@@ -44,7 +44,6 @@ class_<lmerResp>("lmerResp")
     .constructor<int,NumericVector,NumericVector>()
     .constructor<int,NumericVector,NumericVector,NumericVector>()
 
-//    .property("devResid", &lmerResp::devResid)
     .property("mu",       &lmerResp::mu)
     .property("offset",   &lmerResp::offset)
     .property("sqrtXwt",  &lmerResp::sqrtXwt)
@@ -112,25 +111,37 @@ class_<glmerResp>("glmerResp")
 class_<deFeMod>("deFeMod")
 
     .constructor<S4,int>()
+    .constructor<NumericMatrix,int,int>()
 
     .property("coef",          &deFeMod::coef,
 	      "coefficient vector")
-    .property("Vtr",           &deFeMod::Vtr,
-	      "weighted cross product of model matrix and residual")
     .property("ldRX2",         &deFeMod::ldRX2,
 	      "log of the square of the determinant of RX")
-    .property("V",             &deFeMod::V,
-	      "scaled model matrix")
+    .property("linPred",       &deFeMod::linPred,
+	      "linear predictor contribution")
     .property("RX",            &deFeMod::RX,
 	      "Cholesky factor")
     .property("RZX",           &deFeMod::RZX,
 	      "Off-diagonal block in large Cholesky factor")
     .property("UtV",           &deFeMod::UtV,
 	      "Weighted crossproduct")
+    .property("V",             &deFeMod::V,
+	      "scaled model matrix")
+    .property("Vtr",           &deFeMod::Vtr,
+	      "weighted cross product of model matrix and residual")
     .property("VtV",           &deFeMod::VtV,
 	      "Weighted crossproduct")
+    .property("X",             &deFeMod::X,
+	      "original model matrix")
+
+    .method("reweight",        &deFeMod::reweight,
+	    "update V and Vtr for new weights")
     .method("updateBeta",      &deFeMod::updateBeta,
 	    "update the coefficient vector given cu")
+    .method("updateRzxRx",     &deFeMod::updateRzxRxp,
+	    "update the triangular factor sections given Lambda and L")
+    .method("updateUtV",      &deFeMod::updateUtVp,
+	    "update UtV given a pointer to Ut")
     ;
 
 class_<reModule>("reModule")
@@ -160,6 +171,8 @@ class_<reModule>("reModule")
 	      "relative covariance factor")
     .property("L",             &reModule::L,
 	      "sparse Cholesky factor")
+    .property("Ut",            &reModule::Utp,
+	      "pointer to the weighted, orthogonal design matrix")
 
     .method("reweight",        &reModule::reweight,
 	    "update L, Ut and cu for new weights")
@@ -167,6 +180,8 @@ class_<reModule>("reModule")
 	    "set a new value of u, possibly with an increment and step")
     .method("solveU",          &reModule::solveU,
 	    "solve for u (or the increment for u) only.  Returns squared length of c1")
+    .method("updateU",          &reModule::updateU,
+	    "solve for u given the updated cu from the feModule's updateBeta method")
     ;
 
 class_<reTrms>("reTrms")

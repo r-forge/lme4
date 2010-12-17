@@ -67,6 +67,7 @@ namespace mer {
  	Rcpp::NumericVector const&      u() const {return d_u;}
 
 	Rcpp::NumericVector       linPred() const;
+	Rcpp::XPtr<cholmod_sparse>    Utp() const;
 
 	void reweight    (const Rcpp::NumericMatrix&,
 			  const Rcpp::NumericVector&);

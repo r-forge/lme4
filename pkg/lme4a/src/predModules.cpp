@@ -39,7 +39,7 @@ namespace matMod {
 
     dPredModule::dPredModule(Rcpp::NumericMatrix mm, int n)
         : predModule(mm.ncol()), d_X(mm), d_V(n, mm.ncol()),
-	  d_fac(mm.ncol(), mm.ncol()) {
+	  d_fac(mm.ncol(), 'U') {
     }
 
     Rcpp::NumericVector dPredModule::linPred() const {
@@ -48,45 +48,6 @@ namespace matMod {
 	return ans;
     }
 
-    /** 
-     * Update V, VtV and Vtr
-     * 
-     * @param Xwt square root of the weights for the model matrices
-     * @param wtres weighted residuals
-     */
-    void dPredModule::reweight(Rcpp::NumericMatrix   const&   Xwt,
-			       Rcpp::NumericVector   const& wtres)
-	throw(std::runtime_error) {
-	if (d_coef.size() == 0) return;
-	chmDn cXwt(Xwt);
-	if ((Xwt.rows() * Xwt.cols()) != d_X.nrow())
-	    throw std::runtime_error("dimension mismatch");
-	    // Rf_error("%s: dimension mismatch %s(%d,%d), %s(%d,%d)",
-	    // 	     "dPredModule::reweight", "X", d_X.nrow(), d_X.ncol(),
-	    // 	     "Xwt", Xwt.nrow(), Xwt.ncol());
-	int Wnc = Xwt.ncol(), Wnr = Xwt.nrow(),
-	    Xnc = d_X.ncol(), Xnr = d_X.nrow();
-	double *V = d_V.x().begin(), *X = d_X.x().begin();
-
-	if (Wnc == 1) {
-	    for (int j = 0; j < Xnc; j++) 
-		transform(Xwt.begin(), Xwt.end(), X + j*Xnr,
-			  V + j*Xnr, multiplies<double>());
-	} else {
-	    int i1 = 1;
-	    double one = 1., zero = 0.;
-	    Rcpp::NumericVector tmp(Xnr), mm(Wnc); 
-	    fill(mm.begin(), mm.end(), 1.);
-	    for (int j = 0; j < Xnc; j++) {
-		transform(Xwt.begin(), Xwt.end(), X + j*Xnr,
-			  tmp.begin(), multiplies<double>());
-		F77_CALL(dgemv)("N", &Wnr, &Wnc, &one, tmp.begin(),
-				&Wnr, mm.begin(), &i1, &zero,
-				V + j * Wnr, &i1);
-	    }
-	}
-	d_V.dgemv('T', 1., wtres, 0., d_Vtr);
-    }
     
     /** 
      * Solve (V'V)coef = Vtr for coef.
