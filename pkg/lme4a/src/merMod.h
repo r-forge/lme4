@@ -297,7 +297,7 @@ namespace glm {
     template<typename Tp, typename Tr> inline
     double mod<Tp,Tr>::updateWts() {
 	double ans = resp.updateWts();
-	pred.reweight(resp.sqrtXwt(), resp.wtres());
+//	pred.reweight(resp.sqrtXwt(), resp.wtres());
 	return ans;
     }
     

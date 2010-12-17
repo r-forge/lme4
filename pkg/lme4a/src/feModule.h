@@ -21,22 +21,30 @@ namespace mer {
 	MatrixNs::dpoMatrix      d_VtV;
 
     public:
-	deFeMod(Rcpp::S4 xp,int);
+	deFeMod(Rcpp::S4,int);
+	deFeMod(Rcpp::NumericMatrix,int,int);
 
+	Rcpp::NumericVector linPred() const;
 	Rcpp::NumericVector updateBeta(Rcpp::NumericVector const&);
 
+	void updateRzxRxp(Rcpp::S4, Rcpp::S4);
 	void updateRzxRx(MatrixNs::chmSp const&,
 			 MatrixNs::chmFr const&);
 	void updateUtV(   cholmod_sparse const*);
-	// Need to define this extractor here too for Rcpp module
-	double     ldRX2() const {return  d_ldRX2;}
+	void updateUtVp(Rcpp::XPtr<cholmod_sparse>);
+	void reweight(Rcpp::NumericMatrix const&,
+		      Rcpp::NumericVector const&)
+	    throw(std::runtime_error);
+	
+	double                    ldRX2() const {return  d_ldRX2;}
 	const Rcpp::NumericVector& coef() const {return d_coef;}
 	const Rcpp::NumericVector&  Vtr() const {return d_Vtr;}
-	const MatrixNs::dgeMatrix&    V() const {return d_V;}
 	const MatrixNs::Cholesky&    RX() const {return d_fac;}
 	const MatrixNs::dgeMatrix&  RZX() const {return d_RZX;}
 	const MatrixNs::dgeMatrix&  UtV() const {return d_UtV;}
 	const MatrixNs::dpoMatrix&  VtV() const {return d_VtV;}
+	const MatrixNs::dgeMatrix&    X() const {return d_X;}
+	const MatrixNs::dgeMatrix&    V() const {return d_V;}
     };
 
     class spFeMod : public feModule, public matMod::sPredModule {
