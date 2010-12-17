@@ -1,3 +1,8 @@
+2010-12-17  Douglas Bates  <bates@stat.wisc.edu>
+
+	* src/*.h, src/*.cpp: Many changes to allow for evaluation of the
+	deviance for dense lmer models using C++-based reference classes.
+
 2010-12-15  Douglas Bates  <bates@stat.wisc.edu>
 
 	* src/Module.cpp, src/reModule.h, src/reModule.cpp: New
