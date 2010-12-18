@@ -285,6 +285,81 @@ lmer <- function(formula, data, REML = TRUE, sparseX = FALSE,
     ans
 }## { lmer }
 
+lmer2 <- function(formula, data, REML = TRUE, sparseX = FALSE,
+                  control = list(), start = NULL,
+                  verbose = 0, doFit = TRUE, compDev = TRUE,
+                  subset, weights, na.action, offset,
+                  contrasts = NULL, ...)
+{
+    mf <- mc <- match.call()
+    ## '...' handling up front, safe-guarding against typos ("familiy") :
+    if(length(l... <- list(...))) {
+        if (!is.null(l...$family)) {  # call glmer if family specified
+            mc[[1]] <- as.name("glmer")
+            return( eval(mc, parent.frame()) )
+        }
+        ## Check for method argument which is no longer used
+        if (!is.null(method <- l...$method)) {
+	    msg <- paste("Argument", sQuote("method"), "is deprecated.")
+            if (match.arg(method, c("Laplace", "AGQ")) == "Laplace") {
+                warning(msg)
+                l... <- l...[names(l...) != "method"]
+            } else stop(msg)
+        }
+        if(length(l...))
+            warning("extra arguments ", paste(names(l...), sep=", "),
+                    " are disregarded")
+    }
+
+    stopifnot(length(formula <- as.formula(formula)) == 3)
+    if (missing(data)) data <- environment(formula)
+                                        # evaluate and install the model frame :
+    m <- match(c("data", "subset", "weights", "na.action", "offset"),
+               names(mf), 0)
+    mf <- mf[c(1, m)]
+    mf$drop.unused.levels <- TRUE
+    mf[[1]] <- as.name("model.frame")
+    fr.form <- subbars(formula) # substituted "|" by "+" -
+    environment(fr.form) <- environment(formula)
+    mf$formula <- fr.form
+    fr <- eval(mf, parent.frame())
+                                        # random effects and terms modules
+    reTrms <- mkReTrms(findbars(formula[[3]]), fr)
+##-nL if (any(reTrms@nLevs >= ncol(reTrms@Zt)))
+    if (any(unlist(lapply(reTrms@flist, nlevels)) >= ncol(reTrms@Zt)))
+        stop("number of levels of each grouping factor must be less than number of obs")
+##    dcmp <- updateDcmp(reTrms, .dcmp())
+                                        # fixed-effects module
+    feMod <- mkFeModule(formula, fr, contrasts, reTrms, sparseX)
+    y <- model.response(fr)
+    n <- length(y)
+    q <- nrow(reTrms@Zt)
+    resp <- new(lmerResp, 0L, y)
+## Add code to install weights or offset if present
+    rem <- new(reModule, reTrms@Zt, reTrms@Lambda,
+               reTrms@L, reTrms@Lind, reTrms@lower)
+    fem <- new(deFeMod, as(feMod@X, "matrix"), n, q)
+    if (doFit) {                        # optimize estimates
+        if (verbose) control$iprint <- 2L
+        devfun <- function(theta) {
+            resp$updateMu(numeric(n))   # initialize mu to zero
+            rem$setU(numeric(q), numeric(q), 0) # initialize u to zero
+### FIXME: Use a coef0, incr, coef representation in reModule and
+### in deFeMod to avoid needing to reinitialize    
+            rem$theta <- theta
+            rem$reweight(resp$sqrtXwt, resp$wtres)
+            fem$reweight(resp$sqrtXwt, resp$wtres)
+            fem$updateUtV(rem$Ut)
+            fem$updateRzxRx(rem$Lambda, rem$L)
+            rem$updateU(fem$updateBeta(rem$cu))
+            resp$updateMu(rem$linPred + fem$linPred)
+            rem$ldL2 + n * (1. +log(2.*pi * (resp$wrss+rem$sqrLenU)/n))
+        }
+        opt <- bobyqa(reTrms@theta, devfun, reTrms@lower, control = control)
+    }
+    NULL
+}## { lmer }
+
 ##' <description>
 ##' Update the components of an merMod object from the results of an
 ##' optimization.  To maintain proper semantics for an R function the
