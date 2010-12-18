@@ -44,14 +44,20 @@ class_<lmerResp>("lmerResp")
     .constructor<int,NumericVector,NumericVector>()
     .constructor<int,NumericVector,NumericVector,NumericVector>()
 
-    .property("mu",       &lmerResp::mu)
-    .property("offset",   &lmerResp::offset)
-    .property("sqrtXwt",  &lmerResp::sqrtXwt)
-    .property("sqrtrwt",  &lmerResp::sqrtrwt)
-    .property("weights",  &lmerResp::weights)
-    .property("wrss",     &lmerResp::wrss)
-    .property("wtres",    &lmerResp::wtres)
-    .property("y",        &lmerResp::y)
+    .property("mu",       &lmerResp::mu, "mean vector")
+    .property("offset",   &lmerResp::offset, &lmerResp::setOffset,
+	      "offset vector (present even if it is all zeros")
+    .property("sqrtXwt",  &lmerResp::sqrtXwt,
+	      "Matrix of square roots of weights applied to X")
+    .property("sqrtrwt",  &lmerResp::sqrtrwt,
+	      "vector of square roots of weights applied to residuals")
+    .property("weights",  &lmerResp::weights, &lmerResp::setWeights,
+	      "prior weights vector (present even if it is all ones")
+    .property("wrss",     &lmerResp::wrss,
+	      "weighted residual sum of squares")
+    .property("wtres",    &lmerResp::wtres,
+	      "weighted residual vector")
+    .property("y",        &lmerResp::y, "response vector")
 
     .method("updateMu",   &lmerResp::updateMu)
     .method("updateWts",  &lmerResp::updateWts)
@@ -149,38 +155,38 @@ class_<reModule>("reModule")
     .constructor<S4>()
     .constructor<S4,S4,S4,IntegerVector,NumericVector>()
 
-    .property("sqrLenU",       &reModule::sqrLenU,
+    .property("sqrLenU",   &reModule::sqrLenU,
 	      "squared length of u, the orthogonal random effects")
-    .property("linPred",       &reModule::linPred,
+    .property("linPred",   &reModule::linPred,
 	      "linear predictor contribution")
-    .property("ldL2",          &reModule::ldL2,
+    .property("ldL2",      &reModule::ldL2,
 	      "logarithm of the square of the determinant of L")
-    .property("cu",            &reModule::cu,
+    .property("cu",        &reModule::cu,
 	      "intermediate solution for u")
-    .property("Lind",          &reModule::Lind,
+    .property("Lind",      &reModule::Lind,
 	      "1-based index vector into theta for Lambda@x")
-    .property("lower",         &reModule::lower,
+    .property("lower",     &reModule::lower,
 	      "lower bounds on the theta parameters")
-    .property("theta",         &reModule::theta,   &reModule::setTheta,
+    .property("theta",     &reModule::theta,   &reModule::setTheta,
 	      "current value of variance component parameters")
-    .property("u",             &reModule::u,
+    .property("u",         &reModule::u,
 	      "orthonormal random effects vector")
-    .property("Zt",            &reModule::Zt,
+    .property("Zt",        &reModule::Zt,
 	      "transpose of the model matrix for the random effects")
-    .property("Lambda",        &reModule::Lambda,
+    .property("Lambda",    &reModule::Lambda,
 	      "relative covariance factor")
-    .property("L",             &reModule::L,
+    .property("L",         &reModule::L,
 	      "sparse Cholesky factor")
-    .property("Ut",            &reModule::Utp,
+    .property("Ut",        &reModule::Utp,
 	      "pointer to the weighted, orthogonal design matrix")
 
-    .method("reweight",        &reModule::reweight,
+    .method("reweight",    &reModule::reweight,
 	    "update L, Ut and cu for new weights")
-    .method("setU",            &reModule::setU,
+    .method("setU",        &reModule::setU,
 	    "set a new value of u, possibly with an increment and step")
-    .method("solveU",          &reModule::solveU,
+    .method("solveU",      &reModule::solveU,
 	    "solve for u (or the increment for u) only.  Returns squared length of c1")
-    .method("updateU",          &reModule::updateU,
+    .method("updateU",     &reModule::updateU,
 	    "solve for u given the updated cu from the feModule's updateBeta method")
     ;
 
