@@ -107,6 +107,20 @@ namespace mer {
 	return ldL2 + ldRX2 + nmp * (1. + log(lnum / nmp));
     }
 
+    void lmerResp::setWeights(const Rcpp::NumericVector& ww)
+	throw (std::runtime_error) {
+	if (ww.size() != d_weights.size())
+	    throw std::runtime_error("setWeights: Size mismatch");
+	std::copy(ww.begin(), ww.end(), d_weights.begin());
+    }
+					       
+    void lmerResp::setOffset(const Rcpp::NumericVector& oo)
+	throw (std::runtime_error) {
+	if (oo.size() != d_offset.size())
+	    throw std::runtime_error("setOffset: Size mismatch");
+	std::copy(oo.begin(), oo.end(), d_offset.begin());
+    }
+					       
     double lmerResp::updateMu(const Rcpp::NumericVector& gamma) {
 	d_mu = d_offset + gamma;
 	return updateWrss();

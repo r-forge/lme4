@@ -31,8 +31,9 @@ namespace mer {
 	double                  updateWrss();
     protected:
 	double                     d_wrss;
-	const Rcpp::NumericVector  d_y, d_weights, d_offset;
-	Rcpp::NumericVector        d_mu, d_sqrtrwt, d_wtres;
+	const Rcpp::NumericVector  d_y;
+	Rcpp::NumericVector        d_weights, d_offset, d_mu,
+	                           d_sqrtrwt, d_wtres;
 	Rcpp::NumericMatrix        d_sqrtXwt;
     };
 
@@ -54,10 +55,16 @@ namespace mer {
 	const Rcpp::NumericVector& weights() const {return d_weights;}
 	const Rcpp::NumericVector&   wtres() const {return d_wtres;}
 	const Rcpp::NumericVector&       y() const {return d_y;}
+
 	double                        wrss() const {return d_wrss;}
 	double                   updateWts()       {return updateWrss();}
 	double Laplace (double,double,double)const;
 	double updateMu(const Rcpp::NumericVector&);
+
+	void setWeights(const Rcpp::NumericVector&)
+	    throw (std::runtime_error);
+	void  setOffset(const Rcpp::NumericVector&)
+	    throw (std::runtime_error);
     };
 	
     class glmerResp : public merResp {
