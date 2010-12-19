@@ -58,6 +58,14 @@ namespace mer {
 	MatrixNs::chmFr     const&      L() const {return d_L;}
 	MatrixNs::chmSp     const& Lambda() const {return d_Lambda;}
 	MatrixNs::chmSp     const&     Zt() const {return d_Zt;}
+	Rcpp::XPtr<MatrixNs::chmSp>Lambdap() {
+	    Rcpp::XPtr<MatrixNs::chmSp> pt(&d_Lambda);
+	    return pt;
+	}
+	Rcpp::XPtr<MatrixNs::chmFr>    Lp() {
+	    Rcpp::XPtr<MatrixNs::chmFr> pt(&d_L);
+	    return pt;
+	}
 
 	Rcpp::IntegerVector const&   Lind() const {return d_Lind;}
 

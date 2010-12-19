@@ -28,6 +28,8 @@ namespace mer {
 	Rcpp::NumericVector updateBeta(Rcpp::NumericVector const&);
 
 	void updateRzxRxp(Rcpp::S4, Rcpp::S4);
+	void updateRzxpRxpp(Rcpp::XPtr<MatrixNs::chmSp>,
+			    Rcpp::XPtr<MatrixNs::chmFr>);
 	void updateRzxRx(MatrixNs::chmSp const&,
 			 MatrixNs::chmFr const&);
 	void updateUtV(   cholmod_sparse const*);

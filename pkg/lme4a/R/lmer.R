@@ -350,14 +350,14 @@ lmer2 <- function(formula, data, REML = TRUE, sparseX = FALSE,
             rem$reweight(resp$sqrtXwt, resp$wtres)
             fem$reweight(resp$sqrtXwt, resp$wtres)
             fem$updateUtV(rem$Ut)
-            fem$updateRzxRx(rem$Lambda, rem$L)
+            fem$updateRzxpRxpp(rem$Lambdap, rem$Lp)
             rem$updateU(fem$updateBeta(rem$cu))
             resp$updateMu(rem$linPred + fem$linPred)
             rem$ldL2 + n * (1. +log(2.*pi * (resp$wrss+rem$sqrLenU)/n))
         }
         opt <- bobyqa(reTrms@theta, devfun, reTrms@lower, control = control)
     }
-    NULL
+    list(rem=rem, fem=fem, resp=resp)
 }## { lmer }
 
 ##' <description>

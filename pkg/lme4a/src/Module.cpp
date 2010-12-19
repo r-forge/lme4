@@ -146,6 +146,8 @@ class_<deFeMod>("deFeMod")
 	    "update the coefficient vector given cu")
     .method("updateRzxRx",     &deFeMod::updateRzxRxp,
 	    "update the triangular factor sections given Lambda and L")
+    .method("updateRzxpRxpp",  &deFeMod::updateRzxpRxpp,
+	    "update the triangular factor sections given external pointers to Lambda and L")
     .method("updateUtV",      &deFeMod::updateUtVp,
 	    "update UtV given a pointer to Ut")
     ;
@@ -155,30 +157,34 @@ class_<reModule>("reModule")
     .constructor<S4>()
     .constructor<S4,S4,S4,IntegerVector,NumericVector>()
 
-    .property("sqrLenU",   &reModule::sqrLenU,
-	      "squared length of u, the orthogonal random effects")
-    .property("linPred",   &reModule::linPred,
-	      "linear predictor contribution")
-    .property("ldL2",      &reModule::ldL2,
-	      "logarithm of the square of the determinant of L")
     .property("cu",        &reModule::cu,
 	      "intermediate solution for u")
+    .property("L",         &reModule::L,
+	      "sparse Cholesky factor")
+    .property("Lambda",    &reModule::Lambda,
+	      "relative covariance factor")
+    .property("Lambdap",   &reModule::Lambdap,
+	      "external pointer to the relative covariance factor")
+    .property("ldL2",      &reModule::ldL2,
+	      "logarithm of the square of the determinant of L")
     .property("Lind",      &reModule::Lind,
 	      "1-based index vector into theta for Lambda@x")
+    .property("linPred",   &reModule::linPred,
+	      "linear predictor contribution")
     .property("lower",     &reModule::lower,
 	      "lower bounds on the theta parameters")
+    .property("Lp",        &reModule::Lp,
+	      "external pointer to the sparseCholesky factor")
+    .property("sqrLenU",   &reModule::sqrLenU,
+	      "squared length of u, the orthogonal random effects")
     .property("theta",     &reModule::theta,   &reModule::setTheta,
 	      "current value of variance component parameters")
     .property("u",         &reModule::u,
 	      "orthonormal random effects vector")
-    .property("Zt",        &reModule::Zt,
-	      "transpose of the model matrix for the random effects")
-    .property("Lambda",    &reModule::Lambda,
-	      "relative covariance factor")
-    .property("L",         &reModule::L,
-	      "sparse Cholesky factor")
     .property("Ut",        &reModule::Utp,
 	      "pointer to the weighted, orthogonal design matrix")
+    .property("Zt",        &reModule::Zt,
+	      "transpose of the model matrix for the random effects")
 
     .method("reweight",    &reModule::reweight,
 	    "update L, Ut and cu for new weights")

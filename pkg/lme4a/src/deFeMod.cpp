@@ -71,6 +71,11 @@ namespace mer {
 	updateRzxRx(Lambda, L);
     }
 
+    void deFeMod::updateRzxpRxpp(Rcpp::XPtr<MatrixNs::chmSp> Lambdap,
+				 Rcpp::XPtr<MatrixNs::chmFr> Lp) {
+	updateRzxRx(*Lambdap, *Lp);
+    }
+
     // Need to copy this here, at least for the present.  A module
     // will not be able to find the definition in the dPredModule
     // class
