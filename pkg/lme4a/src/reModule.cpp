@@ -35,7 +35,7 @@ namespace mer{
     }
 
     Rcpp::XPtr<cholmod_sparse> reModule::Utp() const {
-	Rcpp::XPtr<cholmod_sparse> p(d_Ut);
+	Rcpp::XPtr<cholmod_sparse> p(d_Ut, false);
 	return p;
     }
 
