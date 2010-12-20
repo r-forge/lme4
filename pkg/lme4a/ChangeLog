@@ -1,3 +1,8 @@
+2010-12-19  Douglas Bates  <bates@stat.wisc.edu>
+
+	* src/reModule.h, src/reModule.cpp: specify no delete_finalizer
+	with the external pointers.
+
 2010-12-18  Douglas Bates  <bates@stat.wisc.edu>
 
 	* R/lmer.R, NAMESPACE: experimental lmer2 using C++classes
