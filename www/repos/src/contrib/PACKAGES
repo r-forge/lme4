@@ -1,0 +1,5 @@
+Package: lme4a
+Version: 0.999375-59
+Depends: methods, R(>= 2.12.0), Matrix(>= 0.999375-45), lattice, stats,
+        minqa(>= 1.1.13), Rcpp(>= 0.8.9), MatrixModels(>= 0.2.0)
+License: GPL
