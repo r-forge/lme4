@@ -60,7 +60,13 @@ href="./book/"><strong>here</strong></a>.
 </p>
 <p><strong>Binary and source packages</strong> of recent versions
 of the development version <code>lme4a</code> are available
-<href="./repos"><strong>here</strong></a> (<em>under development</em>).
+<a href="./repos"><strong>here</strong></a> (<em>under development</em>).
+When it is up and running, you should be able to install these versions
+either by descending through the directory hierarchy to find the appropriate
+versions, or via
+<pre>
+install.packages("lme4a",repos="http://lme4.r-forge.r-project.org/repos")
+</pre>
 </p>
 
 </body>
