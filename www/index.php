@@ -58,5 +58,10 @@ echo $contents; } ?>
 Mixed-effects Modeling with R</em> are available <a
 href="./book/"><strong>here</strong></a>.
 </p>
+<p><strong>Binary and source packages</strong> of recent versions
+of the development version <code>lme4a</code> are available
+<href="./repos"><strong>here</strong></a> (<em>under development</em>).
+</p>
+
 </body>
 </html>
