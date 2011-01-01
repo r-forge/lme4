@@ -328,17 +328,24 @@ lmer2 <- function(formula, data, REML = TRUE, sparseX = FALSE,
 ##-nL if (any(reTrms@nLevs >= ncol(reTrms@Zt)))
     if (any(unlist(lapply(reTrms@flist, nlevels)) >= ncol(reTrms@Zt)))
         stop("number of levels of each grouping factor must be less than number of obs")
-##    dcmp <- updateDcmp(reTrms, .dcmp())
                                         # fixed-effects module
     feMod <- mkFeModule(formula, fr, contrasts, reTrms, sparseX)
     y <- model.response(fr)
     n <- length(y)
     q <- nrow(reTrms@Zt)
-    resp <- new(lmerResp, 0L, y)
-## Add code to install weights or offset if present
     rem <- new(reModule, reTrms@Zt, reTrms@Lambda,
                reTrms@L, reTrms@Lind, reTrms@lower)
     fem <- new(deFeMod, as(feMod@X, "matrix"), n, q)
+    resp <- new(lmerResp, if (REML) ncol(fem$X) else 0L, y)
+    if (!is.null(offset <- model.offset(fr))) {
+        if (length(offset) == 1L) offset <- rep.int(offset, n)
+        stopifnot(length(offset) == n)
+	resp$offset <- offset
+    }
+    if (!is.null(weights <- model.weights(fr))) {
+        stopifnot(length(weights) == n, all(weights >= 0))
+	resp$weights <- weights
+    }
     if (doFit) {                        # optimize estimates
         if (verbose) control$iprint <- 2L
         devfun <- function(theta) {
@@ -353,12 +360,12 @@ lmer2 <- function(formula, data, REML = TRUE, sparseX = FALSE,
             fem$updateRzxpRxpp(rem$Lambdap, rem$Lp)
             rem$updateU(fem$updateBeta(rem$cu))
             resp$updateMu(rem$linPred + fem$linPred)
-            rem$ldL2 + n * (1. +log(2.*pi * (resp$wrss+rem$sqrLenU)/n))
+            resp$Laplace(rem$ldL2, fem$ldRX2, rem$sqrLenU)
         }
         opt <- bobyqa(reTrms@theta, devfun, reTrms@lower, control = control)
     }
     list(rem=rem, fem=fem, resp=resp)
-}## { lmer }
+}## { lmer2 }
 
 ##' <description>
 ##' Update the components of an merMod object from the results of an

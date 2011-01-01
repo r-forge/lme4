@@ -60,10 +60,13 @@ namespace mer {
 	double                   updateWts()       {return updateWrss();}
 	double Laplace (double,double,double)const;
 	double updateMu(const Rcpp::NumericVector&);
+	int REML() const {return d_reml;}
 
 	void setWeights(const Rcpp::NumericVector&)
 	    throw (std::runtime_error);
 	void  setOffset(const Rcpp::NumericVector&)
+	    throw (std::runtime_error);
+	void    setReml(int)
 	    throw (std::runtime_error);
     };
 	

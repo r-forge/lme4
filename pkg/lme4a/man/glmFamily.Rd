@@ -10,34 +10,28 @@
   instance provides methods for functions in the family, making these
   available in \R{} and in \code{C++}.
 }
-\format{
-  The format is:
-Formal class 'C++Class' [package "Rcpp"] with 8 slots
-  ..@ .Data       : chr "Rcpp_glmFamily"
-  ..@ pointer     :<externalptr> 
-  ..@ module      :<externalptr> 
-  ..@ fields      :List of 2
-  .. ..$ family:Formal class 'C++Field' [package "Rcpp"] with 1 slots
-  .. .. .. ..@ .xData:<environment: 0x6075748> 
-  .. ..$ link  :Formal class 'C++Field' [package "Rcpp"] with 1 slots
-  .. .. .. ..@ .xData:<environment: 0x600b5c8> 
-  ..@ methods     :List of 5
-  .. ..$ devResid:Formal class 'C++OverloadedMethods' [package "Rcpp"] with 1 slots
-  .. .. .. ..@ .xData:<environment: 0x5fa9378> 
-  .. ..$ linkFun :Formal class 'C++OverloadedMethods' [package "Rcpp"] with 1 slots
-  .. .. .. ..@ .xData:<environment: 0x5efe918> 
-  .. ..$ linkInv :Formal class 'C++OverloadedMethods' [package "Rcpp"] with 1 slots
-  .. .. .. ..@ .xData:<environment: 0x5e67d38> 
-  .. ..$ muEta   :Formal class 'C++OverloadedMethods' [package "Rcpp"] with 1 slots
-  .. .. .. ..@ .xData:<environment: 0x5dd4798> 
-  .. ..$ variance:Formal class 'C++OverloadedMethods' [package "Rcpp"] with 1 slots
-  .. .. .. ..@ .xData:<environment: 0x5d5dfb0> 
-  ..@ constructors:List of 1
-  .. ..$ :Formal class 'C++Constructor' [package "Rcpp"] with 1 slots
-  .. .. .. ..@ .xData:<environment: 0x581e370> 
-  ..@ generator   :Formal class 'refObjectGenerator' [package "methods"] with 1 slots
-  .. .. ..@ .xData:<environment: 0x5d57620> 
-  ..@ docstring   : chr ""
+\section{Constructors}{
+  \describe{
+    \item{\code{glmFamily(Rcpp::List)}:}{from an (S3)
+      \code{\link{family}} object}
+  }
+}
+\section{Fields}{
+  \describe{
+    \item{\code{family}}{character - name of the family}
+    \item{\code{link}}{character - name of the link}
+  }
+}
+\section{Methods}{
+  \describe{
+    \item{\code{devResid(mu, weights, y)}}{numeric - evalute the vector
+      of deviance residuals}
+    \item{\code{linkFun(mu)}}{numeric - evaluate \code{eta}}
+    \item{\code{linkInv(eta)}}{numeric - evaluate \code{mu}}
+    \item{\code{muEta(eta)}}{numeric - evaluate the derivative of
+      \code{mu} with respect to \code{eta}}
+    \item{\code{variance(mu)}}{numeric - evaluate the variance}
+  }
 }
 \details{
   A glm \code{\link{family}} object is a list of functions including the

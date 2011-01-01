@@ -76,14 +76,8 @@ namespace glm {
 	  // d_linkinv(wrap(ll["linkinv"])),
 	  // d_muEta(wrap(ll["mu.eta"])),
 	  // d_variance(wrap(ll["variance"])) {
-#if RCPP_VERSION > Rcpp_Version(0,8,9)
 	if (!lst.inherits("family"))
 	    throw std::runtime_error("glmFamily requires a list of (S3) class \"family\"");
-#else
-	std::string fam = as<std::string>(lst.attr("class"));
-	if (fam != "family")
-	    throw std::runtime_error("glmFamily requires a list of (S3) class \"family\"");
-#endif
  	CharacterVector ff = lst["family"], lnk = lst["link"];
  	d_family = as<std::string>(ff);
  	d_link = as<std::string>(lnk);
@@ -100,12 +94,7 @@ namespace glm {
     glmFamily::linkFun(Rcpp::NumericVector const &mu) const {
 	if (lnks.count(d_link))
 	    return NumericVector::import_transform(mu.begin(), mu.end(), lnks[d_link]);
-#if RCPP_VERSION > Rcpp_Version(0,8,9)
 	return d_linkfun(mu);
-#else
-	Function linkfun = ((const_cast<glmFamily*>(this))->lst)["linkfun"];
-	return linkfun(mu);
-#endif
     }
     
     Rcpp::NumericVector

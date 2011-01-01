@@ -1,5 +1,6 @@
 \name{lmer}
 \alias{lmer}
+\alias{lmer2}
 \alias{glmer}
 \alias{nlmer}
 \concept{LMM}% << so it's found; ditto for these:
@@ -15,6 +16,11 @@ lmer(formula, data, REML = TRUE, sparseX = FALSE,
      control = list(), start = NULL, verbose = 0,
      doFit = TRUE, compDev = TRUE, subset, weights,
      na.action, offset, contrasts = NULL, \dots)
+
+lmer2(formula, data, REML = TRUE, sparseX = FALSE,
+      control = list(), start = NULL, verbose = 0,
+      doFit = TRUE, compDev = TRUE, subset, weights,
+      na.action, offset, contrasts = NULL, \dots)
 
 glmer(formula, data, family = gaussian, sparseX = FALSE,
       control = list(), start = NULL, verbose = 0, nAGQ = 1,
@@ -96,6 +102,9 @@ nlmer(formula, data, family = gaussian, start = NULL,
   are described as \dQuote{nearly} interchangeable because the
   \code{REML} argument only applies to calls to \code{lmer} and the
   \code{nAGQ} argument only applies to calls to \code{glmer}.)
+
+  The \code{lmer2} function has the same purpose as \code{lmer} but uses
+  objects from reference classes defined in an Rcpp Module.
 
   Additional standard arguments to model-fitting functions can be passed
   to \code{lmer} or \code{glmer} or \code{nlmer}:
