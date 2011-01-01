@@ -121,6 +121,12 @@ namespace mer {
 	std::copy(oo.begin(), oo.end(), d_offset.begin());
     }
 					       
+    void lmerResp::setReml(int rr) throw (std::runtime_error) {
+	if (rr < 0)
+	    throw std::runtime_error("setReml: negative rr");
+	d_reml = rr;
+    }
+					       
     double lmerResp::updateMu(const Rcpp::NumericVector& gamma) {
 	d_mu = d_offset + gamma;
 	return updateWrss();

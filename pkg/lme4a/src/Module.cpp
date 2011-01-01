@@ -44,6 +44,9 @@ class_<lmerResp>("lmerResp")
     .constructor<int,NumericVector,NumericVector>()
     .constructor<int,NumericVector,NumericVector,NumericVector>()
 
+
+    .property("REML",     &lmerResp::REML, &lmerResp::setReml,
+	      "integer which is 0 for ML estimation and p for REML")
     .property("mu",       &lmerResp::mu, "mean vector")
     .property("offset",   &lmerResp::offset, &lmerResp::setOffset,
 	      "offset vector (present even if it is all zeros")
@@ -59,6 +62,7 @@ class_<lmerResp>("lmerResp")
 	      "weighted residual vector")
     .property("y",        &lmerResp::y, "response vector")
 
+    .method("Laplace",    &lmerResp::Laplace)
     .method("updateMu",   &lmerResp::updateMu)
     .method("updateWts",  &lmerResp::updateWts)
     ;

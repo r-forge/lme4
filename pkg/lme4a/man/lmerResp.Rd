@@ -10,46 +10,47 @@
   \code{\link{lmer}} model. This C++Class encapsulates the information
   and provides methods accessible in \R{} or in \code{C++}.
 }
-\format{
-  The format is:
-Formal class 'C++Class' [package "Rcpp"] with 8 slots
-  ..@ .Data       : chr "Rcpp_lmerResp"
-  ..@ pointer     :<externalptr> 
-  ..@ module      :<externalptr> 
-  ..@ fields      :List of 8
-  .. ..$ mu     :Formal class 'C++Field' [package "Rcpp"] with 1 slots
-  .. .. .. ..@ .xData:<environment: 0x34a5e18> 
-  .. ..$ offset :Formal class 'C++Field' [package "Rcpp"] with 1 slots
-  .. .. .. ..@ .xData:<environment: 0x16509c8> 
-  .. ..$ sqrtXwt:Formal class 'C++Field' [package "Rcpp"] with 1 slots
-  .. .. .. ..@ .xData:<environment: 0x4e84600> 
-  .. ..$ sqrtrwt:Formal class 'C++Field' [package "Rcpp"] with 1 slots
-  .. .. .. ..@ .xData:<environment: 0x4ee22a8> 
-  .. ..$ weights:Formal class 'C++Field' [package "Rcpp"] with 1 slots
-  .. .. .. ..@ .xData:<environment: 0x4f42780> 
-  .. ..$ wrss   :Formal class 'C++Field' [package "Rcpp"] with 1 slots
-  .. .. .. ..@ .xData:<environment: 0x4fa3e58> 
-  .. ..$ wtres  :Formal class 'C++Field' [package "Rcpp"] with 1 slots
-  .. .. .. ..@ .xData:<environment: 0x5004a60> 
-  .. ..$ y      :Formal class 'C++Field' [package "Rcpp"] with 1 slots
-  .. .. .. ..@ .xData:<environment: 0x5063ab0> 
-  ..@ methods     :List of 2
-  .. ..$ updateMu :Formal class 'C++OverloadedMethods' [package "Rcpp"] with 1 slots
-  .. .. .. ..@ .xData:<environment: 0x50c0c88> 
-  .. ..$ updateWts:Formal class 'C++OverloadedMethods' [package "Rcpp"] with 1 slots
-  .. .. .. ..@ .xData:<environment: 0x51448f8> 
-  ..@ constructors:List of 4
-  .. ..$ :Formal class 'C++Constructor' [package "Rcpp"] with 1 slots
-  .. .. .. ..@ .xData:<environment: 0x51cacd0> 
-  .. ..$ :Formal class 'C++Constructor' [package "Rcpp"] with 1 slots
-  .. .. .. ..@ .xData:<environment: 0x522a2e8> 
-  .. ..$ :Formal class 'C++Constructor' [package "Rcpp"] with 1 slots
-  .. .. .. ..@ .xData:<environment: 0x528b8e0> 
-  .. ..$ :Formal class 'C++Constructor' [package "Rcpp"] with 1 slots
-  .. .. .. ..@ .xData:<environment: 0x52ede58> 
-  ..@ generator   :Formal class 'refObjectGenerator' [package "methods"] with 1 slots
-  .. .. ..@ .xData:<environment: 0x52b5408> 
-  ..@ docstring   : chr ""
+\section{Constructors}{
+  \describe{
+    \item{\code{lmerResp(Rcpp::S4)}:}{from a
+      \code{\linkS4class{lmerResp}} object}
+    \item{\code{lmerResp("integer", "numeric")}}{from the REML indicator
+      and the response \code{y}}
+    \item{\code{lmerResp("integer", "numeric", "numeric")}}{from the REML
+      indicator, the response \code{y} and the \code{weights}}
+    \item{\code{lmerResp("integer", "numeric", "numeric",
+	"numeric")}}{from the REML indicator, the response \code{y}, the
+      \code{weights} and the \code{offset}}
+  }
+}
+\section{Fields}{
+  \describe{
+    \item{\code{REML}}{scalar integer - 0L for ML estimation and p for
+      REML}
+    \item{\code{mu}}{numeric - mean vector (read only)}
+    \item{\code{offset}}{numeric - the offset vector, always present
+      even if zero (read/write)}    
+    \item{\code{sqrtXwt}}{numeric - square root of the weights applied
+      to the model matrix (read only)}
+    \item{\code{sqrtrwt}}{numeric - square root of the weights applied
+      to the residuals (read only)}
+    \item{\code{weights}}{numeric - prior weights (read/write)}
+    \item{\code{wrss}}{numeric scalar - weighted sum of squared 
+      residuals (read only)}
+    \item{\code{wtres}}{numeric - weighted residuals (read only)}
+    \item{\code{y}}{numeric - response vector (read only)}
+  }
+}
+\section{Methods}{
+  \describe{
+    \item{\code{Laplace(ldL2, ldRX2, sqrLenU)}}{Return the profiled REML
+      criterion or the profiled deviance, according to the setting of
+      the REML field}
+    \item{\code{updateMu(eta)}}{Update \code{mu} and derived quantities
+      given a value of the linear predictor, \code{eta}.}
+    \item{\code{updateWts()}}{Update \code{sqrtrwt} and
+      \code{sqrtXwt}. (Not generally used for this class.)}
+  }
 }
 \details{
   The methods in this class parallel those in the
