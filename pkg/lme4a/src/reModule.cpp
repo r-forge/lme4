@@ -12,7 +12,9 @@ namespace mer{
 	  d_Lind(           xp.slot("Lind")),
 	  d_lower(          xp.slot("lower")),
 	  d_theta(          xp.slot("theta")),
-	  d_u(              d_L.n),       
+	  d_u0(             d_L.n),
+	  d_incr(           d_L.n),
+	  d_u(              d_L.n),
 	  d_cu(             d_L.n) {
 	d_Ut = (CHM_SP)NULL;
     }
@@ -21,15 +23,22 @@ namespace mer{
 	Rcpp::IntegerVector Lind, Rcpp::NumericVector lower)
 	throw (MatrixNs::wrongS4)
 	: d_L(L), d_Lambda(Lambda), d_Zt(Zt), d_Lind(Lind),
-	  d_lower(lower), d_theta(lower.size()), d_u(d_Lambda.nr()),
-	  d_cu(d_Lambda.nr()) {
+	  d_lower(lower), d_theta(lower.size()),
+	  d_u0(d_Lambda.nr(), 0.), d_incr(d_Lambda.nr()),
+	  d_u(d_Lambda.nr()),d_cu(d_Lambda.nr()) {
 	d_Ut = (CHM_SP)NULL;
     }
 
+    Rcpp::NumericVector reModule::b() const {
+	NumericVector ans(d_u.size());
+	chmDn cans(ans);
+	d_Lambda.dmult('N',1.,0.,chmDn(d_u),cans);
+	return ans;
+    }
+
     Rcpp::NumericVector reModule::linPred() const {
-	NumericVector bb(d_u.size()), ans(d_Zt.nc());
+	NumericVector bb = b(), ans(d_Zt.nc());
 	chmDn cans(ans), cbb(bb);
-	d_Lambda.dmult('N',1.,0.,chmDn(d_u),cbb);
 	d_Zt.dmult('T',1.,0.,cbb,cans);
 	return ans;
     }
@@ -49,7 +58,8 @@ namespace mer{
      * @param wtres weighted residuals
      */
     void reModule::reweight(Rcpp::NumericMatrix const&   Xwt,
-			    Rcpp::NumericVector const& wtres) {
+			    Rcpp::NumericVector const& wtres,
+			    bool useU0) {
 	double mone = -1., one = 1.; 
 	int Wnc = Xwt.ncol();
 	if (d_Ut) M_cholmod_free_sparse(&d_Ut, &c);
@@ -77,7 +87,11 @@ namespace mer{
 	d_ldL2 = d_L.logDet2();
 				// update cu
 	chmDn ccu(d_cu), cwtres(wtres);
-	copy(d_u.begin(), d_u.end(), d_cu.begin());
+	if (useU0) {
+	    copy(d_u0.begin(), d_u0.end(), d_cu.begin());
+	} else { 
+	    copy(d_u.begin(), d_u.end(), d_cu.begin());
+	}
 	M_cholmod_sdmult(LambdatUt, 0/*trans*/, &one, &mone, &cwtres, &ccu, &c);
 	M_cholmod_free_sparse(&LambdatUt, &c);
 	NumericMatrix
@@ -116,6 +130,17 @@ namespace mer{
 	return ans;
     }
 
+    void reModule::installU0 () {
+	std::copy(d_u.begin(), d_u.end(), d_u0.begin());
+    }
+
+    void reModule::setU0 (const Rcpp::NumericVector& uu)
+	throw (std::runtime_error) {
+	if (uu.size() != d_u0.size())
+	    throw std::runtime_error("size mismatch");
+	std::copy(uu.begin(), uu.end(), d_u0.begin());
+    }
+
     /** 
      * Check and install new value of theta.  Update Lambda.
      * 
@@ -144,5 +169,14 @@ namespace mer{
 	NumericMatrix nu = d_L.solve(CHOLMOD_Pt, d_L.solve(CHOLMOD_Lt, cu));
 	setU(NumericVector(SEXP(nu)));
     }
-
+    
+    void reModule::updateIncr(const Rcpp::NumericVector& cu) {
+	NumericMatrix nu = d_L.solve(CHOLMOD_Pt, d_L.solve(CHOLMOD_Lt, cu));
+	std::copy(nu.begin(), nu.end(), d_incr.begin());
+    }
+    
+    Rcpp::NumericVector reModule::linPred1(double fac) {
+	d_u = d_u0 + fac * d_incr;
+	return linPred();
+    }
 }

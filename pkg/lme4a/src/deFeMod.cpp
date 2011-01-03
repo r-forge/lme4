@@ -9,12 +9,15 @@ namespace mer {
 	: matMod::dPredModule(                  xp, n),
 	  d_RZX(Rcpp::clone(Rcpp::S4(xp.slot("RZX")))),
 	  d_UtV(d_RZX.nrow(), d_RZX.ncol()),
-	  d_VtV(             d_coef.size()) {
+	  d_VtV(             d_coef.size()),
+	  d_coef0(       d_coef.size(), 0.),
+	  d_incr(            d_coef.size()) {
     }
 
     deFeMod::deFeMod(Rcpp::NumericMatrix mm, int n, int q)
 	: matMod::dPredModule(mm,n), d_RZX(q, mm.ncol()),
-	  d_UtV(q, mm.ncol()), d_VtV(mm.ncol(), 'U') {
+	  d_UtV(q, mm.ncol()), d_VtV(mm.ncol(), 'U'),
+	  d_coef0(mm.ncol()), d_incr(mm.ncol()) {
     }
 
     /** 
@@ -86,6 +89,12 @@ namespace mer {
 	return ans;
     }
 
+    Rcpp::NumericVector deFeMod::linPred1(double fac) const {
+	Rcpp::NumericVector foo = d_coef0 + fac * d_incr;
+	std::copy(foo.begin(), foo.end(), d_coef.begin());
+	return linPred();
+    }
+
     /** 
      * Update beta
      *	beta <- solve(RX, solve(t(RX), Vtr - crossprod(RZX, cu)))
@@ -104,6 +113,29 @@ namespace mer {
 	d_RZX.dgemv('N', -1., d_coef, 1., ans);
 	return ans;
     }
+
+    Rcpp::NumericVector deFeMod::updateIncr(Rcpp::NumericVector const& cu) {
+	Rcpp::NumericVector ans = clone(cu);
+	if (d_coef.size() == 0) return ans;
+
+	copy(d_Vtr.begin(), d_Vtr.end(), d_incr.begin());
+	d_RZX.dgemv('T', -1., ans, 1., d_incr);
+	d_fac.dpotrs(d_incr);
+	d_RZX.dgemv('N', -1., d_incr, 1., ans);
+	return ans;
+    }
+    
+    void deFeMod::installCoef0() {
+	std::copy(d_coef.begin(), d_coef.end(), d_coef0.begin());
+    }
+
+    void deFeMod::setCoef0 (const Rcpp::NumericVector& cc)
+	throw (std::runtime_error) {
+	if (cc.size() != d_coef0.size())
+	    throw std::runtime_error("setCoef0: size mismatch");
+	std::copy(cc.begin(), cc.end(), d_coef0.begin());
+    }
+
 
     /** 
      * Update V, VtV and Vtr

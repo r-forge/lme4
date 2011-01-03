@@ -39,7 +39,7 @@ namespace mer {
 	MatrixNs::chmFr     d_L;
 	MatrixNs::chmSp     d_Lambda, d_Zt;
 	Rcpp::IntegerVector d_Lind;
-	Rcpp::NumericVector d_lower, d_theta, d_u, d_cu;
+	Rcpp::NumericVector d_lower, d_theta, d_u0, d_incr, d_u, d_cu;
 	double              d_ldL2;
 	CHM_SP              d_Ut;
     public:
@@ -73,19 +73,26 @@ namespace mer {
 	Rcpp::NumericVector const&  lower() const {return d_lower;}
 	Rcpp::NumericVector const&  theta() const {return d_theta;}
  	Rcpp::NumericVector const&      u() const {return d_u;}
+ 	Rcpp::NumericVector const&     u0() const {return d_u0;}
+ 	Rcpp::NumericVector const&   incr() const {return d_incr;}
+ 	Rcpp::NumericVector             b() const;
 
 	Rcpp::NumericVector       linPred() const;
+	Rcpp::NumericVector       linPred1(double);
 	Rcpp::XPtr<cholmod_sparse>    Utp() const;
 
 	void reweight    (const Rcpp::NumericMatrix&,
-			  const Rcpp::NumericVector&);
+			  const Rcpp::NumericVector&, bool useU0=false);
+	void installU0   ();
+	void setU0       (const Rcpp::NumericVector&) throw (std::runtime_error);
 	void setU        (const Rcpp::NumericVector&,
 			  const Rcpp::NumericVector& = Rcpp::NumericVector(),
-			  double = 0.) throw (std::runtime_error) ;
+			  double = 0.) throw (std::runtime_error);
 	void setTheta    (const Rcpp::NumericVector&)
 	    throw (std::runtime_error);
 	// used in PIRLSbeta to solve for u only
 	void updateU     (const Rcpp::NumericVector&);
+	void updateIncr  (const Rcpp::NumericVector&);
     };
 
     class reTrms : public reModule {

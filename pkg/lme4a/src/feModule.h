@@ -19,13 +19,16 @@ namespace mer {
 	MatrixNs::dgeMatrix      d_RZX;
 	MatrixNs::dgeMatrix      d_UtV;
 	MatrixNs::dpoMatrix      d_VtV;
+	Rcpp::NumericVector d_coef0, d_incr;
 
     public:
 	deFeMod(Rcpp::S4,int);
 	deFeMod(Rcpp::NumericMatrix,int,int);
 
 	Rcpp::NumericVector linPred() const;
+	Rcpp::NumericVector linPred1(double) const;
 	Rcpp::NumericVector updateBeta(Rcpp::NumericVector const&);
+	Rcpp::NumericVector updateIncr(Rcpp::NumericVector const&);
 
 	void updateRzxRxp(Rcpp::S4, Rcpp::S4);
 	void updateRzxpRxpp(Rcpp::XPtr<MatrixNs::chmSp>,
@@ -37,9 +40,14 @@ namespace mer {
 	void reweight(Rcpp::NumericMatrix const&,
 		      Rcpp::NumericVector const&)
 	    throw(std::runtime_error);
+	void installCoef0();
+	void setCoef0(const Rcpp::NumericVector&)
+	    throw (std::runtime_error);
 	
 	double                    ldRX2() const {return  d_ldRX2;}
 	const Rcpp::NumericVector& coef() const {return d_coef;}
+	const Rcpp::NumericVector& incr() const {return d_incr;}
+	const Rcpp::NumericVector&coef0() const {return d_coef0;}
 	const Rcpp::NumericVector&  Vtr() const {return d_Vtr;}
 	const MatrixNs::Cholesky&    RX() const {return d_fac;}
 	const MatrixNs::dgeMatrix&  RZX() const {return d_RZX;}

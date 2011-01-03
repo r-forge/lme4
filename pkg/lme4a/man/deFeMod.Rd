@@ -29,22 +29,29 @@
        (read only)}
     \item{\code{VtV}}{\code{\linkS4class{dpoMatrix}} - Weighted
       crossproduct (read only)}
-    \item{\code{VtV}}{numeric - Weighted crossproduct of model matrix
+    \item{\code{Vtr}}{numeric - Weighted crossproduct of model matrix
       and residuals (read only)}
     \item{\code{X}}{\code{\linkS4class{dgeMatrix}} - original model
       matrix (read only)}
-    \item{\code{linPred}}{numeric - linear predictor contribution (read
-      only)}
     \item{\code{coef}}{numeric - coefficient vector (read only)}
+    \item{\code{coef0}}{numeric - base coefficient vector (read only)}
+    \item{\code{incr}}{numeric - increment for coefficient vector (read
+      only)}
     \item{\code{ldRX2}}{numeric - log of the square of the determinant
       of RX (read only)}
+    \item{\code{linPred}}{numeric - linear predictor contribution (read
+      only)}
   }
 }
 \section{Methods}{
   \describe{
+    \item{\code{linPred1(fac)}}{numeric - update \code{coef} to
+      \code{coef0 + fac*incr} and return linear predictor contribution}
     \item{\code{reweight(sqrtXwt, wtres)}}{update V and Vtr for new
       weights.}
     \item{\code{updateBeta(cu)}}{update \code{coef} given 
+      \code{cu}}
+    \item{\code{updateIncr(cu)}}{update \code{incr} given 
       \code{cu}}
     \item{\code{updateRzxRx(Lambda, L)}}{update update the triangular
       factor sections given \code{Lambda} and \code{L}}

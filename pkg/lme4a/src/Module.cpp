@@ -125,6 +125,10 @@ class_<deFeMod>("deFeMod")
 
     .property("coef",          &deFeMod::coef,
 	      "coefficient vector")
+    .property("coef0",         &deFeMod::coef0, &deFeMod::setCoef0,
+	      "base coefficient vector")
+    .property("incr",          &deFeMod::incr,
+	      "full increment of coefficient vector")
     .property("ldRX2",         &deFeMod::ldRX2,
 	      "log of the square of the determinant of RX")
     .property("linPred",       &deFeMod::linPred,
@@ -146,8 +150,12 @@ class_<deFeMod>("deFeMod")
 
     .method("reweight",        &deFeMod::reweight,
 	    "update V and Vtr for new weights")
+    .method("linPred1",        &deFeMod::linPred1,
+	    "update coef = coef0 + fac * incr and return linear predictor contribution")
     .method("updateBeta",      &deFeMod::updateBeta,
 	    "update the coefficient vector given cu")
+    .method("updateIncr",      &deFeMod::updateIncr,
+	    "update the increment vector given cu")
     .method("updateRzxRx",     &deFeMod::updateRzxRxp,
 	    "update the triangular factor sections given Lambda and L")
     .method("updateRzxpRxpp",  &deFeMod::updateRzxpRxpp,
@@ -161,8 +169,12 @@ class_<reModule>("reModule")
     .constructor<S4>()
     .constructor<S4,S4,S4,IntegerVector,NumericVector>()
 
+    .property("b",         &reModule::b,
+	      "random effects on original scale")
     .property("cu",        &reModule::cu,
 	      "intermediate solution for u")
+    .property("incr",      &reModule::incr,
+	      "full increment for u")
     .property("L",         &reModule::L,
 	      "sparse Cholesky factor")
     .property("Lambda",    &reModule::Lambda,
@@ -185,6 +197,8 @@ class_<reModule>("reModule")
 	      "current value of variance component parameters")
     .property("u",         &reModule::u,
 	      "orthonormal random effects vector")
+    .property("u0",        &reModule::u0, &reModule::setU0,
+	      "base orthonormal random effects vector")
     .property("Ut",        &reModule::Utp,
 	      "pointer to the weighted, orthogonal design matrix")
     .property("Zt",        &reModule::Zt,
@@ -196,6 +210,11 @@ class_<reModule>("reModule")
 	    "set a new value of u, possibly with an increment and step")
     .method("solveU",      &reModule::solveU,
 	    "solve for u (or the increment for u) only.  Returns squared length of c1")
+    .method("updateIncr",  &reModule::updateIncr,
+	    "update the increment given the updated cu from the feModule's updateIncr method")
+    .method("linPred1",    &reModule::linPred1,
+	    "update u = u0 + fac * incr and return linear predictor contribution")
+    
     .method("updateU",     &reModule::updateU,
 	    "solve for u given the updated cu from the feModule's updateBeta method")
     ;
