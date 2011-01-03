@@ -1,3 +1,17 @@
+2011-01-03 Douglas Bates  <bates@stat.wisc.edu>
+
+	* R/lmer.R, man/deFeMod.Rd, man/reModule.Rd, src/Module.cpp,
+	  src/deFeMod.cpp, src/feModule.h, src/reModule.cpp,
+	  src/reModule.h, src/respModule.cpp: Conversion to base, increment
+	  and parameter forms of u and beta
+
+2011-01-01 Douglas Bates  <bates@stat.wisc.edu>
+
+	* DESCRIPTION, R/lmer.R, man/chmSp.Rd, man/deFeMod.Rd,
+	  man/glmFamily.Rd, man/lmer.Rd, man/lmerResp.Rd, man/reModule.Rd,
+	  man/reTrms.Rd, src/Module.cpp, src/glmFamily.cpp,
+	  src/respModule.cpp, src/respModule.h: Added lmer2
+
 2010-12-19  Douglas Bates  <bates@stat.wisc.edu>
 
 	* src/reModule.h, src/reModule.cpp: specify no delete_finalizer
