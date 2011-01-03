@@ -349,17 +349,20 @@ lmer2 <- function(formula, data, REML = TRUE, sparseX = FALSE,
     if (doFit) {                        # optimize estimates
         if (verbose) control$iprint <- 2L
         devfun <- function(theta) {
-            resp$updateMu(numeric(n))   # initialize mu to zero
-            rem$setU(numeric(q), numeric(q), 0) # initialize u to zero
-### FIXME: Use a coef0, incr, coef representation in reModule and
-### in deFeMod to avoid needing to reinitialize    
-            rem$theta <- theta
-            rem$reweight(resp$sqrtXwt, resp$wtres)
+            rem$theta <- theta          # update theta, Lambda
+            resp$updateMu(numeric(n))   # zero the current mu
+                                        # update L, Ut and cu
+            rem$reweight(resp$sqrtXwt, resp$wtres, TRUE)
+                                        # update V, VtV and Vtr
             fem$reweight(resp$sqrtXwt, resp$wtres)
             fem$updateUtV(rem$Ut)
+                                        # update RZX and RX
             fem$updateRzxpRxpp(rem$Lambdap, rem$Lp)
-            rem$updateU(fem$updateBeta(rem$cu))
-            resp$updateMu(rem$linPred + fem$linPred)
+                                        # increments to u and beta
+            rem$updateIncr(fem$updateIncr(rem$cu))
+                                        # update mu (full step)
+            resp$updateMu(rem$linPred1(1) + fem$linPred1(1))
+                                        # profiled deviance or REML
             resp$Laplace(rem$ldL2, fem$ldRX2, rem$sqrLenU)
         }
         opt <- bobyqa(reTrms@theta, devfun, reTrms@lower, control = control)

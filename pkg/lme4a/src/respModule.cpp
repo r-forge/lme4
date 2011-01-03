@@ -5,10 +5,10 @@ using namespace Rcpp;
 namespace mer {
 
     merResp::merResp(Rcpp::S4 xp)  throw (std::runtime_error)
-	: d_y(                       xp.slot("y")),
-	  d_weights(                 xp.slot("weights")),
-	  d_offset(                  xp.slot("offset")),
-	  d_mu(                     d_y.size()),
+	: d_y(                    xp.slot("y")),
+	  d_weights(        xp.slot("weights")),
+	  d_offset(          xp.slot("offset")),
+	  d_mu(                 d_y.size(), 0.),
 	  d_sqrtrwt(                d_y.size()),
 	  d_wtres(                  d_y.size()),
 	  d_sqrtXwt(d_y.size(), d_offset.size()/d_y.size()) {
@@ -19,14 +19,15 @@ namespace mer {
 	    throw std::runtime_error("length(offset) must be a positive multiple of length(y)");
 	d_sqrtrwt = sqrt(d_weights);
 	std::copy(d_sqrtrwt.begin(), d_sqrtrwt.end(), d_sqrtXwt.begin());
+	updateWrss();
     }
 
     merResp::merResp(Rcpp::NumericVector y)
 	throw (std::runtime_error)
 	: d_y(y), d_weights(y.size(), 1.0), d_offset(y.size()),
-	  d_mu(y.size()), d_sqrtrwt(y.size()),
+	  d_mu(y.size(), 0.), d_sqrtrwt(y.size(), 1.),
 	  d_wtres(y.size()),
-	  d_sqrtXwt(y.size(), 1.0) {
+	  d_sqrtXwt(y.size(), 1) {
 	init();
     }
 
