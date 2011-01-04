@@ -5,16 +5,6 @@ using namespace MatrixNs;
 using namespace std;
 
 namespace mer{
-    struct lengthFun : std::unary_function<Rcpp::RObject, R_len_t> {
-	inline R_len_t operator() (const Rcpp::RObject& x) {
-	    return Rf_length(SEXP(x));}
-    };
-
-    struct nlevsFun : std::unary_function<Rcpp::RObject, R_len_t> {
-	inline R_len_t operator() (const Rcpp::RObject& x) {
-	    return Rf_length(Rf_getAttrib(SEXP(x), R_LevelsSymbol));
-	}
-    };
 
     reTrms::reTrms(Rcpp::S4 xp)
 	: reModule(xp),
@@ -24,7 +14,14 @@ namespace mer{
     }
 
     Rcpp::IntegerVector reTrms::ncols() const {
-	return IntegerVector::import_transform(d_cnms.begin(), d_cnms.end(), lengthFun());
+	int nt = d_cnms.size();
+	IntegerVector ans(nt);
+	int *ap = ans.begin();
+	for (int i = 0; i < nt; i++) {
+	    CharacterVector nmi = d_cnms(i);
+	    ap[i] = nmi.size();
+	}
+	return ans;
     }
 
     Rcpp::IntegerVector reTrms::nctot() const {
@@ -36,9 +33,14 @@ namespace mer{
     }
 
     Rcpp::IntegerVector reTrms::nlevs() const {
-	return IntegerVector::import_transform(d_flist.begin(), d_flist.end(), nlevsFun());
-	IntegerVector ans(d_flist.size());
-	transform(d_flist.begin(), d_flist.end(), ans.begin(), nlevsFun());
+	int nfac = d_flist.size();
+	IntegerVector ans(nfac);
+	int *ap = ans.begin();
+	for (int i = 0; i < nfac; i++) {
+	    IntegerVector fi = d_flist(i);
+	    CharacterVector ll = fi.attr("levels");
+	    ap[i] = ll.size();
+	}
 	return ans;
     }
 
