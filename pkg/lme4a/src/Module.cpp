@@ -148,10 +148,12 @@ class_<deFeMod>("deFeMod")
     .property("X",             &deFeMod::X,
 	      "original model matrix")
 
-    .method("reweight",        &deFeMod::reweight,
-	    "update V and Vtr for new weights")
+    .method("installCoef0",    &deFeMod::installCoef0,
+	    "install coef as coef0")
     .method("linPred1",        &deFeMod::linPred1,
 	    "update coef = coef0 + fac * incr and return linear predictor contribution")
+    .method("reweight",        &deFeMod::reweight,
+	    "update V and Vtr for new weights")
     .method("updateBeta",      &deFeMod::updateBeta,
 	    "update the coefficient vector given cu")
     .method("updateIncr",      &deFeMod::updateIncr,
@@ -204,6 +206,8 @@ class_<reModule>("reModule")
     .property("Zt",        &reModule::Zt,
 	      "transpose of the model matrix for the random effects")
 
+    .method("installU0",   &reModule::installU0,
+	    "install u as u0")
     .method("reweight",    &reModule::reweight,
 	    "update L, Ut and cu for new weights")
     .method("setU",        &reModule::setU,
