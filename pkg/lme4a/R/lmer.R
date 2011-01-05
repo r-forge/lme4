@@ -328,24 +328,15 @@ lmer2 <- function(formula, data, REML = TRUE, sparseX = FALSE,
 ##-nL if (any(reTrms@nLevs >= ncol(reTrms@Zt)))
     if (any(unlist(lapply(reTrms@flist, nlevels)) >= ncol(reTrms@Zt)))
         stop("number of levels of each grouping factor must be less than number of obs")
-                                        # fixed-effects module
-    feMod <- mkFeModule(formula, fr, contrasts, reTrms, sparseX)
-    y <- model.response(fr)
-    n <- length(y)
-    q <- nrow(reTrms@Zt)
     rem <- new(reModule, reTrms@Zt, reTrms@Lambda,
                reTrms@L, reTrms@Lind, reTrms@lower)
-    fem <- new(deFeMod, as(feMod@X, "matrix"), n, q)
-    resp <- new(lmerResp, if (REML) ncol(fem$X) else 0L, y)
-    if (!is.null(offset <- model.offset(fr))) {
-        if (length(offset) == 1L) offset <- rep.int(offset, n)
-        stopifnot(length(offset) == n)
-	resp$offset <- offset
-    }
-    if (!is.null(weights <- model.weights(fr))) {
-        stopifnot(length(weights) == n, all(weights >= 0))
-	resp$weights <- weights
-    }
+                                        # fixed-effects module
+    feMod <- mkFeModule(formula, fr, contrasts, reTrms, sparseX)
+    n <- nrow(fr)
+    fem <- new(deFeMod, as(feMod@X, "matrix"), n, nrow(rem$Zt))
+                                        # response module
+    resp <- mkRespMod2(fr)
+    if (REML) resp$REML <- ncol(fem$X)
     if (doFit) {                        # optimize estimates
         if (verbose) control$iprint <- 2L
         devfun <- function(theta) {
@@ -733,6 +724,103 @@ glmer <- function(formula, data, family = gaussian, sparseX = FALSE,
     ans <- PIRLSest(ans, verbose, control, nAGQ)
 
 }## {glmer}
+
+mkRespMod2 <- function(fr, family = NULL, nlenv = NULL, nlmod = NULL) {
+    n <- nrow(fr)
+    y <- model.response(fr)
+    if(length(dim(y)) == 1) {
+        ## avoid problems with 1D arrays, but keep names
+        nm <- rownames(y)
+        dim(y) <- NULL
+        if(!is.null(nm)) names(y) <- nm
+    }
+    ans <- new(lmerResp, 0L,
+               as.matrix(model.response(fr, "numeric"))[,1])
+    if (!is.null(offset <- model.offset(fr))) {
+        if (length(offset) == 1L) offset <- rep.int(offset, n)
+        stopifnot(length(offset) == n)
+	ans$offset <- unname(offset)
+    }
+    if (!is.null(weights <- model.weights(fr))) {
+        stopifnot(length(weights) == n, all(weights >= 0))
+	ans$weights <- unname(weights)
+    }
+    if (is.null(family)) return(ans)
+    rho <- new.env()
+    rho$etastart <- model.extract(fr, "etastart")
+    rho$mustart <- model.extract(fr, "mustart")
+    rho$weights <- ans$weights
+    rho$nobs <- n
+    if (is.character(family))
+        family <- get(family, mode = "function", envir = parent.frame(3))
+    if (is.function(family)) family <- family()
+    eval(family$initialize, rho)
+    family$initialize <- NULL       # remove clutter from str output
+        
+    ans <- new(glmerResp, family, rho$y, rho$weights, ans$offset, rho$n)
+    ans$updateMu(family$linkfun(unname(rho$mustart)))
+    ans
+}
+
+glmer2 <- function(formula, data, family = gaussian, sparseX = FALSE,
+                   control = list(), start = NULL, verbose = 0L, nAGQ = 1L,
+                   doFit = TRUE, subset, weights, na.action, offset,
+                   contrasts = NULL, mustart, etastart, ...)
+{
+    verbose <- as.integer(verbose)
+    mf <- mc <- match.call()
+    if (missing(family)) { ## divert using lmer2()
+	mc[[1]] <- as.name("lmer2")
+	return(eval(mc, parent.frame()))
+    }
+### '...' handling up front, safe-guarding against typos ("familiy") :
+    if(length(l... <- list(...))) {
+	## Check for invalid specifications
+	if (!is.null(method <- list(...)$method)) {
+	    msg <- paste("Argument", sQuote("method"),
+			 "is deprecated.\nUse", sQuote("nAGQ"),
+			 "to choose AGQ.  PQL is not available.")
+	    if (match.arg(method, c("Laplace", "AGQ")) == "Laplace") {
+		warning(msg)
+		l... <- l...[names(l...) != "method"]
+	    } else stop(msg)
+	}
+	if(length(l...))
+	    warning("extra arguments ", paste(names(l...), sep=", "),
+		    " are disregarded")
+    }
+    if(is.character(family))
+        family <- get(family, mode = "function", envir = parent.frame(2))
+    if(is.function(family)) family <- family()
+    if (family$family %in% c("quasibinomial", "quasipoisson", "quasi"))
+        stop('"quasi" families cannot be used in glmer')
+    nAGQ <- as.integer(nAGQ)[1]
+    if (nAGQ > 1) warning("nAGQ > 1 has not been implemented, using Laplace")
+    stopifnot(length(formula <- as.formula(formula)) == 3)
+    if (missing(data)) data <- environment(formula)
+                                        # evaluate and install the model frame :
+    m <- match(c("data", "subset", "weights", "na.action", "offset",
+                 "mustart", "etastart"), names(mf), 0)
+    mf <- mf[c(1, m)]
+    mf$drop.unused.levels <- TRUE
+    mf[[1]] <- as.name("model.frame")
+    fr.form <- subbars(formula) # substituted "|" by "+" -
+    environment(fr.form) <- environment(formula)
+    mf$formula <- fr.form
+    fr <- eval(mf, parent.frame())
+                                        # random-effects module
+    reTrms <- mkReTrms(findbars(formula[[3]]), fr)
+    rem <- new(reModule, reTrms@Zt, reTrms@Lambda,
+               reTrms@L, reTrms@Lind, reTrms@lower)
+                                        # fixed-effects module
+    feMod <- mkFeModule(formula, fr, contrasts, reTrms, sparseX)
+    n <- nrow(fr)
+    q <- nrow(reTrms@Zt)
+    fem <- new(deFeMod, as(feMod@X, "matrix"), n, q)
+                                        # response module
+    resp <- mkRespMod2(fr, family)
+    list(rem = rem, fem = fem, resp = resp)
+}## {glmer2}
 
 ##' Fit a nonlinear mixed-effects model
 ##'
