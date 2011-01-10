@@ -1,0 +1,184 @@
+\documentclass[11pt,a4rpaper]{article}
+\usepackage[top=1.1in,bottom=1in,left=0.9in,headheight=14pt,right=0.9in]{geometry}
+\usepackage{paralist,mdwlist,Sweave,amsmath,amsbsy,graphicx,alltt,fancyhdr,url}
+\SweaveOpts{engine=R,eps=FALSE,width=10,height=6.5,strip.white=all}
+\SweaveOpts{prefix=TRUE,prefix.string=figs/ex2,include=TRUE}
+\setkeys{Gin}{width=\textwidth}
+\DefineVerbatimEnvironment{Sinput}{Verbatim}
+{formatcom={\vspace{-1.5ex}},fontshape=sl,
+  fontfamily=courier,fontseries=b, fontsize=\small}
+\DefineVerbatimEnvironment{Soutput}{Verbatim}
+{formatcom={\vspace{-2.5ex}},fontfamily=courier,fontseries=b,fontsize=\small}
+\usepackage{fancyhdr}
+\lhead{\sf lme4 course}\chead{\sf Exercises \#2}
+\rhead{\sf 2011-01-11 (p. \thepage)}
+\lfoot{\sf Lattice graphics}\cfoot{}\rfoot{}
+\pagestyle{fancy}
+\newcommand{\code}[1]{\texttt{\small #1}}
+\newcommand{\R}{\textsf{R}}
+<<initial,echo=FALSE,print=FALSE>>=
+options(width=80, show.signif.stars = FALSE)
+library(lattice)
+lattice.options(default.theme = standard.theme(color = FALSE))
+set.seed(123454321)
+@ 
+\begin{document}
+Load the \code{classroom} data frame that you saved in the previous
+set of exercises and attach the \code{lattice} package.
+<<loadclassroom>>=
+load("classroom.rda")
+library(lattice)
+@ 
+\begin{enumerate}
+\item Create a histogram of the \code{mathkind} (mathematics score in
+  kindergarten) variable.
+\begin{center}
+<<histogram,fig=TRUE,echo=FALSE,height=5,width=11>>=
+print(histogram(~ mathkind, classroom,
+                xlab = "Kindergarten mathematics score"))
+@ 
+\end{center}
+\item Create an empirical density plot of \code{mathkind}.
+\begin{center}
+<<density,fig=TRUE,echo=FALSE,height=5,width=11>>=
+print(densityplot(~ mathkind, classroom,
+                  xlab = "Kindergarten mathematics score"))
+@ 
+\end{center}
+
+\item Create an empirical density plot of \code{mathkind} by sex using
+  the optional argument \code{groups = sex}.  It is probably a good
+  idea to suppress the points in the ``rug''.  Remember to use
+  \code{auto.key} so you can tell which curve is which.
+\begin{center}
+<<densitysex,fig=TRUE,echo=FALSE,height=4.5,width=11>>=
+print(densityplot(~ mathkind, classroom, groups = sex,
+                  auto.key = list(columns = 2), plot.points = FALSE,
+                  xlab = "Kindergarten mathematics score"))
+@ 
+\end{center}
+
+\item Create an empirical density plot of \code{mathkind} with one
+  curve for minority students and one for non-minority students.
+\begin{center}
+<<densityminority,fig=TRUE,echo=FALSE,height=4.5,width=11>>=
+print(densityplot(~ mathkind, classroom, groups = minority,
+                  auto.key = list(columns = 2), plot.points = FALSE,
+                  xlab = "Kindergarten mathematics score"))
+@ 
+\end{center}
+
+\item Create a scatter-plot of
+  the \code{mathgain} versus the kindergarten score.  Add a reference
+  grid and a scatterplot smoother curve with the optional argument
+  \code{type = c("g", "p", "smooth")}.  Repeat this plot using \code{"r"}
+  instead of \code{"smooth"} to add a reference (or ``regression'')
+  line.
+\begin{center}
+<<xyplot,fig=TRUE,echo=FALSE,height=5,width=11>>=
+print(xyplot(mathgain ~ mathkind, classroom,
+             type = c("g","p","smooth"),
+             ylab = "Change in mathematics score",
+             xlab = "Kindergarten mathematics score"),
+      split = c(1,1,2,1), more = TRUE)
+print(xyplot(mathgain ~ mathkind, classroom,
+             type = c("g","p","r"),
+             ylab = "Change in mathematics score",
+             xlab = "Kindergarten mathematics score"),
+      split = c(2,1,2,1))
+@ 
+\end{center}
+
+\item The negative correlation between \code{mathkind} and \code{mathgain} 
+<<corr>>=
+with(classroom, cor(mathkind, mathgain))
+@ 
+  is not surprising because \code{mathgain} is the grade 1 score minus
+  the kindergarten score.  Create a new variable \code{math1} which is
+  the sum of \code{mathkind} and \code{mathgain}
+<<math1>>=
+classroom <- within(classroom, math1 <- mathkind + mathgain)
+with(classroom, cor(mathkind, math1))
+@ 
+  and plot \code{math1} versus \code{mathkind}.  The version shown
+  below uses the optional argument \code{aspect="iso"} to ensure that a
+  unit change on the x axis corresponds to a unit change on the y axis.
+\begin{center}
+<<xyplot1,fig=TRUE,echo=FALSE,height=6,width=11>>=
+print(xyplot(math1 ~ mathkind, classroom,
+             type = c("g","p","smooth"), aspect = "iso",
+             ylab = "Grade 1 mathematics score",
+             xlab = "Kindergarten mathematics score"),
+      split = c(1,1,2,1), more = TRUE)
+print(xyplot(math1 ~ mathkind, classroom,
+             type = c("g","p","r"), aspect = "iso",
+             ylab = "Grade 1 mathematics score",
+             xlab = "Kindergarten mathematics score"),
+      split = c(2,1,2,1))
+@ 
+\end{center}
+
+\item Create a multi-panel scatterplot of \code{math1} versus
+  \code{mathkind} with separate panels for males and females.
+\begin{center}
+<<xyplot2,fig=TRUE,echo=FALSE,height=5.5,width=11>>=
+print(xyplot(math1 ~ mathkind|sex, classroom,
+             type = c("g","p","r"), aspect = "iso",
+             ylab = "Grade 1 mathematics score",
+             xlab = "Kindergarten mathematics score"))
+@ 
+\end{center}
+\item Create a multi-panel scatterplot of \code{math1} versus
+  \code{mathkind} with separate panels for minority and non-minority
+  students.
+\begin{center}
+<<xyplot3,fig=TRUE,echo=FALSE,height=5.5,width=11>>=
+print(xyplot(math1 ~ mathkind|minority, classroom,
+             type = c("g","p","r"), aspect = "iso",
+             ylab = "Grade 1 mathematics score",
+             xlab = "Kindergarten mathematics score"))
+@ 
+\end{center}
+\item Create a multi-panel scatterplot of \code{math1} versus
+  \code{mathkind} classified according to \code{sex} and \code{minority}
+\begin{center}
+<<xyplot4,fig=TRUE,echo=FALSE,height=8,width=11>>=
+print(xyplot(math1 ~ mathkind|minority*sex, classroom,
+             type = c("g","p","r"), aspect = "iso",
+             ylab = "Grade 1 mathematics score",
+             xlab = "Kindergarten mathematics score"))
+@ 
+\end{center}
+\item Consider only the students in school 11.  The study includes
+  students from nine different classrooms in that school.
+<<xtabs>>=
+xtabs(~ classid, classroom, schoolid == 11, drop = TRUE)
+@
+  Create a dot-plot of the \code{mathgain} by classroom for students
+  in school 11 only.
+  \begin{center}
+<<dotplot1,fig=TRUE,echo=FALSE,height=4.5,width=11>>=
+print(dotplot(classid ~ mathgain, classroom, subset = schoolid == 11,
+              pch = 21, jitter.y = TRUE,
+              xlab = "Gain in mathematics score",
+              ylab = "Grade 1 classroom (school 11 only)"))
+@     
+  \end{center}
+  Repeat the plot reordering the classrooms according to increasing
+  mean gain and joining the classroom averages.
+  \begin{center}
+<<dotplot2,fig=TRUE,echo=FALSE,height=4.5,width=11>>=
+print(dotplot(reorder(classid,mathgain) ~ mathgain, classroom,
+              subset = schoolid == 11, type = c("p","a"),
+              pch = 21, jitter.y = TRUE,
+              xlab = "Gain in mathematics score",
+              ylab = "Grade 1 classroom (school 11 only)"))
+@     
+  \end{center}
+\end{enumerate}
+\end{document}
+
+%%% Local Variables: 
+%%% mode: latex
+%%% TeX-master: t
+%%% End: 
