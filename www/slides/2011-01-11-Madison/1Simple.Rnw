@@ -54,7 +54,8 @@ if (file.exists("classroom.rda")) {
   \item We will be using the \Emph{lme4a} package from R-forge.
     Install it from the \Emph{Packages} menu item or with
 <<installlme4,eval=FALSE>>=
-install.packages("lme4a", repos="http://r-forge.r-project.org")
+install.packages("lme4a",
+    repos="http://lme4.r-forge.r-project.org/repos")
 @ 
 \item You only need to install a package once.  If a new version
   becomes available you can update (see the menu item).
@@ -66,7 +67,7 @@ require(lme4a)
 <<attach,eval=FALSE>>=
 library(lme4a)
 @ 
-  (This usage causes widespread confusion of the terms ``package'' and ``library''.)
+  (Causing widespread confusion of the terms ``package'' and ``library''.)
   \end{itemize}
 \end{frame}
 
@@ -868,7 +869,7 @@ xtabs( ~ xtabs(~ classid, classroom))
   per school is
 <<xtabsclass>>=
 table(xtabs(~ schoolid,
-            unique(subset(classroom, select = c(classid, schoolid)))))
+    unique(subset(classroom, select = c(classid, schoolid)))))
 @
   \end{itemize}
 \end{frame}
@@ -897,7 +898,8 @@ print(dotplot(cc ~ mathgain | ss , sch12,
 \begin{frame}[fragile]
   \frametitle{Simple, ``unconditional'' model for the classroom data}
 <<fm5>>=
-(fm5 <- lmer(mathgain ~ 1 + (1|classid) + (1|schoolid), classroom))
+(fm5 <- lmer(mathgain ~ 1 + (1|classid) + (1|schoolid),
+             classroom))
 @ 
 \end{frame}
 
