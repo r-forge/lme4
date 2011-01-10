@@ -1,0 +1,131 @@
+\NeedsTeXFormat{LaTeX2e}
+\ProvidesPackage{SweaveSlides}
+\RequirePackage[english]{babel}
+\RequirePackage{xspace,graphicx,paralist,hyperref,listings,fancyvrb,color,relsize,ae,bm}
+%
+% instead of {color} above .. no, remain standard
+%% browns <- grep("brown",cc <- colors(), value=TRUE); cb <- col2rgb(browns)
+%% colnames(cb) <- browns
+% \lstnewenvironment{Scode}{\lstset{style=Rstyle}}{}
+% \lstnewenvironment{Soutput}{\lstset{style=Routstyle}}{}
+\definecolor{brown}{rgb}{0.647,0.165,0.165}
+\definecolor{orange}{rgb}{0.8,0.5,0}
+\definecolor{Scode}{rgb}{0,0,0.56}
+\definecolor{Soutput}{rgb}{0.56,0,0}
+\providecommand{\Rcolor}{\color[rgb]{0, 0.5, 0.5}}
+\lstdefinestyle{Rstyle}{%
+  language=R,% but modify the (2001) listing default of R
+  morekeywords={str,setAs,setClass,setMethod,setGeneric,setValidity},
+  % otherkeywords={!,!=,~,$,*,\&,\%/\%,\%*\%,\%\%,<-,<<-,_,/},%
+  otherkeywords={!,!=,~,\$,*,\&,\%/\%,\%*\%,<-,<<-},% >>
+  %
+  basicstyle=\footnotesize\ttfamily,
+  %          ------ --> need \footnotesize or \tiny to become smaller
+  keywordstyle=\ttfamily\bfseries,
+  %numbers=left, numbersep=3pt, numberstyle=\color{gray}\tiny, stepnumber=2,
+  commentstyle=\color{orange}\itshape,% was orange
+  stringstyle=\color{brown}\ttfamily,
+  showstringspaces=false
+}
+\newenvironment{Schunk}{}{}
+\lstnewenvironment{Sinput}{\lstset{style=Rstyle}}{}
+\DefineVerbatimEnvironment{Soutput}{Verbatim}
+{formatcom={\color{Soutput}},fontsize=\footnotesize}
+\DefineVerbatimEnvironment{Scode}{Verbatim}
+{formatcom={\color{Scode}},fontsize=\small}
+%
+\newcommand{\Slang}{\textsf{S} language}
+\newcommand{\email}[1]{\href{mailto:#1}{\normalfont\texttt{#1}}}
+%- R programming markup
+%simple: \newcommand{\code}[1]{\texttt{#1}}
+%complicated:
+\newcommand\code{\bgroup\@codex}
+\def\@codex#1{{\normalfont\ttfamily\hyphenchar\font=-1 #1}\egroup}
+% \let\env=\code
+% \let\command=\code
+\newcommand*{\Rfun}[1]{\code{#1()}\index{\RR~function #1}}
+\newcommand*{\class}[1]{\code{#1}\index{class #1}}%
+\newcommand*{\pkg}[1]{\code{#1}\index{\RR~package #1}}
+%
+\newcommand{\kbd}[1]{{\normalfont\texttt{#1}}}
+\newcommand{\key}[1]{{\normalfont\texttt{\uppercase{#1}}}}
+\newcommand\samp{`\bgroup\@noligs\@sampx}
+\def\@sampx#1{{\normalfont\texttt{#1}}\egroup'}
+% \let\option=\samp
+\newcommand{\var}[1]{{\normalfont\textsl{#1}}}
+\newcommand{\file}[1]{{`\normalfont\textsf{#1}'}}
+\newcommand{\dfn}[1]{{\normalfont\textsl{#1}}}
+\newcommand{\acronym}[1]{{\normalfont\textsc{\lowercase{#1}}}}
+\newcommand{\strong}[1]{{\normalfont\fontseries{b}\selectfont #1}}
+% \let\pkg=\strong
+% %   ---- note, \pkg above uses \index{}
+%>>>Already def:\newenvironment{example}{\begin{alltt}}{\end{alltt}}
+\newenvironment{smallexample}{\begin{alltt}\small}{\end{alltt}}
+\newenvironment{display}{\list{}{}\item\relax}{\endlist}
+\newenvironment{smallverbatim}{\small\verbatim}{\endverbatim}
+\newcommand{\FIXME}[1]{\marginpar{ \dots FIXME \emph{#1} \dots}}
+\newcommand{\TODO}[1]{\par\noindent\textsc{Todo:} \textit{#1}\par}
+\newcommand{\LAPACK}{\textsc{lapack}\xspace}
+\newcommand{\BLAS}{\textsc{blas}\xspace}
+%
+\newcommand{\mQuote}[1]{$\langle${#1}$\rangle$}
+%\newcommand{\Emph}[1]{\textcolor{Sinput}{\emph{#1}}}
+%
+%% Matrix stuff :
+% Doug:
+\newcommand{\mc}[1]{\ensuremath{\mathcal{#1}}}
+\newcommand{\trans}{\ensuremath{^\mathsf{T}}}
+% % Martin:
+% \RequirePackage{amssymb}% for \intercal:
+% \newcommand{\tr}{\ensuremath{^{\intercal}}}
+% \newcommand{\Mtr}{\ensuremath{^{-\intercal}}}% Minus trans
+%
+%%---- more of Martin's favorites from 'texab' :
+%%
+%% (FIXME? replace \bmath by \bm from package{bm} ??)
+% \newcommand{\bmath}[1]{\relax\ifmmode{\mbox{\boldmath $#1$}}%
+%   \else{\boldmath $#1$}\fi}    %-- W.Stahel, M. Mächler
+%%  SfS - Sigma  for Cov.matrix:
+\newcommand{\Sig}{\relax\ifmmode\rlap{\kern0.45em\raise0.08em\hbox{|}}
+\bmath\Sigma\else$\Sig$\fi}
+\newcommand{\Sigh}{\widehat{\Sig}}
+%
+\DeclareMathOperator*{\argmin}{arg\, min}
+\DeclareMathOperator*{\argmax}{arg\, max}
+%
+%- Scalar Prod. <.,.> :  \sp{x}{zz}  -->  < x , zz >  ---
+         \newcommand{\spr}[2]   {\left\langle #1\, , #2 \right\rangle}
+%%-- No longer (March 15, 1999): breaks 'alltt' : \sp = ``sup'' (exponent)
+%%-         \renewcommand{\sp}[2]   {\left\langle #1\, , #2 \right\rangle
+%%-  \typeout{
+%%-    ------ Use '$\backslash$spr'
+%%-    instead of '$\backslash$sp' for scalar product ! -----}}
+%- \abs{ab}  -->  | ab |   ``absolut Betrag''
+%        \newcommand{\abs}[1]    {\left| #1 \right|}
+%\newcommand{\abs}{\operatorname{abs}}
+%- \norm{ab}  -->  || ab ||
+\newcommand{\norm}[1]   {\left\| #1 \right\|}
+% the above sometimes give much too long  || -- then use the following:
+\newcommand{\normb}[1]  {\bigl\|{#1}\bigr\|}
+\newcommand{\normB}[1]  {\Bigl\|{#1}\Bigr\|}
+%- Indicator function: \Ind{A}  : the following *is* ugly but works, see below
+\newcommand{\Ind}[1]    {\mbox{\larger\textbf{1}}_{#1}}
+%Gives warning ``Command \large invalid in math mode on input line ..'' :
+%       \newcommand{\Ind}[1]{\mathop{\large\mathbf{1}}_{#1}}
+%       \newcommand{\Ind}[1]{{\large\mathbf{1}}_{#1}}
+%
+%- For things like ``F_{Tab}'' (F-value from table):
+\newcommand{\Xsub}[2]{{#1}_{\mathrm{\scriptscriptstyle #2}}}
+\usefonttheme[onlymath]{serif}
+\AtBeginSubsection[]{%
+  \begin{frame}<beamer>%
+    \frametitle{Outline}%
+    \tableofcontents[currentsection,currentsubsection]%
+  \end{frame}
+}
+\newcommand{\bc}[1]{\ensuremath{\bm{\mathcal{#1}}}}
+%\newcommand{\code}[1]{{\color{Sinput}\small\texttt{#1}}}
+\newcommand{\Emph}[1]{\emph{\Rcolor #1}}
+\newcommand{\R}{\Emph{R}\xspace}
+\newcommand{\abs}{\operatorname{abs}}
+\InputIfFileExists{SweaveSlides.cfg}{}{}
