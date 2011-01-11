@@ -48,7 +48,7 @@ Jos\'{e} Pinheiro.
     In particular, which parameter estimates have not changed?
   \end{enumerate}
 
-\item Consider the \code{ergostool} data; check its stucture and
+\item Consider the \code{ergoStool} data; check its stucture and
   summary.  The stool types are fixed, the subjects in the experiment
   are chosen at random.  The structure of the data are similar to the
   \code{Penicillin} data (unreplicated, completely crossed) but here
