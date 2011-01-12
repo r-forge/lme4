@@ -23,13 +23,12 @@ namespace matMod {	   // matMod is the namespace for matrixModels
     
     class dPredModule : public predModule {
     protected:
-	MatrixNs::dgeMatrix           d_X;
-//	MatrixNs::ddenseModelMatrix   d_X;
+	MatrixNs::ddenseModelMatrix   d_X;
 	MatrixNs::dgeMatrix           d_V;
 	MatrixNs::Cholesky          d_fac;
     public:
 	dPredModule(Rcpp::S4,int);
-	dPredModule(Rcpp::NumericMatrix,int);
+	dPredModule(Rcpp::S4,int,int);
 	
 	MatrixNs::dgeMatrix const& X() const {return d_X;}
 	Rcpp::NumericVector  linPred() const;

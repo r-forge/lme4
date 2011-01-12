@@ -121,7 +121,8 @@ class_<glmerResp>("glmerResp")
 class_<deFeMod>("deFeMod")
 
     .constructor<S4,int>()
-    .constructor<NumericMatrix,int,int>()
+    .constructor<S4,int,int,int>()
+//    .constructor<NumericMatrix,int,int>()
 
     .property("coef",          &deFeMod::coef,
 	      "coefficient vector")
