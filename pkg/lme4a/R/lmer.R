@@ -139,6 +139,8 @@ mkFeModule <- function(form, fr, contrasts, reMod, sparseX)
 		chol(crossprod(X)) })
 }
 
+### UpdateMe: These are slated for demolition once the [g]lmer2 functions are tested
+
 ##' <description>
 ##' Generic function to update the dimensions component of the devcomp
 ##' slot in a merMod object.  The devcomp slot is passed from module
@@ -340,27 +342,30 @@ lmer2 <- function(formula, data, REML = TRUE, sparseX = FALSE,
                                         # response module
     resp <- mkRespMod2(fr)
     if (REML) resp$REML <- ncol(fem$X)
+    devfun <- function(theta) {
+        rem$theta <- theta              # update theta, Lambda
+        resp$updateMu(numeric(n))       # zero the current mu
+                                        # update L, Ut and cu
+        rem$reweight(resp$sqrtXwt, resp$wtres, TRUE)
+                                        # update V, VtV and Vtr
+        fem$reweight(resp$sqrtXwt, resp$wtres)
+        fem$updateUtV(rem$Ut)
+                                        # update RZX and RX
+        fem$updateRzxpRxpp(rem$Lambdap, rem$Lp)
+                                        # increments to u and beta
+        rem$updateIncr(fem$updateIncr(rem$cu))
+                                        # update mu (full step)
+        resp$updateMu(rem$linPred1(1) + fem$linPred1(1))
+                                        # profiled deviance or REML
+        resp$Laplace(rem$ldL2, fem$ldRX2, rem$sqrLenU)
+    }
+    devfun(reTrms@theta)                # one evaluation ensure all values are set
+
     if (doFit) {                        # optimize estimates
         if (verbose) control$iprint <- 2L
-        devfun <- function(theta) {
-            rem$theta <- theta          # update theta, Lambda
-            resp$updateMu(numeric(n))   # zero the current mu
-                                        # update L, Ut and cu
-            rem$reweight(resp$sqrtXwt, resp$wtres, TRUE)
-                                        # update V, VtV and Vtr
-            fem$reweight(resp$sqrtXwt, resp$wtres)
-            fem$updateUtV(rem$Ut)
-                                        # update RZX and RX
-            fem$updateRzxpRxpp(rem$Lambdap, rem$Lp)
-                                        # increments to u and beta
-            rem$updateIncr(fem$updateIncr(rem$cu))
-                                        # update mu (full step)
-            resp$updateMu(rem$linPred1(1) + fem$linPred1(1))
-                                        # profiled deviance or REML
-            resp$Laplace(rem$ldL2, fem$ldRX2, rem$sqrLenU)
-        }
         opt <- bobyqa(reTrms@theta, devfun, reTrms@lower, control = control)
     }
+    
     sqrLenU <- rem$sqrLenU
     wrss <- resp$wrss
     pwrss <- wrss + sqrLenU
@@ -830,8 +835,10 @@ glmer2 <- function(formula, data, family = gaussian, sparseX = FALSE,
                                         # fixed-effects module
     feMod <- mkFeModule(formula, fr, contrasts, reTrms, sparseX)
     n <- nrow(fr)
-    q <- nrow(reTrms@Zt)
-    fem <- new(deFeMod, as(feMod@X, "matrix"), n, q)
+    X <- feMod@X
+    p <- ncol(X)
+    q <- nrow(rem$Zt)
+    fem <- new(deFeMod, X, n, p, q)
                                         # response module
     resp <- mkRespMod2(fr, family)
     list(rem = rem, fem = fem, resp = resp)
