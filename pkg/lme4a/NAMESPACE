@@ -89,9 +89,10 @@ importMethodsFrom("Matrix"
 
 ## exportPattern("^[^\\.]")
 
-## re-export imported S4 generics
+# re-export imported S4 generics
 export(AIC, BIC, logLik)
-## and the rest (S3 generics; regular functions):
+
+# and the rest (S3 generics; regular functions):
 export(VarCorr,
        bootMer,
        chmSp,
@@ -115,7 +116,7 @@ export(VarCorr,
        reTrms,
        sigma,
        subbars
-#       nlmerResp,       
+ #       nlmerResp,       
        )
 
 exportClasses(deFeMod, lmerResp, lmList, merMod,
@@ -124,7 +125,7 @@ exportClasses(deFeMod, lmerResp, lmList, merMod,
 exportMethods(VarCorr, anova, coef, coerce, confint, deviance,
               devcomp, fitted, fixef, formula, getL,
               logLik, model.frame, model.matrix, terms,
-	      plot, print, profile, ranef, rcond,
+ 	      plot, print, profile, ranef, rcond,
               show, simulate, sigma, summary, update, vcov)
 
 S3method(plot, coef.mer)
