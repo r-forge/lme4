@@ -14,10 +14,10 @@ namespace mer {
 	  d_incr(            d_coef.size()) {
     }
 
-    deFeMod::deFeMod(Rcpp::NumericMatrix mm, int n, int q)
-	: matMod::dPredModule(mm,n), d_RZX(q, mm.ncol()),
-	  d_UtV(q, mm.ncol()), d_VtV(mm.ncol(), 'U'),
-	  d_coef0(mm.ncol()), d_incr(mm.ncol()) {
+    deFeMod::deFeMod(Rcpp::S4 mm, int n, int p, int q)
+	: matMod::dPredModule(mm,n,p), d_RZX(q, p),
+	  d_UtV(q, p), d_VtV(p, 'U'),
+	  d_coef0(p), d_incr(p) {
     }
 
     /** 

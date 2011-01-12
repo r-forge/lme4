@@ -37,10 +37,15 @@ namespace matMod {
 	  d_fac( Rcpp::S4(xp.slot("fac"))) {
     }
 
-    dPredModule::dPredModule(Rcpp::NumericMatrix mm, int n)
-        : predModule(mm.ncol()), d_X(mm), d_V(n, mm.ncol()),
-	  d_fac(mm.ncol(), 'U') {
+    dPredModule::dPredModule(Rcpp::S4 mm, int n, int p)
+	: predModule(p), d_X(mm), d_V(n, p),
+	  d_fac(p, 'U') {
     }
+
+    // dPredModule::dPredModule(Rcpp::NumericMatrix mm, int n)
+    //     : predModule(mm.ncol()), d_X(mm), d_V(n, mm.ncol()),
+    // 	  d_fac(mm.ncol(), 'U') {
+    // }
 
     Rcpp::NumericVector dPredModule::linPred() const {
 	Rcpp::NumericVector ans(d_X.nrow());

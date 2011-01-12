@@ -227,6 +227,16 @@ namespace MatrixNs{
 	  modelMatrix(xp) {
     }
 
+    ddenseModelMatrix::operator SEXP() const {
+	S4 ans("ddenseModelMatrix");
+	ans.slot("x") = clone(d_x);
+	ans.slot("Dimnames") = clone(d_dimnames);
+	ans.slot("Dim") = IntegerVector::create(d_nrow, d_ncol);
+	ans.slot("assign") = clone(d_assign);
+	ans.slot("contrasts") = clone(d_contrasts);
+	return ans;
+    }
+
     dtrMatrix::dtrMatrix(Rcpp::S4& xp)
 	: ddenseMatrix(xp),
 	  triangularMatrix(xp) {
@@ -825,17 +835,19 @@ namespace MatrixNs{
 
 namespace Rcpp {
     template <> SEXP
-    wrap<MatrixNs::dgeMatrix>(const MatrixNs::dgeMatrix& m) {return m;}
-    template <> SEXP
-    wrap<MatrixNs::dtrMatrix>(const MatrixNs::dtrMatrix& m) {return m;}
-    template <> SEXP
-    wrap<MatrixNs::dsyMatrix>(const MatrixNs::dsyMatrix& m) {return m;}
-    template <> SEXP
-    wrap<MatrixNs::dpoMatrix>(const MatrixNs::dpoMatrix& m) {return m;}
-    template <> SEXP
     wrap<MatrixNs::Cholesky>(const MatrixNs::Cholesky& m) {return m;}
     template <> SEXP
     wrap<MatrixNs::chmFr>(const MatrixNs::chmFr& m) {return m;}
     template <> SEXP
     wrap<MatrixNs::chmSp>(const MatrixNs::chmSp& m) {return m;}
+    template <> SEXP
+    wrap<MatrixNs::ddenseModelMatrix>(const MatrixNs::ddenseModelMatrix& m) {return m;}
+    template <> SEXP
+    wrap<MatrixNs::dgeMatrix>(const MatrixNs::dgeMatrix& m) {return m;}
+    template <> SEXP
+    wrap<MatrixNs::dpoMatrix>(const MatrixNs::dpoMatrix& m) {return m;}
+    template <> SEXP
+    wrap<MatrixNs::dsyMatrix>(const MatrixNs::dsyMatrix& m) {return m;}
+    template <> SEXP
+    wrap<MatrixNs::dtrMatrix>(const MatrixNs::dtrMatrix& m) {return m;}
 }

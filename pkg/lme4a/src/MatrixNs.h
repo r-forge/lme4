@@ -8,31 +8,32 @@
 #include <RcppCommon.h>
 // forward declarations
 namespace MatrixNs {
-    class dtrMatrix;
-    class dgeMatrix;
-    class dsyMatrix;
-    class dpoMatrix;
     class Cholesky;
-    class chmSp;
     class chmFr;
+    class chmSp;
+    class ddenseModelMatrix;
+    class dgeMatrix;
+    class dpoMatrix;
+    class dsyMatrix;
+    class dtrMatrix;
 }
 
 namespace Rcpp {
     namespace traits {
 	template <> class
-	is_convertible<SEXP,MatrixNs::dtrMatrix> : public true_type{};
-	template <> class
-	is_convertible<SEXP,MatrixNs::dgeMatrix> : public true_type{};
-	template <> class
-	is_convertible<SEXP,MatrixNs::dsyMatrix> : public true_type{};
-	template <> class
-	is_convertible<SEXP,MatrixNs::dpoMatrix> : public true_type{};
-	template <> class
 	is_convertible<SEXP,MatrixNs::Cholesky> : public true_type{};
+	template <> class
+	is_convertible<SEXP,MatrixNs::chmFr> : public true_type{};
 	template <> class
 	is_convertible<SEXP,MatrixNs::chmSp> : public true_type{};
 	template <> class
-	is_convertible<SEXP,MatrixNs::chmFr> : public true_type{};
+	is_convertible<SEXP,MatrixNs::dgeMatrix> : public true_type{};
+	template <> class
+	is_convertible<SEXP,MatrixNs::dpoMatrix> : public true_type{};
+	template <> class
+	is_convertible<SEXP,MatrixNs::dsyMatrix> : public true_type{};
+	template <> class
+	is_convertible<SEXP,MatrixNs::dtrMatrix> : public true_type{};
     }
 }
 
@@ -189,7 +190,10 @@ namespace MatrixNs {
     class ddenseModelMatrix : public dgeMatrix, public modelMatrix {
     public:
 	ddenseModelMatrix(Rcpp::S4);
+
+	operator SEXP() const;
     };
+
 
 
     class dtrMatrix : public ddenseMatrix, public triangularMatrix {
