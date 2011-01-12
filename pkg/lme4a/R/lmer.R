@@ -333,7 +333,10 @@ lmer2 <- function(formula, data, REML = TRUE, sparseX = FALSE,
                                         # fixed-effects module
     feMod <- mkFeModule(formula, fr, contrasts, reTrms, sparseX)
     n <- nrow(fr)
-    fem <- new(deFeMod, as(feMod@X, "matrix"), n, nrow(rem$Zt))
+    X <- feMod@X
+    p <- ncol(X)
+    q <- nrow(rem$Zt)
+    fem <- new(deFeMod, X, n, p, q)
                                         # response module
     resp <- mkRespMod2(fr)
     if (REML) resp$REML <- ncol(fem$X)
@@ -358,7 +361,19 @@ lmer2 <- function(formula, data, REML = TRUE, sparseX = FALSE,
         }
         opt <- bobyqa(reTrms@theta, devfun, reTrms@lower, control = control)
     }
-    list(rem=rem, fem=fem, resp=resp)
+    sqrLenU <- rem$sqrLenU
+    wrss <- resp$wrss
+    pwrss <- wrss + sqrLenU
+    dims <- c(N=n, n=n, nmp=n-p, nth=length(rem$theta), p=p, q=q,
+              nAGQ=NA_integer_, useSc=1L, reTrms=length(reTrms@cnms),
+              spFe=0, REML=resp$REML, GLMM=0L, NLMM=0L)
+    cmp <- c(ldL2=rem$ldL2, ldRX2=fem$ldRX2, wrss=wrss, ussq=sqrLenU, pwrss=pwrss,
+             dev=if(REML)NA else opt$fval, REML=if(REML)opt$fval else NA,
+             sigmaML=sqrt(pwrss/n), sigmaREML=sqrt(pwrss/(n-p)))
+    re <- new("reTrms", flist=reTrms@flist, cnms=reTrms@cnms, L=rem$L, Lambda=rem$Lambda,
+              Lind=rem$Lind, Zt=rem$Zt, lower=rem$lower, theta=rem$theta, u=rem$u)
+    new("merMod", call=mc, frame=fr, devcomp = list(cmp=cmp,dims=dims), re=re,
+        fe=as(fem, "deFeMod"), resp=as(resp, "lmerResp"))
 }## { lmer2 }
 
 ##' <description>
