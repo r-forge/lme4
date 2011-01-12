@@ -129,3 +129,22 @@ setClass("merMod",
 
 setClass("lmerResp", representation(REML = "integer"), contains = "respModule")
 
+setAs("Rcpp_reModule", "reModule", function(from)
+  {
+      new("reModule", L=from$L, Lambda=from$Lambda, Lind=from$Lind,
+          Zt=from$Zt, lower=from$lower, theta=from$theta, u=from$u)
+  })
+
+setAs("Rcpp_deFeMod", "deFeMod", function(from)
+  {
+      new("deFeMod", RZX=from$RZX, X=from$X, fac=from$RX,
+          coef=from$coef, Vtr=from$Vtr)
+  })
+
+setAs("Rcpp_lmerResp", "lmerResp", function(from)
+  {
+      new("lmerResp", REML=from$REML, mu=from$mu, offset=from$offset,
+          sqrtXwt=from$sqrtXwt, sqrtrwt=from$sqrtrwt, weights=from$weights,
+          wtres=from$wtres, y=from$y)
+  })
+
