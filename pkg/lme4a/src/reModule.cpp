@@ -130,6 +130,18 @@ namespace mer{
 	return ans;
     }
 
+    /** 
+     * Solve for the increment only.
+     * 
+     */  
+    double reModule::solveIncr() {
+	NumericMatrix c1 = d_L.solve(CHOLMOD_L, d_L.solve(CHOLMOD_P, d_cu));
+	double ans = inner_product(c1.begin(), c1.end(), c1.begin(), double());
+	NumericMatrix mm = d_L.solve(CHOLMOD_Pt, d_L.solve(CHOLMOD_Lt, c1));
+	copy(mm.begin(), mm.end(), d_incr.begin());
+	return ans;
+    }
+
     void reModule::installU0 () {
 	std::copy(d_u.begin(), d_u.end(), d_u0.begin());
     }

@@ -101,6 +101,7 @@ namespace mer {
 	const std::string&            family() const {return d_fam.fam();}
 	const std::string&              link() const {return d_fam.lnk();}
 	double                       Laplace(double,double,double) const;
+	double                         pwrss() const {return d_pwrss;}
 	double                 residDeviance() const;
 	double                      updateMu(const Rcpp::NumericVector&);
 	double                     updateWts();
@@ -111,10 +112,12 @@ namespace mer {
 	Rcpp::NumericVector         variance() const;
         Rcpp::NumericVector        wrkResids() const;
         Rcpp::NumericVector          wrkResp() const;
+	void                        setPwrss(double);
     protected:
 	glm::glmFamily d_fam;
 	const Rcpp::NumericVector d_n;
 	Rcpp::NumericVector d_eta;
+	double d_pwrss;
     };
 
     class nlmerResp : public merResp {

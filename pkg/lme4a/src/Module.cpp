@@ -89,6 +89,8 @@ class_<glmerResp>("glmerResp")
 	      "current value of d mu/d eta")
     .property("offset",        &glmerResp::offset,
 	      "offset vector - const")
+    .property("pwrss",         &glmerResp::pwrss, &glmerResp::setPwrss,
+	      "penalized, weighted residual sum of squares at last evaluation")
     .property("residDeviance", &glmerResp::residDeviance,
 	      "sum of the deviance residuals")
     .property("sqrtXwt",       &glmerResp::sqrtXwt,
@@ -112,6 +114,7 @@ class_<glmerResp>("glmerResp")
     .property("y",             &glmerResp::y,
 	      "numeric response vector - const")
 
+    .method("Laplace",         &glmerResp::Laplace)
     .method("updateMu",        &glmerResp::updateMu,
 	    "update mu and derived quantities from a new value of eta")
     .method("updateWts",       &glmerResp::updateWts,
@@ -128,7 +131,7 @@ class_<deFeMod>("deFeMod")
 	      "coefficient vector")
     .property("coef0",         &deFeMod::coef0, &deFeMod::setCoef0,
 	      "base coefficient vector")
-    .property("incr",          &deFeMod::incr,
+    .property("incr",          &deFeMod::incr, &deFeMod::setIncr,
 	      "full increment of coefficient vector")
     .property("ldRX2",         &deFeMod::ldRX2,
 	      "log of the square of the determinant of RX")
@@ -215,6 +218,8 @@ class_<reModule>("reModule")
 	    "set a new value of u, possibly with an increment and step")
     .method("solveU",      &reModule::solveU,
 	    "solve for u (or the increment for u) only.  Returns squared length of c1")
+    .method("solveIncr",   &reModule::solveIncr,
+	    "solve for the increment to u only.  Returns squared length of c1")
     .method("updateIncr",  &reModule::updateIncr,
 	    "update the increment given the updated cu from the feModule's updateIncr method")
     .method("linPred1",    &reModule::linPred1,
