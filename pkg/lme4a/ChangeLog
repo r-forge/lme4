@@ -1,3 +1,13 @@
+2011-01-14  Douglas Bates <bates@stat.wisc.edu>
+
+	* src/Module.cpp, src/deFeMod.cpp, src/feModule.h,
+	  src/glmFamily.cpp, src/reModule.cpp, src/reModule.h,
+	  src/respModule.cpp, src/respModule.h: Export more properties and
+	  methods
+	* R/lmer.R, R/lmer2.R: Put lmer2, glmer2 and supporting
+	  functions in a separate source file
+	* NAMESPACE: Expose all function, for now
+
 2011-01-12  Douglas Bates  <bates@stat.wisc.edu>
 
 	* R/zzz.R (.onLoad): restore populate call (still not 100% sure
@@ -5,7 +15,7 @@
 
 	* R/AllClass.R: add coercion methods for Rcpp Module classes
 
-	* R/lmer.R (lmer2): now returns an merMod object.
+	* R/lmer.R (lmer2): now returns an merMod object. Begin work on glmer2.
 
 	* src/{MatrixNs,deFeMod,predModules}.cpp,
 	src/{MatrixNs,feModule,predModules}.h: Change class of d_X member
