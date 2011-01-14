@@ -33,16 +33,14 @@ namespace mer {
 	void updateRzxRxp(Rcpp::S4, Rcpp::S4);
 	void updateRzxpRxpp(Rcpp::XPtr<MatrixNs::chmSp>,
 			    Rcpp::XPtr<MatrixNs::chmFr>);
-	void updateRzxRx(MatrixNs::chmSp const&,
-			 MatrixNs::chmFr const&);
+	void updateRzxRx(MatrixNs::chmSp const&, MatrixNs::chmFr const&);
 	void updateUtV(   cholmod_sparse const*);
 	void updateUtVp(Rcpp::XPtr<cholmod_sparse>);
 	void reweight(Rcpp::NumericMatrix const&,
-		      Rcpp::NumericVector const&)
-	    throw(std::runtime_error);
+		      Rcpp::NumericVector const&) throw(std::runtime_error);
 	void installCoef0();
-	void setCoef0(const Rcpp::NumericVector&)
-	    throw (std::runtime_error);
+	void setCoef0(const Rcpp::NumericVector&) throw (std::runtime_error);
+	void setIncr(const Rcpp::NumericVector&) throw (std::runtime_error);
 	
 	double                          ldRX2() const {return  d_ldRX2;}
 	const Rcpp::NumericVector&       coef() const {return d_coef;}

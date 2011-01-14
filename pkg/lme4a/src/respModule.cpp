@@ -233,6 +233,10 @@ namespace mer {
 	return updateWrss();
     }
 
+    void glmerResp::setPwrss(double val) {
+	d_pwrss = val;
+    }
+
     nlmerResp::nlmerResp(Rcpp::S4 xp)
 	: merResp(xp),
 	  d_nlenv(SEXP(xp.slot("nlenv"))),

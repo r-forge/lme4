@@ -136,6 +136,12 @@ namespace mer {
 	std::copy(cc.begin(), cc.end(), d_coef0.begin());
     }
 
+    void deFeMod::setIncr (const Rcpp::NumericVector& ii)
+	throw (std::runtime_error) {
+	if (ii.size() != d_incr.size())
+	    throw std::runtime_error("setIncr: size mismatch");
+	std::copy(ii.begin(), ii.end(), d_incr.begin());
+    }
 
     /** 
      * Update V, VtV and Vtr

@@ -53,6 +53,7 @@ namespace mer {
 	double                       ldL2() const {return d_ldL2;}
 	// used in PIRLS when beta is not part of the solution
 	double                     solveU();
+	double                  solveIncr();
 	double                    sqrLenU() const {return sum(d_u * d_u);}
 
 	MatrixNs::chmFr     const&      L() const {return d_L;}
