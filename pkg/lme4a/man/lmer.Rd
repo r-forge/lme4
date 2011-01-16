@@ -2,6 +2,7 @@
 \alias{lmer}
 \alias{lmer2}
 \alias{glmer}
+\alias{glmer2}
 \alias{nlmer}
 \concept{LMM}% << so it's found; ditto for these:
 \concept{GLMM}
