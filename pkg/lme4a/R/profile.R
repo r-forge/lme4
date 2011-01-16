@@ -190,7 +190,6 @@ splom.thpr <-
     ## panel function for lower triangle
     lp <- function(x, y, groups, subscripts, i, j, ...) {
         tr <- traces[[j]][[i]]
-browser()
         grid::pushViewport(viewport(xscale = c(-1.07, 1.07) * mlev,
                               yscale = c(-1.07, 1.07) * mlev))
         dd <- sapply(current.panel.limits(), diff)/50
