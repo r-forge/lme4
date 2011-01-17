@@ -97,7 +97,8 @@ class_<glmerResp>("glmerResp")
 	      "square root of the weights applied to the model matrix")
     .property("sqrtrwt",       &glmerResp::sqrtrwt,
 	      "square root of the weights applied to the residuals")
-    .property("sqrtWrkWt",     &glmerResp::sqrtrwt,
+
+    .property("sqrtWrkWt",     &glmerResp::sqrtWrkWt,
 	      "square root of the weights applied to the working response")
     .property("weights",       &glmerResp::weights,
 	      "prior weights - const")
@@ -125,8 +126,9 @@ class_<deFeMod>("deFeMod")
 
     .constructor<S4,int>()
     .constructor<S4,int,int,int>()
-//    .constructor<NumericMatrix,int,int>()
 
+    .property("CcNumer",       &deFeMod::CcNumer,
+	      "contribution to numerator of the convergence criterion")
     .property("coef",          &deFeMod::coef,
 	      "coefficient vector")
     .property("coef0",         &deFeMod::coef0, &deFeMod::setCoef0,
@@ -177,6 +179,8 @@ class_<reModule>("reModule")
 
     .property("b",         &reModule::b,
 	      "random effects on original scale")
+    .property("CcNumer",   &reModule::CcNumer,
+	      "contribution to numerator of the convergence criterion")
     .property("cu",        &reModule::cu,
 	      "intermediate solution for u")
     .property("incr",      &reModule::incr,
