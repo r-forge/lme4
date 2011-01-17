@@ -19,7 +19,8 @@ namespace mer {
 	MatrixNs::dgeMatrix      d_RZX;
 	MatrixNs::dgeMatrix      d_UtV;
 	MatrixNs::dpoMatrix      d_VtV;
-	Rcpp::NumericVector d_coef0, d_incr;
+	Rcpp::NumericVector      d_coef0, d_incr;
+	double                   d_CcNumer;
 
     public:
 	deFeMod(Rcpp::S4,int);
@@ -42,7 +43,8 @@ namespace mer {
 	void setCoef0(const Rcpp::NumericVector&) throw (std::runtime_error);
 	void setIncr(const Rcpp::NumericVector&) throw (std::runtime_error);
 	
-	double                          ldRX2() const {return  d_ldRX2;}
+	double                          ldRX2() const {return d_ldRX2;}
+	double                        CcNumer() const {return d_CcNumer;}
 	const Rcpp::NumericVector&       coef() const {return d_coef;}
 	const Rcpp::NumericVector&       incr() const {return d_incr;}
 	const Rcpp::NumericVector&      coef0() const {return d_coef0;}

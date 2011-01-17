@@ -6,6 +6,8 @@
 #include "MatrixNs.h"
 
 namespace mer {
+// Create polymorphic functions updateRzxpRxpp in deFeMod to
+// accomodate this class.
     class ssre {
 	MatrixNs::chmSp     d_Z;
 	Rcpp::IntegerVector d_ff;
@@ -40,7 +42,7 @@ namespace mer {
 	MatrixNs::chmSp     d_Lambda, d_Zt;
 	Rcpp::IntegerVector d_Lind;
 	Rcpp::NumericVector d_lower, d_theta, d_u0, d_incr, d_u, d_cu;
-	double              d_ldL2;
+	double              d_ldL2, d_CcNumer; // numerator of conv. crit. 
 	CHM_SP              d_Ut;
     public:
 	reModule(Rcpp::S4);
@@ -55,6 +57,7 @@ namespace mer {
 	double                     solveU();
 	double                  solveIncr();
 	double                    sqrLenU() const {return sum(d_u * d_u);}
+	double                    CcNumer() const {return d_CcNumer;}
 
 	MatrixNs::chmFr     const&      L() const {return d_L;}
 	MatrixNs::chmSp     const& Lambda() const {return d_Lambda;}
