@@ -1,3 +1,17 @@
+2011-01-17  Douglas Bates <bates@stat.wisc.edu>
+
+	* DESCRIPTION: New release number and date.
+	* src/respModule.cpp: Incorporate offset in wrkResp value.
+	* src/Module.cpp, src/feModule.h, src/reModule.h:
+	  glmerResp::sqrtWrkWt was returning sqrtXwt. Add CcNumer
+	  properties to reModule and deFeMod.
+
+2011-01-16  Douglas Bates <bates@stat.wisc.edu>
+
+	* man/lmer.Rd: Add a temporary alias for glmer2
+	* R/profile.R: Remove the call to the browser in the panel.lp
+	  function within pairs.thpr
+
 2011-01-14  Douglas Bates <bates@stat.wisc.edu>
 
 	* src/Module.cpp, src/deFeMod.cpp, src/feModule.h,
