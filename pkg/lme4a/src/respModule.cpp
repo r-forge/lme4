@@ -212,7 +212,7 @@ namespace mer {
     }
 
     Rcpp::NumericVector glmerResp::wrkResp() const {
-	return d_eta + wrkResids();
+	return (d_eta -d_offset) + wrkResids();
     }
 
     Rcpp::NumericVector glmerResp::sqrtWrkWt() const {
