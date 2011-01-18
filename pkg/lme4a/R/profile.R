@@ -562,3 +562,39 @@ setMethod("profile", "merMod",
           class(ans) <- c("thpr", "data.frame")
           ans
       })
+
+dens <- function(pr, npts=201, upper=0.999) {
+    npts <- as.integer(npts)
+    stopifnot(inherits(pr, "thpr"), npts > 0,
+              is.numeric(upper), 0.5 < upper, upper < 1)
+    spl <- attr(pr, "forward")
+    bspl <- attr(pr, "backward")
+    zeta <- c(qnorm(0.001), qnorm(0.999))
+    rng <- lapply(bspl, function(spl)
+              {
+                  rng <- predy(spl, zeta)
+                  if (is.na(rng[1])) rng[1] <- 0
+                  seq(rng[1], rng[2], len=npts)
+              })
+    fr <- data.frame(pval=unlist(rng),
+                     pnm=gl(length(rng), npts, labels=names(rng)))
+    dd <- list()
+    for (nm in names(rng)) {
+        zz <- predy(spl[[nm]], rng[[nm]])
+        dd[[nm]] <- dnorm(zz) * predict(spl[[nm]], rng[[nm]], deriv=1)$y
+    }
+    fr$density <- unlist(dd)
+    fr
+}
+
+densityplot.thpr <- function(x, data, ...) {
+    ll <- list(...)
+    ll$x <- density ~ pval|pnm
+    ll$data <- dens(x)
+    ll$type <- c("l","g")
+    ll$scales <- list(relation="free")
+    ll$xlab <- ""
+    do.call(xyplot, ll)
+}
+
+    
