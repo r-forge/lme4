@@ -1415,54 +1415,6 @@ plot.ranef.mer <- function(x, y, ...)
     })
 }
 
-if (FALSE) {
-foo  <- function(x, data, ...)  ## old version of qqmath.ranef.mer
-{
-    prepanel.ci <- function(x, y, se, subscripts, ...) {
-        y <- as.numeric(y)
-        se <- as.numeric(se[subscripts])
-        hw <- 1.96 * se
-        list(ylim = range(y - hw, y + hw, finite = TRUE))
-    }
-    panel.ci <- function(x, y, se, subscripts, pch = 16, ...)  {
-        panel.grid(h = -1,v = -1)
-        panel.abline(h = 0)
-        x <- as.numeric(x)
-        y <- as.numeric(y)
-        se <- as.numeric(se[subscripts])
-        ly <- y - 1.96 * se
-        uy <- y + 1.96 * se
-        panel.segments(x, y - 1.96*se, x, y + 1.96 * se,
-                       col = 'black')
-        panel.xyplot(x, y, pch = pch, ...)
-    }
-    f <- function(x) {
-        if (!is.null(pv <- attr(x, "postVar"))) {
-            cols <- 1:(dim(pv)[1])
-            se <- unlist(lapply(cols, function(i) sqrt(pv[i, i, ])))
-            nr <- nrow(x)
-            nc <- ncol(x)
-            ord <- unlist(lapply(x, order)) +
-                rep((0:(nc - 1)) * nr, each = nr)
-            rr <- 1:nr
-            ind <- gl(ncol(x), nrow(x), labels = names(x))
-            xyplot(unlist(x)[ord] ~
-                   rep(qnorm((rr - 0.5)/nr), ncol(x)) | ind[ord],
-                   se = se[ord], prepanel = prepanel.ci, panel = panel.ci,
-                   scales = list(y = list(relation = "free")),
-                   xlab = "Standard normal quantiles",
-                   ylab = NULL, aspect = 1, ...)
-        } else {
-            qqmath(~values|ind, stack(x),
-                   scales = list(y = list(relation = "free")),
-                   xlab = "Standard normal quantiles",
-                   ylab = NULL, ...)
-        }
-    }
-    lapply(x, f)
-}
-}## end{ unused }
-
 qqmath.ranef.mer <- function(x, data, ...)
 {
     prepanel.ci <- function(x, y, se, subscripts, ...) {
