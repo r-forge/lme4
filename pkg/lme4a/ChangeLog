@@ -1,3 +1,16 @@
+2011-01-18  Douglas Bates  <bates@stat.wisc.edu>
+
+	* R/profile.R: added stripExpr function to change the strip
+	annotations from strings to expressions.  Incorporated the strip
+	expressions in xyplot.thpr and densityplot.thpr
+
+2011-01-18  Douglas Bates <bates@stat.wisc.edu>
+
+	* R/profile.R: Use the "upper" argument
+	* R/lmer.R: Remove old version of the qqmath method (new version is
+	  transposed).
+	* NAMESPACE, R/profile.R: Add a densityplot method for the thpr S3 class
+
 2011-01-17  Douglas Bates <bates@stat.wisc.edu>
 
 	* DESCRIPTION: New release number and date.

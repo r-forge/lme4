@@ -54,6 +54,31 @@ setMethod("dropX", "merMod",
 ##' extract only the y component from a prediction
 predy <- function(sp, vv) predict(sp, vv)$y
 
+stripExpr <- function(ll, nms) {
+    stopifnot(inherits(ll, "list"), is.character(nms))
+    lsigNm <- which(nms == ".lsig")
+    sigNms <- grep("^.sig", nms)
+    sigsub <- as.integer(substring(nms[sigNms], 5))
+    fLevs <- as.expression(nms)
+    fLevs[lsigNm] <- expression(log(sigma))
+    fLevs[sigNms] <- parse(text=paste("sigma[", sigsub, "]"))
+    levsExpr <- substitute(strip.custom(factor.levels=foo), list(foo=fLevs))
+    llNms <- names(ll)
+    snames <- c("strip", "strip.left")
+    if (all(!(snames %in% llNms))) {
+        ll$strip <- levsExpr
+    } else {
+        lapply(snames, function(nm) {
+browser()
+            if (nm %in% llNms) {
+                vv <- ll[[nm]]
+                if (is.logical(vv) && vv) ll[[nm]] <<- levsExpr
+            }
+        })
+    }
+    ll
+}
+
 ## A lattice-based plot method for profile objects
 xyplot.thpr <-
     function (x, data = NULL,
@@ -80,27 +105,30 @@ xyplot.thpr <-
         fr$zeta <- abs(fr$zeta)
         ylab <- expression("|" * zeta * "|")
     }
-    xyplot(zeta ~ pval | pnm, fr,
-           scales = list(x = list(relation = 'free')),
-           ylab = ylab, xlab = NULL, panel = function(x, y, ...)
-       {
-           panel.grid(h = -1, v = -1)
-           lsegments(x, y, x, 0, ...)
-           lims <- current.panel.limits()$xlim
-           myspl <- spl[[panel.number()]]
-           krange <- range(myspl$knots)
-           pr <- predict(myspl,
-                         seq(max(lims[1], krange[1]),
-                             min(lims[2], krange[2]), len = 101))
-           if (absVal) {
-               pr$y <- abs(pr$y)
-               y[y == 0] <- NA
-               lsegments(x, y, rev(x), y)
-           } else {
-               panel.abline(h = 0, ...)
-           }
-           panel.lines(pr$x, pr$y)
-       }, ...)
+    ll <- c(list(...),
+            list(x = zeta ~ pval | pnm, data=fr,
+                 scales = list(x = list(relation = 'free')),
+                 ylab = ylab, xlab = NULL,
+                 panel = function(x, y, ...)
+             {
+                 panel.grid(h = -1, v = -1)
+                 lsegments(x, y, x, 0, ...)
+                 lims <- current.panel.limits()$xlim
+                 myspl <- spl[[panel.number()]]
+                 krange <- range(myspl$knots)
+                 pr <- predict(myspl,
+                               seq(max(lims[1], krange[1]),
+                                   min(lims[2], krange[2]), len = 101))
+                 if (absVal) {
+                     pr$y <- abs(pr$y)
+                     y[y == 0] <- NA
+                     lsegments(x, y, rev(x), y)
+                 } else {
+                     panel.abline(h = 0, ...)
+                 }
+                 panel.lines(pr$x, pr$y)
+             }))
+    do.call(xyplot, stripExpr(ll, names(spl)))
 }
 
 confint.thpr <- function(object, parm, level = 0.95, zeta, ...)
@@ -588,13 +616,30 @@ dens <- function(pr, npts=201, upper=0.999) {
 }
 
 densityplot.thpr <- function(x, data, ...) {
-    ll <- list(...)
-    ll$x <- density ~ pval|pnm
-    ll$data <- dens(x)
-    ll$type <- c("l","g")
-    ll$scales <- list(relation="free")
-    ll$xlab <- ""
-    do.call(xyplot, ll)
+    ll <- c(list(...),
+            list(x=density ~ pval|pnm,
+                 data=dens(x),
+                 type=c("l","g"),
+                 scales=list(relation="free"),
+                 xlab=NULL))
+    do.call(xyplot, stripExpr(ll, names(attr(x, "forward"))))
 }
 
-    
+varianceProf <- function(pr) {
+    stopifnot(inherits(pr, "thpr"))
+    spl <- attr(pr, "forward")
+    onms <- names(spl)                  # names of original variables
+    vc <- onms[grep("^.[l]*sig", onms)]  # variance components
+    ans <- subset(pr, .par %in% vc, select=c(".zeta", vc, ".par"))
+    ans$.par <- factor(ans$.par)        # drop unused levels
+    if (".lsig" %in% vc) ans$.lsig <- exp(ans$.lsig)
+    attr(ans, "forward") <- attr(ans, "backward") <- list()
+    for (nm in vc) {
+        ans[[nm]] <- ans[[nm]]^2
+        fr <- subset(ans, .par == nm & is.finite(ans[[nm]]))
+        form <- eval(substitute(.zeta ~ nm, list(nm = as.name(nm))))
+        attr(ans, "forward")[[nm]] <- interpSpline(form, fr)
+        attr(ans, "backward")[[nm]] <- backSpline(attr(ans, "forward")[[nm]])
+    }
+    ans
+}
