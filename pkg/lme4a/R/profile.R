@@ -569,7 +569,7 @@ dens <- function(pr, npts=201, upper=0.999) {
               is.numeric(upper), 0.5 < upper, upper < 1)
     spl <- attr(pr, "forward")
     bspl <- attr(pr, "backward")
-    zeta <- c(qnorm(0.001), qnorm(0.999))
+    zeta <- c(qnorm(1-upper), qnorm(upper))
     rng <- lapply(bspl, function(spl)
               {
                   rng <- predy(spl, zeta)
