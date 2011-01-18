@@ -69,7 +69,6 @@ stripExpr <- function(ll, nms) {
         ll$strip <- levsExpr
     } else {
         lapply(snames, function(nm) {
-browser()
             if (nm %in% llNms) {
                 vv <- ll[[nm]]
                 if (is.logical(vv) && vv) ll[[nm]] <<- levsExpr
