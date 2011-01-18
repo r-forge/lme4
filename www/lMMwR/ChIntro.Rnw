@@ -10,6 +10,7 @@ options(width=85, show.signif.stars = FALSE,
 library(splines)
 library(lattice)
 library(Matrix)
+library(MatrixModels)
 library(Rcpp)
 library(minqa)
 library(lme4a)
@@ -751,7 +752,8 @@ In this section we show how to create a \emph{profile deviance} object
 from a fitted linear mixed model and how to use this object to
 evaluate confidence intervals on the parameters.  We also discuss the
 construction and interpretation of \emph{profile zeta} plots for the
-parameters and \emph{profile pairs} plots for parameter pairs.
+parameters.  In Chap.~\ref{chap:ProfPairs} we discuss the use of the
+deviance profiles to produce likelihood contours for pairs of parameters.
 
 \subsection{Confidence Intervals on the Parameters}
 \label{sec:profdevconf}
@@ -985,118 +987,60 @@ of $\sigma_1$ that are close to zero.  If, as in this case, zero is
 within the ``region of interest'' then we should expect that the
 profile zeta plot will flatten out on the left hand side.
 
-\subsection{Profile Pairs Plots}
-\label{sec:Profpairs}
+Notice that the profile zeta plot of $\sigma_1^2$ in
+Fig.~\ref{fig:sigma1prof} is dramatically skewed. If reporting the estimate,
+$\widehat{\sigma^2}_1$, and its standard error, as many statistical
+software packages do, were to be an adequate description of the
+variability in this estimate then this profile zeta plot should be a
+straight line.  It's nowhere close to being a straight line in this
+and in many other model fits, which is why we don't report standard
+errors for variance estimates.
 
-A profiled deviance object, such as \code{pr01}, not only provides
-information on the sensitivity of the model fit to changes in
-parameters, it also tells us how the parameters influence each
-other. When we re-fit the model subject to a constraint such as, say,
-$\sigma_1=60$, we obtain the conditional estimates for the other
-parameters --- $\sigma$ and $\beta_0$ in this case.  The conditional
-estimate of, say, $\sigma$ as a function of $\sigma_1$ is called the
-\emph{profile trace} of $\sigma$ on $\sigma_1$.  Plotting such traces
-provides valuable information on how the parameters in the model are
-influenced by each other.
+\subsection{Deriving densities from the profile}
+\label{sec:profDens}
+
+In the profile zeta plots we show $\zeta$ as a function of a
+parameter. We can use the function shown there, which we will call the
+\emph{profile zeta function}, to generate a corresponding
+distribution by setting the cumulative distribution function (c.d.f) to be
+$\Phi(\zeta)$ where $\Phi$ is the c.d.f.{} of the standard normal
+distribution.  From this we can derive a density.
+
+This is not quite the same as evaluating the distribution of the
+estimator of the parameter, which for mixed-effects models can be very
+difficult, but it gives us a good indication of what the distribution
+of the estimator would be.  Fig.~\ref{fig:fm01dens}, 
 \begin{figure}[tb]
   \centering
-<<fm01profpair,fig=TRUE,echo=FALSE,height=8>>=
-print(splom(pr01))
+<<fm01dens,fig=TRUE,echo=FALSE,height=3>>=
+print(densityplot(pr01))
 @   
-\caption[Profile pairs plot for the parameters in model
-\code{fm01}]{Profile pairs plot for the parameters in model \code{fm01}.
-  The contour lines correspond to two-dimensional 50\%, 80\%, 90\%,
-  95\% and 99\% marginal confidence regions based on the likelihood
-  ratio.  Panels below the diagonal represent the $(\zeta_i,\zeta_j)$
-  parameters; those above the diagonal represent the original
-  parameters.}
-  \label{fig:fm01profpair}
+  \caption{Density plot derived from the profile of model \code{fm01ML}}
+  \label{fig:fm01dens}
 \end{figure}
-
-The \emph{profile pairs} plot, obtained as
-<<fm01profpairshow,eval=FALSE>>=
-splom(pr01)
+created as
+<<fm01densshow,eval=FALSE>>=
+densityplot(pr01)
 @
-and shown in Fig.~\ref{fig:fm01profpair} shows the profile traces
-along with interpolated contours of the two-dimensional profiled
-deviance function.  The contours are chosen to correspond to the
-two-dimensional marginal confidence regions at particular confidence
-levels.
+shows the densities corresponding to the profiles in
+Fig.~\ref{fig:fm01prof}. We see that the density for $\sigma_1$ is
+quite skewed.
 
-Because this plot may be rather confusing at first we will explain
-what is shown in each panel.  To make it easier to refer to panels we
-assign them $(x,y)$ coordinates, as in a Cartesian coordinate system.
-The columns are numbered 1 to 3 from left to right and the rows are
-numbered 1 to 3 from bottom to top.  Note that the rows are numbered
-from the bottom to the top, like the y-axis of a graph, not from top
-to bottom, like a matrix.
-
-The diagonal panels show the ordering of the parameters: $\sigma_1$
-first, then $\log(\sigma)$ then $\beta_0$.  Panels above the diagonal
-are in the original scale of the parameters.  That is, the top-left
-panel, which is the $(1,3)$ position, has $\sigma_1$ on the horizontal
-axis and $\beta_0$ on the vertical axis.
-
-In addition to the contour lines in this panel, there are two other
-lines, which are the profile traces of $\sigma_1$ on $\beta_0$ and of
-$\beta_0$ on $\sigma_1$.  The profile trace of $\beta_0$ on $\sigma_1$
-is a straight horizontal line, indicating that the conditional estimate
-of $\beta_0$, given a value of $\sigma_1$, is constant.  Again, this is 
-a consequence of the simple model form and the balanced data set.  The
-other line in this panel, which is the profile trace of $\sigma_1$ on
-$\beta_0$, is curved.  That is, the conditional estimate of $\sigma_1$
-given $\beta_0$ depends on $\beta_0$.  As $\beta_0$ moves away from
-the estimate, $\widehat{\beta}_0$, in either direction, the
-conditional estimate of $\sigma_1$ increases.
-
-We will refer to the two traces on a panel as the ``horizontal trace''
-and ``vertical trace''.  They are not always perfectly horizontal and
-vertical lines but the meaning should be clear from the panel because
-one trace will always be more horizontal and the other will be more
-vertical.  The one that is more horizontal is the trace of the
-parameter on the y axis as a function of the parameter on the
-horizontal axis, and vice versa.
-
-The contours shown on the panel are interpolated from the profile zeta
-function and the profile traces, in the manner described in
-\citet[Chapter 6]{bateswatts88:_nonlin}.  One characteristic of a
-profile trace, which we can verify visually in this panel, is that the
-tangent to a contour must be vertical where it intersects the
-horizontal trace and horizontal where it intersects the vertical trace.
-
-The $(2,3)$ panel shows $\beta_0$ versus $\log(\sigma)$.  In this case
-the traces actually are horizontal and vertical straight lines.  That
-is, the conditional estimate of $\beta_0$ doesn't depend on
-$\log(\sigma)$ and the conditional estimate of $\log(\sigma)$ doesn't
-depend on $\beta_0$.  Even in this case, however, the contour lines
-are not concentric ellipses, because the deviance is not perfectly
-quadratic in these parameters.  That is, the zeta functions,
-$\zeta(\beta_0)$ and $\zeta(\log(\sigma))$, are not linear.
-
-The $(1,2)$ panel, showing $\log(\sigma)$ versus $\sigma_1$ shows
-distortion along both axes and nonlinear patterns in both traces.
-When $\sigma_1$ is close to zero the conditional estimate of
-$\log(\sigma)$ is larger than when $\sigma_1$ is large.  In other
-words small values of $\sigma_1$ inflate the estimate of
-$\log(\sigma)$ because the variability that would be explained by the
-random effects gets incorporated into the residual noise term.
-
-Panels below the diagonal are on the $\zeta$ scale, which is why the
-axes on each of these panels span the same range, approximately $-3$ to
-$+3$, and the profile traces always cross at the origin.  Thus the
-$(3,1)$ panel shows $\zeta(\sigma_1)$ on the vertical axis versus
-$\zeta(\beta_0)$ on the horizontal.  These panels allow us to see
-distortions from an elliptical shape due to nonlinearity of the
-traces, separately from the one-dimensional distortions caused by a
-poor choice of scale for the parameter.  The $\zeta$ scales provide,
-in some sense, the best possible set of single-parameter
-transformations for assessing the contours.  On the $\zeta$ scales the
-extent of a contour on the horizontal axis is exactly the same as the
-extent on the vertical axis and both are centered about zero.
-
-Another way to think of this is that, if we would have profiled
-$\sigma_1^2$ instead of $\sigma_1$, we would change all the panels in
-the first column but the panels on the first row would remain the same.
+If we had plotted the densities corresponding to the profiles of the
+variance components instead, we would get Fig.~\ref{fig:fm01vardens}
+\begin{figure}[tb]
+  \centering
+<<fm01vardens,fig=TRUE,echo=FALSE,height=3>>=
+print(densityplot(lme4a:::varianceProf(pr01),
+                  strip=strip.custom(factor.levels=expression(sigma[1]^2, sigma^2))))
+@   
+\caption[Variance component density plot for model \code{fm01ML}]{%
+  Densities of the ``variance components'', $\sigma_1^2$
+  and $\sigma^2$ for model \code{fm01ML} derived from the profile, \code{pr01}.}
+\label{fig:fm01vardens}
+\end{figure}
+which, of course, just accentuates the skewness in the distribution of
+these ``variance components''.
 
 \section{Assessing the Random Effects}
 \label{sec:assessRE}
@@ -1266,9 +1210,9 @@ square root transformation to the likelihood ratio test statistic,
 producing a profile zeta function for each parameter.  These functions
 provide likelihood-based confidence intervals for the parameters.
 Profile zeta plots allow us to visually assess the precision of
-individual parameters.  Profile pairs plots allow us to visualize the
-pairwise dependence of parameter estimates and two-dimensional
-marginal confidence regions.
+individual parameters.  Density plots derived from the profile zeta
+function provide another way of examining the distribution of the
+estimators of the parameters.
 
 Prediction intervals from the conditional distribution of the random
 effects, given the observed data, allow us to assess the precision of
@@ -1404,11 +1348,6 @@ to display the documentation for it.
 \begin{prob}
   Create the profile zeta plot for this model.  For which parameters
   are there good normal approximations?
-\end{prob}
-\begin{prob}
-  Create a profile pairs plot for this model.  Does the shape of the
-  deviance contours in this model mirror those in
-  Fig.~\ref{fig:fm01profpair}?
 \end{prob}
 \begin{prob}
   Plot the prediction intervals on the random effects from this model.
