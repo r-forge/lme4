@@ -135,6 +135,7 @@ S3method(qqmath, ranef.mer)
 S3method(dotplot, ranef.mer)
 ## profile() related:
 S3method(xyplot, thpr)
+S3method(densityplot, thpr)
 S3method(confint, thpr)
 S3method(splom, thpr)
 S3method(log, thpr)
