@@ -40,8 +40,8 @@ very simple example of one type of mixed model, the \emph{linear mixed
   model}.
 
 This simple example allows us to illustrate the use of the \code{lmer}
-function in the \package{lme4} package for fitting such models and
-for analyzing the fitted model.  We describe methods of assessing the
+function in the \package{lme4} package for fitting such models and for
+analyzing the fitted model.  We also describe methods of assessing the
 precision of the parameter estimates and of visualizing the
 conditional distribution of the random effects, given the observed
 data.
@@ -127,7 +127,7 @@ them.
 That's the big picture.  Now let's make this more concrete by describing
 a particular, versatile class of mixed models called linear mixed
 models and by studying a simple example of such a model.  First we
-will describe the data in the example.
+describe the data in the example.
 
 \section{The \texttt{Dyestuff} and
   \texttt{Dyestuff2} Data}
@@ -229,12 +229,11 @@ print(dotplot(reorder(Batch, Yield) ~ Yield, Dyestuff,
   \label{fig:Dyestuffdot}
 \end{figure}
 Although the \code{summary} does show us an important property of the
-data, namely that there are exactly $5$ observations on each batch --- a
-property that we will describe by saying that the data are
+data, namely that there are exactly $5$ observations on each batch ---
+a property that we will describe by saying that the data are
 \emph{balanced} with respect to \code{Batch} --- we usually learn much
 more about the structure of such data from plots like
-Fig.~\ref{fig:Dyestuffdot} than we can from
-numerical summaries.
+Fig.~\ref{fig:Dyestuffdot} than we do from numerical summaries.
 
 In Fig.~\ref{fig:Dyestuffdot} we can see that there is considerable
 variability in yield, even for preparations from the same batch, but
@@ -365,7 +364,7 @@ consider each of these sections in turn.
 
 The description section states that this is a linear mixed model in
 which the parameters have been estimated as those that minimize the
-REML criterion (explained in Sect.~\ref{sec:REML}).  The
+REML criterion (described in Sect.~\ref{sec:REML}).  The
 \code{formula} and \code{data} arguments are displayed for later
 reference.  If other, optional arguments affecting the fit, such as a
 \code{subset} specification, were used, they too will be displayed
@@ -373,8 +372,8 @@ here.
 
 For models fit by the REML criterion the only statistic describing the
 model fit is the value of the REML criterion itself.  An alternative
-set of parameter estimates, the maximum likelihood estimates, are
-obtained by specifying the optional argument \code{REML=FALSE}.
+set of parameter estimates, the maximum likelihood estimates (MLEs),
+are obtained by specifying the optional argument \code{REML=FALSE}.
 <<fm01ML>>=
 (fm01ML <- lmer(Yield ~ 1 + (1|Batch), Dyestuff, REML=FALSE))
 @ 
@@ -384,7 +383,7 @@ step. The redundant set of parentheses surrounding the assignment
 causes the result of the assignment to be displayed. We will use this
 device often in what follows.)
 
-The display of a model fit by maximum likelihood provides several
+The display of a model fit by maximum likelihood (ML) provides several
 other model-fit statistics such as Akaike's Information Criterion
 (\code{AIC})~\citep{saka:ishi:kita:1986}, Schwarz's Bayesian
 Information Criterion (\code{BIC})~\citep{schw:1978}, the
@@ -396,9 +395,16 @@ are used to compare different models fit to the same data.
 At this point the important thing to note is that the default
 estimation criterion is the REML criterion.  Generally the REML
 estimates of variance components are preferred to the ML estimates.
-However, when comparing models it is safest to refit all the models
-using the maximum likelihood criterion.  We will discuss comparisons
-of model fits in Sect.~\ref{sec:TestingSig2is0}.
+When comparing models, however, we will use \emph{likelihood ratio
+  tests}, for which the test statistic is the difference in the
+deviance of the fitted models.  (Recall that the deviance is negative
+twice the log-likelihood, hence a ratio of likelihoods corresponds to
+the difference in deviance values.)  Therefore, when building
+and assessing models we will often use maximum likelihood fits.
+As described in Sect.~\ref{sec:TestingSig2is0}, the function that
+performs a likelihood-ratio test will accept models fit by REML but it
+adds an extra step of refitting the models to obtain the maximum
+likelihood estimates (MLEs).
 
 The third section is the table of estimates of parameters associated
 with the random effects.  There are two sources of variability in the
@@ -511,7 +517,7 @@ because the random effects are inert, in the sense that they have a
 variance of zero, and hence can be removed.  
 
 Notice that the estimate of $\sigma$ from the linear model (called the
-\code{Residual standard error} in the output) corresponds to the
+\code{Residual standard error} in the summary) corresponds to the
 estimate in the REML fit (\code{fm02}) but not that from the ML fit
 (\code{fm02ML}). The fact that the REML estimates of variance
 components in mixed models generalize the estimate of the variance
@@ -545,9 +551,11 @@ in the next section.
 
 In explaining some of parameter estimates related to the random
 effects we have used terms such as ``unconditional distribution'' from
-the theory of probability.  Before proceeding further we should
+the theory of probability.  Before proceeding further we 
 clarify the linear mixed-effects probability model and define several
-terms and concepts that will be used throughout the book.
+terms and concepts that will be used throughout the book.  Readers who
+are more interested in practical results than in the statistical
+theory should feel free to skip this section.
 
 \subsection{Definitions and Results}
 \label{sec:definitions}
@@ -606,7 +614,7 @@ the complexity of the model.  Minimizing $r^2$ with respect to $\vec u$,
   r^2_{\beta,\theta} =\min_{\vec u}\left\{\|\vec y -\vec X\vec\beta -\vec
     Z\Lambda_\theta\vec u\|^2+\|\vec u\|^2\right\}
 \end{equation}
-is a direct (i.e. non-iterative) computation for which we calculate
+is a direct (i.e. non-iterative) computation during which we calculate
 the \emph{sparse Cholesky factor}, $\vec L_\theta$, which is a lower
 triangular $q\times q$ matrix satisfying
 \begin{equation}
@@ -627,7 +635,8 @@ where $|\vec L_\theta|$ denotes the \emph{determinant} of $\vec
 L_\theta$.  Because $\vec L_\theta$ is triangular, its determinant is
 the product of its diagonal elements.
 
-Because the conditional mean, $\vec\mu$, is a linear function of
+Because the conditional mean, $\vec\mu_{\bc Y|\bc B=\vec b}=\vec
+X\vec\beta+\vec Z\Lambda_\theta\vec u$, is a linear function of both
 $\vec\beta$ and $\vec u$, minimization of the PRSS with respect to
 both $\vec\beta$ and $\vec u$ to produce
 \begin{equation}
@@ -660,13 +669,13 @@ which provides the \emph{profiled deviance},
 \end{equation}
 a function of $\vec\theta$ alone.
 
-The \emph{maximum likelihood estimate} (MLE) of $\vec\theta$, written
-$\widehat{\vec\theta}$, is the value that minimizes the profiled
-deviance~(\ref{eq:LMMprofdev}).  We determine this value by numerical
-optimization.  In the process of evaluating
-$\tilde{d}(\widehat{\vec\theta}|\vec y)$ we determine
-$\widehat{\vec\beta}=\widehat{\vec\beta}_{\widehat\theta}$, $\tilde{\vec u}_{\widehat{\theta}}$ and
-$r^2_{\widehat{\theta}}$, from which we can evaluate
+The MLE of $\vec\theta$, written $\widehat{\vec\theta}$, is the value
+that minimizes the profiled deviance~(\ref{eq:LMMprofdev}).  We
+determine this value by numerical optimization.  In the process of
+evaluating $\tilde{d}(\widehat{\vec\theta}|\vec y)$ we determine
+$\widehat{\vec\beta}=\widehat{\vec\beta}_{\widehat\theta}$,
+$\tilde{\vec u}_{\widehat{\theta}}$ and $r^2_{\widehat{\theta}}$, from
+which we can evaluate
 $\widehat{\sigma}=\sqrt{r^2_{\widehat{\theta}}/n}$.
 
 The elements of the conditional mode of $\bc B$, evaluated at the
@@ -690,9 +699,10 @@ $\tilde{d}(\vec\theta|\vec y)$.
 <<fm01MLverb>>=
 fm01ML <- lmer(Yield ~ 1|Batch, Dyestuff, REML=FALSE, verbose=1)
 @ 
-The algorithm converges after 17 function evaluations to a profiled deviance of
-\Sexpr{sprintf(.f5, deviance(fm01ML))}
-at $\theta=$\Sexpr{sprintf(.f6, fm01ML@re@theta)}.
+The algorithm converges after 17 function evaluations to a profiled
+deviance of \Sexpr{sprintf(.f5, deviance(fm01ML))} at
+$\theta=$\Sexpr{sprintf(.f6, fm01ML@re@theta)}.  In this model the
+scalar parameter $\theta$ is the ratio $\sigma_1/\sigma$.
   
 The actual values of many of the matrices and vectors defined above
 are available as \emph{slots} of the fitted model object.  In general
@@ -701,6 +711,12 @@ the object returned by a model-fitting function from the
 consisting of information related to the random effects, \code{fe},
 consisting of information related to the fixed effects, and
 \code{resp}, consisting of information related to the response.
+
+In practice we rarely access the slots of a fitted model object
+directly, preferring instead to use some of the \emph{accessor
+  functions} that, as the name implies, provide access to some of the
+properties of the model.  However, in this section we will access some
+of the slots directly for the purposes of illustration.
 
 For example, $\Lambda_{\widehat{\theta}}$ is stored as
 <<fm01MLLambda>>=
@@ -741,7 +757,7 @@ transpose is shown in Fig.~\ref{fig:fm01Ztimage}, consists of the
 indicator columns for \code{Batch}.  Because the data are balanced
 with respect to \code{Batch}, the Cholesky factor, $\vec L$ is also a
 multiple of the identity (use \code{image(fm01ML@re@L)} to check if
-you wish).  The vector $\vec u$ is available in \code{fm01ML@re}.  The
+you wish).  The vector $\vec u$ is available in \code{fm01ML@re@u}.  The
 vector $\vec\beta$ and the model matrix $\vec X$ are in
 \code{fm01ML@fe}.
 
@@ -776,7 +792,7 @@ transformation to this statistic and plot the resulting function,
 called $\zeta$, versus the parameter value.  A $\zeta$ value can be
 compared to the quantiles of the \emph{standard normal distribution},
 $\bc Z\sim\mathcal{N}(0,1)$.  For example, a 95\% profile deviance
-confidence interval on the parameter consists of the values for which
+confidence interval on the parameter consists of those values for which
 $-1.960 < \zeta < 1.960$.
 
 Because the process of profiling a fitted model, which involves
@@ -854,7 +870,7 @@ parameters. Although this is not quite the same as describing the
 distribution of an estimator, it is a similar idea and we will use some
 of the terminology from distributions when describing these plots.
 Essentially we view the patterns in the plots as we would those in a
-normal probability plot of data values or residuals from a model.
+normal probability plot of data values or of residuals from a model.
 
 Ideally the profile zeta plot will be close to a straight line over
 the region of interest, in which case we can perform reliable
@@ -1035,12 +1051,12 @@ print(densityplot(lme4a:::varianceProf(pr01),
                   strip=strip.custom(factor.levels=expression(sigma[1]^2, sigma^2))))
 @   
 \caption[Variance component density plot for model \code{fm01ML}]{%
-  Densities of the ``variance components'', $\sigma_1^2$
+  Densities of the variance components, $\sigma_1^2$
   and $\sigma^2$ for model \code{fm01ML} derived from the profile, \code{pr01}.}
 \label{fig:fm01vardens}
 \end{figure}
 which, of course, just accentuates the skewness in the distribution of
-these ``variance components''.
+these variance components.
 
 \section{Assessing the Random Effects}
 \label{sec:assessRE}
