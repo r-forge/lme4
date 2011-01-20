@@ -1,4 +1,5 @@
 #include "respModule.h"
+#include <cmath>
 
 using namespace Rcpp;
 
@@ -17,9 +18,7 @@ namespace mer {
 	    throw std::runtime_error("y, mu, sqrtrwt and weights slots must have equal lengths");
 	if (os < 1 || os % n)
 	    throw std::runtime_error("length(offset) must be a positive multiple of length(y)");
-	d_sqrtrwt = sqrt(d_weights);
-	std::copy(d_sqrtrwt.begin(), d_sqrtrwt.end(), d_sqrtXwt.begin());
-	updateWrss();
+	init();
     }
 
     merResp::merResp(Rcpp::NumericVector y)
@@ -55,7 +54,11 @@ namespace mer {
     }
 
     void merResp::init() {
+#ifdef USE_RCPP_SUGAR
 	d_sqrtrwt = sqrt(d_weights);
+#else
+	std::transform(d_weights.begin(), d_weights.end(), d_sqrtrwt.begin(), &::sqrt);
+#endif
 	std::copy(d_sqrtrwt.begin(), d_sqrtrwt.end(), d_sqrtXwt.begin());
 	updateWrss();
     }
