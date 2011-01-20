@@ -133,8 +133,15 @@ namespace mer {
      */
     template<typename Tf, typename Tr> inline
     double mer<Tf,Tr>::updateMu() {
-				// needs Rcpp_0.8.3
+#ifdef USE_RCPP_SUGAR
 	Rcpp::NumericVector gamma = re.linPred() + fe.linPred(); 
+#else
+	Rcpp::NumericVector feP = fe.linPred();
+	Rcpp::NumericVector reP = re.linPred();
+	Rcpp::NumericVector gamma(feP.size());
+	std::transform(feP.begin(), feP.end(), reP.begin(), gamma.begin(),
+		       std::plus<double>());
+#endif
 	return resp.updateMu(gamma) + re.sqrLenU();
     }	
 
