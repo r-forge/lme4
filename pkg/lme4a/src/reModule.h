@@ -24,7 +24,7 @@ namespace mer {
 	double                      ldL2() const {return d_ldL2;}
 	// used in PIRLS when beta is not part of the solution
 	double                    solveU();
-	double                   sqrLenU() const {return sum(d_u * d_u);}
+	double                   sqrLenU() const;
 
 	void reweight    (const Rcpp::NumericMatrix&,
 			  const Rcpp::NumericVector&);
@@ -56,7 +56,7 @@ namespace mer {
 	// used in PIRLS when beta is not part of the solution
 	double                     solveU();
 	double                  solveIncr();
-	double                    sqrLenU() const {return sum(d_u * d_u);}
+	double                    sqrLenU() const;
 	double                    CcNumer() const {return d_CcNumer;}
 
 	MatrixNs::chmFr     const&      L() const {return d_L;}
