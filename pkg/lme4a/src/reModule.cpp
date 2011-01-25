@@ -114,8 +114,17 @@ namespace mer{
 	    throw std::runtime_error("size mismatch");
 	    // Rf_error("%s: expected %s.size() = %d, got %d",
 	    // 	     "reModule::setU", "ubase", q, ubase.size());
+#ifdef USE_RCPP_SUGAR
 	NumericVector res = (step == 0.) ? ubase : ubase + incr * step;
 	copy(res.begin(), res.end(), d_u.begin());
+#else
+	if (step == 0.) {
+	    copy(ubase.begin(), ubase.end(), d_u.begin());
+	} else {
+	    double *ip = incr.begin(), *ubp = ubase.begin(), *up = d_u.begin();
+	    for (int i = 0; i < q; i++) up[i] = ubp[i] + step * ip[i];
+	}
+#endif
     }
 
     /** 
@@ -142,6 +151,17 @@ namespace mer{
 	return ans;
     }
 
+    double reModule::sqrLenU() const {
+#ifdef USE_RCPP_SUGAR
+	return sum(d_u * d_u);
+#else
+	NumericVector uu(d_u.size());
+	transform(d_u.begin(), d_u.end(), d_u.begin(), uu.begin(),
+		  multiplies<double>());
+	return accumulate(uu.begin(), uu.end(), double());
+#endif
+    }
+	
     void reModule::installU0 () {
 	std::copy(d_u.begin(), d_u.end(), d_u0.begin());
     }
@@ -160,15 +180,22 @@ namespace mer{
      */
     void reModule::setTheta(const Rcpp::NumericVector& nt)
 	throw (std::runtime_error) {
-	R_len_t nth = d_lower.size();
+	R_len_t nth = d_lower.size(), nLind = d_Lind.size();
 	if (nt.size() != nth)
 	    throw runtime_error("setTheta: size mismatch of nt and d_lower");
+#ifdef USE_RCPP_SUGAR
 	if (any(nt < d_lower).is_true()) // check that nt is feasible
 	    throw runtime_error("setTheta: theta not in feasible region");
+#else
+	double *lp = d_lower.begin(), *ntp = nt.begin();
+	for (R_len_t i = 0; i < nth; i++)
+	    if (ntp[i] < lp[i])
+		throw runtime_error("setTheta: theta not in feasible region");
+#endif
 	copy(nt.begin(), nt.end(), d_theta.begin());
 				// update Lambda from theta and Lind
 	double *Lamx = (double*)d_Lambda.x, *th = d_theta.begin();
-	int *Li = d_Lind.begin(), nLind = d_Lind.size();
+	int *Li = d_Lind.begin();
 	for (R_len_t i = 0; i < nLind; i++) Lamx[i] = th[Li[i] - 1];
     }
 
@@ -188,7 +215,13 @@ namespace mer{
     }
     
     Rcpp::NumericVector reModule::linPred1(double fac) {
+#if USE_RCPP_SUGAR	
 	d_u = d_u0 + fac * d_incr;
+#else
+	double *up = d_u.begin(), *u0p = d_u0.begin(), *ip = d_incr.begin();
+	R_len_t q = d_u.size();
+	for (R_len_t i = 0; i < q; i++) up[i] = u0p[i] + fac * ip[i];
+#endif
 	return linPred();
     }
 }

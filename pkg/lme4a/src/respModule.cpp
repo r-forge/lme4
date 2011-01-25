@@ -71,8 +71,19 @@ namespace mer {
      * @return Updated weighted residual sum of squares
      */
     double merResp::updateWrss() {
+#ifdef USE_RCPP_SUGAR
 	d_wtres = (d_y - d_mu) * d_sqrtrwt;
 	d_wrss = sum(d_wtres * d_wtres);
+#else
+	NumericVector tmp(d_y.size());
+	std::transform(d_y.begin(), d_y.end(), d_mu.begin(), tmp.begin(),
+		       std::minus<double>());
+	std::transform(tmp.begin(), tmp.end(), d_sqrtrwt.begin(),
+		       d_wtres.begin(), std::multiplies<double>());
+	std::transform(d_wtres.begin(), d_wtres.end(), d_wtres.begin(),
+		       tmp.begin(), std::multiplies<double>());
+	d_wrss = std::accumulate(tmp.begin(), tmp.end(), double());
+#endif
 	return d_wrss;
     }
 
@@ -132,7 +143,12 @@ namespace mer {
     }
 					       
     double lmerResp::updateMu(const Rcpp::NumericVector& gamma) {
+#ifdef USE_RCPP_SUGAR
 	d_mu = d_offset + gamma;
+#else
+	std::transform(gamma.begin(), gamma.end(), d_offset.begin(),
+		       d_mu.begin(), std::plus<double>());
+#endif
 	return updateWrss();
     }
     
@@ -187,40 +203,75 @@ namespace mer {
 		"lengths of y, n and eta must agree");
     }
 
-    Rcpp::NumericVector glmerResp::devResid() const {
-	return d_fam.devResid(d_mu, d_weights, d_y);
-    }
-
-    Rcpp::NumericVector glmerResp::muEta() const {
-	return d_fam.muEta(d_eta);
-    }
-
-    Rcpp::NumericVector glmerResp::variance() const {
-	return d_fam.variance(d_mu);
-    }
-
     double glmerResp::residDeviance() const {
+#ifdef USE_RCPP_SUGAR
 	return sum(devResid());
+#else
+	NumericVector dd = devResid();
+	return std::accumulate(dd.begin(), dd.end(), double());
+#endif
     }
 
     double glmerResp::updateWts() {
-	d_sqrtrwt = sqrt(d_weights/d_fam.variance(d_mu));
+#ifdef USE_RCPP_SUGAR
+	d_sqrtrwt = sqrt(d_weights/variance());
 	NumericVector tmp = muEta() * d_sqrtrwt;
+#else
+	NumericVector vv = variance();
+	std::transform(d_weights.begin(), d_weights.end(), vv.begin(),
+		       d_sqrtrwt.begin(), std::divides<double>());
+	std::transform(d_sqrtrwt.begin(), d_sqrtrwt.end(),
+		       d_sqrtrwt.begin(), &::sqrt);
+	NumericVector tmp = muEta();
+	std::transform(tmp.begin(), tmp.end(), d_sqrtrwt.begin(),
+		       tmp.begin(), std::multiplies<double>());
+#endif
 	std::copy(tmp.begin(), tmp.end(), d_sqrtXwt.begin());
+	
 	return updateWrss();
     }
 
     Rcpp::NumericVector glmerResp::wrkResids() const {
+#ifdef USE_RCPP_SUGAR
 	return (d_y - d_mu)/muEta();
+#else
+	NumericVector rr(d_y.size()), me = muEta();
+	std::transform(d_y.begin(), d_y.end(), d_mu.begin(),
+		       rr.begin(), std::minus<double>());
+	std::transform(rr.begin(), rr.end(), me.begin(),
+		       rr.begin(), std::divides<double>());
+	return rr;
+#endif
     }
 
     Rcpp::NumericVector glmerResp::wrkResp() const {
-	return (d_eta -d_offset) + wrkResids();
+#ifdef USE_RCPP_SUGAR
+	return (d_eta - d_offset) + wrkResids();
+#else
+	NumericVector rr(d_eta.size()), ww = wrkResids();
+	std::transform(d_eta.begin(), d_eta.end(), d_offset.begin(),
+		       rr.begin(), std::minus<double>());
+	std::transform(rr.begin(), rr.end(), ww.begin(), rr.begin(),
+		       std::plus<double>());
+	return rr;
+#endif	
     }
 
     Rcpp::NumericVector glmerResp::sqrtWrkWt() const {
-	Rcpp::NumericVector me = muEta();
+	NumericVector me = muEta();
+#ifdef USE_RCPP_SUGAR
 	return sqrt(d_weights * me * me / variance());
+#else
+	NumericVector vv = variance();
+	std::transform(me.begin(), me.end(), me.begin(), me.begin(),
+		       std::multiplies<double>());
+	std::transform(me.begin(), me.end(), d_weights.begin(),
+		       me.begin(), std::multiplies<double>());
+	std::transform(me.begin(), me.end(), vv.begin(), me.begin(),
+		       std::divides<double>());
+	std::transform(me.begin(), me.end(), me.begin(), &::sqrt);
+	return me;
+#endif	
     }
 
     double glmerResp::Laplace(double  ldL2,
@@ -228,9 +279,14 @@ namespace mer {
 			      double  sqrL) const{
 	return ldL2 + sqrL + residDeviance();
     }
-	
+
     double glmerResp::updateMu(const Rcpp::NumericVector& gamma) {
+#ifdef USE_RCPP_SUGAR
 	d_eta = d_offset + gamma;
+#else
+	std::transform(d_offset.begin(), d_offset.end(), gamma.begin(),
+		       d_eta.begin(), std::plus<double>());
+#endif
 	NumericVector mmu = d_fam.linkInv(d_eta);
 	std::copy(mmu.begin(), mmu.end(), d_mu.begin());
 	return updateWrss();
@@ -257,7 +313,13 @@ namespace mer {
 
     double nlmerResp::updateMu(Rcpp::NumericVector const &gamma) throw(std::runtime_error) {
 	int n = d_y.size();
+#ifdef USE_RCPP_SUGAR
 	Rcpp::NumericVector gam = gamma + d_offset;
+#else
+	NumericVector gam(d_offset.size());
+	std::transform(gamma.begin(), gamma.end(), d_offset.begin(),
+		       gam.begin(), std::plus<double>());
+#endif
 	double *gg = gam.begin();
 
 	for (int p = 0; p < d_pnames.size(); p++) {
@@ -265,11 +327,11 @@ namespace mer {
 	    Rcpp::NumericVector pp = d_nlenv.get(pn);
 	    std::copy(gg + n * p, gg + n * (p + 1), pp.begin());
 	}
-	Rcpp::NumericVector rr = d_nlmod.eval(SEXP(d_nlenv));
+	NumericVector rr = d_nlmod.eval(SEXP(d_nlenv));
 	if (rr.size() != n)
 	    throw std::runtime_error("dimension mismatch");
 	std::copy(rr.begin(), rr.end(), d_mu.begin());
-	Rcpp::NumericMatrix rrg = rr.attr("gradient");
+	NumericMatrix rrg = rr.attr("gradient");
 	std::copy(rrg.begin(), rrg.end(), d_sqrtXwt.begin());
 	return updateWrss();
     }

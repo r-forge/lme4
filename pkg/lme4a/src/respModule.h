@@ -106,10 +106,13 @@ namespace mer {
 	double                      updateMu(const Rcpp::NumericVector&);
 	double                     updateWts();
 	double                          wrss() const {return d_wrss;}
-	Rcpp::NumericVector         devResid() const;
-	Rcpp::NumericVector            muEta() const;
+	Rcpp::NumericVector         devResid() const {
+	    return d_fam.devResid(d_mu, d_weights, d_y); }
+	Rcpp::NumericVector            muEta() const {
+	    return d_fam.muEta(d_eta); }
         Rcpp::NumericVector        sqrtWrkWt() const;
-	Rcpp::NumericVector         variance() const;
+	Rcpp::NumericVector         variance() const {
+	    return d_fam.variance(d_mu); }
         Rcpp::NumericVector        wrkResids() const;
         Rcpp::NumericVector          wrkResp() const;
 	void                        setPwrss(double);
