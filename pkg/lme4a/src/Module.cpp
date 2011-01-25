@@ -164,8 +164,6 @@ class_<deFeMod>("deFeMod")
 	    "update the coefficient vector given cu")
     .method("updateIncr",      &deFeMod::updateIncr,
 	    "update the increment vector given cu")
-    .method("updateRzxRx",     &deFeMod::updateRzxRxp,
-	    "update the triangular factor sections given Lambda and L")
     .method("updateRzxpRxpp",  &deFeMod::updateRzxpRxpp,
 	    "update the triangular factor sections given external pointers to Lambda and L")
     .method("updateUtV",      &deFeMod::updateUtVp,
