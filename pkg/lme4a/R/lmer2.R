@@ -83,8 +83,8 @@ lmer2 <- function(formula, data, REML = TRUE, sparseX = FALSE,
     pwrss <- wrss + sqrLenU
     dims <- c(N=n, n=n, nmp=n-p, nth=length(rem$theta), p=p, q=q,
               nAGQ=NA_integer_, useSc=1L, reTrms=length(reTrms@cnms),
-              spFe=0, REML=resp$REML, GLMM=0L, NLMM=0L)
-    cmp <- c(ldL2=rem$ldL2, ldRX2=fem$ldRX2, wrss=wrss, ussq=sqrLenU, pwrss=pwrss,
+              spFe=0L, REML=resp$REML, GLMM=0L, NLMM=0L)
+    cmp <- c(ldL2=rem$ldL2, ldRX2=fem$ldRX2, wrss=wrss, ussq=sqrLenU, pwrss=pwrss, drsum=NA,
              dev=if(REML)NA else opt$fval, REML=if(REML)opt$fval else NA,
              sigmaML=sqrt(pwrss/n), sigmaREML=sqrt(pwrss/(n-p)))
     re <- new("reTrms", flist=reTrms@flist, cnms=reTrms@cnms, L=rem$L, Lambda=rem$Lambda,
