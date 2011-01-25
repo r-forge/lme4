@@ -1,3 +1,14 @@
+2011-01-25  Douglas Bates  <bates@stat.wisc.edu>
+
+	* src/respModule.{cpp,h}: ifdef the use of Rcpp sugar functions
+	* src/reModule.{cpp,h}: idem
+
+	* src/feModule.h: Remove unused feModule method
+	* src/Module.cpp: idem
+
+	* R/lmer2.R (lmer2): Create compatible devcomp list (previous
+	version missed an element).
+
 2011-01-18  Douglas Bates  <bates@stat.wisc.edu>
 
 	* R/profile.R: added stripExpr function to change the strip
