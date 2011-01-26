@@ -41,6 +41,7 @@ namespace mer {
 	void installCoef0();
 	void setCoef0(const Rcpp::NumericVector&) throw (std::runtime_error);
 	void setIncr(const Rcpp::NumericVector&) throw (std::runtime_error);
+	void solveBeta();
 	
 	double                          ldRX2() const {return d_ldRX2;}
 	double                        CcNumer() const {return d_CcNumer;}
