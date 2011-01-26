@@ -80,8 +80,16 @@ namespace mer {
     }
 
     Rcpp::NumericVector deFeMod::linPred1(double fac) const {
-	Rcpp::NumericVector foo = d_coef0 + fac * d_incr;
-	std::copy(foo.begin(), foo.end(), d_coef.begin());
+#ifdef USE_RCPP_SUGAR
+	Rcpp::NumericVector cc = d_coef0 + fac * d_incr;
+	copy(cc.begin(), cc.end(), d_coef.begin());
+#else
+	double *cp = d_coef.begin(), *c0p = d_coef0.begin(),
+	    *ip = d_incr.begin();
+	R_len_t p = d_coef.size();
+	for (R_len_t i = 0; i < p; i++)
+	    cp[i] = c0p[i] + fac * ip[i];
+#endif
 	return linPred();
     }
 
@@ -143,21 +151,21 @@ showdbl(ans, "updated cu");
     }
     
     void deFeMod::installCoef0() {
-	std::copy(d_coef.begin(), d_coef.end(), d_coef0.begin());
+	copy(d_coef.begin(), d_coef.end(), d_coef0.begin());
     }
 
     void deFeMod::setCoef0 (const Rcpp::NumericVector& cc)
-	throw (std::runtime_error) {
+	throw (runtime_error) {
 	if (cc.size() != d_coef0.size())
-	    throw std::runtime_error("setCoef0: size mismatch");
-	std::copy(cc.begin(), cc.end(), d_coef0.begin());
+	    throw runtime_error("setCoef0: size mismatch");
+	copy(cc.begin(), cc.end(), d_coef0.begin());
     }
 
     void deFeMod::setIncr (const Rcpp::NumericVector& ii)
-	throw (std::runtime_error) {
+	throw (runtime_error) {
 	if (ii.size() != d_incr.size())
-	    throw std::runtime_error("setIncr: size mismatch");
-	std::copy(ii.begin(), ii.end(), d_incr.begin());
+	    throw runtime_error("setIncr: size mismatch");
+	copy(ii.begin(), ii.end(), d_incr.begin());
     }
 
     /** 
@@ -167,12 +175,12 @@ showdbl(ans, "updated cu");
      * @param wtres weighted residuals
      */
     void deFeMod::reweight(Rcpp::NumericMatrix   const&   Xwt,
-			    Rcpp::NumericVector   const& wtres)
-	throw(std::runtime_error) {
+			   Rcpp::NumericVector   const& wtres)
+	throw(runtime_error) {
 	if (d_coef.size() == 0) return;
 	chmDn cXwt(Xwt);
 	if ((Xwt.rows() * Xwt.cols()) != d_X.nrow())
-	    throw std::runtime_error("dimension mismatch");
+	    throw runtime_error("dimension mismatch");
 	int Wnc = Xwt.ncol(), Wnr = Xwt.nrow(),
 	    Xnc = d_X.ncol(), Xnr = d_X.nrow();
 	double *V = d_V.x().begin(), *X = d_X.x().begin();
