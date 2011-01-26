@@ -1,5 +1,5 @@
-useDynLib(lme4a)
-#useDynLib(lme4a, .registration=TRUE)
+#useDynLib(lme4a)
+useDynLib(lme4a, .registration=TRUE)
 
 ## Import non-base functions we need explicitly,
 ## notably for which we define methods:

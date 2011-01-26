@@ -437,11 +437,11 @@ mkdevfun <- function(mod, nAGQ = 1L, u0 = numeric(length(mod@re@u)), verbose = 0
         })
     }
     if (nAGQ == 0L)
-#        return(function(pars) .Call(merDeviance, mod, pars, beta0, u0, verbose, 3L))
-        return(function(pars) .Call("merDeviance", mod, pars, beta0, u0, verbose, 3L, PACKAGE="lme4a"))
+        return(function(pars) .Call(merDeviance, mod, pars, beta0, u0, verbose, 3L))
+#        return(function(pars) .Call("merDeviance", mod, pars, beta0, u0, verbose, 3L, PACKAGE="lme4a"))
     thpars <- seq_along(mod@re@theta)
-#    function(pars) .Call(merDeviance, mod, pars[thpars], pars[-thpars], u0, verbose, 2L)
-    function(pars) .Call("merDeviance", mod, pars[thpars], pars[-thpars], u0, verbose, 2L, PACKAGE="lme4a")
+    function(pars) .Call(merDeviance, mod, pars[thpars], pars[-thpars], u0, verbose, 2L)
+#    function(pars) .Call("merDeviance", mod, pars[thpars], pars[-thpars], u0, verbose, 2L, PACKAGE="lme4a")
 }
 
 setMethod("simulate", "merMod",
@@ -574,14 +574,15 @@ bootMer <- function(x, FUN, nsim = 1, seed = NULL, use.u = FALSE,
 
 PIRLSest <- function(ans, verbose, control, nAGQ) {
     if (verbose) control$iprint <- 2L
-                                        # initial optimization of PLSBeta
-    opt <- bobyqa(ans@re@theta, mkdevfun(ans, 0L, verbose = verbose),
-                  ans@re@lower, control = control)
+                                        # initial optimization of PIRLSBetaU
+    obj <- mkdevfun(ans, 0L, verbose = verbose)
+    
+    opt <- bobyqa(ans@re@theta, obj, ans@re@lower, control = control)
     if (nAGQ > 0L) {
         thpars <- seq_along(ans@re@theta)
         bb <- attr(opt$fval, "beta")
-        opt <- bobyqa(c(opt$par, bb),
-                      mkdevfun(ans, nAGQ, attr(opt$fval, "u"), verbose),
+        obj <- mkdevfun(ans, nAGQ, attr(opt$fval, "u"), verbose)
+        opt <- bobyqa(c(opt$par, bb), obj,
                       lower = c(ans@re@lower, rep.int(-Inf, length(bb))),
                       control = control)
     }
