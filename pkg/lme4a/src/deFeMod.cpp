@@ -1,5 +1,6 @@
 #include "feModule.h"
 #include <R_ext/BLAS.h>
+#include "utilities.h"
 
 using namespace std;
 using namespace MatrixNs;  // for chmDn, chmFr and chmSp
@@ -26,11 +27,6 @@ namespace mer {
      * Note: In a dPredModule object there is no d_VtV member as the
      * d_fac member can be updated directly from d_V.  However, in the
      * deFeMod object it is necessary to form d_VtV separately.
-     * Because a call to this member function follows a call to
-     * reweight we do that here.  It may be better to create a
-     * separate reweight method that first calls the reweight method
-     * from the parent class.  Alternatively, we could include a d_VtV
-     * member in the dPredModule class.
      *
      * @param Ut from the reModule
      */
@@ -39,7 +35,7 @@ namespace mer {
      	double one = 1., zero = 0.;
      	chmDn cUtV(d_UtV), cV(d_V);
      	M_cholmod_sdmult(Ut, 0/*trans*/, &one, &zero, &cV, &cUtV, &c);
-     	d_VtV.dsyrk(d_V, 1., 0.);
+	d_VtV.dsyrk(d_V, 1., 0.);
     }
 
     void deFeMod::updateUtVp(Rcpp::XPtr<cholmod_sparse> p) {
@@ -68,12 +64,6 @@ namespace mer {
 	d_ldRX2 = d_fac.logDet2();
     }
     
-    void deFeMod::updateRzxRxp(Rcpp::S4 Lambdap, Rcpp::S4 Lp) {
-	chmSp Lambda(Lambdap);
-	chmFr L(Lp);
-	updateRzxRx(Lambda, L);
-    }
-
     void deFeMod::updateRzxpRxpp(Rcpp::XPtr<MatrixNs::chmSp> Lambdap,
 				 Rcpp::XPtr<MatrixNs::chmFr> Lp) {
 	updateRzxRx(*Lambdap, *Lp);
@@ -109,19 +99,46 @@ namespace mer {
 
 	copy(d_Vtr.begin(), d_Vtr.end(), d_coef.begin());
 	d_RZX.dgemv('T', -1., ans, 1., d_coef);
-	d_fac.dpotrs(d_coef);
+	d_fac.dtrtrs('T', d_coef.begin());
+	d_CcNumer = sum(d_coef * d_coef);
+	d_fac.dtrtrs('N', d_coef.begin());
 	d_RZX.dgemv('N', -1., d_coef, 1., ans);
 	return ans;
     }
 
+    void deFeMod::solveBeta() {
+	d_fac.update(d_VtV);
+	copy(d_Vtr.begin(), d_Vtr.end(), d_incr.begin());
+	d_fac.dtrtrs('T', d_incr.begin());
+	d_fac.dtrtrs('N', d_incr.begin());
+    }
+    
     Rcpp::NumericVector deFeMod::updateIncr(Rcpp::NumericVector const& cu) {
 	Rcpp::NumericVector ans = clone(cu);
 	if (d_coef.size() == 0) return ans;
-
+#ifdef LME4A_DEBUG
+showdbl(ans, "cu on entry");
+showdbl(d_Vtr, "Vtr on entry");
+#endif
 	copy(d_Vtr.begin(), d_Vtr.end(), d_incr.begin());
 	d_RZX.dgemv('T', -1., ans, 1., d_incr);
-	d_fac.dpotrs(d_incr);
+#ifdef LME4A_DEBUG
+showdbl(d_incr, "cu - RZX %*% Vtr");
+#endif
+	d_fac.dtrtrs('T', d_incr.begin());
+#ifdef LME4A_DEBUG
+showdbl(d_incr, "RX^{-T}(cu - RZX %*% Vtr)");
+#endif
+
+	d_CcNumer = sum(d_incr * d_incr);
+        d_fac.dtrtrs('N', d_incr.begin());
+#ifdef LME4A_DEBUG
+showdbl(d_incr, "RX^{-1}RX^{-T}(cu - RZX %*% Vtr)");
+#endif
 	d_RZX.dgemv('N', -1., d_incr, 1., ans);
+#ifdef LME4A_DEBUG
+showdbl(ans, "updated cu");
+#endif
 	return ans;
     }
     
@@ -156,9 +173,6 @@ namespace mer {
 	chmDn cXwt(Xwt);
 	if ((Xwt.rows() * Xwt.cols()) != d_X.nrow())
 	    throw std::runtime_error("dimension mismatch");
-	    // Rf_error("%s: dimension mismatch %s(%d,%d), %s(%d,%d)",
-	    // 	     "dPredModule::reweight", "X", d_X.nrow(), d_X.ncol(),
-	    // 	     "Xwt", Xwt.nrow(), Xwt.ncol());
 	int Wnc = Xwt.ncol(), Wnr = Xwt.nrow(),
 	    Xnc = d_X.ncol(), Xnr = d_X.nrow();
 	double *V = d_V.x().begin(), *X = d_X.x().begin();
@@ -181,6 +195,7 @@ namespace mer {
 	    }
 	}
 	d_V.dgemv('T', 1., wtres, 0., d_Vtr);
+	d_VtV.dsyrk(d_V, 1., 0.);
     }
 
 }
