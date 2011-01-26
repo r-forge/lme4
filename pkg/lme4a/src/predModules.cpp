@@ -25,7 +25,15 @@ namespace matMod {
 	if (step == 0.) {
 	    copy(cbase.begin(), cbase.end(), d_coef.begin());
 	} else {
+#ifdef USE_RCPP_SUGAR
 	    Rcpp::NumericVector res = cbase + incr * step;
+#else
+	    Rcpp::NumericVector res(p, step);
+	    transform(incr.begin(), incr.end(), res.begin(),
+		      res.begin(), multiplies<double>());
+	    transform(cbase.begin(), cbase.end(), res.begin(),
+		      res.begin(), plus<double>());
+#endif
 	    copy(res.begin(), res.end(), d_coef.begin());
 	}
     }
@@ -41,7 +49,7 @@ namespace matMod {
 	: predModule(p), d_X(mm), d_V(n, p),
 	  d_fac(p, 'U') {
     }
-
+ 
     // dPredModule::dPredModule(Rcpp::NumericMatrix mm, int n)
     //     : predModule(mm.ncol()), d_X(mm), d_V(n, mm.ncol()),
     // 	  d_fac(mm.ncol(), 'U') {
