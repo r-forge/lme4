@@ -15,7 +15,7 @@
 	    \code{Male} 
 	    \code{Female} 
 	}
-	\item{Litter}{an ordered factor}
+	\item{Litter}{a factor, the litter number}
 	\item{Lsize}{a numeric vector}
 	\item{Treatment}{
 	    an ordered factor with levels
