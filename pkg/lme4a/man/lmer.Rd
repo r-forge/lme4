@@ -154,7 +154,7 @@ nlmer(formula, data, family = gaussian, start = NULL,
 anova(fm1, fm2)
 
 ## dense vs sparse X  --------------------------
-## use more sensical example !!
+## use more sensible example !!
 fm3.d <- lmer(Yield ~ 1|Batch, Dyestuff2)
 fm3.s <- lmer(Yield ~ 1|Batch, Dyestuff2, sparseX=TRUE)#-> warning
 ## check "equality"
