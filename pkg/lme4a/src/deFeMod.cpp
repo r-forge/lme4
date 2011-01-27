@@ -84,11 +84,11 @@ namespace mer {
 	Rcpp::NumericVector cc = d_coef0 + fac * d_incr;
 	copy(cc.begin(), cc.end(), d_coef.begin());
 #else
-	double *cp = d_coef.begin(), *c0p = d_coef0.begin(),
-	    *ip = d_incr.begin();
-	R_len_t p = d_coef.size();
-	for (R_len_t i = 0; i < p; i++)
-	    cp[i] = c0p[i] + fac * ip[i];
+	fill(d_coef.begin(), d_coef.end(), fac);
+	transform(d_coef.begin(), d_coef.end(), d_incr.begin(),
+		  d_coef.begin(), multiplies<double>());
+	transform(d_coef.begin(), d_coef.end(), d_coef0.begin(),
+		  d_coef.begin(), plus<double>());
 #endif
 	return linPred();
     }
@@ -137,8 +137,14 @@ showdbl(d_incr, "cu - RZX %*% Vtr");
 #ifdef LME4A_DEBUG
 showdbl(d_incr, "RX^{-T}(cu - RZX %*% Vtr)");
 #endif
-
-	d_CcNumer = sum(d_incr * d_incr);
+#ifdef USE_RCPP_SUGAR
+        d_CcNumer = sum(d_incr * d_incr);
+#else
+        Rcpp::NumericVector tmp(d_incr.size());
+	transform(d_incr.begin(), d_incr.end(), d_incr.begin(),
+		  tmp.begin(), multiplies<double>());
+	d_CcNumer = accumulate(tmp.begin(), tmp.end(), double());
+#endif
         d_fac.dtrtrs('N', d_incr.begin());
 #ifdef LME4A_DEBUG
 showdbl(d_incr, "RX^{-1}RX^{-T}(cu - RZX %*% Vtr)");
