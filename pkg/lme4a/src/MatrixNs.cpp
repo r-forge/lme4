@@ -122,7 +122,7 @@ namespace MatrixNs{
 
     triangularMatrix::triangularMatrix(char ul, char di)
 	: d_ul(UpLo(ul)),
-	  d_di(Diag(ul)) {
+	  d_di(Diag(di)) {
     }
 
     symmetricMatrix::symmetricMatrix(Rcpp::S4& xp)
@@ -252,8 +252,6 @@ namespace MatrixNs{
 	F77_CALL(dtrtrs)(&d_ul, &tr, &d_di, &d_nrow, &nb, d_x.begin(),
 			 &d_nrow, v, &d_nrow, &info);
 	if (info) throw std::runtime_error("Lapack routine dtrtrs returned an error code");
-	    // Rf_error("Lapack routine %s returned error code %d",
-	    // 	     "dtrtrs", info);
     }
 
     dtrMatrix::operator SEXP() const {
