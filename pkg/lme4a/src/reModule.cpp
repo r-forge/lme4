@@ -97,6 +97,7 @@ namespace mer{
 	NumericMatrix
 	    ans = d_L.solve(CHOLMOD_L, d_L.solve(CHOLMOD_P, d_cu));
 	copy(ans.begin(), ans.end(), d_cu.begin());
+	d_CcNumer = inner_product(d_cu.begin(), d_cu.end(), d_cu.begin(), double());
     }
 
     /** 
@@ -108,10 +109,11 @@ namespace mer{
      * @param step step fraction
      */
     void reModule::setU(const Rcpp::NumericVector& ubase,
-			const Rcpp::NumericVector& incr, double step) throw(std::runtime_error) {
+			const Rcpp::NumericVector& incr, double step)
+	throw (std::runtime_error) {
 	int q = d_u.size();
 	if (ubase.size() != q)
-	    throw std::runtime_error("size mismatch");
+	    throw runtime_error("size mismatch");
 	    // Rf_error("%s: expected %s.size() = %d, got %d",
 	    // 	     "reModule::setU", "ubase", q, ubase.size());
 #ifdef USE_RCPP_SUGAR
@@ -133,10 +135,11 @@ namespace mer{
      */  
     double reModule::solveU() {
 	NumericMatrix c1 = d_L.solve(CHOLMOD_L, d_L.solve(CHOLMOD_P, d_cu));
-	double ans = inner_product(c1.begin(), c1.end(), c1.begin(), double());
+	d_CcNumer = inner_product(c1.begin(), c1.end(), c1.begin(), double());
 	NumericMatrix mm = d_L.solve(CHOLMOD_Pt, d_L.solve(CHOLMOD_Lt, c1));
+//	NumericMatrix mm = d_L.solve(CHOLMOD_Pt, d_L.solve(CHOLMOD_Lt, d_cu));
 	copy(mm.begin(), mm.end(), d_u.begin());
-	return ans;
+	return d_CcNumer;	// this return value is vestigial
     }
 
     /** 
@@ -144,33 +147,27 @@ namespace mer{
      * 
      */  
     double reModule::solveIncr() {
-	NumericMatrix c1 = d_L.solve(CHOLMOD_L, d_L.solve(CHOLMOD_P, d_cu));
-	double ans = inner_product(c1.begin(), c1.end(), c1.begin(), double());
-	NumericMatrix mm = d_L.solve(CHOLMOD_Pt, d_L.solve(CHOLMOD_Lt, c1));
+//	NumericMatrix c1 = d_L.solve(CHOLMOD_L, d_L.solve(CHOLMOD_P, d_cu));
+//	d_CcNumer = inner_product(c1.begin(), c1.end(), c1.begin(), double());
+//	NumericMatrix mm = d_L.solve(CHOLMOD_Pt, d_L.solve(CHOLMOD_Lt, c1));
+	NumericMatrix mm = d_L.solve(CHOLMOD_Pt, d_L.solve(CHOLMOD_Lt, d_cu));
 	copy(mm.begin(), mm.end(), d_incr.begin());
-	return ans;
+	return d_CcNumer;
     }
 
     double reModule::sqrLenU() const {
-#ifdef USE_RCPP_SUGAR
-	return sum(d_u * d_u);
-#else
-	NumericVector uu(d_u.size());
-	transform(d_u.begin(), d_u.end(), d_u.begin(), uu.begin(),
-		  multiplies<double>());
-	return accumulate(uu.begin(), uu.end(), double());
-#endif
+	return inner_product(d_u.begin(), d_u.end(), d_u.begin(), double());
     }
 	
     void reModule::installU0 () {
-	std::copy(d_u.begin(), d_u.end(), d_u0.begin());
+	copy(d_u.begin(), d_u.end(), d_u0.begin());
     }
 
     void reModule::setU0 (const Rcpp::NumericVector& uu)
 	throw (std::runtime_error) {
 	if (uu.size() != d_u0.size())
-	    throw std::runtime_error("size mismatch");
-	std::copy(uu.begin(), uu.end(), d_u0.begin());
+	    throw runtime_error("size mismatch");
+	copy(uu.begin(), uu.end(), d_u0.begin());
     }
 
     /** 
@@ -205,22 +202,26 @@ namespace mer{
      * @param cu 
      */
     void reModule::updateU(const Rcpp::NumericVector& cu) {
+//	d_CcNumer = inner_product(cu.begin(), cu.end(), cu.begin(), double());
 	NumericMatrix nu = d_L.solve(CHOLMOD_Pt, d_L.solve(CHOLMOD_Lt, cu));
-	setU(NumericVector(SEXP(nu)));
+	copy(nu.begin(), nu.end(), d_u.begin());
     }
     
     void reModule::updateIncr(const Rcpp::NumericVector& cu) {
+//	d_CcNumer = inner_product(cu.begin(), cu.end(), cu.begin(), double());
 	NumericMatrix nu = d_L.solve(CHOLMOD_Pt, d_L.solve(CHOLMOD_Lt, cu));
-	std::copy(nu.begin(), nu.end(), d_incr.begin());
+	copy(nu.begin(), nu.end(), d_incr.begin());
     }
     
     Rcpp::NumericVector reModule::linPred1(double fac) {
 #if USE_RCPP_SUGAR	
 	d_u = d_u0 + fac * d_incr;
 #else
-	double *up = d_u.begin(), *u0p = d_u0.begin(), *ip = d_incr.begin();
-	R_len_t q = d_u.size();
-	for (R_len_t i = 0; i < q; i++) up[i] = u0p[i] + fac * ip[i];
+	fill(d_u.begin(), d_u.end(), fac);
+	transform(d_u.begin(), d_u.end(), d_incr.begin(),
+		  d_u.begin(), multiplies<double>());
+	transform(d_u.begin(), d_u.end(), d_u0.begin(),
+		  d_u.begin(), plus<double>());
 #endif
 	return linPred();
     }
