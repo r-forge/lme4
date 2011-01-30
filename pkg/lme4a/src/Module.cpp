@@ -160,6 +160,8 @@ class_<deFeMod>("deFeMod")
 	    "update coef = coef0 + fac * incr and return linear predictor contribution")
     .method("reweight",        &deFeMod::reweight,
 	    "update V and Vtr for new weights")
+    .method("solveIncr",       &deFeMod::solveIncr,
+	    "update fac from VtV and solve for increment")
     .method("updateBeta",      &deFeMod::updateBeta,
 	    "update the coefficient vector given cu")
     .method("updateIncr",      &deFeMod::updateIncr,
