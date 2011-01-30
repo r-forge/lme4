@@ -596,7 +596,7 @@ glmer <- function(formula, data, family = gaussian, sparseX = FALSE,
 {
     verbose <- as.integer(verbose)
     mf <- mc <- match.call()
-    if (missing(family)) { ## divert using lmer2()
+    if (missing(family)) { ## divert using lmer()
 	mc[[1]] <- as.name("lmer")
 	return(eval(mc, parent.frame()))
     }
