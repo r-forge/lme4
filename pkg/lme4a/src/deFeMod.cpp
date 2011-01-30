@@ -114,7 +114,7 @@ namespace mer {
 	return ans;
     }
 
-    void deFeMod::solveBeta() {
+    void deFeMod::solveIncr() {
 	d_fac.update(d_VtV);
 	copy(d_Vtr.begin(), d_Vtr.end(), d_incr.begin());
 	d_fac.dtrtrs('T', d_incr.begin());
@@ -131,11 +131,11 @@ showdbl(d_Vtr, "Vtr on entry");
 	copy(d_Vtr.begin(), d_Vtr.end(), d_incr.begin());
 	d_RZX.dgemv('T', -1., ans, 1., d_incr);
 #ifdef LME4A_DEBUG
-showdbl(d_incr, "cu - RZX %*% Vtr");
+showdbl(d_incr, "Vtr - crossprod(RZX, cu)");
 #endif
 	d_fac.dtrtrs('T', d_incr.begin());
 #ifdef LME4A_DEBUG
-showdbl(d_incr, "RX^{-T}(cu - RZX %*% Vtr)");
+showdbl(d_incr, "RX^{-T}(Vtr - crossprod(RZX, cu))");
 #endif
 #ifdef USE_RCPP_SUGAR
         d_CcNumer = sum(d_incr * d_incr);
@@ -147,7 +147,7 @@ showdbl(d_incr, "RX^{-T}(cu - RZX %*% Vtr)");
 #endif
         d_fac.dtrtrs('N', d_incr.begin());
 #ifdef LME4A_DEBUG
-showdbl(d_incr, "RX^{-1}RX^{-T}(cu - RZX %*% Vtr)");
+showdbl(d_incr, "RX^{-1}RX^{-T}(Vtr - crossprod(RZX, cu))");
 #endif
 	d_RZX.dgemv('N', -1., d_incr, 1., ans);
 #ifdef LME4A_DEBUG
