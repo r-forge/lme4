@@ -87,7 +87,7 @@ importMethodsFrom("Matrix"
                   , update
                   )
 
-exportPattern("^[^\\.]")
+#exportPattern("^[^\\.]")
 
 # re-export imported S4 generics
 export(AIC, BIC, logLik)
