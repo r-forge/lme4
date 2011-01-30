@@ -1,15 +1,26 @@
-solveBetaU <- function(rem, fem, Xwts, resids, useU0=FALSE) {
+##' Solve for both sets of coefficients
+##'
+##' @title Solve for both beta and u
+##' @param rem random-effects module
+##' @param fem fixed-effects module
+##' @param Xwts square root of the X weights
+##' @param resids weighted residuals
+##' @param useU0 should the gradient be based on the value of u0 or u
+##' @return none
+solveBetaU <- function(rem, fem, Xwts, resids) {
+### FIXME: change the Xwts to be a vector, not a matrix
     Xwts <- as.matrix(Xwts)
-    rem$reweight(Xwts, resids, useU0)
-    fem$reweight(Xwts, resids)
-    fem$updateUtV(rem$Ut)                   # update V, VtV and Vtr
-    fem$updateRzxpRxpp(rem$Lambdap, rem$Lp) # update RZX and RX
-    rem$updateIncr(fem$updateIncr(rem$cu))  # increments to u and beta
+    rem$reweight(Xwts, resids, TRUE)    # update U, Utr and L
+    fem$reweight(Xwts, resids)          # update V, VtV and Vtr
+    fem$updateUtV(rem$Ut)
+    fem$updateRzxpRxpp(rem$Lambdap, rem$Lp)
+    tmp <- fem$updateIncr(rem$cu)       # increment for beta
+    rem$updateIncr(tmp)                 # increment for u
 }
 
 lmer2 <- function(formula, data, REML = TRUE, sparseX = FALSE,
                   control = list(), start = NULL,
-                  verbose = 0, doFit = TRUE, compDev = TRUE,
+                  verbose = 0L, doFit = TRUE, compDev = TRUE,
                   subset, weights, na.action, offset,
                   contrasts = NULL, ...)
 {
@@ -65,16 +76,17 @@ lmer2 <- function(formula, data, REML = TRUE, sparseX = FALSE,
     devfun <- function(theta) {
         rem$theta <- theta              # update theta, Lambda
         resp$updateMu(numeric(n))       # zero the current mu
-        solveBetaU(rem, fem, resp$sqrtXwt, resp$wtres, TRUE)
+        solveBetaU(rem, fem, resp$sqrtXwt, resp$wtres)
                                         # update mu (full step)
         resp$updateMu(rem$linPred1(1) + fem$linPred1(1))
                                         # profiled deviance or REML
         resp$Laplace(rem$ldL2, fem$ldRX2, rem$sqrLenU)
     }
-    devfun(reTrms@theta)                # one evaluation ensure all values are set
+    ## one evaluation of devfun to ensure that all values are set
+    opt <- list(fval=devfun(reTrms@theta))
 
     if (doFit) {                        # optimize estimates
-        if (verbose) control$iprint <- 2L
+        if (verbose) control$iprint <- as.integer(verbose)
         opt <- bobyqa(reTrms@theta, devfun, reTrms@lower, control = control)
     }
     
@@ -93,6 +105,14 @@ lmer2 <- function(formula, data, REML = TRUE, sparseX = FALSE,
         fe=as(fem, "deFeMod"), resp=as(resp, "lmerResp"))
 }## { lmer2 }
 
+##' Create an lmerResp, glmerResp or (later) nlmerResp instance
+##' 
+##' @title Create a [ng]lmerResp instance
+##' @param fr a model frame
+##' @param family the optional glm family (glmRespMod only)
+##' @param nlenv the nonlinear model evaluation environment (nlsRespMod only)
+##' @param nlmod the nonlinear model function (nlsRespMod only)
+##' @return a lmerResp (or glmerResp) instance
 mkRespMod2 <- function(fr, family = NULL, nlenv = NULL, nlmod = NULL) {
     n <- nrow(fr)
     y <- model.response(fr)
@@ -140,14 +160,8 @@ mkRespMod2 <- function(fr, family = NULL, nlenv = NULL, nlmod = NULL) {
 ##' @param fem fixed-effects module
 ##' @param resp response module
 ##' @return pwrss under the new weights at the new u0 and coef0
-##' @author Douglas Bates
 stepFac <- function(rem, fem, resp, verbose=FALSE) {
-    pwrss0 <- resp$pwrss
-### FIXME: Probably store the squared length of u in the respModule
-### and return the penalized, weighted residual sum of squares
-
-### FIXME: It would be trivial to create a sqrLenU0 method for
-### reModule, which might make some of the logic cleaner.
+    pwrss0 <- resp$wrss + rem$sqrLenU
     for (fac in 2^(-(0:10))) {
         ## the calculation of pwrss1 is done in two steps because I'm
         ## not sure of the evaluation order and sqrLenU must follow
@@ -166,22 +180,36 @@ stepFac <- function(rem, fem, resp, verbose=FALSE) {
         if (fac < 0.001)
             stop("step factor reduced below 0.001 without reducing wrss")
     }
-    invisible(NULL)
 }
 
-
-pwrssUpdate <- function(theta, pwrss, rem, fem, resp) {
-    rem$theta <- theta
-    solveBetaU(rem, fem, resp$sqrtXwt, resp$wtres)
-    stepFac(rem, fem, resp)
+pwrssUpdate <- function(rem, fem, resp, verbose) {
+    for (i in 1:5) {
+        solveBetaU(rem, fem, resp$sqrtXwt, resp$wtres)
+        stepFac(rem, fem, resp, verbose)
+    }
 }
 
-pwrssUpdate2 <- function(theta, rem, fem, resp) {
-    rem$theta <- theta
-    rem$reweight(resp$sqrtXwt, resp$wtres, FALSE)
-    rem$solveIncr()
-    stepFac(rem, fem, resp)
+pwrssUpdate2 <- function(rem, fem, resp, verbose) {
+    repeat {
+        rem$reweight(resp$sqrtXwt, resp$wtres, TRUE) 
+        ccrit <- sqrt(rem$solveIncr()/resp$pwrss)
+        if (ccrit < 0.001) break
+        stepFac(rem, fem, resp, verbose)
+    }
 }
+
+setMethod("show", signature("Rcpp_glmerResp"), function(object)
+      {
+          with(object,
+               print(head(cbind(weights, offset, eta, mu, y, muEta,
+                                variance, sqrtrwt, wtres, sqrtXwt=sqrtXwt[,1],
+                                sqrtWrkWt, wrkResids, wrkResp))))
+      })
+
+setMethod("show", signature("Rcpp_deFeMod"), function(object)
+      {
+          with(object, print(cbind(coef0, incr, coef, Vtr)))
+      })
 
 glmer2 <- function(formula, data, family = gaussian, sparseX = FALSE,
                    control = list(), start = NULL, verbose = 0L, nAGQ = 1L,
@@ -225,7 +253,7 @@ glmer2 <- function(formula, data, family = gaussian, sparseX = FALSE,
     mf <- mf[c(1, m)]
     mf$drop.unused.levels <- TRUE
     mf[[1]] <- as.name("model.frame")
-    fr.form <- subbars(formula) # substituted "|" by "+" -
+    fr.form <- subbars(formula) # substitute "|" for "+" -
     environment(fr.form) <- environment(formula)
     mf$formula <- fr.form
     fr <- eval(mf, parent.frame())
@@ -233,6 +261,7 @@ glmer2 <- function(formula, data, family = gaussian, sparseX = FALSE,
     reTrms <- mkReTrms(findbars(formula[[3]]), fr)
     rem <- new(reModule, reTrms@Zt, reTrms@Lambda,
                reTrms@L, reTrms@Lind, reTrms@lower)
+    rem$theta <- reTrms@theta           # initialize structures
                                         # fixed-effects module
     feMod <- mkFeModule(formula, fr, contrasts, reTrms, sparseX)
     n <- nrow(fr)
@@ -242,12 +271,17 @@ glmer2 <- function(formula, data, family = gaussian, sparseX = FALSE,
     fem <- new(deFeMod, X, n, p, q)
                                         # response module
     resp <- mkRespMod2(fr, family)
-                                       
-    rem$theta <- reTrms@theta           # initialize structures
-    solveBetaU(rem, fem, resp$sqrtWrkWt, resp$wrkResp, TRUE)
-    resp$updateMu(rem$linPred1(1) + fem$linPred1(1))
-    rem$installU0()
+                                        # initial step for working residuals
+    fem$reweight(as.matrix(resp$sqrtWrkWt), resp$wrkResp)
+    fem$solveIncr()
+    resp$updateMu(fem$linPred1(1))
     fem$installCoef0()
+
+    resp$updateWts()
+    fem$incr <- numeric(p)
+    pwrssUpdate2(rem, fem, resp, verbose)
+    resp$updateWts()
+    
     resp$pwrss <- resp$updateWts() + rem$sqrLenU
     list(rem = rem, fem = fem, resp = resp)
 }## {glmer2}
