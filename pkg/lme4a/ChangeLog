@@ -1,3 +1,20 @@
+2011-01-30  Douglas Bates <bates@stat.wisc.edu>
+
+	* DESCRIPTION: New release number.
+	* src/reModule.cpp: ifdef'd calls to sugar expressions.
+	* src/Module.cpp, src/deFeMod.cpp, src/feModule.h: Rename the function
+	  that solves for the increment to solveIncr, not solveBeta
+	* src/MatrixNs.cpp: Dumb cut-and-paste error (which took a very long
+	  time to track down).
+	* R/lmer2.R: Added show methods. Clean up code.
+	* R/lmer.R: Correction in a comment
+	* NAMESPACE: Comment out the exportPattern
+
+2011-01-27  Douglas Bates <bates@stat.wisc.edu>
+
+	* DESCRIPTION: New version for testing
+	* man/lmer.Rd: spelling mistake
+
 2011-01-26  Douglas Bates <bates@stat.wisc.edu>
 
 	* src/predModules.cpp: ifdef use of Rcpp sugar functions
