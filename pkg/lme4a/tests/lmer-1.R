@@ -184,17 +184,17 @@ if (require('MASS', quietly = TRUE)) {
 
     stopifnot(
 	      all.equal(logLik(fm5),
-			## was	  -96.13069
-			structure(-96.127838, nobs = 220L, nall = 220L,
+			## was	  -96.127838
+			structure(-96.13069, nobs = 220L, nall = 220L,
 				  df = 5L, REML = FALSE,
                                   class = "logLik"),
                         tol = 1e-5, check.attributes = FALSE)
 	      ,
 	      all.equal(fixef(fm5),
-			## was		 2.831609490		 -1.366722631
-			c("(Intercept)"= 2.834218798, "trtdiag"= -1.367099481,
-			  ## now	 0.5840147802,		 -1.598591346
-			  "trtencourage"=0.5842291915, "wk2TRUE"=-1.599148773), tol = 1e-4)
+			## was		 2.834218798		 -1.367099481
+			c("(Intercept)"= 2.831609490, "trtdiag"= -1.366722631,
+			  ## now	 0.5842291915,		 -1.599148773
+			  "trtencourage"=0.5840147802, "wk2TRUE"=-1.598591346), tol = 1e-4)
 	      )
 }
 
