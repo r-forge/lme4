@@ -1,3 +1,11 @@
+2011-01-31  Douglas Bates <bates@stat.wisc.edu>
+
+	* tests/lmer-1.R: Revert to previous results from glmer fit to the
+	  bacteria data (after fixing reModule::solveU)
+	* src/reModule.cpp: Only do the solution with respect to Pt and Lt in
+	  solveU and solveIncr. The solution with respect to L and P is done in
+	  the reweight method.
+
 2011-01-30  Douglas Bates <bates@stat.wisc.edu>
 
 	* DESCRIPTION: New release number.
