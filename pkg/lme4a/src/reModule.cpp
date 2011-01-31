@@ -134,10 +134,10 @@ namespace mer{
      * 
      */  
     double reModule::solveU() {
-	NumericMatrix c1 = d_L.solve(CHOLMOD_L, d_L.solve(CHOLMOD_P, d_cu));
-	d_CcNumer = inner_product(c1.begin(), c1.end(), c1.begin(), double());
-	NumericMatrix mm = d_L.solve(CHOLMOD_Pt, d_L.solve(CHOLMOD_Lt, c1));
-//	NumericMatrix mm = d_L.solve(CHOLMOD_Pt, d_L.solve(CHOLMOD_Lt, d_cu));
+	// NumericMatrix c1 = d_L.solve(CHOLMOD_L, d_L.solve(CHOLMOD_P, d_cu));
+	// d_CcNumer = inner_product(c1.begin(), c1.end(), c1.begin(), double());
+	// NumericMatrix mm = d_L.solve(CHOLMOD_Pt, d_L.solve(CHOLMOD_Lt, c1));
+	NumericMatrix mm = d_L.solve(CHOLMOD_Pt, d_L.solve(CHOLMOD_Lt, d_cu));
 	copy(mm.begin(), mm.end(), d_u.begin());
 	return d_CcNumer;	// this return value is vestigial
     }
