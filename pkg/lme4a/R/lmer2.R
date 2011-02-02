@@ -22,7 +22,7 @@ lmer2 <- function(formula, data, REML = TRUE, sparseX = FALSE,
                   control = list(), start = NULL,
                   verbose = 0L, doFit = TRUE, compDev = TRUE,
                   subset, weights, na.action, offset,
-                  contrasts = NULL, ...)
+                  contrasts = NULL, gctort=FALSE, ...)
 {
     mf <- mc <- match.call()
     ## '...' handling up front, safe-guarding against typos ("familiy") :
@@ -83,13 +83,14 @@ lmer2 <- function(formula, data, REML = TRUE, sparseX = FALSE,
         resp$Laplace(rem$ldL2, fem$ldRX2, rem$sqrLenU)
     }
     ## one evaluation of devfun to ensure that all values are set
+if (gctort) gctorture(1)
     opt <- list(fval=devfun(reTrms@theta))
 
     if (doFit) {                        # optimize estimates
         if (verbose) control$iprint <- as.integer(verbose)
         opt <- bobyqa(reTrms@theta, devfun, reTrms@lower, control = control)
     }
-    
+if (gctort) gctorture(0)
     sqrLenU <- rem$sqrLenU
     wrss <- resp$wrss
     pwrss <- wrss + sqrLenU
