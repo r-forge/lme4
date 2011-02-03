@@ -22,7 +22,7 @@ lmer2 <- function(formula, data, REML = TRUE, sparseX = FALSE,
                   control = list(), start = NULL,
                   verbose = 0L, doFit = TRUE, compDev = TRUE,
                   subset, weights, na.action, offset,
-                  contrasts = NULL, gctort=FALSE, ...)
+                  contrasts = NULL, gctort=FALSE, devFunOnly=FALSE, ...)
 {
     mf <- mc <- match.call()
     ## '...' handling up front, safe-guarding against typos ("familiy") :
@@ -82,6 +82,7 @@ lmer2 <- function(formula, data, REML = TRUE, sparseX = FALSE,
                                         # profiled deviance or REML
         resp$Laplace(rem$ldL2, fem$ldRX2, rem$sqrLenU)
     }
+    if (devFunOnly) return(devfun)
     ## one evaluation of devfun to ensure that all values are set
 if (gctort) gctorture(1)
     opt <- list(fval=devfun(reTrms@theta))
