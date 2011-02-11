@@ -130,13 +130,10 @@ namespace mer{
     }
 
     /** 
-     * Solve for u (or the increment for u) only.
+     * Solve for u only.
      * 
      */  
     double reModule::solveU() {
-	// NumericMatrix c1 = d_L.solve(CHOLMOD_L, d_L.solve(CHOLMOD_P, d_cu));
-	// d_CcNumer = inner_product(c1.begin(), c1.end(), c1.begin(), double());
-	// NumericMatrix mm = d_L.solve(CHOLMOD_Pt, d_L.solve(CHOLMOD_Lt, c1));
 	NumericMatrix mm = d_L.solve(CHOLMOD_Pt, d_L.solve(CHOLMOD_Lt, d_cu));
 	copy(mm.begin(), mm.end(), d_u.begin());
 	return d_CcNumer;	// this return value is vestigial
@@ -147,9 +144,6 @@ namespace mer{
      * 
      */  
     double reModule::solveIncr() {
-//	NumericMatrix c1 = d_L.solve(CHOLMOD_L, d_L.solve(CHOLMOD_P, d_cu));
-//	d_CcNumer = inner_product(c1.begin(), c1.end(), c1.begin(), double());
-//	NumericMatrix mm = d_L.solve(CHOLMOD_Pt, d_L.solve(CHOLMOD_Lt, c1));
 	NumericMatrix mm = d_L.solve(CHOLMOD_Pt, d_L.solve(CHOLMOD_Lt, d_cu));
 	copy(mm.begin(), mm.end(), d_incr.begin());
 	return d_CcNumer;
@@ -168,6 +162,13 @@ namespace mer{
 	if (uu.size() != d_u0.size())
 	    throw runtime_error("size mismatch");
 	copy(uu.begin(), uu.end(), d_u0.begin());
+    }
+
+    void reModule::setIncr (const Rcpp::NumericVector& ii)
+	throw (std::runtime_error) {
+	if (ii.size() != d_incr.size())
+	    throw runtime_error("size mismatch");
+	copy(ii.begin(), ii.end(), d_incr.begin());
     }
 
     /** 
@@ -195,20 +196,18 @@ namespace mer{
 	int *Li = d_Lind.begin();
 	for (R_len_t i = 0; i < nLind; i++) Lamx[i] = th[Li[i] - 1];
     }
-
+#if 0
     /** 
      * Solve for u given the updated cu
      * 
      * @param cu 
      */
     void reModule::updateU(const Rcpp::NumericVector& cu) {
-//	d_CcNumer = inner_product(cu.begin(), cu.end(), cu.begin(), double());
 	NumericMatrix nu = d_L.solve(CHOLMOD_Pt, d_L.solve(CHOLMOD_Lt, cu));
 	copy(nu.begin(), nu.end(), d_u.begin());
     }
-    
+#endif    
     void reModule::updateIncr(const Rcpp::NumericVector& cu) {
-//	d_CcNumer = inner_product(cu.begin(), cu.end(), cu.begin(), double());
 	NumericMatrix nu = d_L.solve(CHOLMOD_Pt, d_L.solve(CHOLMOD_Lt, cu));
 	copy(nu.begin(), nu.end(), d_incr.begin());
     }

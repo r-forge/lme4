@@ -101,7 +101,7 @@ setClass("reTrms",
 ##' Dense fixed-effects module
 setClass("deFeMod",
          representation(RZX = "dgeMatrix"),
-##                        fac  =  "Cholesky",
+##                      fac = "Cholesky",
 ##			X   = "dgeMatrix"),
          contains = "dPredModule",
          validity = .feValid)
@@ -109,8 +109,8 @@ setClass("deFeMod",
 ##' Sparse fixed-effects module
 setClass("spFeMod",
          representation(RZX = "dgCMatrix"),
-##                        fac =  "CHMfactor",
-##                        X =   "dgCMatrix"),
+##                      fac = "CHMfactor",
+##                      X   = "dgCMatrix"),
          contains = "sPredModule",
          validity = function(object) {
              if (is(rr <- .feValid(object), "character")) return(rr)

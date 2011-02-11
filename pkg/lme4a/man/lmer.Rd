@@ -21,7 +21,8 @@ lmer(formula, data, REML = TRUE, sparseX = FALSE,
 lmer2(formula, data, REML = TRUE, sparseX = FALSE,
       control = list(), start = NULL, verbose = 0,
       doFit = TRUE, compDev = TRUE, subset, weights,
-      na.action, offset, contrasts = NULL, \dots)
+      na.action, offset, contrasts = NULL, gctort = FALSE,
+      devFunOnly = FALSE, \dots)
 
 glmer(formula, data, family = gaussian, sparseX = FALSE,
       control = list(), start = NULL, verbose = 0, nAGQ = 1,
@@ -88,12 +89,17 @@ nlmer(formula, data, family = gaussian, start = NULL,
     generated during the optimization of the parameter estimates.  If
     \code{> 1} verbose output is generated during the individual PIRLS
     steps.}
+  \item{gctort}{logical - when \code{TRUE} \code{\link{gctorture}} is
+      set to 1 during the optimization phase to help track down memory
+      allocation errors.  Note: the makes the function \bold{very}
+      slow.}
+  \item{devFunOnly}{logical - return only the deviance evaluation
+      function - only useful for debugging.}
   \item{\dots}{other potential arguments.  A \code{method} argument was
     used in earlier versions of the package. Its functionality has been
     replaced by the \code{REML} and \code{nAGQ} arguments.}
 }
 \details{
-
   The \code{lmer} and \code{glmer} functions are nearly interchangeable.
   If \code{lmer} is called with a non-default \code{family} argument the
   call is replaced by a call to \code{glmer} with the current arguments.

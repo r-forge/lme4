@@ -6,7 +6,9 @@ using namespace MatrixNs;
 namespace mer {
     spFeMod::spFeMod(Rcpp::S4 xp, int n)
 	: matMod::sPredModule(    xp, n),
-	  d_RZX(Rcpp::clone(Rcpp::S4(xp.slot("RZX")))) {
+	  d_RZX  (Rcpp::clone(Rcpp::S4(xp.slot("RZX")))),
+	  d_coef0(d_coef.size(), 0.),
+	  d_incr (d_coef.size(), 0.) {
 				// Not sure if this is necessary
 	d_UtV = d_VtV = (CHM_SP)NULL;
     }
@@ -17,6 +19,7 @@ namespace mer {
 	if (d_UtV) M_cholmod_free_sparse(&d_UtV, &c);
     }
 
+#if 0
     /** 
      * Update beta
      *	beta <- solve(RX, solve(t(RX), Vtr - crossprod(RZX, cu)))
@@ -35,6 +38,28 @@ namespace mer {
 	Rcpp::NumericMatrix t1 = d_fac.solve(CHOLMOD_A, &ccoef);
 	copy(t1.begin(),  t1.end(), d_coef.begin());
 	d_RZX.dmult('N', -1., 1., ccoef, cans);
+	return ans;
+    }
+#endif
+
+    /** 
+     * Update increment
+     *	incr <- solve(RX, solve(t(RX), Vtr - crossprod(RZX, cu)))
+     * 
+     * @param cu intermediate solution of random-effects.
+     * 
+     * @return cu - RZX %*% beta
+     */
+    Rcpp::NumericVector
+    spFeMod::updateIncr(Rcpp::NumericVector const &cu) {
+	Rcpp::NumericVector ans(cu.size());
+	copy(cu.begin(), cu.end(), ans.begin());
+	copy(d_Vtr.begin(), d_Vtr.end(), d_incr.begin());
+	chmDn cincr(d_incr), cans(ans);
+	d_RZX.dmult('T', -1., 1., chmDn(cu), cincr);
+	Rcpp::NumericMatrix t1 = d_fac.solve(CHOLMOD_A, &cincr);
+	copy(t1.begin(),  t1.end(), d_incr.begin());
+	d_RZX.dmult('N', -1., 1., cincr, cans);
 	return ans;
     }
 
@@ -93,53 +118,44 @@ namespace mer {
 				 1/*srtd*/, &c);
  	M_cholmod_free_sparse(&t1, &c);
     }
+//FIXME: this is cut-and-paste from deFeMod.cpp - move it to the feModule class
+    void spFeMod::installCoef0() {
+	copy(d_coef.begin(), d_coef.end(), d_coef0.begin());
+    }
 
-    // /** 
-    //  * Reweight the feModule.
-    //  *
-    //  * Update V, UtV and Vtr
-    //  * 
-    //  * @param Ut from the reModule
-    //  * @param Xwt square root of the weights for the model matrices
-    //  * @param wtres weighted residuals
-    //  */
-//     void spFeMod::reweight(cholmod_sparse      const*      Ut,
-// 			   Rcpp::NumericMatrix const&     Xwt,
-// 			   Rcpp::NumericVector const&   wtres) {
-// 	double one = 1., zero = 0.;
-// 	if (d_beta.size() == 0) return;
-// 	int Wnc = Xwt.ncol(), Wnr = Xwt.nrow(),
-// 	    Xnc = d_X.ncol, Xnr = d_X.nrow;
-// 	if ((Xwt.rows() * Xwt.cols()) != (int)d_X.nrow)
-// 	    Rf_error("%s: dimension mismatch %s(%d,%d), %s(%d,%d)",
-// 		     "spFeMod::reweight", "X", Xnr, Xnc,
-// 		     "Xwt", Wnr, Wnc);
-// 	if (Wnc == 1) {
-// 	    if (d_V) M_cholmod_free_sparse(&d_V, &c);
-// 	    d_V = M_cholmod_copy_sparse(&d_X, &c);
-// 	    chmDn csqrtX(Xwt);
-// 	    M_cholmod_scale(&csqrtX, CHOLMOD_ROW, d_V, &c);
-// 	} else throw runtime_error("spFeMod::reweight: multiple columns in Xwt");
-// // FIXME rewrite this using the triplet representation
-	
-// 	if (d_UtV) M_cholmod_free_sparse(&d_UtV, &c);
-// 	d_UtV = M_cholmod_ssmult(Ut, d_V, 0/*styp*/,1/*vals*/,1/*srtd*/, &c);
+    void spFeMod::setCoef0 (const Rcpp::NumericVector& cc)
+	throw (runtime_error) {
+	if (cc.size() != d_coef0.size())
+	    throw runtime_error("setCoef0: size mismatch");
+	copy(cc.begin(), cc.end(), d_coef0.begin());
+    }
 
-// 	if (d_VtV) M_cholmod_free_sparse(&d_VtV, &c);
-// 	CHM_SP t1 = M_cholmod_transpose(d_V, 1/*vals*/, &c);
-// 	d_VtV = M_cholmod_ssmult(t1, d_V, 1/*styp*/,1/*vals*/,1/*srtd*/, &c);
-// 	M_cholmod_free_sparse(&t1, &c);
+    void spFeMod::setIncr (const Rcpp::NumericVector& ii)
+	throw (runtime_error) {
+	if (ii.size() != d_incr.size())
+	    throw runtime_error("setIncr: size mismatch");
+	copy(ii.begin(), ii.end(), d_incr.begin());
+    }
 
-// 	chmDn cVtr(d_Vtr);
-// 	const chmDn cwtres(wtres);
-// 	M_cholmod_sdmult(d_V, 'T', &one, &zero, &cwtres, &cVtr, &c);
-//     }
+    Rcpp::NumericVector spFeMod::linPred1(double fac) const {
+#ifdef USE_RCPP_SUGAR
+	Rcpp::NumericVector cc = d_coef0 + fac * d_incr;
+	copy(cc.begin(), cc.end(), d_coef.begin());
+#else
+	fill(d_coef.begin(), d_coef.end(), fac);
+	transform(d_coef.begin(), d_coef.end(), d_incr.begin(),
+		  d_coef.begin(), multiplies<double>());
+	transform(d_coef.begin(), d_coef.end(), d_coef0.begin(),
+		  d_coef.begin(), plus<double>());
+#endif
+	return linPred();
+    }
 
     // /** 
     //  * Solve (V'V)beta = Vtr for beta.
     //  * 
     //  */
-//    double spFeMod::solveBeta() {
+    void spFeMod::solveIncr() {
 // FIXME: This may be a bad idea.  d_RX may have a more complicated
 // structure than the factor of d_VtV.
     // 	d_RX.update(*d_VtV);
@@ -148,5 +164,5 @@ namespace mer {
     // 	Rcpp::NumericMatrix mm = d_RX.solve(CHOLMOD_Pt, d_RX.solve(CHOLMOD_Lt, c1));
     // 	copy(mm.begin(), mm.end(), d_beta.begin());
     // 	return ans;
-    // }
+    }
 }

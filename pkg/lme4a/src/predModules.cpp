@@ -15,6 +15,7 @@ namespace matMod {
 	: d_coef(ncoef), d_Vtr(ncoef) {
     }
 
+#if 0
     void predModule::setCoef(Rcpp::NumericVector const& cbase,
 			     Rcpp::NumericVector const&  incr,
 			     double                      step) {
@@ -37,6 +38,7 @@ namespace matMod {
 	    copy(res.begin(), res.end(), d_coef.begin());
 	}
     }
+#endif
 
     dPredModule::dPredModule(Rcpp::S4 xp, int n)
 	: predModule(                  xp),
@@ -49,18 +51,12 @@ namespace matMod {
 	: predModule(p), d_X(mm), d_V(n, p),
 	  d_fac(p, 'U') {
     }
- 
-    // dPredModule::dPredModule(Rcpp::NumericMatrix mm, int n)
-    //     : predModule(mm.ncol()), d_X(mm), d_V(n, mm.ncol()),
-    // 	  d_fac(mm.ncol(), 'U') {
-    // }
 
     Rcpp::NumericVector dPredModule::linPred() const {
 	Rcpp::NumericVector ans(d_X.nrow());
 	d_X.dgemv('N', 1., d_coef, 0., ans);
 	return ans;
     }
-
     
     /** 
      * Solve (V'V)coef = Vtr for coef.

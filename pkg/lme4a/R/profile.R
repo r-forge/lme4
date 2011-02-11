@@ -427,8 +427,7 @@ devfun2 <- function(fm)
         sigma <- exp(pars[np])
         sigsq <- sigma^2
         pp <- pars[-np]/sigma
-#        fv <- .Call(merDeviance, fm1, pp, fm1@fe@coef, fm1@re@u, 0L, 1L)
-        fv <- .Call("merDeviance", fm1, pp, fm1@fe@coef, fm1@re@u, 0L, 1L, PACKAGE="lme4a")
+        fv <- .Call(merDeviance, fm1, pp, fm1@fe@coef, fm1@re@u, 0L, 1L)
         aa <- attr(fv,"ldL2") + (attr(fv,"wrss")+attr(fv,"ussq"))/sigsq +
             length(fm1@resp@y) * log(2 * pi * sigsq)
         mostattributes(aa) <- attributes(fv)

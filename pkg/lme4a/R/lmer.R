@@ -279,7 +279,7 @@ lmer <- function(formula, data, REML = TRUE, sparseX = FALSE,
                frame = fr,
 	       re = reTrms, fe = feMod, resp = rr)
     if (doFit) {                        # optimize estimates
-        if (verbose) control$iprint <- 2L
+        if (verbose) control$iprint <- verbose
         devfun <- mkdevfun(ans, compDev = compDev)
         opt <- bobyqa(ans@re@theta, devfun, ans@re@lower, control = control)
         ans <- updateMod(ans, opt$par, opt$fval)
@@ -379,18 +379,20 @@ updateMod <- function(mod, pars, fval) {
 ##' @param mod an object that inherits from class merMod
 ##' @param nAGQ number of points per axis for adaptive Gauss-Hermite
 ##' quadrature. 0 indicates the PIRLSBeta algorithm, 1 is the Laplace approximation
+##' @param beta0 starting estimate for the PIRLS algorithm
 ##' @param u0 starting estimate for the PIRLS algorithm
 ##' @param compDev for lmerMod objects, should the compiled deviance
 ##' evaluation be used?  Setting compDev to FALSE provides an
 ##' evaluation using functions from the Matrix package only.
 ##' @return a function of one argument
-mkdevfun <- function(mod, nAGQ = 1L, u0 = numeric(length(mod@re@u)), verbose = 0L, compDev = TRUE) {
+mkdevfun <- function(mod, nAGQ=1L, beta0=numeric(length(mod@fe@coef)),
+                     u0 = numeric(length(mod@re@u)), verbose = 0L,
+                     compDev = TRUE) {
     stopifnot(is(mod, "merMod"))
     resp <- mod@resp
-    beta0 <- numeric(length(mod@fe@coef))
     if (is(resp, "lmerResp")) {
-        if (compDev) return(function(th) .Call("merDeviance", mod, th, beta0, u0, 0L, 3L, PACKAGE="lme4a"))
-##        if (compDev) return(function(th) .Call(merDeviance, mod, th, beta0, u0, 0L, 3L)
+        if (compDev)
+            return(function(th) .Call(merDeviance, mod, th, beta0, u0, 0L, 3L))
         WtMat <- Diagonal(x = resp@sqrtrwt)
         return(function(th) {
             lower <- mod@re@lower
@@ -438,10 +440,8 @@ mkdevfun <- function(mod, nAGQ = 1L, u0 = numeric(length(mod@re@u)), verbose = 0
     }
     if (nAGQ == 0L)
         return(function(pars) .Call(merDeviance, mod, pars, beta0, u0, verbose, 3L))
-#        return(function(pars) .Call("merDeviance", mod, pars, beta0, u0, verbose, 3L, PACKAGE="lme4a"))
     thpars <- seq_along(mod@re@theta)
     function(pars) .Call(merDeviance, mod, pars[thpars], pars[-thpars], u0, verbose, 2L)
-#    function(pars) .Call("merDeviance", mod, pars[thpars], pars[-thpars], u0, verbose, 2L, PACKAGE="lme4a")
 }
 
 setMethod("simulate", "merMod",
@@ -573,15 +573,15 @@ bootMer <- function(x, FUN, nsim = 1, seed = NULL, use.u = FALSE,
 
 
 PIRLSest <- function(ans, verbose, control, nAGQ) {
-    if (verbose) control$iprint <- 2L
-                                        # initial optimization of PIRLSBetaU
-    obj <- mkdevfun(ans, 0L, verbose = verbose)
+    if (verbose) control$iprint <- verbose
+    ## initial optimization of PIRLSBetaU
+    obj <- mkdevfun(ans, 0L, beta0=ans@fe@coef, verbose = verbose)
     
     opt <- bobyqa(ans@re@theta, obj, ans@re@lower, control = control)
     if (nAGQ > 0L) {
         thpars <- seq_along(ans@re@theta)
         bb <- attr(opt$fval, "beta")
-        obj <- mkdevfun(ans, nAGQ, attr(opt$fval, "u"), verbose)
+        obj <- mkdevfun(ans, nAGQ, u0 = attr(opt$fval, "u"), verbose)
         opt <- bobyqa(c(opt$par, bb), obj,
                       lower = c(ans@re@lower, rep.int(-Inf, length(bb))),
                       control = control)
@@ -801,8 +801,7 @@ setMethod("ranef", signature(object = "merMod"),
               ans <- ans[whchL]
 
               if (postVar) {
-#                  vv <- .Call(reTrmsCondVar, re, sigma(object))
-                  vv <- .Call("reTrmsCondVar", re, sigma(object), PACKAGE="lme4a")
+                  vv <- .Call(reTrmsCondVar, re, sigma(object))
                   for (i in seq_along(ans))
                       attr(ans[[i]], "postVar") <- vv[[i]]
               }

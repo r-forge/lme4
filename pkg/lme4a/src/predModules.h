@@ -16,9 +16,11 @@ namespace matMod {	   // matMod is the namespace for matrixModels
 	Rcpp::NumericVector const& coef() const {return d_coef;}
 	Rcpp::NumericVector const&  Vtr() const {return  d_Vtr;}
 
+#if 0
 	void setCoef(Rcpp::NumericVector const&,
 		     Rcpp::NumericVector const& = Rcpp::NumericVector(),
 		     double = 0.);
+#endif
     };
     
     class dPredModule : public predModule {

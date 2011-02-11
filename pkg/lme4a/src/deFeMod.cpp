@@ -93,6 +93,7 @@ namespace mer {
 	return linPred();
     }
 
+#if 0
     /** 
      * Update beta
      *	beta <- solve(RX, solve(t(RX), Vtr - crossprod(RZX, cu)))
@@ -113,6 +114,7 @@ namespace mer {
 	d_RZX.dgemv('N', -1., d_coef, 1., ans);
 	return ans;
     }
+#endif
 
     void deFeMod::solveIncr() {
 	d_fac.update(d_VtV);
@@ -124,35 +126,13 @@ namespace mer {
     Rcpp::NumericVector deFeMod::updateIncr(Rcpp::NumericVector const& cu) {
 	Rcpp::NumericVector ans = clone(cu);
 	if (d_coef.size() == 0) return ans;
-#ifdef LME4A_DEBUG
-showdbl(ans, "cu on entry");
-showdbl(d_Vtr, "Vtr on entry");
-#endif
 	copy(d_Vtr.begin(), d_Vtr.end(), d_incr.begin());
 	d_RZX.dgemv('T', -1., ans, 1., d_incr);
-#ifdef LME4A_DEBUG
-showdbl(d_incr, "Vtr - crossprod(RZX, cu)");
-#endif
 	d_fac.dtrtrs('T', d_incr.begin());
-#ifdef LME4A_DEBUG
-showdbl(d_incr, "RX^{-T}(Vtr - crossprod(RZX, cu))");
-#endif
-#ifdef USE_RCPP_SUGAR
-        d_CcNumer = sum(d_incr * d_incr);
-#else
-        Rcpp::NumericVector tmp(d_incr.size());
-	transform(d_incr.begin(), d_incr.end(), d_incr.begin(),
-		  tmp.begin(), multiplies<double>());
-	d_CcNumer = accumulate(tmp.begin(), tmp.end(), double());
-#endif
+	d_CcNumer = inner_product(d_incr.begin(), d_incr.end(),
+				  d_incr.begin(), double());
         d_fac.dtrtrs('N', d_incr.begin());
-#ifdef LME4A_DEBUG
-showdbl(d_incr, "RX^{-1}RX^{-T}(Vtr - crossprod(RZX, cu))");
-#endif
 	d_RZX.dgemv('N', -1., d_incr, 1., ans);
-#ifdef LME4A_DEBUG
-showdbl(ans, "updated cu");
-#endif
 	return ans;
     }
     
