@@ -88,6 +88,7 @@ namespace mer {
 	void reweight    (const Rcpp::NumericMatrix&,
 			  const Rcpp::NumericVector&, bool useU0=false);
 	void installU0   ();
+	void setIncr     (const Rcpp::NumericVector&) throw (std::runtime_error);
 	void setU0       (const Rcpp::NumericVector&) throw (std::runtime_error);
 	void setU        (const Rcpp::NumericVector&,
 			  const Rcpp::NumericVector& = Rcpp::NumericVector(),

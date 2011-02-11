@@ -1,5 +1,7 @@
 \name{deFeMod}
 \alias{deFeMod}
+\alias{coerce,Rcpp_deFeMod,deFeMod-method}
+\alias{show,Rcpp_deFeMod-method}
 \docType{class}
 \title{
   An C++ class for information related to the fixed-effects parameters.

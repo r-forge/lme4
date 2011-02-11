@@ -9,9 +9,12 @@
 namespace mer {
     class feModule {
     protected:
-	double   d_ldRX2;
+	double              d_CcNumer, d_ldRX2;
     public:
 	double     ldRX2() const {return  d_ldRX2;}
+	void installCoef0();
+	void setCoef0(const Rcpp::NumericVector&) throw (std::runtime_error);
+	void setIncr(const Rcpp::NumericVector&) throw (std::runtime_error);
     };
 
     class deFeMod : public feModule, public matMod::dPredModule {
@@ -19,8 +22,7 @@ namespace mer {
 	MatrixNs::dgeMatrix      d_RZX;
 	MatrixNs::dgeMatrix      d_UtV;
 	MatrixNs::dpoMatrix      d_VtV;
-	Rcpp::NumericVector      d_coef0, d_incr;
-	double                   d_CcNumer;
+	Rcpp::NumericVector d_coef0, d_incr; // FIXME: put these in the feModule class
 
     public:
 	deFeMod(Rcpp::S4,int);
@@ -28,7 +30,7 @@ namespace mer {
 
 	Rcpp::NumericVector linPred() const;
 	Rcpp::NumericVector linPred1(double) const;
-	Rcpp::NumericVector updateBeta(Rcpp::NumericVector const&);
+//	Rcpp::NumericVector updateBeta(Rcpp::NumericVector const&);
 	Rcpp::NumericVector updateIncr(Rcpp::NumericVector const&);
 
 	void updateRzxpRxpp(Rcpp::XPtr<MatrixNs::chmSp>,
@@ -61,6 +63,7 @@ namespace mer {
     protected:
 	MatrixNs::chmSp    d_RZX;
 	CHM_SP             d_UtV, d_VtV;
+	Rcpp::NumericVector d_coef0, d_incr;
     public:
 	spFeMod(Rcpp::S4 xp,int);
 	~spFeMod();
@@ -68,12 +71,18 @@ namespace mer {
 	MatrixNs::chmFr const&     RX() const {return d_fac;}
 	MatrixNs::chmSp const&    RZX() const {return d_RZX;}
 
-	Rcpp::NumericVector updateBeta(Rcpp::NumericVector const&);
+//	Rcpp::NumericVector updateBeta(Rcpp::NumericVector const&);
+	Rcpp::NumericVector updateIncr(Rcpp::NumericVector const&);
+	Rcpp::NumericVector linPred1(double) const;
+	void installCoef0();
+	void solveIncr();
+	void setCoef0(const Rcpp::NumericVector&) throw (std::runtime_error);
+	void setIncr (const Rcpp::NumericVector&) throw (std::runtime_error);
 
 	void updateRzxRx(const MatrixNs::chmSp&,
 			 const MatrixNs::chmFr&);
 	void updateUtV(  cholmod_sparse const*);
     };
-
 }
+
 #endif

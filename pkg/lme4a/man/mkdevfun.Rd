@@ -9,7 +9,8 @@
   deviance.
 }
 \usage{
-mkdevfun(mod, nAGQ = 1L, u0 = numeric(length(mod@re@u)),
+mkdevfun(mod, nAGQ = 1L, beta0 = numeric(length(mod@fe@coef)),
+         u0 = numeric(length(mod@re@u)),
          verbose = 0L, compDev = TRUE)
 }
 \arguments{
@@ -22,6 +23,9 @@ mkdevfun(mod, nAGQ = 1L, u0 = numeric(length(mod@re@u)),
     value, \code{0L}, creates the PIRLSBeta Laplace approximation in
     which the penalized iteratively reweighted least squares (PIRLS) algorithm
     is used to optimize all the coefficients.
+  }
+  \item{beta0}{
+    Starting value to use for \code{beta} in the PIRLS or PIRLSBeta algorithm
   }
   \item{u0}{
     Starting value to use for \code{u} in the PIRLS or PIRLSBeta algorithm
@@ -64,7 +68,9 @@ fm1 <- lmer(Yield ~ 1|Batch, Dyestuff, doFit = FALSE)
 dd0(0.8)
 bobyqa(1, dd0, 0)
 (dd1 <- mkdevfun(fm1, compDev = FALSE))
+\dontrun{
 dd1(0.8)
 bobyqa(1, dd1, 0)
+}
 }
 \keyword{models}
