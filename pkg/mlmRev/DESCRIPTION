@@ -9,6 +9,6 @@ Maintainer: <lme4-authors@R-forge.wu-wien.ac.at>
 Description: Data and examples from a multilevel modelling software review
   as well as other well-known data sets from the multilevel modelling
   literature.
-Depends: lme4
+Depends: lme4, R (>= 2.10)
 LazyData: yes
 License: GPL (>= 2)
