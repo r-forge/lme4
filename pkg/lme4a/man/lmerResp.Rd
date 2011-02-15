@@ -1,5 +1,7 @@
 \name{lmerResp}
 \alias{lmerResp}
+\alias{coerce,Rcpp_lmerResp,lmerResp-method}
+\alias{show,Rcpp_lmerResp-method}
 \docType{class}
 \title{
   An C++ class for \code{lmerResp} objects
@@ -23,7 +25,7 @@
       \code{weights} and the \code{offset}}
   }
 }
-\section{Fields}{
+\section{Read-Only Fields}{
   \describe{
     \item{\code{REML}}{scalar integer - 0L for ML estimation and p for
       REML}

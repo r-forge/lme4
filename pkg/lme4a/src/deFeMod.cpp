@@ -93,36 +93,22 @@ namespace mer {
 	return linPred();
     }
 
-#if 0
-    /** 
-     * Update beta
-     *	beta <- solve(RX, solve(t(RX), Vtr - crossprod(RZX, cu)))
-     * 
-     * @param cu intermediate solution of random-effects.
-     * 
-     * @return cu - RZX %*% beta
-     */
-    Rcpp::NumericVector deFeMod::updateBeta(Rcpp::NumericVector const& cu) {
-	Rcpp::NumericVector ans = clone(cu);
-	if (d_coef.size() == 0) return ans;
-
-	copy(d_Vtr.begin(), d_Vtr.end(), d_coef.begin());
-	d_RZX.dgemv('T', -1., ans, 1., d_coef);
-	d_fac.dtrtrs('T', d_coef.begin());
-	d_CcNumer = sum(d_coef * d_coef);
-	d_fac.dtrtrs('N', d_coef.begin());
-	d_RZX.dgemv('N', -1., d_coef, 1., ans);
-	return ans;
-    }
-#endif
-
     void deFeMod::solveIncr() {
 	d_fac.update(d_VtV);
 	copy(d_Vtr.begin(), d_Vtr.end(), d_incr.begin());
 	d_fac.dtrtrs('T', d_incr.begin());
 	d_fac.dtrtrs('N', d_incr.begin());
     }
-    
+
+    /** 
+     * Update the increment
+     *	incr <- solve(RX, solve(t(RX), Vtr - crossprod(RZX, cu)))
+     * and the convergence criterion numerator
+     *
+     * @param cu intermediate solution of random-effects.
+     * 
+     * @return cu - RZX %*% beta
+     */
     Rcpp::NumericVector deFeMod::updateIncr(Rcpp::NumericVector const& cu) {
 	Rcpp::NumericVector ans = clone(cu);
 	if (d_coef.size() == 0) return ans;

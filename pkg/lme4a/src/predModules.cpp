@@ -15,31 +15,6 @@ namespace matMod {
 	: d_coef(ncoef), d_Vtr(ncoef) {
     }
 
-#if 0
-    void predModule::setCoef(Rcpp::NumericVector const& cbase,
-			     Rcpp::NumericVector const&  incr,
-			     double                      step) {
-	R_len_t p = d_coef.size();
-	if (cbase.size() != p)
-	    throw runtime_error("predModule::setCoef size mismatch of coef and cbase");
-	if (p == 0) return;
-	if (step == 0.) {
-	    copy(cbase.begin(), cbase.end(), d_coef.begin());
-	} else {
-#ifdef USE_RCPP_SUGAR
-	    Rcpp::NumericVector res = cbase + incr * step;
-#else
-	    Rcpp::NumericVector res(p, step);
-	    transform(incr.begin(), incr.end(), res.begin(),
-		      res.begin(), multiplies<double>());
-	    transform(cbase.begin(), cbase.end(), res.begin(),
-		      res.begin(), plus<double>());
-#endif
-	    copy(res.begin(), res.end(), d_coef.begin());
-	}
-    }
-#endif
-
     dPredModule::dPredModule(Rcpp::S4 xp, int n)
 	: predModule(                  xp),
 	  d_X(     Rcpp::S4(xp.slot("X"))),

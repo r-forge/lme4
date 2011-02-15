@@ -276,16 +276,6 @@ namespace glm {
 	return resp.updateMu(gamma);
     }	
 
-#if 0
-    template<typename Tp, typename Tr> inline
-    double mod<Tp,Tr>::setCoef(Rcpp::NumericVector const& base,
-			       Rcpp::NumericVector const& incr,
-			       double                     step) {
-	pred.setCoef(base, incr, step);
-	return updateMu();
-    }	
-#endif
-
     /**
      * Update the weighted residuals, wrss, sqrtrwt, sqrtXwt, fac and Vtr
      *
