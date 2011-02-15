@@ -1,3 +1,14 @@
+2011-02-15  Douglas Bates <bates@stat.wisc.edu>
+
+	* DESCRIPTION: Package now depends on R (>= 2.10). New version and date.
+	* data/Chem97.rda, data/Contraception.rda, data/Early.rda,
+	  data/Exam.rda, data/Gcsemv.rda, data/Hsb82.rda, data/Mmmec.rda,
+	  data/Oxboys.rda, data/ScotsSec.rda, data/Socatt.rda, data/bdf.rda,
+	  data/egsingle.rda, data/guImmun.rda, data/guPrenat.rda,
+	  data/s3bbx.rda, data/s3bby.rda, data/star.rda,
+	  inst/doc/MlmSoftRev.pdf, inst/doc/StarData.pdf: resave the data for
+	  higher compression, re-build the vignettes
+
 2009-08-08  Martin Maechler  <maechler@stat.math.ethz.ch>
 
 	* [r399] DESCRIPTION, inst/doc/MlmSoftRev.Rnw, man/Contraception.Rd,
@@ -6,6 +17,10 @@
 	  tests/bdf.Rout.save, tests/egsingle.Rout.save,
 	  tests/guImmun.Rout.save, tests/lmerTest.R, tests/lmerTest.Rout.save:
 	  update to CRAN`s version 0.99875-1 (from 2008-06 !)
+
+2010-08-04  Douglas Bates <bates@stat.wisc.edu>
+
+	* man/Contraception.Rd: References to lmer should be glmer
 
 2009-07-28  Martin Maechler  <maechler@stat.math.ethz.ch>
 
