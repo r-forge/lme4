@@ -221,8 +221,6 @@ class_<reModule>("reModule")
 	    "install u as u0")
     .method("reweight",    &reModule::reweight,
 	    "update L, Ut and cu for new weights")
-    .method("solveU",      &reModule::solveU,
-	    "solve for u (or the increment for u) only.  Returns squared length of c1")
     .method("solveIncr",   &reModule::solveIncr,
 	    "solve for the increment to u only.  Returns squared length of c1")
     .method("updateIncr",  &reModule::updateIncr,

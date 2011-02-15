@@ -146,8 +146,8 @@ namespace mer {
      * @param Xwt square root of the weights for the model matrices
      * @param wtres weighted residuals
      */
-    void deFeMod::reweight(Rcpp::NumericMatrix   const&   Xwt,
-			   Rcpp::NumericVector   const& wtres)
+    void deFeMod::reweight(Rcpp::NumericMatrix const&   Xwt,
+			   Rcpp::NumericVector const& wtres)
 	throw(runtime_error) {
 	if (d_coef.size() == 0) return;
 	chmDn cXwt(Xwt);

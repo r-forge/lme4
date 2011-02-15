@@ -11,7 +11,7 @@ namespace mer {
     class ssre {
 	MatrixNs::chmSp     d_Z;
 	Rcpp::IntegerVector d_ff;
-	Rcpp::NumericVector d_L, d_u, d_cu;
+	Rcpp::NumericVector d_L, d_u, d_u0, d_incr, d_cu;
 	double              d_ldL2;
 	CHM_SP              d_Ut;
     public:
@@ -19,20 +19,24 @@ namespace mer {
 
 	const Rcpp::NumericVector    &cu() const {return d_cu;}
  	const Rcpp::NumericVector     &u() const {return d_u;}
+ 	const Rcpp::NumericVector    &u0() const {return d_u0;}
+ 	const Rcpp::NumericVector  &incr() const {return d_incr;}
 	const cholmod_sparse         *Ut() const {return d_Ut;}
 	const MatrixNs::chmSp         &Z() const {return d_Z;}
 	double                      ldL2() const {return d_ldL2;}
-	// used in PIRLS when beta is not part of the solution
-	double                    solveU();
 	double                   sqrLenU() const;
 
-	void reweight    (const Rcpp::NumericMatrix&,
-			  const Rcpp::NumericVector&);
-	void setU        (const Rcpp::NumericVector&,
-			  const Rcpp::NumericVector& = Rcpp::NumericVector(),
-			  double = 0.);
-	void setTheta(const Rcpp::NumericVector&);
-	// used in PIRLSbeta for solving for both u and beta
+				// used in PIRLS when beta is not part
+				// of the solution
+	double                 solveIncr();
+
+	void reweight(const Rcpp::NumericMatrix&, const Rcpp::NumericVector&);
+	void setIncr (const Rcpp::NumericVector&) throw (std::runtime_error);
+	void setU0   (const Rcpp::NumericVector&) throw (std::runtime_error);
+	void setTheta(const Rcpp::NumericVector&); 
+
+				// used in PIRLSbeta for solving for
+				// both u and beta 
 	void updateU     (const Rcpp::NumericVector&);
     };
 	    
@@ -53,9 +57,7 @@ namespace mer {
 	cholmod_sparse      const*     Ut() const {return d_Ut;}
 
 	double                       ldL2() const {return d_ldL2;}
-	// used in PIRLS when beta is not part of the solution
-	double                     solveU();
-	double                  solveIncr();
+	double                  solveIncr(); // when beta is not part of soln.
 	double                    sqrLenU() const;
 	double                    CcNumer() const {return d_CcNumer;}
 
@@ -85,19 +87,12 @@ namespace mer {
 	Rcpp::NumericVector       linPred1(double);
 	Rcpp::XPtr<cholmod_sparse>    Utp() const;
 
-	void reweight    (const Rcpp::NumericMatrix&,
-			  const Rcpp::NumericVector&, bool useU0=false);
-	void installU0   ();
-	void setIncr     (const Rcpp::NumericVector&) throw (std::runtime_error);
-	void setU0       (const Rcpp::NumericVector&) throw (std::runtime_error);
-	void setU        (const Rcpp::NumericVector&,
-			  const Rcpp::NumericVector& = Rcpp::NumericVector(),
-			  double = 0.) throw (std::runtime_error);
-	void setTheta    (const Rcpp::NumericVector&)
-	    throw (std::runtime_error);
-	// used in PIRLSbeta to solve for u only
-	void updateU     (const Rcpp::NumericVector&);
-	void updateIncr  (const Rcpp::NumericVector&);
+	void reweight  (const Rcpp::NumericMatrix&, const Rcpp::NumericVector&);
+	void installU0 ();
+	void setIncr   (const Rcpp::NumericVector&) throw (std::runtime_error);
+	void setU0     (const Rcpp::NumericVector&) throw (std::runtime_error);
+	void setTheta  (const Rcpp::NumericVector&) throw (std::runtime_error);
+	void updateIncr(const Rcpp::NumericVector&);
     };
 
     class reTrms : public reModule {

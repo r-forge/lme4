@@ -58,8 +58,7 @@ namespace mer{
      * @param wtres weighted residuals
      */
     void reModule::reweight(Rcpp::NumericMatrix const&   Xwt,
-			    Rcpp::NumericVector const& wtres,
-			    bool useU0) {
+			    Rcpp::NumericVector const& wtres) {
 	double mone = -1., one = 1.; 
 	int Wnc = Xwt.ncol();
 	if (d_Ut) M_cholmod_free_sparse(&d_Ut, &c);
@@ -87,56 +86,13 @@ namespace mer{
 	d_ldL2 = d_L.logDet2();
 				// update cu
 	chmDn ccu(d_cu), cwtres(wtres);
-	if (useU0) {
-	    copy(d_u0.begin(), d_u0.end(), d_cu.begin());
-	} else { 
-	    copy(d_u.begin(), d_u.end(), d_cu.begin());
-	}
+	copy(d_u0.begin(), d_u0.end(), d_cu.begin());
 	M_cholmod_sdmult(LambdatUt, 0/*trans*/, &one, &mone, &cwtres, &ccu, &c);
 	M_cholmod_free_sparse(&LambdatUt, &c);
 	NumericMatrix
 	    ans = d_L.solve(CHOLMOD_L, d_L.solve(CHOLMOD_P, d_cu));
 	copy(ans.begin(), ans.end(), d_cu.begin());
 	d_CcNumer = inner_product(d_cu.begin(), d_cu.end(), d_cu.begin(), double());
-    }
-
-    /** 
-     * Install a new value of U, either a single vector or as a
-     * combination of a base, an increment and a step factor.
-     * 
-     * @param ubase base value of u
-     * @param incr increment relative to the base
-     * @param step step fraction
-     */
-    void reModule::setU(const Rcpp::NumericVector& ubase,
-			const Rcpp::NumericVector& incr, double step)
-	throw (std::runtime_error) {
-	int q = d_u.size();
-	if (ubase.size() != q)
-	    throw runtime_error("size mismatch");
-	    // Rf_error("%s: expected %s.size() = %d, got %d",
-	    // 	     "reModule::setU", "ubase", q, ubase.size());
-#ifdef USE_RCPP_SUGAR
-	NumericVector res = (step == 0.) ? ubase : ubase + incr * step;
-	copy(res.begin(), res.end(), d_u.begin());
-#else
-	if (step == 0.) {
-	    copy(ubase.begin(), ubase.end(), d_u.begin());
-	} else {
-	    double *ip = incr.begin(), *ubp = ubase.begin(), *up = d_u.begin();
-	    for (int i = 0; i < q; i++) up[i] = ubp[i] + step * ip[i];
-	}
-#endif
-    }
-
-    /** 
-     * Solve for u only.
-     * 
-     */  
-    double reModule::solveU() {
-	NumericMatrix mm = d_L.solve(CHOLMOD_Pt, d_L.solve(CHOLMOD_Lt, d_cu));
-	copy(mm.begin(), mm.end(), d_u.begin());
-	return d_CcNumer;	// this return value is vestigial
     }
 
     /** 

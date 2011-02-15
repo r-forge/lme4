@@ -30,7 +30,6 @@ namespace mer {
 
 	Rcpp::NumericVector linPred() const;
 	Rcpp::NumericVector linPred1(double) const;
-//	Rcpp::NumericVector updateBeta(Rcpp::NumericVector const&);
 	Rcpp::NumericVector updateIncr(Rcpp::NumericVector const&);
 
 	void updateRzxpRxpp(Rcpp::XPtr<MatrixNs::chmSp>,
