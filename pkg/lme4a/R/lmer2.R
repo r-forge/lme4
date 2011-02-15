@@ -165,29 +165,27 @@ mkRespMod2 <- function(fr, family = NULL, nlenv = NULL, nlmod = NULL) {
 stepFac <- function(rem, fem, resp, verbose=FALSE) {
     pwrss0 <- resp$wrss + rem$sqrLenU
     for (fac in 2^(-(0:10))) {
-        ## the calculation of pwrss1 is done in two steps because I'm
-        ## not sure of the evaluation order and sqrLenU must follow
-        ## linPred1(fac)
-        pwrss1 <- resp$updateMu(rem$linPred1(fac)+fem$linPred1(fac))
-        pwrss1 <- pwrss1 + rem$sqrLenU  
-        if (verbose) cat(sprintf("pwrss0=%g, diff=%12.5g, fac=%7.4f\n",
+        wrss <- resp$updateMu(rem$linPred1(fac)+fem$linPred1(fac))
+        pwrss1 <- wrss + rem$sqrLenU  
+        if (verbose) cat(sprintf("pwrss0=%10g, diff=%10g, fac=%6.4f\n",
                                  pwrss0, pwrss0 - pwrss1, fac))
         if (pwrss1 < pwrss0) {
             resp$updateWts()
             rem$installU0()
             fem$installCoef0()
-            resp$pwrss <- resp$updateMu(rem$linPred1(0)+fem$linPred1(0)) + rem$sqrLenU
-            break
+            wrss <- resp$updateMu(rem$linPred1(0)+fem$linPred1(0))
+            return(wrss + rem$sqrLenU)
         }
         if (fac < 0.001)
-            stop("step factor reduced below 0.001 without reducing wrss")
+            stop("step factor reduced below 0.001 without reducing pwrss")
     }
 }
 
 pwrssUpdate <- function(rem, fem, resp, verbose) {
-    for (i in 1:5) {
+    repeat {
         solveBetaU(rem, fem, resp$sqrtXwt, resp$wtres)
-        stepFac(rem, fem, resp, verbose)
+        if ((ccrit <- (rem$CcNumer + fem$CcNumer)/
+             stepFac(rem, fem, resp, verbose)) < 0.001) break
     }
 }
 
@@ -200,6 +198,13 @@ pwrssUpdate2 <- function(rem, fem, resp, verbose) {
     }
 }
 
+setMethod("show", signature("Rcpp_lmerResp"), function(object)
+      {
+          with(object,
+               print(head(cbind(weights, offset, eta, mu, y, sqrtrwt, wtres,
+                                sqrtXwt=sqrtXwt[,1]))))
+      })
+
 setMethod("show", signature("Rcpp_glmerResp"), function(object)
       {
           with(object,
@@ -207,6 +212,12 @@ setMethod("show", signature("Rcpp_glmerResp"), function(object)
                                 variance, sqrtrwt, wtres, sqrtXwt=sqrtXwt[,1],
                                 sqrtWrkWt, wrkResids, wrkResp))))
       })
+
+setMethod("show", signature("Rcpp_reModule"), function(object)
+      {
+          with(object, print(head(cbind(u0, incr, u))))
+      })
+
 
 setMethod("show", signature("Rcpp_deFeMod"), function(object)
       {
@@ -246,7 +257,7 @@ glmer2 <- function(formula, data, family = gaussian, sparseX = FALSE,
     if (family$family %in% c("quasibinomial", "quasipoisson", "quasi"))
         stop('"quasi" families cannot be used in glmer')
     nAGQ <- as.integer(nAGQ)[1]
-    if (nAGQ > 1) warning("nAGQ > 1 has not been implemented, using Laplace")
+    if (nAGQ > 1L) warning("nAGQ > 1 has not been implemented, using Laplace")
     stopifnot(length(formula <- as.formula(formula)) == 3)
     if (missing(data)) data <- environment(formula)
                                         # evaluate and install the model frame :
@@ -273,17 +284,13 @@ glmer2 <- function(formula, data, family = gaussian, sparseX = FALSE,
     fem <- new(deFeMod, X, n, p, q)
                                         # response module
     resp <- mkRespMod2(fr, family)
-                                        # initial step for working residuals
-    fem$reweight(as.matrix(resp$sqrtWrkWt), resp$wrkResp)
-    fem$solveIncr()
-    resp$updateMu(fem$linPred1(1))
+                                        # initial step from working response
+    solveBetaU(rem, fem, resp$sqrtWrkWt, resp$wrkResp)
+    resp$updateMu(fem$linPred1(1) + rem$linPred1(1)) # full increment
+    resp$updateWts()
     fem$installCoef0()
-
-    resp$updateWts()
-    fem$incr <- numeric(p)
-    pwrssUpdate2(rem, fem, resp, verbose)
-    resp$updateWts()
+    rem$installU0()
     
-    resp$pwrss <- resp$updateWts() + rem$sqrLenU
+    pwrssUpdate(rem, fem, resp, verbose)
     list(rem = rem, fem = fem, resp = resp)
 }## {glmer2}
