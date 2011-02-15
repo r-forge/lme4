@@ -196,17 +196,12 @@ namespace mer{
 	int *Li = d_Lind.begin();
 	for (R_len_t i = 0; i < nLind; i++) Lamx[i] = th[Li[i] - 1];
     }
-#if 0
+
     /** 
-     * Solve for u given the updated cu
+     * Solve for the increment given the updated cu
      * 
      * @param cu 
      */
-    void reModule::updateU(const Rcpp::NumericVector& cu) {
-	NumericMatrix nu = d_L.solve(CHOLMOD_Pt, d_L.solve(CHOLMOD_Lt, cu));
-	copy(nu.begin(), nu.end(), d_u.begin());
-    }
-#endif    
     void reModule::updateIncr(const Rcpp::NumericVector& cu) {
 	NumericMatrix nu = d_L.solve(CHOLMOD_Pt, d_L.solve(CHOLMOD_Lt, cu));
 	copy(nu.begin(), nu.end(), d_incr.begin());

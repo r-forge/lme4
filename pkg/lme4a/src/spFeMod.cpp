@@ -19,29 +19,6 @@ namespace mer {
 	if (d_UtV) M_cholmod_free_sparse(&d_UtV, &c);
     }
 
-#if 0
-    /** 
-     * Update beta
-     *	beta <- solve(RX, solve(t(RX), Vtr - crossprod(RZX, cu)))
-     * 
-     * @param cu intermediate solution of random-effects.
-     * 
-     * @return cu - RZX %*% beta
-     */
-    Rcpp::NumericVector
-    spFeMod::updateBeta(Rcpp::NumericVector const &cu) {
-	Rcpp::NumericVector ans(cu.size());
-	copy(cu.begin(), cu.end(), ans.begin());
-	copy(d_Vtr.begin(), d_Vtr.end(), d_coef.begin());
-	chmDn ccoef(d_coef), cans(ans);
-	d_RZX.dmult('T', -1., 1., chmDn(cu), ccoef);
-	Rcpp::NumericMatrix t1 = d_fac.solve(CHOLMOD_A, &ccoef);
-	copy(t1.begin(),  t1.end(), d_coef.begin());
-	d_RZX.dmult('N', -1., 1., ccoef, cans);
-	return ans;
-    }
-#endif
-
     /** 
      * Update increment
      *	incr <- solve(RX, solve(t(RX), Vtr - crossprod(RZX, cu)))
