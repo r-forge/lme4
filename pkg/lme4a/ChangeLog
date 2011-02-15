@@ -1,5 +1,6 @@
 2011-02-15  Douglas Bates <bates@stat.wisc.edu>
 
+	* DESCRIPTION: New version number and date.
 	* R/lmer2.R: Intermediate version of glmer2. Still not sure of the
 	  convergence criterion calculation step.
 	* tests/lmer-1.Rout.save: Update to original, correct results on glmer
