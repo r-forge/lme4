@@ -205,7 +205,6 @@ namespace mer {
 				      const Rcpp::NumericVector& beta,
 				      const Rcpp::NumericVector&    u) {
 	re.setTheta(th);
-//FIXME: Do we want setU or setU0, setCoef or setCoef0?
 	re.setU0(u);
 	re.setIncr(Rcpp::NumericVector(u.size()));
 	fe.setCoef0(beta);
@@ -284,7 +283,6 @@ namespace glm {
     template<typename Tp, typename Tr> inline
     double mod<Tp,Tr>::updateWts() {
 	double ans = resp.updateWts();
-//	pred.reweight(resp.sqrtXwt(), resp.wtres());
 	return ans;
     }
     
