@@ -1,3 +1,31 @@
+2011-02-15  Douglas Bates <bates@stat.wisc.edu>
+
+	* DESCRIPTION, data/Animal.rda, data/AvgDailyGain.rda, data/BIB.rda,
+	  data/Bond.rda, data/Cultivation.rda, data/Demand.rda,
+	  data/Genetics.rda, data/HR.rda, data/IncBlk.rda, data/Mississippi.rda,
+	  data/Multilocation.rda, data/PBIB.rda, data/SIMS.rda, data/Semi2.rda,
+	  data/Semiconductor.rda, data/TeachingI.rda, data/TeachingII.rda,
+	  data/WWheat.rda, data/WaferTypes.rda, data/Weights.rda,
+	  inst/doc/Usinglmer.pdf: Resave data sets for greater compression.
+	  Rebuild vignette. New version and date.
+	* INDEX: Redundant.
+
+2011-01-27  Douglas Bates <bates@stat.wisc.edu>
+
+	* man/Multilocation.Rd: Suppress printing of correlation matrices.
+
+2010-02-27  mmaechler
+
+	* inst/doc/Usinglmer.Rnw: keep.source !
+
+2009-10-26  Douglas Bates <bates@stat.wisc.edu>
+
+	* DESCRIPTION, inst/doc/Usinglmer.pdf: New release
+
+2009-10-21  Douglas Bates <bates@stat.wisc.edu>
+
+	* inst/doc/Usinglmer.Rnw: Remove control arguments that are no longer
+	  used in lmer.
 2009-08-08  Douglas Bates <bates@stat.wisc.edu>
 
 	* [r401] DESCRIPTION, inst/doc/Usinglmer.Rnw, inst/doc/Usinglmer.pdf:
