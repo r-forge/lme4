@@ -1,28 +1,8 @@
-##' Solve for both sets of coefficients
-##'
-##' @title Solve for both beta and u
-##' @param rem random-effects module
-##' @param fem fixed-effects module
-##' @param Xwts square root of the X weights
-##' @param resids weighted residuals
-##' @param useU0 should the gradient be based on the value of u0 or u
-##' @return none
-solveBetaU <- function(rem, fem, Xwts, resids) {
-### FIXME: change the Xwts to be a vector, not a matrix
-    Xwts <- as.matrix(Xwts)
-    rem$reweight(Xwts, resids, TRUE)    # update U, Utr and L
-    fem$reweight(Xwts, resids)          # update V, VtV and Vtr
-    fem$updateUtV(rem$Ut)
-    fem$updateRzxpRxpp(rem$Lambdap, rem$Lp)
-    tmp <- fem$updateIncr(rem$cu)       # increment for beta
-    rem$updateIncr(tmp)                 # increment for u
-}
-
 lmer2 <- function(formula, data, REML = TRUE, sparseX = FALSE,
                   control = list(), start = NULL,
                   verbose = 0L, doFit = TRUE, compDev = TRUE,
                   subset, weights, na.action, offset,
-                  contrasts = NULL, gctort=FALSE, devFunOnly=FALSE, ...)
+                  contrasts = NULL, devFunOnly=FALSE, ...)
 {
     mf <- mc <- match.call()
     ## '...' handling up front, safe-guarding against typos ("familiy") :
@@ -84,14 +64,13 @@ lmer2 <- function(formula, data, REML = TRUE, sparseX = FALSE,
     }
     if (devFunOnly) return(devfun)
     ## one evaluation of devfun to ensure that all values are set
-if (gctort) gctorture(1)
     opt <- list(fval=devfun(reTrms@theta))
 
     if (doFit) {                        # optimize estimates
         if (verbose) control$iprint <- as.integer(verbose)
         opt <- bobyqa(reTrms@theta, devfun, reTrms@lower, control = control)
     }
-if (gctort) gctorture(0)
+
     sqrLenU <- rem$sqrLenU
     wrss <- resp$wrss
     pwrss <- wrss + sqrLenU
@@ -107,122 +86,6 @@ if (gctort) gctorture(0)
         fe=as(fem, "deFeMod"), resp=as(resp, "lmerResp"))
 }## { lmer2 }
 
-##' Create an lmerResp, glmerResp or (later) nlmerResp instance
-##' 
-##' @title Create a [ng]lmerResp instance
-##' @param fr a model frame
-##' @param family the optional glm family (glmRespMod only)
-##' @param nlenv the nonlinear model evaluation environment (nlsRespMod only)
-##' @param nlmod the nonlinear model function (nlsRespMod only)
-##' @return a lmerResp (or glmerResp) instance
-mkRespMod2 <- function(fr, family = NULL, nlenv = NULL, nlmod = NULL) {
-    n <- nrow(fr)
-    y <- model.response(fr)
-    if(length(dim(y)) == 1) {
-        ## avoid problems with 1D arrays, but keep names
-        nm <- rownames(y)
-        dim(y) <- NULL
-        if(!is.null(nm)) names(y) <- nm
-    }
-    yy <- y
-    if (is.factor(yy)) yy <- as.numeric(yy != levels(yy)[1])
-    if (is.matrix(yy) && ncol(yy) == 2L) yy <- yy[,1]/rowSums(yy)
-    ans <- new(lmerResp, 0L, yy)
-    if (!is.null(offset <- model.offset(fr))) {
-        if (length(offset) == 1L) offset <- rep.int(offset, n)
-        stopifnot(length(offset) == n)
-	ans$offset <- unname(offset)
-    }
-    if (!is.null(weights <- model.weights(fr))) {
-        stopifnot(length(weights) == n, all(weights >= 0))
-	ans$weights <- unname(weights)
-    }
-    if (is.null(family)) return(ans)
-    rho <- new.env()
-    rho$etastart <- model.extract(fr, "etastart")
-    rho$mustart <- model.extract(fr, "mustart")
-    rho$weights <- ans$weights
-    rho$nobs <- n
-    eval(family$initialize, rho)
-    family$initialize <- NULL       # remove clutter from str output
-        
-    ans <- new(glmerResp, family, rho$y, rho$weights, ans$offset, rho$n)
-    ans$updateMu(family$linkfun(unname(rho$mustart)))
-    ans
-}
-
-##' Determine a step factor that will reduce the pwrss
-##'
-##' The penalized, weighted residual sum of squares (pwrss) is the sum
-##' of the weighted residual sum of squares from the resp module and
-##' the squared length of u from the rem module.  Both the rem and the
-##' fem contain a base and an increment for the coefficients.
-##' @title Determine a step factor
-##' @param rem random-effects module
-##' @param fem fixed-effects module
-##' @param resp response module
-##' @return pwrss under the new weights at the new u0 and coef0
-stepFac <- function(rem, fem, resp, verbose=FALSE) {
-    pwrss0 <- resp$wrss + rem$sqrLenU
-    for (fac in 2^(-(0:10))) {
-        wrss <- resp$updateMu(rem$linPred1(fac)+fem$linPred1(fac))
-        pwrss1 <- wrss + rem$sqrLenU  
-        if (verbose) cat(sprintf("pwrss0=%10g, diff=%10g, fac=%6.4f\n",
-                                 pwrss0, pwrss0 - pwrss1, fac))
-        if (pwrss1 < pwrss0) {
-            resp$updateWts()
-            rem$installU0()
-            fem$installCoef0()
-            wrss <- resp$updateMu(rem$linPred1(0)+fem$linPred1(0))
-            return(wrss + rem$sqrLenU)
-        }
-        if (fac < 0.001)
-            stop("step factor reduced below 0.001 without reducing pwrss")
-    }
-}
-
-pwrssUpdate <- function(rem, fem, resp, verbose) {
-    repeat {
-        solveBetaU(rem, fem, resp$sqrtXwt, resp$wtres)
-        if ((ccrit <- (rem$CcNumer + fem$CcNumer)/
-             stepFac(rem, fem, resp, verbose)) < 0.001) break
-    }
-}
-
-pwrssUpdate2 <- function(rem, fem, resp, verbose) {
-    repeat {
-        rem$reweight(resp$sqrtXwt, resp$wtres, TRUE) 
-        ccrit <- sqrt(rem$solveIncr()/resp$pwrss)
-        if (ccrit < 0.001) break
-        stepFac(rem, fem, resp, verbose)
-    }
-}
-
-setMethod("show", signature("Rcpp_lmerResp"), function(object)
-      {
-          with(object,
-               print(head(cbind(weights, offset, eta, mu, y, sqrtrwt, wtres,
-                                sqrtXwt=sqrtXwt[,1]))))
-      })
-
-setMethod("show", signature("Rcpp_glmerResp"), function(object)
-      {
-          with(object,
-               print(head(cbind(weights, offset, eta, mu, y, muEta,
-                                variance, sqrtrwt, wtres, sqrtXwt=sqrtXwt[,1],
-                                sqrtWrkWt, wrkResids, wrkResp))))
-      })
-
-setMethod("show", signature("Rcpp_reModule"), function(object)
-      {
-          with(object, print(head(cbind(u0, incr, u))))
-      })
-
-
-setMethod("show", signature("Rcpp_deFeMod"), function(object)
-      {
-          with(object, print(cbind(coef0, incr, coef, Vtr)))
-      })
 
 glmer2 <- function(formula, data, family = gaussian, sparseX = FALSE,
                    control = list(), start = NULL, verbose = 0L, nAGQ = 1L,
@@ -292,5 +155,156 @@ glmer2 <- function(formula, data, family = gaussian, sparseX = FALSE,
     rem$installU0()
     
     pwrssUpdate(rem, fem, resp, verbose)
-    list(rem = rem, fem = fem, resp = resp)
+    u0 <- rem$u0
+    coef0 <- fem$coef0
+    if (doFit) {
+        devfun <- function(theta) {
+            rem$theta <- theta
+            rem$u0 <- u0
+            fem$coef0 <- coef0
+            pwrssUpdate(rem, fem, resp, verbose)
+            resp$Laplace(rem$ldL2, fem$ldRX2, rem$sqrLenU)
+        }
+        opt <- bobyqa(rem$theta, devfun, lower=rem$lower, control=list(iprint=verbose))
+        return(list(rem=rem, fem=fem, resp=resp, opt=opt))
+    }
+    list(rem=rem, fem=fem, resp=resp)
 }## {glmer2}
+
+##' Create an lmerResp, glmerResp or (later) nlmerResp instance
+##' 
+##' @title Create a [ng]lmerResp instance
+##' @param fr a model frame
+##' @param family the optional glm family (glmRespMod only)
+##' @param nlenv the nonlinear model evaluation environment (nlsRespMod only)
+##' @param nlmod the nonlinear model function (nlsRespMod only)
+##' @return a lmerResp (or glmerResp) instance
+mkRespMod2 <- function(fr, family = NULL, nlenv = NULL, nlmod = NULL) {
+    n <- nrow(fr)
+    y <- model.response(fr)
+    if(length(dim(y)) == 1) {
+        ## avoid problems with 1D arrays, but keep names
+        nm <- rownames(y)
+        dim(y) <- NULL
+        if(!is.null(nm)) names(y) <- nm
+    }
+    yy <- y
+    if (is.factor(yy)) yy <- as.numeric(yy != levels(yy)[1])
+    if (is.matrix(yy) && ncol(yy) == 2L) yy <- yy[,1]/rowSums(yy)
+    ans <- new(lmerResp, 0L, yy)
+    if (!is.null(offset <- model.offset(fr))) {
+        if (length(offset) == 1L) offset <- rep.int(offset, n)
+        stopifnot(length(offset) == n)
+	ans$offset <- unname(offset)
+    }
+    if (!is.null(weights <- model.weights(fr))) {
+        stopifnot(length(weights) == n, all(weights >= 0))
+	ans$weights <- unname(weights)
+    }
+    if (is.null(family)) return(ans)
+    rho <- new.env()
+    rho$etastart <- model.extract(fr, "etastart")
+    rho$mustart <- model.extract(fr, "mustart")
+    rho$weights <- ans$weights
+    rho$nobs <- n
+    if (is.null(rho$y)) rho$y <- ans$y
+    eval(family$initialize, rho)
+    family$initialize <- NULL       # remove clutter from str output
+        
+    ans <- new(glmerResp, family, rho$y, rho$weights, ans$offset, rho$n)
+    ans$updateMu(family$linkfun(unname(rho$mustart)))
+    ans
+}
+
+##' Solve for both sets of coefficients
+##'
+##' @title Solve for both beta and u
+##' @param rem random-effects module
+##' @param fem fixed-effects module
+##' @param Xwts square root of the X weights
+##' @param resids weighted residuals
+##' @param useU0 should the gradient be based on the value of u0 or u
+##' @return none
+solveBetaU <- function(rem, fem, Xwts, resids) {
+### FIXME: change the Xwts to be a vector, not a matrix
+    Xwts <- as.matrix(Xwts)
+    rem$reweight(Xwts, resids)          # update U, Utr and L
+    fem$reweight(Xwts, resids)          # update V, VtV and Vtr
+    fem$updateUtV(rem$Ut)
+    fem$updateRzxpRxpp(rem$Lambdap, rem$Lp)
+    tmp <- fem$updateIncr(rem$cu)       # increment for beta
+    rem$updateIncr(tmp)                 # increment for u
+}
+
+##' Determine a step factor that will reduce the pwrss
+##'
+##' The penalized, weighted residual sum of squares (pwrss) is the sum
+##' of the weighted residual sum of squares from the resp module and
+##' the squared length of u from the rem module.  Both the rem and the
+##' fem contain a base and an increment for the coefficients.
+##' @title Determine a step factor
+##' @param rem random-effects module
+##' @param fem fixed-effects module
+##' @param resp response module
+stepFac <- function(rem, fem, resp, verbose=FALSE) {
+    pwrss0 <- resp$wrss + rem$sqrLenU
+    for (fac in 2^(-(0:10))) {
+        wrss <- resp$updateMu(rem$linPred1(fac)+fem$linPred1(fac))
+        pwrss1 <- wrss + rem$sqrLenU  
+        if (verbose) cat(sprintf("pwrss0=%10g, diff=%10g, fac=%6.4f\n",
+                                 pwrss0, pwrss0 - pwrss1, fac))
+        if (pwrss1 < pwrss0) {
+            rem$installU0()
+            fem$installCoef0()
+            return(NULL)
+        }
+    }
+    stop("step factor reduced below 0.001 without reducing pwrss")
+}
+
+pwrssUpdate <- function(rem, fem, resp, verbose) {
+    repeat {
+        resp$updateMu(rem$linPred1(0)+fem$linPred1(0))
+        resp$updateWts()
+        solveBetaU(rem, fem, resp$sqrtXwt, resp$wtres)
+        ccrit <- (rem$CcNumer + fem$CcNumer)/(resp$wrss + rem$sqrLenU)
+        stepFac(rem, fem, resp, verbose)
+        if (ccrit < 0.000001) break
+    }
+}
+
+pwrssUpdate2 <- function(rem, fem, resp, verbose) {
+    repeat {
+        rem$reweight(resp$sqrtXwt, resp$wtres) 
+        ccrit <- sqrt(rem$solveIncr()/resp$pwrss)
+        if (ccrit < 0.001) break
+        stepFac(rem, fem, resp, verbose)
+    }
+}
+
+setMethod("show", signature("Rcpp_lmerResp"), function(object)
+      {
+          with(object,
+               print(head(cbind(weights, offset, mu, y, sqrtrwt, wtres,
+                                sqrtXwt=sqrtXwt[,1]))))
+      })
+
+setMethod("show", signature("Rcpp_glmerResp"), function(object)
+      {
+          with(object,
+               print(head(cbind(weights, offset, eta, mu, y, muEta,
+                                variance, sqrtrwt, wtres, sqrtXwt=sqrtXwt[,1],
+                                sqrtWrkWt, wrkResids, wrkResp))))
+      })
+
+setMethod("show", signature("Rcpp_reModule"), function(object)
+      {
+          with(object, print(head(cbind(u0, incr, u))))
+      })
+
+
+setMethod("show", signature("Rcpp_deFeMod"), function(object)
+      {
+          with(object, print(cbind(coef0, incr, coef, Vtr)))
+      })
+
