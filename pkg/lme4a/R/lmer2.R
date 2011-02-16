@@ -253,7 +253,7 @@ stepFac <- function(rem, fem, resp, verbose=FALSE) {
         pwrss1 <- wrss + rem$sqrLenU  
         if (verbose) cat(sprintf("pwrss0=%10g, diff=%10g, fac=%6.4f\n",
                                  pwrss0, pwrss0 - pwrss1, fac))
-        if (pwrss1 < pwrss0) {
+        if (pwrss1 <= pwrss0) {
             rem$installU0()
             fem$installCoef0()
             return(NULL)
@@ -267,9 +267,9 @@ pwrssUpdate <- function(rem, fem, resp, verbose) {
         resp$updateMu(rem$linPred1(0)+fem$linPred1(0))
         resp$updateWts()
         solveBetaU(rem, fem, resp$sqrtXwt, resp$wtres)
-        ccrit <- (rem$CcNumer + fem$CcNumer)/(resp$wrss + rem$sqrLenU)
+        if ((rem$CcNumer + fem$CcNumer)/(resp$wrss + rem$sqrLenU) < 0.000001)
+            break
         stepFac(rem, fem, resp, verbose)
-        if (ccrit < 0.000001) break
     }
 }
 
