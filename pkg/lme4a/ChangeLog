@@ -1,3 +1,9 @@
+2011-02-16  Douglas Bates <bates@stat.wisc.edu>
+
+	* R/lmer2.R: Check convergence before trying to determine the step
+	  factor - if you do things the other way you can end up trying to find
+	  a step factor for a zero increment
+	
 2011-02-15  Douglas Bates <bates@stat.wisc.edu>
 
 	* src/Module.cpp, src/deFeMod.cpp, src/feModule.h, src/merMod.h,
