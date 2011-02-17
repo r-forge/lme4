@@ -165,7 +165,8 @@ glmer2 <- function(formula, data, family = gaussian, sparseX = FALSE,
             pwrssUpdate(rem, fem, resp, verbose)
             resp$Laplace(rem$ldL2, fem$ldRX2, rem$sqrLenU)
         }
-        opt <- bobyqa(rem$theta, devfun, lower=rem$lower, control=list(iprint=verbose))
+        control$iprint <- verbose
+        opt <- bobyqa(rem$theta, devfun, lower=rem$lower, control=control)
         return(list(rem=rem, fem=fem, resp=resp, opt=opt))
     }
     list(rem=rem, fem=fem, resp=resp)
@@ -251,8 +252,9 @@ stepFac <- function(rem, fem, resp, verbose=FALSE) {
     for (fac in 2^(-(0:10))) {
         wrss <- resp$updateMu(rem$linPred1(fac)+fem$linPred1(fac))
         pwrss1 <- wrss + rem$sqrLenU  
-        if (verbose) cat(sprintf("pwrss0=%10g, diff=%10g, fac=%6.4f\n",
-                                 pwrss0, pwrss0 - pwrss1, fac))
+        if (verbose > 3L)
+            cat(sprintf("pwrss0=%10g, diff=%10g, fac=%6.4f\n",
+                        pwrss0, pwrss0 - pwrss1, fac))
         if (pwrss1 <= pwrss0) {
             rem$installU0()
             fem$installCoef0()
