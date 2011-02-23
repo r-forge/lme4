@@ -439,16 +439,19 @@ mkdevfun <- function(mod, nAGQ=1L, beta0=numeric(length(mod@fe@coef)),
         })
     }
     if (nAGQ == 0L)
-        return(function(pars) .Call(merDeviance, mod, pars, beta0, u0, verbose, 3L))
-    thpars <- seq_along(mod@re@theta)
-    function(pars) .Call(merDeviance, mod, pars[thpars], pars[-thpars], u0, verbose, 2L)
-}
+	function(pars) .Call(merDeviance, mod, pars, beta0, u0, verbose, 3L)
+    else {
+	thpars <- seq_along(mod@re@theta)
+	function(pars) .Call(merDeviance, mod, pars[thpars], pars[-thpars],
+			     u0, verbose, 2L)
+    }
+}##end {mkdevfun}
 
 setMethod("simulate", "merMod",
 	  function(object, nsim = 1, seed = NULL, use.u = FALSE, ...)
       {
           stopifnot((nsim <- as.integer(nsim[1])) > 0,
-                    is(x, "merMod"), is(x@resp, "lmerResp"))
+                    is(object, "merMod"), is(object@resp, "lmerResp"))
 	  if(!is.null(seed)) set.seed(seed)
 	  if(!exists(".Random.seed", envir = .GlobalEnv))
 	      runif(1) # initialize the RNG if necessary
@@ -576,7 +579,7 @@ PIRLSest <- function(ans, verbose, control, nAGQ) {
     if (verbose) control$iprint <- verbose
     ## initial optimization of PIRLSBetaU
     obj <- mkdevfun(ans, 0L, beta0=ans@fe@coef, verbose = verbose)
-    
+
     opt <- bobyqa(ans@re@theta, obj, ans@re@lower, control = control)
     if (nAGQ > 0L) {
         thpars <- seq_along(ans@re@theta)
