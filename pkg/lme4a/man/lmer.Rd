@@ -14,14 +14,14 @@
 }
 \usage{
 lmer(formula, data, REML = TRUE, sparseX = FALSE,
-     control = list(), start = NULL, verbose = 0,
+     control = list(), start = NULL, verbose = 0L,
      doFit = TRUE, compDev = TRUE, subset, weights,
      na.action, offset, contrasts = NULL, \dots)
 
 lmer2(formula, data, REML = TRUE, sparseX = FALSE,
       control = list(), start = NULL, verbose = 0,
-      doFit = TRUE, compDev = TRUE, subset, weights,
-      na.action, offset, contrasts = NULL, gctort = FALSE,
+      doFit = TRUE, subset, weights,
+      na.action, offset, contrasts = NULL,
       devFunOnly = FALSE, \dots)
 
 glmer(formula, data, family = gaussian, sparseX = FALSE,
@@ -61,17 +61,16 @@ nlmer(formula, data, family = gaussian, start = NULL,
     step.}
   \item{control}{a list of control parameters. See below for details.}
   \item{start}{a named list of starting values for the parameters in the
-    model. If the list is of the same form as the \code{ST} slot, it is
-    becomes the starting values of the \code{ST} slot.  If the list
-    contains components named \code{fixef} and/or \code{ST}, these are
+    model.  If the list
+    contains components named \code{fixef} and/or \code{theta}, these are
     used as the starting values for those slots.  (Setting starting
     values for \code{fixef} has no effect for a linear mixed model
     because the fixed-effects parameters do not appear in the profiled
     deviance.)  In \code{lmer} and \code{glmer} a numeric
     \code{start} argument of the appropriate length is used as the
-    starting value of the parameter vector that determines the \code{ST}
-    slot. In \code{nlmer} a numeric \code{start} argument is used as the
-    starting values of the \code{fixef} slot.}
+    starting value of \code{theta}.  In \code{nlmer} a numeric
+      \code{start} argument is used as the starting values of the
+      \code{fixef} slot.} 
   \item{doFit}{logical scalar. When \code{doFit = FALSE} the model is
     not fit but instead a structure with the model matrices for the
     random-effects terms is returned, so they can be modified for
@@ -89,10 +88,6 @@ nlmer(formula, data, family = gaussian, start = NULL,
     generated during the optimization of the parameter estimates.  If
     \code{> 1} verbose output is generated during the individual PIRLS
     steps.}
-  \item{gctort}{logical - when \code{TRUE} \code{\link{gctorture}} is
-      set to 1 during the optimization phase to help track down memory
-      allocation errors.  Note: the makes the function \bold{very}
-      slow.}
   \item{devFunOnly}{logical - return only the deviance evaluation
       function - only useful for debugging.}
   \item{\dots}{other potential arguments.  A \code{method} argument was
