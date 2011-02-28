@@ -165,7 +165,7 @@ glmer2 <- function(formula, data, family = gaussian, sparseX = FALSE,
             pwrssUpdate(rem, fem, resp, verbose)
             resp$Laplace(rem$ldL2, fem$ldRX2, rem$sqrLenU)
         }
-        control$iprint <- verbose
+        control$iprint <- min(verbose, 3L)
         opt <- bobyqa(rem$theta, devfun, lower=rem$lower, control=control)
         if (nAGQ == 0) 
             return(list(rem=rem, fem=fem, resp=resp, opt=opt))
@@ -179,6 +179,8 @@ glmer2 <- function(formula, data, family = gaussian, sparseX = FALSE,
             pwrssUpdate2(rem, fem, resp, verbose)
             resp$Laplace(rem$ldL2, fem$ldRX2, rem$sqrLenU)
         }            
+        control$rhobeg <- 0.0002
+        control$rhoend <- 2e-7
         opt <- bobyqa(c(rem$theta, fem$coef), devfunb,
                       lower=c(rem$lower, rep.int(-Inf, length(fem$coef))), control=control)
         return(list(rem=rem, fem=fem, resp=resp, opt=opt))
