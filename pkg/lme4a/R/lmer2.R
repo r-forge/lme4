@@ -1,6 +1,6 @@
 lmer2 <- function(formula, data, REML = TRUE, sparseX = FALSE,
                   control = list(), start = NULL,
-                  verbose = 0L, doFit = TRUE, compDev = TRUE,
+                  verbose = 0L, doFit = TRUE,
                   subset, weights, na.action, offset,
                   contrasts = NULL, devFunOnly=FALSE, ...)
 {
@@ -167,6 +167,20 @@ glmer2 <- function(formula, data, family = gaussian, sparseX = FALSE,
         }
         control$iprint <- verbose
         opt <- bobyqa(rem$theta, devfun, lower=rem$lower, control=control)
+        if (nAGQ == 0) 
+            return(list(rem=rem, fem=fem, resp=resp, opt=opt))
+        u0 <- rem$u0
+        dpars <- seq_along(rem$theta)
+        fem$incr <- 0 * fem$incr        # zero the increment
+        devfunb <- function(pars) {
+            rem$theta <- pars[dpars]
+            fem$coef0 <- pars[-dpars]
+            rem$u0 <- u0
+            pwrssUpdate2(rem, fem, resp, verbose)
+            resp$Laplace(rem$ldL2, fem$ldRX2, rem$sqrLenU)
+        }            
+        opt <- bobyqa(c(rem$theta, fem$coef), devfunb,
+                      lower=c(rem$lower, rep.int(-Inf, length(fem$coef))), control=control)
         return(list(rem=rem, fem=fem, resp=resp, opt=opt))
     }
     list(rem=rem, fem=fem, resp=resp)
@@ -277,9 +291,10 @@ pwrssUpdate <- function(rem, fem, resp, verbose) {
 
 pwrssUpdate2 <- function(rem, fem, resp, verbose) {
     repeat {
+        resp$updateMu(rem$linPred1(0)+fem$linPred1(0))
+        resp$updateWts()
         rem$reweight(resp$sqrtXwt, resp$wtres) 
-        ccrit <- sqrt(rem$solveIncr()/resp$pwrss)
-        if (ccrit < 0.001) break
+        if ((ccrit <-rem$solveIncr()/(resp$wrss + rem$sqrLenU)) < 0.000001) break
         stepFac(rem, fem, resp, verbose)
     }
 }
@@ -310,3 +325,25 @@ setMethod("show", signature("Rcpp_deFeMod"), function(object)
           with(object, print(cbind(coef0, incr, coef, Vtr)))
       })
 
+## create a deviance evaluation function that uses the sigma parameters
+df2 <- function(dd) {
+    stopifnot(is.function(dd),
+              length(formals(dd)) == 1L,
+              is((rem <- (rho <- environment(dd))$rem), "Rcpp_reModule"),
+              is((fem <- rho$fem), "Rcpp_deFeMod"),
+              is((resp <- rho$resp), "Rcpp_lmerResp"),
+              all((lower <- rem$lower) == 0))
+    Lind <- rem$Lind
+    n <- length(resp$y)
+    function(pars) {
+        sigma <- pars[1]
+        sigsq <- sigma * sigma
+        sigmas <- pars[-1]
+        theta <- sigmas/sigma
+        rem$theta <- theta
+        resp$updateMu(numeric(n))
+        solveBetaU(rem, fem, resp$sqrtXwt, resp$wtres)
+        resp$updateMu(rem$linPred1(1) + fem$linPred1(1))
+        n * log(2*pi*sigsq) + (resp$wrss + rem$sqrLenU)/sigsq + rem$ldL2
+    }
+}
