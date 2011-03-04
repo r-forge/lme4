@@ -1,0 +1,836 @@
+% NOTE -- ONLY EDIT THE .Rnw FILE!!!  The .tex file is
+% likely to be overwritten.
+
+\documentclass[dvipsnames,pdflatex,beamer]{beamer}
+%\documentclass[letterpaper,11pt,notitlepage]{article}\usepackage{beamerarticle}
+\mode<article>{\usepackage[text={6.2in,9in},centering]{geometry}}
+\mode<beamer>{\usetheme{Boadilla}\usecolortheme{seahorse}\usecolortheme{rose}}
+\usepackage{SweaveSlides}
+\title[Longitudinal data]{Mixed models in R using the lme4 package\\%
+  Part 2: Longitudinal data, modeling interactions}
+\SweaveOpts{engine=R,eps=FALSE,pdf=TRUE,width=10,height=6.5,strip.white=all}
+\SweaveOpts{prefix=TRUE,prefix.string=figs/long,include=TRUE}
+\SweaveOpts{keep.source=TRUE}
+\mode<beamer>{\setkeys{Gin}{width=\textwidth}}
+\mode<article>{\setkeys{Gin}{width=0.8\textwidth}}
+<<preliminaries,echo=FALSE,results=hide>>=
+options(width=65,show.signif.stars=FALSE,str=strOptions(strict.width="cut"))
+library(Rcpp)
+library(minqa)
+library(lattice)
+library(Matrix)
+library(MatrixModels)
+library(lme4a)
+data(Multilocation, package = "SASmixed")
+attr(Multilocation, "ginfo") <-NULL
+data(Early, package="mlmRev")
+#lattice.options(default.theme = function() standard.theme())
+lattice.options(default.theme = function() standard.theme(color=FALSE))
+if (file.exists("fm11.rda")) {
+    load("fm11.rda")
+} else {
+    fm11 <- lmer(Adj ~ Trt + (0+Trt|Location) + (1|Grp), Multilocation, REML=FALSE)
+    save(fm11, file="fm11.rda")
+}
+@ 
+
+\begin{document}
+
+\mode<article>{\maketitle\tableofcontents}
+\mode<presentation>{\frame{\titlepage}}
+\mode<presentation>{\frame{\frametitle{Outline}\tableofcontents[pausesections,hideallsubsections]}}
+
+
+\section[sleepstudy]{Longitudinal data: sleepstudy}
+
+\begin{frame}\frametitle{Simple longitudinal data}
+  \begin{itemize}
+  \item \emph{Repeated measures} data consist of measurements of a
+    response (and, perhaps, some covariates) on several \emph{experimental}
+    (or observational) \emph{units}.
+  \item Frequently the experimental (observational) unit is
+    \code{Subject} and we will refer to these units as ``subjects''.
+    However, the methods described here are not restricted to
+    data on human subjects.
+  \item \emph{Longitudinal} data are repeated measures data in which
+    the observations are taken over time.
+  \item We wish to characterize the response over time within subjects and
+    the variation in the time trends between subjects.
+  \item Frequently we are not as interested in comparing the
+    particular subjects in the study as much as we are interested in
+    modeling the variability in the population from which the subjects
+    were chosen.
+  \end{itemize}
+\end{frame}
+
+
+\begin{frame}\frametitle{Sleep deprivation data}
+  \begin{itemize}
+  \item This laboratory experiment measured the effect of sleep deprivation
+    on cognitive performance.
+  \item There were 18 subjects, chosen from the population of interest
+    (long-distance truck drivers), in the 10 day trial. These subjects were
+    restricted to 3 hours sleep per night during the trial.
+  \item On each day of the trial each subject's reaction time was
+    measured.  The reaction time shown here is the average of several
+    measurements.
+  \item These data are \emph{balanced} in that each subject is
+    measured the same number of times and on the same occasions.
+  \end{itemize}
+\end{frame}
+
+\begin{frame}[fragile]\frametitle{Reaction time versus days by subject}
+  \begin{center}
+<<sleepxy,echo=FALSE,fig=TRUE>>=
+print(xyplot(Reaction ~ Days | Subject, sleepstudy, aspect = "xy",
+                    layout = c(9,2), type = c("g", "p", "r"),
+                    index.cond = function(x,y) coef(lm(y ~ x))[1],
+                    xlab = "Days of sleep deprivation",
+                    ylab = "Average reaction time (ms)"))
+@
+  \end{center}
+\end{frame}
+
+\begin{frame}\frametitle{Comments on the sleep data plot}
+  \begin{itemize}
+  \item The plot is a ``trellis'' or ``lattice'' plot where the data
+    for each subject are presented in a separate panel.  The axes are
+    consistent across panels so we may compare patterns across
+    subjects.
+  \item A reference line fit by simple linear regression to the
+    panel's data has been added to each panel.
+  \item The aspect ratio of the panels has been adjusted so that a
+    typical reference line lies about $45^\circ$ on the page. We have
+    the greatest sensitivity in checking for differences in slopes
+    when the lines are near $\pm 45^\circ$ on the page.
+  \item The panels have been ordered not by subject number (which is
+    essentially a random order) but according to increasing intercept
+    for the simple linear regression.  If the slopes and the
+    intercepts are highly correlated we should see a pattern across
+    the panels in the slopes.
+  \end{itemize}
+\end{frame}
+
+\begin{frame}\frametitle{Assessing the linear fits}
+  \begin{itemize}
+  \item In most cases a simple linear regression provides an adequate
+    fit to the within-subject data. 
+  \item Patterns for some subjects (e.g.{} 350, 352 and 371) deviate
+    from linearity but the deviations are neither widespread nor
+    consistent in form.
+  \item There is considerable variation in the intercept (estimated
+    reaction time without sleep deprivation) across subjects -- 200
+    ms.{} up to 300 ms.{} -- and in the slope (increase in reaction time
+    per day of sleep deprivation) -- 0 ms./day up to 20 ms./day.
+  \item We can examine this variation further by plotting
+    confidence intervals for these intercepts and slopes.  Because we use a
+    pooled variance estimate and have balanced data, the intervals
+    have identical widths.
+  \item We again order the subjects by increasing intercept so we can
+    check for relationships between slopes and intercepts.
+  \end{itemize}
+\end{frame}
+
+\begin{frame}[fragile]\frametitle{95\% conf int on within-subject intercept and slope}
+  \begin{center}
+<<Sl1,fig=TRUE,echo=FALSE,height=4.5>>=
+print(plot(confint(lmList(Reaction ~ Days | Subject, sleepstudy),
+                   pooled = TRUE), order = 1))
+@ 
+  \end{center}
+
+  These intervals reinforce our earlier impressions of considerable
+  variability between subjects in both intercept and slope but little
+  evidence of a relationship between intercept and slope.
+\end{frame}
+
+
+<<fm1,echo=FALSE>>=
+fm1 <- lmer(Reaction ~ Days + (Days|Subject), sleepstudy)
+@ 
+
+\section[Random slopes]{A model with random effects for intercept and slope}
+
+
+\begin{frame}\frametitle{A preliminary mixed-effects model}
+  \begin{itemize}
+  \item We begin with a linear mixed model in which the fixed effects
+    $[\beta_1,\beta_2]\trans$ are the representative intercept and slope
+    for the population and the random effects $\bm b_i=[b_{i1},b_{i2}]\trans,
+    i=1,\dots,18$ are the deviations in intercept and slope associated
+    with subject $i$.
+  \item The random effects vector, $\bm b$, consists of the $18$
+  intercept effects followed by the $18$ slope effects.
+  \end{itemize}
+  \begin{center}
+<<sleepZ,fig=TRUE,echo=FALSE,results=hide,height=3.5>>=
+print(image(fm1@re@Zt,xlab=NULL,ylab=NULL,sub=NULL))
+@ 
+  \end{center}
+\end{frame}
+
+\begin{frame}[fragile]\frametitle{Fitting the model}
+<<sm1>>= 
+(fm1 <- lmer(Reaction ~ Days + (Days|Subject), sleepstudy))
+@ 
+\end{frame}
+
+\begin{frame}[fragile]\frametitle{Terms and matrices}
+  \begin{itemize}
+  \item The term \code{Days} in the formula generates a model matrix
+    $\bm X$ with two columns, the intercept column and the numeric
+    \code{Days} column.  (The intercept is included unless
+    suppressed.)
+  \item The term \code{(Days|Subject)} generates a vector-valued
+    random effect (intercept and slope) for each of the $18$ levels of
+    the \code{Subject} factor.
+  \end{itemize}
+\end{frame}
+
+
+\begin{frame}\frametitle{A model with uncorrelated random effects}
+  \begin{itemize}
+  \item The data plots gave little indication of a systematic
+    relationship between a subject's random effect for slope and
+    his/her random effect for the intercept.  Also, the estimated
+    correlation is quite small.
+  \item We should consider a model with uncorrelated random effects.
+    To express this we use two random-effects terms with the same
+    grouping factor and different left-hand sides.  In the formula for
+    an \code{lmer} model, distinct random effects terms are modeled as
+    being independent. Thus we specify the model with two distinct
+    random effects terms, each of which has \code{Subject} as the
+    grouping factor.  The model matrix for one term is intercept only
+    (\code{1}) and for the other term is the column for \code{Days}
+    only, which can be written \code{0+Days}. (The expression
+    \code{Days} generates a column for \code{Days} and an intercept.
+    To suppress the intercept we add \code{0+} to the expression;
+    \code{-1} also works.)
+  \end{itemize}
+\end{frame}
+
+\begin{frame}[fragile]\frametitle{A mixed-effects model with
+    independent random effects}
+<<fm2,echo=FALSE>>=
+(fm2 <- lmer(Reaction ~ Days + (1|Subject) + (0+Days|Subject), sleepstudy))
+@ 
+\end{frame}
+
+\begin{frame}[fragile]\frametitle{Comparing the models}
+  \begin{itemize}
+  \item Model \code{fm1} contains model \code{fm2} in the sense that
+    if the parameter values for model \code{fm1} were constrained so
+    as to force the correlation, and hence the covariance, to be zero,
+    and the model were re-fit, we would get model \code{fm2}.
+  \item The value \code{0}, to which the correlation is constrained, is
+    not on the boundary of the allowable parameter values.
+  \item In these circumstances a likelihood ratio test and a reference
+    distribution of a $\chi^2$ on 1 degree of freedom is suitable.
+  \end{itemize}
+<<anovafm1fm2>>=
+anova(fm2, fm1)
+@ 
+\end{frame}
+
+\begin{frame}\frametitle{Conclusions from the likelihood ratio test}
+  \begin{itemize}
+  \item Because the large p-value indicates that we would not reject
+    \code{fm2} in favor of \code{fm1}, we prefer the more parsimonious
+    \code{fm2}.
+  \item This conclusion is consistent with the AIC (Akaike's
+    Information Criterion) and the BIC (Bayesian Information
+    Criterion) values for which ``smaller is better''.
+  \item We can also use a Bayesian approach, where we regard the
+    parameters as themselves being random variables, is assessing the
+    values of such parameters.  A currently popular Bayesian method is
+    to use sequential sampling from the conditional distribution of
+    subsets of the parameters, given the data and the values of the
+    other parameters.  The general technique is called \Emph{Markov
+      chain Monte Carlo} sampling.
+  \item We will expand on the use of likelihood-ratio tests in the next section.
+  \end{itemize}
+\end{frame}
+
+% \begin{frame}[fragile]\frametitle{Likelihood ratio tests on variance components}
+%   \begin{itemize}
+%   \item As for the case of a covariance, we can fit the model with and
+%     without the variance component and compare the fit quality.
+%   \item As mentioned previously, the likelihood ratio is a reasonable
+%     test statistic for the comparison but the ``asymptotic'' reference
+%     distribution of a $\chi^2$ does not apply because the parameter
+%     value being tested is on the boundary.
+%   \item The p-value computed using the $\chi^2$ reference distribution
+%     should be conservative (i.e. greater than the p-value that would
+%     be obtained through simulation).
+%   \end{itemize}
+% <<fm3anova>>=
+% fm3 <- lmer(Reaction ~ Days + (1|Subject), sleepstudy)
+% anova(fm3, fm2)
+% @ 
+% \end{frame}
+
+\section{Conditional means}
+
+\begin{frame}[fragile]\frametitle{Conditional means of the random effects}
+<<rr1>>= 
+(rr2 <- ranef(fm2))
+@ 
+\end{frame}
+
+\begin{frame}[fragile]\frametitle{Scatterplot of the conditional means}
+  \begin{center}
+<<rr2plot,echo=FALSE,fig=TRUE,results=hide>>=
+print(plot(rr2, aspect = 1, type = c("g", "p"))[[1]])
+@
+  \end{center}
+\end{frame}
+
+\begin{frame}\frametitle{Comparing within-subject coefficients}
+  \begin{itemize}
+  \item For this model we can combine the conditional means of the
+    random effects and the estimates of the fixed effects to get
+    conditional means of the within-subject coefficients.
+  \item These conditional means will be ``shrunken'' towards the
+    fixed-effects estimates relative to the estimated coefficients
+    from each subject's data.  John Tukey called this ``borrowing
+    strength'' between subjects.
+  \item Plotting the shrinkage of the within-subject coefficients
+    shows that some of the coefficients are considerably shrunken
+    toward the fixed-effects estimates.
+  \item However, comparing the within-group and mixed model fitted
+    lines shows that large changes in coefficients occur in the noisy
+    data.  Precisely estimated within-group coefficients are not
+    changed substantially.
+  \end{itemize}
+\end{frame}
+
+\begin{frame}[fragile]\frametitle{Estimated within-group coefficients and BLUPs}
+  \begin{center}
+<<shrinkage,echo=FALSE,fig=TRUE>>=
+df <- coef(lmList(Reaction ~ Days | Subject, sleepstudy))
+fclow <- subset(df, `(Intercept)` < 251)
+fchigh <- subset(df, `(Intercept)` > 251)
+cc1 <- as.data.frame(coef(fm2)$Subject)
+names(cc1) <- c("A", "B")
+df <- cbind(df, cc1)
+ff <- fixef(fm2)
+with(df,
+     print(xyplot(`(Intercept)` ~ Days, aspect = 1,
+                  x1 = B, y1 = A,
+                  panel = function(x, y, x1, y1, subscripts, ...) {
+                      panel.grid(h = -1, v = -1)
+                      x1 <- x1[subscripts]
+                      y1 <- y1[subscripts]
+                      larrows(x, y, x1, y1, type = "closed", length = 0.1,
+                              angle = 15, ...)
+                      lpoints(x, y,
+                              pch = trellis.par.get("superpose.symbol")$pch[2],
+                              col = trellis.par.get("superpose.symbol")$col[2])
+                      lpoints(x1, y1,
+                              pch = trellis.par.get("superpose.symbol")$pch[1],
+                              col = trellis.par.get("superpose.symbol")$col[1])
+                      lpoints(ff[2], ff[1], 
+                              pch = trellis.par.get("superpose.symbol")$pch[3],
+                              col = trellis.par.get("superpose.symbol")$col[3])
+                      ltext(fclow[,2], fclow[,1], row.names(fclow),
+                            adj = c(0.5, 1.7))
+                      ltext(fchigh[,2], fchigh[,1], row.names(fchigh),
+                            adj = c(0.5, -0.6))
+                  },
+                  key = list(space = "top", columns = 3,
+                  text = list(c("Mixed model", "Within-group", "Population")),
+                  points = list(col = trellis.par.get("superpose.symbol")$col[1:3],
+                  pch = trellis.par.get("superpose.symbol")$pch[1:3]))
+                  )))
+@
+  \end{center}
+\end{frame}
+
+\begin{frame}[fragile]\frametitle{Observed and fitted}
+  \begin{center}
+<<shrinkfit,echo=FALSE,fig=TRUE>>=
+print(xyplot(Reaction ~ Days | Subject, sleepstudy, aspect = "xy",
+             layout = c(9,2), type = c("g", "p", "r"),
+             coef.list = df[,3:4],
+             panel = function(..., coef.list) {
+                 panel.xyplot(...)
+                 panel.abline(as.numeric(coef.list[packet.number(),]),
+                              col.line = trellis.par.get("superpose.line")$col[2],
+                              lty = trellis.par.get("superpose.line")$lty[2]
+                              )
+                 panel.abline(fixef(fm2),
+                              col.line = trellis.par.get("superpose.line")$col[4],
+                              lty = trellis.par.get("superpose.line")$lty[4]
+                              )
+             },
+             index.cond = function(x,y) coef(lm(y ~ x))[1],
+             xlab = "Days of sleep deprivation",
+             ylab = "Average reaction time (ms)",
+             key = list(space = "top", columns = 3,
+             text = list(c("Within-subject", "Mixed model", "Population")),
+             lines = list(col = trellis.par.get("superpose.line")$col[c(2:1,4)],
+             lty = trellis.par.get("superpose.line")$lty[c(2:1,4)]))))
+@ 
+  \end{center}
+\end{frame}
+
+\begin{frame}[fragile]
+  \frametitle{Plot of prediction intervals for the random effects}
+  \begin{center}
+<<caterpillar,fig=TRUE,echo=FALSE,results=hide,height=4.5>>=
+print(dotplot(ranef(fm1,post=TRUE),
+              scales = list(x = list(relation = 'free')))[["Subject"]])
+@ 
+  \end{center}
+Each set of prediction intervals have constant width because of the
+balance in the experiment.
+\end{frame}
+
+\section{Conclusions}
+
+\begin{frame}\frametitle{Conclusions from the example}
+  \begin{itemize}
+  \item Carefully plotting the data is enormously helpful in
+    formulating the model.
+  \item It is relatively easy to fit and evaluate models to data like
+    these, from a balanced designed experiment.
+  \item We consider two models with random effects for the slope and
+    the intercept of the response w.r.t. time by subject.  The models
+    differ in whether the (marginal) correlation of the vector of
+    random effects per subject is allowed to be nonzero.
+  \item The ``estimates'' (actually, the conditional means) of the
+    random effects can be considered as penalized estimates of these
+    parameters in that they are shrunk towards the origin.
+  \item Most of the prediction intervals for the random effects
+    overlap zero.
+  \end{itemize}
+\end{frame}
+
+\section[Other interactions]{Other forms of interactions}
+
+\begin{frame}\frametitle{Random slopes and interactions}
+  \begin{itemize}
+  \item In the \code{sleepstudy} model fits we allowed for random
+    effects for \code{Days} by \code{Subject}.
+  \item These random effects can be considered as an interaction
+    between the fixed-effects covariate \code{Days} and the
+    random-effects factor \code{Subject}.
+  \item When we have both fixed-levels categorical covariates and
+    random-levels categorical covariates we have many different ways
+    in which interactions can be expressed.
+  \item Often the wide range of options provides ``enough rope to hang
+    yourself'' in the sense that it is very easy to create an
+    overly-complex model.
+  \end{itemize}
+\end{frame}
+
+\begin{frame}
+  [fragile]
+  \frametitle{The \code{Multilocation} data set}
+  \begin{itemize}
+  \item Data from a multi-location trial of several treatments are
+    described in section 2.8 of Littell, Milliken, Stroup and
+    Wolfinger (1996) \textbf{SAS System for Mixed Models} and are
+    available as \code{Multilocation} in package \code{SASmixed}.
+  \item Littell et al. don't cite the source of the data.  Apparently
+    \code{Adj} is an adjusted response of some sort for 4 different
+    treatments applied at each of 3 blocks in each of 9 locations.
+    Because \code{Block} is implicitly nested in \code{Location}, the
+    \code{Grp} interaction variable was created.
+  \end{itemize}
+<<Multilocation>>=
+str(Multilocation)
+@ 
+\end{frame}
+
+\begin{frame}
+  [fragile]
+  \frametitle{Response by \code{Grp} and \code{Trt}}
+<<Multiplot1,fig=TRUE,echo=FALSE,height=5>>=
+print(dotplot(reorder(Grp, Adj) ~ Adj, Multilocation,
+              groups=Trt, type=c("p","a"),
+              auto.key=list(columns=4,lines=TRUE)))
+@
+\begin{itemize}
+\item From this one plot (Littell et al. do not provide any plots but
+  instead immediately jump into fitting several ``cookie-cutter''
+  models) we see differences between locations, not as much between
+  blocks within location, and treatment 2 providing a lower adjusted
+  response.
+\end{itemize}
+\end{frame}
+
+\begin{frame}
+  [fragile]
+  \frametitle{Response by \code{Block} and \code{Trt} within \code{Location}}
+<<Multiplot2,fig=TRUE,echo=FALSE>>=
+ll <- with(Multilocation, reorder(Location, Adj))
+print(dotplot(reorder(reorder(Grp, Adj), as.numeric(ll)) ~ Adj|ll, Multilocation,
+              groups=Trt, type=c("p","a"), strip=FALSE, strip.left=TRUE, layout=c(1,9),
+              auto.key=list(columns=4,lines=TRUE),
+              scales = list(y=list(relation="free"))))
+@   
+\end{frame}
+
+\begin{frame}
+  \frametitle{Fixed-levels categorical covariates and ``contrasts''}
+  \begin{itemize}
+  \item In this experiment we are interested in comparing the
+    effectiveness of these four levels of \code{Trt}.
+  \item That is, the levels of \code{Trt} are fixed levels and we
+    should incorporate them in the fixed-effects part of the model.
+  \item Unlike the situation with random effects, we cannot separately
+    estimate ``effects'' for each level of a categorical covariate in
+    the fixed-effects and an overall intercept term.
+  \item We could suppress the intercept term but even then we still
+    encounter redundancies in effects for each level when we have more
+    than one categorical covariate in the fixed-effects.
+  \item Because of this we estimate coefficients for $k-1$ ``contrasts''
+    associated with the $k$ levels of a factor.
+  \item The default contrasts (called \code{contr.treatment}) measure
+    changes relative to a reference level which is the first level of
+    the factor.  Other contrasts can be used when particular
+    comparisons are of interest.
+  \end{itemize}
+\end{frame}
+
+\begin{frame}
+  [fragile]
+  \frametitle{A simple model for \code{Trt} controlling for \code{Grp}}
+<<fm3>>=
+print(fm3 <- lmer(Adj ~ Trt + (1|Grp), Multilocation), corr=FALSE)
+@   
+\end{frame}
+
+\begin{frame}
+  [fragile]
+  \frametitle{Interpretation of the results}
+  \begin{itemize}
+  \item We see that the variability between the Location/Block
+    combinations (levels of \code{Grp})  is greater than the residual
+    variability, indicating the importance of controlling for it.
+  \item The contrast between levels 2 and 1 of \code{Trt}, labeled
+    \code{Trt2} is the greatest difference and apparently significant.
+  \item If we wish to evaluate the ``significance'' of the levels of
+    \code{Trt} as a group, however, we should fit the trivial
+    model and perform a LRT.
+  \end{itemize}
+<<lrt>>=
+fm4 <- lmer(Adj ~ 1 + (1|Grp), Multilocation)
+anova(fm4, fm3)
+@   
+\end{frame}
+
+\begin{frame}
+  [fragile]
+  \frametitle{\code{Location} as a fixed-effect}
+  \begin{itemize}
+  \item We have seen that \code{Location} has a substantial effect on
+    \code{Adj}.  If we are interested in these specific 9 locations
+    we could incorporate them as fixed-effects parameters.
+  \item Instead of examining 8 coefficients separately we will
+    consider their cumulative effect using the single-argument form of
+    \code{anova}.
+  \end{itemize}
+<<fm5>>=
+anova(fm5 <- lmer(Adj ~ Location + Trt + (1|Grp), Multilocation))
+@   
+\end{frame}
+
+\begin{frame}
+  [fragile]
+  \frametitle{An interaction between fixed-effects factors}
+  \begin{itemize}
+  \item We could ask if there is an interaction between the levels of
+    \code{Trt} and those of \code{Location} considered as fixed effects.
+  \end{itemize}
+<<fm6>>=
+anova(fm6 <- lmer(Adj ~ Location*Trt + (1|Grp), Multilocation))
+anova(fm5, fm6)
+@   
+\end{frame}
+
+\begin{frame}
+  [fragile]
+  \frametitle{Considering levels of \code{Location} as random effects}
+<<fm7>>=
+print(fm7 <- lmer(Adj ~ Trt + (1|Location) + (1|Grp), Multilocation), corr = FALSE)
+@   
+\end{frame}
+
+\begin{frame}
+  [fragile]
+  \frametitle{Is \code{Grp} needed in addition to \code{Location}?}
+  \begin{itemize}
+  \item At this point we may want to check whether the random effect
+    for \code{Block} within \code{Location} is needed in addition to
+    the random effect for \code{Location}.
+  \end{itemize}
+<<fm8>>=
+fm8 <- lmer(Adj ~ Trt + (1|Location), Multilocation)
+anova(fm8, fm7)
+@   
+\begin{itemize}
+\item Apparently not, but we may want to revisit this issue after
+  checking for interactions.
+\end{itemize}
+\end{frame}
+
+\begin{frame}
+  \frametitle{Ways of modeling random/fixed interactions}
+  \begin{itemize}
+  \item There are two ways we can model the interaction between a
+    fixed-levels factor (\code{Trt}) and a random-levels factor
+    (\code{Location}, as we are currently viewing this factor).
+  \item The first, and generally preferable, way is to incorporate a
+    simple scalar random-effects term with the interaction as the grouping
+    factor.
+  \item The second, more complex, way is to use vector-valued random
+    effects for the random-levels factor.  We must be careful when
+    using this approach because it often produces a degenerate model,
+    but not always obviously degenerate.
+  \end{itemize}
+\end{frame}
+
+\begin{frame}
+  [fragile]
+  \frametitle{Scalar random effects for interaction}
+<<fm9>>=
+(fm9 <- lmer(Adj ~ Trt + (1|Trt:Location) + (1|Location), Multilocation, REML=FALSE))
+@   
+\end{frame}
+
+\begin{frame}
+  [fragile]
+  \frametitle{Both interaction and Block-level random effects}
+<<fm10>>=
+(fm10 <- update(fm9, . ~ . + (1|Grp)))
+@   
+\end{frame}
+
+\begin{frame}
+  [fragile]
+  \frametitle{Scalar interaction random effects are still not significant}
+<<anovafm10>>=
+anova(fm10, fm8)
+@   
+\begin{itemize}
+\item We have switched to ML fits because we are comparing models
+  using \code{anova}.  In a comparative \code{anova} any REML fits are
+  refit as ML before comparison so we start with the ML fits.
+\item In model \code{fm9} the estimated variance for the scalar
+  interaction random effects was exactly zero in the ML fit.  In
+  \code{fm10} the estimate is positive but still not significant.
+\end{itemize}
+\end{frame}
+
+\begin{frame}
+  [fragile]
+  \frametitle{Vector-valued random effects}
+  \begin{itemize}
+  \item An alternative formulation for an interaction between
+    \code{Trt} and \code{Location} (viewed as a random-levels factor)
+    is to use vector-valued random effects.
+  \item We have used a similar construct in model \code{fm1} with
+    vector-valued random effects (intercept and slope) for each level
+    of \code{Subject}.
+  \item One way to fit such a model is
+<<fm11,eval=FALSE>>=
+fm11 <- lmer(Adj ~ Trt + (Trt|Location) + (1|Grp), Multilocation, REML=FALSE)
+@ 
+but interpretation is easier when fit as
+<<fm11,eval=FALSE>>=
+fm11 <- lmer(Adj ~ Trt + (0+Trt|Location) + (1|Grp), Multilocation, REML=FALSE)
+@ 
+  \end{itemize}
+\end{frame}
+\begin{frame}
+  [fragile]
+  \frametitle{Examining correlation of random effects}
+  \begin{itemize}
+  \item The random effects summary for \code{fm11}
+<<echo=FALSE>>=
+cat(paste(capture.output(print(fm11))[4:15], collapse="\n"), "\n")
+@   
+shows very high correlations between the random effects for the levels
+of \code{Trt} within each level of \code{Location}.
+\item Such a situation may pass by unnoticed if estimates of variances and
+  covariances are all that is reported.
+\item In this case (and many other similar cases) the
+  variance-covariance matrix of the vector-valued random effects is
+  effectively singular.
+  \end{itemize}
+\end{frame}
+
+\begin{frame}
+  \frametitle{Singular variance-covariance for random effects}
+  \begin{itemize}
+  \item When we incorporate too many fixed-effects terms in a model we
+    usually find out because the standard errors become very large.
+  \item For random effects terms, especially those that are
+    vector-valued, overparameterization is sometimes more difficult to detect.
+  \item The REML and ML criteria for mixed-effects models seek to
+    balance the complexity of the model versus the fidelity of the
+    fitted values to the observed responses.
+  \item The way ``complexity'' is measured in this case, a model with a singular
+    variance-covariance matrix for the random effects is considered a
+    good thing - it is optimally simple.
+  \item When we have only scalar random-effects terms singularity
+    means that one of the variance components must be exactly zero
+    (and ``near singularity'' means very close to zero).
+  \end{itemize}
+\end{frame}
+
+\begin{frame}
+  [fragile]
+  \frametitle{Detecting singular random effects}
+  \begin{itemize}
+  \item The \code{Lambda} slot in a \code{merMod} object is the
+    triangular factor of the variance-covariance matrix.
+  \item We can directly assess its condition number using the
+    \code{kappa} (condition number) or \code{rcond} (reciprocal
+    condition number) functions.  Large condition numbers are bad.
+  \item We do need to be cautious when we have a large number of
+    levels for the grouping factors because \code{Lambda} will be
+    \textbf{very} large (but also very sparse).  At present the
+    \code{kappa} and \code{rcond} functions transform the sparse
+    matrix to a dense matrix, which could take a very long time.
+  \end{itemize}
+<<fm11kappa>>=
+kappa(fm11@re@Lambda)
+rcond(fm11@re@Lambda)
+@   
+\end{frame}
+
+\begin{frame}
+  [fragile]
+  \frametitle{Using verbose model fits}
+  \begin{itemize}
+  \item An alternative, which is recommended whenever you have doubts
+    about a model fit, is to use \code{verbose=TRUE} (the lines don't
+    wrap and we miss the interesting part here).
+  \end{itemize}
+<<fm11verb,echo=FALSE>>=
+fm11 <- lmer(Adj ~ Trt + (0+Trt|Location) + (1|Grp), Multilocation, REML=FALSE, verbose=TRUE)
+@   
+<<fm11>>=
+fm11@re@theta
+@   
+\end{frame}
+
+\begin{frame}
+  \frametitle{What to watch for in the verbose output}
+  \begin{itemize}
+  \item In this model the criterion is being optimized with respect to
+    11 parameters.
+  \item These are the variance component parameters, $\bm\theta$.  The
+    fixed-effects coefficients, $\bm\beta$, and the common scale
+    parameter, $\sigma$, are at their conditionally optimal values.
+  \item Generally it is more difficult to estimate a variance
+    parameter (either a variance or a covariance) than it is to
+    estimate a coefficient.  Estimating 11 such parameters requires a
+    considerable amount of information.
+  \item Some of these parameters are required to be non-negative.
+    When they become zero or close to zero ($2.7\times10^{-7}$, in
+    this case) the variance-covariance matrix is degenerate.
+  \item The \code{@re@lower} slot contains the lower bounds.
+    Parameter components for which \code{@re@lower} is \code{-Inf} are
+    unbounded.  The ones to check are those for which \code{@re@lower}
+    is \code{0}.
+  \end{itemize}
+\end{frame}
+
+\begin{frame}[fragile]
+  \frametitle{Data on early childhood cognitive development}
+<<EarlyData,fig=TRUE,echo=FALSE>>=
+print(xyplot(cog ~ age | id, Early, type = c("g",'b'), aspect = 'xy',
+             layout = c(29,4), between = list(y = c(0,0.5)),
+#             skip = rep(c(FALSE,TRUE),c(58,11)),
+             xlab = "Age (yr)",
+             ylab = "Cognitive development score",
+             scales = list(x = list(tick.number = 3, alternating = TRUE,
+                           labels = c("1","","2"), at = c(1,1.5,2))),
+             par.strip.text = list(cex = 0.7)))
+@ 
+\end{frame}
+\begin{frame}[fragile]
+  \frametitle{Fitting a model to the Early data}
+  \begin{itemize}
+  \item The \code{Early} data in the \code{mlmRev} package are from a
+    study on early childhood cognitive development as influenced by a
+    treatment.  These data are discussed in \textbf{Applied
+      Longitudinal Data Analysis} (2003) by Singer and Willett.
+  \item A model with random effects for slope and intercept is
+  \end{itemize}
+<<fm12>>=
+Early <- within(Early, tos <- age-0.5)
+fm12 <- lmer(cog ~ tos+trt:tos+(tos|id), Early, verbose=TRUE)
+@   
+\end{frame}
+
+\begin{frame}
+  [fragile]
+  \frametitle{Fitted model for the Early data}
+<<fm12show,echo=FALSE>>=
+print(fm12, corr=FALSE)
+@   
+Here is it obvious that there is a problem.  However, Singer and
+Willett did not detect this in model fits from SAS PROC MIXED or
+MLWin, both of which reported a covariance estimate.
+\end{frame}
+
+\begin{frame}
+  \frametitle{Other practical issues}
+  \begin{itemize}
+  \item In some disciplines there is an expectation that data will be
+    analyzed starting with the most complex model and evaluating terms
+    according to their p-values.
+  \item This can be appropriate for carefully balanced, designed
+    experiments.  It is rarely a good approach on observational,
+    imbalanced data.
+  \item Bear in mind that this approach was formulated when graphical
+    and computational capabilities were very limited.
+  \item A more appropriate modern approach is to explore the data
+    graphically and to fit models sequentially, comparing these fitted
+    models with tests such as the LRT.
+  \end{itemize}
+\end{frame}
+\begin{frame}
+  \frametitle{Fixed-effects or random-effects?}
+  \begin{itemize}
+  \item Earlier we described the distinction between fixed and
+    random effects as dependent on the repeatability of the levels.
+  \item This is the basis for the distinction but the number of levels
+    observed must also be considered.
+  \item Fitting mixed-effects models requires data from several levels
+    of the grouping factor.  Even when a factor represents a random
+    selection (say sample transects in an ecological study) it is not
+    practical to estimate a variance component from only two or three
+    observed levels.
+  \item At the other extreme, a census of a large number of levels can
+    be modeled with random effects even though the observed levels are
+    not a sample.
+  \end{itemize}
+\end{frame}
+
+\section{Summary}
+\label{sec:summary}
+
+\begin{frame}
+  \frametitle{Summary}
+  \begin{itemize}
+  \item In models of longitudinal data on several subjects we often
+    incorporate random effects for the intercept and/or the slope of
+    the response with respect to time.
+  \item By default we allow for a general variance-covariance matrix
+    for the random effects for each subject.
+  \item The model can be restricted to independent random effects when
+    appropriate.
+  \item For other interactions of fixed-effects factors and
+    random-effects grouping factors, the general term can lead to
+    estimation of many variance-covariance parameters.  We may want to
+    restrict to independent random effects for the subject and the
+    subject/type interaction.
+  \end{itemize}
+\end{frame}
+\end{document}
