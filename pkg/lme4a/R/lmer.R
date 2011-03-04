@@ -578,12 +578,14 @@ bootMer <- function(x, FUN, nsim = 1, seed = NULL, use.u = FALSE,
 PIRLSest <- function(ans, verbose, control, nAGQ) {
     if (verbose) control$iprint <- verbose
     ## initial optimization of PIRLSBetaU
-    obj <- mkdevfun(ans, 0L, beta0=ans@fe@coef, verbose = verbose)
+    obj <- mkdevfun(ans, 0L, beta0=ans@fe@coef, verbose = verbose - 1L)
 
     opt <- bobyqa(ans@re@theta, obj, ans@re@lower, control = control)
     if (nAGQ > 0L) {
         thpars <- seq_along(ans@re@theta)
         bb <- attr(opt$fval, "beta")
+        control$rhobeg <- 0.0002
+        control$rhoend <- 2e-7
         obj <- mkdevfun(ans, nAGQ, u0 = attr(opt$fval, "u"), verbose)
         opt <- bobyqa(c(opt$par, bb), obj,
                       lower = c(ans@re@lower, rep.int(-Inf, length(bb))),
