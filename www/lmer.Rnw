@@ -1,0 +1,487 @@
+\documentclass{jss}
+%% need no \usepackage{Sweave.sty}
+\usepackage{bm,amsmath,thumbpdf,amsfonts}
+\author{Douglas Bates\\University of Wisconsin - Madison\And
+  Martin M\"{a}chler\\ETH Z\"{u}rich\And
+  Ben Bolker\\McMaster University
+}
+\Plainauthor{Douglas Bates, Martin Maechler}
+\title{Fitting linear mixed-effects models using \pkg{lme4}}
+\Plaintitle{Fitting linear mixed-effects models using lme4}
+\Shorttitle{Linear mixed models with lme4}
+\Abstract{%
+  Maximum likelihood or REML estimates of the parameters in linear
+  mixed-effects models can be determined using the \code{lmer}
+  function in the \pkg{lme4} package for \proglang{R}. As in most
+  model-fitting functions, the model is described in an \code{lmer}
+  call by a formula, in this case including both fixed-effects terms
+  and random-effects terms. The formula and data together determine a
+  numerical representation of the model from which the profiled
+  deviance or the profiled REML criterion can be evaluated as a
+  function of some of the model parameters.  The appropriate criterion
+  is optimized, using one of the constrained optimization functions in
+  \proglang{R}, to provide the parameter estimates.  We describe the
+  structure of the model, the steps in evaluating the profiled
+  deviance or REML criterion and the structure of the S4 class
+  that represents such a model.  Sufficient detail is
+  included to allow specialization of these structures by those who
+  wish to write functions to fit specialized linear mixed models, such
+  as models incorporating pedigrees or smoothing splines, that aren't
+  easily expressible in the formula language used by \code{lmer}.
+}
+\Keywords{%
+  sparse matrix methods,
+  linear mixed models,
+  penalized least squares,
+  Cholesky decomposition}
+\Address{
+  Douglas Bates\\
+  Department of Statistics\\
+  University of Wisconsin\\
+  1300 University Ave.\\
+  Madison, WI 53706, U.S.A.\\
+  E-mail: \email{bates@stat.wisc.edu}
+}
+\newcommand{\Var}{\operatorname{Var}}
+\newcommand{\abs}{\operatorname{abs}}
+\newcommand{\bLt}{\ensuremath{\bm\Lambda_\theta}}
+\newcommand{\mc}[1]{\ensuremath{\mathcal{#1}}}
+\newcommand{\trans}{\ensuremath{^\prime}}
+\newcommand{\yobs}{\ensuremath{\bm y_{\mathrm{obs}}}}
+\SweaveOpts{engine=R,eps=FALSE,pdf=TRUE,width=10,height=6.5,strip.white=all}
+\SweaveOpts{prefix=TRUE,prefix.string=figs/simple,include=TRUE}
+\SweaveOpts{keep.source=TRUE}
+<<preliminaries,echo=FALSE,results=hide>>=
+options(width=69,show.signif.stars=FALSE,str=strOptions(strict.width="cut"))
+@ 
+\begin{document}
+\section{Introduction}
+\label{sec:intro}
+
+The \code{lme4} package for \proglang{R} provides functions to fit and
+analyze linear mixed models (LMMs), generalized linear mixed models
+(GLMMs) and nonlinear mixed models (NLMMs).  In each of these names,
+the term ``mixed'' or, more fully, ``mixed-effects'', denotes a model
+that incorporates both fixed-effects terms and random-effects terms in
+a linear predictor expression from which the conditional mean of the
+response can be evaluated.  In this paper we describe the formulation
+and representation of linear mixed models.  The techniques used for
+the other types of models will be described separately.
+
+Just as a linear model can be described in terms of the distribution
+of $\mc{Y}$, the vector-valued random variable whose observed value is
+$\bm y$, the observed response vector, a linear mixed model can be
+described by the distribution of two vector-valued random variables:
+$\mc{Y}$, the response and $\mc{B}$, the vector of random effects.  In
+a linear model the distribution of $\mc Y$ is multivariate normal,
+\begin{equation}
+  \label{eq:linearmodel}
+  \mc Y\sim\mc{N}(\bm X\bm\beta,\sigma^2\bm I_n),
+\end{equation}
+where $n$ is the dimension of the response vector, $\bm I_n$ is the
+identity matrix of size $n$, $\bm\beta$ is a $p$-dimensional
+coefficient vector and $\bm X$ is an $n\times p$ model matrix. The
+parameters of the model are the coefficients, $\bm\beta$, and the
+scale parameter, $\sigma$.
+
+In a linear mixed model it is the \emph{conditional} distribution of
+$\mc Y$ given $\mc B=\bm b$ that has such a form,
+\begin{equation}
+  \label{eq:LMMcondY}
+  (\mc Y|\mc B=\bm b)\sim\mc{N}(\bm X\bm\beta+\bm Z\bm b,\sigma^2\bm I_n)
+\end{equation}
+where $\bm Z$ is the $n\times q$ model matrix for the $q$-dimensional
+vector-valued random effects variable, $\mc B$, whose value we are
+fixing at $\bm b$.  The unconditional distribution of $\mc B$ is also
+multivariate normal with mean zero and a parameterized $q\times q$
+variance-covariance matrix, $\bm\Sigma$,
+\begin{equation}
+  \label{eq:LMMuncondB}
+  \mc B\sim\mc N(\bm0,\bm\Sigma) .
+\end{equation}
+As a variance-covariance matrix, $\bm\Sigma$ must be positive
+semidefinite.  It is convenient to express the model in terms of a 
+\emph{relative covariance factor}, $\bm\Lambda_\theta$, which is a
+$q\times q$ matrix, depending on the \emph{variance-component
+  parameter}, $\bm\theta$, and generating the symmetric $q\times q$
+variance-covariance matrix, $\bm\Sigma$, according to
+\begin{equation}
+  \label{eq:relcovfac}
+  \bm\Sigma_\theta=\sigma^2\bm\Lambda_\theta\bm\Lambda_\theta\trans ,
+\end{equation}
+where $\sigma$ is the same scale factor as in the conditional
+distribution (eqn.~\ref{eq:LMMcondY}).
+
+Although $q$, the number of columns in $\bm Z$ and the
+size of $\bm\Sigma_{\bm\theta}$, can be very large indeed, the
+dimension of $\bm\theta$ is small, frequently less than 10.
+
+In calls to the \code{lm} function for fitting linear models the form
+of the model matrix $\bm X$ is determined by the \code{formula} and
+\code{data} arguments. The right-hand side of the formula consists of
+one or more terms that each generate one or more columns in the model
+matrix, $\bm X$.  For \code{lmer} the formula language is extended to
+allow for random-effects terms that generate the model matrix $\bm Z$
+and the mapping from $\bm\theta$ to $\bm\Lambda_{\bm\theta}$.
+
+To understand why the formulation in equations \ref{eq:LMMcondY} and
+\ref{eq:LMMuncondB} is particularly useful, we first show that the
+profiled deviance (negative twice the log-likelihood) and the profiled
+REML criterion can be expressed as a function of $\bm\theta$ only.
+Furthermore these criteria can be evaluated quickly and accurately.
+
+\section{Profiling the deviance and the REML criterion}
+\label{sec:profdev}
+
+As stated above, $\bm\theta$ determines the $q\times q$ matrix
+$\bm\Lambda_\theta$ which, together with a value of $\sigma^2$,
+determines
+$\Var(\mc B)=\bm\Sigma_\theta=\sigma^2\bm\Lambda_\theta\bm\Lambda_\theta\trans$.
+If we define a \emph{spherical}%
+\footnote{$\mathcal{N}(\bm\mu,\sigma^2\bm I)$ 
+  distributions are called ``spherical'' because contours of the
+  probability density are spheres.}
+\emph{random effects} variable, $\mc U$, with distribution
+\begin{equation}
+  \label{eq:sphericalRE}
+  \mc U\sim\mathcal{N}(\bm 0,\sigma^2\bm I_q),
+\end{equation}
+and set
+\begin{equation}
+  \label{eq:BU}
+  \mc B=\bm\Lambda_\theta\mc U,
+\end{equation}
+then $\mc B$ will have the desired $\mathcal{N}(\bm
+0,\bm\Sigma_\theta)$ distribution.  
+
+Although it may seem more natural to define $\mc U$ in terms of $\mc
+B$ we must write the relationship as in eqn.~\ref{eq:BU} because
+$\bm\Lambda_\theta$ may be singular.  In fact, it is important to
+allow for $\bm\Lambda_\theta$ to be singular because situations
+where the parameter estimates, $\widehat{\bm\theta}$, produce a
+singular $\bm\Lambda_{\widehat{\theta}}$ do occur in practice.  And
+even if the parameter estimates do not correspond to a singular
+$\bm\Lambda_\theta$, it may be necessary to evaluate the estimation
+criterion at such values during the course of the numerical
+optimization of the criterion.
+
+The model can now be defined in terms of 
+\begin{equation}
+  \label{eq:LMMcondYU}
+  (\mc Y|\mc U=\bm u)\sim\mc{N}(\bm Z\bm\Lambda_\theta\bm u+\bm X\bm\beta,\sigma^2\bm I_n)
+\end{equation}
+producing the joint density function
+\begin{equation}
+  \label{eq:jointDens}
+  \begin{aligned}
+    f_{\mc Y,\mc U}(\bm y,\bm u)&
+    =f_{\mc Y|\mc U}(\bm y|\bm u)\,f_{\mc U}(\bm u)\\
+    &=\frac{\exp(-\frac{1}{2\sigma^2}\|\bm y-\bm X\bm\beta-\bm Z\bLt\bm u\|^2)}
+    {(2\pi\sigma^2)^{n/2}}\;
+    \frac{\exp(-\frac{1}{2\sigma^2}\|\bm u\|^2)}{(2\pi\sigma^2)^{q/2}}\\
+    &=\frac{\exp(-
+      \left[\|\bm y-\bm X\bm\beta-\bm Z\bLt\bm u\|^2+\|\bm u\|^2\right]/(2\sigma^2))}
+    {(2\pi\sigma^2)^{(n+q)/2}} .
+  \end{aligned}
+\end{equation}
+
+To obtain an expression for the likelihood it is convenient to
+distinguish between a general argument, $\bm y$, and the particular
+value of the observed response, which we will write as $\yobs$
+for the remainder of this section.
+The \emph{likelihood} of the parameters, $\bm\theta$, $\bm\beta$ and
+$\sigma^2$, given the observed data is the value of the
+marginal density of the data evaluated at $\yobs$.  That is
+\begin{equation}
+  \label{eq:likelihoodLMM}
+  L(\bm\theta,\bm\beta,\sigma^2|\yobs)=\int_{\mathbb{R}^q}f_{\mc Y,\mc
+    U}(\yobs,\bm u)\,d\bm u .
+\end{equation}
+The integrand of eqn.~\ref{eq:likelihoodLMM} is the \emph{unscaled
+  conditional density} of $\mc U$ given $\mc Y=\yobs$.  The
+conditional density of $\mc U$ given $\mc Y=\yobs$ is
+\begin{equation}
+  \label{eq:condDens}
+  f_{\mc U|\mc Y}(\bm u|\yobs)=\frac{f_{\mc Y,\mc U}(\yobs,\bm u)}
+  {\int f_{\mc Y,\mc U}(\yobs,\bm u)\,d\bm u}
+\end{equation}
+which is, up to a scale factor, the joint density, $f_{\mc Y,\mc
+  U}(\yobs,\bm u)$.  The unscaled conditional density will be, up to a
+scale factor, a $q$-dimensional multivariate Gaussian and its integral
+is easy to calculate if we know the mean and variance-covariance of
+the conditional density.
+
+The conditional mean, $\bm\mu_{\mc U|\mc Y=\yobs}$, is also the mode
+of the conditional distribution.  Because a constant factor in a
+function does not affect the location of the optimum, we can determine
+the conditional mode, and hence the conditional mean, by maximizing
+the unscaled conditional density.  This is in the form of a
+\emph{penalized linear least squares} problem,
+\begin{equation}
+  \label{eq:PLSprob}
+  \bm\mu_{\mc U|\mc Y=\yobs}=\arg\min_{\bm u}
+  \left(\left\|\yobs-\bm X\bm\beta-\bm Z\bLt\bm u\right\|^2 +
+    \left\|\bm u\right\|^2\right) .
+\end{equation}
+
+\subsection{Solving the penalized least squares problem}
+\label{sec:solvingPLS}
+
+In the so-called ``pseudo-data'' approach to penalized least squares
+problems we write the objective as a residual sum of squares for an
+extended response vector and model matrix
+\begin{equation}
+  \label{eq:pseudoData}
+  \left\|\yobs-\bm X\bm\beta-\bm Z\bLt\bm u\right\|^2 +
+  \left\|\bm u\right\|^2 = 
+  \left\| \begin{bmatrix}\yobs-\bm X\bm\beta\\\bm 0\end{bmatrix}-
+    \begin{bmatrix}\bm Z\bLt\\\bm I_q\end{bmatrix}
+    \bm u\right\|^2.
+\end{equation}
+The contribution to the residual sum of squares from the additional
+observations, or pseudo-data, is exactly the penalty term, $\left\|\bm
+  u\right\|^2$.
+
+From eqn.~\ref{eq:pseudoData} we can see that the conditional mean satisfies
+\begin{equation}
+  \label{eq:PLSsol}
+  \left(\bLt\trans\bm Z\trans\bm Z\bLt+\bm I_q\right)
+  \bm\mu_{\mc U|\mc Y=\yobs}=\bLt\trans\bm Z\trans(\yobs-\bm X\bm\beta),
+\end{equation}
+which would be interesting, but not terribly useful, were it not for
+the fact that we can determine the solution to eqn.~\ref{eq:PLSsol}
+quickly and accurately, even when $q$, the size of the system to
+solve, is very large indeed.  (We have done so in cases where $q$ is
+in the millions.)
+
+The key to solving eqn.~\ref{eq:PLSsol} is the \emph{sparse Cholesky
+  factor}, $\bm L_\theta$, which is a sparse, lower-triangular matrix
+such that
+\begin{equation}
+  \label{eq:sparseChol}
+  \bm L_\theta\bm L\trans_\theta=\bm P
+  \left(\bLt\trans\bm Z\trans\bm Z\bLt+\bm I_q\right)
+  \bm P\trans,
+\end{equation}
+where $\bm P$ is a permutation matrix representing a fill-reducing
+permutation~\citep[Ch.~7]{davis06:csparse_book}.
+
+As for most sparse matrix methods, the sparse Cholesky factorization
+can be split into two phases: a symbolic phase in which the positions
+of the non-zero elements in the result are determined and a numeric
+phase in which the actual numeric values in these positions are
+determined.  Determining the fill-reducing permutation represented by
+$\bm P$ is part of the symbolic phase, which often takes much longer
+than the numeric phase.  During the course of determining the maximum
+likelihood or REML estimates of the parameters in a linear
+mixed-effects model we may need to evaluate $\bm L_\theta$ for many
+different values of $\bm\theta$ but that only involves the numeric
+phase.  Changing $\bm\theta$ can change the values of the non-zero
+elements in $\bm L$ but it does not change their positions.  That is,
+the symbolic phase only needs to be done once.
+
+The \code{Cholesky} function in the \pkg{Matrix} package for
+\proglang{R} performs both the symbolic and numeric phases of the
+factorization to produce $\bm L_\theta$ from $\bLt\trans\bm Z\trans\bm
+Z\bLt$.  The resulting object has S4 class \code{"CHMsuper"} or
+\code{"CHMsimp"} depending on whether it is in the
+supernodal~\citep[\S~4.8]{davis06:csparse_book} or simplicial form.
+Both these classes inherit from the virtual class \code{"CHMfactor"}.
+Optional arguments to the \code{Cholesky} function the use of a fill-reducing
+permutation and adding a multiple of the identity to the symmetric
+matrix before determining the Cholesky factor.  Once the factor has
+been determined for the initial value, $\bm\theta_0$, it can be
+updated for new values of $\bm\theta$ in a single call to the
+\code{update} method.
+
+Although the  \code{solve} method for the \code{"CHMfactor"} class has
+an option to evaluate $\bm\mu_{\mc U|\mc Y=\yobs}$ directly as the solution to
+\begin{equation}
+  \label{eq:Cholsol}
+  \bm P\trans\bm L_\theta\bm L\trans_\theta\bm P
+  \bm\mu_{\mc U|\mc Y=\yobs}=
+  \bLt\trans\bm Z\trans(\bm y-\bm X\bm\beta) .
+\end{equation}
+we will express the solution in two stages:
+\begin{enumerate}
+\item Solve $\bm L\bm c_{\bm u}=\bm P\bLt\trans\bm Z\trans(\bm y-\bm
+  X\bm\beta)$ for $\bm c_{\bm u}$.
+\item Solve $\bm L\trans\bm P\bm\mu_{\mc U|\mc Y=\yobs}=\bm c_{\bm u}$ for $\bm
+  P\bm\mu_{\mc U|\mc Y=\yobs}$ and $\bm\mu_{\mc U|\mc Y=\yobs}$ as $\bm P\trans\bm
+  P\bm\mu_{\mc U|\mc Y=\yobs}$.
+\end{enumerate}
+
+\subsection{Evaluating the likelihood}
+\label{sec:evallike}
+
+After solving for $\bm\mu_{\mc U|\mc Y=\yobs}$ the exponent in $f_{\mc Y,\mc
+  U}(\bm y, \bm u)$ can be written
+\begin{equation}
+  \label{eq:PLS}
+  \|\yobs-\bm X\bm\beta-\bm Z\bLt\bm u\|^2+\|\bm u\|^2=
+  r^2(\bm\theta,\bm\beta)+
+  \|\bm L\trans\bm P(\bm u-\bm\mu_{\mc U|\mc Y=\yobs})\|^2.
+\end{equation}
+where $r^2(\bm\theta,\bm\beta)=\|\yobs-\bm X\bm\beta-
+\bm Z\bm\Lambda_\theta\bm\mu_{\mc U|\mc Y=\yobs}\|^2+
+\|\bm\mu_{\mc U|\mc Y=\yobs}\|^2$, is the minimum  
+penalized residual sum of squares for these values of $\bm\theta$ and
+$\bm\beta$.
+
+With expression (\ref{eq:PLS}) and the change of variable $\bm v=\bm
+L\trans\bm P(\bm u-\bm\mu_{\mc U|\mc Y=\yobs})$, for which $d\bm
+v=\abs(|\bm L||\bm P|)\,d\bm u$, we have
+\begin{equation}
+  \label{eq:intExpr}
+  \int\frac{\exp\left(\frac{-\|\bm L\trans\bm P(\bm u-\bm\mu_{\mc U|\mc Y})\|^2}
+      {2\sigma^2}\right)}
+  {(2\pi\sigma^2)^{q/2}}\,d\bm u \\
+  = \int\frac{\exp\left(\frac{-\|\bm
+        v\|^2}{2\sigma^2}\right)}{(2\pi\sigma^2)^{q/2}}\,\frac{d\bm
+    v}{\abs(|\bm L||\bm P|)} = \frac{1}{\abs(|\bm L||\bm
+    P|)}=\frac{1}{|\bm L|}
+\end{equation}
+because $\abs|\bm P|=1$ and $|\bm L|$, which, because $\bm L$ is
+triangular, is the product of its diagonal elements, all of which are
+positive, is positive.
+
+Using this expression we can write the deviance (negative twice the
+log-likelihood) as
+\begin{equation}
+  \label{eq:deviance}
+  -2\ell(\bm\theta,\bm\beta,\sigma^2|\yobs)=-2\log L(\bm\theta,\bm\beta,\sigma^2|\yobs)=
+  n\log(2\pi\sigma^2)+\frac{r^2(\bm\theta,\bm\beta)}{\sigma^2}+
+  \log(|\bm L_\theta|^2)
+\end{equation}
+Because the dependence of eqn.~\ref{eq:deviance} on $\sigma^2$ is
+straightforward, we can form the conditional estimate
+\begin{equation}
+  \label{eq:conddev}
+  \widehat{\sigma^2}(\bm\theta,\bm\beta)=\frac{r^2(\bm\theta,\bm\beta)}{n}
+\end{equation}
+producing the \emph{profiled deviance}
+\begin{equation}
+  \label{eq:profdev1}    
+  -2\tilde{\ell}(\bm\theta,\bm\beta|\yobs)=\log(|\bm L_\theta|^2)+
+  n\left[1+\log\left(\frac{2\pi r^2(\bm\theta,\bm\beta)}{n}\right)\right]
+\end{equation}
+
+However, observing that eqn.~\ref{eq:profdev1} depends on $\bm\beta$
+only through $r^2(\bm\theta,\bm\beta)$ provides a much greater
+simplification because it allows us to ``profile out'' the
+fixed-effects parameter, $\bm\beta$, from the evaluation of the
+deviance.  The conditional estimate, $\widehat{\bm\beta}_\theta$, is
+the value of $\bm\beta$ at the solution of the joint penalized least
+squares problem
+\begin{equation}
+  \label{eq:jointPLS}
+  r^2_\theta=\min_{\bm u,\bm\beta}
+  \left[\left\|\bm y-\bm X\bm\beta-\bm Z\bLt\bm u\right\|^2 +
+    \left\|\bm u\right\|^2\right] ,
+\end{equation}
+producing the profiled deviance,
+\begin{equation}
+  \label{eq:profdev2}
+  -2\tilde{\ell}(\bm\theta)=\log(|\bm L_\theta|^2)+
+  n\left[1+\log\left(\frac{2\pi r^2_\theta}{n}\right)\right],
+\end{equation}
+which is a function of $\bm\theta$ only.  This is a remarkably compact
+expression for the deviance.
+
+\subsection{Solving the joint penalized least squares problem}
+\label{sec:jointPLS}
+The solutions, $\bm\mu_{\mc U|\mc Y=\yobs}$ and
+$\widehat{\bm\beta}_\theta$, of the joint penalized least squares
+problem (\ref{eq:jointPLS}) satisfy
+\begin{equation}
+  \label{eq:jointPLSeqn}
+  \begin{bmatrix}
+    \bLt\trans\bm Z\trans\bm Z\bLt+\bm I_q & \bm
+    \bLt\trans\bm Z\trans\bm X\\
+    \bm X\trans\bm Z\bLt & \bm X\trans\bm X
+  \end{bmatrix}
+  \begin{bmatrix}
+    \bm\mu_{\mc U|\mc Y=\yobs}\\\widehat{\bm\beta}_\theta
+  \end{bmatrix}=
+  \begin{bmatrix}\bLt\trans\bm Z\trans\yobs\\\bm X\trans\yobs .
+  \end{bmatrix}
+\end{equation}
+As before we will use the sparse Cholesky decomposition producing,
+$\bm L_\theta$, the sparse Cholesky factor, and $\bm P$, the
+permutation matrix, satisfying $\bm L_\theta\bm L_\theta\trans=\bm
+P(\bLt\trans\bm Z\trans\bm Z\bLt+\bm I)$ and $\bm c_{\bm u}$, the
+solution to $\bm L_\theta\bm c_{\bm u}=\bm P\bLt\trans\bm Z\trans\yobs$.
+
+We extend the decomposition with the $q\times p$ matrix $\bm
+R_{ZX}$, the upper triangular $p\times p$ matrix $\bm R_X$, and
+the $p$-vector $\bm c_{\bm\beta}$ satisfying
+\begin{align*}
+  \bm L\bm R_{ZX}&=\bm P\bLt\trans\bm Z\trans\bm X\\
+  \bm R_X\trans\bm R_X&=\bm X\trans\bm X-\bm R_{ZX}\trans\bm R_{ZX}\\
+  \bm R_X\trans\bm c_{\bm\beta}&=\bm X\trans\yobs-\bm R_{ZX}\trans\bm c_{\bm u}
+\end{align*}
+so that
+\begin{equation}
+  \label{eq:fulldecomp}
+  \begin{bmatrix}
+    \bm P\trans\bm L& \bm 0\\
+    \bm R_{ZX}\trans & \bm R_X\trans
+  \end{bmatrix}
+  \begin{bmatrix}
+    \bm L\trans\bm P & \bm R_{ZX}\\
+    \bm 0            & \bm R_X
+  \end{bmatrix}=
+  \begin{bmatrix}
+    \bLt\trans\bm Z\trans\bm Z\bLt+\bm I & \bLt\trans\bm Z\trans\bm X\\
+    \bm X\trans\bm Z\bLt       & \bm X\trans\bm X
+  \end{bmatrix} ,
+\end{equation}
+and the solutions, $\bm\mu_{\mc U|\mc Y=\yobs}$ and
+$\widehat{\bm\beta}_\theta$, satisfy 
+\begin{align}
+  \bm R_x\widehat{\bm\beta}_\theta&=\bm c_{\bm\beta}\\
+  \bm L\trans\bm P\bm\mu_{\mc U|\mc Y=\yobs}&=\bm c_{\bm u}-\bm
+  R_{ZX}\widehat{\bm\beta}_\theta .
+\end{align}
+
+\subsection{The profiled REML criterion}
+\label{sec:profiledREML}
+
+\citet{laird_ware_1982} show that the criterion to be optimized by the
+REML estimates can be expressed as
+\begin{equation}
+  \label{eq:REMLcrit}
+  L_R(\bm\theta,\sigma^2|\yobs)=\int
+  L(\bm\theta,\bm\beta,\sigma^2|\yobs)\,d\bm\beta .
+\end{equation}
+
+Because the joint solutions, $\bm\mu_{\mc U|\mc Y=\yobs}$ and
+$\widehat{\bm\beta}_\theta$ to the penalized least squares problem
+allow us to express
+\begin{equation}
+  \label{eq:PLS2}
+  \|\yobs-\bm X\bm\beta-\bm Z\bLt\bm u\|^2+\|\bm u\|^2=
+  r^2_\theta+
+  \|\bm L\trans\bm P(\bm u-\bm\mu_{\mc U|\mc Y=\yobs})\|^2+
+  \|\bm R_X(\bm\beta - \widehat{\bm\beta}_\theta)\|^2
+\end{equation}
+we can use a change of variable, similar to that in
+eqn.~\ref{eq:intExpr} to evaluate the profiled REML criterion.  On the
+deviance scale the criterion can be evaluated as
+\begin{equation}
+  \label{eq:profiledREML}
+  -2\tilde{\ell}_R(\bm\theta)=\log(|\bm L|^2)+\log(|\bm R_x|^2)+
+  (n-p)\left[1+\log\left(\frac{2\pi r^2_\theta}{n-p}\right)\right]
+\end{equation}
+
+\section{Generalized Linear Mixed Models}
+\label{sec:GLMMs}
+
+
+\bibliography{lmer}
+\end{document}
+
+%%% Local Variables: 
+%%% mode: latex
+%%% TeX-master: t
+%%% End: 
