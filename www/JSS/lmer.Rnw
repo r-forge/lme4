@@ -470,13 +470,184 @@ eqn.~\ref{eq:intExpr} to evaluate the profiled REML criterion.  On the
 deviance scale the criterion can be evaluated as
 \begin{equation}
   \label{eq:profiledREML}
-  -2\tilde{\ell}_R(\bm\theta)=\log(|\bm L|^2)+\log(|\bm R_x|^2)+
+  -2\tilde{\ell}_R(\bm\theta)=\log(|\bm L|^2)+\log(|\bm R_X|^2)+
   (n-p)\left[1+\log\left(\frac{2\pi r^2_\theta}{n-p}\right)\right]
 \end{equation}
 
 \section{Generalized Linear Mixed Models}
 \label{sec:GLMMs}
 
+The structures in \pkg{lme4} for representing mixed-models are
+somewhat more general than is required for linear mixed models.  In
+this section we briefly describe some of the computational
+requirements for generalized linear mixed models, to show why these
+more general structures are employed.
+
+\subsection{Definition of GLMMs}
+\label{sec:GLMMdef}
+
+The generalized linear mixed models (GLMMs) that can be fit by the
+\pkg{lme4} preserve the multivariate Gaussian unconditional
+distribution of the random effects, $\mc B$
+(eqn.~\ref{eq:LMMuncondB}).  Because most families used for the conditional
+distribution, $\mc Y|\mc B=\bm b$, do not incorporate a separate scale
+factor, $\sigma$, we remove it from the definition of $\bm\Sigma$ and
+the distribution of the spherical random effects, $\mc U$.  That is
+\begin{equation}
+  \label{eq:UdistGLMM}
+  \mc U\sim\mc N(\bm0,\bm I_q)
+\end{equation}
+and
+\begin{equation}
+  \label{eq:GLMMSigma}
+  \bm\Sigma_\theta=\bm\Lambda_\theta\bm\Lambda_\theta\trans .
+\end{equation}
+
+The conditional distributions, $\mc Y|\mc B=\bm b$ and $\mc Y|\mc
+U=\bm u$, preserve the properties that the components of $\mc Y$ are
+conditionally independent and that the mean, $\bm\mu_{\mc Y|\mc U=\bm
+  u}$ depends on $\bm u$ only through the linear predictor,
+\begin{equation}
+  \label{eq:GLMMlinpred}
+  \bm\eta=\bm Z\bm\Lambda_\theta\bm u+\bm X\bm\beta .
+\end{equation}
+The mapping from $\bm\mu_{\mc Y|\mc U=\bm u}$ to $\bm\eta$, which is called
+the \emph{link function} and written
+\begin{equation}
+  \label{eq:linkfun}
+  \bm Z\bm\Lambda_\theta\bm u+\bm X\bm\beta=\bm\eta=\bm g\left(
+    \bm\mu_{\mc Y|\mc U=\bm u }\right)
+\end{equation}
+is a \emph{diagonal mapping} in the sense that there is a scalar
+function, $g$, such that the $i$th component of $\bm\eta$ is $g$
+applied to the $i$th component of $\bm\mu_{\mc Y|\mc U=\bm u }$.  (The
+name ``diagonal'' reflects the fact that the Jacobian matrix,
+$\frac{d\eta}{d\mu}$, of such a mapping will be diagonal.)
+
+The scalar link function must be invertible over its range.  The
+vector-valued \emph{inverse link} function, $\bm g^{-1}$, will be the
+scalar inverse link, $g^{-1}$, applied component-wise to $\bm\eta$.
+
+Common forms of the conditional distribution are Bernoulli, for binary
+responses, binomial for binary responses that are recorded as the
+number of trials and the number of successes, and Poisson, for count
+data.  The combination of a distributional form and a link function is
+called a \emph{family}.  For distributional forms in the exponential
+family there is a \emph{canonical link}.  For Bernoulli or binomial
+forms the canonical link is the \emph{logit} link function
+\begin{equation}
+  \label{eq:logitLink}
+  \eta_i=\log\left(\frac{\mu_i}{1-\mu_i}\right);
+\end{equation}
+for the Poisson distribution the canonical link is the natural
+logarithm.
+
+The form of the distribution determines the conditional variance,
+$\Var(\mc Y|\mc U=\bm u)$, as a function of the conditional mean and,
+possibly, a separate scale factor. (In most cases the conditional
+variance is completely determined by the conditional mean.)
+
+The likelihood of the parameters, given the observed data, is now
+\begin{equation}
+  \label{eq:GLMMlike}
+  L(\bm\beta,\bm\theta|\yobs)=\int_{\mathbb{R}^q}f_{\mc Y,\mc U}(\yobs,\bm u)\,d\bm u
+\end{equation}
+where, as in the case of linear mixed models, $f_{\mc Y,\mc
+  U}(\yobs,\bm u)$ is the unscaled conditional density of $\mc U$
+given $\mc Y=\yobs$.  The notation here is a bit blurred because the
+joint distribution of $\mc Y$ and $\mc U$ can be (and often is)
+discrete with respect to $\mc Y$ but is always continuous with respect
+to $\mc U$.  However, when we condition on the observed value $\mc
+Y=\yobs$, the resulting function is continuous with respect to $\bm u$
+so the unscaled conditional density is well-defined.
+
+\subsection{Determining the conditional mode}
+\label{sec:conditionalMode}
+
+As for linear mixed models, we simplify evaluation of the integral
+(\ref{eq:GLMMlike}) by determining the value
+$\tilde{\bm u}_{\beta,\theta}$ that maximizes the unscaled conditional
+density.  When the conditional density, $\mc U|\mc Y=\bm y$, is
+multivariate Gaussian, the conditional mode will also be the
+conditional mean.  For most families used in GLMMs the mode and the
+mean do not need to coincide so we call $\tilde{\bm u}_{\beta,\theta}$
+the \emph{conditional mode}.
+
+The iteratively reweighted least squares (IRLS) algorithm is an
+incredibly efficient method of determining the maximum likelihood
+estimates of the coefficients in a generalized linear model.  We
+extend it to a \emph{penalized iteratively reweighted least squares}
+(PIRLS) algorithm for determining the conditional mode, $\tilde{\bm
+  u}_{\beta,\theta}$.   This algorithm has the form
+\begin{enumerate}
+\item Given parameter values, $\bm\beta$ and $\bm\theta$, and starting
+  estimates, $\bm u_0$, evaluate the linear predictor, $\bm\eta$, the
+  corresponding conditional mean, $\bm\mu_{\mc Y|\mc U=\bm u}$, and
+  the conditional variance.  Establish the weights as the inverse of
+  the variance.  We write these weights in the form of a diagonal
+  weight matrix, $\bm W$, although they are stored and manipulated as
+  a vector.
+\item Solve the penalized, weighted, nonlinear least squares problem
+  \begin{equation}
+    \label{eq:weightedNLS}
+    \arg\min_{\bm u}\left[\left\|\bm W^{1/2}\left(\yobs-\bm\mu_{\mc
+            Y|\mc U=\bm u}\right)\right\|^2+\|\bm u\|^2\right]
+  \end{equation}
+\item Update the weights, $\bm W$, and check for convergence.  If not
+  converged, go to step 2.
+\end{enumerate}
+
+We use a Gauss-Newton algorithm with an orthogonality convergence
+criterion~\citep[\S 2.2.3]{bateswatts88:_nonlin} to solve the
+penalized, weighted, nonlinear least squares problem in step 2.  At
+the $i$th iteration we determine an increment, $\bm\delta_i$, as the
+solution to the penalized, weighted, linear least squares problem
+\begin{equation}
+  \label{eq:incr}
+  \bm\delta_i=\arg\min_{\bm\delta}\left\|
+    \begin{bmatrix}
+      \bm W^{1/2}\left(\yobs-\bm\mu_i\right)\\
+      \bm u_i
+    \end{bmatrix}-
+    \begin{bmatrix}
+      \bm W^{1/2}\bm M_i\bm Z\bm\Lambda_\theta\\
+      \bm I_q
+    \end{bmatrix}\bm u\right\|^2
+\end{equation}
+where $\bm u_i$ is current value of $\bm u$, $\bm\mu_i$ is the
+corresponding conditional mean of $\mc Y|\mc U=\bm u$ and $\bm M_i$ is
+the Jacobian matrix of the vector-valued inverse link, evaluated at
+$\bm\mu_i$.  That is
+\begin{equation}
+  \label{eq:Jacobian}
+  \bm M_i=\left.\frac{d\bm\mu}{d\bm\eta}\right|_{\bm\eta_i},
+\end{equation}
+which will be a diagonal matrix so, as for the weights, we store and
+manipulate the Jacobian as a vector.
+
+The minimizer, $\bm\delta_i$, of (\ref{eq:incr}) satisfies
+\begin{equation}
+  \label{eq:incrEq}
+  \bm P\left(\bLt\trans\bm Z\trans\bm M_i\bm W\bm M_i\bm Z\bLt+\bm I_q\right)\bm P\trans
+      \bm\delta_i=\bLt\trans\bm Z\trans\bm M_i\bm W(\yobs-\bm\mu_i) - \bm u_i
+\end{equation}
+which we solve using the sparse Cholesky factor.  At convergence, the
+factor, $\bm L_{\beta,\theta}$, satisfies
+\begin{equation}
+  \label{eq:CholFactorGLMM}
+  \bm L_{\beta,\theta}\bm L_{\beta,\theta}\trans =
+  \bm P\left(\bLt\trans\bm Z\trans\bm M\bm W\bm M\bm Z\bLt+\bm I_q\right)\bm P\trans
+\end{equation}
+The integrand in the likelihood (\ref{eq:GLMMlike}) is approximately a constant
+times the density of the $\mathcal{N}(\tilde{\bm u},\bm L\bm L\trans)$
+distribution.  The \emph{Laplace approximation} to the deviance is
+\begin{equation}
+  \label{eq:Laplace}
+  d(\bm\beta,\bm\theta|\bm y)=d_g(\yobs,\bm\mu(\tilde{\bm u}))+
+  \|\tilde{\bm u}\|^2+\log(|\bm L|^2)
+\end{equation}
+where $d_g(\yobs,\bm\mu(\tilde{\bm u}))$ is the GLM deviance for
+$\yobs$ and $\bm\mu$.
 
 \bibliography{lmer}
 \end{document}
