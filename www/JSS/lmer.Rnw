@@ -2,10 +2,10 @@
 %% need no \usepackage{Sweave.sty}
 \usepackage{bm,amsmath,thumbpdf,amsfonts}
 \author{Douglas Bates\\University of Wisconsin - Madison\And
-  Martin M\"{a}chler\\ETH Z\"{u}rich\And
+  Martin M\"achler\\ETH Zurich\And
   Ben Bolker\\McMaster University
 }
-\Plainauthor{Douglas Bates, Martin Maechler}
+\Plainauthor{Douglas Bates, Martin M\"achler, Ben Bolker}
 \title{Fitting linear mixed-effects models using \pkg{lme4}}
 \Plaintitle{Fitting linear mixed-effects models using lme4}
 \Shorttitle{Linear mixed models with lme4}
@@ -41,6 +41,16 @@
   1300 University Ave.\\
   Madison, WI 53706, U.S.A.\\
   E-mail: \email{bates@stat.wisc.edu}
+  \par\bigskip
+  Martin M\"achler\\
+  Seminar f\"ur Statistik, HG G~16\\
+  ETH Zurich\\
+  8092 Zurich, Switzerland\\
+  E-mail: \email{maechler@stat.math.ethz.ch}\\
+  % URL: \url{http://stat.ethz.ch/people/maechler}
+  \par\bigskip
+  Ben Bolker\\
+  \dots\\ FIXME \dots
 }
 \newcommand{\Var}{\operatorname{Var}}
 \newcommand{\abs}{\operatorname{abs}}
@@ -48,12 +58,14 @@
 \newcommand{\mc}[1]{\ensuremath{\mathcal{#1}}}
 \newcommand{\trans}{\ensuremath{^\prime}}
 \newcommand{\yobs}{\ensuremath{\bm y_{\mathrm{obs}}}}
+\newcommand*{\eq}[1]{eqn.~\ref{#1}}% or just {(\ref{#1})}
+%
 \SweaveOpts{engine=R,eps=FALSE,pdf=TRUE,width=10,height=6.5,strip.white=all}
 \SweaveOpts{prefix=TRUE,prefix.string=figs/simple,include=TRUE}
 \SweaveOpts{keep.source=TRUE}
 <<preliminaries,echo=FALSE,results=hide>>=
 options(width=69,show.signif.stars=FALSE,str=strOptions(strict.width="cut"))
-@ 
+@
 \begin{document}
 \section{Introduction}
 \label{sec:intro}
@@ -100,7 +112,7 @@ variance-covariance matrix, $\bm\Sigma$,
   \mc B\sim\mc N(\bm0,\bm\Sigma) .
 \end{equation}
 As a variance-covariance matrix, $\bm\Sigma$ must be positive
-semidefinite.  It is convenient to express the model in terms of a 
+semidefinite.  It is convenient to express the model in terms of a
 \emph{relative covariance factor}, $\bm\Lambda_\theta$, which is a
 $q\times q$ matrix, depending on the \emph{variance-component
   parameter}, $\bm\theta$, and generating the symmetric $q\times q$
@@ -110,7 +122,7 @@ variance-covariance matrix, $\bm\Sigma$, according to
   \bm\Sigma_\theta=\sigma^2\bm\Lambda_\theta\bm\Lambda_\theta\trans ,
 \end{equation}
 where $\sigma$ is the same scale factor as in the conditional
-distribution (eqn.~\ref{eq:LMMcondY}).
+distribution (\ref{eq:LMMcondY}).
 
 Although $q$, the number of columns in $\bm Z$ and the
 size of $\bm\Sigma_{\bm\theta}$, can be very large indeed, the
@@ -138,7 +150,7 @@ $\bm\Lambda_\theta$ which, together with a value of $\sigma^2$,
 determines
 $\Var(\mc B)=\bm\Sigma_\theta=\sigma^2\bm\Lambda_\theta\bm\Lambda_\theta\trans$.
 If we define a \emph{spherical}%
-\footnote{$\mathcal{N}(\bm\mu,\sigma^2\bm I)$ 
+\footnote{$\mathcal{N}(\bm\mu,\sigma^2\bm I)$
   distributions are called ``spherical'' because contours of the
   probability density are spheres.}
 \emph{random effects} variable, $\mc U$, with distribution
@@ -152,10 +164,10 @@ and set
   \mc B=\bm\Lambda_\theta\mc U,
 \end{equation}
 then $\mc B$ will have the desired $\mathcal{N}(\bm
-0,\bm\Sigma_\theta)$ distribution.  
+0,\bm\Sigma_\theta)$ distribution.
 
 Although it may seem more natural to define $\mc U$ in terms of $\mc
-B$ we must write the relationship as in eqn.~\ref{eq:BU} because
+B$ we must write the relationship as in \eq{eq:BU} because
 $\bm\Lambda_\theta$ may be singular.  In fact, it is important to
 allow for $\bm\Lambda_\theta$ to be singular because situations
 where the parameter estimates, $\widehat{\bm\theta}$, produce a
@@ -165,7 +177,7 @@ $\bm\Lambda_\theta$, it may be necessary to evaluate the estimation
 criterion at such values during the course of the numerical
 optimization of the criterion.
 
-The model can now be defined in terms of 
+The model can now be defined in terms of
 \begin{equation}
   \label{eq:LMMcondYU}
   (\mc Y|\mc U=\bm u)\sim\mc{N}(\bm Z\bm\Lambda_\theta\bm u+\bm X\bm\beta,\sigma^2\bm I_n)
@@ -197,7 +209,7 @@ marginal density of the data evaluated at $\yobs$.  That is
   L(\bm\theta,\bm\beta,\sigma^2|\yobs)=\int_{\mathbb{R}^q}f_{\mc Y,\mc
     U}(\yobs,\bm u)\,d\bm u .
 \end{equation}
-The integrand of eqn.~\ref{eq:likelihoodLMM} is the \emph{unscaled
+The integrand of \eq{eq:likelihoodLMM} is the \emph{unscaled
   conditional density} of $\mc U$ given $\mc Y=\yobs$.  The
 conditional density of $\mc U$ given $\mc Y=\yobs$ is
 \begin{equation}
@@ -233,7 +245,7 @@ extended response vector and model matrix
 \begin{equation}
   \label{eq:pseudoData}
   \left\|\yobs-\bm X\bm\beta-\bm Z\bLt\bm u\right\|^2 +
-  \left\|\bm u\right\|^2 = 
+  \left\|\bm u\right\|^2 =
   \left\| \begin{bmatrix}\yobs-\bm X\bm\beta\\\bm 0\end{bmatrix}-
     \begin{bmatrix}\bm Z\bLt\\\bm I_q\end{bmatrix}
     \bm u\right\|^2.
@@ -242,19 +254,19 @@ The contribution to the residual sum of squares from the additional
 observations, or pseudo-data, is exactly the penalty term, $\left\|\bm
   u\right\|^2$.
 
-From eqn.~\ref{eq:pseudoData} we can see that the conditional mean satisfies
+From \eq{eq:pseudoData} we can see that the conditional mean satisfies
 \begin{equation}
   \label{eq:PLSsol}
   \left(\bLt\trans\bm Z\trans\bm Z\bLt+\bm I_q\right)
   \bm\mu_{\mc U|\mc Y=\yobs}=\bLt\trans\bm Z\trans(\yobs-\bm X\bm\beta),
 \end{equation}
 which would be interesting, but not terribly useful, were it not for
-the fact that we can determine the solution to eqn.~\ref{eq:PLSsol}
+the fact that we can determine the solution to \eq{eq:PLSsol}
 quickly and accurately, even when $q$, the size of the system to
 solve, is very large indeed.  (We have done so in cases where $q$ is
 in the millions.)
 
-The key to solving eqn.~\ref{eq:PLSsol} is the \emph{sparse Cholesky
+The key to solving \eq{eq:PLSsol} is the \emph{sparse Cholesky
   factor}, $\bm L_\theta$, which is a sparse, lower-triangular matrix
 such that
 \begin{equation}
@@ -324,7 +336,7 @@ After solving for $\bm\mu_{\mc U|\mc Y=\yobs}$ the exponent in $f_{\mc Y,\mc
 \end{equation}
 where $r^2(\bm\theta,\bm\beta)=\|\yobs-\bm X\bm\beta-
 \bm Z\bm\Lambda_\theta\bm\mu_{\mc U|\mc Y=\yobs}\|^2+
-\|\bm\mu_{\mc U|\mc Y=\yobs}\|^2$, is the minimum  
+\|\bm\mu_{\mc U|\mc Y=\yobs}\|^2$, is the minimum
 penalized residual sum of squares for these values of $\bm\theta$ and
 $\bm\beta$.
 
@@ -353,7 +365,7 @@ log-likelihood) as
   n\log(2\pi\sigma^2)+\frac{r^2(\bm\theta,\bm\beta)}{\sigma^2}+
   \log(|\bm L_\theta|^2)
 \end{equation}
-Because the dependence of eqn.~\ref{eq:deviance} on $\sigma^2$ is
+Because the dependence of \eq{eq:deviance} on $\sigma^2$ is
 straightforward, we can form the conditional estimate
 \begin{equation}
   \label{eq:conddev}
@@ -361,12 +373,12 @@ straightforward, we can form the conditional estimate
 \end{equation}
 producing the \emph{profiled deviance}
 \begin{equation}
-  \label{eq:profdev1}    
+  \label{eq:profdev1}
   -2\tilde{\ell}(\bm\theta,\bm\beta|\yobs)=\log(|\bm L_\theta|^2)+
   n\left[1+\log\left(\frac{2\pi r^2(\bm\theta,\bm\beta)}{n}\right)\right]
 \end{equation}
 
-However, observing that eqn.~\ref{eq:profdev1} depends on $\bm\beta$
+However, observing that \eq{eq:profdev1} depends on $\bm\beta$
 only through $r^2(\bm\theta,\bm\beta)$ provides a much greater
 simplification because it allows us to ``profile out'' the
 fixed-effects parameter, $\bm\beta$, from the evaluation of the
@@ -437,7 +449,7 @@ so that
   \end{bmatrix} ,
 \end{equation}
 and the solutions, $\bm\mu_{\mc U|\mc Y=\yobs}$ and
-$\widehat{\bm\beta}_\theta$, satisfy 
+$\widehat{\bm\beta}_\theta$, satisfy
 \begin{align}
   \bm R_x\widehat{\bm\beta}_\theta&=\bm c_{\bm\beta}\\
   \bm L\trans\bm P\bm\mu_{\mc U|\mc Y=\yobs}&=\bm c_{\bm u}-\bm
@@ -466,7 +478,7 @@ allow us to express
   \|\bm R_X(\bm\beta - \widehat{\bm\beta}_\theta)\|^2
 \end{equation}
 we can use a change of variable, similar to that in
-eqn.~\ref{eq:intExpr} to evaluate the profiled REML criterion.  On the
+\eq{eq:intExpr} to evaluate the profiled REML criterion.  On the
 deviance scale the criterion can be evaluated as
 \begin{equation}
   \label{eq:profiledREML}
@@ -474,8 +486,8 @@ deviance scale the criterion can be evaluated as
   (n-p)\left[1+\log\left(\frac{2\pi r^2_\theta}{n-p}\right)\right]
 \end{equation}
 
-\section{Generalized Linear Mixed Models}
-\label{sec:GLMMs}
+% \section{Generalized Linear Mixed Models}
+% \label{sec:GLMMs}
 
 The structures in \pkg{lme4} for representing mixed-models are
 somewhat more general than is required for linear mixed models.  In
@@ -489,7 +501,7 @@ more general structures are employed.
 The generalized linear mixed models (GLMMs) that can be fit by the
 \pkg{lme4} preserve the multivariate Gaussian unconditional
 distribution of the random effects, $\mc B$
-(eqn.~\ref{eq:LMMuncondB}).  Because most families used for the conditional
+(\ref{eq:LMMuncondB}).  Because most families used for the conditional
 distribution, $\mc Y|\mc B=\bm b$, do not incorporate a separate scale
 factor, $\sigma$, we remove it from the definition of $\bm\Sigma$ and
 the distribution of the spherical random effects, $\mc U$.  That is
@@ -652,7 +664,7 @@ $\yobs$ and $\bm\mu$.
 \bibliography{lmer}
 \end{document}
 
-%%% Local Variables: 
+%%% Local Variables:
 %%% mode: latex
 %%% TeX-master: t
-%%% End: 
+%%% End:
