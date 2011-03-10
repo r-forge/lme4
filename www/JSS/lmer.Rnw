@@ -36,8 +36,7 @@
   Cholesky decomposition}
 \Address{
   Douglas Bates\\
-  Department of Statistics\\
-  University of Wisconsin\\
+  Department of Statistics, University of Wisconsin\\
   1300 University Ave.\\
   Madison, WI 53706, U.S.A.\\
   E-mail: \email{bates@stat.wisc.edu}
@@ -49,8 +48,12 @@
   E-mail: \email{maechler@stat.math.ethz.ch}\\
   % URL: \url{http://stat.ethz.ch/people/maechler}
   \par\bigskip
-  Ben Bolker\\
-  \dots\\ FIXME \dots
+  Benjamin M. Bolker\\
+  Departments of Mathematics \& Statistics and Biology \\
+  McMaster University \\
+  1280 Main Street W \\
+  Hamilton, ON L8S 4K1, Canada \\
+  E-mail: \email{bolker@mcmaster.ca}
 }
 \newcommand{\Var}{\operatorname{Var}}
 \newcommand{\abs}{\operatorname{abs}}
@@ -203,7 +206,7 @@ value of the observed response, which we will write as $\yobs$
 for the remainder of this section.
 The \emph{likelihood} of the parameters, $\bm\theta$, $\bm\beta$ and
 $\sigma^2$, given the observed data is the value of the
-marginal density of the data evaluated at $\yobs$.  That is
+marginal density of $\mc Y$, evaluated at $\yobs$.  That is
 \begin{equation}
   \label{eq:likelihoodLMM}
   L(\bm\theta,\bm\beta,\sigma^2|\yobs)=\int_{\mathbb{R}^q}f_{\mc Y,\mc
@@ -219,9 +222,9 @@ conditional density of $\mc U$ given $\mc Y=\yobs$ is
 \end{equation}
 which is, up to a scale factor, the joint density, $f_{\mc Y,\mc
   U}(\yobs,\bm u)$.  The unscaled conditional density will be, up to a
-scale factor, a $q$-dimensional multivariate Gaussian and its integral
-is easy to calculate if we know the mean and variance-covariance of
-the conditional density.
+scale factor, a $q$-dimensional multivariate Gaussian with an integral
+that is easily evaluated if we know the mean and variance-covariance
+of the conditional density.
 
 The conditional mean, $\bm\mu_{\mc U|\mc Y=\yobs}$, is also the mode
 of the conditional distribution.  Because a constant factor in a
@@ -287,10 +290,10 @@ $\bm P$ is part of the symbolic phase, which often takes much longer
 than the numeric phase.  During the course of determining the maximum
 likelihood or REML estimates of the parameters in a linear
 mixed-effects model we may need to evaluate $\bm L_\theta$ for many
-different values of $\bm\theta$ but that only involves the numeric
-phase.  Changing $\bm\theta$ can change the values of the non-zero
-elements in $\bm L$ but it does not change their positions.  That is,
-the symbolic phase only needs to be done once.
+different values of $\bm\theta$, but doing so only involves the
+numeric phase.  Changing $\bm\theta$ can change the values of the
+non-zero elements in $\bm L$ but does not change their positions.
+That is, the symbolic phase only needs to be done once.
 
 The \code{Cholesky} function in the \pkg{Matrix} package for
 \proglang{R} performs both the symbolic and numeric phases of the
@@ -299,12 +302,12 @@ Z\bLt$.  The resulting object has S4 class \code{"CHMsuper"} or
 \code{"CHMsimp"} depending on whether it is in the
 supernodal~\citep[\S~4.8]{davis06:csparse_book} or simplicial form.
 Both these classes inherit from the virtual class \code{"CHMfactor"}.
-Optional arguments to the \code{Cholesky} function the use of a fill-reducing
-permutation and adding a multiple of the identity to the symmetric
-matrix before determining the Cholesky factor.  Once the factor has
-been determined for the initial value, $\bm\theta_0$, it can be
-updated for new values of $\bm\theta$ in a single call to the
-\code{update} method.
+Optional arguments to the \code{Cholesky} function control
+determination of a fill-reducing permutation and addition of multiple
+of the identity to the symmetric matrix before factorization.  Once
+the factor has been determined for the initial value, $\bm\theta_0$,
+it can be updated for new values of $\bm\theta$ in a single call to
+the \code{update} method.
 
 Although the  \code{solve} method for the \code{"CHMfactor"} class has
 an option to evaluate $\bm\mu_{\mc U|\mc Y=\yobs}$ directly as the solution to
@@ -319,15 +322,15 @@ we will express the solution in two stages:
 \item Solve $\bm L\bm c_{\bm u}=\bm P\bLt\trans\bm Z\trans(\bm y-\bm
   X\bm\beta)$ for $\bm c_{\bm u}$.
 \item Solve $\bm L\trans\bm P\bm\mu_{\mc U|\mc Y=\yobs}=\bm c_{\bm u}$ for $\bm
-  P\bm\mu_{\mc U|\mc Y=\yobs}$ and $\bm\mu_{\mc U|\mc Y=\yobs}$ as $\bm P\trans\bm
-  P\bm\mu_{\mc U|\mc Y=\yobs}$.
+  P\bm\mu_{\mc U|\mc Y=\yobs}$ and then for
+  $\bm\mu_{\mc U|\mc Y=\yobs}=\bm P\trans\left(\bm P\bm\mu_{\mc U|\mc Y=\yobs}\right)$.
 \end{enumerate}
 
 \subsection{Evaluating the likelihood}
 \label{sec:evallike}
 
 After solving for $\bm\mu_{\mc U|\mc Y=\yobs}$ the exponent in $f_{\mc Y,\mc
-  U}(\bm y, \bm u)$ can be written
+  U}(\yobs, \bm u)$ can be written
 \begin{equation}
   \label{eq:PLS}
   \|\yobs-\bm X\bm\beta-\bm Z\bLt\bm u\|^2+\|\bm u\|^2=
@@ -353,9 +356,10 @@ v=\abs(|\bm L||\bm P|)\,d\bm u$, we have
     v}{\abs(|\bm L||\bm P|)} = \frac{1}{\abs(|\bm L||\bm
     P|)}=\frac{1}{|\bm L|}
 \end{equation}
-because $\abs|\bm P|=1$ and $|\bm L|$, which, because $\bm L$ is
-triangular, is the product of its diagonal elements, all of which are
-positive, is positive.
+because $\abs|\bm P|=1$ (one property of a permutation matrix is $|\bm
+P|=\pm1$) and $|\bm L|$, which, because $\bm L$ is triangular, is the
+product of its diagonal elements, all of which are positive, is
+positive.
 
 Using this expression we can write the deviance (negative twice the
 log-likelihood) as
@@ -388,8 +392,8 @@ squares problem
 \begin{equation}
   \label{eq:jointPLS}
   r^2_\theta=\min_{\bm u,\bm\beta}
-  \left[\left\|\bm y-\bm X\bm\beta-\bm Z\bLt\bm u\right\|^2 +
-    \left\|\bm u\right\|^2\right] ,
+  \left(\left\|\bm y-\bm X\bm\beta-\bm Z\bLt\bm u\right\|^2 +
+    \left\|\bm u\right\|^2\right) ,
 \end{equation}
 producing the profiled deviance,
 \begin{equation}
@@ -397,8 +401,8 @@ producing the profiled deviance,
   -2\tilde{\ell}(\bm\theta)=\log(|\bm L_\theta|^2)+
   n\left[1+\log\left(\frac{2\pi r^2_\theta}{n}\right)\right],
 \end{equation}
-which is a function of $\bm\theta$ only.  This is a remarkably compact
-expression for the deviance.
+which is a function of $\bm\theta$ only.  Eqn.~\ref{eq:profdev2} is a
+remarkably compact expression for the deviance.
 
 \subsection{Solving the joint penalized least squares problem}
 \label{sec:jointPLS}
@@ -451,7 +455,7 @@ so that
 and the solutions, $\bm\mu_{\mc U|\mc Y=\yobs}$ and
 $\widehat{\bm\beta}_\theta$, satisfy
 \begin{align}
-  \bm R_x\widehat{\bm\beta}_\theta&=\bm c_{\bm\beta}\\
+  \bm R_X\widehat{\bm\beta}_\theta&=\bm c_{\bm\beta}\\
   \bm L\trans\bm P\bm\mu_{\mc U|\mc Y=\yobs}&=\bm c_{\bm u}-\bm
   R_{ZX}\widehat{\bm\beta}_\theta .
 \end{align}
@@ -468,22 +472,23 @@ REML estimates can be expressed as
 \end{equation}
 
 Because the joint solutions, $\bm\mu_{\mc U|\mc Y=\yobs}$ and
-$\widehat{\bm\beta}_\theta$ to the penalized least squares problem
+$\widehat{\bm\beta}_\theta$, to the penalized least squares problem
 allow us to express
-\begin{equation}
+\begin{multline}
   \label{eq:PLS2}
-  \|\yobs-\bm X\bm\beta-\bm Z\bLt\bm u\|^2+\|\bm u\|^2=
+  \|\yobs-\bm X\bm\beta-\bm Z\bLt\bm u\|^2+\|\bm u\|^2=\\
   r^2_\theta+
-  \|\bm L\trans\bm P(\bm u-\bm\mu_{\mc U|\mc Y=\yobs})\|^2+
-  \|\bm R_X(\bm\beta - \widehat{\bm\beta}_\theta)\|^2
-\end{equation}
+  \left\|\bm L\trans\bm P\left[\bm u-\bm\mu_{\mc U|\mc Y=\yobs}-
+  \bm R_{ZX}(\bm\beta - \widehat{\bm\beta}_\theta)\right]\right\|^2+
+  \left\|\bm R_X(\bm\beta - \widehat{\bm\beta}_\theta)\right\|^2
+\end{multline}
 we can use a change of variable, similar to that in
-\eq{eq:intExpr} to evaluate the profiled REML criterion.  On the
+\eq{eq:intExpr}, to evaluate the profiled REML criterion.  On the
 deviance scale the criterion can be evaluated as
 \begin{equation}
   \label{eq:profiledREML}
   -2\tilde{\ell}_R(\bm\theta)=\log(|\bm L|^2)+\log(|\bm R_X|^2)+
-  (n-p)\left[1+\log\left(\frac{2\pi r^2_\theta}{n-p}\right)\right]
+  (n-p)\left[1+\log\left(\frac{2\pi r^2_\theta}{n-p}\right)\right] .
 \end{equation}
 
 % \section{Generalized Linear Mixed Models}
@@ -491,20 +496,20 @@ deviance scale the criterion can be evaluated as
 
 The structures in \pkg{lme4} for representing mixed-models are
 somewhat more general than is required for linear mixed models.  In
-this section we briefly describe some of the computational
-requirements for generalized linear mixed models, to show why these
-more general structures are employed.
+the remainder of this section we briefly describe some of the
+computational requirements for generalized linear mixed models, to
+show why these more general structures are employed.
 
 \subsection{Definition of GLMMs}
 \label{sec:GLMMdef}
 
 The generalized linear mixed models (GLMMs) that can be fit by the
-\pkg{lme4} preserve the multivariate Gaussian unconditional
+\pkg{lme4} package preserve the multivariate Gaussian unconditional
 distribution of the random effects, $\mc B$
-(\ref{eq:LMMuncondB}).  Because most families used for the conditional
+(eqn.~\ref{eq:LMMuncondB}).  Because most families used for the conditional
 distribution, $\mc Y|\mc B=\bm b$, do not incorporate a separate scale
 factor, $\sigma$, we remove it from the definition of $\bm\Sigma$ and
-the distribution of the spherical random effects, $\mc U$.  That is
+from the distribution of the spherical random effects, $\mc U$.  That is
 \begin{equation}
   \label{eq:UdistGLMM}
   \mc U\sim\mc N(\bm0,\bm I_q)
@@ -518,7 +523,7 @@ and
 The conditional distributions, $\mc Y|\mc B=\bm b$ and $\mc Y|\mc
 U=\bm u$, preserve the properties that the components of $\mc Y$ are
 conditionally independent and that the mean, $\bm\mu_{\mc Y|\mc U=\bm
-  u}$ depends on $\bm u$ only through the linear predictor,
+  u}$, depends on $\bm u$ only through the linear predictor,
 \begin{equation}
   \label{eq:GLMMlinpred}
   \bm\eta=\bm Z\bm\Lambda_\theta\bm u+\bm X\bm\beta .
@@ -528,13 +533,13 @@ the \emph{link function} and written
 \begin{equation}
   \label{eq:linkfun}
   \bm Z\bm\Lambda_\theta\bm u+\bm X\bm\beta=\bm\eta=\bm g\left(
-    \bm\mu_{\mc Y|\mc U=\bm u }\right)
+    \bm\mu_{\mc Y|\mc U=\bm u }\right) ,
 \end{equation}
 is a \emph{diagonal mapping} in the sense that there is a scalar
 function, $g$, such that the $i$th component of $\bm\eta$ is $g$
 applied to the $i$th component of $\bm\mu_{\mc Y|\mc U=\bm u }$.  (The
 name ``diagonal'' reflects the fact that the Jacobian matrix,
-$\frac{d\eta}{d\mu}$, of such a mapping will be diagonal.)
+$\frac{d\eta}{d\mu\trans}$, of such a mapping will be diagonal.)
 
 The scalar link function must be invertible over its range.  The
 vector-valued \emph{inverse link} function, $\bm g^{-1}$, will be the
@@ -566,24 +571,25 @@ The likelihood of the parameters, given the observed data, is now
 \end{equation}
 where, as in the case of linear mixed models, $f_{\mc Y,\mc
   U}(\yobs,\bm u)$ is the unscaled conditional density of $\mc U$
-given $\mc Y=\yobs$.  The notation here is a bit blurred because the
-joint distribution of $\mc Y$ and $\mc U$ can be (and often is)
-discrete with respect to $\mc Y$ but is always continuous with respect
-to $\mc U$.  However, when we condition on the observed value $\mc
-Y=\yobs$, the resulting function is continuous with respect to $\bm u$
-so the unscaled conditional density is well-defined.
+given $\mc Y=\yobs$.  The notation here is a bit blurred because,
+although the joint distribution of $\mc Y$ and $\mc U$ is always
+continuous with respect to $\mc U$, it can be (and often is) discrete
+with respect to $\mc Y$. However, when we condition on the observed
+value $\mc Y=\yobs$, the resulting function is continuous with respect
+to $\bm u$ so the unscaled conditional density is indeed well-defined
+as a density, up to a scale factor.
 
 \subsection{Determining the conditional mode}
 \label{sec:conditionalMode}
 
 As for linear mixed models, we simplify evaluation of the integral
-(\ref{eq:GLMMlike}) by determining the value
-$\tilde{\bm u}_{\beta,\theta}$ that maximizes the unscaled conditional
-density.  When the conditional density, $\mc U|\mc Y=\bm y$, is
-multivariate Gaussian, the conditional mode will also be the
-conditional mean.  For most families used in GLMMs the mode and the
-mean do not need to coincide so we call $\tilde{\bm u}_{\beta,\theta}$
-the \emph{conditional mode}.
+(\ref{eq:GLMMlike}) by determining the value, $\tilde{\bm
+  u}_{\beta,\theta}$, that maximizes the unscaled conditional density.
+When the conditional density, $\mc U|\mc Y=\yobs$, is multivariate
+Gaussian, this conditional mode will also be the conditional mean.
+However, for most families used in GLMMs, the mode and the mean need
+not coincide so use the more general term and call $\tilde{\bm
+  u}_{\beta,\theta}$ the \emph{conditional mode}.
 
 The iteratively reweighted least squares (IRLS) algorithm is an
 incredibly efficient method of determining the maximum likelihood
@@ -602,8 +608,8 @@ extend it to a \emph{penalized iteratively reweighted least squares}
 \item Solve the penalized, weighted, nonlinear least squares problem
   \begin{equation}
     \label{eq:weightedNLS}
-    \arg\min_{\bm u}\left[\left\|\bm W^{1/2}\left(\yobs-\bm\mu_{\mc
-            Y|\mc U=\bm u}\right)\right\|^2+\|\bm u\|^2\right]
+    \arg\min_{\bm u}\left(\left\|\bm W^{1/2}\left(\yobs-\bm\mu_{\mc
+            Y|\mc U=\bm u}\right)\right\|^2+\|\bm u\|^2\right)
   \end{equation}
 \item Update the weights, $\bm W$, and check for convergence.  If not
   converged, go to step 2.
@@ -627,12 +633,12 @@ solution to the penalized, weighted, linear least squares problem
     \end{bmatrix}\bm u\right\|^2
 \end{equation}
 where $\bm u_i$ is current value of $\bm u$, $\bm\mu_i$ is the
-corresponding conditional mean of $\mc Y|\mc U=\bm u$ and $\bm M_i$ is
+corresponding conditional mean of $\mc Y|\mc U=\bm u_i$ and $\bm M_i$ is
 the Jacobian matrix of the vector-valued inverse link, evaluated at
 $\bm\mu_i$.  That is
 \begin{equation}
   \label{eq:Jacobian}
-  \bm M_i=\left.\frac{d\bm\mu}{d\bm\eta}\right|_{\bm\eta_i},
+  \bm M_i=\left.\frac{d\bm\mu}{d\bm\eta\trans}\right|_{\bm\eta_i},
 \end{equation}
 which will be a diagonal matrix so, as for the weights, we store and
 manipulate the Jacobian as a vector.
@@ -659,7 +665,7 @@ distribution.  The \emph{Laplace approximation} to the deviance is
   \|\tilde{\bm u}\|^2+\log(|\bm L|^2)
 \end{equation}
 where $d_g(\yobs,\bm\mu(\tilde{\bm u}))$ is the GLM deviance for
-$\yobs$ and $\bm\mu$.
+$\yobs$ and $\bm\mu(\tilde{\bm u})$.
 
 \bibliography{lmer}
 \end{document}
