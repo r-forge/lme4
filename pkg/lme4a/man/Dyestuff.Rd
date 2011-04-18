@@ -52,6 +52,20 @@
 }
 %\references{}
 \examples{
+\dontshow{ # useful for the lme4-authors --- development, debugging, etc:
+ sessionInfo()
+ pkgI <- function(pkgname) {
+   pd <- packageDescription(pkgname)
+   cat(sprintf("\%s -- built: \%s\n\%*s -- dir  : \%s\n",
+               pkgname, pd$Built, nchar(pkgname), "",
+               dirname(dirname(attr(pd, "file")))))
+ }
+ pkgI("Matrix")
+ pkgI("Rcpp")
+ pkgI("minqa")
+ pkgI("MatrixModels")
+ pkgI("lme4a")
+}
 str(Dyestuff)
 dotplot(reorder(Batch, Yield) ~ Yield, Dyestuff,
         ylab = "Batch", jitter.y = TRUE, aspect = 0.3,
