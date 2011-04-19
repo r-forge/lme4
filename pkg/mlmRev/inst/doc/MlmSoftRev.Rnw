@@ -12,8 +12,8 @@
 %%\VignetteIndexEntry{Examples from Multilevel Software Reviews}
 %%\VignetteDepends{lme4}
 \begin{document}
-\SweaveOpts{engine=R,eps=FALSE,pdf=TRUE,width=5,height=3,strip.white="true",keep.source=TRUE}
-\SweaveOpts{prefix=TRUE,prefix.string=figs/SoftRev,include=FALSE}%          ^^^^^^^^^^^^^^^^
+\SweaveOpts{engine=R,eps=FALSE,pdf=TRUE,width=5,height=3,strip.white=true,keep.source=TRUE}
+\SweaveOpts{prefix=TRUE,prefix.string=figs/SoftRev,include=FALSE}%        ^^^^^^^^^^^^^^^^
 \setkeys{Gin}{width=\textwidth}
 \title{Examples from Multilevel Software Comparative Reviews}
 \author{Douglas Bates\\R Development Core Team\\\email{Douglas.Bates@R-project.org}}

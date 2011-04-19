@@ -10,7 +10,7 @@
 %%\VignetteDepends{lme4}
 \begin{document}
 \SweaveOpts{engine=R,eps=FALSE,pdf=TRUE,width=5,height=3}
-\SweaveOpts{strip.white="true",keep.source=TRUE}
+\SweaveOpts{strip.white=true,keep.source=TRUE}
 \SweaveOpts{prefix=TRUE,prefix.string=figs/SoftRev,include=FALSE}
 \maketitle
 \begin{abstract}
