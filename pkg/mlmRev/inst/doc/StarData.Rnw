@@ -10,7 +10,7 @@
 %%\VignetteDepends{lme4}
 \begin{document}
 \SweaveOpts{engine=R,eps=FALSE,pdf=TRUE,width=5,height=3}
-\SweaveOpts{strip.white=TRUE,keep.source=TRUE}
+\SweaveOpts{strip.white="true",keep.source=TRUE}
 \SweaveOpts{prefix=TRUE,prefix.string=figs/SoftRev,include=FALSE}
 \maketitle
 \begin{abstract}
@@ -53,7 +53,7 @@ str(orig <- read.delim(unz(system.file("original/text-star.zip",
                                        package = "mlmRev"),
                            "webstar.txt"),
                        colCl = rep(c("factor", "integer"), c(5, 48))))
-@ 
+@
 In the call to \code{read.delim} we read directly from the zip archive
 and avoided expanding the much larger text file.  The call to
 \code{system.file} determines the name of a file that is part of a
