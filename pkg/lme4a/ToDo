@@ -39,3 +39,5 @@ Provide methods for lmer2() aka the "[gln]merMod" classes based one the
  o Now done for  anova, coef, isREML, update, model.matrix, model.frame, terms
 
 FIXME: *one*-argument version of anova() still does not work
+
+--> Use  nobs() methods -- ASAP .. (require R >= 2.13.0 though)
