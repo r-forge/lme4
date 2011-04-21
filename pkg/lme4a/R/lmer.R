@@ -451,7 +451,9 @@ setMethod("simulate", "merMod",
 	  function(object, nsim = 1, seed = NULL, use.u = FALSE, ...)
       {
           stopifnot((nsim <- as.integer(nsim[1])) > 0,
-                    is(object, "merMod"), is(object@resp, "lmerResp"))
+                    is(object, "merMod"),
+                    ## i.e. not yet for glmer etc:
+                    is(object@resp, "lmerResp"))
 	  if(!is.null(seed)) set.seed(seed)
 	  if(!exists(".Random.seed", envir = .GlobalEnv))
 	      runif(1) # initialize the RNG if necessary
@@ -827,10 +829,10 @@ setMethod("ranef", signature(object = "merMod"),
 
 setMethod("sigma", "merMod", function(object, ...)
       {
-          dc <- object@devcomp
-          dd <- dc$dims
-          if (!dd["useSc"]) return(1.)
-          unname(dc$cmp[ifelse(dd["REML"], "sigmaREML", "sigmaML")])
+	  dc <- object@devcomp
+	  dd <- dc$dims
+	  if(dd[["useSc"]])
+	      dc$cmp[[ifelse(dd[["REML"]], "sigmaREML", "sigmaML")]] else 1.
       })
 
 setMethod("model.matrix", signature(object = "merMod"),
@@ -845,7 +847,7 @@ setMethod("model.frame", signature(formula = "merMod"),
 setMethod("deviance", signature(object="merMod"),
 	  function(object, REML = NULL, ...) {
               if (!missing(REML)) stop("REML argument not supported")
-              unname(object@devcomp$cmp["dev"])
+              object@devcomp$cmp[["dev"]]
           })
 
 setMethod("logLik", signature(object="merMod"),
@@ -854,9 +856,9 @@ setMethod("logLik", signature(object="merMod"),
           if (!missing(REML)) stop("REML argument not supported")
           dc <- object@devcomp
           dims <- dc$dims
-          val <- - unname(dc$cmp["dev"])/2
-          attr(val, "nall") <- attr(val, "nobs") <- unname(dims["n"])
-          attr(val, "df") <- unname(dims["p"] + dims["nth"] + dims["useSc"])
+          val <- - dc$cmp[["dev"]]/2
+          attr(val, "nall") <- attr(val, "nobs") <- dims[["n"]]
+          attr(val, "df") <- dims[["p"]] + dims[["nth"]] + dims[["useSc"]]
           class(val) <- "logLik"
           val
       })
