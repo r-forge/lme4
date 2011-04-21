@@ -116,7 +116,7 @@ export(VarCorr,
        reTrms,
        sigma,
        subbars
- #       nlmerResp,       
+ #       nlmerResp,
        )
 
 exportClasses(deFeMod, lmerResp, lmList, merMod,
@@ -127,6 +127,11 @@ exportMethods(VarCorr, anova, coef, coerce, confint, deviance,
               logLik, model.frame, model.matrix, terms,
  	      plot, print, profile, ranef, rcond,
               show, simulate, sigma, summary, update, vcov)
+
+## S3 for now..
+S3method(extractAIC, merMod)
+S3method(drop1, merMod)
+
 
 S3method(plot, coef.mer)
 S3method(dotplot, coef.mer)
