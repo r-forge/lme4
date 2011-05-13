@@ -485,7 +485,7 @@ namespace MatrixNs{
 	is_super = type[2];
 	is_monotonic = (type[3] ? 1 : 0);
 	xtype = CHOLMOD_REAL;
-	itype = CHOLMOD_LONG;
+	itype = CHOLMOD_INT;
 	dtype = 0;  // CHOLMOD_DOUBLE
 	z = (void*)NULL;
 	if (is_super) {
@@ -616,7 +616,7 @@ namespace MatrixNs{
 	    }
 	}
 	nzmax = ii.size();
-	itype = CHOLMOD_LONG;
+	itype = CHOLMOD_INT;
 	packed = (int)true;
 	sorted = (int)true;
 	xtype = -1;
