@@ -159,9 +159,9 @@ glmer2 <- function(formula, data, family = gaussian, sparseX = FALSE,
     coef0 <- fem$coef0
     if (doFit) {
         devfun <- function(theta) {
-            rem$theta <- theta
             rem$u0 <- u0
             fem$coef0 <- coef0
+            rem$theta <- theta
             pwrssUpdate(rem, fem, resp, verbose)
             resp$Laplace(rem$ldL2, fem$ldRX2, rem$sqrLenU)
         }
@@ -173,9 +173,9 @@ glmer2 <- function(formula, data, family = gaussian, sparseX = FALSE,
         dpars <- seq_along(rem$theta)
         fem$incr <- 0 * fem$incr        # zero the increment
         devfunb <- function(pars) {
+            rem$u0 <- u0
             rem$theta <- pars[dpars]
             fem$coef0 <- pars[-dpars]
-            rem$u0 <- u0
             pwrssUpdate2(rem, fem, resp, verbose)
             resp$Laplace(rem$ldL2, fem$ldRX2, rem$sqrLenU)
         }            
