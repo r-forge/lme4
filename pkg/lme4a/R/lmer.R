@@ -1182,9 +1182,9 @@ if(FALSE) { ## Now we can easily "build" Lambda (inside the 're'):
 			    "CsparseMatrix"))
 }
 
-rcond.reTrms <- function(x, norm, triangular, ...)
-    sapply(blocksLambda(x), Matrix::rcond, norm=norm)
-
+setMethod("rcond", signature(x="reTrms", norm="character"),
+          function(x, norm, ...) 
+          sapply(blocksLambda(x), rcond, norm=norm))
 
 ## Keep this separate, as it encapsulates the computation
 ## w/o explicit use of S4 modules
