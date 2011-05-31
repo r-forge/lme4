@@ -108,12 +108,13 @@ importMethodsFrom("Matrix"
 #export(AIC, BIC, logLik)
 
 # and the rest (S3 generics; regular functions):
-export(#VarCorr,
+export(VarCorr,
        bootMer,
        chmSp,
        deFeMod,
        devcomp,
        findbars,
+       fixef,
        getL,
        glmFamily,
        glmer,
@@ -127,6 +128,7 @@ export(#VarCorr,
        mkdevfun,
        nlmer,
        nobars,
+       ranef,
        reModule,
        reTrms,
        sigma,
@@ -172,6 +174,8 @@ S3method(confint, lmList)
 S3method(plot, lmList.confint)
 
 S3method(VarCorr, merMod)
+S3method(anova, merMod)
+S3method(coef, merMod)
 S3method(deviance, merMod)
 S3method(drop1, merMod)
 S3method(extractAIC, merMod)
