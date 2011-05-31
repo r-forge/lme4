@@ -443,151 +443,150 @@ devfun2 <- function(fm)
     ans
 }
 
-setMethod("profile", "merMod",
-          function(fitted, alphamax = 0.01, maxpts = 100, delta = cutoff/8,
+profile.merMod <- function(fitted, alphamax = 0.01, maxpts = 100, delta = cutoff/8,
                            tr = 0, ...)
-      {
-          dd <- devfun2(fitted)
-
-          base <- attr(dd, "basedev")
-          thopt <- attr(dd, "thopt")
-          stderr <- attr(dd, "stderr")
-          fm1 <- environment(dd)$fm1
-          X.orig <- fm1@fe@X
-          n <- length(fm1@resp@y)
-          p <- length(fm1@fe@coef)
-
-          ans <- lapply(opt <- attr(dd, "optimum"), function(el) NULL)
-          bakspl <- forspl <- ans
-
-          nptot <- length(opt)
-          nvp <- nptot - p    # number of variance-covariance pars
-          fe.orig <- opt[-seq_len(nvp)]
-          res <- c(.zeta = 0, opt)
-          res <- matrix(res, nr = maxpts, nc = length(res),
-                        dimnames = list(NULL, names(res)), byrow = TRUE)
-          cutoff <- sqrt(qchisq(1 - alphamax, nptot))
-
-          ## helper functions
-
-          ## nextpar calculates the next value of the parameter being
-          ## profiled based on the desired step in the profile zeta
-          ## (absstep) and the values of zeta and column cc for rows
-          ## r-1 and r.  The parameter may not be below lower
-          nextpar <- function(mat, cc, r, absstep, lower = -Inf) {
-              rows <- r - (1:0)         # previous two row numbers
-              pvals <- mat[rows, cc]
-              zeta <- mat[rows, ".zeta"]
-              if (!(denom <- diff(zeta)))
-                  stop("Last two rows have identical .zeta values")
-              num <- diff(pvals)
-              max(lower, pvals[2] + sign(num) * absstep * num / denom)
-          }
-
-          ## mkpar generates the parameter vector of theta and
-          ## log(sigma) from the values being profiled in position w
-          mkpar <- function(np, w, pw, pmw) {
-              par <- numeric(np)
-              par[w] <- pw
-              par[-w] <- pmw
-              par
-          }
-
-          ## fillmat fills the third and subsequent rows of the matrix
-          ## using nextpar and zeta
+{
+    dd <- devfun2(fitted)
+    
+    base <- attr(dd, "basedev")
+    thopt <- attr(dd, "thopt")
+    stderr <- attr(dd, "stderr")
+    fm1 <- environment(dd)$fm1
+    X.orig <- fm1@fe@X
+    n <- length(fm1@resp@y)
+    p <- length(fm1@fe@coef)
+    
+    ans <- lapply(opt <- attr(dd, "optimum"), function(el) NULL)
+    bakspl <- forspl <- ans
+    
+    nptot <- length(opt)
+    nvp <- nptot - p    # number of variance-covariance pars
+    fe.orig <- opt[-seq_len(nvp)]
+    res <- c(.zeta = 0, opt)
+    res <- matrix(res, nr = maxpts, nc = length(res),
+                  dimnames = list(NULL, names(res)), byrow = TRUE)
+    cutoff <- sqrt(qchisq(1 - alphamax, nptot))
+    
+    ## helper functions
+    
+    ## nextpar calculates the next value of the parameter being
+    ## profiled based on the desired step in the profile zeta
+    ## (absstep) and the values of zeta and column cc for rows
+    ## r-1 and r.  The parameter may not be below lower
+    nextpar <- function(mat, cc, r, absstep, lower = -Inf) {
+        rows <- r - (1:0)         # previous two row numbers
+        pvals <- mat[rows, cc]
+        zeta <- mat[rows, ".zeta"]
+        if (!(denom <- diff(zeta)))
+            stop("Last two rows have identical .zeta values")
+        num <- diff(pvals)
+        max(lower, pvals[2] + sign(num) * absstep * num / denom)
+    }
+    
+    ## mkpar generates the parameter vector of theta and
+    ## log(sigma) from the values being profiled in position w
+    mkpar <- function(np, w, pw, pmw) {
+        par <- numeric(np)
+        par[w] <- pw
+        par[-w] <- pmw
+        par
+    }
+    
+    ## fillmat fills the third and subsequent rows of the matrix
+    ## using nextpar and zeta
 ### FIXME:  add code to evaluate more rows near the minimum if that
 ###        constraint was active.
-          fillmat <- function(mat, lowcut, zetafun, cc) {
-              nr <- nrow(mat)
-              i <- 2L
-              while (i < nr && abs(mat[i, ".zeta"]) <= cutoff &&
-                     mat[i, cc] > lowcut) {
-                  mat[i + 1L, ] <- zetafun(nextpar(mat, cc, i, delta, lowcut))
-                  i <- i + 1L
-              }
-              mat
-          }
-
-          lower <- c(fm1@re@lower, rep.int(-Inf, p + 1L ))
-          seqnvp <- seq_len(nvp)
-          lowvp <- lower[seqnvp]
-          form <- .zeta ~ foo           # pattern for interpSpline formula
-
-          for (w in seqnvp) {
-              wp1 <- w + 1L
-              start <- opt[seqnvp][-w]
-              pw <- opt[w]
-              lowcut <- lower[w]
-              zeta <- function(xx) {
-                  ores <- bobyqa(start,
-                                 function(x) dd(mkpar(nvp, w, xx, x)),
-                                 lower = lowvp[-w])
-                  zz <- sign(xx - pw) * sqrt(ores$fval - base)
-                  c(zz, mkpar(nvp, w, xx, ores$par), attr(ores$fval, "beta"))
-              }
-
+    fillmat <- function(mat, lowcut, zetafun, cc) {
+        nr <- nrow(mat)
+        i <- 2L
+        while (i < nr && abs(mat[i, ".zeta"]) <= cutoff &&
+               mat[i, cc] > lowcut) {
+            mat[i + 1L, ] <- zetafun(nextpar(mat, cc, i, delta, lowcut))
+            i <- i + 1L
+        }
+        mat
+    }
+    
+    lower <- c(fm1@re@lower, rep.int(-Inf, p + 1L ))
+    seqnvp <- seq_len(nvp)
+    lowvp <- lower[seqnvp]
+    form <- .zeta ~ foo           # pattern for interpSpline formula
+    
+    for (w in seqnvp) {
+        wp1 <- w + 1L
+        start <- opt[seqnvp][-w]
+        pw <- opt[w]
+        lowcut <- lower[w]
+        zeta <- function(xx) {
+            ores <- bobyqa(start,
+                           function(x) dd(mkpar(nvp, w, xx, x)),
+                           lower = lowvp[-w])
+            zz <- sign(xx - pw) * sqrt(ores$fval - base)
+            c(zz, mkpar(nvp, w, xx, ores$par), attr(ores$fval, "beta"))
+        }
+        
 ### FIXME: The starting values for the conditional optimization should
 ### be determined from recent starting values, not always the global
 ### optimum values.
-
+        
 ### Can do this by taking the change in the other parameter values at
 ### the two last points and extrapolating.
-
-              ## intermediate storage for pos. and neg. increments
-              pres <- nres <- res
-              ## assign one row, determined by inc. sign, from a small shift
-              nres[1, ] <- pres[2, ] <- zeta(pw * 1.01)
-              ## fill in the rest of the arrays and collapse them
-              bres <-
-                  as.data.frame(unique(rbind2(fillmat(pres,lowcut, zeta, wp1),
-                                              fillmat(nres,lowcut, zeta, wp1))))
-              bres$.par <- names(opt)[w]
-              ans[[w]] <- bres[order(bres[, wp1]), ]
-              form[[3]] <- as.name(names(opt)[w])
-
-              bakspl[[w]] <- backSpline(forspl[[w]] <- interpSpline(form, bres))
-          }
-
-          offset <- fm1@resp@offset
-          X <- fm1@fe@X
-
-          for (j in seq_len(p)) {
-              pres <-            # intermediate results for pos. incr.
-                  nres <- res    # and negative increments
-              est <- opt[nvp + j]
-              std <- stderr[j]
-              Xw <- X[ , j, drop = TRUE]
-              fmm1 <- dropX(fm1, j, est)
-              fe.zeta <- function(fw) {
-                  fmm1@resp@offset <- Xw * fw + offset
-                  ores <- bobyqa(thopt, mkdevfun(fmm1),
-                                 lower = fmm1@re@lower)
-                  fv <- ores$fval
-                  sig <- sqrt((attr(fv, "wrss") + attr(fv, "ussq"))/length(Xw))
-                  c(sign(fw - est) * sqrt(ores$fval - base),
-                    ores$par * sig, log(sig), mkpar(p, j, fw, attr(fv, "beta")))
-              }
-              nres[1, ] <- pres[2, ] <- fe.zeta(est + delta * std)
-              pp <- nvp + 1L + j
-              bres <-
-                  as.data.frame(unique(rbind2(fillmat(pres,-Inf, fe.zeta, pp),
-                                              fillmat(nres,-Inf, fe.zeta, pp))))
-              thisnm <- names(fe.orig)[j]
-              bres$.par <- thisnm
-              ans[[thisnm]] <- bres[order(bres[, pp]), ]
-              form[[3]] <- as.name(thisnm)
-              bakspl[[thisnm]] <-
-                  backSpline(forspl[[thisnm]] <- interpSpline(form, bres))
-          }
-
-          ans <- do.call(rbind, ans)
-          ans$.par <- factor(ans$.par)
-          attr(ans, "forward") <- forspl
-          attr(ans, "backward") <- bakspl
-          row.names(ans) <- NULL
-          class(ans) <- c("thpr", "data.frame")
-          ans
-      })
+        
+        ## intermediate storage for pos. and neg. increments
+        pres <- nres <- res
+        ## assign one row, determined by inc. sign, from a small shift
+        nres[1, ] <- pres[2, ] <- zeta(pw * 1.01)
+        ## fill in the rest of the arrays and collapse them
+        bres <-
+            as.data.frame(unique(rbind2(fillmat(pres,lowcut, zeta, wp1),
+                                        fillmat(nres,lowcut, zeta, wp1))))
+        bres$.par <- names(opt)[w]
+        ans[[w]] <- bres[order(bres[, wp1]), ]
+        form[[3]] <- as.name(names(opt)[w])
+        
+        bakspl[[w]] <- backSpline(forspl[[w]] <- interpSpline(form, bres))
+    }
+    
+    offset <- fm1@resp@offset
+    X <- fm1@fe@X
+    
+    for (j in seq_len(p)) {
+        pres <-            # intermediate results for pos. incr.
+            nres <- res    # and negative increments
+        est <- opt[nvp + j]
+        std <- stderr[j]
+        Xw <- X[ , j, drop = TRUE]
+        fmm1 <- dropX(fm1, j, est)
+        fe.zeta <- function(fw) {
+            fmm1@resp@offset <- Xw * fw + offset
+            ores <- bobyqa(thopt, mkdevfun(fmm1),
+                           lower = fmm1@re@lower)
+            fv <- ores$fval
+            sig <- sqrt((attr(fv, "wrss") + attr(fv, "ussq"))/length(Xw))
+            c(sign(fw - est) * sqrt(ores$fval - base),
+              ores$par * sig, log(sig), mkpar(p, j, fw, attr(fv, "beta")))
+        }
+        nres[1, ] <- pres[2, ] <- fe.zeta(est + delta * std)
+        pp <- nvp + 1L + j
+        bres <-
+            as.data.frame(unique(rbind2(fillmat(pres,-Inf, fe.zeta, pp),
+                                        fillmat(nres,-Inf, fe.zeta, pp))))
+        thisnm <- names(fe.orig)[j]
+        bres$.par <- thisnm
+        ans[[thisnm]] <- bres[order(bres[, pp]), ]
+        form[[3]] <- as.name(thisnm)
+        bakspl[[thisnm]] <-
+            backSpline(forspl[[thisnm]] <- interpSpline(form, bres))
+    }
+    
+    ans <- do.call(rbind, ans)
+    ans$.par <- factor(ans$.par)
+    attr(ans, "forward") <- forspl
+    attr(ans, "backward") <- bakspl
+    row.names(ans) <- NULL
+    class(ans) <- c("thpr", "data.frame")
+    ans
+}
 
 dens <- function(pr, npts=201, upper=0.999) {
     npts <- as.integer(npts)

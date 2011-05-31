@@ -1,4 +1,3 @@
-#useDynLib(lme4a)
 useDynLib(lme4a, .registration=TRUE)
 
 ## Import non-base functions we need explicitly,
@@ -13,14 +12,30 @@ import("Rcpp")
 
 importFrom("graphics", plot)
 importFrom("nlme", fixef, ranef, VarCorr)
-importFrom("stats4", AIC, BIC, logLik)# so S4 methods are used!
-importFrom("stats",
-           anova, coef, coefficients, confint, deviance,
-           fitted, fitted.values, formula,
-           model.frame, model.matrix, predict, profile,
-           residuals, resid, simulate, terms
+#importFrom("stats4", AIC, BIC, logLik)# so S4 methods are used!
+importFrom("stats"
+           , AIC
+           , BIC
+           , anova
+           , coef
+           , coefficients
+           , confint
+           , deviance
+           , fitted
+           , fitted.values
+           , formula
+           , logLik
+           , model.frame
+           , model.matrix
+           , predict
+           , profile
+           , residuals
+           , resid
+           , simulate
+           , terms
            , update
-           , vcov)
+           , vcov
+           )
 
 importFrom("minqa", bobyqa)
 
@@ -79,9 +94,9 @@ importMethodsFrom("Matrix"
                   , crossprod
                   , determinant
                   , diag
-		  , rcond
+#		  , rcond
                   , solve
-                  , summary
+#                  , summary
                   , t
                   , tcrossprod
                   , update
@@ -90,10 +105,10 @@ importMethodsFrom("Matrix"
 #exportPattern("^[^\\.]")
 
 # re-export imported S4 generics
-export(AIC, BIC, logLik)
+#export(AIC, BIC, logLik)
 
 # and the rest (S3 generics; regular functions):
-export(VarCorr,
+export(#VarCorr,
        bootMer,
        chmSp,
        deFeMod,
@@ -122,22 +137,73 @@ export(VarCorr,
 exportClasses(deFeMod, lmerResp, lmList, merMod,
               reModule, reTrms, spFeMod)
 
-exportMethods(VarCorr, anova, coef, coerce, confint, deviance,
-              devcomp, fitted, fixef, formula, getL,
-              logLik, model.frame, model.matrix, terms,
- 	      plot, print, profile, ranef, rcond,
-              show, simulate, sigma, summary, update, vcov)
+exportMethods(
+#              VarCorr ,
+#              anova,
+              coef
+              , coerce
+#              , confint
+#              , deviance
+              , devcomp
+              , fitted
+#              , fixef
+              ,  formula
+              , getL
+#              , logLik
+#              , model.frame
+#              , model.matrix
+#              , terms
+#              , plot
+#              , print
+#              , profile
+#              , ranef
+#              , rcond
+              , show
+#              , simulate
+              , sigma
+#              , summary
+              , update
+#              , vcov
+              )
 
 ## S3 for now..
-S3method(extractAIC, merMod)
-S3method(drop1, merMod)
+S3method(confint, lmList)
 
+S3method(plot, lmList.confint)
+
+S3method(VarCorr, merMod)
+S3method(deviance, merMod)
+S3method(drop1, merMod)
+S3method(extractAIC, merMod)
+S3method(fixef, merMod)
+S3method(fitted, merMod)
+S3method(formula, merMod)
+S3method(logLik, merMod)
+S3method(model.frame, merMod)
+S3method(model.matrix, merMod)
+S3method(print, merMod)
+S3method(profile, merMod)
+S3method(ranef, merMod)
+S3method(residuals, merMod)
+S3method(simulate, merMod)
+S3method(summary, merMod)
+S3method(terms, merMod)
+S3method(vcov, merMod)
+S3method(update, merMod)
+
+S3method(print, summary.mer)
+S3method(summary, summary.mer)
+S3method(vcov, summary.mer)
+
+S3method(rcond, reTrms)
 
 S3method(plot, coef.mer)
 S3method(dotplot, coef.mer)
+
 S3method(plot, ranef.mer)
 S3method(qqmath, ranef.mer)
 S3method(dotplot, ranef.mer)
+
 ## profile() related:
 S3method(xyplot, thpr)
 S3method(densityplot, thpr)
