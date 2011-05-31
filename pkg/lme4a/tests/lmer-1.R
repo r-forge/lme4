@@ -84,7 +84,7 @@ for(nm in c("coef", "fixef", "ranef", "sigma",
 	     "model.matrix", "model.frame" , "terms")) {
     cat(sprintf("%15s : ", nm))
     FUN <- get(nm)
-#    F.fmX1s <- FUN(fmX1s)
+#   F.fmX1s <- FUN(fmX1s)
     F.fmX2s <- FUN(fmX2s)
     if(nm == "model.matrix") {
 #        F.fmX1s <- as(F.fmX1s, "denseMatrix")
@@ -96,6 +96,8 @@ for(nm in c("coef", "fixef", "ranef", "sigma",
 #	      all.equal( FF(fmX1), F.fmX1s, tol =  1e-6)
 #	      ,
 	      all.equal( FF(fmX2), F.fmX2s, tol = 9e-6)
+              ,
+	      all.equal( FF(fm.2), F.fmX2s, tol = 9e-6)
               ,
 #              all.equal(F.fmX2s,   F.fmX1s, tol = 6e-6)
 #              ,
