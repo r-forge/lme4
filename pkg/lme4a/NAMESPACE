@@ -94,7 +94,7 @@ importMethodsFrom("Matrix"
                   , crossprod
                   , determinant
                   , diag
-#		  , rcond
+		  , rcond
                   , solve
 #                  , summary
                   , t
@@ -159,7 +159,7 @@ exportMethods(
 #              , print
 #              , profile
 #              , ranef
-#              , rcond
+              , rcond
               , show
 #              , simulate
               , sigma
@@ -198,8 +198,6 @@ S3method(update, merMod)
 S3method(print, summary.mer)
 S3method(summary, summary.mer)
 S3method(vcov, summary.mer)
-
-S3method(rcond, reTrms)
 
 S3method(plot, coef.mer)
 S3method(dotplot, coef.mer)
