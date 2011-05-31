@@ -1183,7 +1183,7 @@ if(FALSE) { ## Now we can easily "build" Lambda (inside the 're'):
 }
 
 rcond.reTrms <- function(x, norm, triangular, ...)
-    sapply(blocksLambda(x), rcond, norm=norm)
+    sapply(blocksLambda(x), Matrix::rcond, norm=norm)
 
 
 ## Keep this separate, as it encapsulates the computation
@@ -1217,7 +1217,7 @@ VarCorr.merMod <- function(x, sigma, rdig)# <- 3 args from nlme
         stop("VarCorr methods require reTrms, not just reModule")
     cnms <- re@cnms
     if(missing(sigma)) # "bug": fails via default 'sigma=sigma(x)'
-        sigma <- sigma(x)
+        sigma <- lme4a::sigma(x)
     nc <- sapply(cnms, length)	  # no. of columns per term
     mkVarCorr(sigma, cnms=cnms, nc=nc, theta = re@theta,
               nms = {fl <- re@flist; names(fl)[attr(fl, "assign")]})
