@@ -99,7 +99,7 @@ nlmer(formula, data, family = gaussian, start = NULL,
   If \code{lmer} is called with a non-default \code{family} argument the
   call is replaced by a call to \code{glmer} with the current arguments.
   If \code{glmer} is called with the default \code{family}, namely the
-  \code{\link[stats]{gaussian}} family with the identity link, then the call is
+  \code{\link[stats:family]{gaussian}} family with the identity link, then the call is
   replaced by a call to \code{lmer} with the current arguments.  (They
   are described as \dQuote{nearly} interchangeable because the
   \code{REML} argument only applies to calls to \code{lmer} and the

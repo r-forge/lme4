@@ -12,7 +12,7 @@
 }
 \usage{
 ranef(object, \dots)
-\S4method{ranef}{merMod}(object, postVar = FALSE, drop = FALSE,
+\S3method{ranef}{merMod}(object, postVar = FALSE, drop = FALSE,
    whichel = names(ans), \dots)
 }
 \arguments{
@@ -62,7 +62,7 @@ ranef(object, \dots)
 }
 \note{
   To produce a \dQuote{caterpillar plot} of the random effects apply
-  \code{\link[lattice]{dotplot}} to the result of a call to \code{ranef}
+  \code{\link[lattice:xyplot]{dotplot}} to the result of a call to \code{ranef}
   with \code{postVar = TRUE}.
 }
 \examples{
