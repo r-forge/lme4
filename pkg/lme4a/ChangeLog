@@ -1,3 +1,63 @@
+2011-06-01  Douglas Bates <bates@stat.wisc.edu>
+
+	* tests/lmer-1.R, tests/lmer-1.Rout.save: Rearrange tests for similar
+	  results from different methods.
+	* man/lmer.Rd, man/ranef.Rd: Fix dangling cross-references
+
+2011-05-31  Douglas Bates <bates@stat.wisc.edu>
+
+	* R/lmer.R: Restore the generic for rcond to that from the Matrix
+	  package (there is no S3 generic).
+	* NAMESPACE: Restore the generic for rcond to that from the Matrix
+	  package (there is no S3 generic).
+	* R/lmer.R: Got the sigma method working but can't seem to get rcond to
+	  behave
+	* NAMESPACE: More S3 methods
+	* DESCRIPTION: New release number
+	* NAMESPACE, R/lmList.R, R/lmer.R, R/lmer2.R, R/profile.R: Use S3
+	  methods when feasible
+	* R/zzz.R: Use loadModules from Rcpp
+	* tests/lmer-1.R: Additional check
+	* src/Module.cpp: Indentation
+
+2011-05-13  Douglas Bates <bates@stat.wisc.edu>
+
+	* DESCRIPTION, src/MatrixNs.cpp: Require a version of Matrix with int,
+	  not UF_long indices for sparse matrices
+
+2011-04-21  Martin Maechler  <maechler@stat.math.ethz.ch>
+
+	* NAMESPACE, R/drop1-etc.R, R/newmethods.R, ToDo, tests/drop.R: drop1()
+	  etc lme4 & lme4a - cosmetics; renamed file
+	* R/lmer.R: cosmetic: using x[[".."]] instead of unname(x[".."])
+
+2011-04-19  Martin Maechler  <maechler@stat.math.ethz.ch>
+
+	* inst/doc/PLSvGLS.Rnw, inst/doc/Theory.Rnw: aargh.. strip.white=true --
+	  R 2.14 compatibly
+	* inst/doc/PLSvGLS.Rnw, inst/doc/Theory.Rnw: Sweave strip.white="true"
+	  -- R 2.14 compatibly correct
+
+2011-04-18  Martin Maechler  <maechler@stat.math.ethz.ch>
+
+	* man/Dyestuff.Rd: this is currently the first example in "check" --
+	  add "debugging info" - not visible to users.
+
+2011-04-17  Ben Bolker <bbolker@gmail.com>
+
+	* R/newmethods.R, tests/drop.R: added terms(), extractAIC(), drop1
+	  methods
+	  (copy from lme4)
+
+2011-03-04  Douglas Bates <bates@stat.wisc.edu>
+
+	* DESCRIPTION: New version and release date. Bump up dependencies on R
+	  and Rcpp to versions where memory protection has been improved.
+	  Dependency on minqa is now a version with npt smaller, hence faster.
+	* R/lmer.R: Use smaller rhobeg for second optimization in PIRLSest when
+	  nAGQ > 0. And verbose = 2 no longer provides details of the PIRLS
+	  optimization.
+
 2011-02-28  Douglas Bates <bates@stat.wisc.edu>
 
 	* R/lmer2.R: If verbose=4 (very, very verbose) then need to set
