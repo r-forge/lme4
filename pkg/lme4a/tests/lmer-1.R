@@ -66,17 +66,17 @@ stopifnot(all.equal(coef(summary(fm3)),
 showProc.time() #
 
 ### {from ../man/lmer.Rd } --- compare lmer & lmer1 ---------------
-#(fmX1 <- lmer1(Reaction ~ Days + (Days|Subject), sleepstudy))
-#(fm.1 <- lmer1(Reaction ~ Days + (1|Subject) + (0+Days|Subject), sleepstudy))
+(fmX1 <- lmer(Reaction ~ Days + (Days|Subject), sleepstudy))
+(fm.1 <- lmer(Reaction ~ Days + (1|Subject) + (0+Days|Subject), sleepstudy))
 
-(fmX2 <- lmer(Reaction ~ Days + (Days|Subject), sleepstudy))
-(fm.2 <- lmer(Reaction ~ Days + (1|Subject) + (0+Days|Subject), sleepstudy))
+(fmX2 <- lmer2(Reaction ~ Days + (Days|Subject), sleepstudy))
+(fm.2 <- lmer2(Reaction ~ Days + (1|Subject) + (0+Days|Subject), sleepstudy))
 ## check update(<mer>, <formula>):
-fm.3 <- update(fmX2, . ~ Days + (1|Subject) + (0+Days|Subject))
-stopifnot(all.equal(fm.2, fm.3))
+fm.3 <- update(fmX1, . ~ Days + (1|Subject) + (0+Days|Subject))
+stopifnot(all.equal(fm.1, fm.3))
 
-#fmX1s <- lmer1(Reaction ~ Days + (Days|Subject), sleepstudy, sparseX=TRUE)
-fmX2s <- lmer(Reaction ~ Days + (Days|Subject), sleepstudy, sparseX=TRUE)
+fmX1s <- lmer(Reaction ~ Days + (Days|Subject), sleepstudy, sparseX=TRUE)
+#fmX2s <- lmer2(Reaction ~ Days + (Days|Subject), sleepstudy, sparseX=TRUE)
 
 showProc.time() #
 
@@ -84,25 +84,25 @@ for(nm in c("coef", "fixef", "ranef", "sigma",
 	     "model.matrix", "model.frame" , "terms")) {
     cat(sprintf("%15s : ", nm))
     FUN <- get(nm)
-#   F.fmX1s <- FUN(fmX1s)
-    F.fmX2s <- FUN(fmX2s)
+    F.fmX1s <- FUN(fmX1s)
+#    F.fmX2s <- FUN(fmX2s)
     if(nm == "model.matrix") {
-#        F.fmX1s <- as(F.fmX1s, "denseMatrix")
-        F.fmX2s <- as(F.fmX2s, "denseMatrix")
+        F.fmX1s <- as(F.fmX1s, "denseMatrix")
+#        F.fmX2s <- as(F.fmX2s, "denseMatrix")
 	FF <- function(.) {r <- FUN(.); row.names(r) <- NULL
 			   as(r, "generalMatrix") }
     } else FF <- FUN
     stopifnot(
-#	      all.equal( FF(fmX1), F.fmX1s, tol =  1e-6)
+	      all.equal( FF(fmX1), F.fmX1s, tol =  1e-6)
 #	      ,
-	      all.equal( FF(fmX2), F.fmX2s, tol = 9e-6)
-              ,
-	      all.equal( FF(fm.2), F.fmX2s, tol = 9e-6)
-              ,
+#	      all.equal( FF(fmX2), F.fmX2s, tol = 1e-5)
+#              ,
+#	      all.equal( FF(fm.1), F.fmX2s, tol = 9e-6) ## these are different models
+#              ,
 #              all.equal(F.fmX2s,   F.fmX1s, tol = 6e-6)
-#              ,
-#              all.equal(FUN(fm.1), FUN(fm.2), tol = 6e-6)
-#              ,
+              ,
+              all.equal(FUN(fm.1), FUN(fm.2), tol = 6e-6)
+              ,
               TRUE)
     cat("[Ok]\n")
 }
