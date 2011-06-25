@@ -244,11 +244,11 @@ splom.thpr <-
         psji <- predict(tr$sji)
         ## do the actual plotting
         panel.grid(h = -1, v = -1)
-        llines(predy(bsp[[ii]], psij$x), predy(bsp[[jj]], psij$y), ...)
-        llines(predy(bsp[[ii]], psji$y), predy(bsp[[jj]], psji$x), ...)
+        llines(predy(bsp[[ii]], psij$y), predy(bsp[[jj]], psij$x), ...)
+        llines(predy(bsp[[ii]], psji$x), predy(bsp[[jj]], psji$y), ...)
         for (k in seq_along(levels))
-            llines(predy(bsp[[ii]], pts[k, , 2]),
-                   predy(bsp[[jj]], pts[k, , 1]), ...)
+            llines(predy(bsp[[ii]], pts[k, , 1]),
+                   predy(bsp[[jj]], pts[k, , 2]), ...)
     }
     dp <- function(x = NULL,            # diagonal panel
                    varname = NULL, limits, at = NULL, lab = NULL,
@@ -281,15 +281,14 @@ splom.thpr <-
         axis.text <- trellis.par.get("axis.text")
         if (!is.null(varname))
             grid::grid.text(varname,
-                      gp =
-                      gpar(col = varname.col,
-                           cex = varname.cex,
-                           lineheight = varname.lineheight,
-                           fontface = lattice:::chooseFace(varname.fontface,
-                           varname.font),
-                           fontfamily = varname.fontfamily))
-        if (draw)
-        {
+                            gp =
+                            gpar(col = varname.col,
+                                 cex = varname.cex,
+                                 lineheight = varname.lineheight,
+                                 fontface = lattice:::chooseFace(varname.fontface,
+                                 varname.font),
+                                 fontfamily = varname.fontfamily))
+        if (draw) {
             at <- pretty(limits)
             sides <- c("left", "top")
             if (j == 1) sides <- "top"
