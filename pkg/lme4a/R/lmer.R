@@ -957,7 +957,7 @@ printMerenv <- function(x, digits = max(3, getOption("digits") - 3),
 
 print.merMod <- printMerenv
 setMethod("show",  "merMod", function(object) printMerenv(object))
-fitted.merMod <- function(object, ...) {object@resp@mu; NextMethod()}
+fitted.merMod <- function(object, ...) object@resp@mu
 #setMethod("fitted", "merMod", function(object,...) object@resp@mu)
 residuals.merMod <- function(object, type = c("deviance", "pearson",
                                      "working", "response", "partial"), ...)
