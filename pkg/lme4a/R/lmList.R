@@ -156,6 +156,7 @@ confint.lmList <- function(object, parm, level = 0.95, ...)
     if (length(object) < 1)
         return(new("lmList.confint", array(numeric(0), c(0,0,0))))
     mCall$object <- object[[1]]
+    mCall[[1]] <- as.name("confint")
     template <- eval(mCall)
     val <- array(template, c(dim(template), length(object)),
                  c(dimnames(template), list(names(object))))
