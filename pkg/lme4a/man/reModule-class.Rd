@@ -45,8 +45,6 @@
 }
 \section{Methods}{
   \describe{
-    \item{getL}{\code{signature(x = "reModule")}: extract \eqn{L}
-      matrix, see \code{\link{getL}}.}
     \item{rcond}{\code{signature(x = "reTrms", norm = "character")}:
       Compute the reciprocal condition numbers (see \code{\link{rcond}})
       for each unique lower triangular block of \eqn{\Lambda}.  If one
@@ -56,7 +54,7 @@
 }
 %\references{
 %}
-\seealso{\code{\link{getL}}}
+\seealso{\code{\link{getME}}, e.g., to extract the \eqn{L} matrix.}
 \examples{
 showClass("reModule")
 showClass("reTrms")

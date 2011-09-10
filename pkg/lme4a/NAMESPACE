@@ -4,7 +4,7 @@ useDynLib(lme4a, .registration=TRUE)
 ## notably for which we define methods:
 
 
-## FIXME -- really need all these three ??
+## FIXME -- really need all these three *AND* the full namespace of all ?? --
 import("grid")
 import("lattice")
 import("splines")
@@ -24,6 +24,7 @@ importFrom("stats"
            , fitted
            , fitted.values
            , formula
+           , getCall
            , logLik
            , model.frame
            , model.matrix
@@ -33,9 +34,11 @@ importFrom("stats"
            , resid
            , simulate
            , terms
-           , update
+# need the one from Matrix(below):           , update
            , vcov
            )
+
+##importFrom("Matrix", update)# the S4 generic with CHMfactor etc methods
 
 importFrom("minqa", bobyqa)
 
@@ -59,10 +62,8 @@ importClassesFrom("Matrix",
                   symmetricMatrix)
 
 importFrom("MatrixModels"
-           , getCall
            , mkRespMod
            , reweightPred
-#           , update
            , updateMu
            , updateWts
            )
@@ -81,8 +82,7 @@ importClassesFrom("MatrixModels",
 ## from MatrixModels, methods too {not just generics from 'stats'}:
 importMethodsFrom("MatrixModels",
                   coef, coefficients, fitted, fitted.values,
-                  formula, residuals, resid,
-                  update)
+                  formula, residuals, resid)
 
 importMethodsFrom("Matrix"
                   , "%*%"
@@ -99,7 +99,7 @@ importMethodsFrom("Matrix"
 #                  , summary
                   , t
                   , tcrossprod
-                  , update
+                  , update # e.g. for CHMfactor
                   )
 
 #exportPattern("^[^\\.]")
@@ -115,7 +115,7 @@ export(VarCorr,
        devcomp,
        findbars,
        fixef,
-       getL,
+       getL, getME,
        glmFamily,
        glmer,
        glmer2,
@@ -150,7 +150,7 @@ exportMethods(
               , fitted
 #              , fixef
               ,  formula
-              , getL
+              , getL # << deprecated !
 #              , logLik
 #              , model.frame
 #              , model.matrix
@@ -164,9 +164,9 @@ exportMethods(
 #              , simulate
               , sigma
 #              , summary
-              , update
 #              , vcov
               )
+
 
 ## S3 for now..
 S3method(confint, lmList)
@@ -193,7 +193,6 @@ S3method(simulate, merMod)
 S3method(summary, merMod)
 S3method(terms, merMod)
 S3method(vcov, merMod)
-S3method(update, merMod)
 
 S3method(print, summary.mer)
 S3method(summary, summary.mer)

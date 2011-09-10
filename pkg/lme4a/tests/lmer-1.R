@@ -4,18 +4,11 @@ options(show.signif.stars = FALSE)
 
 source(system.file("test-tools.R", package = "Matrix"))# identical3() etc
 all.EQ <- function(u,v, ...) all.equal.X(u, v, except = c("call", "frame"), ...)
-S4_2list <- function(obj) {   # no longer used
+## Is now (2011-02-18) in Matrix test-tools (i.e., sourced already):
+S4_2list <- function(obj) {
    sn <- slotNames(obj)
    structure(lapply(sn, slot, object = obj), .Names = sn)
 }
-## Is now (2010-09-03) in Matrix' test-tools.R above
-showProc.time <- local({
-    pct <- proc.time()
-    function() { ## CPU elapsed __since last called__
-	ot <- pct ; pct <<- proc.time()
-	cat('Time elapsed: ', (pct - ot)[1:3],'\n')
-    }
-})
 
 (fm1 <- lmer(Reaction ~ Days + (Days|Subject), sleepstudy))
 (fm1a <- lmer(Reaction ~ Days + (Days|Subject), sleepstudy, REML = FALSE))
@@ -352,7 +345,6 @@ stopifnot(## all.EQ(env(Pm1), env(Pm2)),
 ##'                                   log(lambda(x_i)) = b_1 + b_2 * x + G_{f(i)} + I_i
 ##'    and G_k ~ N(0, \sigma_f);  I_i ~ N(0, \sigma_I)
 ##' @author Ben Bolker and Martin Maechler
-set.seed(1)
 rPoisGLMMi <- function(ng, nr, sd=c(f = 1, ind = 0.5), b=c(1,2))
 {
   stopifnot(nr >= 1, ng >= 1,
@@ -371,6 +363,8 @@ rPoisGLMMi <- function(ng, nr, sd=c(f = 1, ind = 0.5), b=c(1,2))
          y <- rpois(ntot, lambda=mu)
      })
 }
+
+set.seed(1)
 dd <- rPoisGLMMi(12, 20)
 m0  <- glmer(y~x + (1|f),           family="poisson", data=dd)
 (m1 <- glmer(y~x + (1|f) + (1|obs), family="poisson", data=dd))

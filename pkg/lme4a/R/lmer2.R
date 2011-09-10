@@ -153,7 +153,7 @@ glmer2 <- function(formula, data, family = gaussian, sparseX = FALSE,
     resp$updateWts()
     fem$installCoef0()
     rem$installU0()
-    
+
     pwrssUpdate(rem, fem, resp, verbose)
     u0 <- rem$u0
     coef0 <- fem$coef0
@@ -167,7 +167,7 @@ glmer2 <- function(formula, data, family = gaussian, sparseX = FALSE,
         }
         control$iprint <- min(verbose, 3L)
         opt <- bobyqa(rem$theta, devfun, lower=rem$lower, control=control)
-        if (nAGQ == 0) 
+        if (nAGQ == 0)
             return(list(rem=rem, fem=fem, resp=resp, opt=opt))
         u0 <- rem$u0
         dpars <- seq_along(rem$theta)
@@ -178,7 +178,7 @@ glmer2 <- function(formula, data, family = gaussian, sparseX = FALSE,
             fem$coef0 <- pars[-dpars]
             pwrssUpdate2(rem, fem, resp, verbose)
             resp$Laplace(rem$ldL2, fem$ldRX2, rem$sqrLenU)
-        }            
+        }
         control$rhobeg <- 0.0002
         control$rhoend <- 2e-7
         opt <- bobyqa(c(rem$theta, fem$coef), devfunb,
@@ -189,7 +189,7 @@ glmer2 <- function(formula, data, family = gaussian, sparseX = FALSE,
 }## {glmer2}
 
 ##' Create an lmerResp, glmerResp or (later) nlmerResp instance
-##' 
+##'
 ##' @title Create a [ng]lmerResp instance
 ##' @param fr a model frame
 ##' @param family the optional glm family (glmRespMod only)
@@ -227,7 +227,7 @@ mkRespMod2 <- function(fr, family = NULL, nlenv = NULL, nlmod = NULL) {
     if (is.null(rho$y)) rho$y <- ans$y
     eval(family$initialize, rho)
     family$initialize <- NULL       # remove clutter from str output
-        
+
     ans <- new(glmerResp, family, rho$y, rho$weights, ans$offset, rho$n)
     ans$updateMu(family$linkfun(unname(rho$mustart)))
     ans
@@ -267,7 +267,7 @@ stepFac <- function(rem, fem, resp, verbose=FALSE) {
     pwrss0 <- resp$wrss + rem$sqrLenU
     for (fac in 2^(-(0:10))) {
         wrss <- resp$updateMu(rem$linPred1(fac)+fem$linPred1(fac))
-        pwrss1 <- wrss + rem$sqrLenU  
+        pwrss1 <- wrss + rem$sqrLenU
         if (verbose > 3L)
             cat(sprintf("pwrss0=%10g, diff=%10g, fac=%6.4f\n",
                         pwrss0, pwrss0 - pwrss1, fac))
@@ -295,7 +295,7 @@ pwrssUpdate2 <- function(rem, fem, resp, verbose) {
     repeat {
         resp$updateMu(rem$linPred1(0)+fem$linPred1(0))
         resp$updateWts()
-        rem$reweight(resp$sqrtXwt, resp$wtres) 
+        rem$reweight(resp$sqrtXwt, resp$wtres)
         if ((ccrit <-rem$solveIncr()/(resp$wrss + rem$sqrLenU)) < 0.000001) break
         stepFac(rem, fem, resp, verbose)
     }

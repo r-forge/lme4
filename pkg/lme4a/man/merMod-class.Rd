@@ -10,7 +10,6 @@
 \alias{fitted,merMod-method}
 %\alias{fixef,merMod-method}
 \alias{formula,merMod-method}
-%\alias{getL,merMod-method}
 \alias{logLik,merMod-method}
 \alias{model.frame,merMod-method}
 \alias{model.matrix,merMod-method}
@@ -73,7 +72,6 @@
     \item{deviance}{\code{signature(object = "merMod")}: ... }
     \item{fixef}{\code{signature(object = "merMod")}: ... }
     \item{formula}{\code{signature(x = "merMod")}: ... }
-    \item{getL}{\code{signature(x = "merMod")}: ... }
     \item{logLik}{\code{signature(object = "merMod")}: ... }
     \item{model.frame}{\code{signature(formula = "merMod")}: ... }
     \item{model.matrix}{\code{signature(object = "merMod")}: ... }
@@ -93,8 +91,9 @@
 %%\references{}
 %%\author{}
 
-\seealso{\code{\link{lmer}}, \code{\link{glmer}}, \code{\link{nlmer}},
-  \code{\linkS4class{reModule}}, \code{\linkS4class{feModule}},
+\seealso{\code{\link{lmer}}, \code{\link{glmer}}, \code{\link{nlmer}};
+  then \code{\link{getME}} for lower level (but future-proof!) extraction of components.
+  Further, \code{\linkS4class{reModule}}, \code{\linkS4class{feModule}},
   \code{\linkS4class{respModule}}
 }
 \examples{
