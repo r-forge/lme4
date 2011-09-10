@@ -10,4 +10,8 @@ d$eta <- d$eta0+reff_f[d$block]
 d$mu <- 1/d$eta
 d$y <- rgamma(nrow(d),scale=d$mu/2,shape=2)
 
+if(FALSE)## FIXME!
 try(gm1 <- glmer(y ~ 1 + (1|block), d, Gamma, verbose=TRUE)) # should throw an error but not segfault
+## 2011-08-23 (MM): But it *does* kill R now
+## terminate called after throwing an instance of 'std::range_error'
+##   what():  non-finite objective values not allowed

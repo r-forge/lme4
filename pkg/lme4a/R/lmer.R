@@ -456,7 +456,7 @@ simulate.merMod <- function(object, nsim = 1, seed = NULL, use.u = FALSE, ...)
     if(!is.null(seed)) set.seed(seed)
     if(!exists(".Random.seed", envir = .GlobalEnv))
         runif(1) # initialize the RNG if necessary
-    
+
     n <- nrow(X <- object@fe @ X)
     ## result will be matrix  n x nsim :
     as.vector(X %*% object@fe @ coef) +  # fixed-effect contribution
@@ -804,7 +804,7 @@ ranef.merMod <- function(object, postVar = FALSE, drop = FALSE,
         stopifnot(is(whichel, "character"))
         whchL <- names(ans) %in% whichel
         ans <- ans[whchL]
-        
+
         if (postVar) {
             vv <- .Call(reTrmsCondVar, re, sigma(object))
             for (i in seq_along(ans))
@@ -999,8 +999,64 @@ coef.merMod <- coefMer
 ## FIXME: Do we really need a separate devcomp extractor?  I suppose it can't hurt.
 setMethod("devcomp", "merMod", function(x, ...) x@devcomp)
 
-setMethod("getL", "reModule", function(x) x@L)
-setMethod("getL", "merMod", function(x) x@re@L)
+
+setMethod("getL", "reModule", function(x) {
+    .Deprecated("getME(., \"L\")")
+    x@L
+})
+setMethod("getL", "merMod", function(x) {
+    .Deprecated("getME(., \"L\")")
+    x@re@L
+})
+
+##' "Generalized Extractor" -- providing compatibility between lme4* versions -- lme4a ---
+##' @param object [ng]lmer() fit
+##' @param name character string
+##' @return the corresponding "part" of the [gn]?lmer()-Fit
+##' @note
+##'
+getME <- function(object,
+                  name = c("X", "Z","Zt", "u",
+                  "Gp",
+		  "L", "Lambda", "Lambdat",
+                  "RX", "RZX",
+                  "beta", "theta",
+		  "REML", "n_rtrms", "is_REML"))
+{
+    if(missing(name)) stop("'name' must not be missing")
+    stopifnot(length(name <- as.character(name)) == 1,
+	      is(object, "merMod"))
+    name <- match.arg(name)
+    FE <- object@fe
+    re <- object@re
+    switch(name,
+	   "X" = FE@X, ## ok ? - check -- use model.matrix() method instead?
+	   "Z" = t(re@Zt),
+	   "Zt"= re@Zt,
+           "u" = ....,
+           ## "Gp"
+	   "L"= re@L,
+	   "Lambda"= .....re@L,
+	   "Lambdat"= ....re@L,
+           ## "RX"
+	   "RZX" = FE@RZX,
+           "beta" = FE@coef,
+           "theta"= re@theta,
+
+	   "n_rtrms" = length(re@flist), ##  = #{random-effect terms in the formula}
+	   "is_REML" = isREML(object),
+
+	   "GP" = , # FIXME
+	   "REML" = , # FIXME
+	   "RX" = , # FIXME
+           "..foo.." =# placeholder!
+           stop(gettextf("'%s' is not implemented yet",
+                         sprintf("getME(*, \"%s\")", name))),
+	   ## otherwise
+	   stop(sprintf("Mixed-Effects extraction of '%s' is not available for class \"%s\"",
+			name, class(object))))
+}
+
 
 setMethod("isREML", "merMod", function(x) as.logical(x@devcomp$dims["REML"]))
 
@@ -1013,7 +1069,6 @@ setMethod("refitML", "merMod",
               updateMod(x, opt$par, opt$fval)
           })
 
-setMethod("getCall", "merMod",	function(x) x@call)
 
 ## A more effective method for merMod objects is defined in lmer2.R
 
@@ -1183,7 +1238,7 @@ if(FALSE) { ## Now we can easily "build" Lambda (inside the 're'):
 }
 
 setMethod("rcond", signature(x="reTrms", norm="character"),
-          function(x, norm, ...) 
+          function(x, norm, ...)
           sapply(blocksLambda(x), rcond, norm=norm))
 
 ## Keep this separate, as it encapsulates the computation
@@ -1304,7 +1359,7 @@ summary.merMod <- function(object, varcov = FALSE, keep.X = !varcov, ...)
     useSc <- as.logical(dd["useSc"])
     sig <- sigma(object)
     REML <- isREML(object)
-    
+
     fam <- NULL
     if(is(resp, "glmRespMod")) fam <- resp@family
     coefs <- cbind("Estimate" = fixef(object),

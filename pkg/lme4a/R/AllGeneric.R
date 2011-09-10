@@ -6,8 +6,6 @@ setGeneric("lmList",
 ## utilities, *not* exported (yet ?)
 setGeneric("isREML", function(x) standardGeneric("isREML"),
 	   valueClass = "logical")
-setGeneric("getCall", function(x) standardGeneric("getCall"),
-	   valueClass = "call")
 
 ## utilities, these *exported*:
 setGeneric("getL", function(x) standardGeneric("getL"))
