@@ -10,9 +10,12 @@ import("lattice")
 import("splines")
 import("Rcpp")
 
-importFrom("graphics", plot)
-importFrom("nlme", fixef, ranef, VarCorr)
-#importFrom("stats4", AIC, BIC, logLik)# so S4 methods are used!
+importFrom("graphics"
+           , plot)
+importFrom("nlme"
+           , fixef
+           , ranef
+           , VarCorr)
 importFrom("stats"
            , AIC
            , BIC
