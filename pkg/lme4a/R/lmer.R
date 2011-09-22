@@ -585,7 +585,7 @@ PIRLSest <- function(ans, verbose, control, nAGQ) {
     if (nAGQ > 0L) {
         thpars <- seq_along(ans@re@theta)
         bb <- attr(opt$fval, "beta")
-        control$rhobeg <- 0.2
+        control$rhobeg <- 0.02
         control$rhoend <- 2e-7
         obj <- mkdevfun(ans, nAGQ, u0 = attr(opt$fval, "u"), verbose)
         opt <- bobyqa(c(opt$par, bb), obj,
