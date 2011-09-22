@@ -1,3 +1,8 @@
+2011-06-25  Douglas Bates <bates@stat.wisc.edu>
+
+	* R/profile.R: Axes on panels in lower triangle were transposed (thanks
+	  to Jing Kong for pointing this out).
+
 2011-06-01  Douglas Bates <bates@stat.wisc.edu>
 
 	* tests/lmer-1.R, tests/lmer-1.Rout.save: Rearrange tests for similar
