@@ -40,7 +40,7 @@ lmer(mAch ~ meanses*cses + sector*cses + (cses|school), Hsb82)
               (age + I(age^2)|Subject),  data = Oxboys))
 anova(fm07, fm08)
 stopifnot(all.equal(logLik(fm07, REML=FALSE),
-                    logLik(fm08, REML=FALSE)))
+                    logLik(fm08, REML=FALSE), tol=1e-07))
 cat('Time elapsed: ', {.ot <- .pt; (.pt <- proc.time()) - .ot},'\n') # "stats"
 
 ## ScotsSec ----------- Data ---------------------

@@ -1,6 +1,6 @@
 Package: mlmRev
-Version: 1.0-0
-Date: 2011-02-15
+Version: 1.0-1
+Date: 2011-10-17
 Title: Examples from Multilevel Modelling Software Review
 Author: Douglas Bates <bates@stat.wisc.edu>,
         Martin Maechler <maechler@R-project.org> and
