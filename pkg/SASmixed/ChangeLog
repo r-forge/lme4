@@ -1,3 +1,12 @@
+2011-10-17  Douglas Bates <bates@stat.wisc.edu>
+
+	* DESCRIPTION, NAMESPACE, inst/doc/Usinglmer.Rnw: Add a NAMESPACE for
+	  R-2.14.0 and later; new release; clean up dependencies of vignette
+
+2011-04-19  Martin Maechler  <maechler@stat.math.ethz.ch>
+
+	* inst/doc/Usinglmer.Rnw: Sweave strip.white="true" -- R 2.14 compatibly
+
 2011-02-15  Douglas Bates <bates@stat.wisc.edu>
 
 	* DESCRIPTION, data/Animal.rda, data/AvgDailyGain.rda, data/BIB.rda,
@@ -14,7 +23,7 @@
 
 	* man/Multilocation.Rd: Suppress printing of correlation matrices.
 
-2010-02-27  mmaechler
+2010-02-27  Martin Maechler  <maechler@stat.math.ethz.ch>
 
 	* inst/doc/Usinglmer.Rnw: keep.source !
 
@@ -33,7 +42,7 @@
 	* [r400] inst/doc/Usinglme.Rnw, inst/doc/Usinglme.bib,
 	  inst/doc/Usinglmer.Rnw, inst/doc/Usinglmer.bib: Update to AFS version
 
-2009-08-08  Martin Maechler  <maechler@stat.math.ethz.ch>mmaechler
+2009-08-08  Martin Maechler  <maechler@stat.math.ethz.ch>
 
 	* DESCRIPTION, man/Animal.Rd, man/AvgDailyGain.Rd, man/BIB.Rd,
 	  man/Bond.Rd, man/Cultivation.Rd, man/Demand.Rd, man/Genetics.Rd,
