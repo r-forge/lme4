@@ -1,6 +1,6 @@
 Package: SASmixed
-Version: 1.0-0
-Date: 2011-02-15
+Version: 1.0-1
+Date: 2011-10-17
 Title: Data sets from "SAS System for Mixed Models"
 Maintainer: <lme4-authors@R-forge.wu-wien.ac.at>
 Author: Original by Littel, Milliken, Stroup, and Wolfinger
