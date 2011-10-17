@@ -13,7 +13,7 @@
 %%\VignetteDepends{lme4}
 \begin{document}
 \SweaveOpts{engine=R,eps=FALSE,pdf=TRUE,width=5,height=3,strip.white=true,keep.source=TRUE}
-\SweaveOpts{prefix=TRUE,prefix.string=figs/SoftRev,include=FALSE}%        ^^^^^^^^^^^^^^^^
+\SweaveOpts{prefix=TRUE,prefix.string=SoftRev,include=TRUE}%             ^^^^^^^^^^^^^^^^
 \setkeys{Gin}{width=\textwidth}
 \title{Examples from Multilevel Software Comparative Reviews}
 \author{Douglas Bates\\R Development Core Team\\\email{Douglas.Bates@R-project.org}}
@@ -30,10 +30,8 @@
 <<preliminaries,echo=FALSE,print=FALSE,results=hide>>=
 options(width=80, show.signif.stars = FALSE,
         lattice.theme = function() canonical.theme("pdf", color = FALSE))
-library(Matrix)
-library(lattice)
-library(lme4)
 library(mlmRev)
+library(lme4)
 set.seed(1234321)
 @
 
@@ -263,13 +261,12 @@ mosaicplot(~ school + sex, ExamMxd)
 @
 helps to detect mixed-sex schools with unusually large or unusually small ratios
 of females to males taking the exam.
-<<ExamMosaic,fig=TRUE,echo=FALSE,width=8,height=8,include=FALSE>>=
+\begin{figure}[tbp]
+  \centering
+<<ExamMosaic,fig=TRUE,echo=FALSE,width=8,height=8>>=
 ExamMxd <- within(subset(Exam, type == "Mxd"), school <- factor(school))
 mosaicplot(~ school + sex, ExamMxd)
 @
-\begin{figure}[tbp]
-  \centering
-  \includegraphics[width=\textwidth]{figs/SoftRev-ExamMosaic}
   \caption{A mosaic plot of the sex distribution by school.  The areas
     of the rectangles are proportional to the number of students of
     that sex from that school who took the exam.  Schools with an
@@ -289,15 +286,14 @@ boys-only school must be male.  For graphical exploration we convert
 from \code{schgend} to \code{type}, an indicator of whether the school
 is a mixed-sex school or a single-sex school, and plot the response
 versus the pretest score for each combination of sex and school type.
-<<Examplot1,fig=TRUE,echo=FALSE,width=8,height=8,include=FALSE>>=
+\begin{figure}[tbp]
+  \centering
+<<Examplot1,fig=TRUE,echo=FALSE,width=8,height=8>>=
 print(xyplot(normexam ~ standLRT | sex * type, Exam,
              type = c("g", "p", "smooth"), layout = c(2,2),
              xlab = "Standardized London Reading Test score",
              ylab = "Normalized exam score", aspect = 1.2))
 @
-\begin{figure}[tbp]
-  \centering
-  \includegraphics[width=\textwidth]{figs/SoftRev-Examplot1}
   \caption{Normalized exam score versus pretest
     (Standardized London Reading Test) score for 4095 students from 65 schools
     in inner London. The panels on the left show the male students'
@@ -328,7 +324,9 @@ In some ways the high level of residual variation obscures the pattern
 in the data.  By removing the data points and overlaying the
 scatterplot smoothers we can concentrate on the relationships between
 the covariates.
-<<Examplot2,fig=TRUE,echo=FALSE,width=8,height=4,include=FALSE>>=
+\begin{figure}[tbp]
+  \centering
+<<Examplot2,fig=TRUE,echo=FALSE,width=8,height=4>>=
 print(xyplot(normexam ~ standLRT, Exam, groups = sex:type,
              type = c("g", "smooth"), xlim = c(-3,3), ylim = c(-2,2),
              xlab = "Standardized London Reading Test score",
@@ -336,9 +334,6 @@ print(xyplot(normexam ~ standLRT, Exam, groups = sex:type,
              auto.key = list(space = 'right', points = FALSE, lines = TRUE),
              aspect = 1))
 @
-\begin{figure}[tbp]
-  \centering
-  \includegraphics[width=\textwidth]{figs/SoftRev-Examplot2}
   \caption{Overlaid scatterplot smoother lines of the normalized test
     scores versus the pretest (Standardized London Reading Test) score
     for female (F) and male (M) students in single-sex (Sngl) and
@@ -389,16 +384,15 @@ We can check for patterns within and between schools by plotting the
 response versus the pretest by school.  Because there appear to be
 differences in this relationship for single-sex versus mixed-sex
 schools and for females versus males we consider these separately.
-<<Examplot3,fig=TRUE,echo=FALSE,width=8,height=8,include=FALSE>>=
+\begin{figure}[tbp]
+  \centering
+<<Examplot3,fig=TRUE,echo=FALSE,width=8,height=8>>=
 print(xyplot(normexam ~ standLRT | school, Exam,
              type = c("g", "p", "r"),
              xlab = "Standardized London Reading Test score",
              ylab = "Normalized exam score",
              subset = sex == "F" & type == "Sngl"))
 @
-\begin{figure}[tbp]
-  \centering
-  \includegraphics[width=\textwidth]{figs/SoftRev-Examplot3}
   \caption{Normalized exam scores versus pretest (Standardized London
     Reading Test) score by school for female students in single-sex
     schools.}
@@ -430,7 +424,9 @@ xyplot(normexam ~ standLRT | school, Exam, type = c("g", "p", "r"),
              subset = sex == "F" & type == "Sngl" & school != 48,
              index.cond = function(x, y) coef(lm(y ~ x))[1])
 @
-<<Examplot4,fig=TRUE,echo=FALSE,width=8,height=8,include=FALSE>>=
+\begin{figure}[tbp]
+  \centering
+<<Examplot4,fig=TRUE,echo=FALSE,width=8,height=8>>=
 print(xyplot(normexam ~ standLRT | school, Exam,
              type = c("g", "p", "r"),
              xlab = "Standardized London Reading Test score",
@@ -438,9 +434,6 @@ print(xyplot(normexam ~ standLRT | school, Exam,
              subset = sex == "F" & type == "Sngl" & school != 48,
              index.cond = function(x, y) coef(lm(y ~ x))[1]))
 @
-\begin{figure}[tbp]
-  \centering
-  \includegraphics[width=\textwidth]{figs/SoftRev-Examplot4}
   \caption{Normalized exam scores versus pretest (Standardized London
     Reading Test) score by school for female students in single-sex
     schools. School 48 where only two students took the exam has been
@@ -455,7 +448,9 @@ increasing predicted exam score for a student with a pretest score of 0).
 
 Alternatively, we could order the panels by increasing slope of the
 within-school regression lines, as in Figure~\ref{fig:Examplot4a}.
-<<Examplot4a,fig=TRUE,echo=FALSE,width=8,height=8,include=FALSE>>=
+\begin{figure}[tbp]
+  \centering
+<<Examplot4a,fig=TRUE,echo=FALSE,width=8,height=8>>=
 print(xyplot(normexam ~ standLRT | school, Exam,
              type = c("g", "p", "r"),
              xlab = "Standardized London Reading Test score",
@@ -463,9 +458,6 @@ print(xyplot(normexam ~ standLRT | school, Exam,
              subset = sex == "F" & type == "Sngl" & school != 48,
              index.cond = function(x, y) coef(lm(y ~ x))[2]))
 @
-\begin{figure}[tbp]
-  \centering
-  \includegraphics[width=\textwidth]{figs/SoftRev-Examplot4a}
   \caption{Normalized exam scores versus pretest (Standardized London
     Reading Test) score by school for female students in single-sex
     schools. School 48 has been eliminated and the panels have been
@@ -487,12 +479,11 @@ and compare the confidence intervals on these coefficients.
 <<Examplot4cshow>>=
 plot(confint(ExamFS, pool = TRUE), order = 1)
 @
-<<Examplot4c,fig=TRUE,echo=FALSE,width=8,height=3,include=FALSE>>=
-print(plot(confint(ExamFS, pool = TRUE), order = 1))
-@
 \begin{figure}[tbp]
   \centering
-  \includegraphics[width=\textwidth]{figs/SoftRev-Examplot4c}
+<<Examplot4c,fig=TRUE,echo=FALSE,width=8,height=3>>=
+print(plot(confint(ExamFS, pool = TRUE), order = 1))
+@
   \caption{Confidence intervals on the coefficients of the
     within-school regression lines for female students in single-sex
     schools. School 48 has been eliminated and the schools have been
@@ -501,7 +492,9 @@ print(plot(confint(ExamFS, pool = TRUE), order = 1))
 \end{figure}
 
 
-<<Examplot5,fig=TRUE,echo=FALSE,width=8,height=4,include=FALSE>>=
+\begin{figure}[tbp]
+  \centering
+<<Examplot5,fig=TRUE,echo=FALSE,width=8,height=4>>=
 print(xyplot(normexam ~ standLRT | school, Exam,
              type = c("g", "p", "r"),
              xlab = "Standardized London Reading Test score",
@@ -509,9 +502,6 @@ print(xyplot(normexam ~ standLRT | school, Exam,
              subset = sex == "M" & type == "Sngl", layout = c(5,2),
              index.cond = function(x, y) coef(lm(y ~ x))[1]))
 @
-\begin{figure}[tbp]
-  \centering
-  \includegraphics[width=\textwidth]{figs/SoftRev-Examplot5}
   \caption{Normalized exam scores versus pretest (Standardized London
     Reading Test) score by school for male students in single-sex
     schools.}
@@ -524,12 +514,11 @@ show(ExamMS <- lmList(normexam ~ standLRT | school, Exam,
 @
 The corresponding plot of the confidence intervals is shown in
 Figure~\ref{fig:Examplot5b}.
-<<Examplot5b,fig=TRUE,echo=FALSE,width=8,height=2.5,include=FALSE>>=
-print(plot(confint(ExamMS, pool = TRUE), order = 1))
-@
 \begin{figure}[tbp]
   \centering
-  \includegraphics[width=\textwidth]{figs/SoftRev-Examplot5b}
+<<Examplot5b,fig=TRUE,echo=FALSE,width=8,height=2.5>>=
+print(plot(confint(ExamMS, pool = TRUE), order = 1))
+@
   \caption{Confidence intervals on the coefficients of the
     within-school regression lines for female students in single-sex
     schools. School 48 has been eliminated and the schools have been
@@ -539,7 +528,9 @@ print(plot(confint(ExamMS, pool = TRUE), order = 1))
 
 For the mixed-sex schools we can consider the effect of the pretest
 score and sex in the plot (Figure~\ref{fig:Examplot6}) and in the
-<<Examplot6,fig=TRUE,echo=FALSE,width=8,height=9,include=FALSE>>=
+\begin{figure}[tbp]
+  \centering
+<<Examplot6,fig=TRUE,echo=FALSE,width=8,height=9>>=
 print(xyplot(normexam ~ standLRT | school, Exam, groups = sex,
              type = c("g", "p", "r"),
              xlab = "Standardized London Reading Test score",
@@ -550,9 +541,6 @@ print(xyplot(normexam ~ standLRT | school, Exam, groups = sex,
              columns = 2), layout = c(7,5),
              aspect = 1.2))
 @
-\begin{figure}[tbp]
-  \centering
-  \includegraphics[width=\textwidth]{figs/SoftRev-Examplot6}
   \caption{Normalized exam scores versus pretest
     score by school and sex for students in mixed-sex
     schools.}
@@ -564,12 +552,11 @@ show(ExamM <- lmList(normexam ~ standLRT + sex| school, Exam,
                      subset = type == "Mxd" & !school %in% c(43,47,54)))
 @
 The confidence intervals for these separately fitted models,
-<<Examplot6b,fig=TRUE,echo=FALSE,width=8,height=4,include=FALSE>>=
-print(plot(confint(ExamM, pool = TRUE), order = 1))
-@
 \begin{figure}[tbp]
   \centering
-  \includegraphics[width=\textwidth]{figs/SoftRev-Examplot6b}
+<<Examplot6b,fig=TRUE,echo=FALSE,width=8,height=4>>=
+print(plot(confint(ExamM, pool = TRUE), order = 1))
+@
   \caption{Confidence intervals on the coefficients of the
     within-school regression lines for female students in single-sex
     schools. School 48 has been eliminated and the schools have been
@@ -626,376 +613,6 @@ Notice that the estimate of the variance of the \code{sexM} term is
 essentially zero so there is no need to test the significance of this
 variance component.  We proceed with the analysis of \code{Em4}.
 
-
-\subsection{Markov Chain Monte Carlo methods for assessing parameter variation}
-\label{sec:MCMC}
-
-An important part of the analysis of a statistical model is the
-assessment of the precision of parameter estimates, either through
-confidence intervals and confidence regions or through hypothesis
-tests on the parameters.  Sometimes such information is condensed and
-given as the parameter estimate and a standard error of the estimate,
-with the assumption that a confidence interval will be formed as the
-estimate plus/minus some multiple of the standard error.
-
-Summarizing the variability in parameter estimates with such symmetric
-intervals is appropriate if the distribution of the parameters can
-be assumed to be reasonably symmetric but this is not the case for
-variance components.  In general we expect the distribution of a
-variance component to be approximately $\chi^2$ and, depending upon the
-precision with which the component is estimated, such a distribution
-can be quite asymmetric.
-
-To examine the distribution of the parameter estimates we can use a
-parametric bootstrap or adopt a Bayesian approach and generate a
-sample from the posterior distribution of the parameters using a
-technique called Markov Chain Monte Carlo sampling. The
-\code{mcmcsamp} function applied to a fitted \code{lmer} model
-generates such a sample.
-
-<<Es4>>=
-#Es4 <- mcmcsamp(Em4, 10000, trans = FALSE)
-@
-
-The parameter estimates in this sample are the fixed effects, the
-variance of the random per-observation noise, $\sigma^2$, the variance
-of the intercept random effect, the variance of the slope random
-effect and their covariance.  A plot of the estimated posterior
-densities of each of the parameters (Figure~\ref{fig:Examplot7})
-<<Examplot7,fig=TRUE,echo=FALSE,width=8,height=5,include=FALSE>>=
-#print(densityplot(Es4, plot.points = FALSE, ylab = "",
-#                  scales = list(x = list(axs = "i"))))
-@
-\begin{figure}[tbp]
-  \centering
-%  \includegraphics[width=\textwidth]{figs/SoftRev-Examplot7}
-  \caption{Plots of the estimated posterior probability densities from
-    a Markov Chain Monte Carlo sample of the parameters in the model
-    \code{Em4}.}
-  \label{fig:Examplot7}
-\end{figure}
-shows that the posterior densities of the fixed effects are indeed
-quite symmetric and close to a normal (or Gaussian) distribution.  The
-posterior density of $\sigma^2$ and the covariance parameter are
-reasonably symmetric but the posterior densities of the variances of
-the random effects are not.
-
-A better way of assessing possible asymmetry is to use normal
-probability plots of the samples from each of the parameters, as in
-Figure~\ref{fig:Examplot8}.
-<<Examplot8,fig=TRUE,echo=FALSE,width=8,height=4.5,include=FALSE>>=
-#print(qqmath(Es4, ylab = "",
-#             xlab = "Quantiles of a standard normal distribution",
-#             scales = list(y = list(relation = "free"),
-#             x = list(axs = "i")), type = c("g", "p"),
-#             pch = ".", cex = 1.5))
-@
-\begin{figure}[tbp]
-  \centering
-%  \includegraphics[width=\textwidth]{figs/SoftRev-Examplot8}
-  \caption{Normal probability plots of the Markov Chain Monte Carlo
-    samples from the posterior densities of the parameters in the
-    model \code{Em4}.}
-  \label{fig:Examplot8}
-\end{figure}
-
-We can see from Figure~\ref{fig:Examplot8} that the posterior
-distributions of the fixed effects are remarkably close to the normal
-(or Gaussian) distribution.  Except for a few points in each panel,
-these panels show almost perfect linearity.  The few points that do
-deviate from the straight line in each case represent fewer than
-a dozen samples out of a total of 10,000 and are not a cause for concern.
-
-The posterior distribution of $\sigma^2$ is satisfactorily close to a
-normal distribution.  As we will see, it is not always the case that
-this parameter is close to normally distributed.  It happens that in
-this example $\sigma^2$ is very precisely determined and possible
-asymmetry in the distribution will not be noticeable over such a small
-range of values.
-
-There is noticeable asymmetry in the distribution of the variances of
-the random effects and perhaps some asymmetry in the distribution of
-the covariance of the intercept and slope random effects.
-
-Using this sample we can examine the distribution of functions of
-these parameters.  For example, \citep{box73:_bayes_infer_statis_analy} advocate
-approximating the distribution of the logarithm of a variance rather
-than the variance itself.  For a covariance we first convert it to a
-correlation then apply Fisher's z transformation (the hyperbolic
-arc-tangent) to the correlation.  The density plots and normal
-probability plots of these transformed parameters are shown in
-Figures~\ref{fig:Examplot9} and \ref{fig:Examplot10}.
-
-<<Examplot9,fig=TRUE,echo=FALSE,width=8,height=5,include=FALSE>>=
-#Es4a <- Es4[,5:8]
-#Es4a[,4] <- atanh(Es4a[,4]/sqrt(Es4a[,2]*Es4a[,3]))
-#for (i in 1:3) Es4a[,i] <- log(Es4a[,i])
-#print(densityplot(Es4a, plot.points = FALSE, ylab = "",
-#                  scales = list(x = list(axs = "i"))))
-@
-\begin{figure}[tbp]
-  \centering
-%  \includegraphics[width=\textwidth]{figs/SoftRev-Examplot9}
-  \caption{Estimated density plots of the Markov Chain Monte Carlo
-    samples from the posterior densities of the variance and
-    covariance parameters in model \code{Em4}.  The variance
-    parameters are on the log scale and the covariance is expressed as
-    Fisher's z transformation of the correlation.}
-  \label{fig:Examplot9}
-\end{figure}
-
-<<Examplot10,fig=TRUE,echo=FALSE,width=8,height=8,include=FALSE>>=
-#print(qqmath(Es4a,
-#             ylab = "",
-#             xlab = "Quantiles of a standard normal distribution",
-#             layout = c(2,2),
-#             scales = list(y = list(relation = "free"),
-#             x = list(axs = "i")), type = c("g", "p"), pch = ".",
-#             cex = 1.5))
-@
-\begin{figure}[tbp]
-  \centering
-%  \includegraphics[width=\textwidth]{figs/SoftRev-Examplot10}
-  \caption{Normal probability plots of the Markov Chain Monte Carlo
-    samples from the posterior densities of the variance and
-    covariance parameters in model \code{Em4}.  The variance
-    parameters are on the log scale and the covariance is expressed as
-    Fisher's z transformation of the correlation.}
-  \label{fig:Examplot10}
-\end{figure}
-
-
-\section{Three-level Normal Models}
-\label{sec:three-level}
-<<Chem97prep,results=hide,echo=FALSE>>=
-lmer(score ~ gcsecnt + (1|school) + (1|lea), Chem97)
-@
-
-These results are from the 1997 A-level Chemistry exam.  The
-\code{school} is nested in \code{lea} (local education authority) and
-has unique levels for each of the 2410 schools.  It is a good practice
-to make the nesting explicit by specifying the grouping factors as the
-`outer' factor, \code{lea} in this case, and the interaction of the
-outer and inner factors, \code{lea:school} or \code{school:lea} in
-this case.  This will ensure unique levels for each \code{school}
-within \code{lea} combination.
-
-To fit the model \code{mC2} we increase the number of EM iterations
-from its default of 20 to 40.  Without this change the current version
-of the \code{optim} function in \RR{} will declare convergence to an
-incorrect optimum.  By increasing the number of EM iterations we are
-able to get closer to the optimum before calling \code{optim} and
-converge to the correct value.  The optim function will be patched so
-this change will not be needed in future versions of \RR{}.
-
-Data from the 1997 A-level Chemistry exam are available as \code{Chem97}.
-
-<<Chem97>>=
-str(Chem97)
-system.time(mC1 <- lmer(score ~ 1+(1|lea:school) + (1|lea), Chem97))
-summary(mC1)
-system.time(mC2 <- lmer(score ~ gcsecnt + (1|school) + (1|lea), Chem97))
-summary(mC2)
-@
-
-
-\section{Two-level models for binary data}
-\label{sec:TwolevelBinary}
-
-When the response variable is binary or when it represents a count we
-frequently model the data with a \emph{generalized linear model} (glm)
-or, if we use random effects in the model, a \emph{generalized linear
-  mixed model} (glmm).  Determining maximum likelihood estimates of
-the parameters in such a model is not as easy as for the linear mixed
-model because the likelihood for a glmm is expressed as an integral
-that must be approximated.
-
-The \code{lmer} function has provision for fitting such models using
-one of three approximations.  The simplest approximation
-is called \emph{penalized quasi-likelihood} (PQL). This method is
-generally quite fast but also the least accurate of the three.  The
-Laplace approximation is more accurate than PQL and the most accurate
-approximation is called \emph{adaptive Gauss-Hermite quadrature}
-(AGQ).  At present AGQ can only be used on models that have
-one-dimensional random effects associated with a single
-grouping factor.
-
-
-\subsection{The contraception use data }
-\label{sec:Contraception}
-
-A fertility survey of women in Bangladesh included as a response their
-use of artificial contraception.  Some of the covariates included the
-woman's age (on a centered scale), the number of live children she
-had, whether she lived in an urban or rural setting, and the district
-in which she lived.
-<<Contraception>>=
-str(Contraception)
-@
-
-
-\subsection{Fitting the model used in the review}
-\label{sec:Reviewmodel}
-<<Contraceptionprep, results=hide,echo=FALSE>>=
-glmer(use ~ urban+age+livch+(1|district), Contraception, binomial)
-@
-
-The ``Software reviews of multilevel modeling packages'' fit a simple
-model that includes fixed effects for \code{urban}, \code{age}, and
-\code{livch} and a simple additive random effect by district.  We
-reproduce this fit as
-%% keep.source=FALSE: suppress the R comment
-<<Contraception,keep.source=FALSE>>=
-system.time(Cm1 <- lmer(use ~ age+urban+livch+(1|district),
-                        Contraception, binomial))
-Cm1
-system.time(Cm3 <- lmer(use ~ age+urban+livch+(1|district),
-                         Contraception, binomial, nAGQ = 5))
-Cm3
-system.time(Cm4 <- lmer(use ~ age+urban+livch+(urban|district),
-                        Contraception, binomial))
-Cm4
-@
-
-
-\subsection{Data exploration}
-\label{sec:ContraExplor}
-
-As with the \code{Exam} data, we examine several data plots when
-formulating a model for these data.  Because the response is either
-\code{"Y"} or \code{"N"}, plots of the data points themselves tend to
-be uniformative because of overplotting.  However, with a continuous
-covariate such as \code{age} it is useful to plot the scatterplot
-smoother line for the response versus the covariate to see the trend
-of the probability.
-
-The model being fit assumes that the logistic
-transformation of the probability of a woman using artificial
-contraception is approximately linear in \code{age} given her
-urban/rural status and the number of live children she has.
-Figure~\ref{fig:Contra1}, produced by
-<<Contra1,fig=TRUE,echo=FALSE,width=8,height=8,include=FALSE>>=
-print(xyplot(ifelse(use == "Y", 1, 0) ~ age|urban, Contraception,
-             groups = livch, type = c("g", "smooth"),
-             auto.key = list(space = "top", points = FALSE,
-             lines = TRUE, columns = 4),
-             ylab = "Proportion", xlab = "Centered age"))
-@
-\begin{figure}[tbp]
-  \centering
-  \includegraphics[width=\textwidth]{figs/SoftRev-Contra1}
-  \caption{Scatterplot smoother curves of the use of artificial
-    contraception versus age for women in the Bangladesh fertility
-    survey. The panel on the left depicts the proportion for rural
-    women and the panel on the right depicts the proportion for urban
-    women.}
-  \label{fig:Contra1}
-\end{figure}
-shows that this is not the case.  Indeed the proportion of women using
-artificial contraception is more like a quadratic in age.  Very young
-women and older women are less likely to use artificial contraception.
-
-We also see that the differences according to the number of live
-children are predominantly differences between those women who have
-live children and those who don't.
-
-
-\subsection{Reformulated models}
-\label{sec:ContraReformulated}
-
-We include a quadratic term in \code{age}
-<<Cm6>>=
-(Cm6 <- lmer(use ~ age + I(age^2) + urban + livch + (1|district),
-             Contraception, binomial))
-anova(Cm1, Cm6)
-@
-and we see that, as indicated by the plots, the quadratic term is highly significant.
-
-We can check if the differences in the number of live children is
-primarily the difference between no children and any children by
-fitting a model with the indicator of any children as one of the
-terms in the fixed effects.
-<<children>>=
-Contraception <- within(Contraception, ch <- factor(ifelse(livch == 0, "N", "Y")))
-(Cm7 <- lmer(use ~ age + I(age^2) + urban + ch + (1|district),
-             Contraception, binomial))
-anova(Cm6, Cm7)
-@
-
-Based on the change in the log-likelihood the simpler model is
-adequate.  We check for an interaction with the \code{urban} factor.
-<<Cm8>>=
-(Cm8 <- lmer(use ~ age + I(age^2) + urban * ch + (1|district),
-             Contraception, binomial))
-@
-The interaction is not significant.
-
-We can check if there is significant variation by district in the
-effect of urban versus rural or in the effect of any children versus
-no children by fitting further models
-<<Cm9>>=
-(Cm9 <- lmer(use ~ age + I(age^2) + urban + ch + (urban|district),
-             Contraception, binomial))
-anova(Cm7, Cm9)
-(Cm10 <- lmer(use ~ age + I(age^2) + urban + ch + (ch|district),
-             Contraception, binomial))
-anova(Cm7, Cm10)
-@
-
-Variation due to district in the effect of any children versus no
-children does not appear to be significant but there is a significant
-variation in the effect of urban versus rural.  It is interesting that
-AIC (Akaike's Information Criterion) and BIC (Schwartz's Bayesian
-Information Criterion) lead to different conclusions in the comparison
-of \code{Cm7} versus \code{Cm9}.  For both these criteria the
-preferred model is the one with the lower value of the criterion.
-Hence, AIC prefers \code{Cm9} and BIC prefers \code{Cm7}.  The BIC
-criterion puts a heavier penalty on having a greater number of parameters.
-
-At present the code for creating a Markov Chain Monte Carlo sample
-from the distribution of the parameters in a generalized linear mixed
-model does not allow for random effects of dimension greater than one
-so we produce a sample from the posterior distribution of the
-parameters in model \code{Cm11}
-<<Cm11,keep.source=FALSE>>=
-(Cm11 <- lmer(use ~ age + I(age^2) + urban + ch + (1|district), Contraception, binomial))
-#Cs11 <- mcmcsamp(Em4, 10000, trans = FALSE) # mcmcsamp for GLMMs in supernodal representation not yet implemented
-@
-Density plots (Figure~\ref{fig:Contra2})
-<<Contra2,fig=TRUE,echo=FALSE,width=8,height=5,include=FALSE>>=
-#print(densityplot(Cs11, plot.points = FALSE, ylab = "",
-#                  scales = list(x = list(axs = "i"))))
-@
-\begin{figure}[tbp]
-  \centering
-%  \includegraphics[width=\textwidth]{figs/SoftRev-Contra2}
-  \caption{Plots of the estimated posterior probability densities from
-    a Markov Chain Monte Carlo sample of the parameters in the model
-    \code{Cm11} fit to the \code{Contraception} data.}
-  \label{fig:Contra2}
-\end{figure}
-and normal probability plots (Figure~\ref{fig:Contra3})
-<<Contra3,fig=TRUE,echo=FALSE,width=8,height=5,include=FALSE>>=
-#print(qqmath(Cs11,
-#             ylab = "",
-#             xlab = "Quantiles of a standard normal distribution",
-#             scales = list(y = list(relation = "free"),
-#             x = list(axs = "i")), type = c("g", "p"),
-#             pch = ".", cex = 1.5))
-@
-\begin{figure}[tbp]
-  \centering
-%  \includegraphics[width=\textwidth]{figs/SoftRev-Contra3}
-  \caption{Normal probability plots of the Markov Chain Monte Carlo
-    samples from the posterior densities of the parameters in the
-    model \code{Cm11} fit to the \code{Contraception} data.}
-  \label{fig:Contra3}
-\end{figure}
-
-for this sample show that the fixed-effects
-parameters are very well approximated by a normal distribution but the
-variance of the random effects shows noticeable skewness.
-
 \section{Growth curve model for repeated measures data}
 \label{sec:GrowthCurve}
 
@@ -1023,5 +640,5 @@ summary(mS1)
 toLatex(sessionInfo())
 @
 
-\bibliography{MlmSoftRev}
+%\bibliography{MlmSoftRev}
 \end{document}
