@@ -1,0 +1,18 @@
+Package: Gqr
+Version: 0.1.0
+Date: 2011-11-30
+Title: Determine knots and weights for Gaussian quadrature rules
+Author: Douglas Bates <bates@stat.wisc.edu>,
+        Martin Maechler <maechler@R-project.org> and
+	Ben Bolker <bbolker@gmail.com>
+Maintainer: <lme4-authors@R-forge.wu-wien.ac.at>
+Description: Determine the knots and the weights for Gaussian quadrature
+ rules based on Legendra, Chebyshev, Gegenbauer, Jacobit, Laguerre,
+ Hermite, Expontential or Rational kernels.  Generalized forms of the
+ kernels can be used.
+Depends: R(>= 2.14.0)
+LinkingTo: Rcpp
+LazyLoad: yes
+License: GPL (>=2)
+URL: http://lme4.r-forge.r-project.org/
+Packaged: 2011-11-29 20:07:15 UTC; bates
