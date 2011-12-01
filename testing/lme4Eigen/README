@@ -1,0 +1,33 @@
+This directory is intended for additional testing of lme4Eigen
+(perhaps including comparisons with other package versions/packages),
+with the specific goal of documenting the results of different
+optimizers and combinations of tuning parameters on the results
+of GLMMs.
+
+Data structure for test results (subject to change) a list with
+elements
+
+ *  problem: data set (character: 'Contraception', 'cbpp', etc.)
+ *  method: optimization f'n (character: 'bobyqa', 'nlminb', ...)
+ *  optimx: is optimization run through optimx? (logical)
+ *  options: optimization options (list: may be coerced to character)
+ *  time: 
+ *  parameters: numeric vector (varying length: may be coerced to character)
+ *  deviance: numeric
+ *  KKT
+ *  bad: logical
+ *  result: description (intended to be relatively free-form)
+
+Files:
+
+bobyqa1: Contraception data tests with bobyqa, varying rhobeg/rhoend/tolPwrss
+
+bobyqa_problem1: demonstrating some kind of environment modification
+  that screws up a second, identical bobyqa run after a preliminary
+  failed one
+
+coalition2: preliminary tests on a Gamma GLMM on the 'coalition2' data set from Zelig
+
+testcbpp.R: preliminary tests on the CBPP data set
+
+anal1.R: analysis code
