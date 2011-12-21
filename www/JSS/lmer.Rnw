@@ -64,8 +64,9 @@
 \newcommand*{\eq}[1]{eqn.~\ref{#1}}% or just {(\ref{#1})}
 %
 \SweaveOpts{engine=R,eps=FALSE,pdf=TRUE,width=10,height=6.5,strip.white=all}
-\SweaveOpts{prefix=TRUE,prefix.string=figs/,include=TRUE}
+\SweaveOpts{prefix=TRUE,prefix.string=figs/lmer,include=TRUE}
 \SweaveOpts{keep.source=TRUE}
+\setkeys{Gin}{width=\textwidth}
 <<preliminaries,echo=FALSE,results=hide>>=
 options(width=69,show.signif.stars=FALSE,str=strOptions(strict.width="cut"))
 library(lme4Eigen)
@@ -772,18 +773,18 @@ str(cbpp)
 @ 
 and the model
 <<m1>>=
-(m1 <- glmer(cbind(incidence, size-incidence) ~ period + (1|herd),
-             cbpp, binomial))
-@ 
-As indicated, this model has been fit using the Laplace approximation.
-One way of assessing the quality of the Laplace approximation is to
-evalate the unscaled conditional density at $u_j(z)=\tilde{u_j} +
-z/{\bm L_{j,j}}$ and compare it to $e^{-z^2/2}/\sqrt{2\pi}$.  To avoid
-complications with the vertical scale, we plot the ratio,
-$f_j(\yobs,u)/(\tilde{f_j}\sqrt{2\pi})$
-\begin{figure}[p]
+print(m1 <- glmer(cbind(incidence, size-incidence) ~ period + (1|herd),
+                  cbpp, binomial), corr=FALSE)
+@
+This model has been fit by minimizing the Laplace approximation to the
+deviance.  We can assess the quality of this approximation by
+evaluating the unscaled conditional density at $u_j(z)=\tilde{u_j} +
+z/{\bm L_{j,j}}$ and comparing the ratio,
+$f_j(\yobs,u)/(\tilde{f_j}\sqrt{2\pi})$, to the standard normal
+density, $\phi(z)=e^{-z^2/2}/\sqrt{2\pi}$, as shown in Figure~\ref{fig:densities}.
+\begin{figure}[tbp]
   \centering
-<<fig=TRUE,echo=FALSE>>=
+<<densities,fig=TRUE,echo=FALSE,height=5>>=
 zeta <- function(m, zmin=-3, zmax=3, npts=301L) {
     stopifnot (is(m, "glmerMod"),
               length(m@flist) == 1L,    # single grouping factor
@@ -801,23 +802,86 @@ zeta <- function(m, zmin=-3, zmax=3, npts=301L) {
         unname(as.vector(tapply(rr$devResid(), ff, sum))) + uu * uu
     }
     zvals <- seq(zmin, zmax, length.out = npts)
-    d0 <- dc(0) # because this occurs last, the model is restored to its previous state
-    list(zvals=zvals, sqrtmat=t(sqrt(vapply(zvals, dc, d0, USE.NAMES=FALSE) - d0)) * # signed square root
-         array(ifelse(zpts < 0, -1, 1), c(npts, length(u0))))
+    d0 <- dc(0) # because this is the last evaluation, the model is restored to its incoming state
+    list(zvals=zvals,
+         sqrtmat=t(sqrt(vapply(zvals, dc, d0, USE.NAMES=FALSE) - d0)) * # signed square root
+         array(ifelse(zvals < 0, -1, 1), c(npts, length(u0))))
 }
-zm <- zeta(m1)
+zm <- zeta(m1, -3.750440, 3.750440)
 dmat <- exp(-0.5*zm$sqrtmat^2)/sqrt(2*pi)
-xyplot(as.vector(dmat) ~ rep.int(zm$zvals, ncol(dmat))|herd, type=c("g","l"), panel=function(...){ panel.lines(zm$zvals, dnorm(zm$zvals), lty=2);panel.xyplot(...)})
+xyplot(as.vector(dmat) ~ rep.int(zm$zvals, ncol(dmat))|gl(ncol(dmat), nrow(dmat)),
+       type=c("g","l"), aspect=0.6, layout=c(5,3),
+       xlab="z", ylab="density",
+       panel=function(...){
+           panel.lines(zm$zvals, dnorm(zm$zvals), lty=2)
+           panel.xyplot(...)}
+       )
 @ 
-  \caption{Comparison of univariate integrands (solid line) and standard normal density (dashed line)}
+  \caption{Comparison of univariate integrands (solid line) and standard normal density function (dashed line)}
   \label{fig:densities}
 \end{figure}
 
-\section{Adaptive Gauss-Hermite quadrature for GLMMs}
+As we can see from this figure, the univariate integrands are very
+close to the standard normal density, indicating that the Laplace
+approximation to the deviance is a good approximation in this case.
 
-In a GLMM with a single, scalar random-effects term the Laplace
-approximation can be enhanced using the one-dimensional version
-\emph{adaptive Gauss-Hermite} quadrature.
+\section{Adaptive Gauss-Hermite quadrature for GLMMs}
+\label{sec:aGQ}
+When the integral (\ref{eq:GLMMlike}) can be expressed as a product of
+low-dimensional integrals, we can use Gauss-Hermite quadrature to
+provide a closer approximation to the integral.  Univariate
+Gauss-Hermite quadrature evaluates the integral of a function that is
+multiplied by a ``kernel'' where the kernel is a multiple of
+$e^{-z^2}$ or $e^{-z^2/2}$.  For statisticians the natural candidate
+is the standard normal density, $\phi(z)=e^{-z^2/2}/\sqrt(2\pi)$.
+A $k$th-order Gauss-Hermite formula provides knots, $z_i,i=1,...,k$,
+and weights, $w_i,i=1,\dots,k$, such that
+\begin{displaymath}
+  \int_{\mathbb{R}}t(z)\phi(z)\,dz\approx\sum_{i=1}^kw_it(z_i)
+\end{displaymath}
+The function \code{GHrule} in \pkg{lme4} (based on code in the
+\pkg{SparseGrid} package) provides knots and weights relative to the
+standard normal kernel for orders $k$ from 1 to 25.  For example,
+<<GHrule5>>=
+GHrule(5)
+@ 
+
+The choice of the value of $k$ depends on the behavior of the function
+$t(z)$.  If $t(z)$ is a polynomial of degree $k-1$ then the
+Gauss-Hermite formula for orders $k$ or greater provides an exact
+answer.  The fact that we want $t(z)$ to behave like a low-order
+polynomial is often neglected in the formulation of a Gauss-Hermite
+approximation to a quadrature.  The quadrature knots on the $u$ scale
+are chosen as
+\begin{equation}
+  \label{eq:quadraturepts}
+  u_{i,j}(z)=\tilde{u_j} + z_i/{\bm L_{j,j}},\quad i=1,\dots,k;\;j=1,\dots,q
+\end{equation}
+exactly so that the function $t(z)$ should behave like a low-order
+polynomial over the region of interest, which is to say the region
+where quadrature knots with large weights are located.  The term
+``adaptive Gauss-Hermite quadrature'' reflects the fact that the
+approximating Gaussian density is scaled and shifted to provide a
+second order approximation to the logarithm of the unscaled
+conditional density.
+
+Figure~\ref{fig:tfunc}
+\begin{figure}[tbp]
+  \centering
+<<tfunc,fig=TRUE,echo=FALSE>>=
+xyplot(as.vector(dmat/dnorm(zm$zvals)) ~ rep.int(zm$zvals, ncol(dmat))|gl(ncol(dmat), nrow(dmat)),
+       type=c("g","l"), aspect=0.6, layout=c(5,3),
+       xlab="z", ylab="t(z)")
+@ 
+  \caption{The function $t(z)$, which is the ratio of the normalized
+    unscaled conditional density to the standard normal density, for
+    each of the univariate integrals in the evaluation of the deviance
+    for model \code{m1}.  These functions should behave like low-order
+    polynomials.}
+  \label{fig:tfunc}
+\end{figure}
+shows $t(z)$ for each of the unidimensional integrals in the
+likelihood for the model \code{m1} at the parameter estimates.
 
 \bibliography{lmer}
 \end{document}
