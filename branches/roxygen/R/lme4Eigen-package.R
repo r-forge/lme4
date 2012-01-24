@@ -321,7 +321,7 @@ NULL
 ##' (fm5 <- lmer(strength ~ (1|batch) + (1|cask), Pastes))
 ##' 
 ##' L <- getME(fm1, "L")
-##' image(L, sub = "Structure of random effects interaction in pastes model")
+##' Matrix::image(L, sub = "Structure of random effects interaction in pastes model")
 ##' 
 NULL
 
@@ -369,8 +369,8 @@ NULL
 ##' (fm1 <- lmer(diameter ~ (1|plate) + (1|sample), Penicillin))
 ##' 
 ##' L <- getME(fm1, "L")
-##' image(L, main = "L",
-##'       sub = "Penicillin: Structure of random effects interaction")
+##' Matrix::image(L, main = "L",
+##'               sub = "Penicillin: Structure of random effects interaction")
 ##' 
 NULL
 
