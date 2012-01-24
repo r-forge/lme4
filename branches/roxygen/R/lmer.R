@@ -786,7 +786,7 @@ mkRespMod2 <- function(fr, REML=NA_integer_, family = NULL,
 ##' \item{cnms}{a list of column names of the random effects according to
 ##'     the grouping factors}
 ##' @importFrom Matrix sparseMatrix rBind drop0
-##' @importMethodsFrom Matrix coerce image
+##' @importMethodsFrom Matrix coerce
 ##' @export
 mkReTrms <- function(bars, fr) {
     if (!length(bars))
