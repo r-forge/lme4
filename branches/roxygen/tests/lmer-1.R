@@ -46,7 +46,7 @@ stopifnot(all.equal(fm1, fm1.))
 stopifnot(all.equal(fixef(fm1), fixef(fm2), tol = 1.e-13),
           all.equal(unname(fixef(fm1)),
                     c(251.405104848485, 10.467285959595), tol = 1e-13),
-	  all.equal(cov2cor(vcov(fm1))["(Intercept)", "Days"],
+	  all.equal(Matrix::cov2cor(vcov(fm1))["(Intercept)", "Days"],
 		    -0.13755, tol=1e-4))
 
 fm1ML <- lme4Eigen:::refitML(fm1)
@@ -236,7 +236,7 @@ sr2.$devcomp$dims['spFe'] <- 0L       # to allow for comparisons below
 stopifnot(all.equal(sr2[nmsSumm], sr2.[nmsSumm], tol= 1e-14),
           all.equal(ranef(r2), ranef(r2.), tol= 1e-14),
           Matrix:::isDiagonal(vcov(r2.)),# ok
-          all.equal(diag(vcov(r2.)), rep.int(V2[1,1], 4), tol= 1e-13)
+          all.equal(Matrix::diag(vcov(r2.)), rep.int(V2[1,1], 4), tol= 1e-13)
           ,
 	  all(vcov(r2.)@factors$correlation == diag(4))
       )
