@@ -133,7 +133,7 @@ lmer <- function(formula, data, REML = TRUE, sparseX = FALSE,
 	stop(gettextf("rank of X = %d < ncol(X) = %d", qrX$rank, p))
     rho <- new.env(parent=parent.env(environment()))
     rho$pp <- do.call(merPredD$new, c(list(X=X, S=1L), reTrms[c("Zt","theta","Lambdat","Lind")]))
-    rho$resp <- mkRespMod2(fr, if(REML) p else 0L)
+    rho$resp <- mkRespMod(fr, if(REML) p else 0L)
 
     devfun <- mkdevfun(rho, 0L)
     devfun(reTrms$theta) # one evaluation to ensure all values are set
@@ -335,7 +335,7 @@ glmer <- function(formula, data, family = gaussian, sparseX = FALSE,
     parent.env(rho) <- parent.frame()
     rho$pp <- do.call(merPredD$new, c(list(X=X, S=1L), reTrms[c("Zt","theta","Lambdat","Lind")]))
 					# response module
-    rho$resp <- mkRespMod2(fr, family=family)
+    rho$resp <- mkRespMod(fr, family=family)
 					# initial step from working response
     if (compDev) {
 	.Call(glmerWrkIter, rho$pp$ptr(), rho$resp$ptr())
@@ -447,11 +447,9 @@ glmer <- function(formula, data, family = gaussian, sparseX = FALSE,
 ##' @examples
 ##' ## nonlinear mixed models --- 3-part formulas ---
 ##' 
-##' (nm1 <- nlmer(circumference ~ SSlogis(age, Asym, xmid, scal) ~
-##'              0 + Asym + xmid + scal + (0 + Asym|Tree),
+##' (nm1 <- nlmer(circumference ~ SSlogis(age, Asym, xmid, scal) ~ Asym|Tree,
 ##'              Orange, start = c(Asym = 200, xmid = 725, scal = 350)))
-##' (nm1a <- nlmer(circumference ~ SSlogis(age, Asym, xmid, scal) ~
-##'               0 + Asym + xmid + scal + (0 + Asym|Tree),
+##' (nm1a <- nlmer(circumference ~ SSlogis(age, Asym, xmid, scal) ~ Asym|Tree,
 ##'               Orange, start = c(Asym = 200, xmid = 725, scal = 350),
 ##'               nAGQ = 0L))
 ##' @export
@@ -460,82 +458,37 @@ nlmer <- function(formula, data, control = list(), start = NULL, verbose = 0L,
                   contrasts = NULL, devFunOnly = 0L, tolPwrss = 1e-10,
                   optimizer=c("NelderMead","bobyqa"), ...)
 {
-    mf <- mc <- match.call()
-    m <- match(c("data", "subset", "weights", "na.action",
-		 "offset", "etastart", "mustart"),
-	       names(mf), 0)
-    mf <- mf[c(1, m)]
-    mf$drop.unused.levels <- TRUE
-    mf[[1]] <- as.name("model.frame")
-					# check the formula
-    formula <- as.formula(formula)
-    if (length(formula) < 3) stop("formula must be a 3-part formula")
-    nlform <- as.formula(formula[[2]])
-					# Really do need to check twice
-    if (length(nlform) < 3) stop("formula must be a 3-part formula")
-    nlmod <- as.call(nlform[[3]])
-					# check for parameter names in start
-    if (is.numeric(start)) start <- list(nlpars = start)
-    stopifnot((s <- length(pnames <- names(start$nlpars))) > 0,
-	      is.numeric(start$nlpars))
-    if (!all(pnames %in% (anms <- all.vars(nlmod))))
-	stop("not all parameter names are used in the nonlinear model expression")
-    fr.form <- nlform
-## FIXME: This should be changed to use subbars and subnms.
-    fr.form[[3]] <-
-	parse(text = paste(setdiff(all.vars(formula), pnames),
-			 collapse = ' + '))[[1]]
-    environment(fr.form) <- environment(formula)
-    mf$formula <- fr.form
-    fr <- eval(mf, parent.frame())
-
-    ## First create nlenv.  For this the nlpar columns are numeric
-    for (nm in pnames) fr[[nm]] <- start$nlpars[[nm]]
-    nlenv <- new.env()	# inherit from this environment (or environment(formula)?)
-    lapply(all.vars(nlmod),
-	   function(nm) assign(nm, fr[[nm]], envir = nlenv))
-    rr <- mkRespMod2(fr, nlenv=nlenv, nlmod=nlmod)
-    stopifnot(all(pnames %in% rr$pnames), all(rr$pnames %in% pnames))
-    
-    ## Second, extend the frame and convert the nlpar columns to indicators
-    n <- nrow(fr)
-    frE <- do.call(rbind, lapply(1:s, function(i) fr)) # rbind s copies of the frame
-    for (nm in pnames) # convert these variables in fr to indicators
-	frE[[nm]] <- as.numeric(rep(nm == pnames, each = n))
-					# random-effects module
-    reTrms <- mkReTrms(findbars(formula[[3]]), frE)
-
-    fe.form <- nlform
-    fe.form[[3]] <- formula[[3]]
-    X <- model.matrix(nobars(fe.form), frE, contrasts)
-##                      sparse = FALSE, row.names = FALSE) ## sparseX not yet
-    rownames(X) <- NULL
-    p <- ncol(X)
-    if ((qrX <- qr(X))$rank < p)
+    vals <- nlformula(mc <- match.call())
+    if ((qrX <- qr(X <- vals$X))$rank < (p <- ncol(X)))
 	stop(gettextf("rank of X = %d < ncol(X) = %d", qrX$rank, p))
-    rho <- as.environment(list(verbose=verbose, tolPwrss=0.001))
-    parent.env(rho) <- parent.frame()
-    rho$pp <- do.call(merPredD$new, c(reTrms[c("Zt","theta","Lambdat","Lind")],
-                                      list(X=X, S=s, Xwts = rr$sqrtXwt,
-                                           beta0=qr.coef(qrX, unlist(lapply(pnames, get, envir = nlenv))))
-                                      ))
-    rho$resp <- rr
+    rho <- list2env(list(verbose=verbose,
+                         tolPwrss=0.001, # this is reset to the tolPwrss argument's value later
+                         resp=vals$resp,
+                         lower=vals$reTrms$lower),
+                    parent=parent.frame())
+    rho$pp <- do.call(merPredD$new,
+                      c(vals$reTrms[c("Zt","theta","Lambdat","Lind")],
+                        list(X=X, S=length(vals$pnames), Xwts=vals$respMod$sqrtXwt,
+                             beta0=qr.coef(qrX, unlist(lapply(vals$pnames, get,
+                             envir = rho$resp$nlenv))))))
     rho$u0 <- rho$pp$u0
     rho$beta0 <- rho$pp$beta0
-    rho$lower <- reTrms$lower
     devfun <- mkdevfun(rho, 0L) # deviance as a function of theta only
     if (devFunOnly && !nAGQ) return(devfun)
-## FIXME: change this to something sensible for NelderMead
-    
-    devfun(rho$pp$theta)                # initial coarse evaluation to get u0 and beta0
+    devfun(rho$pp$theta) # initial coarse evaluation to get u0 and beta0
     rho$u0 <- rho$pp$u0
     rho$beta0 <- rho$pp$beta0
-    rho$tolPwrss <- tolPwrss
+    rho$tolPwrss <- tolPwrss # Resetting this is intentional. The initial optimization is coarse.
+
+## FIXME: change this to something sensible for NelderMead
     control$iprint <- min(verbose, 3L)
-    lower <- reTrms$lower
+    lower <- rho$lower
     xst <- rep.int(0.1, length(lower))
-    nM <- NelderMead$new(lower=lower, upper=rep.int(Inf, length(lower)), xst=rep.int(-0.1, length(lower)),
-                         x0=rho$pp$theta, xt=rep.int(0.00001, length(lower)))
+    nM <- NelderMead$new(lower=lower,
+                         upper=rep.int(Inf, length(lower)),
+                         xst=rep.int(-0.1, length(lower)),
+                         x0=rho$pp$theta,
+                         xt=rep.int(0.00001, length(lower)))
     cc <- do.call(function(iprint=0L, maxfun=10000L, FtolAbs=1e-5,
                            FtolRel=1e-15, XtolRel=1e-7,
                            MinfMax=.Machine$double.xmin) {
@@ -565,9 +518,9 @@ nlmer <- function(formula, data, control = list(), start = NULL, verbose = 0L,
         rho$beta0 <- rho$pp$beta0
         rho$dpars <- seq_along(rho$pp$theta)
         if (nAGQ > 1L) {
-            if (length(reTrms$flist) != 1L || length(reTrms$cnms[[1]]) != 1L)
+            if (length(vals$reTrms$flist) != 1L || length(vals$reTrms$cnms[[1]]) != 1L)
                 stop("nAGQ > 1 is only available for models with a single, scalar random-effects term")
-            rho$fac <- reTrms$flist[[1]]
+            rho$fac <- vals$reTrms$flist[[1]]
         }
         devfun <- mkdevfun(rho, nAGQ)
         if (devFunOnly) return(devfun)
@@ -608,19 +561,19 @@ nlmer <- function(formula, data, control = list(), start = NULL, verbose = 0L,
     sqrLenU <- rho$pp$sqrL(0.)
     wrss <- rho$resp$wrss()
     pwrss <- wrss + sqrLenU
-    n <- nrow(fr)
+    n <- nrow(vals$fr)
 
-    dims <- c(N=n, n=n, nmp=n-p, nth=length(rho$pp$theta), p=p, q=nrow(reTrms$Zt),
-	      nAGQ=nAGQ, useSc=1L, reTrms=length(reTrms$cnms),
+    dims <- c(N=n, n=n, nmp=n-p, nth=length(rho$pp$theta), p=p, q=nrow(vals$reTrms$Zt),
+	      nAGQ=nAGQ, useSc=1L, reTrms=length(vals$reTrms$cnms),
 	      spFe=0L, REML=0L, GLMM=0L, NLMM=1L)
     cmp <- c(ldL2=rho$pp$ldL2(), ldRX2=rho$pp$ldRX2(), wrss=wrss,
              ussq=sqrLenU, pwrss=pwrss, drsum=NA,
 	     drsum=wrss, dev=opt$fval, REML=NA,
 	     sigmaML=sqrt(pwrss/n), sigmaREML=NA)
 
-    new("nlmerMod", call=mc, frame=fr, flist=reTrms$flist, cnms=reTrms$cnms,
-        Gp=reTrms$Gp, 	theta=rho$pp$theta, beta=rho$pp$beta0, u=rho$pp$u0,
-        lower=reTrms$lower, devcomp=list(cmp=cmp, dims=dims), pp=rho$pp, resp=rho$resp)
+    new("nlmerMod", call=mc, frame=vals$fr, flist=vals$reTrms$flist, cnms=vals$reTrms$cnms,
+        Gp=vals$reTrms$Gp, 	theta=rho$pp$theta, beta=rho$pp$beta0, u=rho$pp$u0,
+        lower=vals$reTrms$lower, devcomp=list(cmp=cmp, dims=dims), pp=rho$pp, resp=rho$resp)
 }## {nlmer}
 
 ##' Create a deviance evaluation function from a predictor and a response module
@@ -698,192 +651,6 @@ mkdevfun <- function(rho, nAGQ=1L) {
     environment(ff) <- rho
     ff
 }
-
-##' Create an lmerResp, glmResp or nlsResp instance
-##'
-##' @title Create an lmerResp, glmResp or nlsResp instance
-##' @param fr a model frame
-##' @param REML logical scalar, value of REML for an lmerResp instance
-##' @param family the optional glm family (glmResp only)
-##' @param nlenv the nonlinear model evaluation environment (nlsResp only)
-##' @param nlmod the nonlinear model function (nlsResp only)
-##' @return an lmerResp or glmResp or nlsResp instance
-##' @export
-mkRespMod2 <- function(fr, REML=NA_integer_, family = NULL,
-                       nlenv = NULL, nlmod = NULL) {
-    y <- model.response(fr)
-    if(length(dim(y)) == 1) {
-	## avoid problems with 1D arrays, but keep names
-	nm <- rownames(y)
-	dim(y) <- NULL
-	if(!is.null(nm)) names(y) <- nm
-    }
-    rho <- new.env()
-    rho$y <- y
-    if (!is.na(REML)) rho$REML <- REML
-    N <- n <- nrow(fr)
-    if (!is.null(nlenv)) {
-        stopifnot(is.language(nlmod),
-                  is.environment(nlenv),
-                  is.numeric(val <- eval(nlmod, nlenv)),
-                  length(val) == n,
-                  is.matrix(gr <- attr(val, "gradient")),
-                  mode(gr) == "numeric",
-                  nrow(gr) == n,
-                  !is.null(pnames <- colnames(gr)))
-        N <- length(gr)
-        rho$mu <- as.vector(val)
-        rho$sqrtXwt <- as.vector(gr)
-        rho$gam <-
-            unname(unlist(lapply(pnames,
-                                 function(nm) get(nm, envir=nlenv))))
-    }
-    if (!is.null(offset <- model.offset(fr))) {
-        if (length(offset) == 1L) offset <- rep.int(offset, N)
-        stopifnot(length(offset) == N)
-        rho$offset <- unname(offset)
-    } else rho$offset <- rep.int(0, N)
-    if (!is.null(weights <- model.weights(fr))) {
-        stopifnot(length(weights) == n, all(weights >= 0))
-        rho$weights <- unname(weights)
-    } else rho$weights <- rep.int(1, n)
-    if (is.null(family)) {
-        if (is.null(nlenv)) return(do.call(lmerResp$new, as.list(rho)))
-        return(do.call(nlsResp$new,
-                       c(list(nlenv=nlenv,
-                              nlmod=substitute(~foo, list(foo=nlmod)),
-                              pnames=pnames), as.list(rho))))
-    }
-    stopifnot(inherits(family, "family"))
-                              # need weights for initialize evaluation
-    rho$nobs <- n
-    eval(family$initialize, rho)
-    family$initialize <- NULL     # remove clutter from str output
-    ll <- as.list(rho)
-    ans <- do.call(new, c(list(Class="glmResp", family=family),
-                          ll[setdiff(names(ll), c("m", "nobs", "mustart"))]))
-    ans$updateMu(if (!is.null(es <- model.extract(fr, "etastart"))) es else
-                 family$linkfun(get("mustart", rho)))
-    ans
-}
-
-##' From the result of \code{\link{findbars}} applied to a model formula and
-##' and the evaluation frame, create the model matrix, etc. associated with
-##' random-effects terms.  See the description of the returned value for a
-##' detailed list. 
-##'
-##' @title Create Z, Lambda, Lind, etc.
-##' @param bars a list of parsed random-effects terms
-##' @param fr a model frame in which to evaluate these terms
-##' @return a list with components
-##' \item{Zt}{transpose of the sparse model matrix for the random effects}
-##' \item{Lambdat}{transpose of the sparse relative covariance factor}
-##' \item{Lind}{an integer vector of indices determining the mapping of the
-##'     elements of the \code{theta} to the \code{"x"} slot of \code{Lambdat}}
-##' \item{theta}{initial values of the covariance parameters}
-##' \item{lower}{lower bounds on the covariance parameters}
-##' \item{flist}{list of grouping factors used in the random-effects terms}
-##' \item{cnms}{a list of column names of the random effects according to
-##'     the grouping factors}
-##' @importFrom Matrix sparseMatrix rBind drop0
-##' @importMethodsFrom Matrix coerce
-##' @export
-mkReTrms <- function(bars, fr) {
-    if (!length(bars))
-	stop("No random effects terms specified in formula")
-    stopifnot(is.list(bars), all(sapply(bars, is.language)),
-	      inherits(fr, "data.frame"))
-    names(bars) <- unlist(lapply(bars, function(x) deparse(x[[3]])))
-
-    ## auxiliary {named, for easier inspection}:
-    mkBlist <- function(x) {
-	ff <- eval(substitute(factor(fac), list(fac = x[[3]])), fr)
-	if (all(is.na(ff)))
-	    stop("Invalid grouping factor specification, ",
-		 deparse(x[[3]]))
-	nl <- length(levels(ff))
-	mm <- model.matrix(eval(substitute( ~ foo,
-					   list(foo = x[[2]]))), fr)
-	nc <- ncol(mm)
-	nseq <- seq_len(nc)
-	sm <- as(ff, "sparseMatrix")
-	if (nc	> 1)
-	    sm <- do.call(rBind, lapply(nseq, function(i) sm))
-	sm@x[] <- t(mm[])
-	## When nc > 1 switch the order of the rows of sm
-	## so the random effects for the same level of the
-	## grouping factor are adjacent.
-	if (nc > 1)
-	    sm <- sm[as.vector(matrix(seq_len(nc * nl),
-				      nc = nl, byrow = TRUE)),]
-	list(ff = ff, sm = sm, nl = nl, cnms = colnames(mm))
-    }
-    blist <- lapply(bars, mkBlist)
-    nl <- unlist(lapply(blist, "[[", "nl")) # no. of levels per term
-
-    ## order terms stably by decreasing number of levels in the factor
-    if (any(diff(nl)) > 0) {
-	ord <- rev(order(nl))
-	blist <- blist[ord]
-	nl <- nl[ord]
-    }
-    Zt <- do.call(rBind, lapply(blist, "[[", "sm"))
-    q <- nrow(Zt)
-
-    ## Create and install Lambdat, Lind, etc.  This must be done after
-    ## any potential reordering of the terms.
-    cnms <- lapply(blist, "[[", "cnms")
-    nc <- sapply(cnms, length)		# no. of columns per term
-    nth <- as.integer((nc * (nc+1))/2)	# no. of parameters per term
-    nb <- nc * nl			# no. of random effects per term
-    stopifnot(sum(nb) == q)
-    boff <- cumsum(c(0L, nb))		# offsets into b
-    thoff <- cumsum(c(0L, nth))		# offsets into theta
-### FIXME: should this be done with cBind and avoid the transpose
-### operator?  In other words should Lambdat be generated directly
-### instead of generating Lambda first then transposing?
-    Lambdat <-
-	t(do.call(sparseMatrix,
-		  do.call(rBind,
-			  lapply(seq_along(blist), function(i)
-			     {
-				 mm <- matrix(seq_len(nb[i]), nc = nc[i],
-					      byrow = TRUE)
-				 dd <- diag(nc[i])
-				 ltri <- lower.tri(dd, diag = TRUE)
-				 ii <- row(dd)[ltri]
-				 jj <- col(dd)[ltri]
-				 dd[cbind(ii, jj)] <- seq_along(ii)
-				 data.frame(i = as.vector(mm[, ii]) + boff[i],
-					    j = as.vector(mm[, jj]) + boff[i],
-					    x = as.double(rep.int(seq_along(ii),
-					    rep.int(nl[i], length(ii))) +
-					    thoff[i]))
-			     }))))
-    thet <- numeric(sum(nth))
-    ll <- list(Zt=Matrix::drop0(Zt), theta=thet, Lind=as.integer(Lambdat@x),
-               Gp=unname(c(0L, cumsum(nb))))
-    ## lower bounds on theta elements are 0 if on diagonal, else -Inf
-    ll$lower <- -Inf * (thet + 1)
-    ll$lower[unique(diag(Lambdat))] <- 0
-    ll$theta[] <- is.finite(ll$lower) # initial values of theta are 0 off-diagonal, 1 on
-    Lambdat@x[] <- ll$theta[ll$Lind]  # initialize elements of Lambdat
-    ll$Lambdat <- Lambdat
-					# massage the factor list
-    fl <- lapply(blist, "[[", "ff")
-					# check for repeated factors
-    fnms <- names(fl)
-    if (length(fnms) > length(ufn <- unique(fnms))) {
-	fl <- fl[match(ufn, fnms)]
-	asgn <- match(fnms, ufn)
-    } else asgn <- seq_along(fl)
-    names(fl) <- ufn
-    fl <- do.call(data.frame, c(fl, check.names = FALSE))
-    attr(fl, "assign") <- asgn
-    ll$flist <- fl
-    ll$cnms <- cnms
-    ll
-} ## {mkReTrms}
 
 ## Determine a step factor that will reduce the pwrss
 ##

@@ -1,4 +1,191 @@
-### Utilities for parsing the mixed model formula
+### Utilities for parsing and manipulating mixed-model formulas
+
+##' From the result of \code{\link{findbars}} applied to a model formula and
+##' and the evaluation frame, create the model matrix, etc. associated with
+##' random-effects terms.  See the description of the returned value for a
+##' detailed list. 
+##'
+##' @title Create Z, Lambda, Lind, etc.
+##' @param bars a list of parsed random-effects terms
+##' @param fr a model frame in which to evaluate these terms
+##' @return a list with components
+##' \item{Zt}{transpose of the sparse model matrix for the random effects}
+##' \item{Lambdat}{transpose of the sparse relative covariance factor}
+##' \item{Lind}{an integer vector of indices determining the mapping of the
+##'     elements of the \code{theta} to the \code{"x"} slot of \code{Lambdat}}
+##' \item{theta}{initial values of the covariance parameters}
+##' \item{lower}{lower bounds on the covariance parameters}
+##' \item{flist}{list of grouping factors used in the random-effects terms}
+##' \item{cnms}{a list of column names of the random effects according to
+##'     the grouping factors}
+##' @importFrom Matrix sparseMatrix rBind drop0
+##' @importMethodsFrom Matrix coerce
+##' @family utilities
+##' @export
+mkReTrms <- function(bars, fr) {
+    if (!length(bars))
+	stop("No random effects terms specified in formula")
+    stopifnot(is.list(bars), all(sapply(bars, is.language)),
+	      inherits(fr, "data.frame"))
+    names(bars) <- unlist(lapply(bars, function(x) deparse(x[[3]])))
+
+    ## auxiliary {named, for easier inspection}:
+    mkBlist <- function(x) {
+	ff <- eval(substitute(factor(fac), list(fac = x[[3]])), fr)
+	if (all(is.na(ff)))
+	    stop("Invalid grouping factor specification, ",
+		 deparse(x[[3]]))
+	nl <- length(levels(ff))
+	mm <- model.matrix(eval(substitute( ~ foo,
+					   list(foo = x[[2]]))), fr)
+	nc <- ncol(mm)
+	nseq <- seq_len(nc)
+	sm <- as(ff, "sparseMatrix")
+	if (nc	> 1)
+	    sm <- do.call(rBind, lapply(nseq, function(i) sm))
+	sm@x[] <- t(mm[])
+	## When nc > 1 switch the order of the rows of sm
+	## so the random effects for the same level of the
+	## grouping factor are adjacent.
+	if (nc > 1)
+	    sm <- sm[as.vector(matrix(seq_len(nc * nl),
+				      nc = nl, byrow = TRUE)),]
+	list(ff = ff, sm = sm, nl = nl, cnms = colnames(mm))
+    }
+    blist <- lapply(bars, mkBlist)
+    nl <- unlist(lapply(blist, "[[", "nl")) # no. of levels per term
+
+    ## order terms stably by decreasing number of levels in the factor
+    if (any(diff(nl)) > 0) {
+	ord <- rev(order(nl))
+	blist <- blist[ord]
+	nl <- nl[ord]
+    }
+    Zt <- do.call(rBind, lapply(blist, "[[", "sm"))
+    q <- nrow(Zt)
+
+    ## Create and install Lambdat, Lind, etc.  This must be done after
+    ## any potential reordering of the terms.
+    cnms <- lapply(blist, "[[", "cnms")
+    nc <- sapply(cnms, length)		# no. of columns per term
+    nth <- as.integer((nc * (nc+1))/2)	# no. of parameters per term
+    nb <- nc * nl			# no. of random effects per term
+    stopifnot(sum(nb) == q)
+    boff <- cumsum(c(0L, nb))		# offsets into b
+    thoff <- cumsum(c(0L, nth))		# offsets into theta
+### FIXME: should this be done with cBind and avoid the transpose
+### operator?  In other words should Lambdat be generated directly
+### instead of generating Lambda first then transposing?
+    Lambdat <-
+	t(do.call(sparseMatrix,
+		  do.call(rBind,
+			  lapply(seq_along(blist), function(i)
+			     {
+				 mm <- matrix(seq_len(nb[i]), nc = nc[i],
+					      byrow = TRUE)
+				 dd <- diag(nc[i])
+				 ltri <- lower.tri(dd, diag = TRUE)
+				 ii <- row(dd)[ltri]
+				 jj <- col(dd)[ltri]
+				 dd[cbind(ii, jj)] <- seq_along(ii)
+				 data.frame(i = as.vector(mm[, ii]) + boff[i],
+					    j = as.vector(mm[, jj]) + boff[i],
+					    x = as.double(rep.int(seq_along(ii),
+					    rep.int(nl[i], length(ii))) +
+					    thoff[i]))
+			     }))))
+    thet <- numeric(sum(nth))
+    ll <- list(Zt=Matrix::drop0(Zt), theta=thet, Lind=as.integer(Lambdat@x),
+               Gp=unname(c(0L, cumsum(nb))))
+    ## lower bounds on theta elements are 0 if on diagonal, else -Inf
+    ll$lower <- -Inf * (thet + 1)
+    ll$lower[unique(diag(Lambdat))] <- 0
+    ll$theta[] <- is.finite(ll$lower) # initial values of theta are 0 off-diagonal, 1 on
+    Lambdat@x[] <- ll$theta[ll$Lind]  # initialize elements of Lambdat
+    ll$Lambdat <- Lambdat
+					# massage the factor list
+    fl <- lapply(blist, "[[", "ff")
+					# check for repeated factors
+    fnms <- names(fl)
+    if (length(fnms) > length(ufn <- unique(fnms))) {
+	fl <- fl[match(ufn, fnms)]
+	asgn <- match(fnms, ufn)
+    } else asgn <- seq_along(fl)
+    names(fl) <- ufn
+    fl <- do.call(data.frame, c(fl, check.names = FALSE))
+    attr(fl, "assign") <- asgn
+    ll$flist <- fl
+    ll$cnms <- cnms
+    ll
+} ## {mkReTrms}
+
+##' Create an lmerResp, glmResp or nlsResp instance
+##'
+##' @title Create an lmerResp, glmResp or nlsResp instance
+##' @param fr a model frame
+##' @param REML logical scalar, value of REML for an lmerResp instance
+##' @param family the optional glm family (glmResp only)
+##' @param nlenv the nonlinear model evaluation environment (nlsResp only)
+##' @param nlmod the nonlinear model function (nlsResp only)
+##' @return an lmerResp or glmResp or nlsResp instance
+##' @family utilities
+##' @export
+mkRespMod <- function(fr, REML=NULL, family = NULL, nlenv = NULL, nlmod = NULL) {
+    y <- model.response(fr)
+    if(length(dim(y)) == 1) {
+	## avoid problems with 1D arrays, but keep names
+	nm <- rownames(y)
+	dim(y) <- NULL
+	if(!is.null(nm)) names(y) <- nm
+    }
+    rho <- new.env()
+    rho$y <- if (is.null(y)) numeric(0) else y
+    if (!is.null(REML)) rho$REML <- REML
+    N <- n <- nrow(fr)
+    if (!is.null(nlenv)) {
+        stopifnot(is.language(nlmod),
+                  is.environment(nlenv),
+                  is.numeric(val <- eval(nlmod, nlenv)),
+                  length(val) == n,
+                  is.matrix(gr <- attr(val, "gradient")),
+                  mode(gr) == "numeric",
+                  nrow(gr) == n,
+                  !is.null(pnames <- colnames(gr)))
+        N <- length(gr)
+        rho$mu <- as.vector(val)
+        rho$sqrtXwt <- as.vector(gr)
+        rho$gam <-
+            unname(unlist(lapply(pnames,
+                                 function(nm) get(nm, envir=nlenv))))
+    }
+    if (!is.null(offset <- model.offset(fr))) {
+        if (length(offset) == 1L) offset <- rep.int(offset, N)
+        stopifnot(length(offset) == N)
+        rho$offset <- unname(offset)
+    } else rho$offset <- rep.int(0, N)
+    if (!is.null(weights <- model.weights(fr))) {
+        stopifnot(length(weights) == n, all(weights >= 0))
+        rho$weights <- unname(weights)
+    } else rho$weights <- rep.int(1, n)
+    if (is.null(family)) {
+        if (is.null(nlenv)) return(do.call(lmerResp$new, as.list(rho)))
+        return(do.call(nlsResp$new,
+                       c(list(nlenv=nlenv,
+                              nlmod=substitute(~foo, list(foo=nlmod)),
+                              pnames=pnames), as.list(rho))))
+    }
+    stopifnot(inherits(family, "family"))
+                              # need weights for initialize evaluation
+    rho$nobs <- n
+    eval(family$initialize, rho)
+    family$initialize <- NULL     # remove clutter from str output
+    ll <- as.list(rho)
+    ans <- do.call(new, c(list(Class="glmResp", family=family),
+                          ll[setdiff(names(ll), c("m", "nobs", "mustart"))]))
+    ans$updateMu(if (!is.null(es <- model.extract(fr, "etastart"))) es else
+                 family$linkfun(get("mustart", rho)))
+    ans
+}
 
 ##' From the right hand side of a formula for a mixed-effects model,
 ##' determine the pairs of expressions that are separated by the
@@ -215,36 +402,69 @@ chck1 <- function(expr) {
 ##'
 ##' 
 ##' @title Manipulate a nonlinear model formula.
-##' @param form The model formula
-##' @param pnames a character vector of parameter names.
-##' @param need3 logical scalar indicating if the model formula must
-##'      be a three-part formula.
+##' @param mc matched call from the calling function.  Should have arguments named
+##' \describe{
+##'     \item{formula}{a formula of the form \code{resp ~ nlmod ~ meform}
+##'                    where \code{resp} is an expression for the response,
+##'                    \code{nlmod} is the nonlinear model expression and
+##'                    \code{meform} is the mixed-effects model formula. \code{resp}
+##'                    can be omitted when, e.g., optimizing a design.}
+##'     \item{data}{a data frame in which to evaluate the model function}
+##'     \item{start}{either a numeric vector containing initial estimates for the
+##'                  nonlinear model parameters or a list with components
+##'          \describe{
+##'              \item{nlpars}{the initial estimates of the nonlinear model parameters}
+##'              \item{theta}{the initial estimates of the variance component parameters}
+##'          }
+##'     }
+##' }
 ##' @return a list with components
-##'  \item{"nlmod"}{the call to the nonlinear model function}
-##'  \item{"fr.form"}{the formula for the call to \code{\link{model.frame}}}
-##'  \item{"fe"}{the fixed-effects model formula}
-##'  \item{"re"}{the list of random-effects terms}
+##'  \item{"respMod"}{a response module of class \code{"\linkS4class{nlsResp}"}}
+##'  \item{"frame"}{the model frame, including a terms attribute}
+##'  \item{"X"}{the fixed-effects model matrix}
+##'  \item{"reTrms"}{the random-effects terms object}
 ##' @export
 ##' @family utilities
-nlformula <- function(form, pnames, need3 = TRUE) {
-    form <- as.formula(form)
-    if (length(form) < 3L)
-        stop("formula must include nonlinear and mixed-effects terms")
-    chck1(meform <- form[[3L]])
-    nlform <- as.formula(form[[2L]])
+nlformula <- function(mc) {
+    start <- eval(mc$start, parent.frame(2L))
+    if (is.numeric(start)) start <- list(nlpars = start)
+    stopifnot(is.numeric(nlpars <- start$nlpars),
+              all(sapply(nlpars, length) == 1L),
+              length(pnames <- names(nlpars)) == length(nlpars),
+              length(form <- as.formula(mc$formula)) == 3L,
+              is(nlform <- eval(form[[2]]), "formula"),
+              all(pnames %in%
+                  (av <- all.vars(nlmod <- as.call(nlform[[lnl <- length(nlform)]])))))
+    nlform[[lnl]] <- parse(text= paste(setdiff(all.vars(form), pnames), collapse=' + '))[[1]]
+    nlform <- eval(nlform)
     environment(nlform) <- environment(form)
-    if ((lnl <- length(nlform)) < 3L && need3) stop("formula must be a 3-part formula")
-
+    m <- match(c("data", "subset", "weights", "na.action", "offset"),
+	       names(mc), 0)
+    mc <- mc[c(1, m)]
+    mc$drop.unused.levels <- TRUE
+    mc[[1]] <- as.name("model.frame")
+    mc$formula <- nlform
+    fr <- eval(mc, parent.frame(2L))
+    n <- nrow(fr)
+    nlenv <- list2env(fr, parent=parent.frame(2L))
+    lapply(pnames, function(nm) nlenv[[nm]] <- rep.int(nlpars[[nm]], n))
+    respMod <- mkRespMod(fr, nlenv=nlenv, nlmod=nlmod)
+    
+    chck1(meform <- form[[3L]])
     pnameexpr <- parse(text=paste(pnames, collapse='+'))[[1]]
-    if (length(nb <- nobars(meform)))
-        nb <- substitute(~ 0 + nb + pnameexpr)
-    else 
-        nb <- substitute(~ 0 + pnameexpr)
-    fb <- lapply(findbars(meform),
-                 function(expr) {expr[[2]] = substitute(0+foo, list(foo=expr[[2]]));expr})
-    frexpr <- parse(text= paste(setdiff(all.vars(form), pnames), collapse=' + '))[[1]]
-    fr.form <- if (lnl < 3L) substitute(~ frexpr) else
-    substitute(resp ~ frexpr, list(resp = nlform[[2]], frexpr=frexpr))
-    environment(fr.form) <- environment(form)
-    list(nlmod = as.call(nlform[[length(nlform)]]), fr.form=fr.form, fe=nb, re=fb)
+    nb <- nobars(meform)
+    fe <- eval(substitute(~ 0 + nb + pnameexpr))
+    environment(fe) <- environment(form)
+    frE <- do.call(rbind, lapply(seq_along(nlpars), function(i) fr)) # rbind s copies of the frame
+    for (nm in pnames) # convert these variables in fr to indicators
+	frE[[nm]] <- as.numeric(rep(nm == pnames, each = n))
+    X <- model.matrix(fe, frE)
+    rownames(X) <- NULL
+    
+    reTrms <- mkReTrms(lapply(findbars(meform),
+                              function(expr) {
+                                  expr[[2]] <- substitute(0+foo, list(foo=expr[[2]]))
+                                  expr
+                              }), frE)
+    list(respMod=respMod, frame=fr, X=X, reTrms=reTrms, pnames=pnames)
 }
