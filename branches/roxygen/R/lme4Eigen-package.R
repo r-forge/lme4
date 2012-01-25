@@ -24,16 +24,16 @@
 ##'     \item{\code{temp}}{numeric value of the baking temperature (degrees F).}
 ##'   }
 ##' @references Cook, F. E. (1938) \emph{Chocolate cake, I. Optimum baking
-##' temperature}. Master's Thesis, Iowa State College.
+##'   temperature}. Master's Thesis, Iowa State College.
 ##' 
-##' Cochran, W. G., and Cox, G. M. (1957) \emph{Experimental designs}, 2nd Ed.
-##' New York, John Wiley \& Sons.
+##'   Cochran, W. G., and Cox, G. M. (1957) \emph{Experimental designs}, 2nd Ed.
+##'   New York, John Wiley \& Sons.
 ##' 
-##' Lee, Y., Nelder, J. A., and Pawitan, Y. (2006) \emph{Generalized linear
-##' models with random effects. Unified analysis via H-likelihood}. Boca Raton,
-##' Chapman and Hall/CRC.
+##'   Lee, Y., Nelder, J. A., and Pawitan, Y. (2006) \emph{Generalized linear
+##'   models with random effects. Unified analysis via H-likelihood}. Boca Raton,
+##'   Chapman and Hall/CRC.
 ##' @source Original data were presented in Cook (1938), and reported in Cochran
-##' and Cox (1957, p. 300).  Also cited in Lee, Nelder and Pawitan (2006).
+##'    and Cox (1957, p. 300).  Also cited in Lee, Nelder and Pawitan (2006).
 ##' @keywords datasets
 ##' @examples
 ##' str(cake)
@@ -87,12 +87,14 @@ NULL
 ##' ## response as a matrix
 ##' (m1 <- glmer(cbind(incidence, size - incidence) ~ period + (1 | herd),
 ##'              cbpp, binomial, nAGQ=9L))
+##' dput(unname(fixef(m1)))
 ##' ## response as a vector of probabilities and usage of argument "weights"
 ##' m1p <- glmer(incidence / size ~ period + (1 | herd), weights = size,
 ##'              cbpp, binomial, nAGQ=9L)
+##' dput(unname(fixef(m1p)))
 ##' ## Confirm that these are equivalent:
-##' stopifnot(all.equal(fixef(m1), fixef(m1p), tol = 1e-11),
-##'           all.equal(ranef(m1), ranef(m1p), tol = 1e-11),
+##' stopifnot(all.equal(fixef(m1), fixef(m1p), tol = 1e-7),
+##'           all.equal(ranef(m1), ranef(m1p), tol = 1e-7),
 ##'           TRUE)
 ##' 
 ##' for(m in c(m1, m1p)) {
@@ -100,9 +102,9 @@ NULL
 ##'         paste(format(getCall(m)), collapse="\n"), "\n")
 ##'     print(logLik(m)); cat("AIC:", AIC(m), "\n") ; cat("BIC:", BIC(m),"\n")
 ##' }
-##' stopifnot(all.equal(logLik(m1), logLik(m1p), tol = 1e-11),
-##'           all.equal(AIC(m1),    AIC(m1p),    tol = 1e-11),
-##'           all.equal(BIC(m1),    BIC(m1p),    tol = 1e-11))
+##' stopifnot(all.equal(logLik(m1), logLik(m1p), tol = 1e-7),
+##'           all.equal(AIC(m1),    AIC(m1p),    tol = 1e-7),
+##'           all.equal(BIC(m1),    BIC(m1p),    tol = 1e-7))
 ##' 
 ##' ## GLMM with individual-level variability (accounting for overdispersion)
 ##' cbpp$obs <- 1:nrow(cbpp)
