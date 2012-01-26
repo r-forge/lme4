@@ -1,6 +1,6 @@
 Package: lme4Eigen
 Version: 0.9996875-8
-Date: 2012-01-24
+Date: $Date$
 Title: Linear mixed-effects models using Eigen and S4
 Author: Douglas Bates <bates@stat.wisc.edu>,
     Martin Maechler <maechler@R-project.org> and
@@ -14,21 +14,22 @@ Depends:
     lattice,
     methods,
     R(>= 2.14.0),
-    stats,
-    minqa(>= 1.1.15)
+    stats
 LinkingTo: Rcpp, RcppEigen
 Imports:
     Matrix(>= 1.0),
     graphics,
     grid,
+    minqa(>= 1.1.15),
     nlme,
     splines
 Suggests:
-    mlmRev,
-    MEMSS,
-    boot,
+    PKPDmodels,
     MASS,
-    RUnit
+    MEMSS,
+    RUnit,
+    boot,
+    mlmRev
 LazyLoad: yes
 LazyData: yes
 License: GPL (>=2)
