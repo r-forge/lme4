@@ -46,9 +46,10 @@ setClass("lmList.confint", contains = "array")
 ##' of the \code{theta} field.
 ##' @param theta numeric vector of variance component parameters (stored in the
 ##' \code{theta} field).
-##' @section Methods: \describe{ \item{list("new(X, Zt, Lambdat, Lind,
-##' theta)")}{Create a new \code{\linkS4class{merPredD}} object}\item{:}{Create
-##' a new \code{\linkS4class{merPredD}} object} }
+##' @section Methods:
+##' \describe{
+##'   \item{new(X, Zt, Lambdat, Lind, theta):}{Create a new \code{\linkS4class{merPredD}} object}
+##' }
 ##' @seealso \code{\linkS4class{merPredD}}
 ##' @keywords classes
 ##' @export
