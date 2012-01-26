@@ -82,6 +82,7 @@
 ##'           all.equal(sigma(fm3.d),sigma(fm3.s), tol = 1e-14),
 ##'           TRUE)
 ##' @export
+##' @importFrom minqa bobyqa
 lmer <- function(formula, data, REML = TRUE, sparseX = FALSE,
                  control = list(), start = NULL,
                  verbose = 0L, subset, weights, na.action, offset,
@@ -605,7 +606,7 @@ nlmer <- function(formula, data, control = list(), start = NULL, verbose = 0L,
 ##' 
 ##' (dd <- lmer(Yield ~ 1|Batch, Dyestuff, devFunOnly=TRUE))
 ##' dd(0.8)
-##' bobyqa(1, dd, 0)
+##' minqa::bobyqa(1, dd, 0)
 ##' 
 mkdevfun <- function(rho, nAGQ=1L) {
     stopifnot(is.environment(rho), is(rho$resp, "lmResp"))
@@ -1409,7 +1410,7 @@ setMethod("getL", "merMod", function(x) {
 ##' @examples
 ##' 
 ##' ## shows many methds you should consider *before* getME():
-##' showMethods(class = "merMod")
+##' methods(class = "merMod")
 ##' 
 ##' (fm1 <- lmer(Reaction ~ Days + (Days|Subject), sleepstudy))
 ##' Z <- getME(fm1, "Z")
