@@ -86,15 +86,17 @@ NULL
 ##' 
 ##' ## response as a matrix
 ##' (m1 <- glmer(cbind(incidence, size - incidence) ~ period + (1 | herd),
-##'              cbpp, binomial, nAGQ=9L))
+##'              cbpp, binomial, nAGQ=25L))
 ##' dput(unname(fixef(m1)))
+##' dput(unname(ranef(m1, drop=TRUE)[[1]]))
 ##' ## response as a vector of probabilities and usage of argument "weights"
 ##' m1p <- glmer(incidence / size ~ period + (1 | herd), weights = size,
-##'              cbpp, binomial, nAGQ=9L)
+##'              cbpp, binomial, nAGQ=25L)
 ##' dput(unname(fixef(m1p)))
+##' dput(unname(ranef(m1p, drop=TRUE)[[1]]))
 ##' ## Confirm that these are equivalent:
-##' stopifnot(all.equal(fixef(m1), fixef(m1p), tol = 1e-7),
-##'           all.equal(ranef(m1), ranef(m1p), tol = 1e-7),
+##' stopifnot(all.equal(fixef(m1), fixef(m1p), tol = 1e-5),
+##'           all.equal(ranef(m1), ranef(m1p), tol = 1e-5),
 ##'           TRUE)
 ##' 
 ##' for(m in c(m1, m1p)) {
@@ -102,9 +104,9 @@ NULL
 ##'         paste(format(getCall(m)), collapse="\n"), "\n")
 ##'     print(logLik(m)); cat("AIC:", AIC(m), "\n") ; cat("BIC:", BIC(m),"\n")
 ##' }
-##' stopifnot(all.equal(logLik(m1), logLik(m1p), tol = 1e-7),
-##'           all.equal(AIC(m1),    AIC(m1p),    tol = 1e-7),
-##'           all.equal(BIC(m1),    BIC(m1p),    tol = 1e-7))
+##' stopifnot(all.equal(logLik(m1), logLik(m1p), tol = 1e-5),
+##'           all.equal(AIC(m1),    AIC(m1p),    tol = 1e-5),
+##'           all.equal(BIC(m1),    BIC(m1p),    tol = 1e-5))
 ##' 
 ##' ## GLMM with individual-level variability (accounting for overdispersion)
 ##' cbpp$obs <- 1:nrow(cbpp)
