@@ -1,0 +1,11 @@
+Package: lme4Eigen
+Version: 0.9996875-7
+Depends: methods, R(>= 2.14.0), Matrix(>= 1.0), lattice, stats,
+        minqa(>= 1.1.15)
+Imports: graphics, grid, nlme, splines, MatrixModels(>= 0.2.0)
+LinkingTo: Rcpp, RcppEigen
+Suggests: mlmRev, MEMSS, boot, MASS, RUnit
+License: GPL (>= 2)
+Archs: i386, x86_64
+MD5sum: b213a4941da3fd15952d1c0d93057b42
+

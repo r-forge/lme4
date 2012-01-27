@@ -59,14 +59,18 @@ Mixed-effects Modeling with R</em> are available <a
 href="./book/"><strong>here</strong></a>.
 </p>
 <p><strong>Binary and source packages</strong> of recent versions
-of the development version <code>lme4a</code> are available
+of the development versions <code>lme4a</code> and <code>lme4Eigen</code> are available
 <a href="./repos"><strong>here</strong></a> (<em>under development</em>).
 When it is up and running, you should be able to install these versions
 either by descending through the directory hierarchy to find the appropriate
-versions, or via
+versions, or via (e.g.)
 <pre>
 install.packages("lme4a",repos="http://lme4.r-forge.r-project.org/repos")
+install.packages("lme4Eigen",repos="http://lme4.r-forge.r-project.org/repos")
 </pre>
+Note that you may have to install dependencies (e.g. <code>RcppEigen</code> and <code>minqa</code>
+for <code>lme4Eigen</code>) for other repositories first.
+If you don't find what you need here, please contact the maintainers.
 </p>
 
 </body>
