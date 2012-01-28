@@ -7,10 +7,7 @@ NULL
 ##' Class \code{"lmList"} is an S4 class with basically a list of objects of
 ##' class \code{\link{lm}} with a common model.
 ##' @name lmList-class
-##' @aliases lmList-class lmList.confint-class coef,lmList-method
-##' formula,lmList-method confint,lmList-method plot,lmList-method
-##' show,lmList-method update,lmList-method plot,lmList.confint-method
-##' plot,lmList.confint,ANY-method
+##' @aliases lmList-class show,lmList-method
 ##' @docType class
 ##' @section Objects from the Class: Objects can be created by calls of the form
 ##' \code{new("lmList", ...)} or, more commonly, by a call to
@@ -77,7 +74,7 @@ merPredD <-
                 methods =
                 list(
 ### FIXME: probably don't need S as Xwts is required for nlmer 
-                     initialize = function(X, Zt, Lambdat, Lind, theta, S, ...) {
+                     initialize = function(X, Zt, Lambdat, Lind, theta, n, ...) {
                          if (!nargs()) return
                          X <<- as(X, "matrix")
                          Zt <<- as(Zt, "dgCMatrix")
@@ -85,15 +82,11 @@ merPredD <-
                          Lind <<- as.integer(Lind)
                          theta <<- as.numeric(theta)
                          N <- nrow(X)
-                         S <- as.integer(S)[1]
-                         n <- N %/% S
                          p <- ncol(X)
                          q <- nrow(Zt)
                          stopifnot(length(theta) > 0L,
                                    length(Lind) > 0L, 
-                                   all(sort(unique(Lind)) == seq_along(theta)),
-                                   S > 0L,
-                                   n * S == N)
+                                   all(sort(unique(Lind)) == seq_along(theta)))
                          RZX <<- array(0, c(q, p))
                          Utr <<- numeric(q)
                          V <<- array(0, c(n, p))
@@ -105,7 +98,7 @@ merPredD <-
                          delu <<- numeric(q)
                          uu <- list(...)$u0
                          u0 <<- if (is.null(uu)) numeric(q) else uu
-                         Ut <<- if (S == 1) Zt + 0 else
+                         Ut <<- if (n == N) Zt + 0 else
                              Zt %*% sparseMatrix(i=seq_len(N), j=as.integer(gl(n, 1, N)), x=rep.int(1,N))
                          LamtUt <<- Lambdat %*% Ut   
                          Xw <- list(...)$Xwts
@@ -158,7 +151,7 @@ merPredD <-
                                  assign(field, current, envir = vEnv)
                              }
                          }
-                         do.call(new, c(as.list(vEnv), Class=def))
+                         do.call(new, c(as.list(vEnv), n=nrow(vEnv$V), Class=def))
                      },
                      ldL2         = function() {
                          'twice the log determinant of the sparse Cholesky factor'
@@ -362,9 +355,17 @@ lmResp <-                               # base class for response modules
                          }
                          Ptr
                      },
-                     setOffset = function(oo) {
+                     setOffset  = function(oo) {
                          'change the offset in the model (used in profiling)'
                          .Call(lm_setOffset, ptr(), as.numeric(oo))
+                     },
+                     setResp    = function(rr) {
+                         'change the response in the model, usually after a deep copy'
+                         .Call(lm_setResp, ptr(), as.numeric(rr))
+                     },
+                     setWeights = function(ww) {
+                         'change the prior weights in the model'
+                         .Call(lm_setWeights, ptr(), as.numeric(ww))
                      },
                      updateMu  = function(gamma) {
                          'update mu, wtres and wrss from the linear predictor'

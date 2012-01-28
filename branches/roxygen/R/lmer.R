@@ -133,7 +133,7 @@ lmer <- function(formula, data, REML = TRUE, sparseX = FALSE,
     if ((qrX <- qr(X))$rank < p)
 	stop(gettextf("rank of X = %d < ncol(X) = %d", qrX$rank, p))
     rho <- new.env(parent=parent.env(environment()))
-    rho$pp <- do.call(merPredD$new, c(list(X=X, S=1L), reTrms[c("Zt","theta","Lambdat","Lind")]))
+    rho$pp <- do.call(merPredD$new, c(reTrms[c("Zt","theta","Lambdat","Lind")], n=nrow(X), list(X=X)))
     rho$resp <- mkRespMod(fr, if(REML) p else 0L)
 
     devfun <- mkdevfun(rho, 0L)
@@ -178,7 +178,7 @@ lmer <- function(formula, data, REML = TRUE, sparseX = FALSE,
     cmp <- c(ldL2=rho$pp$ldL2(), ldRX2=rho$pp$ldRX2(), wrss=wrss,
              ussq=sqrLenU, pwrss=pwrss,
              drsum=NA, dev=if(REML)NA else opt$fval, REML=if(REML)opt$fval else NA,
-             sigmaML=sqrt(pwrss/n), sigmaREML=sqrt(pwrss/(n-p)))
+             sigmaML=sqrt(pwrss/n), sigmaREML=sqrt(pwrss/(n-p)), tolPwrss=NA)
     
     new("lmerMod", call=mc, frame=fr, flist=reTrms$flist, cnms=reTrms$cnms,
         theta=rho$pp$theta, beta=rho$pp$delb, u=rho$pp$delu, lower=reTrms$lower,
@@ -334,7 +334,7 @@ glmer <- function(formula, data, family = gaussian, sparseX = FALSE,
     p <- ncol(X)
     rho <- as.environment(list(verbose=verbose, tolPwrss=tolPwrss))
     parent.env(rho) <- parent.frame()
-    rho$pp <- do.call(merPredD$new, c(list(X=X, S=1L), reTrms[c("Zt","theta","Lambdat","Lind")]))
+    rho$pp <- do.call(merPredD$new, c(reTrms[c("Zt","theta","Lambdat","Lind")], n=nrow(X), list(X=X)))
 					# response module
     rho$resp <- mkRespMod(fr, family=family)
 					# initial step from working response
@@ -418,7 +418,7 @@ glmer <- function(formula, data, family = gaussian, sparseX = FALSE,
     cmp <- c(ldL2=rho$pp$ldL2(), ldRX2=rho$pp$ldRX2(), wrss=wrss,
              ussq=sqrLenU, pwrss=pwrss,
 	     drsum=rho$resp$resDev(), dev=opt$fval, REML=NA,
-	     sigmaML=NA, sigmaREML=NA)
+	     sigmaML=NA, sigmaREML=NA, tolPwrss=tolPwrss)
 
     new("glmerMod", call=mc, frame=fr, flist=reTrms$flist, cnms=reTrms$cnms,
         Gp=reTrms$Gp, theta=rho$pp$theta, beta=rho$pp$beta0, u=rho$pp$u0,
@@ -469,7 +469,7 @@ nlmer <- function(formula, data, control = list(), start = NULL, verbose = 0L,
                     parent=parent.frame())
     rho$pp <- do.call(merPredD$new,
                       c(vals$reTrms[c("Zt","theta","Lambdat","Lind")],
-                        list(X=X, S=length(vals$pnames), Xwts=vals$respMod$sqrtXwt,
+                        list(X=X, n=length(vals$respMod$mu), Xwts=vals$respMod$sqrtXwt,
                              beta0=qr.coef(qrX, unlist(lapply(vals$pnames, get,
                              envir = rho$resp$nlenv))))))
     rho$u0 <- rho$pp$u0
@@ -570,7 +570,7 @@ nlmer <- function(formula, data, control = list(), start = NULL, verbose = 0L,
     cmp <- c(ldL2=rho$pp$ldL2(), ldRX2=rho$pp$ldRX2(), wrss=wrss,
              ussq=sqrLenU, pwrss=pwrss, drsum=NA,
 	     drsum=wrss, dev=opt$fval, REML=NA,
-	     sigmaML=sqrt(pwrss/n), sigmaREML=NA)
+	     sigmaML=sqrt(pwrss/n), sigmaREML=NA, tolPwrss=tolPwrss)
 
     new("nlmerMod", call=mc, frame=vals$fr, flist=vals$reTrms$flist, cnms=vals$reTrms$cnms,
         Gp=vals$reTrms$Gp, 	theta=rho$pp$theta, beta=rho$pp$beta0, u=rho$pp$u0,
@@ -1124,7 +1124,7 @@ NULL
 ranef.merMod <- function(object, postVar = FALSE, drop = FALSE,
 			 whichel = names(ans), ...)
 {
-    ans <- as.vector(crossprod(object@pp$Lambdat, object@u))
+    ans <- object@pp$b(1.)
     if (!is.null(object@flist)) {
 	## evaluate the list of matrices
 	levs <- lapply(fl <- object@flist, levels)
@@ -1178,7 +1178,7 @@ refitML.merMod <- function (x, ...) {
     rho$resp <- new(class(rr), y=rr$y, offset=rr$offset, weights=rr$weights, REML=0L)
     xpp <- x@pp
     rho$pp <- new(class(xpp), X=xpp$X, Zt=xpp$Zt, Lambdat=xpp$Lambdat,
-                  Lind=xpp$Lind, theta=xpp$theta, S=1L)
+                  Lind=xpp$Lind, theta=xpp$theta, n=nrow(xpp$X))
     devfun <- mkdevfun(rho, 0L)
     opt <- bobyqa(x@theta, devfun, x@lower)
     n <- length(rr$y)
@@ -1474,7 +1474,6 @@ getME <- function(object,
 	   stop(sprintf("Mixed-Effects extraction of '%s' is not available for class \"%s\"",
 			name, class(object))))
 }## {getME}
-
 ##' @importMethodsFrom Matrix t %*% crossprod diag tcrossprod
 ##' @importClassesFrom Matrix dgCMatrix dpoMatrix corMatrix
 NULL
@@ -1904,3 +1903,48 @@ anovaLmer <- function(object, ...) {
 ##' @importFrom stats anova
 ##' @S3method anova merMod
 anova.merMod <- anovaLmer
+
+##' @S3method refit merMod
+refit.merMod <- function(object, newresp, ...) {
+    rr       <- object@resp$copy()
+    stopifnot(length(newresp <- as.numeric(as.vector(newresp))) == length(rr$y))
+    rr$setResp(newresp)
+    pp       <- object@pp$copy()
+    lower    <- object@lower
+    tolPwrss <- object@devcomp$cmp["tolPwrss"]
+    ff <- mkdevfun(list2env(pp=pp, resp=rr, u0=pp$u0, beta0=pp$beta0, verbose=0L,
+                            tolPwrss=tolPwrss, dpars=seq_along(lower)),
+                   nAGQ=object@devcomp$dims["nAGQ"])
+    xst <- c(rep.int(0.1, length(rho$dpars)), sqrt(diag(pp$unsc())))
+    nM <- NelderMead$new(lower=lower, upper=rep.int(Inf, length(lower)), xst=0.2*xst,
+                         x0=c(pp$theta, pp$beta0), xt=xst*0.0001)
+### FIXME: Probably should save the control settings in the merMod object
+    nM$setMaxeval(10000L)
+    nM$setFtolAbs(1e-5)
+    nM$setFtolRel(1e-15)
+    nM$setMinfMax(.Machine$double.xmin)
+    nM$setIprint(0L)
+    while ((nMres <- nM$newf(devfun(nM$xeval()))) == 0L) {}
+    if (nMres < 0L) {
+        if (nMres > -4L)
+            stop("convergence failure, code ", nMres, " in NelderMead")
+        else
+            warning("failure to converge in 1000 evaluations")
+    }
+    opt <- list(fval=nM$value(), pars=nM$xpos(), code=nMres)
+### FIXME: Abstract these operations into another function
+    devcomp <- object@devcomp
+    cmp.old <- devcomp$cmp
+    sqrLenU <- rho$pp$sqrL(0.)
+    wrss <- rho$resp$wrss()
+    pwrss <- wrss + sqrLenU
+    cmp   <- c(ldL2=rho$pp$ldL2(), ldRX2=rho$pp$ldRX2(), wrss=wrss, ussq=sqrLenU, pwrss=pwrss,
+               dev=opt$fval, REML=NA, sigmaML=NA, sigmaREML=NA, drsum=opt$fval-sqrLenU,
+               tolPwrss=tolPwrss)
+    
+    new(class(object), call=object@call, frame=object@frame, flist=object@flist, cnms=object@cnms,
+        Gp=reTrms$Gp, theta=rho$pp$theta, beta=rho$pp$beta0, u=rho$pp$u0,
+        lower=reTrms$lower, devcomp=list(cmp=cmp, dims=dims), pp=rho$pp,
+        resp=rho$resp)
+}    
+    
