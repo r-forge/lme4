@@ -16,7 +16,8 @@
 ##' @param \dots potential further arguments for \code{profile} methods.
 ##' @section Methods: FIXME: These (signatures) will change soon --- document
 ##' \bold{after} change!
-##' \describe{ \item{list("signature(fitted = \"merMod\")")}{ ...  } }
+##' \describe{
+##'     \item{signature(fitted = \"merMod\")}{ ...  } }
 ##' @seealso For (more expensive) alternative confidence intervals:
 ##' \code{\link{bootMer}}.
 ##' @keywords methods
@@ -589,6 +590,8 @@ log.thpr <- function (x, base = exp(1)) {
         for (nm in colnames(x)[sigs]) {
             x[[nm]] <- log(x[[nm]], base = base)
             fr <- subset(x, .par == nm & is.finite(x[[nm]]))
+            ## FIXME: avoid subset for global-variable false positive
+            ## fr <- x[x$.par == nm & is.finite(x[[nm]]),]
             form <- eval(substitute(.zeta ~ nm, list(nm = as.name(nm))))
             attr(x, "forward")[[nm]] <- interpSpline(form, fr)
             attr(x, "backward")[[nm]] <- backSpline(attr(x, "forward")[[nm]])
