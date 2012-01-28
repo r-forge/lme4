@@ -144,6 +144,22 @@ merPredD <-
                          'fixed-effects coefficients for step factor fac'
                          .Call(merPredDbeta, ptr(), as.numeric(fac))
                      },
+                     copy         = function(shallow = FALSE) {
+                         def <- .refClassDef
+                         selfEnv <- as.environment(.self)
+                         vEnv    <- new.env(parent=emptyenv())
+                         for (field in setdiff(names(def@fieldClasses), "Ptr")) {
+                             if (shallow) 
+                                 assign(field, get(field, envir = selfEnv), envir = vEnv)
+                             else {
+                                 current <- get(field, envir = selfEnv)
+                                 if (is(current, "envRefClass")) 
+                                     current <- current$copy(FALSE)
+                                 assign(field, current, envir = vEnv)
+                             }
+                         }
+                         do.call(new, c(as.list(vEnv), Class=def))
+                     },
                      ldL2         = function() {
                          'twice the log determinant of the sparse Cholesky factor'
                          .Call(merPredDldL2, ptr())
@@ -318,6 +334,22 @@ lmResp <-                               # base class for response modules
                          sqrtrwt <<- if (!is.null(ll$sqrtrwt))
                              as.numeric(ll$sqrtrwt) else sqrt(weights)
                          wtres   <<- sqrtrwt * (y - mu)
+                     },
+                     copy         = function(shallow = FALSE) {
+                         def <- .refClassDef
+                         selfEnv <- as.environment(.self)
+                         vEnv    <- new.env(parent=emptyenv())
+                         for (field in setdiff(names(def@fieldClasses), "Ptr")) {
+                             if (shallow) 
+                                 assign(field, get(field, envir = selfEnv), envir = vEnv)
+                             else {
+                                 current <- get(field, envir = selfEnv)
+                                 if (is(current, "envRefClass")) 
+                                     current <- current$copy(FALSE)
+                                 assign(field, current, envir = vEnv)
+                             }
+                         }
+                         do.call(new, c(as.list(vEnv), Class=def))
                      },
                      ptr       = function() {
                          'returns the external pointer, regenerating if necessary'
