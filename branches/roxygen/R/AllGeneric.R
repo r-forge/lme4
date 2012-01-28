@@ -1,4 +1,3 @@
-
 ## utilities, these *exported*:
 ##' @export getL
 setGeneric("getL", function(x) standardGeneric("getL"))
@@ -52,6 +51,22 @@ isREML <- function(x, ...) UseMethod("isREML")
 ##' @return an object like \code{x} but fit by maximum likelihood
 ##' @export
 refitML <- function(x, ...) UseMethod("refitML")
+
+##' Refit a model with a different response vector
+##'
+##' Refit a model after modifying the response vector.  This could be done using
+##' an \code{\link{update}} method but this approach should be faster because
+##' it bypasses the creation of the model representation and goes directly to
+##' the optimization step.
+##' @title Refit a model by maximum likelihood criterion
+##' @param object a fitted model, usually of class \code{"\linkS4class{lmerMod}"},
+##'     to be refit with a new response
+##' @param newresp a numeric vector providing the new response. Must be
+##'     of the same length as the original response.
+##' @param ... optional additional parameters.  None are used at present.
+##' @return an object like \code{x} but fit by maximum likelihood
+##' @export
+refit <- function(object, newresp, ...) UseMethod("refit")
 
 if (FALSE) {
 setGeneric("HPDinterval",
