@@ -1,6 +1,6 @@
 Package: MEMSS
 Version: 0.9-0
-Date: 2011-02-15
+Date: $Date:$
 Title: Data sets from Mixed-effects Models in S
 Author: Douglas Bates <bates@stat.wisc.edu>,
         Martin Maechler <maechler@R-project.org> and
