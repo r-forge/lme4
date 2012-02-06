@@ -42,7 +42,6 @@
 }
 \examples{
 str(egsingle)
-(fm1 <- lmer(math~year*size+female+(1|childid)+(1|schoolid), egsingle,
-             verbose = 1))
+(fm1 <- lmer(math~year*size+female+(1|childid)+(1|schoolid), egsingle))
 }
 \keyword{datasets}
