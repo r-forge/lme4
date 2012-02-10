@@ -16,5 +16,5 @@ Imports: Matrix(>= 1.0), graphics, grid, minqa(>= 1.1.15), nlme,
 LinkingTo: Rcpp, RcppEigen
 Suggests: PKPDmodels, MASS, MEMSS, testthat, boot, mlmRev
 License: GPL (>= 2)
-MD5sum: 5ca545b6e98248be3c7844747e8e201d
+MD5sum: 2659f2b3f43526fd97d6b205decfc128
 
