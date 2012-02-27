@@ -1,5 +1,5 @@
 ### suppressPackageStartupMessages(...)  as we have an *.Rout.save to Rdiff against
-stopifnot(suppressPackageStartupMessages(require(lme4)))
+stopifnot(suppressPackageStartupMessages(require(lme4.0)))
 options(show.signif.stars = FALSE)
 
 (fm1 <-  lmer(Reaction ~ Days + (Days|Subject), sleepstudy))

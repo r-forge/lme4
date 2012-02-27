@@ -1,4 +1,4 @@
-require(lme4)
+require(lme4.0)
 source(system.file("test-tools.R", package = "Matrix"))# identical3(),
 
 ##' Simple Parametric bootstrap Deviance between two models

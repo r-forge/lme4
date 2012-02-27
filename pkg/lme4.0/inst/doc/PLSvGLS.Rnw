@@ -10,7 +10,7 @@
 {formatcom={\vspace{-1ex}},fontfamily=courier,fontseries=b,%
   fontsize=\footnotesize}
 %%\VignetteIndexEntry{PLS vs GLS for LMMs}
-%%\VignetteDepends{lme4}
+%%\VignetteDepends{lme4.0}
 \title{Penalized least squares versus generalized least squares
   representations of linear mixed models}
 \author{Douglas Bates\\Department of Statistics\\%
@@ -24,13 +24,13 @@
 \newcommand{\trans}{\ensuremath{^\prime}}
 <<preliminaries,echo=FALSE,results=hide>>=
 options(width=65,digits=5)
-#library(lme4)
+#library(lme4.0)
 @
 
 \maketitle
 
 \begin{abstract}
-  The methods in the \code{lme4} package for \code{R} for fitting
+  The methods in the \code{lme4.0} package for \code{R} for fitting
   linear mixed models are based on sparse matrix methods, especially
   the Cholesky decomposition of sparse positive-semidefinite matrices,
   in a penalized least squares representation of the conditional model
@@ -268,7 +268,7 @@ expressed using $\bm L$, $\bm R_{\bm Z\bm X}$ and $\bm R_{\bm X}$, because
   \end{bmatrix} .
 \end{equation}
 
-In the \code{lme4} package the \code{"mer"} class is the
+In the \code{lme4.0} package the \code{"mer"} class is the
 representation of a mixed-effects model.  Several slots in this class
 are matrices corresponding directly to the matrices in the preceding
 equations. The \code{A} slot contains the sparse matrix $\bm

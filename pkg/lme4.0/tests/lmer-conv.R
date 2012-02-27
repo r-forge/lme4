@@ -1,14 +1,14 @@
 ### lmer() convergence testing / monitoring / ...
 ##  ------------------
 ### The output of tests here are *not* 'diff'ed  (<==> no *.Rout.save file)
-library(lme4)
+library(lme4.0)
 ## Platform - and other such info -- so we find it in old saved outputs
 SysI <- Sys.info()
 structure(Sys.info()[c(4,5,1:3)], class="simple.list")
 sessionInfo()
 ## and for even more details:
 c(Matrix = packageDescription("Matrix")$Built,
-  lme4   = packageDescription("lme4")$Built)
+  lme4.0 = packageDescription("lme4.0")$Built)
 if(SysI[["sysname"]] == "Linux" && require("sfsmisc")) local({
     nn <- names(.Sc <- sfsmisc::Sys.cpuinfo())
     nn <- names(.Sc <- .Sc[nn != "flags"])
