@@ -39,7 +39,7 @@ dL$mu <- exp(d$eta)
 dL$y <- rgamma(nrow(d),scale=dL$mu/2,shape=2)
 ############
 
-library(lme4)
+library(lme4.0)
 
 gm0 <- glm(y~x, data=d, family=Gamma)
 gm1 <- glm(y~x+block-1, data=d, family=Gamma)

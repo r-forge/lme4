@@ -9,7 +9,7 @@
 {formatcom={\vspace{-1ex}},fontfamily=courier,fontseries=b,%
   fontsize=\footnotesize}
 %%\VignetteIndexEntry{Computational Methods}
-%%\VignetteDepends{lme4}
+%%\VignetteDepends{lme4.0}
 \title{Computational methods for mixed models}
 \author{Douglas Bates\\Department of Statistics\\%
   University of Wisconsin -- Madison}
@@ -25,11 +25,11 @@
 \newcommand{\bc}[1]{\ensuremath{\bm{\mathcal{#1}}}}
 <<preliminaries,echo=FALSE,results=hide>>=
 options(width=65,digits=5)
-#library(lme4)
+#library(lme4.0)
 @
 \maketitle
 \begin{abstract}
-  The \package{lme4} package provides R functions to fit and analyze
+  The \package{lme4.0} package provides R functions to fit and analyze
   several different types of mixed-effects models, including linear
   mixed models, generalized linear mixed models and nonlinear mixed
   models.  In this vignette we describe the formulation of these
@@ -41,7 +41,7 @@ options(width=65,digits=5)
 \section{Introduction}
 \label{sec:intro}
 
-The \package{lme4} package provides \code{R} functions to fit and analyze
+The \package{lme4.0} package provides \code{R} functions to fit and analyze
 linear mixed models, generalized linear mixed models and nonlinear
 mixed models.  These models are called \emph{mixed-effects models} or,
 more simply, \emph{mixed models} because they incorporate both
@@ -56,7 +56,7 @@ regression models, generalized linear models and nonlinear regression
 models.
 
 We begin by describing common properties of these mixed models and the
-general computational approach used in the \package{lme4} package. The
+general computational approach used in the \package{lme4.0} package. The
 estimates of the parameters in a mixed model are determined as the
 values that optimize an objective function --- either the likelihood
 of the parameters given the observed data, for maximum likelihood
@@ -94,7 +94,7 @@ functions \citep{Cholmod}.
 % models, can be evaluated exactly.
 
 In the next section we describe the general form of the mixed models
-that can be represented in the \package{lme4} package and the
+that can be represented in the \package{lme4.0} package and the
 computational approach embodied in the package.  In the following
 section we describe a particular form of mixed model,
 called a linear mixed model, and the computational details for those
@@ -1197,7 +1197,7 @@ it to $\bm\Lambda\trans(\bm\theta)\bm Z$ or to store $\bm Z\trans\bm
 Z$ and use it to form $\bm\Lambda\trans(\bm\theta)\bm Z\trans\bm
 Z\bm\Lambda(\theta)$ at each evaluation.
 
-In the \package{lme4} package we store $\bm Z\trans$ and use it to
+In the \package{lme4.0} package we store $\bm Z\trans$ and use it to
 form $\bm\Lambda\trans(\bm\theta)\bm Z\trans$ from which $\bm L_{\bm
   Z}$ is evaluated.  There are two reasons for this choice.  First,
 the calculations for the more general forms of mixed models cannot be
@@ -1223,7 +1223,7 @@ Next we evaluate $\bm L_{\bm X\bm Z}\trans$ as the solution to
 \end{equation}
 Again we have the choice of calculating and storing $\bm Z\trans\bm X$
 or storing $\bm X$ and using it to reevaluate $\bm Z\trans\bm X$.  In
-the \package{lme4} package we store $\bm X$, because the calculations
+the \package{lme4.0} package we store $\bm X$, because the calculations
 for the more general models cannot be expressed in terms of $\bm Z\trans\bm X$.
 
 Finally $\bm L_{\bm X}$ is evaluated as the (dense) solution to

@@ -1,4 +1,4 @@
-library(lme4)
+library(lme4.0)
 
 fm1 <- lmer(Reaction ~ Days + (Days|Subject), sleepstudy)
 

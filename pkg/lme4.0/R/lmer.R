@@ -765,12 +765,11 @@ nlmer <- function(formula, data, start = NULL, verbose = FALSE,
                      contrasts, vnms)
     mf <- fr$mf
     env <- new.env()
-    lapply(names(mf), function(nm) assign(nm, env = env, mf[[nm]]))
+    lapply(names(mf), function(nm) assign(nm, envir = env, mf[[nm]]))
     n <- nrow(mf)
     lapply(pnames,
-           function(nm) assign(nm, env = env, rep(start$fixef[[nm]],
+           function(nm) assign(nm, envir = env, rep(start$fixef[[nm]],
                                    length.out = n)))
-
     n <- nrow(mf)
     mf <- mf[rep(seq_len(n), s), ]
     row.names(mf) <- NULL
@@ -922,7 +921,7 @@ setMethod("ranef", signature(object = "mer"),
           lterm <- lapply(plist(reinds(object@Gp), cn),
                           function(el) {
                               cni <- el[[2]]
-                              matrix(rr[ el[[1]] ], nc = length(cni),
+                              matrix(rr[ el[[1]] ], ncol = length(cni),
                                      dimnames = list(NULL, cni))
                           })
           wt <- whichterms(object)
@@ -1309,10 +1308,10 @@ setMethod("simulate", "mer",
 	      etasim.fix <- etasim.fix+offset
 	  }
 	  etasim.reff <- as(t(object@A) %*% # UNSCALED random-effects contribution
-			    matrix(rnorm(nsim * dims["q"]), nc = nsim),
+			    matrix(rnorm(nsim * dims["q"]), ncol = nsim),
 			    "matrix")
 	  if (length(object@V) == 0 && length(object@muEta) == 0) {
-	      etasim.resid <- matrix(rnorm(nsim * n), nc = nsim) ## UNSCALED residual
+	      etasim.resid <- matrix(rnorm(nsim * n), ncol = nsim) ## UNSCALED residual
 	      etasim <- etasim.fix + sigma*(etasim.reff+etasim.resid)
 	      val <- etasim
 	  }
@@ -1560,7 +1559,7 @@ printMer <- function(x, digits = max(3, getOption("digits") - 3),
 		p <- ncol(corF)
 		if (p > 1) {
 		    rn <- rownames(so@coefs)
-		    rns <- abbreviate(rn, minlen=11)
+		    rns <- abbreviate(rn, minlength=11)
 		    cat("\nCorrelation of Fixed Effects:\n")
 		    if (is.logical(symbolic.cor) && symbolic.cor) {
 			corf <- as(corF, "matrix")
@@ -1570,8 +1569,8 @@ printMer <- function(x, digits = max(3, getOption("digits") - 3),
 		    }
 		    else {
 			corf <- matrix(format(round(corF@x, 3), nsmall = 3),
-				       nc = p,
-                                       dimnames = list(rns, abbreviate(rn, minlen=6)))
+				       ncol = p, dimnames = list(rns,
+					       abbreviate(rn, minlength=6)))
 			corf[!lower.tri(corf)] <- ""
 			print(corf[-1, -p, drop=FALSE], quote = FALSE)
 		    }
@@ -2068,7 +2067,7 @@ devvals <- function(fm, pmat, sigma1 = FALSE)
 ##     template <- FUN(x)
 ##     if (!is.numeric(template))
 ##         stop("simulestimate currently only handles functions that return numeric vectors")
-##     ans <- matrix(template, nr = nsim, nc = length(template), byrow = TRUE)
+##     ans <- matrix(template, nr = nsim, ncol = length(template), byrow = TRUE)
 ##     colnames(ans) <- names(template)
 ##     for (i in 1:nsim) {
 ##         x@wrkres <- x@y <- lpred[,i]

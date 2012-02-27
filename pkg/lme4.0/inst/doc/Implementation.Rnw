@@ -11,11 +11,11 @@
 {formatcom={\vspace{-2.5ex}},fontfamily=courier,fontseries=b,%
   fontsize=\scriptsize}
 %%\VignetteIndexEntry{Implementation Details}
-%%\VignetteDepends{lme4, MEMSS, mlmRev}
+%%\VignetteDepends{lme4.0, MEMSS, mlmRev}
 %%
 \newcommand{\trans}{\ensuremath{^\mathsf{T}}}
 \newcommand{\invtrans}{\ensuremath{^\mathsf{-T}}}
-\title{Linear mixed model implementation in lme4}
+\title{Linear mixed model implementation in lme4.0}
 \author{Douglas Bates\\Department of Statistics\\%
   University of Wisconsin -- Madison}
 \begin{document}
@@ -37,7 +37,7 @@ options(width=80, show.signif.stars = FALSE,
         lattice.theme = function() canonical.theme("pdf", color = FALSE))
 library(lattice)
 library(Matrix)
-library(lme4)
+library(lme4.0)
 data("Rail", package = "MEMSS")
 data("ScotsSec", package = "mlmRev")
 @
@@ -298,13 +298,13 @@ nc <- length(dev)
 nms <- names(dev)
 vals <- matrix(0, nrow = length(sg), ncol = nc, dimnames = list(NULL, nms))
 for (i in seq(along = sg)) {
-    .Call("mer_ST_setPars", mm, sg[i], PACKAGE = "lme4")
-    .Call("mer_update_L", mm, PACKAGE = "lme4")
-    res <- try(.Call("mer_update_RX", mm, PACKAGE = "lme4"), silent = TRUE)
+    .Call(lme4.0:::mer_ST_setPars, mm, sg[i])
+    .Call(lme4.0:::mer_update_L, mm)
+    res <- try(.Call(lme4.0:::mer_update_RX, mm), silent = TRUE)
     if (inherits(res, "try-error")) {
         vals[i,] <- NA
     } else {
-        .Call("mer_update_ranef", mm, PACKAGE = "lme4")
+        .Call(lme4.0:::mer_update_ranef, mm)
         vals[i,] <- mm@deviance
     }
 }
@@ -358,13 +358,13 @@ sg <- seq(3.75, 8.25, len = 101)
 vals <- matrix(0, nrow = length(sg), ncol = length(dev),
                dimnames = list(NULL, names(dev)))
 for (i in seq_along(sg)) {
-    .Call("mer_ST_setPars", mm, sg[i], PACKAGE = "lme4")
-    .Call("mer_update_L", mm, PACKAGE = "lme4")
-    res <- try(.Call("mer_update_RX", mm, PACKAGE = "lme4"), silent = TRUE)
+    .Call(lme4.0:::mer_ST_setPars, mm, sg[i])
+    .Call(lme4.0:::mer_update_L, mm)
+    res <- try(.Call(lme4.0:::mer_update_RX, mm), silent = TRUE)
     if (inherits(res, "try-error")) {
         vals[i,] <- NA
     } else {
-        .Call("mer_update_ranef", mm, PACKAGE = "lme4")
+        .Call(lme4.0:::mer_update_ranef, mm)
         vals[i,] <- mm@deviance
     }
 }
