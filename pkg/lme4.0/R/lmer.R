@@ -2378,7 +2378,20 @@ getME <- function(object,
 
 	   "Lambda"=, ## from object@L  ??
 	   "Lambdat"=,
-           "theta"=,
+           "theta"= {
+             mnames <- function(z) {
+               v <- colnames(z)
+               m <- outer(v,v,paste,sep=".")
+               diag(m) <- v
+               m[lower.tri(m,diag=TRUE)]
+             }
+             n <- unname(c(unlist(mapply(function(g,v) {
+               paste(g,mnames(v),sep=".")
+             },names(object@flist),object@ST))))
+             x <- c(sapply(object@ST,function(z) z[lower.tri(z,diag=TRUE)]))
+             names(x) <- n
+             x
+           },
            "..foo.." =# placeholder!
            stop(gettextf("'%s' is not implemented yet",
                          sprintf("getME(*, \"%s\")", name))),
