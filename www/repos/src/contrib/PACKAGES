@@ -9,12 +9,13 @@ License: GPL (>= 2)
 MD5sum: e2069248333743999306861906d19ee0
 
 Package: lme4Eigen
-Version: 0.9996875-9
-Depends: lattice, methods, R(>= 2.14.0), stats
-Imports: Matrix(>= 1.0), graphics, grid, minqa(>= 1.1.15), nlme,
-        splines
+Version: 0.9996875-13
+Depends: R(>= 2.14.0), lattice, methods, stats
+Imports: graphics, grid, splines, Matrix(>= 1.0), MASS, nlme, minqa(>=
+        1.1.15)
 LinkingTo: Rcpp, RcppEigen
-Suggests: PKPDmodels, MASS, MEMSS, testthat, boot, mlmRev
+Suggests: boot, PKPDmodels, MEMSS, testthat, ggplot2, mlmRev, plyr,
+        reshape, testthat, optimx
 License: GPL (>= 2)
-MD5sum: 2659f2b3f43526fd97d6b205decfc128
+MD5sum: 8c7f85b79429b2e7ddadf345387308e9
 
