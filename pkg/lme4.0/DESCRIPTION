@@ -7,7 +7,7 @@ Description: Fit linear and generalized linear mixed-effects models.
   It has been renamed to lme4.0, and is now deprecated in favor of the new lme4 package.
 Author: Douglas Bates <bates@stat.wisc.edu>,
         Martin Maechler <maechler@R-project.org> and
-	Ben Bolker <bbolker@gmail.com>
+	Ben Bolker <bolker@mcmaster.ca>
 Maintainer: <lme4-authors@R-forge.wu-wien.ac.at>
 Depends: methods, R(>= 2.11.1), Matrix(>= 1.0-1), lattice
 LinkingTo: Matrix, stats
