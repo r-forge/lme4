@@ -21,8 +21,9 @@ anova(fm, fm.h, fm.ho)
 
 (AN <- anova(fm, fm.h, fm.ho, fm.hoe, fm.hoem))
 
-AN[, "loglik"] + 1362                   # an inversion in the first two models
-AN[, "deviance"] - 2711                 # deviance scale shows this more clearly
+AN[, "logLik"] + 1362                   # an inversion in the first two models
+## FIXME: AN doesn't have a deviance column!
+## AN[, "deviance"] - 2711                 # deviance scale shows this more clearly
 stopifnot(AN[,"Df"] == c(9,10,12,15,18),
 #          all.equal(AN[,"logLik"] + 1362,
 #                    c(0.6072186497422, 0.6289103306312, 0.8541186984307,
