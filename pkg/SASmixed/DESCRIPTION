@@ -4,7 +4,7 @@ Date: 2011-10-17
 Title: Data sets from "SAS System for Mixed Models"
 Maintainer: <lme4-authors@R-forge.wu-wien.ac.at>
 Author: Original by Littell, Milliken, Stroup, and Wolfinger,
-  modifications by Douglas Bates <bates@stat.wisc.edu>
+  modifications by Douglas Bates <bates@stat.wisc.edu> 
 Description: Data sets and sample lmer analyses corresponding
   to the examples in Littell, Milliken, Stroup and Wolfinger
   (1996), "SAS System for Mixed Models", SAS Institute.
