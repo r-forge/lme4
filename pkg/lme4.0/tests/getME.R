@@ -44,3 +44,5 @@ chkMEs(fm1, nmME)
 chkMEs(fm2, nmME)
 chkMEs(fm3, nmME)
 chkMEs(fm4, nmME)
+
+isREML(fm1)

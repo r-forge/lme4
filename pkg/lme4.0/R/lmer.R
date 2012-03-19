@@ -2344,6 +2344,11 @@ whichreind <- function(fm, fnm = names(fm@flist))
 ##  @dims['REML']
 ##  @dims['nt']
 
+##' @rdname getME
+##' @param x [ng]lmer() fit
+isREML <- function(object) {
+    getME(object,"is_REML")
+}
 
 ##' "Generalized Extractor" -- the version for classical lme4
 ##' @param object [ng]lmer() fit

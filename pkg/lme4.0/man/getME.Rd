@@ -1,5 +1,6 @@
 \name{getME}
 \alias{getME}
+\alias{isREML}
 \title{Extract or Get Generalize Components from a Fitted Mixed Effects Model}
 \description{
   Extract (or \dQuote{get}) \dQuote{components} -- in a generalized
@@ -13,6 +14,7 @@
 }
 \usage{
 getME(object, name)
+isREML(object)
 }
 \arguments{
   \item{object}{a fitted mixed-effects model of class
@@ -36,6 +38,7 @@ getME(object, name)
   \code{\link{fixef}},
   \code{\link{vcov}}, etc.
 }
+\note{\code{isREML(.)} is a synonym for \code{getME(.,"is_REML")}}
 \examples{
 ## shows many methds you should consider *before* getME():
 showMethods(class = "mer")
