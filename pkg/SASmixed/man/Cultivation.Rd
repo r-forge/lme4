@@ -25,7 +25,7 @@
     }
 }
 \source{
-    Littel, R. C., Milliken, G. A., Stroup, W. W., and Wolfinger,
+    Littell, R. C., Milliken, G. A., Stroup, W. W., and Wolfinger,
     R. D. (1996), \emph{SAS System for Mixed Models}, SAS Institute
     (Data Set 2.2(a)).
 
