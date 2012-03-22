@@ -1,12 +1,5 @@
 # lmer, glmer and nlmer plus methods and utilities
 
-if (FALSE) {
-### FIXME: Move this function to the stats package
-rWishart <- function(n, df, invScal)
-### Random sample from a Wishart distribution
-    .Call(lme4_rWishart, n, df, invScal)
-}
-
 ### Utilities for parsing the mixed model formula
 
 findbars <- function(term)
