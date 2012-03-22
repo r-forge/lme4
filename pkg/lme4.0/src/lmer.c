@@ -2454,58 +2454,6 @@ static double
     return ans;
 }
 
-/**
- * Simulate a sample of random matrices from a Wishart distribution
- *
- * @param ns Number of samples to generate
- * @param nuP Degrees of freedom
- * @param scal Positive-definite scale matrix
- *
- * @return
- */
-SEXP
-lme4_rWishart(SEXP ns, SEXP nuP, SEXP scal)
-{
-    SEXP ans;
-    int *dims = INTEGER(getAttrib(scal, R_DimSymbol)), info,
-	n = asInteger(ns), psqr;
-    double *scCp, *ansp, *tmp, nu = asReal(nuP), one = 1, zero = 0;
-
-    if (!isMatrix(scal) || !isReal(scal) || dims[0] != dims[1])
-	error("scal must be a square, real matrix");
-    if (n <= 0) n = 1;
-    psqr = dims[0] * dims[0];
-    tmp = Alloca(psqr, double);
-    scCp = Alloca(psqr, double);
-    R_CheckStack();
-
-    Memcpy(scCp, REAL(scal), psqr);
-    AZERO(tmp, psqr);
-    F77_CALL(dpotrf)("U", &(dims[0]), scCp, &(dims[0]), &info);
-    if (info)
-	error("scal matrix is not positive-definite");
-    PROTECT(ans = alloc3DArray(REALSXP, dims[0], dims[0], n));
-    ansp = REAL(ans);
-    GetRNGstate();
-    for (int j = 0; j < n; j++) {
-	double *ansj = ansp + j * psqr;
-	std_rWishart_factor(nu, dims[0], 1, tmp);
-	F77_CALL(dtrmm)("R", "U", "N", "N", dims, dims,
-			&one, scCp, dims, tmp, dims);
-	F77_CALL(dsyrk)("U", "T", &(dims[1]), &(dims[1]),
-			&one, tmp, &(dims[1]),
-			&zero, ansj, &(dims[1]));
-
-	for (int i = 1; i < dims[0]; i++)
-	    for (int k = 0; k < i; k++)
-		ansj[i + k * dims[0]] = ansj[k + i * dims[0]];
-    }
-
-    PutRNGstate();
-    UNPROTECT(1);
-    return ans;
-}
-
 
 /**
  * Permute the vector src according to the inverse of perm into dest
