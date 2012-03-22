@@ -57,11 +57,7 @@ if (require("lme4", quietly = TRUE, character = TRUE)) {
   print(fm4Mult <- lmer(Adj ~ Trt + (1|Grp), Multilocation))
   print(fm5Mult <- lmer(Adj ~ 1 + (1|Grp), Multilocation))
   print(anova(fm2Mult))
-## testing
-  mlist  <- list(fm1Mult, fm2Mult, fm3Mult, fm4Mult, fm5Mult)
-  for (i in seq_along(mlist)) { cat(i,"\n"); refitML(mlist[[i]]) }
   print(anova(fm1Mult, fm2Mult, fm3Mult, fm4Mult, fm5Mult))
-  ## fm3Mult has a zero group variance -- is this true in lme4.0 as well?
   ### Treating the location as a random effect
   print(fm1MultR <- lmer(Adj ~ Trt + (1|Location/Trt) + (1|Grp), Multilocation))
   print(anova(fm1MultR))
