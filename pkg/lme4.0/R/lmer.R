@@ -2360,7 +2360,8 @@ isREML <- function(object) {
 getME <- function(object,
                   name = c("X", "Z","Zt", "u",
                   "Gp",
-                  "L", "Lambda", "Lambdat",
+                  "L", "Lambda", "Lambdat", "A",
+                  "flist",
                   "RX", "RZX",
                   "beta", "theta",
 		  "REML", "n_rtrms", "is_REML"))
@@ -2380,9 +2381,10 @@ getME <- function(object,
            "beta" = unname(object@fixef),
 	   "n_rtrms" = object@dims[["nt"]], ##  = #{random-effect terms in the formula}
 	   "is_REML" = as.logical(object@dims[["REML"]]),
-
-	   "Lambda"=, ## from object@L  ??
-	   "Lambdat"=,
+	   "Lambda"={warning("Lambda is not available in lme4.0"); NA}, ## FIXME??
+	   "Lambdat"={warning("Lambdat is not available in lme4.0"); NA},
+           "A"=object@A,
+           "flist"=object@flist,
            "theta"= {
              mnames <- function(z) {
                v <- colnames(z)
