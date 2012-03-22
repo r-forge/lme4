@@ -369,7 +369,7 @@ anova(fm4HR)
 ## compare with output 4.1, p. 142
 (fm1Miss <- lmer(y ~ 1 + (1 | influent), Mississippi))
 ## compare with output 4.2, p. 143
-(fm1MLMiss <- lmer(y ~ 1 + (1 | influent), Mississippi, method = "ML"))
+(fm1MLMiss <- lmer(y ~ 1 + (1 | influent), Mississippi, REML=FALSE))
 ranef(fm1MLMiss)          # BLUP's of random effects on p. 144
 ranef(fm1Miss)            # BLUP's of random effects on p. 142
 VarCorr(fm1Miss)          # compare to output 4.7, p. 148
