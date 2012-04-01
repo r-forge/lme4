@@ -58,20 +58,61 @@ echo $contents; } ?>
 Mixed-effects Modeling with R</em> are available <a
 href="./book/"><strong>here</strong></a>.
 </p>
-<p><strong>Binary and source packages</strong> of recent versions
-of the development versions <code>lme4a</code> and <code>lme4Eigen</code> are available
-<a href="./repos"><strong>here</strong></a> (<em>under development</em>).
-When it is up and running, you should be able to install these versions
-either by descending through the directory hierarchy to find the appropriate
-versions, or via (e.g.)
-<pre>
-install.packages("lme4a",repos="http://lme4.r-forge.r-project.org/repos")
-install.packages("lme4Eigen",repos="http://lme4.r-forge.r-project.org/repos")
-</pre>
-Note that you may have to install dependencies (e.g. <code>RcppEigen</code> and <code>minqa</code>
-for <code>lme4Eigen</code>) for other repositories first.
-If you don't find what you need here, please contact the maintainers.
-</p>
 
+<h2>Installation</h2>
+<p>Binary and source packages of recent versions
+of the development version  (<code>lme4</code>, previously <code>lme4Eigen</code>) are available
+<a href="./repos"><strong>here</strong></a>,
+as well as MacOS binaries for <code>RcppEigen</code>.
+The current status for the various versions is as follows:
+<ul>
+<li>The stable release of <code>lme4</code> on CRAN (version 0.999375-42) is the last version of this branch.</li>
+<li>R-forge has <code>lme4.0</code> (version 0.9999-1), which is the continuation of the old branch.  It should be perfectly compatible with the current CRAN version, <emph>except</emph> for its package name.</li>
+<li>R-forge also has a new version of <code>lme4</code> (version 0.999902344-0), which is as far as possible <emph>externally</emph> compatible with the old branch, but its internal structures have changed, so packages dependent on the old structures will need to be updated to work with the new release.  The new version also produces objects of class <code>merMod</code> rather than class <code>mer</code>.</li>
+<li>An older development branch, <code>lme4a</code>, is also available on R-forge, but we believe that it is now dominated by the new development branch (i.e. the r-forge version of <code>lme4</code>), and we strongly request that you work with the new version. If you encounter a situation where <code>lme4</code> can't do something that <code>lme4a</code> can, please inform the maintainers.
+</li>
+</ul>
+<p>
+<ul>
+<li>Although installing packages into older versions of R is sometimes possible by downloading and manually installing the package files, installation will generally work <emph>much</emph> more smoothly if you are running the latest version of R.  If you want help installing <code>lme4</code> to an older version of R you will have to provide a very good reason ...
+</li>
+<li>You may have to install dependencies 
+(e.g. <code>RcppEigen</code> and <code>minqa</code>
+for <code>lme4</code>) from other repositories first.</li>
+</ul>
+<ol>
+<li>If possible, you should install the most recent version of the development version built on r-forge, e.g.
+<pre>
+install.packages("lme4",repos="http://r-forge.r-project.org")
+</pre>.
+</li>
+<li>If the appropriate version for your OS is not available 
+(e.g. binaries for MacOS), the next best option is to install
+the most recent version available at the <code>lme4</code>
+repository, e.g.
+<pre>
+install.packages("lme4",repos="http://lme4.r-forge.r-project.org/repos")
+</pre>
+These versions will generally be slightly less up-to-date than the ones built by R-forge, because they must be updated by hand.
+</li>
+<li>
+Alternatively (e.g. if you have network problems),
+you should be able to install these versions
+by descending through the directory hierarchy 
+from <a href="http://lme4.r-forge.r-project.org/repos">here</a>,
+downloading a copy and using
+<pre>
+install.packages("[name_of_file_here]",repos=NULL)
+</pre>
+or a menu item such as "install from local zip file"
+</li>
+<li>The most reliable way to install the package 
+is to check out 
+<a href="http://r-forge.r-project.org/scm/?group_id=60">the most recent copy</a> and build it from source on your machine; however, this may require extra tools (Subversion client, compilers, etc.).  Alternatively, if you have the compiler tools but don't want to mess with Subversion, you will often get farther with <code>install.packages(...,type="source")</code> than trying to find a binary package compiled for your OS.
+</li>
+<li>
+If all else fails, please contact the maintainers.
+</li>
+</p>
 </body>
 </html>
