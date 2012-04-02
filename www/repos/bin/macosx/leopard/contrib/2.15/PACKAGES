@@ -1,0 +1,55 @@
+Package: lme4.0
+Version: 0.9999-1
+Depends: methods, R(>= 2.11.1), Matrix(>= 1.0-1), lattice
+Imports: graphics, nlme, stats4, stats
+LinkingTo: Matrix, stats
+Suggests: mlmRev, MEMSS, coda, MASS, sfsmisc, MatrixModels
+License: GPL (>= 2)
+Archs: i386, x86_64
+MD5sum: e9042fb4463895bde0604edc4edbe2f3
+
+Package: lme4
+Version: 0.999902344-0
+Depends: R(>= 2.14.0), lattice, Matrix(>= 1.0), methods, stats, Matrix
+Imports: graphics, grid, splines, Matrix(>= 1.0), MASS, nlme, minqa(>=
+        1.1.15)
+LinkingTo: Rcpp, RcppEigen
+Suggests: boot, PKPDmodels, MEMSS, testthat, ggplot2, mlmRev, plyr,
+        reshape, testthat, optimx
+License: GPL (>= 2)
+Archs: i386, x86_64
+MD5sum: 15ae82bcb5b955965c9faa04bf467174
+
+Package: lme4a
+Version: 0.9996875-1
+Depends: methods, R(>= 2.14.0), Matrix(>= 0.9996875-3), lattice, stats,
+        minqa(>= 1.1.15), Rcpp(>= 0.9.4), MatrixModels(>= 0.2.0)
+Imports: graphics, grid, nlme, splines, stats4
+LinkingTo: Matrix, Rcpp
+Suggests: mlmRev, MEMSS, boot, MASS, RUnit
+License: GPL (>= 2)
+Archs: i386, x86_64
+MD5sum: 05931db3180f960dbdfd451d1dc7bdaf
+
+Package: lme4Eigen
+Version: 0.9996875-13
+Depends: R(>= 2.14.0), lattice, methods, stats
+Imports: graphics, grid, splines, Matrix(>= 1.0), MASS, nlme, minqa(>=
+        1.1.15)
+LinkingTo: Rcpp, RcppEigen
+Suggests: boot, PKPDmodels, MEMSS, testthat, ggplot2, mlmRev, plyr,
+        reshape, testthat, optimx
+License: GPL (>= 2)
+Archs: i386, x86_64
+MD5sum: 27fc7eff076e4b1b3bab5c8d0f5683a4
+
+Package: RcppEigen
+Version: 0.2.0
+Depends: Rcpp (>= 0.9.6), Matrix (>= 1.0-1), R(>= 2.14.0)
+Imports: Matrix
+LinkingTo: Rcpp
+Suggests: inline, RUnit, testthat
+License: GPL (>= 2)
+Archs: i386, x86_64
+MD5sum: 08a75a96e313503c53f608310b403be0
+
