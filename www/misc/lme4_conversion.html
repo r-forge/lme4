@@ -1,0 +1,167 @@
+<div id="lme4-updating-guide"
+><h1
+  >lme4 updating guide</h1
+  ><div id="for-package-writers:"
+  ><h2
+    >For package writers:</h2
+    ><ul
+    ><li
+      ><code
+	>lme4</code
+	>-old and <code
+	>lme4.0</code
+	> produces <code
+	>mer</code
+	> objects, <code
+	>lme4</code
+	>-new produces <code
+	>merMod</code
+	> objects</li
+      ><li
+      >you can distinguish <code
+	>lme4</code
+	>-old from <code
+	>lme4</code
+	>-new via package version; the last old-style version of <code
+	>lme4</code
+	> on CRAN is 0.999375-42, so anything after that is <code
+	>lme4</code
+	>-new (the current version on <a href="http://lme4.r-forge.r-project.org/repos"
+	><code
+	  >http://lme4.r-forge.r-project.org/repos</code
+	  ></a
+	> is 0.999902344-0)</li
+      ><li
+      >so you can test e.g. if <code
+	>packageVersion(&quot;lme4&quot;)&lt;=&quot;0.999375-43&quot;</code
+	> (yes, you do want the quotation marks; package versions are weird objects in R)</li
+      ><li
+      ><code
+	>getME(.,.)</code
+	> should often get the components you want</li
+      ><li
+      ><code
+	>lme4</code
+	> now uses S3 rather than S4 methods in many places. That makes some things easier ...</li
+      ></ul
+    ><div id="things-that-wont-work:"
+    ><h3
+      >Things that won't work:</h3
+      ><ul
+      ><li
+	>direct extraction of slots via <code
+	  >@</code
+	  > (use <code
+	  >getME()</code
+	  > instead)</li
+	><li
+	>methods that depend on <code
+	  >lme4</code
+	  > producing objects of class <code
+	  >mer</code
+	  > (write new methods for class <code
+	  >merMod</code
+	  >; <code
+	  >lme4</code
+	  > now has <code
+	  >isLMM()</code
+	  >, <code
+	  >isGLMM()</code
+	  >, <code
+	  >isNLMM()</code
+	  > that should help you distinguish different types of model if you need to)</li
+	><li
+	>the <code
+	  >method</code
+	  > argument is no longer used in <code
+	  >glmer</code
+	  > (<code
+	  >nAGQ=1</code
+	  > vs <code
+	  >nAGQ&gt;1</code
+	  > specifies whether to use Laplace or</li
+	><li
+	><code
+	  >expandSlash</code
+	  > no longer exists (<em
+	  >although it does exist within the <code
+	    >findbars</code
+	    > function: could be reconstituted??</em
+	  >)</li
+	><li
+	>because S4 methods are used less, and (S4) <em
+	  >reference</em
+	  > classes are used, considerably fewer methods are exported, but they are generally available as reference class method &quot;slots&quot;</li
+	></ul
+      ></div
+    ></div
+  ><div id="for-package-writers-and-regular-people:"
+  ><h2
+    >For package writers and regular people:</h2
+    ><ul
+    ><li
+      >accessor functions and methods should all work the same (slight differences in printing format for <code
+	>VarCorr</code
+	>)</li
+      ><li
+      >there is now an <code
+	>optimizer</code
+	> argument. <code
+	>&quot;Nelder_Mead&quot;</code
+	> is the default, other options are <code
+	>&quot;bobyqa&quot;</code
+	> (an alternative derivative-free method); to use the <code
+	>nlminb</code
+	> optimizer as in the old version of lme4, you can use <code
+	>optimizer=&quot;optimx&quot;</code
+	> with <code
+	>control=list(method=&quot;nlminb&quot;)</code
+	> (you will need the <code
+	>optimx</code
+	> package to be installed and loaded)</li
+      ><li
+      >(residuals)</li
+      ></ul
+    ></div
+  ><div id="new-features"
+  ><h2
+    >New features</h2
+    ><ul
+    ><li
+      ><code
+	>bootMer</code
+	></li
+      ><li
+      >profiling</li
+      ><li
+      ><code
+	>nAGQ=0</code
+	></li
+      ><li
+      >choice of optimizer, including user-specified</li
+      ></ul
+    ></div
+  ><div id="user-visible-changes"
+  ><h2
+    >User-visible changes</h2
+    ><ul
+    ><li
+      ><code
+	>glmer</code
+	> not automatically called when <code
+	>family</code
+	> is specified in <code
+	>lmer</code
+	>?</li
+      ><li
+      >methods such as <code
+	>fixef</code
+	> no longer conflict between <code
+	>nlme</code
+	> and <code
+	>lme4</code
+	></li
+      ></ul
+    ></div
+  ></div
+>
