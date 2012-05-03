@@ -1,0 +1,456 @@
+ % NOTE -- ONLY EDIT THE .Rnw FILE!!!  The .tex file is
+ % likely to be overwritten.
+
+\documentclass[dvipsnames,pdflatex,beamer]{beamer}
+% \documentclass[letterpaper,11pt,notitlepage]{article}\usepackage{beamerarticle}
+\mode<article>{\usepackage[text={6.2in,9in},centering]{geometry}}
+\mode<beamer>{\usetheme{Boadilla}\usecolortheme{seahorse}\usecolortheme{rose}}
+\usepackage{SweaveSlides}
+\title[Scales for D-optimal design]{Design for nonlinear mixed-effects\\Are variances a reasonable scale?}
+
+
+
+\mode<beamer>{\setkeys{Gin}{width=\textwidth}}
+\mode<article>{\setkeys{Gin}{width=0.8\textwidth}}
+\newcommand{\bLt}{\ensuremath{\bm\Lambda_\theta}}
+\begin{document}
+
+\mode<article>{\maketitle\tableofcontents}
+\mode<presentation>{\frame{\titlepage}}
+\mode<presentation>{\frame{\frametitle{Outline}\tableofcontents[pausesections,hideallsubsections]}}
+
+\section[Overview]{Overview}
+\begin{frame}
+  \frametitle{D-optimal experimental design for fixed-effects models}
+  \begin{itemize}
+  \item The purpose of D-optimal experimental design is to minimize
+    the volume of confidence regions or likelihood contours or HPD
+    regions on the parameters.
+  \item For simple cases (e.g. linear models with no random effects)
+    the choice of parameters does not affect the design.  In some ways
+    the only parameters that make sense are the coefficients of the
+    linear predictor and these are all equivalent up to linear
+    transformation.
+  \item For a nonlinear model the choice of parameters is less
+    obvious.  Nonlinear transformations of parameters can produce
+    dramatically better or worse linear approximations.  In terms of
+    likelihood contours or H.P.D. regions the ideal shape is
+    elliptical (i.e. a locally quadratic deviance function) but the
+    actual shape can be quite different.
+  \end{itemize}
+\end{frame}
+\begin{frame}
+  \frametitle{D-optimal design for mixed-effects models}
+  \begin{itemize}
+  \item For a linear mixed-effects model the choice of scale of the
+    variance components affects the shape of deviance or posterior
+    density contours.
+  \item For a nonlinear mixed-effects model, both the scale of the
+    variance components and the choice of model parameters affect the
+    shape of such contours.
+  \item These distorsions of shape are more dramatic when there are
+    fewer observations per group (i.e. per \code{Subject} or whatever
+    is the grouping factor).  But that is exactly the situation we are
+    trying to achieve.
+  \end{itemize}
+\end{frame}
+
+\section{Profiling nonlinear regression models}
+\label{sec:nonlinear}
+
+\begin{frame}[fragile]
+  \frametitle{Profiling nonlinear regression models}
+  \begin{itemize}
+  \item This is a very brief example of profiling nonlinear regression
+    models with a change of parameters.
+  \item Take data from a single subject in the \code{Theoph} data set
+    in \code{R}
+  \end{itemize}
+\includegraphics{figs/profiling-Theophdat}
+\end{frame}
+\begin{frame}[fragile]
+  \frametitle{My initial naive fit}
+\begin{Schunk}
+\begin{Sinput}
+> Theo.1 <- droplevels(subset(Theoph, Subject==1))
+> summary(fm1 <- nls(conc ~ SSfol(Dose, Time, lKe, lKa, lCl), Theo.1), corr=TRUE)
+\end{Sinput}
+\begin{Soutput}
+Formula: conc ~ SSfol(Dose, Time, lKe, lKa, lCl)
+Parameters:
+    Estimate Std. Error t value Pr(>|t|)
+lKe  -2.9196     0.1709 -17.085 1.40e-07
+lKa   0.5752     0.1728   3.328   0.0104
+lCl  -3.9159     0.1273 -30.768 1.35e-09
+
+Residual standard error: 0.732 on 8 degrees of freedom
+
+Correlation of Parameter Estimates:
+    lKe   lKa  
+lKa -0.56      
+lCl  0.96 -0.43
+
+Number of iterations to convergence: 8 
+Achieved convergence tolerance: 4.907e-06 
+\end{Soutput}
+\end{Schunk}
+\end{frame}
+\begin{frame}[fragile]
+  \frametitle{Following a suggestion from France Mentr\'{e}}
+\begin{Schunk}
+\begin{Sinput}
+> oral1cptSdlkalVlCl <- PKmod("oral", "sd", list(ka ~ exp(lka), k ~ exp(lCl)/V, V ~ exp(lV)))
+> summary(gm1 <- nls(conc ~ oral1cptSdlkalVlCl(Dose, Time, lV, lka, lCl), Theo.1, start=c(lV=-1, lka=0.5, lCl=-4)), corr=TRUE)
+\end{Sinput}
+\begin{Soutput}
+Formula: conc ~ oral1cptSdlkalVlCl(Dose, Time, lV, lka, lCl)
+Parameters:
+    Estimate Std. Error t value Pr(>|t|)
+lV  -0.99624    0.06022 -16.543 1.80e-07
+lka  0.57516    0.17282   3.328   0.0104
+lCl -3.91586    0.12727 -30.768 1.35e-09
+
+Residual standard error: 0.732 on 8 degrees of freedom
+
+Correlation of Parameter Estimates:
+    lV    lka  
+lka  0.68      
+lCl -0.61 -0.43
+
+Number of iterations to convergence: 9 
+Achieved convergence tolerance: 4.684e-06 
+\end{Soutput}
+\end{Schunk}
+\end{frame}
+\begin{frame}[fragile]
+  \frametitle{Contours based on profiling the objective, original}
+\includegraphics{figs/profiling-fm1splom}
+\end{frame}
+\begin{frame}[fragile]
+  \frametitle{Contours based on profiling the objective, revised formulation}
+\includegraphics{figs/profiling-gm1splom}
+\end{frame}
+\begin{frame}
+  \frametitle{Estimates based on optimizing a criterion}
+  \begin{itemize}
+  \item Maximum-likelihood estimators are an example of estimators
+    defined as the values that optimize a criterion -- maximizing the
+    log-likelihood or, equivalently, minimizing the deviance (negative
+    twice the log-likelihood).
+  \item Deriving the distribution of such an estimator can be
+    difficult (which is why we fall back on asymptotic properties) but,
+    for a given data set and model, we can assess the sensitivity of
+    the objective (e.g. the deviance) to the values of the parameters.
+  \item We can do this systematically by evaluating one-dimensional
+    ``profiles'' of the objective, through conditional optimization of
+    the objective.
+  \end{itemize}
+\end{frame}
+\begin{frame}
+  \frametitle{Profiling the objective}
+  \begin{itemize}
+  \item Profiling is based on conditional optimization of the
+    objective, fixing one or more parameters at particular values and
+    optimizing over the rest.
+  \item We will concentrate on one-dimensional profiles of the
+    deviance for mixed-effects models but the technique can be used
+    more generally.
+  \item We write the deviance as $d(\bm\phi|\bm y)$ where $\bm\phi$ is
+    the parameter vector of length $p$ and $\bm y$ is the vector of observed
+    responses.  Write the individual components of $\bm\phi$ as
+    $\phi_k,k=1,\dots,p$ and the complement of $\phi_i$ as $\bm\phi_{-i}$.
+  \item The profile deviance is $\tilde{d}_i(\phi_i)=\min_{\bm\phi_{-i}}d((\phi_i,\bm\phi_{-i})|\bm y)$.
+    The values of the other parameters at the optimum form the
+    \emph{profile traces}
+  \item If estimates and standard errors are an adequate summary then
+    the deviance should be a quadratic function of $\bm\phi$, i.e.{}
+    $\tilde{d}_i(\phi_i)$ should be a quadratic centered at $\hat{\phi}_i$
+    and the profile traces should be straight.
+  \end{itemize}
+\end{frame}
+
+\section{A Simple Example}
+
+\begin{frame}[fragile]
+  \frametitle{A Simple Example: the Dyestuff data}
+  The \code{Dyestuff} data in the \pkg{lme4} package for \proglang{R} are from the 
+  the classic book \Emph{Statistical Methods in
+  Research and Production}, edited by O.L. Davies  and first published
+  in 1947.
+  \mode<article>{Figure~\ref{fig:Dyestuffplot} shows these data}
+  \begin{figure}[tb]
+    \centering
+\includegraphics{figs/profiling-Dyestuffplot}
+    \mode<article>{\caption{The \code{Dyestuff} data from the \pkg{lme4} package for \proglang{R}.}\label{fig:Dyestuffplot}}
+  \end{figure}
+The line joins the mean yields of the six batches, which have been
+reordered by increasing mean yield.
+\end{frame}
+
+\begin{frame}
+  \frametitle{The effect of the batches}
+  \begin{itemize}
+  \item The particular batches observed are just a selection of the
+    possible batches and are entirely used up during the course of
+    the experiment.  
+  \item It is not particularly important to estimate and compare
+    yields from these batches.  Instead we wish to estimate the
+    variability in yields due to batch-to-batch variability.
+  \item The \code{Batch} factor will be used in \Emph{random-effects}
+    terms in models that we fit.
+  \item In the ``subscript fest'' notation such a model is
+    \begin{displaymath}
+      y_{i,j}=\mu + b_i+\epsilon_{i.j},\quad i=1,\dots,6;\: j=1,\dots,5
+    \end{displaymath}
+    with $\epsilon_{i,j}\sim\mathcal{N}(0,\sigma^2)$ and $b_i\sim\mathcal{N}(0,\sigma_1^2)$.
+  \item We obtain the maximum-likelihood estimates for such a model
+    using \code{lmer} with the optional argument, \code{REML=FALSE}.
+  \end{itemize}
+\end{frame}
+
+\begin{frame}[fragile]
+  \frametitle{Fitted model}
+\begin{Schunk}
+\begin{Sinput}
+> (fm1 <- lmer(Yield ~ 1 + (1|Batch), Dyestuff, REML=FALSE))
+\end{Sinput}
+\begin{Soutput}
+Linear mixed model fit by maximum likelihood ['lmerMod']
+Formula: Yield ~ 1 + (1 | Batch) 
+   Data: Dyestuff 
+      AIC       BIC    logLik  deviance 
+ 333.3271  337.5307 -163.6635  327.3271 
+
+Random effects:
+ Groups   Name        Variance Std.Dev.
+ Batch    (Intercept) 1388     37.26   
+ Residual             2451     49.51   
+Number of obs: 30, groups: Batch, 6
+
+Fixed effects:
+            Estimate Std. Error t value
+(Intercept)  1527.50      17.69   86.33
+\end{Soutput}
+\end{Schunk}
+\end{frame}
+
+\section{Profiling the fitted model}
+
+
+\begin{frame}[fragile]
+  \frametitle{Profiling the fitted model}
+\begin{Schunk}
+\begin{Sinput}
+> head(pr1 <- profile(fm1))
+\end{Sinput}
+\end{Schunk}
+\begin{Schunk}
+\begin{Soutput}
+       .zeta    .sig01   .sigma (Intercept)   .par
+1 -2.3243980  0.000000 61.96437      1527.5 .sig01
+2 -2.2270119  6.315107 60.74307      1527.5 .sig01
+3 -1.9527642 12.317030 57.71369      1527.5 .sig01
+4 -1.5986116 17.365631 54.69985      1527.5 .sig01
+5 -1.1872929 22.297821 52.32154      1527.5 .sig01
+6 -0.7326184 27.624184 50.72564      1527.5 .sig01
+\end{Soutput}
+\end{Schunk}
+$\dots$
+\begin{Schunk}
+\begin{Soutput}
+      .zeta    .sig01  .sigma (Intercept)        .par
+55 1.950491  55.23929 49.5101    1568.280 (Intercept)
+56 2.305893  63.77264 49.5101    1579.255 (Intercept)
+57 2.653119  74.71123 49.5101    1592.257 (Intercept)
+58 2.993207  88.72455 49.5101    1608.022 (Intercept)
+59 3.327036 106.75187 49.5101    1627.538 (Intercept)
+60 3.655342 130.10234 49.5101    1652.153 (Intercept)
+\end{Soutput}
+\end{Schunk}
+\end{frame}
+
+\begin{frame}
+  \frametitle{Reconstructing the profiled deviance}
+  In \code{pr1} the profiled deviance, $\tilde{d}_i(\phi_i)$ is
+  expressed on the \emph{signed square root} scale
+  \begin{displaymath}
+    \zeta_i(\phi_i)=\sgn(\phi_i-\hat{\phi_i})\sqrt{\tilde{d}_i(\phi_i)-d(\widehat{\bm\phi}|\bm y)}
+  \end{displaymath}
+  In the original scale, $\tilde{d}_i(\phi_i)$, the profiles are
+  \mode<article>{as shown in Figure~\ref{fig:pr1dev}}
+  \begin{figure}[tb]
+    \centering
+\includegraphics{figs/profiling-pr1dev}
+    \mode<article>{\caption{Profiled deviance for each of the parameters in fitted model \code{fm1}}\label{fig:pr1dev}}
+  \end{figure}
+\end{frame}
+
+\begin{frame}
+  \frametitle{After applying the square root}
+On the scale of $\sqrt{\tilde{d}_i(\phi_i)-d(\widehat{\bm\phi}|\bm y)}$ the profiles are
+  \mode<article>{as shown in Figure~\ref{fig:pr1abs}}
+  \begin{figure}[tb]
+    \centering
+\includegraphics{figs/profiling-pr1abs}
+    \mode<article>{\caption{Profiled deviance for each of the parameters in fitted model \code{fm1}}\label{fig:pr1abs}}
+  \end{figure}
+  We have added intervals corresponding to 50\%, 80\%, 90\%,
+  95\% and 99\% confidence intervals derived from the profiled
+  deviance.
+\end{frame}
+
+\begin{frame}
+  \frametitle{And, finally, on the $\zeta$ scale}
+  \mode<article>{the profiles are as in Figure~\ref{fig:pr1zeta}}
+  \begin{figure}[tb]
+    \centering
+\includegraphics{figs/profiling-pr1zeta}
+    \mode<article>{\caption{Profiled deviance for each of the parameters in fitted model \code{fm1}}\label{fig:pr1zeta}}
+  \end{figure}
+  The intervals are created by ``inverting'' likelihood ratio tests on
+  particular values of the parameter.
+\end{frame}
+
+\section{Representing profiles as densities}
+
+\begin{frame}
+  \frametitle{Representing profiles as densities}
+  \begin{itemize}
+  \item A univariate profile $\zeta$ plot is read like a normal probability plot
+    \begin{itemize}
+    \item a sigmoidal (elongated ``S''-shaped) pattern like that for
+      the \code{(Intercept)} parameter indicates overdispersion
+      relative to the normal distribution.
+    \item a bending pattern, usually flattening to the right of the
+      estimate, indicates skewness of the estimator and warns us that
+      the confidence intervals will be asymmetric
+    \item a straight line indicates that the confidence intervals
+      based on the quantiles of the standard normal distribution are suitable
+    \end{itemize}
+  \item If we map the $\zeta$ scale through the cdf, $\Phi$, for the
+    standard normal, $\mathcal{N}(0,1)$, we can derive a cdf and a
+    density for a distribution that would produce this profile.
+  \end{itemize}
+\end{frame}
+
+\begin{frame}[fragile]
+  \mode<beamer>{\frametitle{Profiles for parameters in \code{fm1} as densities}}
+  \mode<article>{The profiles for the parameters in model \code{fm1} are shown as densities in Fig.~\ref{fig:pr1density}}
+\begin{figure}[tb]
+  \centering
+\includegraphics{figs/profiling-pr1density}
+  \mode<article>{\caption{Profile densities for model \code{fm1}}\label{fig:pr1density}}
+\end{figure}
+\end{frame}
+
+\begin{frame}[fragile]
+  \mode<beamer>{\frametitle{Profile $\zeta$ plots on the scale of the variance components}}
+
+  Usually the variability estimates in a mixed-effects model are
+  quoted on the scale of the ``variance components'', $\sigma_1^2$ and
+  $\sigma^2$, not the standard deviations as we have shown.  On the variance scale the profiles are
+  \mode<article>{as shown in Fig.~\ref{fig:varianceProf}}
+  \begin{figure}[tb]
+    \centering
+\includegraphics{figs/profiling-varianceprof}
+    \mode<article>{\caption{Profile $\zeta$ plots for the variance components in model \code{fm1ML}}\label{fig:varianceProf}}
+  \end{figure}
+\end{frame}
+
+\begin{frame}[fragile]
+  \frametitle{Densities of variance components}
+\begin{figure}[tb]
+  \centering
+\includegraphics{figs/profiling-pr1vardensity}
+  \mode<article>{\caption{Profile densities of variance components in model \code{fm1}}\label{fig:pr1vardensity}}
+\end{figure}
+\end{frame}
+
+\section{Practical implications}
+
+\begin{frame}
+  \frametitle{Some practical implications}
+  \begin{itemize}
+  \item We have been using maximum likelihood estimates.  For linear
+    mixed-effects models the REML estimates are often preferred
+    because they are assumed to be less biased.  (Many people assume
+    they are unbiased but, except in certain special cases, they're not.)
+  \item But bias is a property of the expected value of the
+    estimator.  So bias of a variance estimator relates to the mean of
+    one of those badly skewed distributions.  Why should we use the mean?
+  \item Similarly, it is common in simulation studies to compare
+    estimators or computational methods based on mean squared error.
+    That's not a meaningful criterion for skewed distributions of
+    estimators.
+  \end{itemize}
+\end{frame}
+
+\begin{frame}
+  \frametitle{A more reasonable scale} 
+  Distributions of the estimators are closer to being symmetric on the
+  scale of $\log(\sigma)$ and $\log(\sigma_1)$ (or, equivalently,
+  $\log(\sigma^2)$ and $\log(\sigma_1^2)$) except when 0 is in the
+  range of reasonable values,
+  \mode<article>{as shown in Fig.~\ref{fig:logsigProf}}
+  \begin{figure}[tb]
+    \centering
+\includegraphics{figs/profiling-logsigProf}
+    \mode<article>{\caption{Profile $\zeta$ plots for the logarithms of the variance components in model \code{fm1}}\label{fig:logsigProf}}
+  \end{figure}
+\end{frame}
+
+\begin{frame}
+  \mode<beamer>{\frametitle{Densities on the logarithm scale}}
+  \mode<article>{The profile densities on the scale of the logarithms of the variance components are whown in Fig.~\ref{fig:logsigpr1density}}
+    \begin{figure}[tb]
+      \centering
+\includegraphics{figs/profiling-logsigpr1density}
+  \mode<article>{\caption{Profile densities for model \code{fm1} using the logarithm scale for variance components}\label{fig:logsigpr1density}}
+    \end{figure}
+\end{frame}
+
+\section{Profile pairs}
+
+\begin{frame}\frametitle{Profile pairs plots}
+  \begin{itemize}
+  \item The information from the profile can be used to produce
+    pairwise projections of likelihood contours.  These correspond to
+    pairwise joint confidence regions.
+  \item Such a plot (next slide) can be somewhat confusing at first
+    glance.
+  \item Concentrate initially on the panels above the diagonal where
+    the axes are the parameters in the scale shown in the diagonal
+    panels.  The contours correspond to 50\%, 80\%, 90\%, 95\% and
+    99\% pairwise confidence regions.
+  \item The two lines in each panel are ``profile traces'', which are
+    the conditional estimate of one parameter given a value of the other.
+  \item The actual interpolation of the contours is performed on the
+    $\zeta$ scale which is shown in the panels below the diagonal.
+  \end{itemize}
+\end{frame}
+
+\begin{frame}[fragile]
+  \mode<beamer>{\frametitle{Profile pairs for model}}
+  \mode<article>{Figure~\ref{fig:pr1pairs} is produced by}
+\begin{Schunk}
+\begin{Sinput}
+> splom(pr1)
+\end{Sinput}
+\end{Schunk}
+\begin{figure}[tb]
+  \centering
+\includegraphics{figs/profiling-pr1pairs}
+  \mode<article>{\caption{Profile pairs for model \code{fm1}}\label{fig:pr1pairs}}
+\end{figure}
+\end{frame}
+\begin{frame}[fragile]
+  \mode<beamer>{\frametitle{Profile pairs for the variance components}}
+  \mode<article>{The corresponding figure for the variance components is shown in Fig.~\ref{fig:pr1varpairs}}
+\begin{figure}[tb]
+  \centering
+\includegraphics{figs/profiling-pr1varpairs}
+  \mode<article>{\caption{Profile pairs for variance components for fmodel \code{fm1} }\label{fig:pr1varpairs}}
+\end{figure}
+\end{frame}
+
+\end{document}
