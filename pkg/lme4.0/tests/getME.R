@@ -46,3 +46,10 @@ chkMEs(fm3, nmME)
 chkMEs(fm4, nmME)
 
 isREML(fm1)
+
+L <- as(fm1@L,"Matrix")
+Z <- getME(fm1,"Z")
+A <- fm1@A
+dim(L)
+dim(Z)
+dim(A)
