@@ -1376,13 +1376,13 @@ static double update_dev(SEXP x)
 	    double *ans = Calloc(nl, double);    /* current penalized residuals in different levels */
 
 				/* update abscissas and weights */
+	    /* fixes from Wayne Zhang */
 	    for(int i = 0; i < nre; ++i){
 		for(int j = 0; j < nl; ++j){
 		    z[i + j * nre] = ghx[pointer[i]];
 		}
 		w_pro *= ghw[pointer[i]];
-		if(!MUETA_SLOT(x))
-		  z_sum += z[pointer[i]] * z[pointer[i]];
+		z_sum += ghx[pointer[i]] * ghx[pointer[i]];
 	    }
 
 	    CHM_DN cz = N_AS_CHM_DN(z, q, 1), sol;
@@ -1391,7 +1391,10 @@ static double update_dev(SEXP x)
 	    Memcpy(z, (double *)sol->x, q);
 	    M_cholmod_free_dense(&sol, &c);
 
-	    for(int i = 0; i < q; ++i) u[i] = uold[i] + sigma * z[i];
+	    /* fix from Wayne Zhang */
+	    for(int i = 0; i < q; ++i) 
+		u[i] = uold[i] + sqrt(2) * sigma * z[i];
+
 	    update_mu(x);
 
 	    AZERO(ans, nl);
@@ -1404,7 +1407,7 @@ static double update_dev(SEXP x)
 
 	    for(int i = 0; i < nl; ++i)
 		tmp[i] += exp( factor * ans[i] + z_sum) * w_pro / sqrt(PI);
-				/* move pointer to next combination of weights and abbsicas */
+	    /* move pointer to next combination of weights and abscissas */
 	    int count = 0;
 	    pointer[count]++;
 	    while(pointer[count] == nAGQ && count < nre - 1){
