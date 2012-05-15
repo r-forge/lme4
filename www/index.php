@@ -43,21 +43,16 @@ echo $contents; } ?>
 
 <!-- end of project description -->
 
-<p> <strong>Doxygen</strong> documentation of the underlying C functions is <a href="./doxygen/"><strong>here</strong></a>. </p>
-
-<p> The <strong>project summary page</strong> you can find <a href="http://<?php echo $domain; ?>/projects/<?php echo $group_name; ?>/"><strong>here</strong></a>. </p>
-
-<p> <strong>References to articles and other research using nlme or lme4</strong> can be found <a href="bib/lme4bib.html"><strong>here</strong></a>. The LaTeX bibliography file can be accessed from <a href="bib/lme4bib.bib">here</a>. If you would like to add your work to this database, please email vasishth.shravan at gmail dot com</p>
-
-<p>
-<strong>Slides</strong> from short courses on lme4 are
-<a href="./slides/"><strong>here</strong></a>.
-</p>
-
-<p> <strong>Chapter drafts</strong> of the book <em>lme4:
-Mixed-effects Modeling with R</em> are available <a
-href="./book/"><strong>here</strong></a>.
-</p>
+<h2>Resources</h2>
+<ul>
+<li>A <a href="misc/lme4_conversion.html">guide</a> to changes in the upcoming release of <code>lme4</code> (<a href="misc/lme4_conversion.md">Markdown source</a>, <a href="misc/lme4_compat_report.html">downstream package compatibility report</a>)</li>
+<li>The <a href="http://<?php echo $domain; ?>/projects/<?php echo $group_name; ?>/">project summary page</a>, including links to the source code browser, bug and feature request trackers, etc.</li>
+<li><a href="./doxygen/"><em>Doxygen</em> documentation</a> of the underlying C functions</li>
+<li><a href="bib/lme4bib.html">References to articles and other research</a> using <code>nlme</code> or <code>lme4</code>, or the corresponding
+<a href="bib/lme4bib.bib">BibTeX file</a>. (If you would like to add your work to this database, please email <code>vasishth.shravan at gmail dot com</code>.)</li>
+<li><a href="./slides/">Slides</a> from short courses on <code>lme4</code></li>
+<li><a href="./lMMwR/">Chapter drafts</a> of the book <em>lme4:
+Mixed-effects Modeling with R</em></li>
 
 <h2>Installation</h2>
 <p>Binary and source packages of recent versions
