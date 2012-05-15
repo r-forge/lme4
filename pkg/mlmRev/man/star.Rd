@@ -1,7 +1,7 @@
 \name{star}
 \alias{star}
 \docType{data}
-\title{Student Teacher Achievment Ratio (STAR) project data}
+\title{Student Teacher Achievement Ratio (STAR) project data}
 \description{
 Data from Tennessee's Student Teacher Achievement Ratio (STAR) project
 which was  a large-scale, four-year study of the effect of reduced class size.
