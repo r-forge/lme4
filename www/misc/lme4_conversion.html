@@ -1,9 +1,169 @@
-<div id="lme4-updating-guide"
+<div id="lme4-release-guide"
 ><h1
-  >lme4 updating guide</h1
+  >lme4 release guide</h1
+  ><div id="version-numbering"
+  ><h2
+    >Version numbering</h2
+    ><p
+    >As previously announced on the mailing list, we will shortly be releasing a new version of <code
+      >lme4</code
+      >, a descendant of the previous development version <code
+      >lme4Eigen</code
+      >. For users who do not access any internal structures, there will be few backward-incompatible changes.</p
+    ><ul
+    ><li
+      >the version of <code
+	>lme4</code
+	> currently on R-forge (currently version 0.999902344-0, to be released as version 1.0 (!)) should be used for new projects</li
+      ><li
+      >The current CRAN version (0.999375-42) will be replaced by a nearly identical version called <code
+	>lme4.0</code
+	> (currently version 0.9999-2; the only backward-incompatible change in this version is a fix to the AGQ code contributed by Wayne Zhang). <code
+	>lme4.0</code
+	> is a maintenance version and will only be changed to fix documented bugs.</li
+      ><li
+      >all other versions (<code
+	>lme4a</code
+	>, <code
+	>lme4b</code
+	>, <code
+	>lme4Eigen</code
+	> from R-forge) are deprecated.</li
+      ></ul
+    ></div
+  ><div id="changes-in-behavior"
+  ><h2
+    >Changes in behavior</h2
+    ><ul
+    ><li
+      >Because the internal computational machinery has changed, results from the newest version of <code
+	>lme4</code
+	> will not be numerically identical to those from previous versions. For reasonably well-defined fits, they will be extremely close (within numerical tolerances of 1e-4 or so), but for unstable or poorly-defined fits the results may change, and very unstable fits may fail when they (apparently) succeeded with previous versions. Similarly, some fits may be slower with the new version, although on average the new version should be faster and more stable. There are more numerical tuning options available than before (see below); non-default settings may restore the speed and/or ability to fit a particular model without an error.</li
+      ><li
+      >In the past, <code
+	>lmer</code
+	> automatically called <code
+	>glmer</code
+	> when <code
+	>family</code
+	> was specified. It still does so, but now warns the user that they should preferably use <code
+	>glmer</code
+	> directly</li
+      ><li
+      ><code
+	>VarCorr</code
+	> returns its results in the same format as before (as a list of variance-covariance matrices with <code
+	>correlation</code
+	> and <code
+	>stddev</code
+	> attributes, plus a <code
+	>sc</code
+	> attribute giving the residual standard deviation/scale parameter when appropriate), but prints them in a different (nicer) way</li
+      ></ul
+    ></div
+  ><div id="other-user-visible-changes"
+  ><h2
+    >Other user-visible changes</h2
+    ><ul
+    ><li
+      >methods such as <code
+	>fixef</code
+	> no longer conflict with the <code
+	>nlme</code
+	> package</li
+      ><li
+      ><code
+	>[gn]lmer</code
+	> now produces objects of class <code
+	>merMod</code
+	> rather than class <code
+	>mer</code
+	> as before</li
+      ><li
+      ><code
+	>[gn]lmer</code
+	> now has an <code
+	>optimizer</code
+	> argument. <code
+	>&quot;Nelder_Mead&quot;</code
+	> is the default for <code
+	>[n]lmer</code
+	>, while a combination of <code
+	>&quot;bobyqa&quot;</code
+	> (an alternative derivative-free method) and <code
+	>&quot;Nelder_Mead&quot;</code
+	> is the default for <code
+	>glmer</code
+	>; to use the <code
+	>nlminb</code
+	> optimizer as in the old version of lme4, you can use <code
+	>optimizer=&quot;optimx&quot;</code
+	> with <code
+	>control=list(method=&quot;nlminb&quot;)</code
+	> (you will need the <code
+	>optimx</code
+	> package to be installed and loaded). See the help pages for details.</li
+      ><li
+      >(FIXME: describe residuals)</li
+      ></ul
+    ></div
+  ><div id="new-features"
+  ><h2
+    >New features</h2
+    ><ul
+    ><li
+      >a general-purpose <code
+	>getME()</code
+	> accessor method has been used to allow extraction of a wide variety of components of a mixed-model fit; this has been backported to <code
+	>lme4.0</code
+	> for compatibility</li
+      ><li
+      ><code
+	>bootMer</code
+	>, a framework for obtaining parameter confidence intervals by parametric bootstrapping</li
+      ><li
+      ><code
+	>plot</code
+	> methods similar to those from the <code
+	>nlme</code
+	> package (although without <code
+	>augPred</code
+	>)</li
+      ><li
+      >a <code
+	>predict</code
+	> method, allowing a choice of which random effects are included in the prediction</li
+      ><li
+      >profiling (and profile confidence intervals) for <code
+	>lmer</code
+	> and <code
+	>glmer</code
+	> results</li
+      ><li
+      ><code
+	>nAGQ=0</code
+	>, an option to do fast (but inaccurate) fitting of GLMMs</li
+      ></ul
+    ></div
+  ><div id="still-non-existent-features"
+  ><h2
+    >Still non-existent features</h2
+    ><ul
+    ><li
+      >Automatic MCMC sampling based on the fit turns out to be very difficult to implement in a way that is really broadly reliable and robust; <code
+	>mcmcsamp</code
+	> will not be implemented in the near future</li
+      ><li
+      >&quot;R-side&quot; structures (within-block correlation and heteroscedasticity) are not on the current timetable</li
+      ></ul
+    ></div
   ><div id="for-package-writers:"
   ><h2
     >For package writers:</h2
+    ><p
+    ><a href="./lme4_compat_report.html"
+      >Current package compatibilty test results</a
+      ></p
     ><ul
     ><li
       ><code
@@ -94,74 +254,6 @@
 	  > classes are used, considerably fewer methods are exported, but they are generally available as reference class method &quot;slots&quot;</li
 	></ul
       ></div
-    ></div
-  ><div id="for-package-writers-and-regular-people:"
-  ><h2
-    >For package writers and regular people:</h2
-    ><ul
-    ><li
-      >accessor functions and methods should all work the same (slight differences in printing format for <code
-	>VarCorr</code
-	>)</li
-      ><li
-      >there is now an <code
-	>optimizer</code
-	> argument. <code
-	>&quot;Nelder_Mead&quot;</code
-	> is the default, other options are <code
-	>&quot;bobyqa&quot;</code
-	> (an alternative derivative-free method); to use the <code
-	>nlminb</code
-	> optimizer as in the old version of lme4, you can use <code
-	>optimizer=&quot;optimx&quot;</code
-	> with <code
-	>control=list(method=&quot;nlminb&quot;)</code
-	> (you will need the <code
-	>optimx</code
-	> package to be installed and loaded)</li
-      ><li
-      >(residuals)</li
-      ></ul
-    ></div
-  ><div id="new-features"
-  ><h2
-    >New features</h2
-    ><ul
-    ><li
-      ><code
-	>bootMer</code
-	></li
-      ><li
-      >profiling</li
-      ><li
-      ><code
-	>nAGQ=0</code
-	></li
-      ><li
-      >choice of optimizer, including user-specified</li
-      ></ul
-    ></div
-  ><div id="user-visible-changes"
-  ><h2
-    >User-visible changes</h2
-    ><ul
-    ><li
-      ><code
-	>glmer</code
-	> not automatically called when <code
-	>family</code
-	> is specified in <code
-	>lmer</code
-	>?</li
-      ><li
-      >methods such as <code
-	>fixef</code
-	> no longer conflict between <code
-	>nlme</code
-	> and <code
-	>lme4</code
-	></li
-      ></ul
     ></div
   ></div
 >
