@@ -1,0 +1,59 @@
+"","name","email"
+"agridat",Kevin Wright,<kw.stat@gmail.com>
+"AICcmodavg",Marc J. Mazerolle,<marc.mazerolle@uqat.ca>
+"amer",Fabian Scheipl,<fabian.scheipl@stat.uni-muenchen.de>
+"aod",Renaud Lancelot,<renaud.lancelot@cirad.fr>
+"arm",Yu-Sung Su,<yusung@gmail.com>
+"benchmark",Manuel J. A. Eugster,<manuel.eugster@stat.uni-muenchen.de>
+"blme",Vincent Dorie,<vincent@stat.columbia.edu>
+"boss",Arend Voorman,<voorma@u.washington.edu>
+"BradleyTerry2",Heather Turner,<ht@heatherturner.net>
+"car",John Fox,<jfox@mcmaster.ca>
+"catdata",Gunther Schauberger,
+"clusterPower",Nicholas G. Reich,<nick.reich@gmail.com>
+"cplm",Wayne Zhang,<actuary_zhang@hotmail.com>
+"DAAG",W. John Braun,<braun@stats.uwo.ca>
+"difR",David Magis,<david.magis@ulg.ac.be>
+"doBy",Søren Højsgaard,<sorenh@mail.dk>
+"effects",John Fox,<jfox@mcmaster.ca>
+"EquiNorm",Li-Xuan Qin,<qinl@mskcc.org>
+"ez",Michael A. Lawrence,<Mike.Lawrence@dal.ca>
+"flexmix",Bettina Gruen,<Bettina.Gruen@jku.at>
+"gamm4",Simon Wood,<simon.wood@r-project.org>
+"glmulti",Vincent Calcagno,<vincent.calcagno@sophia.inra.fr>
+"gmodels",Gregory R. Warnes,<greg@warnes.net>
+"GRRGI",Walter Resch,<walt55128@msn.com>
+"HLMdiag",Adam Loy,<aloy@iastate.edu>
+"HSAUR",Torsten Hothorn,<Torsten.Hothorn@R-project.org>
+"HSAUR2",Torsten Hothorn,<Torsten.Hothorn@R-project.org>
+"influence.ME",Rense Nieuwenhuis,<r.nieuwenhuis@utwente.nl>
+"kulife",Claus Ekstrom,<ekstrom@life.ku.dk>
+"languageR",<harald.baayen@uni-tuebingen.de>,<harald.baayen@uni-tuebingen.de>
+"LMERConvenienceFunctions",Antoine Tremblay; IWK Health Center,<trea26@gmail.com>
+"longpower",Michael C. Donohue,<mdonohue@ucsd.edu>
+"MEMSS",<lme4-authors@R-forge.wu-wien.ac.at>,<lme4-authors@R-forge.wu-wien.ac.at>
+"MethComp",Bendix Carstensen,<bxc@steno.dk>
+"mi",Yu-Sung Su,<suyusung@tsinghua.edu.cn>
+"mice",Stef van Buuren,<stef.vanbuuren@tno.nl>
+"mixAK",Arnošt Komárek,<arnost.komarek@mff.cuni.cz>
+"MixMod",Alexandra Kuznetsova,<alku@imm.dtu.dk>
+"mlmRev",<lme4-authors@R-forge.wu-wien.ac.at>,<lme4-authors@R-forge.wu-wien.ac.at>
+"multcomp",Torsten Hothorn,<Torsten.Hothorn@R-project.org>
+"MuMIn",Kamil Bartoń,<kamil.barton@go2.pl>
+"NanoStringNorm",Daryl Waggott,<Daryl.Waggott@oicr.on.ca>
+"NetworkAnalysis",Cedric E Ginestet,<cedric.ginestet@kcl.ac.uk>
+"odprism",Martijn van de Pol,<m.van.de.pol@myscience.eu>
+"ordinal",Rune Haubo B Christensen,<rhbc@imm.dtu.dk>
+"pamm",Julien Martin,<julien.martin2@usherbrooke.ca>
+"pbkrtest",Søren Højsgaard,<sorenh@mail.dk>
+"pedigreemm",Ana Ines Vazquez,<anainesvs@gmail.com>
+"phmm",Michael Donohue,<mdonohue@ucsd.edu>
+"polytomous",Antti Arppe,<antti.arppe@helsinki.fi>
+"prLogistic",Raydonal Ospina,<raydonal@de.ufpe.br>
+"R2admb",Ben Bolker,<bolker@mcmaster.ca>
+"R2STATS",Yvonnick Noel,<yvonnick.noel@uhb.fr>
+"RLRsim",Fabian Scheipl,<fabian.scheipl@stat.uni-muenchen.de>
+"SASmixed",<lme4-authors@R-forge.wu-wien.ac.at>,<lme4-authors@R-forge.wu-wien.ac.at>
+"sdtalt",Dan Wright,<dwright@fiu.edu>
+"TripleR",Felix Schönbrodt,<felix.schoenbrodt@psy.lmu.de>
+"Zelig",Kosuke Imai,<kimai@Princeton.Edu>

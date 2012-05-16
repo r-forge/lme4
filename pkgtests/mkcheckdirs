@@ -1,0 +1,10 @@
+#! /bin/sh
+TESTDIR=/home/bolker/R/pkgs/lme4/pkgtests
+CHKFILE=/home/bolker/.R/check.Renviron
+LIBDIR=$TESTDIR/library
+mv -f $CHKFILE $CHKFILE.bak
+rm -f $CHKFILE
+echo "R_LIBS_SITE=$LIBDIR" >$CHKFILE
+echo "R_USER_SITE=$LIBDIR" >>$CHKFILE
+export R_LIBS_SITE=$LIBDIR
+export R_LIBS_USER=$LIBDIR
