@@ -45,6 +45,8 @@ export("HPDinterval", "getME",
        "VarCorr")
 
 
+export("convert_old_lme4")
+
 exportClasses("lmList", "mer", "merMCMC", "summary.mer")
 
 exportMethods(
