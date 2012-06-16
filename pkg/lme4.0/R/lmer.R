@@ -226,6 +226,32 @@ isNested <- function(f1, f2)
     all(diff(sm@p) < 2)
 }
 
+
+isREML <- function(x, ...) UseMethod("isREML")
+isLMM  <- function(x, ...) UseMethod("isLMM")
+isNLMM <- function(x, ...) UseMethod("isNLMM")
+isGLMM <- function(x, ...) UseMethod("isGLMM")
+
+##' @S3method isREML mer
+isREML.mer <- function(x, ...) as.logical(x@dims["REML"])
+
+##' @S3method isGLMM mer
+isGLMM.mer <- function(x,...) {
+    length(x@muEta) > 0
+  ## or: is(x@resp,"glmResp")
+}
+
+##' @S3method isNLMM mer
+isNLMM.mer <- function(x,...) {
+  ## or: is(x@resp,"nlsResp")
+  !isLMM.mer(x) & !isGLMM.mer(x)
+}
+
+##' @S3method isLMM mer
+isLMM.mer <- function(x,...) as.logical(x@dims["LMM"])
+## or: is(x@resp,"lmerResp") ?
+
+
 ##' dimsNames and devNames are in the package's namespace rather than
 ##' in the function lmerFactorList because the function sparseRasch
 ##' needs to access them.
@@ -340,7 +366,6 @@ lmerFactorList <- function(formula, fr, rmInt, drop)
     ## check for nesting of factors
     dd["nest"] <- all(sapply(seq_along(fl)[-1],
                              function(i) isNested(fl[[i-1]], fl[[i]])))
-
     list(trms = trms, fl = fl, dims = dd)
 }
 
@@ -366,8 +391,10 @@ lmerControl <- function(msVerbose = getOption("verbose"),
 	 msVerbose = as.integer(msVerbose))# "integer" on purpose
 }
 
+##' Generate a named vector of the given mode.
+##' NB: If \code{defaults} contains more than one entry of a given name,
+##' the *last* one wins
 VecFromNames <- function(nms, mode = "numeric", defaults = list())
-### Generate a named vector of the given mode
 {
     ans <- vector(mode = mode, length = length(nms))
     names(ans) <- nms
@@ -626,7 +653,7 @@ lmer <-
     stopifnot(length(formula <- as.formula(formula)) == 3)
 
     fr <- lmerFrames(mc, formula, contrasts) # model frame, X, etc.
-    FL <- lmerFactorList(formula, fr, 0L, 0L) # flist, Zt, dims
+    FL <- lmerFactorList(formula, fr, rmInt=FALSE, drop=FALSE) # flist, Zt, dims
     largs <- list(...)
     if (!is.null(method <- largs$method)) {
         warning(paste("Argument", sQuote("method"),
@@ -641,6 +668,7 @@ lmer <-
 ### FIXME: issue a warning if the control argument has an msVerbose component
     cv <- do.call(lmerControl, control)
     if (missing(verbose)) verbose <- cv$msVerbose
+    FL$dims["LMM"] <- 1L
     FL$dims["mxit"] <- cv$maxIter
     FL$dims["mxfn"] <- cv$maxFN
     ans <- list(fr = fr, FL = FL, start = start, REML = REML, verbose = verbose)
@@ -705,7 +733,7 @@ function(formula, data, family = gaussian, start = NULL,
     glmFit <- glm.fit(fr$X, fr$Y, weights = wts, # glm on fixed effects
                       offset = offset, family = family,
                       intercept = attr(attr(fr$mf, "terms"), "intercept") > 0)
-    FL <- lmerFactorList(formula, fr, 0L, 0L) # flist, Zt
+    FL <- lmerFactorList(formula, fr, rmInt=FALSE, drop=FALSE) # flist, Zt
 ### FIXME: issue a warning if the control argument has an msVerbose component
     cv <- do.call(lmerControl, control)
     if (missing(verbose)) verbose <- cv$msVerbose
@@ -773,7 +801,7 @@ nlmer <- function(formula, data, start = NULL, verbose = FALSE,
                                         # factor list and model matrices
     FL <- lmerFactorList(substitute(foo ~ bar, list(foo = nlform[[2]],
                                                     bar = formula[[3]])),
-                         fr, TRUE, TRUE)
+			 fr, rmInt=TRUE, drop=TRUE)
     X <- as.matrix(mf[,pnames])
     rownames(X) <- NULL
     xnms <- colnames(fr$X)
@@ -2319,29 +2347,6 @@ whichreind <- function(fm, fnm = names(fm@flist))
     lapply(whichterms(fm, fnm),
            function (ind) unlist(reinds(fm@Gp)[ind]))
 
-
-## From: Soren.Hojsgaard@agrsci.dk
-## To: "maechler@stat.math.ethz.ch" <maechler@stat.math.ethz.ch>
-## CC: "bates@stat.wisc.edu" <bates@stat.wisc.edu>, Ulrich Halekoh
-## 	<Ulrich.Halekoh@agrsci.dk> <Soren.Hojsgaard@agrsci.dk>
-## Date: Thu, 18 Aug 2011 15:22:05 +0200
-## Subject: Slots that we extract to do Kenward-Roger approximation
-
-## Dear Martin,
-
-## It seems that what we extract is:
-
-##  @X
-##  @Gp
-##  @Zt
-##  @dims['REML']
-##  @dims['nt']
-
-##' @rdname getME
-##' @param x [ng]lmer() fit
-isREML <- function(object) {
-    getME(object,"is_REML")
-}
 
 ##' "Generalized Extractor" -- the version for classical lme4
 ##' @param object [ng]lmer() fit
