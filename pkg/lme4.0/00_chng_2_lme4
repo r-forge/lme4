@@ -11,11 +11,14 @@ then
     echo "'$pkg' is not a subdirectory of `pwd` --- exiting"
     exit 1
 fi
-EXCL='--exclude=.svn --exclude=CVS --exclude=auto --exclude=*.txt'
-tar cfh - $EXCL --exclude='*~' --exclude='00.*' $pkg \
- | (cd /tmp ; rm -rf T$pkg; mkdir T$pkg; cd T$pkg; tar xf - )
+# EXCL='--exclude=.svn --exclude=CVS --exclude=auto --exclude=*.txt --exclude=*32'
+# tar cfh - $EXCL --exclude='*~' --exclude='00*' $pkg \
+#  | (cd /tmp ; rm -rf T$pkg; mkdir T$pkg; cd T$pkg; tar xf - )
+cd /tmp ; rm -rf T$pkg; mkdir T$pkg
 DD=/tmp/T$pkg; test -d $DD || (echo '** '"$DD"' is not a valid directory'; exit 2)
 cd $DD
+svn export --quiet svn://svn.r-forge.r-project.org/svnroot/lme4/pkg/${pkg} $pkg
+test -d $pkg || (echo '** '"$pkg"' is not a valid directory'; exit 2)
 ls -l $pkg
 cd $pkg
 ## Remove the  "lme4 -> lme4.0" function:
