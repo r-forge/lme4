@@ -21,6 +21,7 @@ cd $pkg
 ## Remove the  "lme4 -> lme4.0" function:
 rm -f R/oldconv.R man/convert_old_lme4.Rd
 sed -i.bak -e '/convert_old_lme4/d' NAMESPACE
+sed -i.bak -e '/^Date:/s/:.*/: '`date --iso`'/; /to lme4.0/,/lme4.0 until/d' DESCRIPTION
 # List of files that need to be "patched":
 flist=`$GREP -r --no-messages -l "$pkg" . | $GREP -Fvw .svn | $GREP -vE '[-+#~0-9]$'`
 perl -pi.bak -e "s/$pkg/$npkg/g" $flist
