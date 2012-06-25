@@ -1,6 +1,6 @@
 Package: lme4.0
-Version: 0.999999-0
-Date: 2012-06-16
+Version: 0.999999-1
+Date: 2012-06-25
 Title: Linear mixed-effects models using S4 classes
 Description: Fit linear and generalized linear mixed-effects models.
     This is the implementation of lme4 available on CRAN and developed up to 2011.

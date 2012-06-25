@@ -1,6 +1,6 @@
 data(Orthodont,package="nlme")
 Orthodont <- as.data.frame(Orthodont)
-library(lme4)
+library(lme4.0)
 fm1 <- lmList(Reaction ~ Days | Subject, sleepstudy)
 fm1 <- lmList(Reaction ~ Days | Subject, sleepstudy, pool=TRUE)
 coef(fm1)
