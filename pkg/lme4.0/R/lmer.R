@@ -873,6 +873,13 @@ coef.mer <- function(object, ...)
                       '" ignored', sep = ''))
     fef <- data.frame(rbind(fixef(object)), check.names = FALSE)
     ref <- ranef(object)
+    ## check for variables in RE but missing from FE, fill in zeros in FE accordingly
+    refnames <- unlist(lapply(ref,colnames))
+    nmiss <- length(missnames <- setdiff(refnames,names(fef)))
+    if (nmiss >0) {
+        fillvars <- setNames(data.frame(rbind(rep(0,nmiss))),missnames)
+        fef <- cbind(fillvars,fef)
+    }
     val <- lapply(ref, function(x) fef[rep(1, nrow(x)),,drop = FALSE])
     for (i in seq(a = val)) {
         refi <- ref[[i]]
