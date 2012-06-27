@@ -46,7 +46,10 @@ echo $contents; } ?>
 <h2>Resources</h2>
 <ul>
 <li>A <a href="misc/lme4_conversion.html">guide</a> to changes in the upcoming release of <code>lme4</code> (<a href="misc/lme4_conversion.md">Markdown source</a>, <a href="misc/lme4_compat_report.html">downstream package compatibility report</a>)</li>
-<li>The <a href="http://<?php echo $domain; ?>/projects/<?php echo $group_name; ?>/">project summary page</a>, including links to the source code browser, bug and feature request trackers, etc.</li>
+<li>The <a href="http://<?php echo $domain; ?>/projects/<?php echo $group_name; ?>/">project summary page</a>, including links to the 
+<a href="http://r-forge.r-project.org/scm/?group_id=60">source code browser</a>, 
+<a href="http://r-forge.r-project.org/tracker/?group_id=60">bug and feature request trackers</a>, 
+<a href="http://r-forge.r-project.org/R/?group_id=60">compiled package files</a>, etc.</li>
 <li><a href="./doxygen/"><em>Doxygen</em> documentation</a> of the underlying C functions</li>
 <li><a href="bib/lme4bib.html">References to articles and other research</a> using <code>nlme</code> or <code>lme4</code>, or the corresponding
 <a href="bib/lme4bib.bib">BibTeX file</a>. (If you would like to add your work to this database, please email <code>vasishth.shravan at gmail dot com</code>.)</li>

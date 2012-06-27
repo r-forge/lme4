@@ -12,7 +12,7 @@ library(lattice)
 library(Matrix)
 library(Rcpp)
 library(minqa)
-library(lme4a)
+library(lme4)
 .f5 = "%.5f"
 .f1 = "%.1f"
 data(Contraception, package = "mlmRev")
@@ -339,7 +339,7 @@ Fig.~\ref{fig:logitinv}, takes a value on the unrestricted range,
 $(-\infty,\infty)$, and maps it to the probability range, $[0,1]$.  It
 happens this function is also the cumulative distribution function for
 the standard logistic distribution, available in \R{} as the function
-\code{plogit}.  In some presentations the relationship between the
+\code{plogis}.  In some presentations the relationship between the
 logit link and the logistic distribution is emphasized but that often
 leads to questions of why we should focus on the logistic
 distribution.  Also, it is not clear how this approach would
@@ -387,7 +387,7 @@ Returning to the interpretation of the estimated coefficients in model
 mixed model but taking into account that slopes or differences in
 levels are with respect to the logit or log-odds function.  If we wish
 to express results in the probability scale then we should apply the
-\code{plogit} function to whatever combination of coefficients is of
+\code{plogis} function to whatever combination of coefficients is of
 interest to us.
 
 For example, we see from Fig.~\ref{fig:Contra2} that the observed

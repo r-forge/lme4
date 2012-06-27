@@ -1,13 +1,17 @@
 # lme4 release guide
 
+## To add/FIXME
+* RcppEigen issues for MacOS users
+* mention KR tests etc. in `pbkrtest`?
+
 ## Version numbering
 
 As [previously announced on the lme4 mailing list][announce], we will shortly be releasing a new version of `lme4`, a descendant of the previous development version `lme4Eigen`. For users who do not access any internal structures, there will be few backward-incompatible changes.
 
 [announce]: https://stat.ethz.ch/pipermail/r-sig-mixed-models/2012q1/014811.html
 
-* the version of `lme4` currently on R-forge (currently version 0.999902344-0, to be released as version 1.0 (!)) should be used for new projects
-* The current CRAN version (0.999375-42) will be replaced by a nearly identical version called `lme4.0` (currently version 0.9999-2; the only backward-incompatible change in this version is a fix to the AGQ code contributed by Wayne Zhang).  `lme4.0` is a maintenance version and will only be changed to fix documented bugs.
+* the version of `lme4` currently on R-forge (currently version 0.999902344-0, to be released as version 1.0 (!)) should be used for new projects.
+* The current CRAN version (0.999375-42) will be replaced by a nearly identical version called `lme4.0` (currently version 0.9999-2; the only backward-incompatible change in this version is a fix to the AGQ code contributed by Wayne Zhang).  `lme4.0` is a maintenance version and will only be changed to fix documented bugs. `mer` objects from older versions of `lme4` can be converted to `lme4.0`-usable form via `convert_old_lme4()` in the `lme4.0` package.
 * all other versions (`lme4a`, `lme4b`, `lme4Eigen` from R-forge) are deprecated.
 
 ## Release notes for end-users
@@ -26,13 +30,14 @@ As [previously announced on the lme4 mailing list][announce], we will shortly be
 * `[gn]lmer` now produces objects of class `merMod` rather than class `mer` as before
 
 ### New features
-* a general-purpose `getME()` accessor method has been used to allow extraction of a wide variety of components of a mixed-model fit; this has been backported to `lme4.0` for compatibility
+* A general-purpose `getME()` accessor method has been used to allow extraction of a wide variety of components of a mixed-model fit; this has been backported to `lme4.0` for compatibility
 * `bootMer`, a framework for obtaining parameter confidence intervals by parametric bootstrapping
 * `plot` methods similar to those from the `nlme` package (although missing `augPred`)
-* a `predict` method, allowing a choice of which random effects are included in the prediction
-* likelihood profiling (and profile confidence intervals) for `lmer` and `glmer` results
+* A `predict` method, allowing a choice of which random effects are included in the prediction
+* Likelihood profiling (and profile confidence intervals) for `lmer` and `glmer` results
 * `nAGQ=0`, an option to do fast (but inaccurate) fitting of GLMMs
-* negative binomial models
+* Negative binomial models
+* Ability to extract a deviance function for the model, allowing further diagnostics/customization of model results
 
 ### Still non-existent features
 * Automatic MCMC sampling based on the fit turns out to be very difficult to implement in a way that is really broadly reliable and robust; `mcmcsamp` will not be implemented in the near future
