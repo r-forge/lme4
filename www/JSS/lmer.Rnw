@@ -1,5 +1,6 @@
 \documentclass{jss}
 %% need no \usepackage{Sweave.sty}
+\usepackage[american]{babel}
 \usepackage{bm,amsmath,thumbpdf,amsfonts}
 \author{Douglas Bates\\University of Wisconsin - Madison\And
   Martin M\"achler\\ETH Zurich\And
@@ -69,7 +70,7 @@
 \setkeys{Gin}{width=\textwidth}
 <<preliminaries,echo=FALSE,results=hide>>=
 options(width=69,show.signif.stars=FALSE,str=strOptions(strict.width="cut"))
-library(lme4Eigen)
+library(lme4)
 @
 \begin{document}
 \section{Introduction}
@@ -787,15 +788,15 @@ density, $\phi(z)=e^{-z^2/2}/\sqrt{2\pi}$, as shown in Figure~\ref{fig:densities
 <<densities,fig=TRUE,echo=FALSE,height=5>>=
 zeta <- function(m, zmin=-3, zmax=3, npts=301L) {
     stopifnot (is(m, "glmerMod"),
-              length(m@flist) == 1L,    # single grouping factor
+               length(m@flist) == 1L,    # single grouping factor
               length(m@cnms[[1]]) == 1L) # single column for that grouping factor
-    pp <- m@pp
+    pp <- m
     rr <- m@resp
-    u0 <- pp$u0
-    sd <- 1/pp$L()@x
-    ff <- as.integer(m@flist[[1]])
-    fc <- pp$X %*% pp$beta0             # fixed-effects contribution to linear predictor
-    ZL <- t(pp$Lambdat %*% pp$Zt)
+    u0 <- getME(pp,"u")
+    sd <- 1/getME(pp,"L")@x
+    ff <- as.integer(getME(pp,"flist")[[1]])
+    fc <- getME(pp,"X") %*% getME(pp,"beta")      # fixed-effects contribution to linear predictor
+    ZL <- t(getME(pp,"Lambdat") %*% getME(pp,"Zt"))
     dc <- function(z) { # evaluate the unscaled conditional density on the deviance scale
         uu <- u0 + z * sd
         rr$updateMu(fc + ZL %*% uu)

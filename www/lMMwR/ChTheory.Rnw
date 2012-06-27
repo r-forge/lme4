@@ -1169,7 +1169,7 @@ $\frac{d\vec\mu}{d\vec\eta}$, will be diagonal.
 Because the link function, $\vec g$, and the inverse link, $\vec
 g^{-1}$, are nonlinear functions (there would be no purpose in using a
 linear link function) many people use the terms ``generalized linear
-mixed model'' and ``nonlinear mixed model'' interchangably.  We
+mixed model'' and ``nonlinear mixed model'' interchangeably.  We
 reserve the term ``nonlinear mixed model'' for the type of models
 used, for example, in pharmacokinetics and pharmacodynamics, where the
 conditional distribution is a spherical multivariate Gaussian
