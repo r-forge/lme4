@@ -1,0 +1,159 @@
+\documentclass{article}
+\newcommand{\code}[1]{{\tt #1}}
+
+\begin{document}
+%% Sweave/knitr options
+  %\textwidth,
+\SweaveOpts{
+  fig.width=8,fig.height=5,out.width="\\textwidth",
+  fig.align="center",tidy=FALSE,echo=FALSE,
+  fig.path="figures/Cbpp-"}
+<<echo=FALSE,message=FALSE>>=
+## stuff for making pretty PDFs -- **ignore** if running
+##  interactively ...
+if (require(knitr)) {
+  knit_hooks$set(fig=function(before, options, envir) {
+    if (before) {
+      par(bty="l",las=1)
+    } else { }
+  })}
+## messes up font metrics, too much trouble
+## olddev <- options(device = function(...) {
+##          .Call("R_GD_nullDevice", PACKAGE = "grDevices")
+##        })
+require(ggplot2)
+require(grid)
+zmargin <- opts(panel.margin=unit(0,"lines"))
+theme_update(theme_bw())
+@ 
+
+<<>>=
+prob <- "Cbpp"
+@ 
+
+<<message=FALSE>>=
+source("anal1.R")
+library(plyr)
+library(reshape2)
+library(ggplot2)
+@ 
+
+Get data:
+<<>>=
+dfiles <- list.files(pattern=paste(prob,"_.*.RData",sep=""))
+LL <- lapply(dfiles,getdat)
+names(LL) <- gsub(paste(prob,"_([^.]+)\\.RData",sep=""),
+                  "\\1",dfiles)
+@ 
+
+\section{lme4}
+
+\subsection{Nelder-Mead}
+
+Performance as a function of \code{tolPwrss}, \code{nAGQ}:
+
+<<lme4-NM,echo=FALSE>>=
+dd2 <- LL$lme4_NM
+dd2$logtolpwrss <- log10(dd2$tolPwrss)
+dd2B <- ddply(dd2,.(nAGQ),
+      function(x) {
+        transform(x,scdeviance=(deviance-min(deviance))/diff(range(deviance)))
+      })
+dd2B$logtime <- log10(dd2B$time)
+mm <- melt(subset(dd2B,select=c(scdeviance,
+                        deviance,logtolpwrss,logtime,nAGQ)),
+           id.var=c("logtolpwrss","nAGQ"))
+(gg1 <- ggplot(mm,aes(x=logtolpwrss,y=value,colour=factor(nAGQ)))+
+  geom_line(aes(group=nAGQ))+
+              facet_grid(variable~.,scale="free")+zmargin)
+@ 
+
+
+\subsection{bobyqa} 
+
+Performance as a function of tolPwrss, rho-beg, rho-end:
+
+FIXME: better format!
+
+<<lme4-bobyqa>>=
+dd <- LL$lme4_bobyqa
+dd$logtolPwrss <- log10(dd$tolPwrss)
+g0 <- ggplot(dd,aes(x=factor(log10(rhobeg/2)),
+              y=factor(log10(rhoend/2)),colour=deviance))+
+  geom_point(aes(size=time),alpha=0.8)+
+  facet_wrap(~logtolPwrss)+
+  theme_bw()+zmargin+
+  ## scale_size_continuous(limits=c(0.01,20),to=c(0.5,6))+
+  labs(x=expression(paste("Start tol ",(log[10](rho/2)))),
+       y=expression(paste("End tol ",(log[10](rho/2)))))
+g0 %+% subset(dd,deviance<2384)
+@ 
+
+\section{Comparison of all approaches}
+
+\code{lme4} uses default settings here
+(\code{tolPwrss}=1e-11, \code{rhobeg}=2e-4, \code{rhoend=2e-7}).
+
+<<>>=
+## fix up Var-corr names
+LL2 <- lapply(LL,function(x) {
+  names(x)[grep("^VarCorr",names(x))] <- "VarCorr"
+  x
+})
+@ 
+<<eval=FALSE>>=
+sapply(LL,ncol)
+lapply(LL2,colnames)
+@ 
+<<>>=
+allframe <- Rbind(LL2)
+## with(allframe,table(rhobeg,rhoend,tolPwrss))
+## want to get only DEFAULT tolPwrss/rhobeg/rhoend settings
+NMnondefault <- with(allframe,
+                     pkg %in% c("lme4","lme4Eigen") & 
+                     substr(method,1,6)=="Nelder" & tolPwrss!=1e-10)
+bobyqanondefault <- with(allframe,
+                     pkg %in% c("lme4","lme4Eigen") & method=="bobyqa" & 
+                         (tolPwrss!=1e-10 | rhobeg!=2e-4 | abs(rhoend/2e-7-1)>1e-3))
+t1 <- with(allframe,as.data.frame(table(nAGQ,pkg,method)))
+## t1[t1$Freq>0,]
+a2 <- subset(allframe,!(pkg %in% c("lme4","lme4Eigen") & (tolPwrss!=1e-10 | 
+                        (!is.na(rhobeg) & rhobeg!=2e-4) | 
+                        (!is.na(rhoend) & abs(rhoend/2e-7-1)>1e-4))))
+## with(a2,table(method,pkg))
+a2$logtime <- log10(a2$time)
+m2 <- melt(subset(a2,
+                  select=c(pkg,method,nAGQ,deviance,
+                  logtime,
+                  fixef..Intercept.,fixef.period2,fixef.period3,fixef.period4,
+                  VarCorr)),
+           id.var=c("pkg","method","nAGQ"))
+@ 
+
+<<eval=FALSE>>=
+## testing stuff for fig sizes
+pddev <- function(w=8,h=5) pdf("tmp1.pdf",width=w,height=h)
+pddev(10,5)
+gg2
+dev.off()
+@ 
+<<allplot,warning=FALSE>>=
+(gg2 <- ggplot(m2,aes(x=factor(nAGQ),y=value,
+                      colour=droplevels(interaction(pkg,method))))+
+ facet_wrap(~variable,scale="free")+
+ geom_point(alpha=0.5)+
+ geom_line(aes(x=as.numeric(factor(nAGQ))))+
+ scale_colour_discrete("package/method"))
+ 
+@ 
+
+Without \code{lme4.0}:
+<<allplot2,warning=FALSE>>=
+gg2 %+% subset(m2,pkg!="lme4.0")
+@ 
+
+<<>>=
+## options(device=olddev$device)
+@ 
+\end{document}
+

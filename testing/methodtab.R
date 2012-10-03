@@ -1,0 +1,16 @@
+method,base,bounded,mask,pkg,default
+BFGS,TRUE,FALSE,FALSE,NA,2
+CG,TRUE,FALSE,FALSE,NA,NA
+Nelder-Mead,TRUE,FALSE,FALSE,NA,1
+L-BFGS-B,TRUE,TRUE,FALSE,NA,NA
+nlm,TRUE,FALSE,FALSE,NA,NA,NA
+nlminb,TRUE,TRUE,FALSE,NA,NA
+spg,FALSE,TRUE,FALSE,"BB",NA
+ucminf,FALSE,TRUE,FALSE,"ucminf",NA
+Rcgmin,FALSE,TRUE,TRUE,"Rcgmin",NA
+Rvmmin,FALSE,TRUE,TRUE,"Rvmmin",NA
+bobyqa,FALSE,TRUE,FALSE,"minqa",NA
+newuo,FALSE,FALSE,FALSE,"minqa",NA
+uobyqa,FALSE,FALSE,FALSE,"minqa",NA
+nmkb,FALSE,TRUE,FALSE,"dfoptim",NA
+hjkb,FALSE,TRUE,FALSE,"dfoptim",NA

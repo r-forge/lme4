@@ -1,0 +1,1024 @@
+
+R Under development (unstable) (2011-11-16 r57671)
+Copyright (C) 2011 The R Foundation for Statistical Computing
+ISBN 3-900051-07-0
+Platform: i686-pc-linux-gnu (32-bit)
+
+R is free software and comes with ABSOLUTELY NO WARRANTY.
+You are welcome to redistribute it under certain conditions.
+Type 'license()' or 'licence()' for distribution details.
+
+  Natural language support but running in an English locale
+
+R is a collaborative project with many contributors.
+Type 'contributors()' for more information and
+'citation()' on how to cite R or R packages in publications.
+
+Type 'demo()' for some demos, 'help()' for on-line help, or
+'help.start()' for an HTML browser interface to help.
+Type 'q()' to quit R.
+
+> fn <- "bobyqa_cbpp.RData"
+> 
+> library(lme4Eigen)
+Loading required package: Matrix
+Loading required package: lattice
+
+Attaching package: ‘Matrix’
+
+The following object(s) are masked from ‘package:base’:
+
+    det
+
+Loading required package: minqa
+Loading required package: Rcpp
+Loading required package: int64
+> library(optimx)
+Loading required package: numDeriv
+Loading required package: BB
+Loading required package: quadprog
+Loading required package: ucminf
+Loading required package: Rcgmin
+Loading required package: Rvmmin
+Loading required package: optfntools
+
+Attaching package: ‘Rvmmin’
+
+The following object(s) are masked from ‘package:Rcgmin’:
+
+    optansout
+
+Loading required package: setRNG
+Loading required package: dfoptim
+
+Attaching package: ‘optimx’
+
+The following object(s) are masked from ‘package:Rvmmin’:
+
+    optansout
+
+The following object(s) are masked from ‘package:Rcgmin’:
+
+    optansout
+
+> sessinfo <- sessionInfo()
+> 
+> data(cbpp)
+> Data <- cbpp
+> Family <- binomial
+> 
+> form <- cbind(incidence, size - incidence) ~ period + (1 | herd)
+> 
+> ## extract the objective function for the second stage optimization
+> ff <- glmer(form, Data, Family, devFunOnly=2L)
+> 
+> val <- c(get("pp", environment(ff))$theta, get("pp", environment(ff))$beta(0))
+> 
+> d0 <- list(problem="cbpp",method="bobyqa",optimx=TRUE)
+> dbad <- c(d0,as.list(c(options=NA,time=NA,parameters=NA,deviance=NA,KKT=NA,bad=NA,result=NA)))
+>           
+> rhobegvec <- 2*10^(-8:0)
+> begendvec <- 10^(-3:-6)
+> tolPwrssvec <- 10^seq(-9,-5)
+> 
+> results <- vector("list",
++                   length(rhobegvec)*length(begendvec)*length(tolPwrssvec))
+>   ctr <- 0
+>   for (i in seq_along(rhobegvec)) {
++     for (j in seq_along(begendvec)) {
++       for (k in seq_along(tolPwrssvec)) {
++         ## reset ff each time ... just in case it gets corrupted
++         ff <- glmer(form, Data, Family, devFunOnly=2L)
++         ctr <- ctr+1
++         cat("*", i,j,k,ctr,"\n")
++         control <- list(rhobeg=rhobegvec[i],rhoend=rhobegvec[i]*begendvec[j])
++         ## tolPwrss is read from ff's environment
++         tolPwrss0 <- get("tolPwrss",envir=environment(ff))
++         assign("tolPwrss",tolPwrssvec[k],envir=environment(ff))
++         t0 <- system.time(cur.opt <- try(optimx(val, ff,
++                                                 lower=c(0, rep(-Inf, 4L)),
++                                                 control=control,
++                                                 method="bobyqa")))
++         assign("tolPwrss",tolPwrss0,envir=environment(ff))
++         if (inherits(cur.opt,"try-error")) {
++           d <- dbad
++           d$result <- attr(cur.opt,"condition")$message
++         } else {
++           d <- d0
++           d <- c(d,list(options=c(control,list(tolPwrss=tolPwrssvec[k])),
++                         time=sum(t0[1:2]), ## user +system
++                         parameters=cur.opt$par$par,           ## ??? why nested
++                         deviance=c(cur.opt$fvalues$fvalues),  ## ??? why nested
++                         KKT=c(cur.opt$KKT1,cur.opt$KKT2),
++                         bad=NA,
++                         result=NA_character_))
++         }
++         results[[ctr]] <- d
++         save("results","sessinfo",file=fn)
++       }
++     }
++   }
+* 1 1 1 1 
+method[ 1 ]= bobyqa 
+time 
+user.self 
+    0.056 
+* 1 1 2 2 
+method[ 1 ]= bobyqa 
+time 
+user.self 
+    0.052 
+* 1 1 3 3 
+method[ 1 ]= bobyqa 
+time 
+user.self 
+    0.048 
+* 1 1 4 4 
+method[ 1 ]= bobyqa 
+time 
+user.self 
+    0.036 
+* 1 1 5 5 
+method[ 1 ]= bobyqa 
+time 
+user.self 
+    0.044 
+* 1 2 1 6 
+method[ 1 ]= bobyqa 
+time 
+user.self 
+    0.068 
+* 1 2 2 7 
+method[ 1 ]= bobyqa 
+time 
+user.self 
+    0.052 
+* 1 2 3 8 
+method[ 1 ]= bobyqa 
+time 
+user.self 
+    0.044 
+* 1 2 4 9 
+method[ 1 ]= bobyqa 
+time 
+user.self 
+     0.04 
+* 1 2 5 10 
+method[ 1 ]= bobyqa 
+time 
+user.self 
+    0.056 
+* 1 3 1 11 
+method[ 1 ]= bobyqa 
+time 
+user.self 
+    0.064 
+* 1 3 2 12 
+method[ 1 ]= bobyqa 
+time 
+user.self 
+    0.056 
+* 1 3 3 13 
+method[ 1 ]= bobyqa 
+time 
+user.self 
+    0.048 
+* 1 3 4 14 
+method[ 1 ]= bobyqa 
+time 
+user.self 
+    0.048 
+* 1 3 5 15 
+method[ 1 ]= bobyqa 
+time 
+user.self 
+    0.068 
+* 1 4 1 16 
+method[ 1 ]= bobyqa 
+time 
+user.self 
+    0.084 
+* 1 4 2 17 
+method[ 1 ]= bobyqa 
+time 
+user.self 
+    0.068 
+* 1 4 3 18 
+method[ 1 ]= bobyqa 
+time 
+user.self 
+     0.06 
+* 1 4 4 19 
+method[ 1 ]= bobyqa 
+time 
+user.self 
+    0.052 
+* 1 4 5 20 
+method[ 1 ]= bobyqa 
+time 
+user.self 
+    0.068 
+* 2 1 1 21 
+method[ 1 ]= bobyqa 
+time 
+user.self 
+    0.028 
+* 2 1 2 22 
+method[ 1 ]= bobyqa 
+time 
+user.self 
+     0.04 
+* 2 1 3 23 
+method[ 1 ]= bobyqa 
+time 
+user.self 
+    0.044 
+* 2 1 4 24 
+method[ 1 ]= bobyqa 
+time 
+user.self 
+     0.04 
+* 2 1 5 25 
+method[ 1 ]= bobyqa 
+time 
+user.self 
+    0.052 
+* 2 2 1 26 
+method[ 1 ]= bobyqa 
+time 
+user.self 
+    0.036 
+* 2 2 2 27 
+method[ 1 ]= bobyqa 
+time 
+user.self 
+     0.04 
+* 2 2 3 28 
+method[ 1 ]= bobyqa 
+time 
+user.self 
+    0.048 
+* 2 2 4 29 
+method[ 1 ]= bobyqa 
+time 
+user.self 
+    0.052 
+* 2 2 5 30 
+method[ 1 ]= bobyqa 
+time 
+user.self 
+    0.056 
+* 2 3 1 31 
+method[ 1 ]= bobyqa 
+time 
+user.self 
+     0.04 
+* 2 3 2 32 
+method[ 1 ]= bobyqa 
+time 
+user.self 
+    0.048 
+* 2 3 3 33 
+method[ 1 ]= bobyqa 
+time 
+user.self 
+    0.048 
+* 2 3 4 34 
+method[ 1 ]= bobyqa 
+time 
+user.self 
+    0.056 
+* 2 3 5 35 
+method[ 1 ]= bobyqa 
+time 
+user.self 
+     0.06 
+* 2 4 1 36 
+method[ 1 ]= bobyqa 
+time 
+user.self 
+    0.044 
+* 2 4 2 37 
+method[ 1 ]= bobyqa 
+time 
+user.self 
+    0.048 
+* 2 4 3 38 
+method[ 1 ]= bobyqa 
+time 
+user.self 
+    0.064 
+* 2 4 4 39 
+method[ 1 ]= bobyqa 
+time 
+user.self 
+    0.064 
+* 2 4 5 40 
+method[ 1 ]= bobyqa 
+time 
+user.self 
+    0.068 
+* 3 1 1 41 
+method[ 1 ]= bobyqa 
+time 
+user.self 
+     0.02 
+* 3 1 2 42 
+method[ 1 ]= bobyqa 
+time 
+user.self 
+    0.044 
+* 3 1 3 43 
+method[ 1 ]= bobyqa 
+time 
+user.self 
+    0.048 
+* 3 1 4 44 
+method[ 1 ]= bobyqa 
+time 
+user.self 
+    0.036 
+* 3 1 5 45 
+method[ 1 ]= bobyqa 
+time 
+user.self 
+     0.04 
+* 3 2 1 46 
+method[ 1 ]= bobyqa 
+time 
+user.self 
+    0.032 
+* 3 2 2 47 
+method[ 1 ]= bobyqa 
+time 
+user.self 
+    0.056 
+* 3 2 3 48 
+method[ 1 ]= bobyqa 
+time 
+user.self 
+    0.052 
+* 3 2 4 49 
+method[ 1 ]= bobyqa 
+time 
+user.self 
+    0.036 
+* 3 2 5 50 
+method[ 1 ]= bobyqa 
+time 
+user.self 
+     0.04 
+* 3 3 1 51 
+method[ 1 ]= bobyqa 
+time 
+user.self 
+    0.036 
+* 3 3 2 52 
+method[ 1 ]= bobyqa 
+time 
+user.self 
+     0.06 
+* 3 3 3 53 
+method[ 1 ]= bobyqa 
+time 
+user.self 
+    0.064 
+* 3 3 4 54 
+method[ 1 ]= bobyqa 
+time 
+user.self 
+    0.044 
+* 3 3 5 55 
+method[ 1 ]= bobyqa 
+time 
+user.self 
+    0.052 
+* 3 4 1 56 
+method[ 1 ]= bobyqa 
+time 
+user.self 
+    0.044 
+* 3 4 2 57 
+method[ 1 ]= bobyqa 
+time 
+user.self 
+    0.072 
+* 3 4 3 58 
+method[ 1 ]= bobyqa 
+time 
+user.self 
+    0.076 
+* 3 4 4 59 
+method[ 1 ]= bobyqa 
+time 
+user.self 
+    0.044 
+* 3 4 5 60 
+method[ 1 ]= bobyqa 
+time 
+user.self 
+    0.052 
+* 4 1 1 61 
+method[ 1 ]= bobyqa 
+time 
+user.self 
+     0.02 
+* 4 1 2 62 
+method[ 1 ]= bobyqa 
+time 
+user.self 
+     0.02 
+* 4 1 3 63 
+method[ 1 ]= bobyqa 
+time 
+user.self 
+    0.028 
+* 4 1 4 64 
+method[ 1 ]= bobyqa 
+time 
+user.self 
+    0.024 
+* 4 1 5 65 
+method[ 1 ]= bobyqa 
+time 
+user.self 
+     0.02 
+* 4 2 1 66 
+method[ 1 ]= bobyqa 
+time 
+user.self 
+    0.016 
+* 4 2 2 67 
+method[ 1 ]= bobyqa 
+time 
+user.self 
+    0.024 
+* 4 2 3 68 
+method[ 1 ]= bobyqa 
+time 
+user.self 
+     0.04 
+* 4 2 4 69 
+method[ 1 ]= bobyqa 
+time 
+user.self 
+     0.06 
+* 4 2 5 70 
+method[ 1 ]= bobyqa 
+time 
+user.self 
+    0.028 
+* 4 3 1 71 
+method[ 1 ]= bobyqa 
+time 
+user.self 
+     0.02 
+* 4 3 2 72 
+method[ 1 ]= bobyqa 
+time 
+user.self 
+    0.032 
+* 4 3 3 73 
+method[ 1 ]= bobyqa 
+time 
+user.self 
+     0.04 
+* 4 3 4 74 
+method[ 1 ]= bobyqa 
+time 
+user.self 
+    0.044 
+* 4 3 5 75 
+method[ 1 ]= bobyqa 
+time 
+user.self 
+    0.032 
+* 4 4 1 76 
+method[ 1 ]= bobyqa 
+time 
+user.self 
+    0.032 
+* 4 4 2 77 
+method[ 1 ]= bobyqa 
+time 
+user.self 
+    0.036 
+* 4 4 3 78 
+method[ 1 ]= bobyqa 
+time 
+user.self 
+    0.068 
+* 4 4 4 79 
+method[ 1 ]= bobyqa 
+time 
+user.self 
+     0.06 
+* 4 4 5 80 
+method[ 1 ]= bobyqa 
+time 
+user.self 
+    0.044 
+* 5 1 1 81 
+method[ 1 ]= bobyqa 
+time 
+user.self 
+    0.148 
+* 5 1 2 82 
+method[ 1 ]= bobyqa 
+time 
+user.self 
+    0.012 
+* 5 1 3 83 
+method[ 1 ]= bobyqa 
+time 
+user.self 
+    0.024 
+* 5 1 4 84 
+method[ 1 ]= bobyqa 
+time 
+user.self 
+     0.02 
+* 5 1 5 85 
+method[ 1 ]= bobyqa 
+time 
+user.self 
+    0.028 
+* 5 2 1 86 
+method[ 1 ]= bobyqa 
+time 
+user.self 
+    0.168 
+* 5 2 2 87 
+method[ 1 ]= bobyqa 
+time 
+user.self 
+    0.012 
+* 5 2 3 88 
+method[ 1 ]= bobyqa 
+time 
+user.self 
+    0.048 
+* 5 2 4 89 
+method[ 1 ]= bobyqa 
+time 
+user.self 
+    0.024 
+* 5 2 5 90 
+method[ 1 ]= bobyqa 
+time 
+user.self 
+    0.032 
+* 5 3 1 91 
+method[ 1 ]= bobyqa 
+time 
+user.self 
+    0.172 
+* 5 3 2 92 
+method[ 1 ]= bobyqa 
+time 
+user.self 
+    0.012 
+* 5 3 3 93 
+method[ 1 ]= bobyqa 
+time 
+user.self 
+    0.052 
+* 5 3 4 94 
+method[ 1 ]= bobyqa 
+time 
+user.self 
+    0.028 
+* 5 3 5 95 
+method[ 1 ]= bobyqa 
+time 
+user.self 
+    0.044 
+* 5 4 1 96 
+method[ 1 ]= bobyqa 
+time 
+user.self 
+    0.168 
+* 5 4 2 97 
+method[ 1 ]= bobyqa 
+time 
+user.self 
+     0.02 
+* 5 4 3 98 
+method[ 1 ]= bobyqa 
+time 
+user.self 
+    0.056 
+* 5 4 4 99 
+method[ 1 ]= bobyqa 
+time 
+user.self 
+    0.032 
+* 5 4 5 100 
+method[ 1 ]= bobyqa 
+time 
+user.self 
+    0.052 
+* 6 1 1 101 
+method[ 1 ]= bobyqa 
+time 
+user.self 
+    0.032 
+* 6 1 2 102 
+method[ 1 ]= bobyqa 
+time 
+user.self 
+    0.036 
+* 6 1 3 103 
+method[ 1 ]= bobyqa 
+time 
+user.self 
+     0.06 
+* 6 1 4 104 
+method[ 1 ]= bobyqa 
+time 
+user.self 
+    0.012 
+* 6 1 5 105 
+method[ 1 ]= bobyqa 
+time 
+user.self 
+    0.016 
+* 6 2 1 106 
+method[ 1 ]= bobyqa 
+time 
+user.self 
+     0.04 
+* 6 2 2 107 
+method[ 1 ]= bobyqa 
+time 
+user.self 
+    0.036 
+* 6 2 3 108 
+method[ 1 ]= bobyqa 
+time 
+user.self 
+    0.064 
+* 6 2 4 109 
+method[ 1 ]= bobyqa 
+time 
+user.self 
+    0.016 
+* 6 2 5 110 
+method[ 1 ]= bobyqa 
+time 
+user.self 
+    0.024 
+* 6 3 1 111 
+method[ 1 ]= bobyqa 
+time 
+user.self 
+     0.04 
+* 6 3 2 112 
+method[ 1 ]= bobyqa 
+time 
+user.self 
+    0.044 
+* 6 3 3 113 
+method[ 1 ]= bobyqa 
+time 
+user.self 
+    0.072 
+* 6 3 4 114 
+method[ 1 ]= bobyqa 
+time 
+user.self 
+     0.02 
+* 6 3 5 115 
+method[ 1 ]= bobyqa 
+time 
+user.self 
+     0.02 
+* 6 4 1 116 
+method[ 1 ]= bobyqa 
+time 
+user.self 
+    0.044 
+* 6 4 2 117 
+method[ 1 ]= bobyqa 
+time 
+user.self 
+    0.048 
+* 6 4 3 118 
+method[ 1 ]= bobyqa 
+time 
+user.self 
+    0.084 
+* 6 4 4 119 
+method[ 1 ]= bobyqa 
+time 
+user.self 
+    0.032 
+* 6 4 5 120 
+method[ 1 ]= bobyqa 
+time 
+user.self 
+    0.024 
+* 7 1 1 121 
+method[ 1 ]= bobyqa 
+time 
+user.self 
+    0.028 
+* 7 1 2 122 
+method[ 1 ]= bobyqa 
+time 
+user.self 
+    0.032 
+* 7 1 3 123 
+method[ 1 ]= bobyqa 
+time 
+user.self 
+    0.088 
+* 7 1 4 124 
+method[ 1 ]= bobyqa 
+time 
+user.self 
+     0.02 
+* 7 1 5 125 
+method[ 1 ]= bobyqa 
+time 
+user.self 
+    0.032 
+* 7 2 1 126 
+method[ 1 ]= bobyqa 
+time 
+user.self 
+    0.036 
+* 7 2 2 127 
+method[ 1 ]= bobyqa 
+time 
+user.self 
+    0.036 
+* 7 2 3 128 
+method[ 1 ]= bobyqa 
+time 
+user.self 
+    0.092 
+* 7 2 4 129 
+method[ 1 ]= bobyqa 
+time 
+user.self 
+    0.024 
+* 7 2 5 130 
+method[ 1 ]= bobyqa 
+time 
+user.self 
+    0.032 
+* 7 3 1 131 
+method[ 1 ]= bobyqa 
+time 
+user.self 
+    0.036 
+* 7 3 2 132 
+method[ 1 ]= bobyqa 
+time 
+user.self 
+     0.04 
+* 7 3 3 133 
+method[ 1 ]= bobyqa 
+time 
+user.self 
+    0.096 
+* 7 3 4 134 
+method[ 1 ]= bobyqa 
+time 
+user.self 
+    0.032 
+* 7 3 5 135 
+method[ 1 ]= bobyqa 
+time 
+user.self 
+    0.056 
+* 7 4 1 136 
+method[ 1 ]= bobyqa 
+time 
+user.self 
+    0.044 
+* 7 4 2 137 
+method[ 1 ]= bobyqa 
+time 
+user.self 
+    0.048 
+* 7 4 3 138 
+method[ 1 ]= bobyqa 
+time 
+user.self 
+    0.104 
+* 7 4 4 139 
+method[ 1 ]= bobyqa 
+time 
+user.self 
+     0.04 
+* 7 4 5 140 
+method[ 1 ]= bobyqa 
+time 
+user.self 
+    0.048 
+* 8 1 1 141 
+method[ 1 ]= bobyqa 
+time 
+user.self 
+     0.02 
+* 8 1 2 142 
+method[ 1 ]= bobyqa 
+time 
+user.self 
+     0.02 
+* 8 1 3 143 
+method[ 1 ]= bobyqa 
+time 
+user.self 
+    0.016 
+* 8 1 4 144 
+method[ 1 ]= bobyqa 
+time 
+user.self 
+    0.016 
+* 8 1 5 145 
+method[ 1 ]= bobyqa 
+time 
+user.self 
+    0.016 
+* 8 2 1 146 
+method[ 1 ]= bobyqa 
+time 
+user.self 
+    0.024 
+* 8 2 2 147 
+method[ 1 ]= bobyqa 
+time 
+user.self 
+    0.024 
+* 8 2 3 148 
+method[ 1 ]= bobyqa 
+time 
+user.self 
+    0.056 
+* 8 2 4 149 
+method[ 1 ]= bobyqa 
+time 
+user.self 
+     0.02 
+* 8 2 5 150 
+method[ 1 ]= bobyqa 
+time 
+user.self 
+    0.016 
+* 8 3 1 151 
+method[ 1 ]= bobyqa 
+time 
+user.self 
+    0.028 
+* 8 3 2 152 
+method[ 1 ]= bobyqa 
+time 
+user.self 
+    0.028 
+* 8 3 3 153 
+method[ 1 ]= bobyqa 
+time 
+user.self 
+    0.064 
+* 8 3 4 154 
+method[ 1 ]= bobyqa 
+time 
+user.self 
+    0.024 
+* 8 3 5 155 
+method[ 1 ]= bobyqa 
+time 
+user.self 
+    0.024 
+* 8 4 1 156 
+method[ 1 ]= bobyqa 
+time 
+user.self 
+    0.032 
+* 8 4 2 157 
+method[ 1 ]= bobyqa 
+time 
+user.self 
+     0.04 
+* 8 4 3 158 
+method[ 1 ]= bobyqa 
+time 
+user.self 
+    0.112 
+* 8 4 4 159 
+method[ 1 ]= bobyqa 
+time 
+user.self 
+    0.028 
+* 8 4 5 160 
+method[ 1 ]= bobyqa 
+time 
+user.self 
+    0.028 
+* 9 1 1 161 
+method[ 1 ]= bobyqa 
+time 
+user.self 
+    0.036 
+* 9 1 2 162 
+method[ 1 ]= bobyqa 
+time 
+user.self 
+    0.036 
+* 9 1 3 163 
+method[ 1 ]= bobyqa 
+time 
+user.self 
+    0.024 
+* 9 1 4 164 
+method[ 1 ]= bobyqa 
+time 
+user.self 
+    0.024 
+* 9 1 5 165 
+method[ 1 ]= bobyqa 
+time 
+user.self 
+    0.024 
+* 9 2 1 166 
+method[ 1 ]= bobyqa 
+time 
+user.self 
+    0.048 
+* 9 2 2 167 
+method[ 1 ]= bobyqa 
+time 
+user.self 
+    0.044 
+* 9 2 3 168 
+method[ 1 ]= bobyqa 
+time 
+user.self 
+    0.036 
+* 9 2 4 169 
+method[ 1 ]= bobyqa 
+time 
+user.self 
+    0.028 
+* 9 2 5 170 
+method[ 1 ]= bobyqa 
+time 
+user.self 
+    0.032 
+* 9 3 1 171 
+method[ 1 ]= bobyqa 
+time 
+user.self 
+    0.048 
+* 9 3 2 172 
+method[ 1 ]= bobyqa 
+time 
+user.self 
+    0.052 
+* 9 3 3 173 
+method[ 1 ]= bobyqa 
+time 
+user.self 
+    0.048 
+* 9 3 4 174 
+method[ 1 ]= bobyqa 
+time 
+user.self 
+    0.036 
+* 9 3 5 175 
+method[ 1 ]= bobyqa 
+time 
+user.self 
+    0.028 
+* 9 4 1 176 
+method[ 1 ]= bobyqa 
+time 
+user.self 
+    0.056 
+* 9 4 2 177 
+method[ 1 ]= bobyqa 
+time 
+user.self 
+    0.056 
+* 9 4 3 178 
+method[ 1 ]= bobyqa 
+time 
+user.self 
+    0.096 
+* 9 4 4 179 
+method[ 1 ]= bobyqa 
+time 
+user.self 
+    0.028 
+* 9 4 5 180 
+method[ 1 ]= bobyqa 
+time 
+user.self 
+    0.036 
+> 
+> proc.time()
+   user  system elapsed 
+ 67.108   6.068  74.934 

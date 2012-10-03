@@ -1,0 +1,69 @@
+
+R Under development (unstable) (2012-01-01 r58032)
+Copyright (C) 2012 The R Foundation for Statistical Computing
+ISBN 3-900051-07-0
+Platform: i686-pc-linux-gnu (32-bit)
+
+R is free software and comes with ABSOLUTELY NO WARRANTY.
+You are welcome to redistribute it under certain conditions.
+Type 'license()' or 'licence()' for distribution details.
+
+  Natural language support but running in an English locale
+
+R is a collaborative project with many contributors.
+Type 'contributors()' for more information and
+'citation()' on how to cite R or R packages in publications.
+
+Type 'demo()' for some demos, 'help()' for on-line help, or
+'help.start()' for an HTML browser interface to help.
+Type 'q()' to quit R.
+
+[Previously saved workspace restored]
+
+> source("Generic_lme4a.R")
+Loading required package: coefplot2
+Loading required package: coda
+Loading required package: lattice
+Loading required package: plyr
+Warning message:
+replacing previous import ‘summary’ when loading ‘lme4’ 
+> fn <- "Contraception_lme4a.RData"
+> sessinfo <- sessionInfo()
+> 
+> data(Contraception, package="mlmRev")
+> Contraception <- transform(Contraception,
++                            ch=factor(ifelse(livch != 0, "Y", "N")))
+> 
+> results <- lme4afit("Contraception",
++                    Contraception,
++                    use ~ age + I(age^2) + ch + (1|district:urban),
++                    binomial)
+Loading required package: lme4a
+Loading required package: Matrix
+
+Attaching package: ‘Matrix’
+
+The following object(s) are masked from ‘package:base’:
+
+    det
+
+Loading required package: minqa
+Loading required package: Rcpp
+Loading required package: MatrixModels
+
+Attaching package: ‘lme4a’
+
+The following object(s) are masked _by_ ‘.GlobalEnv’:
+
+    cbpp
+
+> save("results","sessinfo",file=fn)
+> 
+> form <- use ~ age + I(age^2) + ch + (1|district:urban)
+> ## lme4a does not do AGQ ...
+> results <- list(dfun_lme4other(nAGQ=1,
++                                problem="Contraception",pkg="lme4a",
++                                form=form,data=Contraception,family=binomial))
+Error in dfun_lme4other(nAGQ = 1, problem = "Contraception", pkg = "lme4a",  : 
+  object 'dbad' not found
+Execution halted

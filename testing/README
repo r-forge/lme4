@@ -1,0 +1,59 @@
+This directory is intended for additional testing, especially
+comparisons of lme4 with other package versions/packages, with
+the specific goal of documenting the results of different optimizers
+and combinations of tuning parameters on the results of GLMMs.
+
+Data structure for test results (subject to change): a list with
+elements
+
+ *  problem: data set (character: 'Contraception', 'cbpp', etc.)
+ *  pkg: package used (lme4[|.0], glmmADMB, glmmML)
+ *  method: optimization f'n (character: 'bobyqa', 'nlminb', ...)
+ *  ## ?? optimx: is optimization run through optimx? (logical)
+ *  options: optimization options (list: may be coerced to character)
+ *  time: just elapsed time
+ *  parameters: 
+   * LIST possibly containing
+     fixef
+     ranef
+     VarCorr
+ *  deviance: numeric
+ *  KKT
+ *  bad: logical
+ *  result: description (intended to be relatively free-form)
+ *  AGQ:
+
+Might be easier to store the fits themselves and post-process.
+Problematic for large data sets, though. Also, it's a pain to have objects from many different types of fits all present at once, because there are a lot of conflicts among accessor methods ...
+
+Alternatively, it might be easier to ram everything into a data frame in the first place.
+
+MISC FILES
+================
+xapply.R
+anal1.R
+miscfuns.R
+
+bobqya1_problem.R: demonstrating some kind of environment modification that screws up a second, identical bobyqa run after a preliminary failed one
+
+PROBLEMS (should I organize everything into separate subdirectories ... ??)
+==============
+
+1. Contraception
+
+* Contraception data tests with bobyqa, varying rhobeg/rhoend/tolPwrss
+
+2. CBPP
+
+Cbpp.R
+
+ (bobyqa1: older version that required more internal messing around -- interface now improved?)
+
+coalition2: preliminary tests on a Gamma GLMM on the 'coalition2' data set from Zelig
+
+
+
+
+Generic_lme4.0.R: defines lme4.0fit
+Generic_lme4.R: defines lme4fit
+
