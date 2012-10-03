@@ -1,0 +1,1273 @@
+This is pdfTeX, Version 3.1415926-1.40.10 (TeX Live 2009/Debian) (format=pdflatex 2011.4.5)  16 APR 2012 21:57
+entering extended mode
+ %&-line parsing enabled.
+**Cbpp
+(./Cbpp.tex
+LaTeX2e <2009/09/24>
+Babel <v3.8l> and hyphenation patterns for english, usenglishmax, dumylang, noh
+yphenation, loaded.
+(/usr/share/texmf-texlive/tex/latex/base/article.cls
+Document Class: article 2007/10/19 v1.4h Standard LaTeX document class
+(/usr/share/texmf-texlive/tex/latex/base/size10.clo
+File: size10.clo 2007/10/19 v1.4h Standard LaTeX file (size option)
+)
+\c@part=\count79
+\c@section=\count80
+\c@subsection=\count81
+\c@subsubsection=\count82
+\c@paragraph=\count83
+\c@subparagraph=\count84
+\c@figure=\count85
+\c@table=\count86
+\abovecaptionskip=\skip41
+\belowcaptionskip=\skip42
+\bibindent=\dimen102
+)
+(/usr/share/texmf-texlive/tex/latex/graphics/graphicx.sty
+Package: graphicx 1999/02/16 v1.0f Enhanced LaTeX Graphics (DPC,SPQR)
+
+(/usr/share/texmf-texlive/tex/latex/graphics/keyval.sty
+Package: keyval 1999/03/16 v1.13 key=value parser (DPC)
+\KV@toks@=\toks14
+)
+(/usr/share/texmf-texlive/tex/latex/graphics/graphics.sty
+Package: graphics 2009/02/05 v1.0o Standard LaTeX Graphics (DPC,SPQR)
+
+(/usr/share/texmf-texlive/tex/latex/graphics/trig.sty
+Package: trig 1999/03/16 v1.09 sin cos tan (DPC)
+)
+(/etc/texmf/tex/latex/config/graphics.cfg
+File: graphics.cfg 2009/08/28 v1.8 graphics configuration of TeX Live
+)
+Package graphics Info: Driver file: pdftex.def on input line 91.
+
+(/usr/share/texmf-texlive/tex/latex/pdftex-def/pdftex.def
+File: pdftex.def 2009/08/25 v0.04m Graphics/color for pdfTeX
+\Gread@gobject=\count87
+))
+\Gin@req@height=\dimen103
+\Gin@req@width=\dimen104
+)
+(/usr/share/texmf-texlive/tex/latex/graphics/color.sty
+Package: color 2005/11/14 v1.0j Standard LaTeX Color (DPC)
+
+(/etc/texmf/tex/latex/config/color.cfg
+File: color.cfg 2007/01/18 v1.5 color configuration of teTeX/TeXLive
+)
+Package color Info: Driver file: pdftex.def on input line 130.
+)
+\hlnormalsizeboxclosebrace=\box26
+\hlnormalsizeboxopenbrace=\box27
+\hlnormalsizeboxbackslash=\box28
+\hlnormalsizeboxlessthan=\box29
+\hlnormalsizeboxgreaterthan=\box30
+\hlnormalsizeboxdollar=\box31
+\hlnormalsizeboxunderscore=\box32
+\hlnormalsizeboxand=\box33
+\hlnormalsizeboxhash=\box34
+\hlnormalsizeboxat=\box35
+\hlnormalsizeboxpercent=\box36
+\hlnormalsizeboxhat=\box37
+\hlnormalsizeboxsinglequote=\box38
+\hlnormalsizeboxbacktick=\box39
+\hltinyboxclosebrace=\box40
+\hltinyboxopenbrace=\box41
+\hltinyboxbackslash=\box42
+\hltinyboxlessthan=\box43
+\hltinyboxgreaterthan=\box44
+\hltinyboxdollar=\box45
+\hltinyboxunderscore=\box46
+\hltinyboxand=\box47
+\hltinyboxhash=\box48
+\hltinyboxat=\box49
+\hltinyboxpercent=\box50
+\hltinyboxhat=\box51
+\hltinyboxsinglequote=\box52
+\hltinyboxbacktick=\box53
+\hlscriptsizeboxclosebrace=\box54
+\hlscriptsizeboxopenbrace=\box55
+\hlscriptsizeboxbackslash=\box56
+\hlscriptsizeboxlessthan=\box57
+\hlscriptsizeboxgreaterthan=\box58
+\hlscriptsizeboxdollar=\box59
+\hlscriptsizeboxunderscore=\box60
+\hlscriptsizeboxand=\box61
+\hlscriptsizeboxhash=\box62
+\hlscriptsizeboxat=\box63
+\hlscriptsizeboxpercent=\box64
+\hlscriptsizeboxhat=\box65
+\hlscriptsizeboxsinglequote=\box66
+\hlscriptsizeboxbacktick=\box67
+\hlfootnotesizeboxclosebrace=\box68
+\hlfootnotesizeboxopenbrace=\box69
+\hlfootnotesizeboxbackslash=\box70
+\hlfootnotesizeboxlessthan=\box71
+\hlfootnotesizeboxgreaterthan=\box72
+\hlfootnotesizeboxdollar=\box73
+\hlfootnotesizeboxunderscore=\box74
+\hlfootnotesizeboxand=\box75
+\hlfootnotesizeboxhash=\box76
+\hlfootnotesizeboxat=\box77
+\hlfootnotesizeboxpercent=\box78
+\hlfootnotesizeboxhat=\box79
+\hlfootnotesizeboxsinglequote=\box80
+\hlfootnotesizeboxbacktick=\box81
+\hlsmallboxclosebrace=\box82
+\hlsmallboxopenbrace=\box83
+\hlsmallboxbackslash=\box84
+\hlsmallboxlessthan=\box85
+\hlsmallboxgreaterthan=\box86
+\hlsmallboxdollar=\box87
+\hlsmallboxunderscore=\box88
+\hlsmallboxand=\box89
+\hlsmallboxhash=\box90
+\hlsmallboxat=\box91
+\hlsmallboxpercent=\box92
+\hlsmallboxhat=\box93
+\hlsmallboxsinglequote=\box94
+\hlsmallboxbacktick=\box95
+\hllargeboxclosebrace=\box96
+\hllargeboxopenbrace=\box97
+\hllargeboxbackslash=\box98
+\hllargeboxlessthan=\box99
+\hllargeboxgreaterthan=\box100
+\hllargeboxdollar=\box101
+\hllargeboxunderscore=\box102
+\hllargeboxand=\box103
+\hllargeboxhash=\box104
+\hllargeboxat=\box105
+\hllargeboxpercent=\box106
+\hllargeboxhat=\box107
+\hllargeboxsinglequote=\box108
+\hllargeboxbacktick=\box109
+\hlLargeboxclosebrace=\box110
+\hlLargeboxopenbrace=\box111
+\hlLargeboxbackslash=\box112
+\hlLargeboxlessthan=\box113
+\hlLargeboxgreaterthan=\box114
+\hlLargeboxdollar=\box115
+\hlLargeboxunderscore=\box116
+\hlLargeboxand=\box117
+\hlLargeboxhash=\box118
+\hlLargeboxat=\box119
+\hlLargeboxpercent=\box120
+\hlLargeboxhat=\box121
+\hlLargeboxsinglequote=\box122
+\hlLargeboxbacktick=\box123
+\hlLARGEboxclosebrace=\box124
+\hlLARGEboxopenbrace=\box125
+\hlLARGEboxbackslash=\box126
+\hlLARGEboxlessthan=\box127
+\hlLARGEboxgreaterthan=\box128
+\hlLARGEboxdollar=\box129
+\hlLARGEboxunderscore=\box130
+\hlLARGEboxand=\box131
+\hlLARGEboxhash=\box132
+\hlLARGEboxat=\box133
+\hlLARGEboxpercent=\box134
+\hlLARGEboxhat=\box135
+\hlLARGEboxsinglequote=\box136
+\hlLARGEboxbacktick=\box137
+\hlhugeboxclosebrace=\box138
+\hlhugeboxopenbrace=\box139
+\hlhugeboxbackslash=\box140
+\hlhugeboxlessthan=\box141
+\hlhugeboxgreaterthan=\box142
+\hlhugeboxdollar=\box143
+\hlhugeboxunderscore=\box144
+\hlhugeboxand=\box145
+\hlhugeboxhash=\box146
+\hlhugeboxat=\box147
+\hlhugeboxpercent=\box148
+\hlhugeboxhat=\box149
+\hlhugeboxsinglequote=\box150
+\hlhugeboxbacktick=\box151
+\hlHugeboxclosebrace=\box152
+\hlHugeboxopenbrace=\box153
+\hlHugeboxbackslash=\box154
+\hlHugeboxlessthan=\box155
+\hlHugeboxgreaterthan=\box156
+\hlHugeboxdollar=\box157
+\hlHugeboxunderscore=\box158
+\hlHugeboxand=\box159
+\hlHugeboxhash=\box160
+\hlHugeboxat=\box161
+\hlHugeboxpercent=\box162
+\hlHugeboxhat=\box163
+\hlHugeboxsinglequote=\box164
+\hlHugeboxbacktick=\box165
+
+(/usr/share/texmf-texlive/tex/latex/ltxmisc/framed.sty
+Package: framed 2007/10/04 v 0.95: framed or shaded text with page breaks
+\fb@frw=\dimen105
+\fb@frh=\dimen106
+\FrameRule=\dimen107
+\FrameSep=\dimen108
+) (./Cbpp.aux)
+\openout1 = `Cbpp.aux'.
+
+LaTeX Font Info:    Checking defaults for OML/cmm/m/it on input line 389.
+LaTeX Font Info:    ... okay on input line 389.
+LaTeX Font Info:    Checking defaults for T1/cmr/m/n on input line 389.
+LaTeX Font Info:    ... okay on input line 389.
+LaTeX Font Info:    Checking defaults for OT1/cmr/m/n on input line 389.
+LaTeX Font Info:    ... okay on input line 389.
+LaTeX Font Info:    Checking defaults for OMS/cmsy/m/n on input line 389.
+LaTeX Font Info:    ... okay on input line 389.
+LaTeX Font Info:    Checking defaults for OMX/cmex/m/n on input line 389.
+LaTeX Font Info:    ... okay on input line 389.
+LaTeX Font Info:    Checking defaults for U/cmr/m/n on input line 389.
+LaTeX Font Info:    ... okay on input line 389.
+
+(/usr/share/texmf-texlive/tex/context/base/supp-pdf.mkii
+[Loading MPS to PDF converter (version 2006.09.02).]
+\scratchcounter=\count88
+\scratchdimen=\dimen109
+\scratchbox=\box166
+\nofMPsegments=\count89
+\nofMParguments=\count90
+\everyMPshowfont=\toks15
+\MPscratchCnt=\count91
+\MPscratchDim=\dimen110
+\MPnumerator=\count92
+\everyMPtoPDFconversion=\toks16
+)
+Package color Info: Redefining color shadecolor on input line 404.
+
+Overfull \hbox (1.49698pt too wide) in paragraph at lines 556--556
+[]\OT1/cmtt/m/n/10 ## Warning message: no non-missing arguments to min; returni
+ng Inf[] 
+ []
+
+
+Overfull \hbox (1.49698pt too wide) in paragraph at lines 556--556
+[]\OT1/cmtt/m/n/10 ## Warning message: no non-missing arguments to min; returni
+ng Inf[] 
+ []
+
+
+Overfull \hbox (1.49698pt too wide) in paragraph at lines 556--556
+[]\OT1/cmtt/m/n/10 ## Warning message: no non-missing arguments to min; returni
+ng Inf[] 
+ []
+
+
+Overfull \hbox (1.49698pt too wide) in paragraph at lines 556--556
+[]\OT1/cmtt/m/n/10 ## Warning message: no non-missing arguments to min; returni
+ng Inf[] 
+ []
+
+
+Overfull \hbox (1.49698pt too wide) in paragraph at lines 556--556
+[]\OT1/cmtt/m/n/10 ## Warning message: no non-missing arguments to min; returni
+ng Inf[] 
+ []
+
+
+Overfull \hbox (1.49698pt too wide) in paragraph at lines 556--556
+[]\OT1/cmtt/m/n/10 ## Warning message: no non-missing arguments to min; returni
+ng Inf[] 
+ []
+
+
+Overfull \hbox (1.49698pt too wide) in paragraph at lines 556--556
+[]\OT1/cmtt/m/n/10 ## Warning message: no non-missing arguments to min; returni
+ng Inf[] 
+ []
+
+
+Overfull \hbox (1.49698pt too wide) in paragraph at lines 556--556
+[]\OT1/cmtt/m/n/10 ## Warning message: no non-missing arguments to min; returni
+ng Inf[] 
+ []
+
+
+Overfull \hbox (1.49698pt too wide) in paragraph at lines 556--556
+[]\OT1/cmtt/m/n/10 ## Warning message: no non-missing arguments to min; returni
+ng Inf[] 
+ []
+
+
+Overfull \hbox (1.49698pt too wide) in paragraph at lines 556--556
+[]\OT1/cmtt/m/n/10 ## Warning message: no non-missing arguments to min; returni
+ng Inf[] 
+ []
+
+
+Overfull \hbox (1.49698pt too wide) in paragraph at lines 556--556
+[]\OT1/cmtt/m/n/10 ## Warning message: no non-missing arguments to min; returni
+ng Inf[] 
+ []
+
+
+Overfull \hbox (1.49698pt too wide) in paragraph at lines 556--556
+[]\OT1/cmtt/m/n/10 ## Warning message: no non-missing arguments to min; returni
+ng Inf[] 
+ []
+
+
+Overfull \hbox (1.49698pt too wide) in paragraph at lines 556--556
+[]\OT1/cmtt/m/n/10 ## Warning message: no non-missing arguments to min; returni
+ng Inf[] 
+ []
+
+
+Overfull \hbox (1.49698pt too wide) in paragraph at lines 556--556
+[]\OT1/cmtt/m/n/10 ## Warning message: no non-missing arguments to min; returni
+ng Inf[] 
+ []
+
+
+Overfull \hbox (1.49698pt too wide) in paragraph at lines 556--556
+[]\OT1/cmtt/m/n/10 ## Warning message: no non-missing arguments to min; returni
+ng Inf[] 
+ []
+
+
+Overfull \hbox (1.49698pt too wide) in paragraph at lines 556--556
+[]\OT1/cmtt/m/n/10 ## Warning message: no non-missing arguments to min; returni
+ng Inf[] 
+ []
+
+
+Overfull \hbox (1.49698pt too wide) in paragraph at lines 556--556
+[]\OT1/cmtt/m/n/10 ## Warning message: no non-missing arguments to min; returni
+ng Inf[] 
+ []
+
+
+Overfull \hbox (1.49698pt too wide) in paragraph at lines 556--556
+[]\OT1/cmtt/m/n/10 ## Warning message: no non-missing arguments to min; returni
+ng Inf[] 
+ []
+
+
+Overfull \hbox (1.49698pt too wide) in paragraph at lines 556--556
+[]\OT1/cmtt/m/n/10 ## Warning message: no non-missing arguments to min; returni
+ng Inf[] 
+ []
+
+
+Overfull \hbox (1.49698pt too wide) in paragraph at lines 556--556
+[]\OT1/cmtt/m/n/10 ## Warning message: no non-missing arguments to min; returni
+ng Inf[] 
+ []
+
+
+Overfull \hbox (1.49698pt too wide) in paragraph at lines 556--556
+[]\OT1/cmtt/m/n/10 ## Warning message: no non-missing arguments to min; returni
+ng Inf[] 
+ []
+
+
+Overfull \hbox (1.49698pt too wide) in paragraph at lines 556--556
+[]\OT1/cmtt/m/n/10 ## Warning message: no non-missing arguments to min; returni
+ng Inf[] 
+ []
+
+
+Overfull \hbox (1.49698pt too wide) in paragraph at lines 556--556
+[]\OT1/cmtt/m/n/10 ## Warning message: no non-missing arguments to min; returni
+ng Inf[] 
+ []
+
+
+Overfull \hbox (1.49698pt too wide) in paragraph at lines 556--556
+[]\OT1/cmtt/m/n/10 ## Warning message: no non-missing arguments to min; returni
+ng Inf[] 
+ []
+
+
+Overfull \hbox (1.49698pt too wide) in paragraph at lines 556--556
+[]\OT1/cmtt/m/n/10 ## Warning message: no non-missing arguments to min; returni
+ng Inf[] 
+ []
+
+
+Overfull \hbox (1.49698pt too wide) in paragraph at lines 556--556
+[]\OT1/cmtt/m/n/10 ## Warning message: no non-missing arguments to min; returni
+ng Inf[] 
+ []
+
+
+Overfull \hbox (1.49698pt too wide) in paragraph at lines 556--556
+[]\OT1/cmtt/m/n/10 ## Warning message: no non-missing arguments to min; returni
+ng Inf[] 
+ []
+
+
+Overfull \hbox (1.49698pt too wide) in paragraph at lines 556--556
+[]\OT1/cmtt/m/n/10 ## Warning message: no non-missing arguments to min; returni
+ng Inf[] 
+ []
+
+
+Overfull \hbox (1.49698pt too wide) in paragraph at lines 556--556
+[]\OT1/cmtt/m/n/10 ## Warning message: no non-missing arguments to min; returni
+ng Inf[] 
+ []
+
+
+Overfull \hbox (1.49698pt too wide) in paragraph at lines 556--556
+[]\OT1/cmtt/m/n/10 ## Warning message: no non-missing arguments to min; returni
+ng Inf[] 
+ []
+
+
+Overfull \hbox (1.49698pt too wide) in paragraph at lines 556--556
+[]\OT1/cmtt/m/n/10 ## Warning message: no non-missing arguments to min; returni
+ng Inf[] 
+ []
+
+
+Overfull \hbox (1.49698pt too wide) in paragraph at lines 556--556
+[]\OT1/cmtt/m/n/10 ## Warning message: no non-missing arguments to min; returni
+ng Inf[] 
+ []
+
+
+Overfull \hbox (1.49698pt too wide) in paragraph at lines 556--556
+[]\OT1/cmtt/m/n/10 ## Warning message: no non-missing arguments to min; returni
+ng Inf[] 
+ []
+
+
+Overfull \hbox (1.49698pt too wide) in paragraph at lines 556--556
+[]\OT1/cmtt/m/n/10 ## Warning message: no non-missing arguments to min; returni
+ng Inf[] 
+ []
+
+
+Overfull \hbox (1.49698pt too wide) in paragraph at lines 556--556
+[]\OT1/cmtt/m/n/10 ## Warning message: no non-missing arguments to min; returni
+ng Inf[] 
+ []
+
+
+Overfull \hbox (1.49698pt too wide) in paragraph at lines 556--556
+[]\OT1/cmtt/m/n/10 ## Warning message: no non-missing arguments to min; returni
+ng Inf[] 
+ []
+
+
+Overfull \hbox (1.49698pt too wide) in paragraph at lines 556--556
+[]\OT1/cmtt/m/n/10 ## Warning message: no non-missing arguments to min; returni
+ng Inf[] 
+ []
+
+
+Overfull \hbox (1.49698pt too wide) in paragraph at lines 556--556
+[]\OT1/cmtt/m/n/10 ## Warning message: no non-missing arguments to min; returni
+ng Inf[] 
+ []
+
+
+Overfull \hbox (1.49698pt too wide) in paragraph at lines 556--556
+[]\OT1/cmtt/m/n/10 ## Warning message: no non-missing arguments to min; returni
+ng Inf[] 
+ []
+
+
+Overfull \hbox (1.49698pt too wide) in paragraph at lines 556--556
+[]\OT1/cmtt/m/n/10 ## Warning message: no non-missing arguments to min; returni
+ng Inf[] 
+ []
+
+
+Overfull \hbox (1.49698pt too wide) in paragraph at lines 556--556
+[]\OT1/cmtt/m/n/10 ## Warning message: no non-missing arguments to min; returni
+ng Inf[] 
+ []
+
+
+Overfull \hbox (1.49698pt too wide) in paragraph at lines 556--556
+[]\OT1/cmtt/m/n/10 ## Warning message: no non-missing arguments to min; returni
+ng Inf[] 
+ []
+
+
+Overfull \hbox (1.49698pt too wide) in paragraph at lines 556--556
+[]\OT1/cmtt/m/n/10 ## Warning message: no non-missing arguments to min; returni
+ng Inf[] 
+ []
+
+
+Overfull \hbox (1.49698pt too wide) in paragraph at lines 556--556
+[]\OT1/cmtt/m/n/10 ## Warning message: no non-missing arguments to min; returni
+ng Inf[] 
+ []
+
+
+Overfull \hbox (1.49698pt too wide) in paragraph at lines 556--556
+[]\OT1/cmtt/m/n/10 ## Warning message: no non-missing arguments to min; returni
+ng Inf[] 
+ []
+
+
+Overfull \hbox (1.49698pt too wide) in paragraph at lines 556--556
+[]\OT1/cmtt/m/n/10 ## Warning message: no non-missing arguments to min; returni
+ng Inf[] 
+ []
+
+
+Overfull \hbox (1.49698pt too wide) in paragraph at lines 556--556
+[]\OT1/cmtt/m/n/10 ## Warning message: no non-missing arguments to min; returni
+ng Inf[] 
+ []
+
+
+Overfull \hbox (1.49698pt too wide) in paragraph at lines 556--556
+[]\OT1/cmtt/m/n/10 ## Warning message: no non-missing arguments to min; returni
+ng Inf[] 
+ []
+
+
+Overfull \hbox (1.49698pt too wide) in paragraph at lines 556--556
+[]\OT1/cmtt/m/n/10 ## Warning message: no non-missing arguments to min; returni
+ng Inf[] 
+ []
+
+
+Overfull \hbox (1.49698pt too wide) in paragraph at lines 556--556
+[]\OT1/cmtt/m/n/10 ## Warning message: no non-missing arguments to min; returni
+ng Inf[] 
+ []
+
+
+Overfull \hbox (1.49698pt too wide) in paragraph at lines 556--556
+[]\OT1/cmtt/m/n/10 ## Warning message: no non-missing arguments to min; returni
+ng Inf[] 
+ []
+
+
+Overfull \hbox (1.49698pt too wide) in paragraph at lines 556--556
+[]\OT1/cmtt/m/n/10 ## Warning message: no non-missing arguments to min; returni
+ng Inf[] 
+ []
+
+
+Overfull \hbox (1.49698pt too wide) in paragraph at lines 556--556
+[]\OT1/cmtt/m/n/10 ## Warning message: no non-missing arguments to min; returni
+ng Inf[] 
+ []
+
+
+Overfull \hbox (1.49698pt too wide) in paragraph at lines 556--556
+[]\OT1/cmtt/m/n/10 ## Warning message: no non-missing arguments to min; returni
+ng Inf[] 
+ []
+
+
+Overfull \hbox (1.49698pt too wide) in paragraph at lines 556--556
+[]\OT1/cmtt/m/n/10 ## Warning message: no non-missing arguments to min; returni
+ng Inf[] 
+ []
+
+
+Overfull \hbox (1.49698pt too wide) in paragraph at lines 556--556
+[]\OT1/cmtt/m/n/10 ## Warning message: no non-missing arguments to min; returni
+ng Inf[] 
+ []
+
+
+Overfull \hbox (1.49698pt too wide) in paragraph at lines 556--556
+[]\OT1/cmtt/m/n/10 ## Warning message: no non-missing arguments to min; returni
+ng Inf[] 
+ []
+
+
+Overfull \hbox (1.49698pt too wide) in paragraph at lines 556--556
+[]\OT1/cmtt/m/n/10 ## Warning message: no non-missing arguments to min; returni
+ng Inf[] 
+ []
+
+
+Overfull \hbox (1.49698pt too wide) in paragraph at lines 556--556
+[]\OT1/cmtt/m/n/10 ## Warning message: no non-missing arguments to min; returni
+ng Inf[] 
+ []
+
+
+Overfull \hbox (1.49698pt too wide) in paragraph at lines 556--556
+[]\OT1/cmtt/m/n/10 ## Warning message: no non-missing arguments to min; returni
+ng Inf[] 
+ []
+
+
+Overfull \hbox (1.49698pt too wide) in paragraph at lines 556--556
+[]\OT1/cmtt/m/n/10 ## Warning message: no non-missing arguments to min; returni
+ng Inf[] 
+ []
+
+
+Overfull \hbox (1.49698pt too wide) in paragraph at lines 556--556
+[]\OT1/cmtt/m/n/10 ## Warning message: no non-missing arguments to min; returni
+ng Inf[] 
+ []
+
+
+Overfull \hbox (1.49698pt too wide) in paragraph at lines 556--556
+[]\OT1/cmtt/m/n/10 ## Warning message: no non-missing arguments to min; returni
+ng Inf[] 
+ []
+
+
+Overfull \hbox (1.49698pt too wide) in paragraph at lines 556--556
+[]\OT1/cmtt/m/n/10 ## Warning message: no non-missing arguments to min; returni
+ng Inf[] 
+ []
+
+
+Overfull \hbox (1.49698pt too wide) in paragraph at lines 556--556
+[]\OT1/cmtt/m/n/10 ## Warning message: no non-missing arguments to min; returni
+ng Inf[] 
+ []
+
+
+Overfull \hbox (1.49698pt too wide) in paragraph at lines 556--556
+[]\OT1/cmtt/m/n/10 ## Warning message: no non-missing arguments to min; returni
+ng Inf[] 
+ []
+
+
+Overfull \hbox (1.49698pt too wide) in paragraph at lines 556--556
+[]\OT1/cmtt/m/n/10 ## Warning message: no non-missing arguments to min; returni
+ng Inf[] 
+ []
+
+
+Overfull \hbox (1.49698pt too wide) in paragraph at lines 556--556
+[]\OT1/cmtt/m/n/10 ## Warning message: no non-missing arguments to min; returni
+ng Inf[] 
+ []
+
+
+Overfull \hbox (1.49698pt too wide) in paragraph at lines 556--556
+[]\OT1/cmtt/m/n/10 ## Warning message: no non-missing arguments to min; returni
+ng Inf[] 
+ []
+
+
+Overfull \hbox (1.49698pt too wide) in paragraph at lines 556--556
+[]\OT1/cmtt/m/n/10 ## Warning message: no non-missing arguments to min; returni
+ng Inf[] 
+ []
+
+
+Overfull \hbox (1.49698pt too wide) in paragraph at lines 556--556
+[]\OT1/cmtt/m/n/10 ## Warning message: no non-missing arguments to min; returni
+ng Inf[] 
+ []
+
+
+Overfull \hbox (1.49698pt too wide) in paragraph at lines 556--556
+[]\OT1/cmtt/m/n/10 ## Warning message: no non-missing arguments to min; returni
+ng Inf[] 
+ []
+
+
+Overfull \hbox (1.49698pt too wide) in paragraph at lines 556--556
+[]\OT1/cmtt/m/n/10 ## Warning message: no non-missing arguments to min; returni
+ng Inf[] 
+ []
+
+
+Overfull \hbox (1.49698pt too wide) in paragraph at lines 556--556
+[]\OT1/cmtt/m/n/10 ## Warning message: no non-missing arguments to min; returni
+ng Inf[] 
+ []
+
+
+Overfull \hbox (1.49698pt too wide) in paragraph at lines 556--556
+[]\OT1/cmtt/m/n/10 ## Warning message: no non-missing arguments to min; returni
+ng Inf[] 
+ []
+
+
+Overfull \hbox (1.49698pt too wide) in paragraph at lines 556--556
+[]\OT1/cmtt/m/n/10 ## Warning message: no non-missing arguments to min; returni
+ng Inf[] 
+ []
+
+
+Overfull \hbox (1.49698pt too wide) in paragraph at lines 556--556
+[]\OT1/cmtt/m/n/10 ## Warning message: no non-missing arguments to min; returni
+ng Inf[] 
+ []
+
+
+Overfull \hbox (1.49698pt too wide) in paragraph at lines 556--556
+[]\OT1/cmtt/m/n/10 ## Warning message: no non-missing arguments to min; returni
+ng Inf[] 
+ []
+
+
+Overfull \hbox (1.49698pt too wide) in paragraph at lines 556--556
+[]\OT1/cmtt/m/n/10 ## Warning message: no non-missing arguments to min; returni
+ng Inf[] 
+ []
+
+
+Overfull \hbox (1.49698pt too wide) in paragraph at lines 556--556
+[]\OT1/cmtt/m/n/10 ## Warning message: no non-missing arguments to min; returni
+ng Inf[] 
+ []
+
+
+Overfull \hbox (1.49698pt too wide) in paragraph at lines 556--556
+[]\OT1/cmtt/m/n/10 ## Warning message: no non-missing arguments to min; returni
+ng Inf[] 
+ []
+
+
+Overfull \hbox (1.49698pt too wide) in paragraph at lines 556--556
+[]\OT1/cmtt/m/n/10 ## Warning message: no non-missing arguments to min; returni
+ng Inf[] 
+ []
+
+
+Overfull \hbox (1.49698pt too wide) in paragraph at lines 556--556
+[]\OT1/cmtt/m/n/10 ## Warning message: no non-missing arguments to min; returni
+ng Inf[] 
+ []
+
+
+Overfull \hbox (1.49698pt too wide) in paragraph at lines 556--556
+[]\OT1/cmtt/m/n/10 ## Warning message: no non-missing arguments to min; returni
+ng Inf[] 
+ []
+
+
+Overfull \hbox (1.49698pt too wide) in paragraph at lines 556--556
+[]\OT1/cmtt/m/n/10 ## Warning message: no non-missing arguments to min; returni
+ng Inf[] 
+ []
+
+
+Overfull \hbox (1.49698pt too wide) in paragraph at lines 556--556
+[]\OT1/cmtt/m/n/10 ## Warning message: no non-missing arguments to min; returni
+ng Inf[] 
+ []
+
+
+Overfull \hbox (1.49698pt too wide) in paragraph at lines 556--556
+[]\OT1/cmtt/m/n/10 ## Warning message: no non-missing arguments to min; returni
+ng Inf[] 
+ []
+
+
+Overfull \hbox (1.49698pt too wide) in paragraph at lines 556--556
+[]\OT1/cmtt/m/n/10 ## Warning message: no non-missing arguments to min; returni
+ng Inf[] 
+ []
+
+
+Overfull \hbox (1.49698pt too wide) in paragraph at lines 556--556
+[]\OT1/cmtt/m/n/10 ## Warning message: no non-missing arguments to min; returni
+ng Inf[] 
+ []
+
+
+Overfull \hbox (1.49698pt too wide) in paragraph at lines 556--556
+[]\OT1/cmtt/m/n/10 ## Warning message: no non-missing arguments to min; returni
+ng Inf[] 
+ []
+
+
+Overfull \hbox (1.49698pt too wide) in paragraph at lines 556--556
+[]\OT1/cmtt/m/n/10 ## Warning message: no non-missing arguments to min; returni
+ng Inf[] 
+ []
+
+
+Overfull \hbox (1.49698pt too wide) in paragraph at lines 556--556
+[]\OT1/cmtt/m/n/10 ## Warning message: no non-missing arguments to min; returni
+ng Inf[] 
+ []
+
+
+Overfull \hbox (1.49698pt too wide) in paragraph at lines 556--556
+[]\OT1/cmtt/m/n/10 ## Warning message: no non-missing arguments to min; returni
+ng Inf[] 
+ []
+
+
+Overfull \hbox (1.49698pt too wide) in paragraph at lines 556--556
+[]\OT1/cmtt/m/n/10 ## Warning message: no non-missing arguments to min; returni
+ng Inf[] 
+ []
+
+
+Overfull \hbox (1.49698pt too wide) in paragraph at lines 556--556
+[]\OT1/cmtt/m/n/10 ## Warning message: no non-missing arguments to min; returni
+ng Inf[] 
+ []
+
+
+Overfull \hbox (1.49698pt too wide) in paragraph at lines 556--556
+[]\OT1/cmtt/m/n/10 ## Warning message: no non-missing arguments to min; returni
+ng Inf[] 
+ []
+
+
+Overfull \hbox (1.49698pt too wide) in paragraph at lines 556--556
+[]\OT1/cmtt/m/n/10 ## Warning message: no non-missing arguments to min; returni
+ng Inf[] 
+ []
+
+
+Overfull \hbox (1.49698pt too wide) in paragraph at lines 556--556
+[]\OT1/cmtt/m/n/10 ## Warning message: no non-missing arguments to min; returni
+ng Inf[] 
+ []
+
+
+Overfull \hbox (1.49698pt too wide) in paragraph at lines 556--556
+[]\OT1/cmtt/m/n/10 ## Warning message: no non-missing arguments to min; returni
+ng Inf[] 
+ []
+
+
+Overfull \hbox (1.49698pt too wide) in paragraph at lines 556--556
+[]\OT1/cmtt/m/n/10 ## Warning message: no non-missing arguments to min; returni
+ng Inf[] 
+ []
+
+
+Overfull \hbox (1.49698pt too wide) in paragraph at lines 556--556
+[]\OT1/cmtt/m/n/10 ## Warning message: no non-missing arguments to min; returni
+ng Inf[] 
+ []
+
+
+Overfull \hbox (1.49698pt too wide) in paragraph at lines 556--556
+[]\OT1/cmtt/m/n/10 ## Warning message: no non-missing arguments to min; returni
+ng Inf[] 
+ []
+
+
+Overfull \hbox (1.49698pt too wide) in paragraph at lines 556--556
+[]\OT1/cmtt/m/n/10 ## Warning message: no non-missing arguments to min; returni
+ng Inf[] 
+ []
+
+
+Overfull \hbox (1.49698pt too wide) in paragraph at lines 556--556
+[]\OT1/cmtt/m/n/10 ## Warning message: no non-missing arguments to min; returni
+ng Inf[] 
+ []
+
+
+Overfull \hbox (1.49698pt too wide) in paragraph at lines 556--556
+[]\OT1/cmtt/m/n/10 ## Warning message: no non-missing arguments to min; returni
+ng Inf[] 
+ []
+
+
+Overfull \hbox (1.49698pt too wide) in paragraph at lines 556--556
+[]\OT1/cmtt/m/n/10 ## Warning message: no non-missing arguments to min; returni
+ng Inf[] 
+ []
+
+
+Overfull \hbox (1.49698pt too wide) in paragraph at lines 556--556
+[]\OT1/cmtt/m/n/10 ## Warning message: no non-missing arguments to min; returni
+ng Inf[] 
+ []
+
+
+Overfull \hbox (1.49698pt too wide) in paragraph at lines 556--556
+[]\OT1/cmtt/m/n/10 ## Warning message: no non-missing arguments to min; returni
+ng Inf[] 
+ []
+
+
+Overfull \hbox (1.49698pt too wide) in paragraph at lines 556--556
+[]\OT1/cmtt/m/n/10 ## Warning message: no non-missing arguments to min; returni
+ng Inf[] 
+ []
+
+
+Overfull \hbox (1.49698pt too wide) in paragraph at lines 556--556
+[]\OT1/cmtt/m/n/10 ## Warning message: no non-missing arguments to min; returni
+ng Inf[] 
+ []
+
+
+Overfull \hbox (1.49698pt too wide) in paragraph at lines 556--556
+[]\OT1/cmtt/m/n/10 ## Warning message: no non-missing arguments to min; returni
+ng Inf[] 
+ []
+
+
+Overfull \hbox (1.49698pt too wide) in paragraph at lines 556--556
+[]\OT1/cmtt/m/n/10 ## Warning message: no non-missing arguments to min; returni
+ng Inf[] 
+ []
+
+
+Overfull \hbox (1.49698pt too wide) in paragraph at lines 556--556
+[]\OT1/cmtt/m/n/10 ## Warning message: no non-missing arguments to min; returni
+ng Inf[] 
+ []
+
+
+Overfull \hbox (1.49698pt too wide) in paragraph at lines 556--556
+[]\OT1/cmtt/m/n/10 ## Warning message: no non-missing arguments to min; returni
+ng Inf[] 
+ []
+
+
+Overfull \hbox (1.49698pt too wide) in paragraph at lines 556--556
+[]\OT1/cmtt/m/n/10 ## Warning message: no non-missing arguments to min; returni
+ng Inf[] 
+ []
+
+
+Overfull \hbox (1.49698pt too wide) in paragraph at lines 556--556
+[]\OT1/cmtt/m/n/10 ## Warning message: no non-missing arguments to min; returni
+ng Inf[] 
+ []
+
+
+Overfull \hbox (1.49698pt too wide) in paragraph at lines 556--556
+[]\OT1/cmtt/m/n/10 ## Warning message: no non-missing arguments to min; returni
+ng Inf[] 
+ []
+
+
+Overfull \hbox (1.49698pt too wide) in paragraph at lines 556--556
+[]\OT1/cmtt/m/n/10 ## Warning message: no non-missing arguments to min; returni
+ng Inf[] 
+ []
+
+
+Overfull \hbox (1.49698pt too wide) in paragraph at lines 556--556
+[]\OT1/cmtt/m/n/10 ## Warning message: no non-missing arguments to min; returni
+ng Inf[] 
+ []
+
+
+Overfull \hbox (1.49698pt too wide) in paragraph at lines 556--556
+[]\OT1/cmtt/m/n/10 ## Warning message: no non-missing arguments to min; returni
+ng Inf[] 
+ []
+
+
+Overfull \hbox (1.49698pt too wide) in paragraph at lines 556--556
+[]\OT1/cmtt/m/n/10 ## Warning message: no non-missing arguments to min; returni
+ng Inf[] 
+ []
+
+
+Overfull \hbox (1.49698pt too wide) in paragraph at lines 556--556
+[]\OT1/cmtt/m/n/10 ## Warning message: no non-missing arguments to min; returni
+ng Inf[] 
+ []
+
+
+Overfull \hbox (1.49698pt too wide) in paragraph at lines 556--556
+[]\OT1/cmtt/m/n/10 ## Warning message: no non-missing arguments to min; returni
+ng Inf[] 
+ []
+
+
+Overfull \hbox (1.49698pt too wide) in paragraph at lines 556--556
+[]\OT1/cmtt/m/n/10 ## Warning message: no non-missing arguments to min; returni
+ng Inf[] 
+ []
+
+
+Overfull \hbox (1.49698pt too wide) in paragraph at lines 556--556
+[]\OT1/cmtt/m/n/10 ## Warning message: no non-missing arguments to min; returni
+ng Inf[] 
+ []
+
+
+Overfull \hbox (1.49698pt too wide) in paragraph at lines 556--556
+[]\OT1/cmtt/m/n/10 ## Warning message: no non-missing arguments to min; returni
+ng Inf[] 
+ []
+
+
+Overfull \hbox (1.49698pt too wide) in paragraph at lines 556--556
+[]\OT1/cmtt/m/n/10 ## Warning message: no non-missing arguments to min; returni
+ng Inf[] 
+ []
+
+
+Overfull \hbox (1.49698pt too wide) in paragraph at lines 556--556
+[]\OT1/cmtt/m/n/10 ## Warning message: no non-missing arguments to min; returni
+ng Inf[] 
+ []
+
+
+Overfull \hbox (1.49698pt too wide) in paragraph at lines 556--556
+[]\OT1/cmtt/m/n/10 ## Warning message: no non-missing arguments to min; returni
+ng Inf[] 
+ []
+
+
+Overfull \hbox (1.49698pt too wide) in paragraph at lines 556--556
+[]\OT1/cmtt/m/n/10 ## Warning message: no non-missing arguments to min; returni
+ng Inf[] 
+ []
+
+
+Overfull \hbox (1.49698pt too wide) in paragraph at lines 556--556
+[]\OT1/cmtt/m/n/10 ## Warning message: no non-missing arguments to min; returni
+ng Inf[] 
+ []
+
+
+Overfull \hbox (1.49698pt too wide) in paragraph at lines 556--556
+[]\OT1/cmtt/m/n/10 ## Warning message: no non-missing arguments to min; returni
+ng Inf[] 
+ []
+
+
+Overfull \hbox (1.49698pt too wide) in paragraph at lines 556--556
+[]\OT1/cmtt/m/n/10 ## Warning message: no non-missing arguments to min; returni
+ng Inf[] 
+ []
+
+
+Overfull \hbox (1.49698pt too wide) in paragraph at lines 556--556
+[]\OT1/cmtt/m/n/10 ## Warning message: no non-missing arguments to min; returni
+ng Inf[] 
+ []
+
+
+Overfull \hbox (1.49698pt too wide) in paragraph at lines 556--556
+[]\OT1/cmtt/m/n/10 ## Warning message: no non-missing arguments to min; returni
+ng Inf[] 
+ []
+
+
+Overfull \hbox (1.49698pt too wide) in paragraph at lines 556--556
+[]\OT1/cmtt/m/n/10 ## Warning message: no non-missing arguments to min; returni
+ng Inf[] 
+ []
+
+
+Overfull \hbox (1.49698pt too wide) in paragraph at lines 556--556
+[]\OT1/cmtt/m/n/10 ## Warning message: no non-missing arguments to min; returni
+ng Inf[] 
+ []
+
+
+Overfull \hbox (1.49698pt too wide) in paragraph at lines 556--556
+[]\OT1/cmtt/m/n/10 ## Warning message: no non-missing arguments to min; returni
+ng Inf[] 
+ []
+
+
+Overfull \hbox (1.49698pt too wide) in paragraph at lines 556--556
+[]\OT1/cmtt/m/n/10 ## Warning message: no non-missing arguments to min; returni
+ng Inf[] 
+ []
+
+
+Overfull \hbox (1.49698pt too wide) in paragraph at lines 556--556
+[]\OT1/cmtt/m/n/10 ## Warning message: no non-missing arguments to min; returni
+ng Inf[] 
+ []
+
+
+Overfull \hbox (1.49698pt too wide) in paragraph at lines 556--556
+[]\OT1/cmtt/m/n/10 ## Warning message: no non-missing arguments to min; returni
+ng Inf[] 
+ []
+
+
+Overfull \hbox (1.49698pt too wide) in paragraph at lines 556--556
+[]\OT1/cmtt/m/n/10 ## Warning message: no non-missing arguments to min; returni
+ng Inf[] 
+ []
+
+
+Overfull \hbox (1.49698pt too wide) in paragraph at lines 556--556
+[]\OT1/cmtt/m/n/10 ## Warning message: no non-missing arguments to min; returni
+ng Inf[] 
+ []
+
+
+Overfull \hbox (1.49698pt too wide) in paragraph at lines 556--556
+[]\OT1/cmtt/m/n/10 ## Warning message: no non-missing arguments to min; returni
+ng Inf[] 
+ []
+
+
+Overfull \hbox (1.49698pt too wide) in paragraph at lines 556--556
+[]\OT1/cmtt/m/n/10 ## Warning message: no non-missing arguments to min; returni
+ng Inf[] 
+ []
+
+
+Overfull \hbox (1.49698pt too wide) in paragraph at lines 556--556
+[]\OT1/cmtt/m/n/10 ## Warning message: no non-missing arguments to min; returni
+ng Inf[] 
+ []
+
+
+Overfull \hbox (1.49698pt too wide) in paragraph at lines 556--556
+[]\OT1/cmtt/m/n/10 ## Warning message: no non-missing arguments to min; returni
+ng Inf[] 
+ []
+
+
+Overfull \hbox (1.49698pt too wide) in paragraph at lines 556--556
+[]\OT1/cmtt/m/n/10 ## Warning message: no non-missing arguments to min; returni
+ng Inf[] 
+ []
+
+
+Overfull \hbox (1.49698pt too wide) in paragraph at lines 556--556
+[]\OT1/cmtt/m/n/10 ## Warning message: no non-missing arguments to min; returni
+ng Inf[] 
+ []
+
+
+Overfull \hbox (1.49698pt too wide) in paragraph at lines 556--556
+[]\OT1/cmtt/m/n/10 ## Warning message: no non-missing arguments to min; returni
+ng Inf[] 
+ []
+
+
+Overfull \vbox (1.13333pt too high) detected at line 557
+ []
+
+[1
+
+{/var/lib/texmf/fonts/map/pdftex/updmap/pdftex.map}]
+Underfull \vbox (badness 10000) detected at line 557
+ []
+
+
+Underfull \vbox (badness 10000) detected at line 557
+ []
+
+[2]
+Underfull \vbox (badness 10000) detected at line 557
+ []
+
+
+Underfull \vbox (badness 10000) detected at line 557
+ []
+
+[3]
+Package color Info: Redefining color shadecolor on input line 568.
+
+Overfull \hbox (1.49698pt too wide) in paragraph at lines 583--583
+[]\OT1/cmtt/m/n/10 ## Warning message: no non-missing arguments to min; returni
+ng Inf[] 
+ []
+
+
+Overfull \hbox (6.74693pt too wide) in paragraph at lines 583--583
+[]\OT1/cmtt/m/n/10 ## Warning message: no non-missing arguments to max; returni
+ng -Inf[] 
+ []
+
+
+Overfull \hbox (1.49698pt too wide) in paragraph at lines 583--583
+[]\OT1/cmtt/m/n/10 ## Warning message: no non-missing arguments to min; returni
+ng Inf[] 
+ []
+
+
+Overfull \hbox (6.74693pt too wide) in paragraph at lines 583--583
+[]\OT1/cmtt/m/n/10 ## Warning message: no non-missing arguments to max; returni
+ng -Inf[] 
+ []
+
+
+Overfull \hbox (1.49698pt too wide) in paragraph at lines 583--583
+[]\OT1/cmtt/m/n/10 ## Warning message: no non-missing arguments to min; returni
+ng Inf[] 
+ []
+
+
+Overfull \hbox (6.74693pt too wide) in paragraph at lines 583--583
+[]\OT1/cmtt/m/n/10 ## Warning message: no non-missing arguments to max; returni
+ng -Inf[] 
+ []
+
+
+Overfull \hbox (1.49698pt too wide) in paragraph at lines 583--583
+[]\OT1/cmtt/m/n/10 ## Warning message: no non-missing arguments to min; returni
+ng Inf[] 
+ []
+
+
+Overfull \hbox (6.74693pt too wide) in paragraph at lines 583--583
+[]\OT1/cmtt/m/n/10 ## Warning message: no non-missing arguments to max; returni
+ng -Inf[] 
+ []
+
+
+Overfull \hbox (1.49698pt too wide) in paragraph at lines 583--583
+[]\OT1/cmtt/m/n/10 ## Warning message: no non-missing arguments to min; returni
+ng Inf[] 
+ []
+
+
+Overfull \hbox (6.74693pt too wide) in paragraph at lines 583--583
+[]\OT1/cmtt/m/n/10 ## Warning message: no non-missing arguments to max; returni
+ng -Inf[] 
+ []
+
+
+Overfull \hbox (1.49698pt too wide) in paragraph at lines 583--583
+[]\OT1/cmtt/m/n/10 ## Warning message: no non-missing arguments to min; returni
+ng Inf[] 
+ []
+
+
+Overfull \hbox (6.74693pt too wide) in paragraph at lines 583--583
+[]\OT1/cmtt/m/n/10 ## Warning message: no non-missing arguments to max; returni
+ng -Inf[] 
+ []
+
+
+Overfull \hbox (95.99615pt too wide) in paragraph at lines 583--583
+[]\OT1/cmtt/m/n/10 ## Error: Zero breaks in scale for y/ymin/ymax/yend/yinterce
+pt/ymin_final/ymax_final[] 
+ []
+
+Package color Info: Redefining color shadecolor on input line 596.
+<figures/Cbpp-lme4-bobyqa.pdf, id=13, 578.16pt x 361.35pt>
+File: figures/Cbpp-lme4-bobyqa.pdf Graphic file (type pdf)
+
+<use figures/Cbpp-lme4-bobyqa.pdf> [4]
+Package color Info: Redefining color shadecolor on input line 621.
+
+<figures/Cbpp-allplot.pdf, id=18, 578.16pt x 361.35pt>
+File: figures/Cbpp-allplot.pdf Graphic file (type pdf)
+
+<use figures/Cbpp-allplot.pdf>
+Package color Info: Redefining color shadecolor on input line 633.
+
+<figures/Cbpp-allplot2.pdf, id=19, 578.16pt x 361.35pt>
+File: figures/Cbpp-allplot2.pdf Graphic file (type pdf)
+
+<use figures/Cbpp-allplot2.pdf> [5 <./figures/Cbpp-lme4-bobyqa.pdf> <./figures/
+Cbpp-allplot.pdf>] [6 <./figures/Cbpp-allplot2.pdf>] (./Cbpp.aux) ) 
+Here is how much of TeX's memory you used:
+ 1189 strings out of 495061
+ 15789 string characters out of 1182622
+ 91328 words of memory out of 3000000
+ 4403 multiletter control sequences out of 15000+50000
+ 8029 words of font info for 33 fonts, out of 3000000 for 9000
+ 28 hyphenation exceptions out of 8191
+ 25i,5n,19p,231b,167s stack positions out of 5000i,500n,10000p,200000b,50000s
+</usr/share/
+texmf-texlive/fonts/type1/public/amsfonts/cm/cmbx12.pfb></usr/share/texmf-texli
+ve/fonts/type1/public/amsfonts/cm/cmr10.pfb></usr/share/texmf-texlive/fonts/typ
+e1/public/amsfonts/cm/cmtt10.pfb>
+Output written on Cbpp.pdf (6 pages, 307123 bytes).
+PDF statistics:
+ 64 PDF objects out of 1000 (max. 8388607)
+ 0 named destinations out of 1000 (max. 500000)
+ 16 words of extra memory for PDF output out of 10000 (max. 10000000)
+

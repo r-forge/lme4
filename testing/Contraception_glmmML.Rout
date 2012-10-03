@@ -1,0 +1,52 @@
+
+R Under development (unstable) (2012-01-01 r58032)
+Copyright (C) 2012 The R Foundation for Statistical Computing
+ISBN 3-900051-07-0
+Platform: i686-pc-linux-gnu (32-bit)
+
+R is free software and comes with ABSOLUTELY NO WARRANTY.
+You are welcome to redistribute it under certain conditions.
+Type 'license()' or 'licence()' for distribution details.
+
+  Natural language support but running in an English locale
+
+R is a collaborative project with many contributors.
+Type 'contributors()' for more information and
+'citation()' on how to cite R or R packages in publications.
+
+Type 'demo()' for some demos, 'help()' for on-line help, or
+'help.start()' for an HTML browser interface to help.
+Type 'q()' to quit R.
+
+[Previously saved workspace restored]
+
+> source("xapply.R")
+> source("miscfuns.R")
+Loading required package: coefplot2
+Loading required package: coda
+Loading required package: lattice
+Warning message:
+replacing previous import ‘summary’ when loading ‘lme4’ 
+> library(plyr)
+> source("Generic_glmmML.R")
+> 
+> sessinfo <- sessionInfo()
+> 
+> fn <- "Contraception_glmmML.RData"
+> data(Contraception, package="mlmRev")
+> Contraception <- transform(Contraception,
++                            ch=factor(ifelse(livch != 0, "Y", "N")),
++                            use=as.numeric(use)-1,
++                            cluster=interaction(district,urban))
+> form <- use ~ age + I(age^2) + ch
+> Family <- binomial
+> 
+> results <- glmmMLfit("Contraception",Contraception,form,binomial)
+Loading required package: glmmML
+  |                                                                              |                                                                      |   0%  |                                                                              |============                                                          |  17%  |                                                                              |=======================                                               |  33%  |                                                                              |===================================                                   |  50%  |                                                                              |===============================================                       |  67%  |                                                                              |==========================================================            |  83%  |                                                                              |======================================================================| 100%
+> 
+> save("results","sessinfo",file=fn)
+> 
+> proc.time()
+   user  system elapsed 
+  8.260   2.560  11.386 

@@ -1,0 +1,5 @@
+#!/bin/bash
+for i in lme4_bobyqa lme4_NM lme4.0 glmmML glmmADMB; do
+    sed -f $1.sed <GEN_$i.R >$1_$i.R
+done
+sed -f $1.sed <GEN.Rnw >$1.Rnw

@@ -1,0 +1,32 @@
+library(lme4)
+agqfun <- function(n=1) {
+    deviance(glmer(cbind(incidence, size - incidence) ~ period + (1 | herd),
+                   family = binomial, data = cbpp, nAGQ=n))
+}
+
+## FIXME: skip tests while nAGQ>1 broken
+if (FALSE) {
+agqvec <- 1:25
+dvec <- sapply(agqvec,agqfun)
+plot(dvec~agqvec)
+
+detach("package:lme4")
+library(lme4.0)
+dvec2 <- sapply(agqvec,agqfun)
+matplot(agqvec,cbind(dvec,dvec2),type="l",lty=1)
+plot(dvec-dvec2)
+
+detach("package:lme4.0")
+library(glmmML)
+data(cbpp,package="lme4")
+agqfun2 <- function(n=1) {
+    deviance(glmmML(cbind(incidence, size - incidence) ~ period,
+                   family = binomial,
+                    cluster=herd,
+                    method="ghq",
+                    n.points=n,
+                    data = cbpp))
+}
+dvec3 <- sapply(agqvec,agqfun2)
+matplot(agqvec,cbind(dvec,dvec2,dvec3),type="l",lty=1)
+}

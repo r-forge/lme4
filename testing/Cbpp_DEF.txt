@@ -1,0 +1,5 @@
+NAME    Cbpp
+DATNAME cbpp
+DATPKG  lme4
+FORM    cbind(incidence,size-incidence)~period+(1|herd)
+FAMILY  binomial

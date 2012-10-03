@@ -1,0 +1,179 @@
+
+R Under development (unstable) (2012-03-04 r58577)
+Copyright (C) 2012 The R Foundation for Statistical Computing
+ISBN 3-900051-07-0
+Platform: i686-pc-linux-gnu (32-bit)
+
+R is free software and comes with ABSOLUTELY NO WARRANTY.
+You are welcome to redistribute it under certain conditions.
+Type 'license()' or 'licence()' for distribution details.
+
+  Natural language support but running in an English locale
+
+R is a collaborative project with many contributors.
+Type 'contributors()' for more information and
+'citation()' on how to cite R or R packages in publications.
+
+Type 'demo()' for some demos, 'help()' for on-line help, or
+'help.start()' for an HTML browser interface to help.
+Type 'q()' to quit R.
+
+> fn <- "Bacteria_lme4_NM.RData"
+> source("Generic_lme4.R")
+Loading required package: coefplot2
+Loading required package: coda
+Loading required package: lattice
+Loading required package: plyr
+> 
+> sessinfo <- sessionInfo()
+> data(bacteria,package="MASS")
+> results <- lme4fit("Bacteria",
++                    bacteria,
++                    y~trt+I(week>2)+(1|ID),
++                    "binomial")
+Loading required package: lme4
+Loading required package: Matrix
+  |                                                                              |                                                                      |   0%  |                                                                              |                                                                      |   1%  |                                                                              |=                                                                     |   1%  |                                                                              |=                                                                     |   2%  |                                                                              |==                                                                    |   3%caught warning: failure to converge in 10000 evaluations 
+caught warning: failure to converge in 10000 evaluations 
+  |                                                                              |===                                                                   |   4%caught warning: failure to converge in 10000 evaluations 
+  |                                                                              |===                                                                   |   5%caught warning: failure to converge in 10000 evaluations 
+  |                                                                              |====                                                                  |   5%caught warning: failure to converge in 10000 evaluations 
+  |                                                                              |====                                                                  |   6%caught warning: failure to converge in 10000 evaluations 
+  |                                                                              |=====                                                                 |   7%caught warning: failure to converge in 10000 evaluations 
+caught warning: failure to converge in 10000 evaluations 
+caught warning: failure to converge in 10000 evaluations 
+caught warning: failure to converge in 10000 evaluations 
+  |                                                                              |======                                                                |   8%caught warning: failure to converge in 10000 evaluations 
+caught warning: failure to converge in 10000 evaluations 
+  |                                                                              |======                                                                |   9%caught warning: failure to converge in 10000 evaluations 
+  |                                                                              |=======                                                               |   9%caught warning: failure to converge in 10000 evaluations 
+caught warning: failure to converge in 10000 evaluations 
+  |                                                                              |=======                                                               |  10%caught warning: failure to converge in 10000 evaluations 
+caught warning: failure to converge in 10000 evaluations 
+  |                                                                              |=======                                                               |  11%caught warning: failure to converge in 10000 evaluations 
+  |                                                                              |========                                                              |  11%caught warning: failure to converge in 10000 evaluations 
+  |                                                                              |========                                                              |  12%caught warning: failure to converge in 10000 evaluations 
+  |                                                                              |=========                                                             |  13%caught warning: failure to converge in 10000 evaluations 
+caught warning: failure to converge in 10000 evaluations 
+  |                                                                              |==========                                                            |  14%caught warning: failure to converge in 10000 evaluations 
+  |                                                                              |==========                                                            |  15%caught warning: failure to converge in 10000 evaluations 
+  |                                                                              |===========                                                           |  15%caught warning: failure to converge in 10000 evaluations 
+  |                                                                              |===========                                                           |  16%caught warning: failure to converge in 10000 evaluations 
+  |                                                                              |============                                                          |  17%caught warning: failure to converge in 10000 evaluations 
+  |                                                                              |=============                                                         |  18%  |                                                                              |=============                                                         |  19%  |                                                                              |==============                                                        |  19%caught warning: failure to converge in 10000 evaluations 
+  |                                                                              |==============                                                        |  20%caught warning: failure to converge in 10000 evaluations 
+  |                                                                              |==============                                                        |  21%caught warning: failure to converge in 10000 evaluations 
+  |                                                                              |===============                                                       |  21%caught warning: failure to converge in 10000 evaluations 
+  |                                                                              |===============                                                       |  22%caught warning: failure to converge in 10000 evaluations 
+  |                                                                              |================                                                      |  23%caught warning: failure to converge in 10000 evaluations 
+caught warning: failure to converge in 10000 evaluations 
+  |                                                                              |=================                                                     |  24%caught warning: failure to converge in 10000 evaluations 
+  |                                                                              |=================                                                     |  25%caught warning: failure to converge in 10000 evaluations 
+  |                                                                              |==================                                                    |  25%caught warning: failure to converge in 10000 evaluations 
+  |                                                                              |==================                                                    |  26%caught warning: failure to converge in 10000 evaluations 
+  |                                                                              |===================                                                   |  27%caught warning: failure to converge in 10000 evaluations 
+caught warning: failure to converge in 10000 evaluations 
+  |                                                                              |====================                                                  |  28%caught warning: failure to converge in 10000 evaluations 
+  |                                                                              |====================                                                  |  29%caught warning: failure to converge in 10000 evaluations 
+  |                                                                              |=====================                                                 |  29%caught warning: failure to converge in 10000 evaluations 
+  |                                                                              |=====================                                                 |  30%caught warning: failure to converge in 10000 evaluations 
+  |                                                                              |=====================                                                 |  31%caught warning: failure to converge in 10000 evaluations 
+  |                                                                              |======================                                                |  31%caught warning: failure to converge in 10000 evaluations 
+  |                                                                              |======================                                                |  32%caught warning: failure to converge in 10000 evaluations 
+  |                                                                              |=======================                                               |  33%caught warning: failure to converge in 10000 evaluations 
+caught warning: failure to converge in 10000 evaluations 
+  |                                                                              |========================                                              |  34%  |                                                                              |========================                                              |  35%  |                                                                              |=========================                                             |  35%  |                                                                              |=========================                                             |  36%caught warning: failure to converge in 10000 evaluations 
+  |                                                                              |==========================                                            |  37%caught warning: failure to converge in 10000 evaluations 
+caught warning: failure to converge in 10000 evaluations 
+  |                                                                              |===========================                                           |  38%caught warning: failure to converge in 10000 evaluations 
+  |                                                                              |===========================                                           |  39%caught warning: failure to converge in 10000 evaluations 
+  |                                                                              |============================                                          |  39%caught warning: failure to converge in 10000 evaluations 
+  |                                                                              |============================                                          |  40%caught warning: failure to converge in 10000 evaluations 
+  |                                                                              |============================                                          |  41%caught warning: failure to converge in 10000 evaluations 
+  |                                                                              |=============================                                         |  41%caught warning: failure to converge in 10000 evaluations 
+  |                                                                              |=============================                                         |  42%caught warning: failure to converge in 10000 evaluations 
+  |                                                                              |==============================                                        |  43%caught warning: failure to converge in 10000 evaluations 
+caught warning: failure to converge in 10000 evaluations 
+  |                                                                              |===============================                                       |  44%caught warning: failure to converge in 10000 evaluations 
+  |                                                                              |===============================                                       |  45%caught warning: failure to converge in 10000 evaluations 
+  |                                                                              |================================                                      |  45%caught warning: failure to converge in 10000 evaluations 
+  |                                                                              |================================                                      |  46%caught warning: failure to converge in 10000 evaluations 
+  |                                                                              |=================================                                     |  47%caught warning: failure to converge in 10000 evaluations 
+caught warning: failure to converge in 10000 evaluations 
+  |                                                                              |==================================                                    |  48%caught warning: failure to converge in 10000 evaluations 
+  |                                                                              |==================================                                    |  49%caught warning: failure to converge in 10000 evaluations 
+  |                                                                              |===================================                                   |  49%caught warning: failure to converge in 10000 evaluations 
+  |                                                                              |===================================                                   |  50%caught warning: failure to converge in 10000 evaluations 
+  |                                                                              |===================================                                   |  51%  |                                                                              |====================================                                  |  51%  |                                                                              |====================================                                  |  52%  |                                                                              |=====================================                                 |  53%caught warning: failure to converge in 10000 evaluations 
+caught warning: failure to converge in 10000 evaluations 
+  |                                                                              |======================================                                |  54%caught warning: failure to converge in 10000 evaluations 
+  |                                                                              |======================================                                |  55%caught warning: failure to converge in 10000 evaluations 
+  |                                                                              |=======================================                               |  55%caught warning: failure to converge in 10000 evaluations 
+  |                                                                              |=======================================                               |  56%caught warning: failure to converge in 10000 evaluations 
+  |                                                                              |========================================                              |  57%caught warning: failure to converge in 10000 evaluations 
+caught warning: failure to converge in 10000 evaluations 
+  |                                                                              |=========================================                             |  58%caught warning: failure to converge in 10000 evaluations 
+  |                                                                              |=========================================                             |  59%caught warning: failure to converge in 10000 evaluations 
+  |                                                                              |==========================================                            |  59%caught warning: failure to converge in 10000 evaluations 
+  |                                                                              |==========================================                            |  60%caught warning: failure to converge in 10000 evaluations 
+  |                                                                              |==========================================                            |  61%caught warning: failure to converge in 10000 evaluations 
+  |                                                                              |===========================================                           |  61%caught warning: failure to converge in 10000 evaluations 
+  |                                                                              |===========================================                           |  62%caught warning: failure to converge in 10000 evaluations 
+  |                                                                              |============================================                          |  63%caught warning: failure to converge in 10000 evaluations 
+caught warning: failure to converge in 10000 evaluations 
+  |                                                                              |=============================================                         |  64%caught warning: failure to converge in 10000 evaluations 
+  |                                                                              |=============================================                         |  65%caught warning: failure to converge in 10000 evaluations 
+  |                                                                              |==============================================                        |  65%caught warning: failure to converge in 10000 evaluations 
+  |                                                                              |==============================================                        |  66%caught warning: failure to converge in 10000 evaluations 
+  |                                                                              |===============================================                       |  67%caught warning: failure to converge in 10000 evaluations 
+  |                                                                              |================================================                      |  68%  |                                                                              |================================================                      |  69%  |                                                                              |=================================================                     |  69%caught warning: failure to converge in 10000 evaluations 
+  |                                                                              |=================================================                     |  70%caught warning: failure to converge in 10000 evaluations 
+  |                                                                              |=================================================                     |  71%caught warning: failure to converge in 10000 evaluations 
+  |                                                                              |==================================================                    |  71%caught warning: failure to converge in 10000 evaluations 
+  |                                                                              |==================================================                    |  72%caught warning: failure to converge in 10000 evaluations 
+  |                                                                              |===================================================                   |  73%caught warning: failure to converge in 10000 evaluations 
+caught warning: failure to converge in 10000 evaluations 
+  |                                                                              |====================================================                  |  74%caught warning: failure to converge in 10000 evaluations 
+  |                                                                              |====================================================                  |  75%caught warning: failure to converge in 10000 evaluations 
+  |                                                                              |=====================================================                 |  75%caught warning: failure to converge in 10000 evaluations 
+  |                                                                              |=====================================================                 |  76%caught warning: failure to converge in 10000 evaluations 
+  |                                                                              |======================================================                |  77%caught warning: failure to converge in 10000 evaluations 
+caught warning: failure to converge in 10000 evaluations 
+  |                                                                              |=======================================================               |  78%caught warning: failure to converge in 10000 evaluations 
+  |                                                                              |=======================================================               |  79%caught warning: failure to converge in 10000 evaluations 
+  |                                                                              |========================================================              |  79%caught warning: failure to converge in 10000 evaluations 
+  |                                                                              |========================================================              |  80%caught warning: failure to converge in 10000 evaluations 
+  |                                                                              |========================================================              |  81%caught warning: failure to converge in 10000 evaluations 
+  |                                                                              |=========================================================             |  81%caught warning: failure to converge in 10000 evaluations 
+  |                                                                              |=========================================================             |  82%caught warning: failure to converge in 10000 evaluations 
+  |                                                                              |==========================================================            |  83%caught warning: failure to converge in 10000 evaluations 
+caught warning: failure to converge in 10000 evaluations 
+  |                                                                              |===========================================================           |  84%  |                                                                              |===========================================================           |  85%  |                                                                              |============================================================          |  85%  |                                                                              |============================================================          |  86%caught warning: failure to converge in 10000 evaluations 
+  |                                                                              |=============================================================         |  87%caught warning: failure to converge in 10000 evaluations 
+caught warning: failure to converge in 10000 evaluations 
+  |                                                                              |==============================================================        |  88%caught warning: failure to converge in 10000 evaluations 
+  |                                                                              |==============================================================        |  89%caught warning: failure to converge in 10000 evaluations 
+  |                                                                              |===============================================================       |  89%caught warning: failure to converge in 10000 evaluations 
+  |                                                                              |===============================================================       |  90%caught warning: failure to converge in 10000 evaluations 
+  |                                                                              |===============================================================       |  91%caught warning: failure to converge in 10000 evaluations 
+  |                                                                              |================================================================      |  91%caught warning: failure to converge in 10000 evaluations 
+  |                                                                              |================================================================      |  92%caught warning: failure to converge in 10000 evaluations 
+  |                                                                              |=================================================================     |  93%caught warning: failure to converge in 10000 evaluations 
+caught warning: failure to converge in 10000 evaluations 
+  |                                                                              |==================================================================    |  94%caught warning: failure to converge in 10000 evaluations 
+  |                                                                              |==================================================================    |  95%caught warning: failure to converge in 10000 evaluations 
+  |                                                                              |===================================================================   |  95%caught warning: failure to converge in 10000 evaluations 
+  |                                                                              |===================================================================   |  96%caught warning: failure to converge in 10000 evaluations 
+  |                                                                              |====================================================================  |  97%caught warning: failure to converge in 10000 evaluations 
+caught warning: failure to converge in 10000 evaluations 
+  |                                                                              |===================================================================== |  98%caught warning: failure to converge in 10000 evaluations 
+  |                                                                              |===================================================================== |  99%caught warning: failure to converge in 10000 evaluations 
+  |                                                                              |======================================================================|  99%caught warning: failure to converge in 10000 evaluations 
+  |                                                                              |======================================================================| 100%caught warning: failure to converge in 10000 evaluations 
+
+> 
+> save("results","sessinfo",file=fn)
+> 
+> proc.time()
+   user  system elapsed 
+958.263   6.312 983.505 

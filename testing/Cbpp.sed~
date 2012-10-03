@@ -1,0 +1,5 @@
+s/NAME/Cbpp/g
+s/DATNAME/cbpp/g
+s/DATPKG/lme4/g
+s/FORM/cbind(incidence,size-incidence)~period+(1|herd)/g
+s/FAMILY/binomial/g

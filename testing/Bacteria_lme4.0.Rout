@@ -1,0 +1,53 @@
+
+R Under development (unstable) (2012-03-04 r58577)
+Copyright (C) 2012 The R Foundation for Statistical Computing
+ISBN 3-900051-07-0
+Platform: i686-pc-linux-gnu (32-bit)
+
+R is free software and comes with ABSOLUTELY NO WARRANTY.
+You are welcome to redistribute it under certain conditions.
+Type 'license()' or 'licence()' for distribution details.
+
+  Natural language support but running in an English locale
+
+R is a collaborative project with many contributors.
+Type 'contributors()' for more information and
+'citation()' on how to cite R or R packages in publications.
+
+Type 'demo()' for some demos, 'help()' for on-line help, or
+'help.start()' for an HTML browser interface to help.
+Type 'q()' to quit R.
+
+> source("Generic_lme4.0.R")
+Loading required package: coefplot2
+Loading required package: coda
+Loading required package: lattice
+Loading required package: plyr
+> fn <- "Bacteria_lme4.0.RData"
+> sessinfo <- sessionInfo()
+> 
+> data(bacteria,package="MASS")
+> results <- lme4.0fit("Bacteria",
++                      bacteria,
++                      y~trt+I(week>2)+(1|ID),
++                      "binomial")
+Loading required package: lme4.0
+Loading required package: Matrix
+
+Attaching package: ‘lme4.0’
+
+The following object(s) are masked from ‘package:coda’:
+
+    HPDinterval
+
+The following object(s) are masked from ‘package:stats’:
+
+    AIC, BIC
+
+  |                                                                              |                                                                      |   0%  |                                                                              |============                                                          |  17%  |                                                                              |=======================                                               |  33%  |                                                                              |===================================                                   |  50%  |                                                                              |===============================================                       |  67%  |                                                                              |==========================================================            |  83%  |                                                                              |======================================================================| 100%
+> 
+> save("results","sessinfo",file=fn)
+> 
+> proc.time()
+   user  system elapsed 
+  7.148   4.036  11.636 
