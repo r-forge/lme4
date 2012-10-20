@@ -11,12 +11,14 @@
   generalize the rules.
 }
 \usage{
-GaussQuad(n, rule, a = 0, b = 1, alpha = 0, beta = 0)
+GaussQuad(n, rule = c("Legendre", "Chebyshev", "Gegenbauer", "Jacobi",
+                      "Laguerre", "Hermite", "Exponential", "Rational"),
+          a = 0, b = 1, alpha = 0, beta = 0)
 }
 \arguments{
-  \item{n}{integer - number of quadrature points}
-  \item{rule}{character - a partial match to one of the quadrature rule
-    names.  See the details section.}
+  \item{n}{integer - number of quadrature points.}
+  \item{rule}{character - a partial match to one of the quadrature
+    rules, defaulting to \code{"Legendre"}, see the details section.}
   \item{a}{numeric scalar - an optional shift parameter or interval endpoint}
   \item{b}{numeric scalar - an optional scale parameter or interval endpoint}
   \item{alpha}{numeric scalar - an optional power}
@@ -34,6 +36,7 @@ GaussQuad(n, rule, a = 0, b = 1, alpha = 0, beta = 0)
     \item{\dQuote{Hermite}}{\eqn{\int_{-\infty}^\infty f(x)|x-a|^\alpha \exp(-b*(x-a)^2)\,dx}{int_-inf^inf f(x)|x-a|^alpha*exp(-b*(x-a)^2) dx}}
     \item{\dQuote{Exponential}}{\eqn{\int_a^b f(x)|x-(a+b)/2.0|^\alpha\,dx}{int_-inf^inf f(x)|x-(a+b)/2.0|^alpha dx}}
     \item{\dQuote{Rational}}{\eqn{\int_a^\infty f(x)(x-a)^\alpha*(x+b)^\beta\,dx}{int_a^inf f(x)(x-a)^alpha*(x+b)^beta}}
+    \item{\dQuote{Type2}}{\eqn{\int_a^\infty f(x)(x-a)^\alpha*(x+b)^\beta\,dx}{int_a^inf f(x)(x-a)^alpha*(x+b)^beta}}
   }
 }
 \value{
@@ -44,7 +47,7 @@ GaussQuad(n, rule, a = 0, b = 1, alpha = 0, beta = 0)
 \references{
   The original FORTRAN implementation is from
   Sylvan Elhay, Jaroslav Kautsky (1987),
-  \dQuote{Algorithm 655: IQPACK, FORTRAN Subroutines for the Weights of 
+  \dQuote{Algorithm 655: IQPACK, FORTRAN Subroutines for the Weights of
     Interpolatory Quadrature}, \bold{ACM Transactions on Mathematical Software},
   Volume \bold{13}, Number 4, December 1987, pages 399--415.
 
