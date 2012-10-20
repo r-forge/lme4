@@ -1,2 +1,2 @@
 useDynLib(Gqr, .registration=TRUE)
-export(GaussQuad)
+export(GaussQuad, integrateGQ)
