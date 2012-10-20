@@ -84,7 +84,8 @@ integrateGQ(f, lower, upper, ..., n = 13, rule = "Legendre",
     cat(nm,":", deparse(expr <- body(g)), ":\n")
     curve(g, -3, 3, main = expr); abline(h=0, lty=3)
     cat("classical integrate():\n")
-    print(i1 <- integrate(function(u) g(u)*dnorm(u), -Inf, Inf))
+    print(i1 <- integrate(function(u) g(u)*dnorm(u), -Inf, Inf,
+                          rel.tol = 1e-13),  digits=12)
     cat("\n Gauss-Hermite (n= 5):", i2 <- E.norm(g, n= 5),"\n")
     cat(  " Gauss-Hermite (n=16):", i3 <- E.norm(g, n=16),"\n")
     cat(  " Gauss-Hermite (n=64):", i4 <- E.norm(g, n=64),"\n")
@@ -99,6 +100,24 @@ integrateGQ(f, lower, upper, ..., n = 13, rule = "Legendre",
  }
  par(op)
 
+ doExtras <- interactive()## takes a bit time: using *large* n:
+ if(doExtras) {
+   gg <- integrands$gg
+   nn <- 2^seq(2,13, by=.5)
+   E.gg <- sapply(nn, E.norm, f = gg)
+   do.eax <- require("sfsmisc")
+   ylb <- expression(E[N(0,1)](g(X)))
+   plot(E.gg ~ nn, log = "x", col=2, type="b", xaxt= if(do.eax) "n",
+        main = substitute(list(EGX, ~~g(x) == GG),
+                          list(EGX = ylb[[1]], GG = body(gg))),
+        ylab = "E[g(X)]")
+   if(do.eax) eaxis(1)
+   print(cbind(round(nn,2), E.gg), digits = 12)
+
+   plot(E.gg - i1$val ~ nn, subset = nn >= 100, log="x", type="b", col=2)
+   abline(h=0,lty=3)
+   plot(abs(E.gg - i1$val) ~ nn, subset = nn >= 100, log="xy", type="b", col=2)
+ }
 }
 \keyword{math}
 \keyword{utilities}
