@@ -1,0 +1,453 @@
+\documentclass{jss}
+%% need no \usepackage{Sweave.sty}
+\usepackage{lineno}
+\newcommand{\bmb}[1]{{\color{red} \emph{#1}}}
+\newcommand{\scw}[1]{{\color{blue} \emph{#1}}}
+\usepackage[american]{babel}  %% for texi2dvi ~ bug
+\usepackage{bm,amsmath,thumbpdf,amsfonts}
+\author{Douglas Bates\\University of Wisconsin - Madison\And
+  Martin M\"achler\\ETH Zurich\And
+  Ben Bolker\\McMaster University\And
+  Steven C. Walker\\McMaster University
+}
+\Plainauthor{Douglas Bates, Martin M\"achler, Ben Bolker, Steve Walker}
+\title{Fitting generalized \bmb{and nonlinear?} mixed-effects models using \pkg{lme4}}
+\Plaintitle{Fitting generalized linear mixed models using lme4}
+\Shorttitle{GLMMs with lme4}
+\Abstract{%
+\bmb{abstract goes here}
+}
+\Keywords{%
+  sparse matrix methods,
+  linear mixed models,
+  penalized least squares,
+  Cholesky decomposition}
+\Address{
+  Douglas Bates\\
+  Department of Statistics, University of Wisconsin\\
+  1300 University Ave.\\
+  Madison, WI 53706, U.S.A.\\
+  E-mail: \email{bates@stat.wisc.edu}
+  \par\bigskip
+  Martin M\"achler\\
+  Seminar f\"ur Statistik, HG G~16\\
+  ETH Zurich\\
+  8092 Zurich, Switzerland\\
+  E-mail: \email{maechler@stat.math.ethz.ch}\\
+  % URL: \url{http://stat.ethz.ch/people/maechler}
+  \par\bigskip
+  Benjamin M. Bolker\\
+  Departments of Mathematics \& Statistics and Biology \\
+  McMaster University \\
+  1280 Main Street W \\
+  Hamilton, ON L8S 4K1, Canada \\
+  E-mail: \email{bolker@mcmaster.ca}
+}
+\newcommand{\Var}{\operatorname{Var}}
+\newcommand{\abs}{\operatorname{abs}}
+\newcommand{\bLt}{\ensuremath{\bm\Lambda_\theta}}
+\newcommand{\mc}[1]{\ensuremath{\mathcal{#1}}}
+\newcommand{\trans}{\ensuremath{^\prime}}
+\newcommand{\yobs}{\ensuremath{\bm y_{\mathrm{obs}}}}
+\newcommand*{\eq}[1]{eqn.~\ref{#1}}% or just {(\ref{#1})}
+%
+\SweaveOpts{engine=R,eps=FALSE,pdf=TRUE,width=10,height=6.5,strip.white=all}
+\SweaveOpts{prefix=TRUE,prefix.string=figs/lmer,include=TRUE}
+\SweaveOpts{keep.source=TRUE}
+\setkeys{Gin}{width=\textwidth}
+<<preliminaries,echo=FALSE,results=hide>>=
+options(width=69,show.signif.stars=FALSE,str=strOptions(strict.width="cut"))
+library(lme4)
+@
+\begin{document}
+\section{Introduction}
+\label{sec:intro}
+
+
+\section{Generalized Linear Mixed Models}
+\label{sec:GLMMdef}
+
+The generalized linear mixed models (GLMMs) that can be fit by the
+\pkg{lme4} package preserve the multivariate Gaussian unconditional
+distribution of the random effects, $\mc B$
+(eqn.~\ref{eq:LMMuncondB}).  Because most families used for the conditional
+distribution, $\mc Y|\mc B=\bm b$, do not incorporate a separate scale
+factor, $\sigma$, we remove it from the definition of $\bm\Sigma$ and
+from the distribution of the spherical random effects, $\mc U$.  That
+is, 
+\begin{equation}
+  \label{eq:UdistGLMM}
+  \mc U\sim\mc N(\bm0,\bm I_q)
+\end{equation}
+and
+\begin{equation}
+  \label{eq:GLMMSigma}
+  \bm\Sigma_\theta=\bm\Lambda_\theta\bm\Lambda_\theta\trans .
+\end{equation}
+
+The conditional distributions, $\mc Y|\mc B=\bm b$ and $\mc Y|\mc
+U=\bm u$, preserve the properties that the components of $\mc Y$ are
+conditionally independent and that the mean, $\bm\mu_{\mc Y|\mc U=\bm
+  u}$, depends on $\bm u$ only through the linear predictor,
+\begin{equation}
+  \label{eq:GLMMlinpred}
+  \bm\eta=\bm Z\bm\Lambda_\theta\bm u+\bm X\bm\beta .
+\end{equation}
+The mapping from $\bm\mu_{\mc Y|\mc U=\bm u}$ to $\bm\eta$, which is called
+the \emph{link function} and written
+\begin{equation}
+  \label{eq:linkfun}
+  \bm Z\bm\Lambda_\theta\bm u+\bm X\bm\beta=\bm\eta=\bm g\left(
+    \bm\mu_{\mc Y|\mc U=\bm u }\right) ,
+\end{equation}
+is a \emph{diagonal mapping} in the sense that there is a scalar
+function, $g$, such that the $i$th component of $\bm\eta$ is $g$
+applied to the $i$th component of $\bm\mu_{\mc Y|\mc U=\bm u }$.  (The
+name ``diagonal'' reflects the fact that the Jacobian matrix,
+$\frac{d\eta}{d\mu\trans}$, of such a mapping will be diagonal.)
+
+The scalar link function must be invertible over its range.  The
+vector-valued \emph{inverse link} function, $\bm g^{-1}$, will be the
+scalar inverse link, $g^{-1}$, applied component-wise to $\bm\eta$.
+
+Common forms of the conditional distribution are Bernoulli, for binary
+responses, binomial for binary responses that are recorded as the
+number of trials and the number of successes, and Poisson, for count
+data.  The combination of a distributional form and a link function is
+called a \emph{family}.  For distributional forms in the exponential
+family there is a \emph{canonical link}.  For Bernoulli or binomial
+forms the canonical link is the \emph{logit} link function
+\begin{equation}
+  \label{eq:logitLink}
+  \eta_i=\log\left(\frac{\mu_i}{1-\mu_i}\right);
+\end{equation}
+for the Poisson distribution the canonical link is the natural
+logarithm.
+
+The form of the distribution determines the conditional variance,
+$\Var(\mc Y|\mc U=\bm u)$, as a function of the conditional mean and,
+possibly, a separate scale factor. (In most cases the conditional
+variance is completely determined by the conditional mean.)
+
+The likelihood of the parameters, given the observed data, is now
+\begin{equation}
+  \label{eq:GLMMlike}
+  L(\bm\beta,\bm\theta|\yobs)=\int_{\mathbb{R}^q}f_{\mc Y,\mc U}(\yobs,\bm u)\,d\bm u
+\end{equation}
+where, as in the case of linear mixed models, $f_{\mc Y,\mc
+  U}(\yobs,\bm u)$ is the unscaled conditional density of $\mc U$
+given $\mc Y=\yobs$.  The notation here is a bit blurred because,
+although the joint distribution of $\mc Y$ and $\mc U$ is always
+continuous with respect to $\mc U$, it can be (and often is) discrete
+with respect to $\mc Y$. However, when we condition on the observed
+value $\mc Y=\yobs$, the resulting function is continuous with respect
+to $\bm u$ so the unscaled conditional density is indeed well-defined
+as a density, up to a scale factor.
+
+To evaluate the integrand in (\ref{eq:GLMMlike}) we use the value of
+the \code{dev.resids} function in the GLM family.  This vector,
+$\bm d(\yobs,\bm u)$, with elements, $d_i(\yobs,\bm u), i=1,\dots,n$,
+provides the deviance of a generalized linear model as
+\begin{displaymath}
+  \sum_{i=1}^n d_i(\yobs,\bm u) .
+\end{displaymath}
+(We should note that there 
+some confusion in \proglang{R} (and in its predecessor,
+\proglang{S}) about what exactly the deviance residuals
+for a family are.  As indicated above, we will use this name for the
+value of the \code{dev.resids} function in the family.  The signed
+square root of this vector, using the signs of $\yobs-\mu$, is returned
+from \code{residuals} applied to a fitted model
+of class \code{"glm"} when \code{type="deviance"}, the
+default, is specified.  Both are called ``deviance residuals''
+in the documentation but, although they are related, they are not the same.)
+
+The likelihood can now be expressed as
+\begin{equation}
+  \label{eq:GLMMlike1}
+  L(\bm\beta,\bm\theta|\yobs)=
+  \int_{\mathbb{R}^q}\exp\left(-\frac{\sum_{i=1}^nd_i(\yobs,\bm u)+\|\bm u\|^2}{2}\right)\,(2\pi)^{-q/2}\,d\bm u
+\end{equation}
+
+As for linear mixed models, we simplify evaluation of the integral
+(\ref{eq:GLMMlike}) by determining the value, $\tilde{\bm
+  u}_{\beta,\theta}$, that maximizes the integrand.
+When the conditional density, $\mc U|\mc Y=\yobs$, is multivariate
+Gaussian, this conditional mode will also be the conditional mean.
+However, for most families used in GLMMs, the mode and the mean need
+not coincide so use the more general term and call $\tilde{\bm
+  u}_{\beta,\theta}$ the \emph{conditional mode}.  We first describe 
+the numerical methods
+for determining the conditional mode using the Penalized Iteratively
+Reweighted Least Squares (PIRLS) algorithm then return to the question
+of evaluating the integral (\ref{eq:GLMMlike}).
+
+\subsection{Determining the conditional mode}
+\label{sec:conditionalMode}
+
+The iteratively reweighted least squares (IRLS) algorithm is an
+incredibly efficient method of determining the maximum likelihood
+estimates of the coefficients in a generalized linear model.  We
+extend it to a \emph{penalized iteratively reweighted least squares}
+(PIRLS) algorithm for determining the conditional mode, $\tilde{\bm
+  u}_{\beta,\theta}$.   This algorithm has the form
+\begin{enumerate}
+\item Given parameter values, $\bm\beta$ and $\bm\theta$, and starting
+  estimates, $\bm u_0$, evaluate the linear predictor, $\bm\eta$, the
+  corresponding conditional mean, $\bm\mu_{\mc Y|\mc U=\bm u}$, and
+  the conditional variance.  Establish the weights as the inverse of
+  the variance.  We write these weights in the form of a diagonal
+  weight matrix, $\bm W$, although they are stored and manipulated as
+  a vector.
+\item Solve the penalized, weighted, nonlinear least squares problem
+  \begin{equation}
+    \label{eq:weightedNLS}
+    \arg\min_{\bm u}\left(\left\|\bm W^{1/2}\left(\yobs-\bm\mu_{\mc
+            Y|\mc U=\bm u}\right)\right\|^2+\|\bm u\|^2\right)
+  \end{equation}
+\item Update the weights, $\bm W$, and check for convergence.  If not
+  converged, go to step 2.
+\end{enumerate}
+
+We use a Gauss-Newton algorithm with an orthogonality convergence
+criterion~\citep[\S 2.2.3]{bateswatts88:_nonlin} to solve the
+penalized, weighted, nonlinear least squares problem in step 2.  At
+the $i$th iteration we determine an increment, $\bm\delta_i$, as the
+solution to the penalized, weighted, linear least squares problem
+\begin{equation}
+  \label{eq:incr}
+  \bm\delta_i=\arg\min_{\bm\delta}\left\|
+    \begin{bmatrix}
+      \bm W^{1/2}\left(\yobs-\bm\mu_i\right)\\
+      \bm u_i
+    \end{bmatrix}-
+    \begin{bmatrix}
+      \bm W^{1/2}\bm M_i\bm Z\bm\Lambda_\theta\\
+      \bm I_q
+    \end{bmatrix}\bm u\right\|^2
+\end{equation}
+where $\bm u_i$ is current value of $\bm u$, $\bm\mu_i$ is the
+corresponding conditional mean of $\mc Y|\mc U=\bm u_i$ and $\bm M_i$ is
+the Jacobian matrix of the vector-valued inverse link, evaluated at
+$\bm\mu_i$.  That is
+\begin{equation}
+  \label{eq:Jacobian}
+  \bm M_i=\left.\frac{d\bm\mu}{d\bm\eta\trans}\right|_{\bm\eta_i},
+\end{equation}
+which will be a diagonal matrix so, as for the weights, we store and
+manipulate the Jacobian as a vector.
+
+The minimizer, $\bm\delta_i$, of (\ref{eq:incr}) satisfies
+\begin{equation}
+  \label{eq:incrEq}
+  \bm P\left(\bLt\trans\bm Z\trans\bm M_i\bm W\bm M_i\bm Z\bLt+\bm I_q\right)\bm P\trans
+      \bm\delta_i=\bLt\trans\bm Z\trans\bm M_i\bm W(\yobs-\bm\mu_i) - \bm u_i
+\end{equation}
+which we solve using the sparse Cholesky factor.  At convergence, the
+factor, $\bm L_{\beta,\theta}$, satisfies
+\begin{equation}
+  \label{eq:CholFactorGLMM}
+  \bm L_{\beta,\theta}\bm L_{\beta,\theta}\trans =
+  \bm P\left(\bLt\trans\bm Z\trans\bm M\bm W\bm M\bm Z\bLt+\bm I_q\right)\bm P\trans
+\end{equation}
+
+\subsection{Evaluating the likelihood for GLMMs using the Laplace approximation}
+\label{sec:Laplace}
+
+A second-order Taylor series approximation to $-2\log[f_{\mc
+  Y,\mc U}(\yobs,\bm u)]$ based at $\tilde{\bm u}$ provides an approximation of
+unscaled conditional density as a multiple of the density for the
+multivariate Gaussian $\mathcal{N}(\tilde{\bm u},\bm L\bm L\trans)$.
+The change of variable
+\begin{equation}
+  \label{eq:LaplaceChg}
+  \bm u = \tilde{\bm u} + \bm L\bm z
+\end{equation}
+provides
+\begin{equation}
+  \label{eq:GLMMLaplace}
+  \begin{aligned}
+    L(\bm\beta,\bm\theta|\yobs)&=\int_{\mathbb{R}^q}f_{\mc Y,\mc U}(\yobs,\bm u)\,d\bm u\\
+    &\approx \tilde{f}\,|\bm L|\, \int_{\mathbb{R}^q}e^{-\|\bm z\|^2/2}\,(2\pi)^{-q/2}\,d\bm z\\
+    =\tilde{f}\,\abs(|\bm L|)
+  \end{aligned}
+\end{equation}
+or, on the deviance scale,
+\begin{equation}
+  \label{eq:LaplaceDev}
+  -2\ell(\bm\beta,\bm\theta|\yobs)\approx\sum_{i=1}^nd_i(\yobs,\tilde{\bm u}) +
+    \|\tilde{\bm u}\|^2 + \log(|\bm L|^2)+\frac{q}{2}\log(2\pi)
+\end{equation}
+
+\subsubsection{Decomposing the deviance for simple models}
+\label{sec:simplescalar}
+
+A special, but not uncommon, case is that of scalar random effects
+associated with levels of a single grouping factor, $\bm h$.  In this
+case the dimension, $q$, of the random effects is the number of levels
+of $\bm h$ --- i.e.{} there is exactly one random effect associated
+with each level of $\bm h$.  We will write the vector of
+variance-covariance parameters, which is one-dimensional, as a scalar,
+$\theta$.  The matrix $\bm\Lambda_{\bm\theta}$ is a multiple of the
+identity, $\theta\bm I_q$, and $\bm Z$ is the $n\times q$ matrix of
+indicators of the levels of $\bm f$.  The permutation matrix, $\bm
+P$, can be set to the identity and $\bm L$ is diagonal, but not
+necessarily a multiple of the identity.  
+
+Because each element of $\bm\mu$ depends on only one element of $\bm
+u$ and the elements of $\mc Y$ are conditionally independent, given
+$\mc U=\bm u$, the conditional densities of the $u_j,j=1,\dots,q$
+given $\mc Y=\yobs$ are independent.  We partition the indices
+$1,\dots,n$ as $\mathbb{I}_j,j=1,\dots,q$ according to the levels of
+$\bm h$.  That is, the index $i$ is in $\mathbb{I}_j$ if $h_i=j$.
+This partitioning also applies to the deviance residuals in that
+the $i$th deviance residual depends only on $u_j$ when $i\in\mathbb{I}_j$.
+
+Writing the univariate conditional densities as
+\begin{equation}
+  \label{eq:univariateCondDens}
+  f_j(\yobs,u_j)=\exp\left(-\frac{\sum_{i\in\mathbb{I}_j}d_i(\yobs, u_j)+u_j^2}{2}\right)(2\pi)^{-1/2}
+\end{equation}
+we have
+\begin{equation}
+  \label{eq:vectorCondDens}
+  f_{\mc Y,\mc U}(\yobs,\bm u)=\prod_{j=1}^q f_j(\yobs,u_j)
+\end{equation}
+and
+\begin{equation}
+  \label{eq:ssLike}
+  \begin{aligned}
+    L(\bm\beta,\bm\theta|\yobs)=\prod_{j=1}^q\int_{\mathbb{R}}f_j(\yobs,u)\,du
+  \end{aligned}
+\end{equation}
+
+We consider this special case both because it occurs frequently and
+because, for some software, it is the only type of GLMM that can be
+fit.  Also, in this particular case we can graphically assess the
+quality of the Laplace approximation by comparing the actual integrand
+to its approximation.
+
+Consider the \code{cbpp} data on contagious bovine pleuropneumonia
+incidence according to season and herd, available in the \pkg{lme4} package.
+<<strcbpp>>=
+str(cbpp)
+@ 
+and the model
+<<m1>>=
+print(m1 <- glmer(cbind(incidence, size-incidence) ~ period + (1|herd),
+                  cbpp, binomial), corr=FALSE)
+@
+This model has been fit by minimizing the Laplace approximation to the
+deviance.  We can assess the quality of this approximation by
+evaluating the unscaled conditional density at $u_j(z)=\tilde{u_j} +
+z/{\bm L_{j,j}}$ and comparing the ratio,
+$f_j(\yobs,u)/(\tilde{f_j}\sqrt{2\pi})$, to the standard normal
+density, $\phi(z)=e^{-z^2/2}/\sqrt{2\pi}$, as shown in Figure~\ref{fig:densities}.
+\begin{figure}[tbp]
+  \centering
+<<densities,fig=TRUE,echo=FALSE,height=5>>=
+zeta <- function(m, zmin=-3, zmax=3, npts=301L) {
+    stopifnot (is(m, "glmerMod"),
+               length(m@flist) == 1L,    # single grouping factor
+              length(m@cnms[[1]]) == 1L) # single column for that grouping factor
+    pp <- m
+    rr <- m@resp
+    u0 <- getME(pp,"u")
+    sd <- 1/getME(pp,"L")@x
+    ff <- as.integer(getME(pp,"flist")[[1]])
+    fc <- getME(pp,"X") %*% getME(pp,"beta")      # fixed-effects contribution to linear predictor
+    ZL <- t(getME(pp,"Lambdat") %*% getME(pp,"Zt"))
+    dc <- function(z) { # evaluate the unscaled conditional density on the deviance scale
+        uu <- u0 + z * sd
+        rr$updateMu(fc + ZL %*% uu)
+        unname(as.vector(tapply(rr$devResid(), ff, sum))) + uu * uu
+    }
+    zvals <- seq(zmin, zmax, length.out = npts)
+    d0 <- dc(0) # because this is the last evaluation, the model is restored to its incoming state
+    list(zvals=zvals,
+         sqrtmat=t(sqrt(vapply(zvals, dc, d0, USE.NAMES=FALSE) - d0)) * # signed square root
+         array(ifelse(zvals < 0, -1, 1), c(npts, length(u0))))
+}
+zm <- zeta(m1, -3.750440, 3.750440)
+dmat <- exp(-0.5*zm$sqrtmat^2)/sqrt(2*pi)
+xyplot(as.vector(dmat) ~ rep.int(zm$zvals, ncol(dmat))|gl(ncol(dmat), nrow(dmat)),
+       type=c("g","l"), aspect=0.6, layout=c(5,3),
+       xlab="z", ylab="density",
+       panel=function(...){
+           panel.lines(zm$zvals, dnorm(zm$zvals), lty=2)
+           panel.xyplot(...)}
+       )
+@ 
+  \caption{Comparison of univariate integrands (solid line) and standard normal density function (dashed line)}
+  \label{fig:densities}
+\end{figure}
+
+As we can see from this figure, the univariate integrands are very
+close to the standard normal density, indicating that the Laplace
+approximation to the deviance is a good approximation in this case.
+
+\section{Adaptive Gauss-Hermite quadrature for GLMMs}
+\label{sec:aGQ}
+When the integral (\ref{eq:GLMMlike}) can be expressed as a product of
+low-dimensional integrals, we can use Gauss-Hermite quadrature to
+provide a closer approximation to the integral.  Univariate
+Gauss-Hermite quadrature evaluates the integral of a function that is
+multiplied by a ``kernel'' where the kernel is a multiple of
+$e^{-z^2}$ or $e^{-z^2/2}$.  For statisticians the natural candidate
+is the standard normal density, $\phi(z)=e^{-z^2/2}/\sqrt(2\pi)$.
+A $k$th-order Gauss-Hermite formula provides knots, $z_i,i=1,...,k$,
+and weights, $w_i,i=1,\dots,k$, such that
+\begin{displaymath}
+  \int_{\mathbb{R}}t(z)\phi(z)\,dz\approx\sum_{i=1}^kw_it(z_i)
+\end{displaymath}
+The function \code{GHrule} in \pkg{lme4} (based on code in the
+\pkg{SparseGrid} package) provides knots and weights relative to the
+standard normal kernel for orders $k$ from 1 to 25.  For example,
+<<GHrule5>>=
+GHrule(5)
+@ 
+
+The choice of the value of $k$ depends on the behavior of the function
+$t(z)$.  If $t(z)$ is a polynomial of degree $k-1$ then the
+Gauss-Hermite formula for orders $k$ or greater provides an exact
+answer.  The fact that we want $t(z)$ to behave like a low-order
+polynomial is often neglected in the formulation of a Gauss-Hermite
+approximation to a quadrature.  The quadrature knots on the $u$ scale
+are chosen as
+\begin{equation}
+  \label{eq:quadraturepts}
+  u_{i,j}(z)=\tilde{u_j} + z_i/{\bm L_{j,j}},\quad i=1,\dots,k;\;j=1,\dots,q
+\end{equation}
+exactly so that the function $t(z)$ should behave like a low-order
+polynomial over the region of interest, which is to say the region
+where quadrature knots with large weights are located.  The term
+``adaptive Gauss-Hermite quadrature'' reflects the fact that the
+approximating Gaussian density is scaled and shifted to provide a
+second order approximation to the logarithm of the unscaled
+conditional density.
+
+Figure~\ref{fig:tfunc}
+\begin{figure}[tbp]
+  \centering
+<<tfunc,fig=TRUE,echo=FALSE>>=
+xyplot(as.vector(dmat/dnorm(zm$zvals)) ~ rep.int(zm$zvals, ncol(dmat))|gl(ncol(dmat), nrow(dmat)),
+       type=c("g","l"), aspect=0.6, layout=c(5,3),
+       xlab="z", ylab="t(z)")
+@ 
+  \caption{The function $t(z)$, which is the ratio of the normalized
+    unscaled conditional density to the standard normal density, for
+    each of the univariate integrals in the evaluation of the deviance
+    for model \code{m1}.  These functions should behave like low-order
+    polynomials.}
+  \label{fig:tfunc}
+\end{figure}
+shows $t(z)$ for each of the unidimensional integrals in the
+likelihood for the model \code{m1} at the parameter estimates.
+
+\bibliography{lmer}
+\end{document}
+
+%%% Local Variables:
+%%% mode: latex
+%%% TeX-master: t
+%%% End:
