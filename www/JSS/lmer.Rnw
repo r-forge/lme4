@@ -167,15 +167,18 @@ Furthermore these criteria can be evaluated quickly and accurately.
     \textbf{Symbol} & \textbf{Meaning} & \textbf{lme4 equivalent} \\
     \hline
     $\bm X$ & Fixed-effect design matrix & \code{getME(.,"X")} \\
-    $\bm Z$ & Sparse random-effect design matrix & \code{t(getME(.,"Zt")} \\
+    $\bm Z$ & Sparse random-effect design matrix & \code{getME(.,"Z")} \\
     $\bm \theta$ & Variance-covariance parameter vector (log-Cholesky scale) &
     \code{getME(.,"theta")} \\
-    $\bm \beta$ & Fixed-effect coefficients & \code{fixef(.)} \\
-    $\sigma^2$ & Residual variance & \\
+    $\bm \beta$ & Fixed-effect coefficients & \code{fixef(.)}  [\code{getME(.,"beta")}]\\
+    $\sigma^2$ & Residual variance & \verb+sigma(.)^2+ \\
     $\mc{Y}$ & Response variable & \\
     $\bm\Lambda_{\bm\theta}$ & Relative covariance factor & \\
+    $\bm L_\theta$ & Sparse Cholesky factor & \code{getME(.,"Lambda")} \\
     $\mc B$ & Random effects & \\
     $\mc U$ & Spherical random effects & \\
+    $\bm u$ & Conditional modes of random effects & \code{ranef(.)} [\code{getME(.,"u")}] ? \\
+    $\bm P$ & Fill-reducing permutation & 
   \end{tabular}
   \caption[Table of notation]{Table of notation and \pkg{lme4} equivalents
   \bmb{finish this table!}
@@ -577,9 +580,15 @@ Show model calls: fixed and var-cov estimates; conditional modes;
 predictions?
 
 \section{Discussion}
-Is there anything else to say here?  Point to alternatives
-in the FOSS ecosystem?  Open problems?
+What do we want to say here?
 
+\begin{itemize}
+\item Point to alternatives in the R/FOSS ecosystem
+\item State $p$-value issues for the record
+\item \emph{Advantages} of \pkg{lme4}: fast, handles multiple/crossed RE, 
+  provides profiling/parametric bootstrapping; flexible (sort of)
+\item \emph{Disadvantages}: no R-side effects; (no $p$-values); not as flexible as e.g. AS-REML
+\end{itemize}
 
 \bibliography{lmer}
 \end{document}
