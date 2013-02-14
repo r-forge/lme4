@@ -42,6 +42,13 @@
   1280 Main Street W \\
   Hamilton, ON L8S 4K1, Canada \\
   E-mail: \email{bolker@mcmaster.ca}
+  \par\bigskip
+  Steven C. Walker\\
+  Department of Mathematics \& Statistics \\
+  McMaster University \\
+  1280 Main Street W \\
+  Hamilton, ON L8S 4K1, Canada \\
+  E-mail: \email{scwalker@math.mcmaster.ca }
 }
 \newcommand{\Var}{\operatorname{Var}}
 \newcommand{\abs}{\operatorname{abs}}
