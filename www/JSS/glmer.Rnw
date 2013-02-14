@@ -62,7 +62,7 @@ library(lme4)
 \begin{document}
 \section{Introduction}
 \label{sec:intro}
-
+\bmb{equations are all defined in part~I \ldots}
 
 \section{Generalized Linear Mixed Models}
 \label{sec:GLMMdef}
@@ -70,7 +70,8 @@ library(lme4)
 The generalized linear mixed models (GLMMs) that can be fit by the
 \pkg{lme4} package preserve the multivariate Gaussian unconditional
 distribution of the random effects, $\mc B$
-(eqn.~\ref{eq:LMMuncondB}).  Because most families used for the conditional
+(eqn.~\ref{eq:LMMuncondB}).  
+Because most families used for the conditional
 distribution, $\mc Y|\mc B=\bm b$, do not incorporate a separate scale
 factor, $\sigma$, we remove it from the definition of $\bm\Sigma$ and
 from the distribution of the spherical random effects, $\mc U$.  That
@@ -144,7 +145,8 @@ value $\mc Y=\yobs$, the resulting function is continuous with respect
 to $\bm u$ so the unscaled conditional density is indeed well-defined
 as a density, up to a scale factor.
 
-To evaluate the integrand in (\ref{eq:GLMMlike}) we use the value of
+To evaluate the integrand in (\ref{eq:GLMMlike}) 
+we use the value of
 the \code{dev.resids} function in the GLM family.  This vector,
 $\bm d(\yobs,\bm u)$, with elements, $d_i(\yobs,\bm u), i=1,\dots,n$,
 provides the deviance of a generalized linear model as
@@ -370,15 +372,15 @@ zeta <- function(m, zmin=-3, zmax=3, npts=301L) {
 }
 zm <- zeta(m1, -3.750440, 3.750440)
 dmat <- exp(-0.5*zm$sqrtmat^2)/sqrt(2*pi)
-xyplot(as.vector(dmat) ~ rep.int(zm$zvals, ncol(dmat))|gl(ncol(dmat), nrow(dmat)),
+print(xyplot(as.vector(dmat) ~ rep.int(zm$zvals, ncol(dmat))|gl(ncol(dmat), nrow(dmat)),
        type=c("g","l"), aspect=0.6, layout=c(5,3),
        xlab="z", ylab="density",
        panel=function(...){
            panel.lines(zm$zvals, dnorm(zm$zvals), lty=2)
            panel.xyplot(...)}
-       )
+       ))
 @ 
-  \caption{Comparison of univariate integrands (solid line) and standard normal density function (dashed line)}
+  \caption{Comparison of univariate integrands (solid line) and standard normal density function (dashed line) \bmb{is something wrong?  Do these agree TOO well?}}
   \label{fig:densities}
 \end{figure}
 
@@ -430,9 +432,9 @@ Figure~\ref{fig:tfunc}
 \begin{figure}[tbp]
   \centering
 <<tfunc,fig=TRUE,echo=FALSE>>=
-xyplot(as.vector(dmat/dnorm(zm$zvals)) ~ rep.int(zm$zvals, ncol(dmat))|gl(ncol(dmat), nrow(dmat)),
+print(xyplot(as.vector(dmat/dnorm(zm$zvals)) ~ rep.int(zm$zvals, ncol(dmat))|gl(ncol(dmat), nrow(dmat)),
        type=c("g","l"), aspect=0.6, layout=c(5,3),
-       xlab="z", ylab="t(z)")
+       xlab="z", ylab="t(z)"))
 @ 
   \caption{The function $t(z)$, which is the ratio of the normalized
     unscaled conditional density to the standard normal density, for
