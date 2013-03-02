@@ -6,6 +6,7 @@ LinkingTo: Matrix, stats
 Suggests: mlmRev, MEMSS, coda, MASS, sfsmisc, MatrixModels
 License: GPL (>= 2)
 Archs: i386, x86_64
+NeedsCompilation: no
 MD5sum: e9042fb4463895bde0604edc4edbe2f3
 
 Package: lme4
@@ -18,6 +19,7 @@ Suggests: boot, PKPDmodels, MEMSS, testthat, ggplot2, mlmRev, plyr,
         reshape, testthat, optimx
 License: GPL (>= 2)
 Archs: i386, x86_64
+NeedsCompilation: no
 MD5sum: 82ced2e98b5d13a2ff1c46d5ad0077e4
 
 Package: lme4a
@@ -29,6 +31,7 @@ LinkingTo: Matrix, Rcpp
 Suggests: mlmRev, MEMSS, boot, MASS, RUnit
 License: GPL (>= 2)
 Archs: i386, x86_64
+NeedsCompilation: no
 MD5sum: 05931db3180f960dbdfd451d1dc7bdaf
 
 Package: lme4Eigen
@@ -41,6 +44,7 @@ Suggests: boot, PKPDmodels, MEMSS, testthat, ggplot2, mlmRev, plyr,
         reshape, testthat, optimx
 License: GPL (>= 2)
 Archs: i386, x86_64
+NeedsCompilation: no
 MD5sum: 27fc7eff076e4b1b3bab5c8d0f5683a4
 
 Package: RcppEigen
@@ -51,5 +55,6 @@ LinkingTo: Rcpp
 Suggests: inline, RUnit, testthat
 License: GPL (>= 2)
 Archs: i386, x86_64
+NeedsCompilation: no
 MD5sum: 08a75a96e313503c53f608310b403be0
 
