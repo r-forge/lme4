@@ -10,17 +10,18 @@ NeedsCompilation: no
 MD5sum: e9042fb4463895bde0604edc4edbe2f3
 
 Package: lme4
-Version: 0.999902345-0
-Depends: R(>= 2.14.0), lattice, Matrix(>= 1.0), methods, stats
+Version: 0.99999911-1
+Depends: R(>= 2.14.0), lattice, Matrix(>= 1.0), methods, stats, Rcpp
+        (>= 0.10.1), RcppEigen (>= 0.3.1.2)
 Imports: graphics, grid, splines, Matrix(>= 1.0), MASS, nlme, minqa(>=
         1.1.15)
 LinkingTo: Rcpp, RcppEigen
 Suggests: boot, PKPDmodels, MEMSS, testthat, ggplot2, mlmRev, plyr,
-        reshape, testthat, optimx
+        reshape, optimx
 License: GPL (>= 2)
 Archs: i386, x86_64
 NeedsCompilation: no
-MD5sum: 82ced2e98b5d13a2ff1c46d5ad0077e4
+MD5sum: 88fa088cd2455feaf57e4cb3f59adf49
 
 Package: lme4a
 Version: 0.9996875-1
