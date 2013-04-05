@@ -1052,7 +1052,7 @@ setMethod("anova", signature(object = "mer"),
 				logLik = llk,
 				"Chisq" = chisq,
 				"Chi Df" = dfChisq,
-				"Pr(>Chisq)" = pchisq(chisq, dfChisq, lower = FALSE),
+				"Pr(>Chisq)" = pchisq(chisq, dfChisq, lower.tail = FALSE),
 				row.names = names(mods), check.names = FALSE)
 	      class(val) <- c("anova", class(val))
               attr(val, "heading") <-
@@ -1439,7 +1439,7 @@ setMethod("summary", signature(object = "mer"),
               if (!dims[["useSc"]]) {
                   coefs <- coefs[, 1:2, drop = FALSE]
                   stat <- coefs[,1]/coefs[,2]
-                  pval <- 2*pnorm(abs(stat), lower = FALSE)
+                  pval <- 2*pnorm(abs(stat), lower.tail = FALSE)
                   coefs <- cbind(coefs, "z value" = stat, "Pr(>|z|)" = pval)
               } else {
                   stat <- coefs[,1]/coefs[,2]
