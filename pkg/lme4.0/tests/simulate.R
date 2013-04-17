@@ -10,7 +10,7 @@ source(system.file("test-tools.R", package = "Matrix"))# identical3(),
 ##' @author Ben Bolker, Feb.2011;  Martin Maechler, Aug.2011
 pboot <- function(m0,m1, nsim = 1, seed=NULL) {
   smat <- simulate(m0, nsim=nsim, seed=seed)
-  2 * apply(smat, 2, function(s) logLik(refit(m1,s)) - logLik(refit(m0,s)))
+  2 * sapply(smat, function(s) logLik(refit(m1,s)) - logLik(refit(m0,s)))
 }
 
 set.seed(54321)
@@ -44,9 +44,10 @@ showProc.time()
 
 ## FIXME: fails on more recent R 3.0.0, maybe 2.15.3?
 ##  with downdated X'X problem ...
-## r1 <- pboot(gm0,gm1, 10)
-## showProc.time()
-## summary(r1)
+##  17 April 2013; not a problem anymore?
+r1 <- pboot(gm0,gm1, 10)
+showProc.time()
+summary(r1)
 
 
 ## FIXME: want real Poisson example, but will have to simulate one instead for now

@@ -63,36 +63,38 @@ lKa -0.264
 lCl  0.671 -0.141
 > options(op)
 > showProc.time() # ~ 5.7s {dual-opteron 2814, on 64b, no optim.}
-Time elapsed:  5.432 0.012 5.456 
+Time elapsed:  4.908 0 4.899 
 > 
+> op <- options(digits=3)
 > (nm3 <- nlmer(conc ~ SSfol(Dose, Time,lKe, lKa, lCl) ~
 +               (lKe|Subject) + (lKa|Subject) + (lCl|Subject),
 +               Theoph, start = Th.start))
 Nonlinear mixed model fit by the Laplace approximation 
 Formula: conc ~ SSfol(Dose, Time, lKe, lKa, lCl) ~ (lKe | Subject) + (lKa |      Subject) + (lCl | Subject) 
    Data: Theoph 
-   AIC   BIC logLik deviance
- 146.1 166.3 -66.07    132.1
+ AIC BIC logLik deviance
+ 146 166  -66.1      132
 Random effects:
  Groups   Name Variance Std.Dev.
- Subject  lKe  0.000000 0.00000 
- Subject  lKa  0.227490 0.47696 
- Subject  lCl  0.015738 0.12545 
- Residual      0.591692 0.76921 
+ Subject  lKe  0.0000   0.000   
+ Subject  lKa  0.2275   0.477   
+ Subject  lCl  0.0157   0.125   
+ Residual      0.5917   0.769   
 Number of obs: 132, groups: Subject, 12
 
 Fixed effects:
     Estimate Std. Error t value
-lKe -2.47500    0.05641  -43.88
-lKa  0.47408    0.15291    3.10
-lCl -3.23538    0.05236  -61.79
+lKe  -2.4750     0.0564   -43.9
+lKa   0.4741     0.1529     3.1
+lCl  -3.2354     0.0524   -61.8
 
 Correlation of Fixed Effects:
     lKe    lKa   
 lKa -0.264       
 lCl  0.671 -0.133
 > showProc.time() # ~ 3.2s
-Time elapsed:  4.536 0.128 4.692 
+Time elapsed:  6.1 0 6.25 
+> options(op)
 > 
 > ## dropping   lKe  from random effects:
 > (nm4 <- nlmer(conc ~ SSfol(Dose, Time,lKe, lKa, lCl) ~
@@ -121,7 +123,7 @@ Correlation of Fixed Effects:
 lKa -0.264       
 lCl  0.671 -0.141
 > showProc.time()
-Time elapsed:  3.233 0.068 3.381 
+Time elapsed:  2.641 0 2.653 
 > 
 > (nm5 <- nlmer(conc ~ SSfol(Dose, Time,lKe, lKa, lCl) ~
 +               (lKa|Subject) + (lCl|Subject),
@@ -149,7 +151,7 @@ Correlation of Fixed Effects:
 lKa -0.264       
 lCl  0.671 -0.133
 > showProc.time()
-Time elapsed:  2.8 0.068 2.95 
+Time elapsed:  2.508 0.028 2.548 
 > 
 > e3 <- expand(nm3)
 > stopifnot(identical(sapply(e3, class),
@@ -175,8 +177,8 @@ Time elapsed:  2.8 0.068 2.95
 +           )
 > 
 > showProc.time()
-Time elapsed:  0.04 0.04 0.08 
+Time elapsed:  0.036 0.02 0.059 
 > 
 > proc.time()
    user  system elapsed 
- 19.713   2.692  23.289 
+ 18.905   1.248  20.864 
