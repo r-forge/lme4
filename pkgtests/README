@@ -1,0 +1,12 @@
+directory with tools for checking downstream packages (of lme4,
+but could in principle be something else??)
+
+* set up all needed packages in a local ./library directory
+
+* in order to check packages, we need a _tarball_ of the focal package
+_and_ we need all of its dependencies and suggests to be installed locally;
+we're going to do this by setting up a local ./library that can hold
+all that junk so we don't end up installing 75% of CRAN in our own
+local libraries ...
+
+* need new code to handle 'package required and available but unsuitable version'

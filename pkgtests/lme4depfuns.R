@@ -11,7 +11,7 @@ checkPkg <- function(pn,verbose=FALSE,tarballdir="./tarballs",libdir="./library"
                      checkdir=".",skip=FALSE) {
     ## FIXME: check for/document local version of tarball more recent than R-forge/CRAN versions
     ## FIXME: consistent implementation of checkdir
-    rforge <- "http://r-forge.r-project.org"    
+    rforge <- "http://r-forge.r-project.org"  
     if (!exists("availCRAN")) {
         if (verbose) cat("getting list of available packages from CRAN\n")
         availCRAN <<- available.packages()
@@ -21,22 +21,26 @@ checkPkg <- function(pn,verbose=FALSE,tarballdir="./tarballs",libdir="./library"
         availRforge <<- available.packages(contriburl=contrib.url(rforge))
     }
     .libPaths(libdir)
+    ## we definitely want this to check for packages in the local library directory;
+    ## not sure if we want to check in the rest of the standard library paths
     instPkgs <- installed.packages()
     if (verbose) cat("checking package",pn,"\n")
-    loc <- "none"
+    loc <- "none"  ## where is the package coming from?
     if (pn %in% rownames(availRforge)) {
+        ## if available at R-forge ... take the R-forge version
         loc <- "Rforge"
         pkginfo <- availRforge[pn,]
     } else if (pn %in% rownames(availCRAN)) {
         loc <- "CRAN"
         pkginfo <- availCRAN[pn,]
     }
+    ## FIXME: look for local tarballs???
     locpkg <- list.files(tarballdir,paste0("^",pn))
     if (length(locpkg)>0) {
         locver <- gsub(paste0(pn,"_([-0-9.]+).tar.gz"),"\\1",locpkg)
     } else locver <- NULL
     if (loc=="none" && is.null(locver)) stop("package seems to be unavailable")
-    ver <- pkginfo["Version"]
+    ver <- pkginfo["Version"]  ## FIXME: check that tarball matches latest available???
     if (!is.null(locver)) {
         if (length(locver)>1) {
             locver <- pkgmax(locver)
@@ -74,7 +78,7 @@ checkPkg <- function(pn,verbose=FALSE,tarballdir="./tarballs",libdir="./library"
             instPkgs <- installed.packages(noCache=TRUE)  ## update installed package info
         }
     }
-    ## how to force altered .libPaths in R CMD check?  this doesn't seem to work ...
+    ## must have set check.Renviron here in order for R CMD check to respect libdir
     if (verbose) cat("running R CMD check ...\n")
     unlink(file.path(checkdir,paste0(pn,".Rcheck")))  ## erase existing check directory
     ## FIXME: run R CMD check in checkdir ...

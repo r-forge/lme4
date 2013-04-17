@@ -1,8 +1,12 @@
 #! /bin/bash
-## install latest version of lme4
+## install latest version of lme4 *into* the test package directory (-l flag)
 R CMD INSTALL -l ./library ../pkg/lme4
-## set up proper testing environment
-cp ~/.R/check.Renviron.bak ~/.R/check.Renviron
+## set up proper testing environment;
+## putting the appropriate library path into ~/.R/check.Renviron
+## (should I try to preserve an existing check.Renviron file???)
+echo "R_LIBS_SITE=`pwd`/library" > ~/.R/check.Renviron
+echo "R_USER_SITE=`pwd`/library" >> ~/.R/check.Renviron
+## make sure this applies for the following R CMD BATCH ...
 export R_LIBS_SITE=./library
 ## run tests
 R CMD BATCH --vanilla lme4deptests.R
