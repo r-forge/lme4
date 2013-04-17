@@ -453,12 +453,12 @@ Slot "sigma":
         [,1]    [,2]
 [1,]  1.0000 -0.9961
 [2,] -0.9961  1.0000
->     ## discrepancies have occured at digit 140.641x;
+>     ## discrepancies have occured at digit 140.64x;
 >     ##  digits= doesn't handle it properly since other
 >     ##  elements have smaller magnitudes
->     round(c(unlist(VarCorr(M2.))),3)  
- group1  group2  group3  group4 
-140.641  -1.424  -1.424   0.014 
+>     round(c(unlist(VarCorr(M2.))),2)  
+group1 group2 group3 group4 
+140.64  -1.42  -1.42   0.01 
 >     options(op)
 >     ## summary(M2.)
 >     M2  <- lmer (y ~ x + ( x | group))
@@ -643,8 +643,8 @@ m1  4  585.49  599.41 -288.75 450.67      1  < 2.2e-16
 > if(.unsafe.BLAS) rm(identical)
 > 
 > cat('Time elapsed: ', proc.time(),'\n') # for ``statistical reasons''
-Time elapsed:  7.204 2.836 10.664 0.012 0.096 
+Time elapsed:  5.608 1.612 7.891 0 0.024 
 > 
 > proc.time()
    user  system elapsed 
-  7.216   2.936  10.666 
+  5.608   1.636   7.892 

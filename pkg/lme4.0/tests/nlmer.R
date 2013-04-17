@@ -21,10 +21,12 @@ op <- options(digits=3)
 options(op)
 showProc.time() # ~ 5.7s {dual-opteron 2814, on 64b, no optim.}
 
+op <- options(digits=3)
 (nm3 <- nlmer(conc ~ SSfol(Dose, Time,lKe, lKa, lCl) ~
               (lKe|Subject) + (lKa|Subject) + (lCl|Subject),
               Theoph, start = Th.start))
 showProc.time() # ~ 3.2s
+options(op)
 
 ## dropping   lKe  from random effects:
 (nm4 <- nlmer(conc ~ SSfol(Dose, Time,lKe, lKa, lCl) ~

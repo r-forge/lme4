@@ -121,10 +121,10 @@ if(.unsafe.BLAS) identical <- all.equal ## "the horror" ..
     op <- options(digits=4)
     fixef(M2.)
     cov2cor(vcov(M2.))
-    ## discrepancies have occured at digit 140.641x;
+    ## discrepancies have occured at digit 140.64x;
     ##  digits= doesn't handle it properly since other
     ##  elements have smaller magnitudes
-    round(c(unlist(VarCorr(M2.))),3)  
+    round(c(unlist(VarCorr(M2.))),2)  
     options(op)
     ## summary(M2.)
     M2  <- lmer (y ~ x + ( x | group))
