@@ -68,6 +68,10 @@ if (verbose) {
 
 require(parallel)
 ## FIXME (maybe): mclapply doesn't work on Windows ?
+##  and might hang Ubuntu VM?
+
+## FIXME: not sure this is necessary/functional
+Sys.setenv(R_LIBS_SITE="./library")
 testresults <- mclapply(pkgnames,function(x) {
     if (verbose) cat("checking package",x,"\n")
     try(checkPkg(x,verbose=TRUE))
