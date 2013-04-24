@@ -20,10 +20,12 @@ checkPkg <- function(pn,verbose=FALSE,tarballdir="./tarballs",libdir="./library"
         if (verbose) cat("getting list of available packages from R-forge\n")
         availRforge <<- available.packages(contriburl=contrib.url(rforge))
     }
-    .libPaths(libdir)
+    ## FIXME: maybe this is not effective/not what we want to do?
+    ##  *don't* want to look at any already-installed packages
+    .libPaths(libdir) 
     ## we definitely want this to check for packages in the local library directory;
     ## not sure if we want to check in the rest of the standard library paths
-    instPkgs <- installed.packages()
+    instPkgs <- installed.packages(lib.loc=libdir)
     if (verbose) cat("checking package",pn,"\n")
     loc <- "none"  ## where is the package coming from?
     if (pn %in% rownames(availRforge)) {
@@ -75,7 +77,7 @@ checkPkg <- function(pn,verbose=FALSE,tarballdir="./tarballs",libdir="./library"
             if (verbose) cat("installing dependencies",depMiss,"\n")
             install.packages(depMiss,lib=libdir)
             rPath <- if (loc=="CRAN") getOption("repos") else c(rforge,getOption("repos"))
-            instPkgs <- installed.packages(noCache=TRUE)  ## update installed package info
+            instPkgs <- installed.packages(noCache=TRUE,lib.loc=libdir)  ## update installed package info
         }
     }
     ## must have set check.Renviron here in order for R CMD check to respect libdir
