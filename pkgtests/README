@@ -1,12 +1,23 @@
-directory with tools for checking downstream packages (of lme4,
-but could in principle be something else??)
+This directory contains tools for checking downstream packages (of lme4, but could in principle be something else??)
 
 * set up all needed packages in a local ./library directory
-
 * in order to check packages, we need a _tarball_ of the focal package
-_and_ we need all of its dependencies and suggests to be installed locally;
-we're going to do this by setting up a local ./library that can hold
-all that junk so we don't end up installing 75% of CRAN in our own
-local libraries ...
-
+_and_ we need all of its dependencies and suggests to be installed locally; we do this by setting up a local ./library that can hold all that junk so we don't end up installing 75% of CRAN in our own
+local libraries ... and so that in principle it can be kept clean
 * need new code to handle 'package required and available but unsuitable version'
+* should consider updating to use the built-in R package management/comparison tools
+
+* only two .R files:
+ * lme4depfuns.R: utility functions
+ * lme4deptests.R: driver code
+
+* 'runtests' is a shell script with environment variable-setting commands that _must_ be run prior to testing (esp. setting up ~/.R/check.Renviron file properly); it seems necessary to set R_LIBS_SITE explicitly as well as within ~/.R/check.Renviron, but haven't tested this thoroughly, nor do I really understand what's going on.
+
+* the process:
+
+TO DO / FIXME:
+* getting warnings about
+  Warning in normalizePath(c(new, .Library.site, .Library), "/") :
+     path[4]="./library": No such file or directory
+
+not quite sure where this is coming from, whether it matters, and how to fix it

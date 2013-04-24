@@ -3,6 +3,13 @@
 ## include all downstream packages from CRAN, r-forge:
 ## packages to check, loaded from package-dependency scan
 
+## these should eventually be default arguments
+verbose <- TRUE
+## need this because R can't handle '@CRAN@' magic default
+## in non-interactive mode ...
+options(repos=c(CRAN="http://probability.ca/cran"))
+
+if (verbose) cat("retrieving dependency information\n")
 source("http://developer.r-project.org/CRAN/Scripts/depends.R")
 rr <- reverse_dependencies_with_maintainers("lme4")
 source("lme4depfuns.R")  ## component/utility functions
@@ -27,8 +34,10 @@ skippkgs <- character(0)
 
 ## FIXME: why are R2admb, RLRsim, sdtalt, Zelig not getting checked?
 
+if (verbose) cat("setting up infrastructure\n")
 testdir <- getwd()
 
+## FIXME: should tarballdir="tarballs" etc. be arguments to a driver function?
 ## directory for tarballs to check
 tarballdir <- file.path(testdir,"tarballs")
 ## directory for ?? (at least current lme4 version ...)
@@ -47,11 +56,22 @@ dir.create(libdir,showWarnings=FALSE)
 ##  have to do R CMD check
 
 pkgnames <- rr[,"Package"]
+
 names(pkgnames) <- pkgnames ## so results are named
 pkgnames <- pkgnames[!pkgnames %in% skippkgs]
+
+if (verbose) {
+    cat("packages to test:\n")
+    print(unname(pkgnames),quote=FALSE)
+}
+
+
 require(parallel)
 ## FIXME (maybe): mclapply doesn't work on Windows ?
-testresults <- mclapply(pkgnames,function(x) try(checkPkg(x,verbose=TRUE)))
+testresults <- mclapply(pkgnames,function(x) {
+    if (verbose) cat("checking package",x,"\n")
+    try(checkPkg(x,verbose=TRUE))
+})
 skipresults <- mclapply(skippkgs,function(x) try(checkPkg(x,skip=TRUE,verbose=TRUE)))
 testresults <- c(testresults,skipresults)
 
