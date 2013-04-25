@@ -66,7 +66,7 @@ checkPkg <- function(pn,verbose=FALSE,tarballdir="./tarballs",libdir="./library"
         download.file(file.path(basepath,tn),
                       destfile=tdn)
         ## install suggested packages that aren't already installed
-        depList <-lapply(c("Suggests","Depends"),
+        depList <- lapply(c("Suggests","Depends"),
                          tools:::package.dependencies,
                          x=pkginfo,
                          check=FALSE)
