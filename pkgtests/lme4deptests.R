@@ -21,8 +21,9 @@ locpkg <- "lme4_0.99999911-2.tar.gz"
 ## FIXME: should get these straight from DESCRIPTION file
 pkgdep <- c("Rcpp","RcppEigen","minqa")
 instPkgs <- installed.packages(lib.loc=libdir,noCache=TRUE)
-pkgdepMiss <- setdiff(lme4dep,c("R",rownames(instPkgs)))
-install.packages(pkgdepMiss,lib=libdir)
+pkgdepMiss <- setdiff(pkgdep,c("R",rownames(instPkgs)))
+if (length(pkgdepMiss)>0)
+    install.packages(pkgdepMiss,lib=libdir)
 
 if (reinstall_pkg) {
     install.packages(locpkg,repos=NULL,lib=libdir)
