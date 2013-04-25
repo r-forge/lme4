@@ -3,15 +3,36 @@
 ## include all downstream packages from CRAN, r-forge:
 ## packages to check, loaded from package-dependency scan
 
+
 ## these should eventually be default arguments
 verbose <- TRUE
 ## need this because R can't handle '@CRAN@' magic default
 ## in non-interactive mode ...
 options(repos=c(CRAN="http://probability.ca/cran"))
+pkg <- "lme4"
+do_parallel <- TRUE
+testdir <- getwd()
+tarballdir <- file.path(testdir,"tarballs")
+libdir <-     file.path(testdir,"library")
+checkdir <-     file.path(testdir,"check")
+reinstall_pkg <- FALSE
+locpkg <- "lme4_0.99999911-2.tar.gz"
 
+## FIXME: should get these straight from DESCRIPTION file
+pkgdep <- c("Rcpp","RcppEigen","minqa")
+instPkgs <- installed.packages(lib.loc=libdir,noCache=TRUE)
+pkgdepMiss <- setdiff(lme4dep,c("R",rownames(instPkgs)))
+install.packages(pkgdepMiss,lib=libdir)
+
+if (reinstall_pkg) {
+    install.packages(locpkg,repos=NULL,lib=libdir)
+}
+                 
 if (verbose) cat("retrieving dependency information\n")
 source("http://developer.r-project.org/CRAN/Scripts/depends.R")
-rr <- reverse_dependencies_with_maintainers("lme4")
+## FIXME: should download a local copy of this, for future-proofing
+
+rr <- reverse_dependencies_with_maintainers(pkg)
 source("lme4depfuns.R")  ## component/utility functions
 ## packages to skip (because dependencies don't install etc.
 ## skippkgs <- "polytomous"
@@ -34,14 +55,8 @@ skippkgs <- character(0)
 
 ## FIXME: why are R2admb, RLRsim, sdtalt, Zelig not getting checked?
 
-if (verbose) cat("setting up infrastructure\n")
-testdir <- getwd()
 
-## FIXME: should tarballdir="tarballs" etc. be arguments to a driver function?
-## directory for tarballs to check
-tarballdir <- file.path(testdir,"tarballs")
-## directory for ?? (at least current lme4 version ...)
-libdir <-     file.path(testdir,"library")
+
 
 suppressWarnings(rm(list=c("availCRAN","availRforge"))) ## clean up
 
@@ -66,24 +81,26 @@ if (verbose) {
 }
 
 
-require(parallel)
+if (do_parallel) {
+    require(parallel)
+    Apply <- mclapply
+} else Apply <- lapply
 ## FIXME (maybe): mclapply doesn't work on Windows ?
 ##  and might hang Ubuntu VM?
 
 ## FIXME: not sure this is necessary/functional
-Sys.setenv(R_LIBS_SITE="./library")
-testresults <- mclapply(pkgnames,function(x) {
+testresults <- Apply(pkgnames,function(x) {
     if (verbose) cat("checking package",x,"\n")
     try(checkPkg(x,verbose=TRUE))
 })
-skipresults <- mclapply(skippkgs,function(x) try(checkPkg(x,skip=TRUE,verbose=TRUE)))
+skipresults <- Apply(skippkgs,function(x) try(checkPkg(x,skip=TRUE,verbose=TRUE)))
 testresults <- c(testresults,skipresults)
 
-save("testresults",file="lme4tests_out.RData")
+save("testresults",file="pkgtests_out.RData")
 
 if (FALSE) {
     ## playing with results
-    load("lme4tests_out.RData")
+    load("pkgtests_out.RData")
     checkPkg("HSAUR2")
 }
 ## names(testresults) <- X$X  ## should be obsolete after next run
