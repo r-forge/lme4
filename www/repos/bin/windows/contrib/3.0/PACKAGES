@@ -8,6 +8,5 @@ LinkingTo: Rcpp, RcppEigen
 Suggests: boot, PKPDmodels, MEMSS, testthat, ggplot2, mlmRev, plyr,
         reshape, optimx
 License: GPL (>= 2)
-MD5sum: 42bd9634ec6fbb70b42b0a4aead8fb4c
-NeedsCompilation: no
+Archs: i386, x64
 
