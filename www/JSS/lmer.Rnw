@@ -28,7 +28,7 @@
   is optimized, using one of the constrained optimization functions in
   \proglang{R}, to provide the parameter estimates.  We describe the
   structure of the model, the steps in evaluating the profiled
-  deviance or REML criterion and the structure of the S4 class
+  deviance or REML criterion and the structure of the class
   that represents such a model.  Sufficient detail is
   included to allow specialization of these structures by those who
   wish to write functions to fit specialized linear mixed models, such
@@ -168,7 +168,7 @@ To understand why the formulation in equations \ref{eq:LMMcondY} and
 \ref{eq:LMMuncondB} is particularly useful, we first show that the
 profiled deviance (negative twice the log-likelihood) and the profiled
 REML criterion can be expressed as a function of $\bm\theta$ only.
-Furthermore these criteria can be evaluated quickly and accurately.
+Furthermore, these criteria can be evaluated quickly and accurately.
 
 \begin{table}
   \begin{tabular}{cp{3in}l}
@@ -180,7 +180,7 @@ Furthermore these criteria can be evaluated quickly and accurately.
     \code{getME(.,"theta")} \\
     $\bm \beta$ & Fixed-effect coefficients & \code{fixef(.)}  [\code{getME(.,"beta")}]\\
     $\sigma^2$ & Residual variance & \verb+sigma(.)^2+ \\
-    $\mc{Y}$ & Response variable & \code{getME(.,"y")} \\
+    $\mc{Y}$ & Response variable &  \\
     $\bm\Lambda_{\bm\theta}$ & Relative covariance factor & \code{getME(.,"Lambda")} \\
     $\bm L_\theta$ & Sparse Cholesky factor & \code{getME(.,"L")}\\
     $\mc B$ & Random effects & \\
@@ -284,7 +284,7 @@ The conditional mean, $\bm\mu_{\mc U|\mc Y=\yobs}$, is also the mode
 of the conditional distribution.  Because a constant factor in a
 function does not affect the location of the optimum, we can determine
 the conditional mode, and hence the conditional mean, by maximizing
-the unscaled conditional density.  This is in the form of a
+the unscaled conditional density.  This takes the form of a
 \emph{penalized linear least squares} problem,
 \begin{linenomath}
 \begin{equation}
@@ -312,7 +312,7 @@ extended response vector and model matrix
 \end{equation}
 \end{linenomath}
 The contribution to the residual sum of squares from the ``pseudo''
-observations appended to $\yobs-\bm X\bm\beta$, is exactly the penalty
+observations appended to $\yobs-\bm X\bm\beta$ is exactly the penalty
 term, $\left\|\bm u\right\|^2$.
 
 From \eq{eq:pseudoData} we can see that the conditional mean satisfies
@@ -357,17 +357,22 @@ requires only the numeric phase.  Changing $\bm\theta$ can change the
 values of the non-zero elements in $\bm L$ but does not change their
 positions.  Hence, the symbolic phase must be done only once.
 
-\bmb{Update: refer to RcppEigen methods rather than Matrix methods?}
-The \code{Cholesky} function in the \pkg{Matrix} package for
-\proglang{R} performs both the symbolic and numeric phases of the
-factorization to produce $\bm L_\theta$ from $\bLt\trans\bm Z\trans\bm
-Z\bLt$.  The resulting object has S4 class \code{"CHMsuper"} or
-\code{"CHMsimp"} depending on whether it is in the
-supernodal~\citep[\S~4.8]{davis06:csparse_book} or simplicial form.
-Both these classes inherit from the virtual class \code{"CHMfactor"}.
-Optional arguments to the \code{Cholesky} function control
-determination of a fill-reducing permutation and addition of multiple
-of the identity to the symmetric matrix before factorization.  Once
+\bmb{Finish updating to 
+  refer to [Rcpp]Eigen methods rather than Matrix methods}
+%% The \code{Cholesky} function in the \pkg{Matrix} package for
+%%\proglang{R} performs both the symbolic and numeric phases of the
+%% factorization to produce $\bm L_\theta$ from $\bLt\trans\bm Z\trans\bm
+%% Z\bLt$.  The resulting object has S4 class \code{"CHMsuper"} or
+%% \code{"CHMsimp"} depending on whether it is in the
+%% supernodal~\citep[\S~4.8]{davis06:csparse_book} or simplicial form.
+%% Both these classes inherit from the virtual class \code{"CHMfactor"}.
+%% Optional arguments to the \code{Cholesky} function control
+%% determination of a fill-reducing permutation and addition of multiple
+%% of the identity to the symmetric matrix before factorization.  
+The \code{analyzePattern} method from the \code{Eigen} linear algebra
+package performs a symbolic decomposition of the sparsity pattern
+\ldots
+Once
 the factor has been determined for the initial value, $\bm\theta_0$,
 it can be updated for new values of $\bm\theta$ in a single call to
 the \code{update} method.
@@ -586,11 +591,12 @@ in future publications.
 
 \section{Implementation details}
 
-\begin{itemize}
-\item describe \code{lmer} implementation (modular version)
-\item talk about optimizer choice
-\item describe accessor functions/code-math correspondence
- \end{itemize}
+\subsection{Setting up the deviance function}
+
+\subsection{Optimization}
+
+\subsection{Working with a fitted model}
+
 
 \begin{table}
   \begin{tabular}{cp{3in}l}
