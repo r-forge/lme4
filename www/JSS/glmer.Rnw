@@ -387,7 +387,7 @@ print(xyplot(as.vector(dmat) ~ rep.int(zm$zvals, ncol(dmat))|gl(ncol(dmat), nrow
            panel.xyplot(...)}
        ))
 @ 
-  \caption{Comparison of univariate integrands (solid line) and standard normal density function (dashed line) \bmb{is something wrong?  Do these agree TOO well?}}
+  \caption{Comparison of univariate integrands (solid line) and standard normal density function (dashed line) \bmb{consider Q-Q plots to emphasize deviations from normality?}
   \label{fig:densities}
 \end{figure}
 
