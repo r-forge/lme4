@@ -585,63 +585,36 @@ represent the data compactly and to provide for general update
 methods.  To represent $\bm Z$ we only need the index vectors, $\bm i_i$,
 and the dense model matrices, $\bm X_i,i=1,\dots,k$.  To determine
 $\bLt$ we only need the lower-triangular template
-matrices of sizes $p_i,i=1,dots,k$.  In this form we can evaluate the non-zero
-elements of $\bm Z_i\bm\Lambda_i$ from the dense $n\times p_i$ product
-of $\bm X_i$ and the $i$th template matrix for $\bLt$.
+matrices of sizes $p_i,i=1,dots,k$.
+
+This formulation is particularly useful because we can evaluate the
+non-zero elements of $\bm Z_i\bm\Lambda_i$ from the dense $n\times
+p_i$ product of $\bm X_i$ and the $i$th template matrix for $\bLt$.
+Even though we have written $\bm Z\bLt$ as a product of sparse
+matrices (which can be very large), we can evaluate this product by
+first forming the dense products then expanding from the dense
+representation to the sparse matrix.  Especially when using
+accelerated versions of the Basic Linear Algebra Subroutines (BLAS)
+forming the product this way is much, much faster than using sparse
+matrix methods.
+
+Furthermore, if there are case weights to be applied to $\bm Z\bLt$
+(and to $\bm X$, the model matrix of for the fixed-effects parameters)
+they can be applied to the $\bm X_i$ before expansion.  Case weights
+are not an important consideration when fitting LMMs because they can
+be applied to the model matrices and response when setting up the
+numerical representation.  However, solving iteratively reweighted
+penalized least squares problems is central to fitting GLMMs and easy
+updating for new case weights is important.
 
 The random-effects value, $\bm u$, is represented as matrices $\bm
-U_i,i=1,\dots,k$ of sizes $\ell_i\times p_i$.  Although when displaying the
-conditional modes of $\mc{U}$ or $\mn{B}$ we usually transpose these
-matrices it is more convenient to manipulate them in this form.
-
-There is an advantage in delaying this expansion, however, because
-non-zero values of $\bm Z_i\bm\Lambda_i,i=1,\dots,k$ can be evaluated
-as the product of the dense matrix $\bm X_i$ with the template
-diagonal element of $\bm\Lambda_i$.  Thus we never need to create the
-repeated block diagonal matrix $\bm\Lambda_i$ if we do the
-multiplication in the dense format and multiplying a dense $n\times p_i$
-of data
-Furthermore, if there are case
-weights to be applied they can be applied to $\bm X_i$ before
-expansion.  Case weights are not an important consideration when
-fitting LMMs because they can be applied to the model matrices and
-response when setting up the numerical representation.  However,
-solving iteratively reweighted penalized least squares problems is
-central to fitting GLMMs and easy updating for new case weights is
-important.
-
-
-
-
-\subsection{Models with a single random-effects term}
-\label{sec:1term}
-
-If there is only one random-effects term in the model, the matrices
-$\bm Z\trans\bm Z$, $\bLt$ and $\bm L$ will all be diagonal, for a
-single, scalar term, or block-diagonal, for a single vector-valued
-terms.  Handling this case separately results in sufficient
-simplification to make doing so worthwhile.
-
-The simplest special case is a mixed-model formula with a single, simple, scalar
-random-effects term, \code{(1|f)}.  In this case $q=\ell_1$, the number of levels of
-the factor \code{f} and the $n\times q$ model matrix, $\bm Z$ is $\bm J_1$, the 
-indicator matrix for the levels of \code{f}.  The cross-product,
-$\bm Z\trans\bm Z$, is diagonal.  In this case the diagonal elements are
-the frequencies of the levels of \code{f}.  The variance-component
-parameter vector, $\bm\theta$, is one dimensional so we represent it
-as a scalar, $\theta$, subject to the constraint $\theta\le0$.
-
-The covariance factor is a multiple of the identity,
-$\bLt=\theta\bm I_q$.  The Cholesky factor, $\bm L$, will be diagonal
-for any permutation, $\bm P$.  That is, there is no fill-in during the
-sparse Cholesky decomposition, we use the identity permutation, $\bm P=\bm I_q$.
-
-It is very unusual for a model to have a single, scalar term that is
-other than a simple, scalar term.  In this case $\bm Z$ would have the
-same pattern of non-zeros as does $\bm J_1$ but not all the non-zeros
-would be unity.  The crossproduct $\bm Z\trans\bm Z$ will be diagonal
-with easily calculated diagonal elements. Both the covariance factor,
-$\bLt$, and the Cholesky factor, $\bm L$, are diagonal.
+U_i,i=1,\dots,k$ of sizes $\ell_i\times p_i$ allowing us to form
+products like $\bm Z\bLt\bm u$ without ever expanding to the sparse
+matrix form of $\bm Z$ and $\bLt$.  Instead we use the index vectors,
+$\bm i_i$ to create an $n\times p_i$ matrix, whose $j$th row is the
+$p_i$ components of $\bm u$ that apply to the $j$th case and $i$th
+random-effects terms and multiply this matrix element-wise by $\bm
+X_i$ then sum the rows.
 
 \bibliography{lmer}
 \end{document}
