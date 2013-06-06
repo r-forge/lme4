@@ -336,7 +336,7 @@ the exponent of $f_{\mc Y,\mc U}(\yobs, \bm u)$
   \label{eq:PLS}
   \|\yobs-\bm X\bm\beta-\bm Z\bLt\bm u\|^2+\|\bm u\|^2=
   r^2(\bm\theta,\bm\beta)+
-  \|\bm L\trans\bm P(\bm u-\bm\mu_{\mc U|\mc Y=\yobs})\|^2.
+  \|\bm L_\theta\trans\bm P(\bm u-\bm\mu_{\mc U|\mc Y=\yobs})\|^2.
 \end{equation}
 \end{linenomath}
 where $r^2(\bm\theta,\bm\beta)=\|\yobs-\bm X\bm\beta-
@@ -346,22 +346,22 @@ penalized residual sum of squares for the given values of $\bm\theta$ and
 $\bm\beta$.
 
 With expression (\ref{eq:PLS}) and the change of variable $\bm v=\bm
-L\trans\bm P(\bm u-\bm\mu_{\mc U|\mc Y=\yobs})$, for which $d\bm
-v=\abs(|\bm L||\bm P|)\,d\bm u$, we have
+L_\theta\trans\bm P(\bm u-\bm\mu_{\mc U|\mc Y=\yobs})$, for which $d\bm
+v=\abs(|\bm L_\theta||\bm P|)\,d\bm u$, we have
 \begin{linenomath}
 \begin{equation}
   \label{eq:intExpr}
-  \int\frac{\exp\left(\frac{-\|\bm L\trans\bm P(\bm u-\bm\mu_{\mc U|\mc Y})\|^2}
+  \int\frac{\exp\left(\frac{-\|\bm L_\theta\trans\bm P(\bm u-\bm\mu_{\mc U|\mc Y})\|^2}
       {2\sigma^2}\right)}
   {(2\pi\sigma^2)^{q/2}}\,d\bm u \\
   = \int\frac{\exp\left(\frac{-\|\bm
         v\|^2}{2\sigma^2}\right)}{(2\pi\sigma^2)^{q/2}}\,\frac{d\bm
-    v}{\abs(|\bm L||\bm P|)} = \frac{1}{\abs(|\bm L||\bm
-    P|)}=\frac{1}{|\bm L|}
+    v}{\abs(|\bm L_\theta||\bm P|)} = \frac{1}{\abs(|\bm L_\theta||\bm
+    P|)}=\frac{1}{|\bm L_\theta|}
 \end{equation}
 \end{linenomath}
 because $\abs|\bm P|=1$ (one property of a permutation matrix is $|\bm
-P|=\pm1$) and $|\bm L|$, which, because $\bm L$ is triangular, is the
+P|=\pm1$) and $|\bm L_\theta|$, which, because $\bm L_\theta$ is triangular, is the
 product of its diagonal elements, all of which are positive, is
 positive.
 
@@ -459,11 +459,11 @@ as
   \label{eq:fulldecomp}
   \begin{bmatrix}
     \bm P\trans\bm L& \bm 0\\
-    \bm L_{ZX} & \bm L_X
+    \bm R_{ZX}\trans & \bm R_X\trans
   \end{bmatrix}
   \begin{bmatrix}
-    \bm L\trans\bm P & \bm L_{ZX}\trans\\
-    \bm 0            & \bm L_X\trans
+    \bm L\trans\bm P & \bm R_{ZX}\\
+    \bm 0            & \bm R_X
   \end{bmatrix}=
   \begin{bmatrix}
     \bLt\trans\bm Z\trans\bm Z\bLt+\bm I & \bLt\trans\bm Z\trans\bm X\\
@@ -471,10 +471,10 @@ as
   \end{bmatrix} .
 \end{equation}
 \end{linenomath}
-When the fixed-effects model matrix $\bm X$ is dense, the $p\times q$
-matrix $\bm L_{ZX}$ and the $p\times p$ lower triangular matrix $\bm
-L_X$ will also be dense.  Occasionally it makes sense to store $\bm X$
-as a sparse matrix in which case $\bm L_{ZX}$ and $\bm L_X$ could also
+When the fixed-effects model matrix $\bm X$ is dense, the $q\times p$
+matrix $\bm R_{ZX}$ and the $p\times p$ upper triangular matrix $\bm
+R_X$ will also be dense.  Occasionally it makes sense to store $\bm X$
+as a sparse matrix in which case $\bm R_{ZX}$ and $\bm R_X$ could also
 be sparse.
 
 Because the joint solutions, $\bm\mu_{\mc U|\mc Y=\yobs}$ and
@@ -484,9 +484,9 @@ $\widehat{\bm\beta}_\theta$, to eqn.~\ref{eq:jointPLSeqn} allow us to express
   \label{eq:PLS2}
   \|\yobs-\bm X\bm\beta-\bm Z\bLt\bm u\|^2+\|\bm u\|^2=\\
   r^2_\theta+
-  \left\|\bm L\trans\bm P\left[\bm u-\bm\mu_{\mc U|\mc Y=\yobs}-
-  \bm L_{ZX}\trans(\bm\beta - \widehat{\bm\beta}_\theta)\right]\right\|^2+
-  \left\|\bm L_X\trans(\bm\beta - \widehat{\bm\beta}_\theta)\right\|^2
+  \left\|\bm L_\theta\trans\bm P\left[\bm u-\bm\mu_{\mc U|\mc Y=\yobs}-
+  \bm R_{ZX}(\bm\beta - \widehat{\bm\beta}_\theta)\right]\right\|^2+
+  \left\|\bm R_X(\bm\beta - \widehat{\bm\beta}_\theta)\right\|^2
 \end{multline}
 \end{linenomath}
 we can use a change of variable, similar to that in
@@ -495,7 +495,7 @@ deviance scale the criterion can be evaluated as
 \begin{linenomath}
 \begin{equation}
   \label{eq:profiledREML}
-  -2\tilde{\ell}_R(\bm\theta)=\log(|\bm L|^2)+\log(|\bm L_X|^2)+
+  -2\tilde{\ell}_R(\bm\theta)=\log(|\bm L|^2)+\log(|\bm R_X|^2)+
   (n-p)\left[1+\log\left(\frac{2\pi r^2_\theta}{n-p}\right)\right] .
 \end{equation}
 \end{linenomath}
@@ -528,15 +528,14 @@ $n$-vector of values from $1,\dots,\ell_i$.  Let $\bm J_i$ be the
 $n\times \ell_i$ matrix of indicator columns for $\bm i_i$.
 
 When $k>1$ we order the random-effects terms so that
-$\ell_1\ge\ell_2\ge\dots\ell_k$.
+$\ell_1\ge\ell_2\ge\dots\ge\ell_k$.
 
 Let $\bm X_i$ of size $n\times p_i$ be the model matrix of the linear
 model formula, \code{r}, from the $i$th random-effects term,
 $i=1,\dots,k$.  A term is said to be a \emph{scalar} random-effects
 term when $p_i=1$, otherwise it is \emph{vector-valued}.  For a
 \emph{simple, scalar} random-effects term of the form \code{(1|f)},
-$\bm X_i$ is a matrix with a single column, each of whose elements are
-unity.
+$\bm X_i$ is the $n\times 1$ matrix of ones.
 
 The $i$th random effects term contributes $q_i=\ell_ip_i$ columns,
 which we will write as $\bm Z_i$, to
@@ -567,54 +566,167 @@ Note that this means that when $k=1$ (i.e. there is only one
 random-effects term), $\bm Z\trans\bm Z$ will be block diagonal.
 
 The $q\times q$ covariance factor, $\bLt$, is a block diagonal matrix
-whose $i$ diagonal block, $\bm\Lambda_i$, is of size $q_i,i=1,\dots,k$.
-Furthermore, $\bm\Lambda_i$ is itself block diagonal consisting of $\ell_i$
-lower-triangular blocks of size $p_i$ and all these inner blocks in
-$\bm\Lambda_i$ are identical.  Thus $\bm\Lambda_i$ is determined by
-$p_i(p_i+1)/2$ parameters corresponding to the positions on and below
-the diagonal in the $p_i\times p_i$ template of the $\ell_i$
-lower-triangular blocks on the diagonal.  To provide a unique
-representation we require that the diagonal elements of the size $p_i$
-lower triangular template be non-negative.
+whose $i$th diagonal block, $\bm\Lambda_i$, is of size
+$q_i,i=1,\dots,k$.  Furthermore, $\bm\Lambda_i$ is a \emph{homogeneous
+  block diagonal} matrix with each of the $\ell_i$ lower-triangular
+blocks on the diagonal being a copy of a $p_i\times p_i$ lower-triangular
+template, $\bm T_i$.  The covariance parameter vector, $\bm\theta$,
+consists of the elements in the lower triangles of the $\bm
+T_i,i=1,\dots,k$.  To provide a unique representation we require that
+the diagonal elements of the $\bm T_i,i=1,\dots,k$ be non-negative.
 
 \subsection{General computational structures and methods}
 \label{sec:generalcomputational}
 
-The heavily structured nature of $\bm Z$ and $\bLt$ allows us to
-represent the data compactly and to provide for general update
-methods.  To represent $\bm Z$ we only need the index vectors, $\bm i_i$,
-and the dense model matrices, $\bm X_i,i=1,\dots,k$.  To determine
-$\bLt$ we only need the lower-triangular template
-matrices of sizes $p_i,i=1,dots,k$.
+Although special structures can be exploited to reduce the
+computational load for certain classes of mixed-effects models, we
+will start with the general case to determine suitable data
+structures.  
 
-This formulation is particularly useful because we can evaluate the
-non-zero elements of $\bm Z_i\bm\Lambda_i$ from the dense $n\times
-p_i$ product of $\bm X_i$ and the $i$th template matrix for $\bLt$.
-Even though we have written $\bm Z\bLt$ as a product of sparse
-matrices (which can be very large), we can evaluate this product by
-first forming the dense products then expanding from the dense
-representation to the sparse matrix.  Especially when using
-accelerated versions of the Basic Linear Algebra Subroutines (BLAS)
-forming the product this way is much, much faster than using sparse
-matrix methods.
+In a complex model fit to a large data set, the dominant calculation
+in the evaluation of the profiled deviance (eqn.~\ref{eq:profdev2}) or
+REML criterion (eqn.~\ref{eq:profiledREML}) is the sparse Cholesky
+factorization (eqn.~\ref{eq:sparseChol}).  For fitting other types of
+models, such as GLMMs, we consider a more general problem of
+\begin{linenomath}
+\begin{equation}
+  \label{eq:sparseChol}
+  \bm L_\theta\bm L\trans_\theta=\bm P
+  \left(\bLt\trans\bm Z\trans\bm W\bm Z\bLt+\bm I_q\right)
+  \bm P\trans.
+\end{equation}
+\end{linenomath}
+where the $n\times n$ matrix $\bm W$ may change during the iterations
+to optimize the objective.
 
-Furthermore, if there are case weights to be applied to $\bm Z\bLt$
-(and to $\bm X$, the model matrix of for the fixed-effects parameters)
-they can be applied to the $\bm X_i$ before expansion.  Case weights
-are not an important consideration when fitting LMMs because they can
-be applied to the model matrices and response when setting up the
-numerical representation.  However, solving iteratively reweighted
-penalized least squares problems is central to fitting GLMMs and easy
-updating for new case weights is important.
+When fitting a GLMM, $\bm W$ is the diagonal matrix of case weights in
+the Penalized Iteratively-Reweighted Least Squares (PIRLS) algorithm.
+Another example of a varying $\bm W$ would be fitting an LMM in which
+the conditional distribution of the response incorporates a
+correlation matrix that itself depends on
+parameters~\citep[Ch.~5]{R:Pinheiro+Bates:2000}.
 
-The random-effects value, $\bm u$, is represented as matrices $\bm
-U_i,i=1,\dots,k$ of sizes $\ell_i\times p_i$ allowing us to form
-products like $\bm Z\bLt\bm u$ without ever expanding to the sparse
-matrix form of $\bm Z$ and $\bLt$.  Instead we use the index vectors,
-$\bm i_i$ to create an $n\times p_i$ matrix, whose $j$th row is the
-$p_i$ components of $\bm u$ that apply to the $j$th case and $i$th
-random-effects terms and multiply this matrix element-wise by $\bm
-X_i$ then sum the rows.
+In any case, we will assume that $\bm W$ is symmetric and 
+positive semidefinite so that some type of ``square root'' factor,
+$\bm W^{1/2}$, satisfying
+\begin{linenomath}
+  \begin{equation}
+    \label{eq:Wsqrt}
+    \bm W = \bm W^{1/2}\left(\bm W^{1/2}\right)\trans,
+  \end{equation}
+\end{linenomath}
+is available.
+
+We wish to use structures and algorithms that allow us to take a new
+value of $\bm\theta$ or a new value of $\bm W^{1/2}$ or both and
+evaluate the $\bm L_\theta$ (eqn.~\ref{eq:sparseChol})
+efficiently.  The key to doing so is the special structure of
+$\bLt\trans\bm Z\trans\bm W^{1/2}$.  To understand why this matrix,
+and not its transpose, is of interest we describe the sparse
+matrix structures used in \proglang{Julia} and in the \pkg{Matrix}
+package for \proglang{R}.
+
+\subsubsection{Compressed sparse column-oriented matrices}
+\label{sec:CSCmats}
+
+Dense matrices are stored in \proglang{Julia} and in \proglang{R} as a
+one-dimensional array of contiguous storage locations addressed in
+\emph{column-major order}.  This means that elements in the same
+column are in adjacent storage locations whereas elements in the same
+row can be widely separated in memory.  For this reason, algorithms
+that work column-wise are preferred to those that work row-wise.
+
+Although a sparse matrix can be stored in a \emph{triplet} format,
+where the row position, column position and element value of each
+nonzero is recorded, the preferred storage forms for actual
+computation with sparse matrices are compressed sparse column (CSC) or
+compressed sparse row (CSR)~\citep[Ch.~2]{davis06:csparse_book}.
+
+The sparse matrix capabilities in \proglang{Julia} and in the
+\pkg{Matrix} package for \proglang{R} are based on SuiteSparse % figure out how to cite this
+which uses the CSC storage format.  In this format the non-zero
+elements in a column are in adjacent storage locations so that
+accessing a column is much easier than accessing a row.
+
+The matrices $\bm Z$ and $\bm Z\bLt$ have the property that number of
+nonzeros in each row, $\sum_{i=1}^k p_i$, is constant.  For CSC
+matrices we want consistency in the columns rather than the rows,
+hence we work with with $\bm Z\trans$ and $\bLt\trans\bm Z\trans\bm
+W^{1/2}$.
+
+An arbitrary $m\times n$ sparse matrix in CSC format is expressed as
+two vectors of indices, the row indices and the column pointers, and a
+numeric vector of the non-zero values.  The elements of the row
+indices and the nonzeros are aligned and are ordered first by
+increasing column number then by increasing row number within column.
+The column pointers are a vector of size $n+1$ giving the location of
+the start of each column in the vectors of row indices and nonzeros.
+
+Because the number of nonzeros in each column of $\bm Z\trans$, and
+the matrices like $\bLt\trans\bm Z\trans\bm W^{1/2}$ derived from $\bm
+Z\trans$, is constant, the vector of nonzeros in the CSC format can be
+viewed as a matrix, say $\bm N$, of size $\left(\sum_{i=1}^n
+  p_i\right)\times n$.  We do not need to store the column pointers
+because the columns of $\bm Z\trans$ correspond to columns of $\bm N$.
+All we need is $\bm N$, the dense matrix of nonzeros, and the row
+indices, which are derived from the grouping factor index vectors $\bm
+i_i,i=1,\dots,k$ and can also be arranged as a dense matrix of size
+$\left(\sum_{i=1}^n p_i\right)\times n$.  Matrices like $\bm Z\trans$,
+with the property that there are the same number of nonzeros in each
+column, are sometimes called \emph{regular sparse column-oriented}
+(RSC) matrices.
+
+\subsubsection{Exploiting RSC matrices in the sparse Cholesky update}
+\label{sec:RSCmatChol}
+
+We have described how the $n$ columns of the dense matrix $\bm N$ of
+the RSC representation of $\bm Z\trans$ and $\bLt\trans\bm Z\bm
+W^{1/2}$ correspond to observations.  Given a new $\bm W^{1/2}$ we do
+not need to form the sparse product $\bm Z\trans\bm W^{1/2}$.  Instead
+we perform update using the dense product $\bm N\bm W^{1/2}$.
+
+But the update for a new $\bm W^{1/2}$ is only half the story.  The
+update for a new value of $\bm\theta$ can also be performed with dense
+matrix multiplications using only the lower-triangular template
+matrices $\bm T_i,i=1,\dots,k$.  That is, we never need to create
+$\bLt$.  
+
+We simply partition the rows of $\bm N$ into $k$ groups of sizes
+$p_i,i=1,\dots,k$.  The nonzeros in the $i$th group of rows in the
+dense matrix of nonzeros in $\bLt\trans\bm Z\trans$ are the products
+$\bm T_i\trans\bm X_i\trans,i=1,\dots,k$.
+
+This provides a remarkably efficient update, especially when using an
+accelerated, multi-threaded version of the Basic Linear Algebra
+Subroutines (BLAS).  Although the matrices $\bm X_i,i=1,\dots,n$,
+which typically have few columns, may have millions of rows, an
+accelerated BLAS can handle the dense multiplication expeditiously.
+
+The CHOLMOD library of \proglang{C} functions for computing and
+updating sparse Choleksy factorizations can update $\bm L_\theta$
+directly from $\bLt\trans\bm Z\trans\bm W^{1/2}$.  There is no need to
+form the symmetric product $\bLt\trans\bm Z\trans\bm W\bm Z\bLt$ or to
+add the identity matrix explicitly.  These operations are done
+implicitly. 
+
+When updating $\bm L_\theta$ from the dense matrix of nonzeros in the
+RSC representation of $\bLt\trans\bm Z\trans\bm W^{1/2}$ only the
+values of the nonzeros in $\bm L_\theta$ are changed and these are
+modified in place, without the need to allocate and then free large
+blocks of memory.
+
+\subsubsection{Representing the random-effects vector}
+\label{sec:revector}
+
+Although we solve for the conditional mode, $\tilde{\bm u}$, as a
+vector it is useful to view this vector as being partitioned into $k$
+sections of sizes $p_i\ell_i,i=1,\dots,k$ and consider each section as
+a $p_i\times\ell_i$ matrix.  This allows us to index by term and by
+level of grouping factor within term.  We usually consider these
+matrices transposed (for example, the \code{ranef} extractor method
+returns the transposes of these matrices) but the ordering of elements
+within $\tilde{\bm u}$ is more conveniently expressed in this
+orientation.
 
 \bibliography{lmer}
 \end{document}
