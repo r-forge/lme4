@@ -31,7 +31,11 @@
   deviation are also calculated.
 }
 \value{
-  an object of class \code{VarCorr}.
+  A list with each element containing the variance-covariance matrix for each random
+  effects term, and with an attribute \code{sc} giving the residual
+  standard deviation.  Each element of the list also has attributes
+  \code{stddev} (vector of standard deviations) and \code{correlation}
+  (correlation matrix).
 }
 \seealso{
   the \code{\link{lmer}} function and \code{\linkS4class{mer}} class;
