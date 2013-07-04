@@ -2369,7 +2369,7 @@ getME <- function(object,
                   "flist",
                   "RX", "RZX",
                   "beta", "theta",
-		  "REML", "n_rtrms", "is_REML"))
+		  "REML", "n_rtrms", "is_REML", "y"))
 {
     if(missing(name)) stop("'name' must not be missing")
     stopifnot(length(name <- as.character(name)) == 1,
@@ -2383,6 +2383,7 @@ getME <- function(object,
 	   "L" = object@L,
 	   "RX" = object@RX,
 	   "RZX" = object@RZX,
+           "y" = object@y,
            "beta" = unname(object@fixef),
 	   "n_rtrms" = object@dims[["nt"]], ##  = #{random-effect terms in the formula}
 	   "is_REML" = as.logical(object@dims[["REML"]]),

@@ -48,7 +48,7 @@ isGLMM(x, ...)
 }
 \note{\code{isREML(.)} is a synonym for \code{getME(.,"is_REML")}}
 \examples{
-## shows many methds you should consider *before* getME():
+## shows many methods you should consider *before* getME():
 showMethods(class = "mer")
 
 (fm1 <- lmer(Reaction ~ Days + (Days|Subject), sleepstudy))
