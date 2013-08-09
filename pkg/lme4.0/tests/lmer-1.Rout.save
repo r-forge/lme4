@@ -1,14 +1,11 @@
 
-R Under development (unstable) (2012-12-14 r61321) -- "Unsuffered Consequences"
-Copyright (C) 2012 The R Foundation for Statistical Computing
-ISBN 3-900051-07-0
-Platform: i686-pc-linux-gnu (32-bit)
+R Under development (unstable) (2013-08-08 r63524) -- "Unsuffered Consequences"
+Copyright (C) 2013 The R Foundation for Statistical Computing
+Platform: x86_64-unknown-linux-gnu (64-bit)
 
 R is free software and comes with ABSOLUTELY NO WARRANTY.
 You are welcome to redistribute it under certain conditions.
 Type 'license()' or 'licence()' for distribution details.
-
-  Natural language support but running in an English locale
 
 R is a collaborative project with many contributors.
 Type 'contributors()' for more information and
@@ -286,9 +283,9 @@ Error in lmerFactorList(formula, fr, rmInt = FALSE, drop = FALSE) :
 >     has.coda <- require(coda)
 Loading required package: coda
 
-Attaching package: ‘coda’
+Attaching package: 'coda'
 
-The following object is masked from ‘package:lme4.0’:
+The following object is masked from 'package:lme4.0':
 
     HPDinterval
 
@@ -489,7 +486,7 @@ Slot "dims":
    nt     n     p     q     s    np   LMM  REML  fTyp  lTyp  vTyp  nest useSc 
     1    20     2     4     1     3     1     1     2     5     1     1     1 
  nAGQ  verb  mxit  mxfn   cvg 
-    1     0   300   900     4 
+    1     0   300   900     5 
 
 Slot "fixef":
               [,1]
@@ -531,10 +528,10 @@ Slot "sigma":
 [1] 2.5
 > ## Now throws an error
 > try(f.oops <- lmer(y ~ 1 + (1|group), data = tstDF))
-Error in function (fr, FL, start, REML, verbose)  : 
+Error in (function (fr, FL, start, REML, verbose)  : 
   Number of levels of a grouping factor for the random effects
 must be less than the number of observations
-> ##  summary(f.oops) ## or print(Matrix:::formatVC(VarCorr(f.oops)), quote = FALSE)
+> ##  summary(f.oops) ## or print(....formatVC(VarCorr(f.oops)), quote = FALSE)
 > ## ...
 > ##   Groups   Name        Variance Std.Dev.
 > ##   group    (Intercept) 1.81818  1.34840
@@ -643,8 +640,8 @@ m1  4  585.49  599.41 -288.75 450.67      1  < 2.2e-16
 > if(.unsafe.BLAS) rm(identical)
 > 
 > cat('Time elapsed: ', proc.time(),'\n') # for ``statistical reasons''
-Time elapsed:  5.608 1.612 7.891 0 0.024 
+Time elapsed:  4.589 0.153 5.227 0 0 
 > 
 > proc.time()
    user  system elapsed 
-  5.608   1.636   7.892 
+  4.589   0.153   5.227 
