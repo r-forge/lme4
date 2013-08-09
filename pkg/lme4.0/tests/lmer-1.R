@@ -124,7 +124,7 @@ if(.unsafe.BLAS) identical <- all.equal ## "the horror" ..
     ## discrepancies have occured at digit 140.64x;
     ##  digits= doesn't handle it properly since other
     ##  elements have smaller magnitudes
-    round(c(unlist(VarCorr(M2.))),2)  
+    round(c(unlist(VarCorr(M2.))),2)
     options(op)
     ## summary(M2.)
     M2  <- lmer (y ~ x + ( x | group))
@@ -155,7 +155,7 @@ tstDF <- data.frame(group = letters[1:5], y = 1:5)
 var(tstDF$y) # == 2.5
 ## Now throws an error
 try(f.oops <- lmer(y ~ 1 + (1|group), data = tstDF))
-##  summary(f.oops) ## or print(Matrix:::formatVC(VarCorr(f.oops)), quote = FALSE)
+##  summary(f.oops) ## or print(....formatVC(VarCorr(f.oops)), quote = FALSE)
 ## ...
 ##   Groups   Name        Variance Std.Dev.
 ##   group    (Intercept) 1.81818  1.34840
