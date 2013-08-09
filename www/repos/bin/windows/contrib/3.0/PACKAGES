@@ -1,3 +1,12 @@
+Package: lme4.0
+Version: 0.999999-3
+Depends: methods, R(>= 2.11.1), Matrix(>= 1.0-1), lattice
+Imports: graphics, nlme, stats4, stats
+LinkingTo: Matrix, stats
+Suggests: mlmRev, MEMSS, coda, MASS, sfsmisc, MatrixModels
+License: GPL (>= 2)
+Archs: i386, x64
+
 Package: lme4
 Version: 0.99999911-8
 Depends: R(>= 2.14.0), lattice, Matrix(>= 1.0), methods, stats, Rcpp
