@@ -241,6 +241,78 @@ methods that converge on these roots. In particular, we define a
 penalized weighted residual sum-of-squares criterion (PWRSS) with the same
 roots as PDEV.
 
+\subsection{Hessian of PDEV}
+
+We need a lemma (I've always wanted to say that). Let $x$ and $y$ be
+vectors of length $n$ and $m$ and $A$ be a diagonal matrix with
+$n$-vector $a$ on the diagonal. Then,
+\begin{equation}
+\frac{dAx}{dy} = x^\top \frac{da}{dy} + a^\top \frac{dx}{dy}
+\end{equation}
+
+\begin{equation}
+\underbrace{\frac{d^2 L}{d\beta d\beta}}_{p\times p} = 
+\underbrace{\frac{d^2 L}{d\beta d\mu}}_{p\times n}
+\underbrace{\frac{d\mu}{d\eta}}_{n\times n}
+\underbrace{\frac{d\eta}{d\beta}}_{n\times p}
+\end{equation}
+\begin{equation}
+\underbrace{\frac{d^2 L}{d\beta d\beta}}_{p\times p} = 
+\underbrace{\frac{d^2 L}{d\beta d\mu}}_{p\times n}
+\underbrace{M}_{n\times n}
+\underbrace{X}_{n\times p}
+\end{equation}
+\begin{equation}
+\underbrace{\frac{d^2 L}{d\beta d\mu}}_{p\times n} =
+-X^\top M V^{-1} A  + 
+X^\top \left[ \frac{dMV^{-1}}{d\mu} \right] A R
+\end{equation}
+where $R$ is a diagonal residuals matrix with $y-\mu$ on the
+diagonal. Therefore the Hessian is,
+\begin{equation}
+\underbrace{\frac{d^2 L}{d\beta d\beta}}_{p\times p} = 
+-X^\top M A^{-1/2}V^{-1/2}\left( 
+I_n - 
+VM^{-1}\left[ \frac{dMV^{-1}}{d\mu} \right] R
+\right)V^{-1/2}A^{-1/2} M X
+\label{eq:betaHessian}
+\end{equation}
+Therefore, using a weighted design matrix,
+\begin{equation}
+\underbrace{\frac{d^2 L}{d\beta d\beta}}_{p\times p} = 
+-V^\top\left( 
+I_n - 
+VM^{-1}\left[ \frac{dV^{-1}M}{d\mu} \right] R
+\right)V
+\label{eq:betaHessian}
+\end{equation}
+
+There are two ways to simplify this expression for $V^\top V$. The
+first is to use the canonical link function for the family being
+used. Canonical links have the property that $V = M$, which means
+that for canonical links,
+\begin{equation}
+\underbrace{\frac{d^2 L}{d\beta d\beta}}_{p\times p} = 
+-V^\top\left( 
+I_n - 
+I_n \left[ \frac{dI_n}{d\mu} \right] R
+\right)V = V^\top V
+\end{equation}
+The second way to simplify the Hessian is to take its expectation with
+respect to the distribution of the response at the current
+parameter estimates. The diagonal residual matrix, $R$, has
+expectation 0. Therefore, because the response only enters into the
+expression for the Hessian via $R$, we have that,
+\begin{equation}
+\underbrace{E\left(\frac{d^2 L}{d\beta d\beta}\right)}_{p\times p} = 
+-V^\top\left( 
+I_n - 
+VM^{-1}\left[ \frac{dV^{-1}M}{d\mu} \right] E(R)
+\right)V = V^\top V
+\label{eq:betaHessian}
+\end{equation}
+
+
 \subsection{Stationary points of PWRSS}
 
 The penalized weighted residual sum of squares (PWRSS) is given by,
