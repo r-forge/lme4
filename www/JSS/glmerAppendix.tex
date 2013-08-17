@@ -112,13 +112,16 @@ The unscaled conditional log-likelihood takes the following form,
 \begin{equation}
 L(\bm\beta, \bm\theta | \bm y, \bm u) = 
 \bm\psi^\top \bm A \bm y - 
-\bm a^\top \bm \phi -
+\bm a^\top \bm \phi  + 
+\bm c -
 \frac{1}{2}\bm u^\top \bm u
 \end{equation}
-where $\bm\psi$ is the $n$-by-$1$ natural parameter of an exponential family,
-$\bm\phi$ is the $n$-by-$1$ vector of cumulant functions, and $\bm A$ is an $n$-by-$n$ diagonal
-matrix of prior weights, $\bm a$, which could depend on a dispersion
-parameter although we ignore this possibility for now.
+where $\bm\psi$ is the $n$-by-$1$ canonical parameter of an exponential family,
+$\bm\phi$ is the $n$-by-$1$ vector of cumulant functions, $\bm c$ an
+$n$-by-$1$ vector required for the log-likelihood to be based on a
+true probability distribution, and $\bm A$ is an $n$-by-$n$ diagonal
+matrix of prior weights, $\bm a$. Both $\bm a$ and $\bm c$ could depend on a dispersion
+parameter, although we ignore this possibility for now.
 
 The natural parameter, $\bm\psi$, and cumulant function, $\bm\phi$,
 depend on a linear predictor,
