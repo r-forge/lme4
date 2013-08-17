@@ -1,0 +1,562 @@
+\documentclass{jss}
+%% need no \usepackage{Sweave.sty}
+\usepackage{mathtools}
+\usepackage{lineno}
+
+\newcommand{\blockmatrix}[3]{%These end of the line comments are neccessary
+\begin{minipage}[t][#2][c]{#1}%
+\center%
+#3%
+\end{minipage}%
+}%
+\newcommand{\fblockmatrix}[3]{%
+\fbox{%
+\begin{minipage}[t][#2][c]{#1}%
+\center%
+#3%
+\end{minipage}%
+}%
+}
+
+\usepackage{etoolbox}
+\let\bbordermatrix\bordermatrix
+\patchcmd{\bbordermatrix}{8.75}{4.75}{}{}
+\patchcmd{\bbordermatrix}{\left(}{\left[}{}{}
+\patchcmd{\bbordermatrix}{\right)}{\right]}{}{}
+
+\newcommand{\bmb}[1]{{\color{red} \emph{#1}}}
+\newcommand{\scw}[1]{{\color{blue} \emph{#1}}}
+\usepackage[american]{babel}  %% for texi2dvi ~ bug
+\usepackage{bm,amsmath,thumbpdf,amsfonts}
+\author{Douglas Bates\\University of Wisconsin - Madison\And
+  Martin M\"achler\\ETH Zurich\And
+  Ben Bolker\\McMaster University\And
+  Steven C. Walker\\McMaster University
+}
+\Plainauthor{Douglas Bates, Martin M\"achler, Ben Bolker, Steve Walker}
+\title{Fitting generalized linear \bmb{and nonlinear?} mixed-effects models using \pkg{lme4}}
+\Plaintitle{Fitting generalized linear mixed models using lme4}
+\Shorttitle{GLMMs with lme4}
+\Abstract{%
+\bmb{abstract goes here}
+}
+\Keywords{%
+  sparse matrix methods,
+  linear mixed models,
+  penalized least squares,
+  Cholesky decomposition}
+\Address{
+  Douglas Bates\\
+  Department of Statistics, University of Wisconsin\\
+  1300 University Ave.\\
+  Madison, WI 53706, U.S.A.\\
+  E-mail: \email{bates@stat.wisc.edu}
+  \par\bigskip
+  Martin M\"achler\\
+  Seminar f\"ur Statistik, HG G~16\\
+  ETH Zurich\\
+  8092 Zurich, Switzerland\\
+  E-mail: \email{maechler@stat.math.ethz.ch}\\
+  % URL: \url{http://stat.ethz.ch/people/maechler}
+  \par\bigskip
+  Benjamin M. Bolker\\
+  Departments of Mathematics \& Statistics and Biology \\
+  McMaster University \\
+  1280 Main Street W \\
+  Hamilton, ON L8S 4K1, Canada \\
+  E-mail: \email{bolker@mcmaster.ca}
+  \par\bigskip
+  Steven C. Walker\\
+  Department of Mathematics \& Statistics \\
+  McMaster University \\
+  1280 Main Street W \\
+  Hamilton, ON L8S 4K1, Canada \\
+  E-mail: \email{scwalker@math.mcmaster.ca }
+}
+\newcommand{\Var}{\operatorname{Var}}
+\newcommand{\abs}{\operatorname{abs}}
+\newcommand{\bLt}{\ensuremath{\bm\Lambda_\theta}}
+\newcommand{\mc}[1]{\ensuremath{\mathcal{#1}}}
+\newcommand{\trans}{\ensuremath{^\prime}}
+\newcommand{\yobs}{\ensuremath{\bm y_{\mathrm{obs}}}}
+\newcommand*{\eq}[1]{eqn.~\ref{#1}}% or just {(\ref{#1})}
+%
+
+
+
+\setkeys{Gin}{width=\textwidth}
+\begin{document}
+%\SweaveOpts{concordance=TRUE}
+
+\section{Appendix: derivation of PIRLS (nAGQ = 0 version)}
+
+We seek to maximize PDEV the unscaled conditional log-likelihood 
+for a GLMM over the conditional modes, $\bm u$ and fixed effect
+coefficients, $\bm\beta$. This problem is very similar to maximizing
+the log-likelihood for a GLM, about which there is a large amount of
+work. The standard algorithm for dealing with this kind of problem is
+iteratively reweighted least squares (IRLS). Here we modify IRLS by
+incorporating a penalty term that accounts for variation in the random
+effects, which we call penalized iteratively reweighted least squares (PIRLS). 
+
+The unscaled conditional log-likelihood takes the following form,
+\begin{equation}
+L(\bm\beta, \bm\theta | \bm y, \bm u) = 
+\bm\psi^\top \bm A \bm y - 
+\bm a^\top \bm \phi -
+\frac{1}{2}\bm u^\top \bm u
+\end{equation}
+where $\bm\psi$ is the $n$-by-$1$ natural parameter of an exponential family,
+$\bm\phi$ is the $n$-by-$1$ vector of cumulant functions, and $\bm A$ is an $n$-by-$n$ diagonal
+matrix of prior weights, $\bm a$, which could depend on a dispersion
+parameter although we ignore this possibility for now.
+
+The natural parameter, $\bm\psi$, and cumulant function, $\bm\phi$,
+depend on a linear predictor,
+\begin{equation}
+\bm\eta = \bm o + \bm X \bm\beta + \bm Z \bm\Lambda_\theta \bm u
+\end{equation}
+where $\bm o$ is an \emph{a priori} offset. The specific form of this
+dependency is specified by the choice of the exponential family
+(e.g. binomial). Furthermore, the mean, $\bm\mu$, of this distribution
+is a function of $\bm\eta$, where this function is standardly referred
+to as the inverse link function.
+
+Instead of maximizing $L(\bm\beta, \bm\theta | \bm y, \bm u)$, we
+typically think of minimizing the penalized
+deviance,
+\begin{equation}
+\mathrm{PDEV} = -2 L(\bm\beta, \bm\theta | \bm y, \bm u)
+\end{equation}
+To minimize PDEV, we use a penalized iteratively reweighted least
+squares (PIRLS) algorithm. There are five steps to deriving PIRLS: 
+\begin{enumerate}
+\item \textbf{Stationary points of PDEV}
+  \begin{itemize}
+    \item Find the stationary points of the PDEV criterion.
+    \item This step follows McCullagh and Nelder (1989) very closely,
+      with only a slight modification for working with conditional
+      log-likelihoods.
+  \end{itemize}
+\item \textbf{Stationary points of PWRSS}
+  \begin{itemize}
+    \item Find the stationary points of the PWRSS criterion.
+    \item These first two steps show that the PDEV and PWRSS criteria
+      have the same stationary points, \emph{if} the chosen weights
+      used in PWRSS correspond to the prior weights divided by the
+      variance function at the minimum of PDEV.
+    \item Therefore, if we minimize PWRSS with a correct guess at
+      the variance function, then we also minimize PDEV.
+    \item However, because this correct variance function is not known \emph{a priori},
+      we iteratively solve PWRSS, updating the variance
+      function at each iteration.
+  \end{itemize}
+\item \textbf{Pseudo-data and weighted residuals}
+  \begin{itemize}
+    \item Express the PWRSS as a simple residual sum of squares using
+      pseudo-data and weighted residuals.
+    \item This expresses the problem as a standard non-linear least-squares
+      problem, which can be solved iteratively using the Gauss-Newton
+      method~\citep[\S2.2.3]{bateswatts88:_nonlin}.
+  \end{itemize}
+\item \textbf{Gauss-Newton}
+  \begin{itemize}
+    \item Apply the Gauss-Newton method to the non-linear
+      least-squares problem.
+    \item This yields a sequence of normal equations.
+    \item If the solutions of this sequence converge, then they
+      converge to the minimizer of PDEV, \textbf{(this is the step I'm
+        unsure of)}, beacuse PDEV and PWRSS have the same stationary
+      points at convergence.
+  \end{itemize}
+\item \textbf{Cholesky}
+  \begin{itemize}
+    \item Solve the normal equations using block Cholesky
+      decompositions.
+    \item These particular Cholesky decompositions exploit the sparsity
+      of some of the blocks of the cross-product matrices in the
+      normal equations.
+  \end{itemize}
+\end{enumerate}
+
+\subsection{Stationary points of PDEV}
+
+Following standard GLM theory (e.g. McCullagh and Nelder 1989), we use the chain rule,
+\begin{displaymath}
+\frac{d PDEV}{d \bm\beta} = 
+\frac{d PDEV}{d \bm\psi}
+\frac{d \bm\psi}{d \bm\mu}
+\frac{d \bm\mu}{d \bm\eta}
+\frac{d \bm\eta}{d \bm\beta}
+\end{displaymath}
+The first derivative in this chain follow from basic results in GLM theory,
+\begin{displaymath}
+\frac{d PDEV}{d \bm\psi} = 
+-2(\bm y - \bm\mu)^\top \bm A
+\end{displaymath}
+Again from standard GLM theory, the next two derivatives define the inverse diagonal variance
+matrix,
+\begin{displaymath}
+\frac{d \bm\psi}{d \bm\mu} = \bm V^{-1}
+\end{displaymath}
+and the diagonal Jaccobian matrix,
+\begin{displaymath}
+\frac{d \bm\mu}{d \bm\eta} = \bm M
+\end{displaymath}
+Finally, because $\bm\beta$ affects $\bm\eta$ only linearly,
+\begin{displaymath}
+\frac{d \bm\eta}{d \bm\beta} = \bm X
+\end{displaymath}
+Therefore, we have,
+\begin{equation}
+\frac{d PDEV}{d \bm\beta} = 
+-2(\bm y - \bm\mu)^\top \bm A
+\bm V^{-1}
+\bm M
+\bm X
+\label{eq:dPDEVdbeta}
+\end{equation}
+Similarly, differentiating with respect to $\bm u$ we have,
+\begin{equation}
+\frac{d PDEV}{d \bm u} = 
+-2(\bm y - \bm\mu)^\top \bm A
+\bm V^{-1}
+\bm M
+\bm Z \bm\Lambda_\theta +
+2\bm u^\top
+\label{eq:dPDEVdu}
+\end{equation}
+Again as in McCullagh and Nelder (1989), instead of trying to find the
+roots of these equations directly, we use iterative least-squares
+methods that converge on these roots. In particular, we define a
+penalized weighted residual sum-of-squares criterion (PWRSS) with the same
+roots as PDEV.
+
+\subsection{Stationary points of PWRSS}
+
+The penalized weighted residual sum of squares (PWRSS) is given by,
+\begin{equation}
+\mathrm{PWRSS} = (\bm y-\bm\mu)^\top \bm W (\bm y-\bm\mu) + \bm u^\top
+\bm u
+\label{eq:PWRSS}
+\end{equation}
+where the weights matrix $\bm W = \bm A \bm V^{-1}$. If we hold $\bm
+W$ fixed at an initial
+guess for the variance function, $\bm V = \bm V_0$, and differentiate with
+respect to $\bm\beta$ and $\bm u$ we obtain,
+\begin{equation}
+\frac{d \mathrm{PWRSS}}{d \bm\beta} = 
+-2 (\bm y - \bm\mu)^\top \bm A
+\bm V_0^{-1}
+\bm M
+\bm X
+\label{eq:dPWRSSdbeta}
+\end{equation}
+and,
+\begin{equation}
+\frac{d \mathrm{PWRSS}}{d \bm u} = 
+-2 (\bm y - \bm\mu)^\top \bm A
+\bm V_0^{-1}
+\bm M
+\bm Z \bm\Lambda_\theta +
+2\bm u^\top
+\label{eq:dPWRSSdu}
+\end{equation}
+Comparing Eqs. \ref{eq:dPWRSSdbeta} and \ref{eq:dPWRSSdu} with Eqs. \ref{eq:dPDEVdbeta} and \ref{eq:dPDEVdu} we see that if the intial guess at $\bm
+V$ is correct, then the two sets of equations have the same fixed
+points. Note that this result does not imply that PWRSS = PDEV. However, it does suggest an iterative scheme for finding the
+fixed effects parameters and the conditional modes. We use the Gauss-Newton
+method to derive such an iterative scheme. To do so, we use the techniques
+of pseudo-data and weighted residuals to express the problem of
+minimizing PWRSS as a non-linear least-squares problem.
+
+\subsection{Pseudo-data and weighted residuals}
+
+In Eq. \ref{eq:PWRSS} the response and its expectation are $\bm\mu$ and $\bm
+y$. Using the pseudo-data technique (standard in the mixed model
+literature) and the weighted residuals technique (standard in the
+weighted least-squares literature) we replace these vectors with,
+\begin{equation}
+\rho = 
+\begin{bmatrix}
+\bm W^{1/2}\bm y \\
+\bm 0
+\end{bmatrix}
+\end{equation}
+and fitted response,
+\begin{equation}
+\nu = 
+\begin{bmatrix}
+\bm W^{1/2}\bm \mu \\
+\bm u
+\end{bmatrix}
+\end{equation}
+The pseudo-data, $\bm 0$, and pseudo-mean, $\bm u$, allow us to remove
+the penalty term in Eq. ??.  By weighting $\bm y$ and $\bm\mu$ by the
+square root of the weights matrix, we can remove the weights matrix
+from the expression for PWRSS. In particular, we now have,
+\begin{equation}
+\mathrm{PWRSS} = (\bm\rho - \bm\nu)^\top (\bm\rho - \bm\nu)
+\end{equation}
+Minimizing PWRSS is a non-linear least-squares problem, because the
+residuals $\bm\rho - \bm\nu$ depend non-linearly on $\bm\beta$ and
+$\bm u$.
+
+\subsection{Gauss-Newton}
+
+The Gauss-Newton method is a standard approach for solving non-linear
+least-squares problems (Bates and Watts 1988). This method begins by
+making a first-order Taylor series approximation of the expected
+values, $\bm\nu$. We compute the derivative of $\bm\nu$ with respect
+to both $\bm\beta$ and $\bm u$, under the condition that $\bm W = \bm
+A \bm V^{-1}$ is fixed at $\bm W_0$,
+\begin{displaymath}
+\frac{d \bm\nu}{d \bm\beta} = 
+\begin{bmatrix}
+\bm W_0^{1/2}\bm M \bm X \\
+\bm 0
+\end{bmatrix}
+\end{displaymath}
+and 
+\begin{displaymath}
+\frac{d \bm\nu}{d \bm u} = 
+\begin{bmatrix}
+\bm W_0^{1/2}\bm M \bm Z \bm\Lambda_\theta \\
+\bm I_q
+\end{bmatrix}
+\end{displaymath}
+Importantly, the Jaccobian matrix $\bm M$ depends on $\bm\beta$ and
+$\bm u$, but $\bm W_0$ does not because it is taken as
+fixed. In practice, this equation will be used in an iterative
+algorithm so the specific value of $\bm W_0$ will be calculated
+using the current estimate of $\bm\beta = \bm\beta_0$ and $\bm u  =
+\bm u_0$. In particular, $\bm W$ depends on $\bm V$, which depends on
+$\bm\mu$, which depends on $\bm\beta$ and $\bm u$. In general, we
+denote quantities calculated from the current estimates with a $0$
+subscript.
+
+Using these derivatives, the first-order Taylor series approximation
+to $\bm\nu$ around $(\bm u, \bm\beta) = (\bm u_0, \bm\beta_0)$ is,
+\begin{equation}
+\bm\nu \approx
+\begin{bmatrix}
+\bm W_0^{1/2}\bm \mu_0 \\
+\bm u_0
+\end{bmatrix} + 
+\begin{bmatrix}
+\bm W_0^{1/2}\bm M_0 \bm Z \bm\Lambda_\theta & \bm W_0^{1/2}\bm M_0 \bm X \\
+\bm I_q & \bm 0
+\end{bmatrix}
+\begin{bmatrix}
+\bm u - \bm u_0 \\
+\bm\beta - \bm\beta_0 
+\end{bmatrix}
+\end{equation}
+which leads to an approximation of the residuals,
+\begin{equation}
+\bm\rho - \bm\nu \approx
+\begin{bmatrix}
+\bm W_0^{1/2}(\bm y - \bm\mu_0) \\
+\bm u_0
+\end{bmatrix} - 
+\begin{bmatrix}
+\bm W_0^{1/2}\bm M_0 \bm Z \bm\Lambda_\theta & \bm W_0^{1/2}\bm M_0 \bm X \\
+\bm I_q & \bm 0
+\end{bmatrix}
+\begin{bmatrix}
+\bm u - \bm u_0 \\
+\bm\beta - \bm\beta_0 
+\end{bmatrix}
+\end{equation}
+We can simplify this approximation by defining the weighted working
+response,
+\begin{equation}
+\bm r_0 = \bm W_0^{1/2} \bm M_0 (\bm M_0^{-1} (\bm y - \bm\mu_0) +
+(\bm\eta_0 - \bm o))
+\label{eq:weightedworkingresiduals}
+\end{equation}
+the weighted working random effects design matrix,
+\begin{equation}
+\bm U_0 = \bm W_0^{1/2} \bm M_0 \bm Z \bm\Lambda_\theta
+\end{equation}
+and the weighted working fixed effects design matrix,
+\begin{equation}
+\bm U_0 = \bm W_0^{1/2} \bm M_0 \bm X
+\end{equation}
+The resulting simplification is,
+\begin{equation}
+\bm\rho - \bm\nu \approx
+\begin{bmatrix}
+\bm r_0 \\
+\bm 0
+\end{bmatrix} - 
+\begin{bmatrix}
+\bm U_0 & V_0 \\
+\bm I_q & \bm 0
+\end{bmatrix}
+\begin{bmatrix}
+\bm u \\
+\bm\beta
+\end{bmatrix}
+\end{equation}
+The normal equations for these residuals are,
+\begin{equation}
+\begin{bmatrix}
+\bm U_0^\top \bm r_0 \\
+\bm V_0^\top \bm r_0
+\end{bmatrix} = 
+\begin{bmatrix}
+\bm U_0^\top \bm U_0 + \bm I_q & \bm U_0^\top \bm V_0 \\
+\bm V_0^\top \bm U_0 & \bm V_0^\top \bm V_0
+\end{bmatrix}
+\begin{bmatrix}
+\bm u \\
+\bm\beta
+\end{bmatrix}
+\label{eq:normal}
+\end{equation}
+
+\subsection{Cholesky decomposition}
+
+To solve the normal equations, we take a Cholesky decomposition of the
+cross-product matrix,
+\begin{equation}
+\begin{bmatrix}
+\bm U_0^\top \bm U_0 + \bm I_q & \bm U_0^\top \bm V_0 \\
+\bm V_0^\top \bm U_0 & \bm V_0^\top \bm V_0
+\end{bmatrix} =
+\begin{bmatrix}
+\bm L_\theta & \bm 0 \\
+\bm R^\top_{ZX} & \bm R^\top_{X} \\
+\end{bmatrix}
+\begin{bmatrix}
+\bm L^\top_\theta & \bm R_{ZX} \\
+\bm 0 & \bm R_{X} \\
+\end{bmatrix}
+\end{equation}
+Following the standard theory of Cholesky decompositions we solve
+Eq. \ref{eq:normal} in two steps by first solving,
+\begin{equation}
+\begin{bmatrix}
+\bm L_\theta & \bm 0 \\
+\bm R^\top_{ZX} & \bm R^\top_{X} \\
+\end{bmatrix}
+\begin{bmatrix}
+\bm c_u \\
+\bm c_\beta
+\end{bmatrix} = 
+\begin{bmatrix}
+\bm U_0^\top \bm r_0 \\
+\bm V_0^\top \bm r_0 \\
+\end{bmatrix}
+\end{equation}
+for $\bm c_u$ and $\bm c_\beta$, and then solving,
+\begin{equation}
+\begin{bmatrix}
+\bm L^\top_\theta & \bm R_{ZX} \\
+\bm 0 & \bm R_{X} \\
+\end{bmatrix}
+\begin{bmatrix}
+\bm u \\
+\bm\beta
+\end{bmatrix} = 
+\begin{bmatrix}
+\bm c_u \\
+\bm c_\beta
+\end{bmatrix}
+\end{equation}
+for $\bm u$ and $\bm\beta$. In practice we use sparse matrix
+representations for $\bm U_0$ and $\bm L_\theta$.
+
+\section{Appendix: PIRLS in abstract terms}
+
+\begin{enumerate}
+\setcounter{enumi}{-1}
+\item Initialize $\bm\mu_0$ and $\bm\eta_0$
+\item Update $\bm W_0$ and $\bm M_0$ using $\bm\mu_0$ and $\bm\eta_0$
+\item Update $\bm U_0$ and $\bm V_0$ using $\bm W_0$ and $\bm M_0$
+\item Update $\bm L_\theta$, $\bm R_{ZX}$, and $\bm R_{X}$ using $\bm U_0$ and $\bm V_0$
+\item Update $\bm r_0$, using $\bm W_0$, $\bm M_0$, $\bm\mu_0$, and $\bm\eta_0$
+\item Solve the normal equations for $\bm u$ and $\bm\beta$ using
+  $\bm L_\theta$, $\bm R_{ZX}$, $\bm R_{X}$, and $\bm r_0$
+\item Update $\bm u_0$ and $\bm\beta_0$ to these solutions
+\item Update $\bm\mu_0$ and $\bm\eta_0$ using $\bm u_0$ and
+  $\bm\beta_0$
+\item Compute PDEV
+  using $\bm\mu_0$, $\bm y$, and $\bm a$
+\begin{itemize}
+\item If the deviance does not decrease, try step halving
+\item If step-halving fails, return an error
+\end{itemize}
+\item Repeat 1-8 until convergence
+\begin{itemize}
+\item If convergence is reached, return estimates of $\bm u$ and $\bm\beta$
+\item If the convergence limit is reached, return an error
+\end{itemize}
+\end{enumerate}
+
+\section{Appendix: PIRLS (nAGQ > 0 version)}
+
+A more accurate algorithm is obtained if use PIRLS to estimate $u$
+only, and numerically optimize $\beta$ along with $\theta$. PIRLS
+with $u$ only is obtained by moving the influence of the fixed
+effect coefficients, $\beta$, from the weighted design matrix to the weighted
+working response. In particular, the weighted working residuals
+(Eq. \ref{eq:weightedworkingresiduals}) become,
+\begin{equation}
+\bm r_0 = \bm W_0^{1/2} \bm M_0 (\bm M_0^{-1} (\bm y - \bm\mu_0) +
+(\bm\eta_0 - \bm o - \bm X \bm\beta))
+\end{equation}
+and the normal equations (Eq. \ref{eq:normal}) become,
+\begin{equation}
+\bm U_0^\top \bm r_0 = 
+(\bm U_0^\top \bm U_0 + \bm I_q ) \bm u
+\end{equation}
+The Cholesky decomposition now simplifies to,
+\begin{equation}
+\bm U_0^\top \bm U_0 + \bm I_q =
+\bm L_\theta \bm L^\top_\theta 
+\end{equation}
+and the two-step solution to the normal equations simplies to first solving,
+\begin{equation}
+\bm L_\theta
+\bm c_u = 
+\bm U_0^\top \bm r_0
+\end{equation}
+for $\bm c_u$, and then solving,
+\begin{equation}
+\bm L^\top_\theta
+\bm u= 
+\bm c_u
+\end{equation}
+for $\bm u$. Again, in practice we use sparse matrix
+representations for $\bm U_0$ and $\bm L_\theta$.
+
+\section{Appendix: IRLS}
+
+\begin{equation}
+\bm\nu \approx
+\bm W_0^{1/2}\bm \mu_0 + 
+ \bm W_0^{1/2}\bm M_0 \bm X (\bm\beta - \bm\beta_0 )
+\end{equation}
+which leads to an approximation of the residuals,
+\begin{equation}
+\bm\rho - \bm\nu \approx
+\bm W_0^{1/2}(\bm y - \bm\mu_0) - 
+\bm W_0^{1/2}\bm M_0 \bm X 
+(\bm\beta - \bm\beta_0)
+\end{equation}
+\begin{equation}
+\bm\rho - \bm\nu \approx
+\bm W_0^{1/2}((\bm y - \bm\mu_0) + 
+\bm M_0 (\bm\eta_0 - \bm o)) - 
+\bm W_0^{1/2}\bm M_0 \bm X \bm\beta
+\end{equation}
+
+\bibliography{lmer}
+\end{document}
+
+%%% Local Variables:
+%%% mode: latex
+%%% TeX-master: t
+%%% End:
