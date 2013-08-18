@@ -1,6 +1,6 @@
 \documentclass{jss}
 %% need no \usepackage{Sweave.sty}
-\usepackage{lineno}
+%\usepackage{lineno}
 \newcommand{\bmb}[1]{{\color{red} \emph{#1}}}
 \newcommand{\scw}[1]{{\color{blue} \emph{#1}}}
 \usepackage[american]{babel}  %% for texi2dvi ~ bug
@@ -58,14 +58,16 @@
 \newcommand{\yobs}{\ensuremath{\bm y_{\mathrm{obs}}}}
 \newcommand*{\eq}[1]{eqn.~\ref{#1}}% or just {(\ref{#1})}
 %
-\SweaveOpts{engine=R,eps=FALSE,pdf=TRUE,width=10,height=6.5,strip.white=all}
-\SweaveOpts{prefix=TRUE,prefix.string=figs/lmer,include=TRUE}
-\SweaveOpts{keep.source=TRUE}
-\setkeys{Gin}{width=\textwidth}
-<<preliminaries,echo=FALSE,results=hide>>=
+
+<<preliminaries,include=FALSE,cache=FALSE>>=
 options(width=69,show.signif.stars=FALSE,str=strOptions(strict.width="cut"))
+library(knitr)
 library(lme4)
+opts_chunk$set(engine='R',dev='pdf',fig.width=10,
+               fig.height=6.5,strip.white=all,
+               cache=TRUE,tidy=FALSE,prompt=TRUE,comment=NA)
 @
+\setkeys{Gin}{width=\textwidth}
 \begin{document}
 \section{Introduction}
 \label{sec:intro}
@@ -354,7 +356,7 @@ $f_j(\yobs,u)/(\tilde{f_j}\sqrt{2\pi})$, to the standard normal
 density, $\phi(z)=e^{-z^2/2}/\sqrt{2\pi}$, as shown in Figure~\ref{fig:densities}.
 \begin{figure}[tbp]
   \centering
-<<densities,fig=TRUE,echo=FALSE,height=5>>=
+<<densities,echo=FALSE,fig.height=5>>=
 zeta <- function(m, zmin=-3, zmax=3, npts=301L) {
     stopifnot (is(m, "glmerMod"),
                length(m@flist) == 1L,    # single grouping factor
@@ -364,7 +366,7 @@ zeta <- function(m, zmin=-3, zmax=3, npts=301L) {
     u0 <- getME(pp,"u")
     sd <- 1/getME(pp,"L")@x
     ff <- as.integer(getME(pp,"flist")[[1]])
-    fc <- getME(pp,"X") %*% getME(pp,"beta")      # fixed-effects contribution to linear predictor
+    fc <- getME(pp,"X") %*% getME(pp,"beta") # fixed-effects contribution to linear predictor
     ZL <- t(getME(pp,"Lambdat") %*% getME(pp,"Zt"))
     dc <- function(z) { # evaluate the unscaled conditional density on the deviance scale
         uu <- u0 + z * sd
@@ -379,18 +381,18 @@ zeta <- function(m, zmin=-3, zmax=3, npts=301L) {
 }
 zm <- zeta(m1, -3.750440, 3.750440)
 dmat <- exp(-0.5*zm$sqrtmat^2)/sqrt(2*pi)
-print(xyplot(as.vector(dmat) ~ rep.int(zm$zvals, ncol(dmat))|gl(ncol(dmat), nrow(dmat)),
+xyplot(as.vector(dmat) ~ rep.int(zm$zvals, ncol(dmat))|gl(ncol(dmat), nrow(dmat)),
        type=c("g","l"), aspect=0.6, layout=c(5,3),
        xlab="z", ylab="density",
        panel=function(...){
            panel.lines(zm$zvals, dnorm(zm$zvals), lty=2)
            panel.xyplot(...)}
-       ))
+       )
 @ 
-  \caption{Comparison of univariate integrands (solid line) and standard normal density function (dashed line) \bmb{consider Q-Q plots to emphasize deviations from normality?}
+  \caption{Comparison of univariate integrands (solid line) and standard normal density function (dashed line)}
   \label{fig:densities}
 \end{figure}
-
+ \bmb{consider Q-Q plots to emphasize deviations from normality?}
 As we can see from this figure, the univariate integrands are very
 close to the standard normal density, indicating that the Laplace
 approximation to the deviance is a good approximation in this case.
@@ -438,10 +440,10 @@ conditional density.
 Figure~\ref{fig:tfunc}
 \begin{figure}[tbp]
   \centering
-<<tfunc,fig=TRUE,echo=FALSE>>=
-print(xyplot(as.vector(dmat/dnorm(zm$zvals)) ~ rep.int(zm$zvals, ncol(dmat))|gl(ncol(dmat), nrow(dmat)),
+<<tfunc,echo=FALSE>>=
+xyplot(as.vector(dmat/dnorm(zm$zvals)) ~ rep.int(zm$zvals, ncol(dmat))|gl(ncol(dmat), nrow(dmat)),
        type=c("g","l"), aspect=0.6, layout=c(5,3),
-       xlab="z", ylab="t(z)"))
+       xlab="z", ylab="t(z)")
 @ 
   \caption{The function $t(z)$, which is the ratio of the normalized
     unscaled conditional density to the standard normal density, for
