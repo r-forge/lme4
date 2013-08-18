@@ -134,14 +134,138 @@ dependency is specified by the choice of the exponential family
 is a function of $\bm\eta$, where this function is standardly referred
 to as the inverse link function.
 
-Instead of maximizing $L(\bm\beta, \bm\theta | \bm y, \bm u)$, we
-typically think of minimizing the penalized
-deviance,
+Our goal is to find the values of $\bm u$ that maximize the unscaled
+conditional density, for given $\bm\theta$ and $\bm\beta$
+vectors. These maximizers are the conditional modes, which we require
+for the Laplace approximation and adaptive Gauss-Hermite
+quadrature. To do this maximization we use a variant of the Fisher
+scoring method, which is the basis of the iteratively reweighted least
+squares algorithm for generalized linear models. Fisher scoring is itself
+based on Newton's method, which we apply first.
+
+\subsection{Newton's method}
+
+To apply Newton's method, we need the gradient and the Hessian of the
+unscaled conditional log-likelihood. Following standard GLM theory
+(e.g. McCullagh and Nelder 1989), we use the chain rule,
+\begin{displaymath}
+\frac{d L(\bm\beta, \bm\theta | \bm y, \bm u)}{d \bm u} = 
+\frac{d L(\bm\beta, \bm\theta | \bm y, \bm u)}{d \bm\psi}
+\frac{d \bm\psi}{d \bm\mu}
+\frac{d \bm\mu}{d \bm\eta}
+\frac{d \bm\eta}{d \bm u}
+\end{displaymath}
+The first derivative in this chain follow from basic results in GLM theory,
+\begin{displaymath}
+\frac{d L(\bm\beta, \bm\theta | \bm y, \bm u)}{d \bm\psi} = 
+(\bm y - \bm\mu)^\top \bm A
+\end{displaymath}
+Again from standard GLM theory, the next two derivatives define the inverse diagonal variance
+matrix,
+\begin{displaymath}
+\frac{d \bm\psi}{d \bm\mu} = \bm V^{-1}
+\end{displaymath}
+and the diagonal Jaccobian matrix,
+\begin{displaymath}
+\frac{d \bm\mu}{d \bm\eta} = \bm M
+\end{displaymath}
+Finally, because $\bm\beta$ affects $\bm\eta$ only linearly,
+\begin{displaymath}
+\frac{d \bm\eta}{d \bm u} = \bm Z \bm\Lambda_\theta
+\end{displaymath}
+Therefore we have,
 \begin{equation}
-\mathrm{PDEV} = -2 L(\bm\beta, \bm\theta | \bm y, \bm u)
+\frac{d L(\bm\beta, \bm\theta | \bm y, \bm u)}{d \bm u} = 
+(\bm y - \bm\mu)^\top \bm A
+\bm V^{-1}
+\bm M
+\bm Z \bm\Lambda_\theta +
+\bm u^\top
+\label{eq:dPDEVdu}
 \end{equation}
-To minimize PDEV, we use a penalized iteratively reweighted least
-squares (PIRLS) algorithm. There are five steps to deriving PIRLS: 
+This is very similar to the gradient for GLMs with respect to fixed
+effects coefficients, $\bm\beta$. The only difference induced by
+differentiating with respect to the random effects, $\bm u$, is the
+addition of the $\bm u^\top$ term.
+
+Again we apply the chain rule to take the Hessian,
+\begin{equation}
+\frac{d^2 L(\bm\beta, \bm\theta | \bm y, \bm u)}{d \bm u d \bm u}
+\frac{d^2 L(\bm\beta, \bm\theta | \bm y, \bm u)}{d \bm u d \bm\mu}
+\frac{d \bm\mu}{d \bm\eta}
+\frac{d \bm\eta}{d \bm u} + \bm I_q
+\end{equation}
+which leads to,
+\begin{equation}
+\frac{d^2 L(\bm\beta, \bm\theta | \bm y, \bm u)}{d \bm u d \bm u} = 
+\frac{d^2 L(\bm\beta, \bm\theta | \bm y, \bm u)}{d \bm u d \bm\mu}\bm M \bm Z \bm\Lambda_\theta
+\end{equation}
+The first derivative in this chain can be expressed as,
+\begin{equation}
+\frac{d^2 L(\bm\beta, \bm\theta | \bm y, \bm u)}{d \bm u d \bm\mu} =
+-\bm\Lambda_\theta^\top \bm Z^\top \bm M \bm V^{-1} \bm A  + 
+\bm\Lambda_\theta^\top \bm Z^\top \left[ \frac{d \bm M \bm V^{-1}}{d \bm\mu} \right] \bm A \bm R
+\end{equation}
+where $\bm R$ is a diagonal residuals matrix with $\bm y-\bm\mu$ on the
+diagonal. The two terms arise from a type of product rule, where we
+first differentiate the residuals, $\bm y-\bm\mu$, and then the diagonal
+matrix, $\bm M \bm V^{-1}$, with respect to $\bm\mu$.
+
+The Hessian can therefore be expressed as,
+\begin{equation}
+\frac{d^2 L(\bm\beta, \bm\theta | \bm y, \bm u)}{d \bm u d \bm u} = 
+-\bm \Lambda_\theta^\top \bm Z^\top \bm M \bm A^{1/2}\bm V^{-1/2}\left( 
+\bm I_n - 
+\bm V \bm M^{-1}\left[ \frac{d \bm M \bm V^{-1}}{d \bm\mu} \right] \bm R
+\right) \bm V^{-1/2}\bm A^{1/2} \bm M \bm Z \bm\Lambda_\theta + \bm I_q
+\label{eq:betaHessian}
+\end{equation}
+This result can be simplified by expressing it in terms of a weighted
+random-effects design matrix, $\bm U = \bm A^{1/2}\bm V^{-1/2}\bm M \bm Z \bm\Lambda_\theta$,
+\begin{equation}
+\frac{d^2 L(\bm\beta, \bm\theta | \bm y, \bm u)}{d \bm u d \bm u} = 
+-\bm U^\top\left( 
+\bm I_n - 
+\bm V \bm M^{-1}\left[ \frac{d \bm V^{-1}\bm M}{d \bm\mu} \right] \bm R
+\right) \bm U + \bm I_q
+\label{eq:betaHessian}
+\end{equation}
+
+\subsection{Fisher-like scoring}
+
+
+
+There are two ways to further simplify this expression for $\bm U^\top \bm U$. The
+first is to use the canonical link function for the family being
+used. Canonical links have the property that $\bm V = \bm M$, which means
+that for canonical links,
+\begin{equation}
+\frac{d^2 L(\bm\beta, \bm\theta | \bm y, \bm u)}{d \bm u d \bm u} = 
+-\bm U^\top\left( 
+\bm I_n - 
+\bm I_n \left[ \frac{d \bm I_n}{d \bm\mu} \right] \bm R
+\right) \bm U + \bm I_q = \bm U^\top \bm U + \bm I_q
+\end{equation}
+The second way to simplify the Hessian is to take its expectation with
+respect to the distribution of the response, conditional on the current
+values of the spherized random effects coefficients, $\bm u$. The
+diagonal residual matrix, $\bm R$, has expectation 0. Therefore,
+because the response only enters into the expression for the Hessian
+via $\bm R$, we have that,
+\begin{equation}
+E\left(\frac{d^2 L(\bm\beta, \bm\theta | \bm y, \bm u)}{d \bm u d \bm
+    u} | \bm u \right) = 
+-\bm U^\top\left( 
+\bm I_n - 
+\bm U \bm M^{-1}\left[ \frac{d \bm V^{-1}\bm M}{d\mu} \right] E(\bm R)
+\right) \bm U + \bm I_q = \bm U^\top \bm U + \bm I_q
+\label{eq:betaHessian}
+\end{equation}
+
+\subsection{Gauss-Markov}
+
+\subsection{Outline of derivation (inconsistent currently)}
+
 \begin{enumerate}
 \item \textbf{Stationary points of PDEV}
   \begin{itemize}
