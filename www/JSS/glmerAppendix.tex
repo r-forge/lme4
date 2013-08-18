@@ -110,11 +110,12 @@ effects, which we call penalized iteratively reweighted least squares (PIRLS).
 
 The unscaled conditional log-likelihood takes the following form,
 \begin{equation}
-L(\bm\beta, \bm\theta | \bm y, \bm u) = 
+g(\bm u ; \bm y, \bm\beta, \bm\theta) = \log p(\bm y, \bm u | \bm\beta, \bm\theta) = 
 \bm\psi^\top \bm A \bm y - 
 \bm a^\top \bm \phi  + 
 \bm c -
-\frac{1}{2}\bm u^\top \bm u
+\frac{1}{2}\bm u^\top \bm u -
+\frac{q}{2}\log{2\pi}
 \end{equation}
 where $\bm\psi$ is the $n$-by-$1$ canonical parameter of an exponential family,
 $\bm\phi$ is the $n$-by-$1$ vector of cumulant functions, $\bm c$ an
@@ -190,7 +191,7 @@ addition of the $\bm u^\top$ term.
 
 Again we apply the chain rule to take the Hessian,
 \begin{equation}
-\frac{d^2 L(\bm\beta, \bm\theta | \bm y, \bm u)}{d \bm u d \bm u}
+\frac{d^2 L(\bm\beta, \bm\theta | \bm y, \bm u)}{d \bm u d \bm u} = 
 \frac{d^2 L(\bm\beta, \bm\theta | \bm y, \bm u)}{d \bm u d \bm\mu}
 \frac{d \bm\mu}{d \bm\eta}
 \frac{d \bm\eta}{d \bm u} + \bm I_q
@@ -198,7 +199,9 @@ Again we apply the chain rule to take the Hessian,
 which leads to,
 \begin{equation}
 \frac{d^2 L(\bm\beta, \bm\theta | \bm y, \bm u)}{d \bm u d \bm u} = 
-\frac{d^2 L(\bm\beta, \bm\theta | \bm y, \bm u)}{d \bm u d \bm\mu}\bm M \bm Z \bm\Lambda_\theta
+\frac{d^2 L(\bm\beta, \bm\theta | \bm y, \bm u)}{d \bm u d \bm\mu}\bm
+M \bm Z \bm\Lambda_\theta 
+ + \bm I_q
 \end{equation}
 The first derivative in this chain can be expressed as,
 \begin{equation}
