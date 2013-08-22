@@ -76,15 +76,19 @@
 \newcommand{\yobs}{\ensuremath{\bm y_{\mathrm{obs}}}}
 \newcommand*{\eq}[1]{eqn.~\ref{#1}}% or just {(\ref{#1})}
 %
+
 \SweaveOpts{engine=R,eps=FALSE,pdf=TRUE,width=10,height=6.5,strip.white=all}
 \SweaveOpts{prefix=TRUE,prefix.string=figs/lmer,include=TRUE}
 \SweaveOpts{keep.source=TRUE}
 \setkeys{Gin}{width=\textwidth}
-<<preliminaries,echo=FALSE,results=hide>>=
+
+\begin{document}
+
+<<preliminaries>>=
 options(width=69,show.signif.stars=FALSE,str=strOptions(strict.width="cut"))
 library(lme4)
 @
-\begin{document}
+
 \linenumbers
 \section{Introduction}
 \label{sec:intro}

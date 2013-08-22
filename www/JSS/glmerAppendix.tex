@@ -97,37 +97,38 @@
 \begin{document}
 %\SweaveOpts{concordance=TRUE}
 
-\section{Appendix: derivation of PIRLS (nAGQ = 0 version)}
+\section{Appendix: derivation of PIRLS}
 
-We seek to maximize PDEV the unscaled conditional log-likelihood 
-for a GLMM over the conditional modes, $\bm u$ and fixed effect
-coefficients, $\bm\beta$. This problem is very similar to maximizing
-the log-likelihood for a GLM, about which there is a large amount of
-work. The standard algorithm for dealing with this kind of problem is
-iteratively reweighted least squares (IRLS). Here we modify IRLS by
-incorporating a penalty term that accounts for variation in the random
-effects, which we call penalized iteratively reweighted least squares (PIRLS). 
+We seek to maximize the unscaled conditional log-likelihood for a GLMM
+over the conditional modes, $\bm u$. This problem is very similar to
+maximizing the log-likelihood for a GLM, about which there is a large
+amount of work. The standard algorithm for dealing with this kind of
+problem is iteratively reweighted least squares (IRLS). Here we modify
+IRLS by incorporating a penalty term that accounts for variation in
+the random effects, which we call penalized iteratively reweighted
+least squares (PIRLS).
 
 The unscaled conditional log-likelihood takes the following form,
 \begin{equation}
-g(\bm u ; \bm y, \bm\beta, \bm\theta) = \log p(\bm y, \bm u | \bm\beta, \bm\theta) = 
-\bm\psi^\top \bm A \bm y - 
-\bm a^\top \bm \phi  + 
-\bm c -
-\frac{1}{2}\bm u^\top \bm u -
-\frac{q}{2}\log{2\pi}
+  f(\bm u) = \log p(\bm y, \bm u | \bm\beta, \bm\theta) = 
+  \bm\psi^\top \bm A \bm y - 
+  \bm a^\top \bm \phi  + 
+  \bm c -
+  \frac{1}{2}\bm u^\top \bm u -
+  \frac{q}{2}\log{2\pi}
 \end{equation}
-where $\bm\psi$ is the $n$-by-$1$ canonical parameter of an exponential family,
-$\bm\phi$ is the $n$-by-$1$ vector of cumulant functions, $\bm c$ an
-$n$-by-$1$ vector required for the log-likelihood to be based on a
-true probability distribution, and $\bm A$ is an $n$-by-$n$ diagonal
-matrix of prior weights, $\bm a$. Both $\bm a$ and $\bm c$ could depend on a dispersion
-parameter, although we ignore this possibility for now.
+where $\bm\psi$ is the $n$-by-$1$ canonical parameter of an
+exponential family, $\bm\phi$ is the $n$-by-$1$ vector of cumulant
+functions, $\bm c$ an $n$-by-$1$ vector required for the
+log-likelihood to be based on a true probability distribution, and
+$\bm A$ is an $n$-by-$n$ diagonal matrix of prior weights, $\bm
+a$. Both $\bm a$ and $\bm c$ could depend on a dispersion parameter,
+although we ignore this possibility for now.
 
 The canonical parameter, $\bm\psi$, and cumulant function, $\bm\phi$,
 depend on a linear predictor,
 \begin{equation}
-\bm\eta = \bm o + \bm X \bm\beta + \bm Z \bm\Lambda_\theta \bm u
+  \bm\eta = \bm o + \bm X \bm\beta + \bm Z \bm\Lambda_\theta \bm u
 \end{equation}
 where $\bm o$ is an \emph{a priori} offset. The specific form of this
 dependency is specified by the choice of the exponential family
@@ -141,8 +142,8 @@ vectors. These maximizers are the conditional modes, which we require
 for the Laplace approximation and adaptive Gauss-Hermite
 quadrature. To do this maximization we use a variant of the Fisher
 scoring method, which is the basis of the iteratively reweighted least
-squares algorithm for generalized linear models. Fisher scoring is itself
-based on Newton's method, which we apply first.
+squares algorithm for generalized linear models. Fisher scoring is
+itself based on Newton's method, which we apply first.
 
 \subsection{Newton's method}
 
@@ -150,21 +151,22 @@ To apply Newton's method, we need the gradient and the Hessian of the
 unscaled conditional log-likelihood. Following standard GLM theory
 (e.g. McCullagh and Nelder 1989), we use the chain rule,
 \begin{displaymath}
-\frac{d L(\bm\beta, \bm\theta | \bm y, \bm u)}{d \bm u} = 
-\frac{d L(\bm\beta, \bm\theta | \bm y, \bm u)}{d \bm\psi}
-\frac{d \bm\psi}{d \bm\mu}
-\frac{d \bm\mu}{d \bm\eta}
-\frac{d \bm\eta}{d \bm u}
+  \frac{d L(\bm\beta, \bm\theta | \bm y, \bm u)}{d \bm u} = 
+  \frac{d L(\bm\beta, \bm\theta | \bm y, \bm u)}{d \bm\psi}
+  \frac{d \bm\psi}{d \bm\mu}
+  \frac{d \bm\mu}{d \bm\eta}
+  \frac{d \bm\eta}{d \bm u}
 \end{displaymath}
-The first derivative in this chain follow from basic results in GLM theory,
+The first derivative in this chain follow from basic results in GLM
+theory,
 \begin{displaymath}
-\frac{d L(\bm\beta, \bm\theta | \bm y, \bm u)}{d \bm\psi} = 
-(\bm y - \bm\mu)^\top \bm A
+  \frac{d L(\bm\beta, \bm\theta | \bm y, \bm u)}{d \bm\psi} = 
+  (\bm y - \bm\mu)^\top \bm A
 \end{displaymath}
-Again from standard GLM theory, the next two derivatives define the inverse diagonal variance
-matrix,
+Again from standard GLM theory, the next two derivatives define the
+inverse diagonal variance matrix,
 \begin{displaymath}
-\frac{d \bm\psi}{d \bm\mu} = \bm V^{-1}
+  \frac{d \bm\psi}{d \bm\mu} = \bm V^{-1}
 \end{displaymath}
 and the diagonal Jaccobian matrix,
 \begin{displaymath}
@@ -172,16 +174,16 @@ and the diagonal Jaccobian matrix,
 \end{displaymath}
 Finally, because $\bm\beta$ affects $\bm\eta$ only linearly,
 \begin{displaymath}
-\frac{d \bm\eta}{d \bm u} = \bm Z \bm\Lambda_\theta
+  \frac{d \bm\eta}{d \bm u} = \bm Z \bm\Lambda_\theta
 \end{displaymath}
 Therefore we have,
 \begin{equation}
-\frac{d L(\bm\beta, \bm\theta | \bm y, \bm u)}{d \bm u} = 
-(\bm y - \bm\mu)^\top \bm A
-\bm V^{-1}
-\bm M
-\bm Z \bm\Lambda_\theta +
-\bm u^\top
+  \frac{d L(\bm\beta, \bm\theta | \bm y, \bm u)}{d \bm u} = 
+  (\bm y - \bm\mu)^\top \bm A
+  \bm V^{-1}
+  \bm M
+  \bm Z \bm\Lambda_\theta +
+  \bm u^\top
 \label{eq:dPDEVdu}
 \end{equation}
 This is very similar to the gradient for GLMs with respect to fixed
@@ -191,46 +193,47 @@ addition of the $\bm u^\top$ term.
 
 Again we apply the chain rule to take the Hessian,
 \begin{equation}
-\frac{d^2 L(\bm\beta, \bm\theta | \bm y, \bm u)}{d \bm u d \bm u} = 
-\frac{d^2 L(\bm\beta, \bm\theta | \bm y, \bm u)}{d \bm u d \bm\mu}
-\frac{d \bm\mu}{d \bm\eta}
-\frac{d \bm\eta}{d \bm u} + \bm I_q
+  \frac{d^2 L(\bm\beta, \bm\theta | \bm y, \bm u)}{d \bm u d \bm u} = 
+  \frac{d^2 L(\bm\beta, \bm\theta | \bm y, \bm u)}{d \bm u d \bm\mu}
+  \frac{d \bm\mu}{d \bm\eta}
+  \frac{d \bm\eta}{d \bm u} + \bm I_q
 \end{equation}
 which leads to,
 \begin{equation}
-\frac{d^2 L(\bm\beta, \bm\theta | \bm y, \bm u)}{d \bm u d \bm u} = 
-\frac{d^2 L(\bm\beta, \bm\theta | \bm y, \bm u)}{d \bm u d \bm\mu}\bm
-M \bm Z \bm\Lambda_\theta 
- + \bm I_q
+  \frac{d^2 L(\bm\beta, \bm\theta | \bm y, \bm u)}{d \bm u d \bm u} = 
+  \frac{d^2 L(\bm\beta, \bm\theta | \bm y, \bm u)}{d \bm u d \bm\mu}\bm
+  M \bm Z \bm\Lambda_\theta 
+  + \bm I_q
 \end{equation}
 The first derivative in this chain can be expressed as,
 \begin{equation}
-\frac{d^2 L(\bm\beta, \bm\theta | \bm y, \bm u)}{d \bm u d \bm\mu} =
--\bm\Lambda_\theta^\top \bm Z^\top \bm M \bm V^{-1} \bm A  + 
-\bm\Lambda_\theta^\top \bm Z^\top \left[ \frac{d \bm M \bm V^{-1}}{d \bm\mu} \right] \bm A \bm R
+  \frac{d^2 L(\bm\beta, \bm\theta | \bm y, \bm u)}{d \bm u d \bm\mu} =
+  -\bm\Lambda_\theta^\top \bm Z^\top \bm M \bm V^{-1} \bm A  + 
+  \bm\Lambda_\theta^\top \bm Z^\top \left[ \frac{d \bm M \bm V^{-1}}{d \bm\mu} \right] \bm A \bm R
 \end{equation}
-where $\bm R$ is a diagonal residuals matrix with $\bm y-\bm\mu$ on the
-diagonal. The two terms arise from a type of product rule, where we
-first differentiate the residuals, $\bm y-\bm\mu$, and then the diagonal
-matrix, $\bm M \bm V^{-1}$, with respect to $\bm\mu$.
+where $\bm R$ is a diagonal residuals matrix with $\bm y-\bm\mu$ on
+the diagonal. The two terms arise from a type of product rule, where
+we first differentiate the residuals, $\bm y-\bm\mu$, and then the
+diagonal matrix, $\bm M \bm V^{-1}$, with respect to $\bm\mu$.
 
 The Hessian can therefore be expressed as,
 \begin{equation}
-\frac{d^2 L(\bm\beta, \bm\theta | \bm y, \bm u)}{d \bm u d \bm u} = 
--\bm \Lambda_\theta^\top \bm Z^\top \bm M \bm A^{1/2}\bm V^{-1/2}\left( 
-\bm I_n - 
-\bm V \bm M^{-1}\left[ \frac{d \bm M \bm V^{-1}}{d \bm\mu} \right] \bm R
-\right) \bm V^{-1/2}\bm A^{1/2} \bm M \bm Z \bm\Lambda_\theta + \bm I_q
+  \frac{d^2 L(\bm\beta, \bm\theta | \bm y, \bm u)}{d \bm u d \bm u} = 
+  -\bm \Lambda_\theta^\top \bm Z^\top \bm M \bm A^{1/2}\bm V^{-1/2}\left( 
+    \bm I_n - 
+    \bm V \bm M^{-1}\left[ \frac{d \bm M \bm V^{-1}}{d \bm\mu} \right] \bm R
+  \right) \bm V^{-1/2}\bm A^{1/2} \bm M \bm Z \bm\Lambda_\theta + \bm I_q
 \label{eq:betaHessian}
 \end{equation}
 This result can be simplified by expressing it in terms of a weighted
-random-effects design matrix, $\bm U = \bm A^{1/2}\bm V^{-1/2}\bm M \bm Z \bm\Lambda_\theta$,
+random-effects design matrix, $\bm U = \bm A^{1/2}\bm V^{-1/2}\bm M
+\bm Z \bm\Lambda_\theta$,
 \begin{equation}
-\frac{d^2 L(\bm\beta, \bm\theta | \bm y, \bm u)}{d \bm u d \bm u} = 
--\bm U^\top\left( 
-\bm I_n - 
-\bm V \bm M^{-1}\left[ \frac{d \bm V^{-1}\bm M}{d \bm\mu} \right] \bm R
-\right) \bm U + \bm I_q
+  \frac{d^2 L(\bm\beta, \bm\theta | \bm y, \bm u)}{d \bm u d \bm u} = 
+  -\bm U^\top\left( 
+    \bm I_n - 
+    \bm V \bm M^{-1}\left[ \frac{d \bm V^{-1}\bm M}{d \bm\mu} \right] \bm R
+  \right) \bm U + \bm I_q
 \label{eq:betaHessian}
 \end{equation}
 
@@ -238,30 +241,30 @@ random-effects design matrix, $\bm U = \bm A^{1/2}\bm V^{-1/2}\bm M \bm Z \bm\La
 
 
 
-There are two ways to further simplify this expression for $\bm U^\top \bm U$. The
-first is to use the canonical link function for the family being
-used. Canonical links have the property that $\bm V = \bm M$, which means
-that for canonical links,
+There are two ways to further simplify this expression for $\bm U^\top
+\bm U$. The first is to use the canonical link function for the family
+being used. Canonical links have the property that $\bm V = \bm M$,
+which means that for canonical links,
 \begin{equation}
-\frac{d^2 L(\bm\beta, \bm\theta | \bm y, \bm u)}{d \bm u d \bm u} = 
--\bm U^\top\left( 
-\bm I_n - 
-\bm I_n \left[ \frac{d \bm I_n}{d \bm\mu} \right] \bm R
-\right) \bm U + \bm I_q = \bm U^\top \bm U + \bm I_q
+  \frac{d^2 L(\bm\beta, \bm\theta | \bm y, \bm u)}{d \bm u d \bm u} = 
+  -\bm U^\top\left( 
+    \bm I_n - 
+    \bm I_n \left[ \frac{d \bm I_n}{d \bm\mu} \right] \bm R
+  \right) \bm U + \bm I_q = \bm U^\top \bm U + \bm I_q
 \end{equation}
 The second way to simplify the Hessian is to take its expectation with
-respect to the distribution of the response, conditional on the current
-values of the spherized random effects coefficients, $\bm u$. The
-diagonal residual matrix, $\bm R$, has expectation 0. Therefore,
-because the response only enters into the expression for the Hessian
-via $\bm R$, we have that,
+respect to the distribution of the response, conditional on the
+current values of the spherized random effects coefficients, $\bm
+u$. The diagonal residual matrix, $\bm R$, has expectation
+0. Therefore, because the response only enters into the expression for
+the Hessian via $\bm R$, we have that,
 \begin{equation}
-E\left(\frac{d^2 L(\bm\beta, \bm\theta | \bm y, \bm u)}{d \bm u d \bm
-    u} | \bm u \right) = 
--\bm U^\top\left( 
-\bm I_n - 
-\bm U \bm M^{-1}\left[ \frac{d \bm V^{-1}\bm M}{d\mu} \right] E(\bm R)
-\right) \bm U + \bm I_q = \bm U^\top \bm U + \bm I_q
+  E\left(\frac{d^2 L(\bm\beta, \bm\theta | \bm y, \bm u)}{d \bm u d \bm
+      u} | \bm u \right) = 
+  -\bm U^\top\left( 
+    \bm I_n - 
+    \bm U \bm M^{-1}\left[ \frac{d \bm V^{-1}\bm M}{d\mu} \right] E(\bm R)
+  \right) \bm U + \bm I_q = \bm U^\top \bm U + \bm I_q
 \label{eq:betaHessian}
 \end{equation}
 
@@ -279,42 +282,42 @@ E\left(\frac{d^2 L(\bm\beta, \bm\theta | \bm y, \bm u)}{d \bm u d \bm
   \end{itemize}
 \item \textbf{Stationary points of PWRSS}
   \begin{itemize}
-    \item Find the stationary points of the PWRSS criterion.
+  \item Find the stationary points of the PWRSS criterion.
     \item These first two steps show that the PDEV and PWRSS criteria
       have the same stationary points, \emph{if} the chosen weights
       used in PWRSS correspond to the prior weights divided by the
       variance function at the minimum of PDEV.
-    \item Therefore, if we minimize PWRSS with a correct guess at
-      the variance function, then we also minimize PDEV.
-    \item However, because this correct variance function is not known \emph{a priori},
-      we iteratively solve PWRSS, updating the variance
-      function at each iteration.
+    \item Therefore, if we minimize PWRSS with a correct guess at the
+      variance function, then we also minimize PDEV.
+    \item However, because this correct variance function is not known
+      \emph{a priori}, we iteratively solve PWRSS, updating the
+      variance function at each iteration.
   \end{itemize}
 \item \textbf{Pseudo-data and weighted residuals}
   \begin{itemize}
-    \item Express the PWRSS as a simple residual sum of squares using
-      pseudo-data and weighted residuals.
-    \item This expresses the problem as a standard non-linear least-squares
-      problem, which can be solved iteratively using the Gauss-Newton
-      method~\citep[\S2.2.3]{bateswatts88:_nonlin}.
+  \item Express the PWRSS as a simple residual sum of squares using
+    pseudo-data and weighted residuals.
+  \item This expresses the problem as a standard non-linear
+    least-squares problem, which can be solved iteratively using the
+    Gauss-Newton method~\citep[\S2.2.3]{bateswatts88:_nonlin}.
   \end{itemize}
 \item \textbf{Gauss-Newton}
   \begin{itemize}
-    \item Apply the Gauss-Newton method to the non-linear
-      least-squares problem.
-    \item This yields a sequence of normal equations.
-    \item If the solutions of this sequence converge, then they
-      converge to the minimizer of PDEV, \textbf{(this is the step I'm
-        unsure of)}, beacuse PDEV and PWRSS have the same stationary
-      points at convergence.
+  \item Apply the Gauss-Newton method to the non-linear least-squares
+    problem.
+  \item This yields a sequence of normal equations.
+  \item If the solutions of this sequence converge, then they converge
+    to the minimizer of PDEV, \textbf{(this is the step I'm unsure
+      of)}, beacuse PDEV and PWRSS have the same stationary points at
+    convergence.
   \end{itemize}
 \item \textbf{Cholesky}
   \begin{itemize}
-    \item Solve the normal equations using block Cholesky
-      decompositions.
-    \item These particular Cholesky decompositions exploit the sparsity
-      of some of the blocks of the cross-product matrices in the
-      normal equations.
+  \item Solve the normal equations using block Cholesky
+    decompositions.
+  \item These particular Cholesky decompositions exploit the sparsity
+    of some of the blocks of the cross-product matrices in the normal
+    equations.
   \end{itemize}
 \end{enumerate}
 
@@ -357,19 +360,19 @@ Therefore, we have,
 \end{equation}
 Similarly, differentiating with respect to $\bm u$ we have,
 \begin{equation}
-\frac{d PDEV}{d \bm u} = 
--2(\bm y - \bm\mu)^\top \bm A
-\bm V^{-1}
-\bm M
-\bm Z \bm\Lambda_\theta +
-2\bm u^\top
-\label{eq:dPDEVdu}
+  \frac{d PDEV}{d \bm u} = 
+  -2(\bm y - \bm\mu)^\top \bm A
+  \bm V^{-1}
+  \bm M
+  \bm Z \bm\Lambda_\theta +
+  2\bm u^\top
+  \label{eq:dPDEVdu}
 \end{equation}
 Again as in McCullagh and Nelder (1989), instead of trying to find the
 roots of these equations directly, we use iterative least-squares
 methods that converge on these roots. In particular, we define a
-penalized weighted residual sum-of-squares criterion (PWRSS) with the same
-roots as PDEV.
+penalized weighted residual sum-of-squares criterion (PWRSS) with the
+same roots as PDEV.
 
 \subsection{Hessian of PDEV}
 
@@ -377,7 +380,7 @@ We need a lemma (I've always wanted to say that). Let $x$ and $y$ be
 vectors of length $n$ and $m$ and $A$ be a diagonal matrix with
 $n$-vector $a$ on the diagonal. Then,
 \begin{equation}
-\frac{dAx}{dy} = x^\top \frac{da}{dy} + a^\top \frac{dx}{dy}
+  \frac{dAx}{dy} = x^\top \frac{da}{dy} + a^\top \frac{dx}{dy}
 \end{equation}
 
 \begin{equation}
@@ -419,26 +422,26 @@ VM^{-1}\left[ \frac{dV^{-1}M}{d\mu} \right] R
 
 There are two ways to simplify this expression for $V^\top V$. The
 first is to use the canonical link function for the family being
-used. Canonical links have the property that $V = M$, which means
-that for canonical links,
+used. Canonical links have the property that $V = M$, which means that
+for canonical links,
 \begin{equation}
-\underbrace{\frac{d^2 L}{d\beta d\beta}}_{p\times p} = 
--V^\top\left( 
-I_n - 
-I_n \left[ \frac{dI_n}{d\mu} \right] R
-\right)V = V^\top V
+  \underbrace{\frac{d^2 L}{d\beta d\beta}}_{p\times p} = 
+  -V^\top\left( 
+    I_n - 
+    I_n \left[ \frac{dI_n}{d\mu} \right] R
+  \right)V = V^\top V
 \end{equation}
 The second way to simplify the Hessian is to take its expectation with
-respect to the distribution of the response at the current
-parameter estimates. The diagonal residual matrix, $R$, has
-expectation 0. Therefore, because the response only enters into the
-expression for the Hessian via $R$, we have that,
+respect to the distribution of the response at the current parameter
+estimates. The diagonal residual matrix, $R$, has expectation
+0. Therefore, because the response only enters into the expression for
+the Hessian via $R$, we have that,
 \begin{equation}
-\underbrace{E\left(\frac{d^2 L}{d\beta d\beta}\right)}_{p\times p} = 
--V^\top\left( 
-I_n - 
-VM^{-1}\left[ \frac{dV^{-1}M}{d\mu} \right] E(R)
-\right)V = V^\top V
+  \underbrace{E\left(\frac{d^2 L}{d\beta d\beta}\right)}_{p\times p} = 
+  -V^\top\left( 
+    I_n - 
+    VM^{-1}\left[ \frac{dV^{-1}M}{d\mu} \right] E(R)
+  \right)V = V^\top V
 \label{eq:betaHessian}
 \end{equation}
 
@@ -447,67 +450,69 @@ VM^{-1}\left[ \frac{dV^{-1}M}{d\mu} \right] E(R)
 
 The penalized weighted residual sum of squares (PWRSS) is given by,
 \begin{equation}
-\mathrm{PWRSS} = (\bm y-\bm\mu)^\top \bm W (\bm y-\bm\mu) + \bm u^\top
-\bm u
+  \mathrm{PWRSS} = (\bm y-\bm\mu)^\top \bm W (\bm y-\bm\mu) + \bm u^\top
+  \bm u
 \label{eq:PWRSS}
 \end{equation}
 where the weights matrix $\bm W = \bm A \bm V^{-1}$. If we hold $\bm
-W$ fixed at an initial
-guess for the variance function, $\bm V = \bm V_0$, and differentiate with
-respect to $\bm\beta$ and $\bm u$ we obtain,
+W$ fixed at an initial guess for the variance function, $\bm V = \bm
+V_0$, and differentiate with respect to $\bm\beta$ and $\bm u$ we
+obtain,
 \begin{equation}
-\frac{d \mathrm{PWRSS}}{d \bm\beta} = 
--2 (\bm y - \bm\mu)^\top \bm A
-\bm V_0^{-1}
-\bm M
-\bm X
+  \frac{d \mathrm{PWRSS}}{d \bm\beta} = 
+  -2 (\bm y - \bm\mu)^\top \bm A
+  \bm V_0^{-1}
+  \bm M
+  \bm X
 \label{eq:dPWRSSdbeta}
 \end{equation}
 and,
 \begin{equation}
-\frac{d \mathrm{PWRSS}}{d \bm u} = 
--2 (\bm y - \bm\mu)^\top \bm A
-\bm V_0^{-1}
-\bm M
-\bm Z \bm\Lambda_\theta +
-2\bm u^\top
+  \frac{d \mathrm{PWRSS}}{d \bm u} = 
+  -2 (\bm y - \bm\mu)^\top \bm A
+  \bm V_0^{-1}
+  \bm M
+  \bm Z \bm\Lambda_\theta +
+  2\bm u^\top
 \label{eq:dPWRSSdu}
 \end{equation}
-Comparing Eqs. \ref{eq:dPWRSSdbeta} and \ref{eq:dPWRSSdu} with Eqs. \ref{eq:dPDEVdbeta} and \ref{eq:dPDEVdu} we see that if the intial guess at $\bm
-V$ is correct, then the two sets of equations have the same fixed
-points. Note that this result does not imply that PWRSS = PDEV. However, it does suggest an iterative scheme for finding the
-fixed effects parameters and the conditional modes. We use the Gauss-Newton
-method to derive such an iterative scheme. To do so, we use the techniques
-of pseudo-data and weighted residuals to express the problem of
-minimizing PWRSS as a non-linear least-squares problem.
+Comparing Eqs. \ref{eq:dPWRSSdbeta} and \ref{eq:dPWRSSdu} with
+Eqs. \ref{eq:dPDEVdbeta} and \ref{eq:dPDEVdu} we see that if the
+intial guess at $\bm V$ is correct, then the two sets of equations
+have the same fixed points. Note that this result does not imply that
+PWRSS = PDEV. However, it does suggest an iterative scheme for finding
+the fixed effects parameters and the conditional modes. We use the
+Gauss-Newton method to derive such an iterative scheme. To do so, we
+use the techniques of pseudo-data and weighted residuals to express
+the problem of minimizing PWRSS as a non-linear least-squares problem.
 
 \subsection{Pseudo-data and weighted residuals}
 
-In Eq. \ref{eq:PWRSS} the response and its expectation are $\bm\mu$ and $\bm
-y$. Using the pseudo-data technique (standard in the mixed model
-literature) and the weighted residuals technique (standard in the
-weighted least-squares literature) we replace these vectors with,
+In Eq. \ref{eq:PWRSS} the response and its expectation are $\bm\mu$
+and $\bm y$. Using the pseudo-data technique (standard in the mixed
+model literature) and the weighted residuals technique (standard in
+the weighted least-squares literature) we replace these vectors with,
 \begin{equation}
-\rho = 
-\begin{bmatrix}
-\bm W^{1/2}\bm y \\
-\bm 0
-\end{bmatrix}
+  \rho = 
+  \begin{bmatrix}
+    \bm W^{1/2}\bm y \\
+    \bm 0
+  \end{bmatrix}
 \end{equation}
 and fitted response,
 \begin{equation}
-\nu = 
-\begin{bmatrix}
-\bm W^{1/2}\bm \mu \\
-\bm u
-\end{bmatrix}
+  \nu = 
+  \begin{bmatrix}
+    \bm W^{1/2}\bm \mu \\
+    \bm u
+  \end{bmatrix}
 \end{equation}
 The pseudo-data, $\bm 0$, and pseudo-mean, $\bm u$, allow us to remove
 the penalty term in Eq. ??.  By weighting $\bm y$ and $\bm\mu$ by the
 square root of the weights matrix, we can remove the weights matrix
 from the expression for PWRSS. In particular, we now have,
 \begin{equation}
-\mathrm{PWRSS} = (\bm\rho - \bm\nu)^\top (\bm\rho - \bm\nu)
+  \mathrm{PWRSS} = (\bm\rho - \bm\nu)^\top (\bm\rho - \bm\nu)
 \end{equation}
 Minimizing PWRSS is a non-linear least-squares problem, because the
 residuals $\bm\rho - \bm\nu$ depend non-linearly on $\bm\beta$ and
@@ -522,8 +527,8 @@ values, $\bm\nu$. We compute the derivative of $\bm\nu$ with respect
 to both $\bm\beta$ and $\bm u$, under the condition that $\bm W = \bm
 A \bm V^{-1}$ is fixed at $\bm W_0$,
 \begin{displaymath}
-\frac{d \bm\nu}{d \bm\beta} = 
-\begin{bmatrix}
+  \frac{d \bm\nu}{d \bm\beta} = 
+  \begin{bmatrix}
 \bm W_0^{1/2}\bm M \bm X \\
 \bm 0
 \end{bmatrix}
@@ -602,8 +607,8 @@ The resulting simplification is,
 \bm 0
 \end{bmatrix} - 
 \begin{bmatrix}
-\bm U_0 & V_0 \\
-\bm I_q & \bm 0
+  \bm U_0 & V_0 \\
+  \bm I_q & \bm 0
 \end{bmatrix}
 \begin{bmatrix}
 \bm u \\

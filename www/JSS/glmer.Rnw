@@ -5,13 +5,15 @@
 \newcommand{\scw}[1]{{\color{blue} \emph{#1}}}
 \usepackage[american]{babel}  %% for texi2dvi ~ bug
 \usepackage{bm,amsmath,thumbpdf,amsfonts}
-\author{Douglas Bates\\University of Wisconsin - Madison\And
-  Martin M\"achler\\ETH Zurich\And
-  Ben Bolker\\McMaster University\And
-  Steven C. Walker\\McMaster University
+\author{
+  Steven C. Walker\\McMaster University \And
+  Rune Haubo Bojesen Christensen\\Technical University of Denmark\AND
+  Douglas Bates\\University of Wisconsin - Madison \And
+  Ben Bolker\\McMaster University \AND
+  Martin M\"achler\\ETH Zurich
 }
-\Plainauthor{Douglas Bates, Martin M\"achler, Ben Bolker, Steve Walker}
-\title{Fitting generalized \bmb{and nonlinear?} mixed-effects models using \pkg{lme4}}
+\Plainauthor{Steve Walker, Rune Haubo Bojesen Christensen, Douglas Bates, Martin M\"achler, Ben Bolker}
+\title{Fitting generalized liner mixed-effects models using \pkg{lme4}}
 \Plaintitle{Fitting generalized linear mixed models using lme4}
 \Shorttitle{GLMMs with lme4}
 \Abstract{%
@@ -23,6 +25,20 @@
   penalized least squares,
   Cholesky decomposition}
 \Address{
+  Steven C. Walker\\
+  Department of Mathematics \& Statistics \\
+  McMaster University \\
+  1280 Main Street W \\
+  Hamilton, ON L8S 4K1, Canada \\
+  E-mail: \email{scwalker@math.mcmaster.ca}
+  \par\bigskip
+  Rune Haubo Bojesen Christensen \\
+  Technical University of Denmark \\
+  Matematiktorvet \\
+  Building 324, room 220 \\
+  2800 Kgs. Lyngby \\
+  E-mail: \email{rhbc@dtu.dk}
+  \par\bigskip
   Douglas Bates\\
   Department of Statistics, University of Wisconsin\\
   1300 University Ave.\\
@@ -42,13 +58,6 @@
   1280 Main Street W \\
   Hamilton, ON L8S 4K1, Canada \\
   E-mail: \email{bolker@mcmaster.ca}
-  \par\bigskip
-  Steven C. Walker\\
-  Department of Mathematics \& Statistics \\
-  McMaster University \\
-  1280 Main Street W \\
-  Hamilton, ON L8S 4K1, Canada \\
-  E-mail: \email{scwalker@math.mcmaster.ca }
 }
 \newcommand{\Var}{\operatorname{Var}}
 \newcommand{\abs}{\operatorname{abs}}
@@ -454,6 +463,35 @@ xyplot(as.vector(dmat/dnorm(zm$zvals)) ~ rep.int(zm$zvals, ncol(dmat))|gl(ncol(d
 \end{figure}
 shows $t(z)$ for each of the unidimensional integrals in the
 likelihood for the model \code{m1} at the parameter estimates.
+
+\section{Examples}
+
+<<cbpp>>=
+head(cbpp)
+@ 
+<<cbppPlot>>=
+library(ggplot2)
+ggplot(cbpp) + facet_wrap(~herd) + 
+  geom_point(aes(period, incidence/size, size = size)) +
+  scale_y_continuous(limits = c(0, 1))
+boxplot(incidence/size ~ period, data = cbpp, las = 1,
+        xlab = 'Period', ylab = 'Probability of sero-positivity')
+@ 
+To account for repeated measures
+<<cbppModelI>>=
+(gm1 <- glmer(incidence/size ~ period + (1 | herd), family = binomial,
+      data = cbpp, weights = size))
+summary(gm1)
+@ 
+<<cbppConfidence>>=
+#profile.gm1 <- profile(gm1)
+#confint(gm1)
+#set.seed(1)
+#boot.gm1 <- bootMer(gm1, function(x) getME(x, 'theta'), nsim = 100)
+#quantile(boot.gm1$t, probs = c(0.025, 0.975))
+@
+
+
 
 \bibliography{lmer}
 \end{document}
