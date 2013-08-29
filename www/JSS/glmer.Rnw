@@ -69,13 +69,13 @@
 %
 
 <<preliminaries,include=FALSE,cache=FALSE>>=
-options(width=69,show.signif.stars=FALSE,str=strOptions(strict.width="cut"))
+options(width=69, show.signif.stars=FALSE, str=strOptions(strict.width="cut"))
 library(knitr)
 library(lme4)
 opts_chunk$set(engine='R',dev='pdf',fig.width=10,
                fig.height=6.5,strip.white=all,
                cache=TRUE,tidy=FALSE,prompt=TRUE,comment=NA)
-@
+@ % $ <- for emacs ESS
 \setkeys{Gin}{width=\textwidth}
 \begin{document}
 \section{Introduction}
@@ -88,12 +88,12 @@ opts_chunk$set(engine='R',dev='pdf',fig.width=10,
 The generalized linear mixed models (GLMMs) that can be fit by the
 \pkg{lme4} package preserve the multivariate Gaussian unconditional
 distribution of the random effects, $\mc B$
-(eqn.~\ref{eq:LMMuncondB}).  
+(eqn.~\ref{eq:LMMuncondB}).
 Because most families used for the conditional
 distribution, $\mc Y|\mc B=\bm b$, do not incorporate a separate scale
 factor, $\sigma$, we remove it from the definition of $\bm\Sigma$ and
 from the distribution of the spherical random effects, $\mc U$.  That
-is, 
+is,
 \begin{equation}
   \label{eq:UdistGLMM}
   \mc U\sim\mc N(\bm0,\bm I_q)
@@ -163,7 +163,7 @@ value $\mc Y=\yobs$, the resulting function is continuous with respect
 to $\bm u$ so the unscaled conditional density is indeed well-defined
 as a density, up to a scale factor.
 
-To evaluate the integrand in (\ref{eq:GLMMlike}) 
+To evaluate the integrand in (\ref{eq:GLMMlike})
 we use the value of
 the \code{dev.resids} function in the GLM family.  This vector,
 $\bm d(\yobs,\bm u)$, with elements, $d_i(\yobs,\bm u), i=1,\dots,n$,
@@ -171,7 +171,7 @@ provides the deviance of a generalized linear model as
 \begin{displaymath}
   \sum_{i=1}^n d_i(\yobs,\bm u) .
 \end{displaymath}
-(We should note that there 
+(We should note that there
 some confusion in \proglang{R} (and in its predecessor,
 \proglang{S}) about what exactly the deviance residuals
 for a family are.  As indicated above, we will use this name for the
@@ -196,7 +196,7 @@ When the conditional density, $\mc U|\mc Y=\yobs$, is multivariate
 Gaussian, this conditional mode will also be the conditional mean.
 However, for most families used in GLMMs, the mode and the mean need
 not coincide so use the more general term and call $\tilde{\bm
-  u}_{\beta,\theta}$ the \emph{conditional mode}.  We first describe 
+  u}_{\beta,\theta}$ the \emph{conditional mode}.  We first describe
 the numerical methods
 for determining the conditional mode using the Penalized Iteratively
 Reweighted Least Squares (PIRLS) algorithm then return to the question
@@ -312,7 +312,7 @@ $\theta$.  The matrix $\bm\Lambda_{\bm\theta}$ is a multiple of the
 identity, $\theta\bm I_q$, and $\bm Z$ is the $n\times q$ matrix of
 indicators of the levels of $\bm f$.  The permutation matrix, $\bm
 P$, can be set to the identity and $\bm L$ is diagonal, but not
-necessarily a multiple of the identity.  
+necessarily a multiple of the identity.
 
 Because each element of $\bm\mu$ depends on only one element of $\bm
 u$ and the elements of $\mc Y$ are conditionally independent, given
@@ -351,7 +351,7 @@ Consider the \code{cbpp} data on contagious bovine pleuropneumonia
 incidence according to season and herd, available in the \pkg{lme4} package.
 <<strcbpp>>=
 str(cbpp)
-@ 
+@
 and the model
 <<m1>>=
 print(m1 <- glmer(cbind(incidence, size-incidence) ~ period + (1|herd),
@@ -397,7 +397,7 @@ xyplot(as.vector(dmat) ~ rep.int(zm$zvals, ncol(dmat))|gl(ncol(dmat), nrow(dmat)
            panel.lines(zm$zvals, dnorm(zm$zvals), lty=2)
            panel.xyplot(...)}
        )
-@ 
+@
   \caption{Comparison of univariate integrands (solid line) and standard normal density function (dashed line)}
   \label{fig:densities}
 \end{figure}
@@ -425,7 +425,7 @@ The function \code{GHrule} in \pkg{lme4} (based on code in the
 standard normal kernel for orders $k$ from 1 to 25.  For example,
 <<GHrule5>>=
 GHrule(5)
-@ 
+@
 
 The choice of the value of $k$ depends on the behavior of the function
 $t(z)$.  If $t(z)$ is a polynomial of degree $k-1$ then the
@@ -453,7 +453,7 @@ Figure~\ref{fig:tfunc}
 xyplot(as.vector(dmat/dnorm(zm$zvals)) ~ rep.int(zm$zvals, ncol(dmat))|gl(ncol(dmat), nrow(dmat)),
        type=c("g","l"), aspect=0.6, layout=c(5,3),
        xlab="z", ylab="t(z)")
-@ 
+@
   \caption{The function $t(z)$, which is the ratio of the normalized
     unscaled conditional density to the standard normal density, for
     each of the univariate integrals in the evaluation of the deviance
@@ -468,21 +468,21 @@ likelihood for the model \code{m1} at the parameter estimates.
 
 <<cbpp>>=
 head(cbpp)
-@ 
+@
 <<cbppPlot>>=
 library(ggplot2)
-ggplot(cbpp) + facet_wrap(~herd) + 
+ggplot(cbpp) + facet_wrap(~herd) +
   geom_point(aes(period, incidence/size, size = size)) +
   scale_y_continuous(limits = c(0, 1))
 boxplot(incidence/size ~ period, data = cbpp, las = 1,
         xlab = 'Period', ylab = 'Probability of sero-positivity')
-@ 
+@
 To account for repeated measures
 <<cbppModelI>>=
 (gm1 <- glmer(incidence/size ~ period + (1 | herd), family = binomial,
       data = cbpp, weights = size))
 summary(gm1)
-@ 
+@
 <<cbppConfidence>>=
 #profile.gm1 <- profile(gm1)
 #confint(gm1)

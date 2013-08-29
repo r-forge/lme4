@@ -77,17 +77,17 @@
 \newcommand*{\eq}[1]{eqn.~\ref{#1}}% or just {(\ref{#1})}
 %
 
-\SweaveOpts{engine=R,eps=FALSE,pdf=TRUE,width=10,height=6.5,strip.white=all}
-\SweaveOpts{prefix=TRUE,prefix.string=figs/lmer,include=TRUE}
-\SweaveOpts{keep.source=TRUE}
-\setkeys{Gin}{width=\textwidth}
-
 \begin{document}
 
-<<preliminaries>>=
-options(width=69,show.signif.stars=FALSE,str=strOptions(strict.width="cut"))
+<<preliminaries,include=FALSE, cache=FALSE>>=
+options(width=69, show.signif.stars=FALSE, str=strOptions(strict.width="cut"))
+library(knitr)
 library(lme4)
-@
+opts_chunk$set(engine='R',dev='pdf',fig.width=10,
+               fig.height=6.5,strip.white=all,
+               cache=TRUE,tidy=FALSE,prompt=TRUE,comment=NA)
+@ % $ <- for emacs ESS
+\setkeys{Gin}{width=\textwidth}
 
 \linenumbers
 \section{Introduction}
@@ -585,7 +585,7 @@ the diagonal elements of the $\bm T_i,i=1,\dots,k$ be non-negative.
 Although special structures can be exploited to reduce the
 computational load for certain classes of mixed-effects models, we
 will start with the general case to determine suitable data
-structures.  
+structures.
 
 In a complex model fit to a large data set, the dominant calculation
 in the evaluation of the profiled deviance (eqn.~\ref{eq:profdev2}) or
@@ -610,7 +610,7 @@ the conditional distribution of the response incorporates a
 correlation matrix that itself depends on
 parameters~\citep[Ch.~5]{R:Pinheiro+Bates:2000}.
 
-In any case, we will assume that $\bm W$ is symmetric and 
+In any case, we will assume that $\bm W$ is symmetric and
 positive semidefinite so that some type of ``square root'' factor,
 $\bm W^{1/2}$, satisfying
 \begin{linenomath}
@@ -693,7 +693,7 @@ But the update for a new $\bm W^{1/2}$ is only half the story.  The
 update for a new value of $\bm\theta$ can also be performed with dense
 matrix multiplications using only the lower-triangular template
 matrices $\bm T_i,i=1,\dots,k$.  That is, we never need to create
-$\bLt$.  
+$\bLt$.
 
 We simply partition the rows of $\bm N$ into $k$ groups of sizes
 $p_i,i=1,\dots,k$.  The nonzeros in the $i$th group of rows in the
@@ -711,7 +711,7 @@ updating sparse Choleksy factorizations can update $\bm L_\theta$
 directly from $\bLt\trans\bm Z\trans\bm W^{1/2}$.  There is no need to
 form the symmetric product $\bLt\trans\bm Z\trans\bm W\bm Z\bLt$ or to
 add the identity matrix explicitly.  These operations are done
-implicitly. 
+implicitly.
 
 When updating $\bm L_\theta$ from the dense matrix of nonzeros in the
 RSC representation of $\bLt\trans\bm Z\trans\bm W^{1/2}$ only the

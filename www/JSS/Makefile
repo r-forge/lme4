@@ -3,7 +3,7 @@ CP = cp
 TOUCH = touch
 REXE = R --vanilla
 RCMD = $(REXE) CMD
-RSCRIPT = Rscript --vanilla
+RSCRIPT = Rscript --no-save --no-restore
 
 CC = gcc
 CXX = g++
@@ -14,8 +14,8 @@ FC = gfortran
 FFLAGS = -O4
 INSTALL = install
 
-LATEX = latex
-PDFLATEX = pdflatex
+LATEX = latex -shell-escape
+PDFLATEX = pdflatex -shell-escape
 BIBTEX = bibtex
 MAKEIDX = makeindex
 
@@ -25,13 +25,13 @@ EPSTOPDF = epstopdf
 TTH = htlatex # tth -E2 -e2
 TTM = ttm -E2 -e2
 
-default:
+default: lmer.pdf glmer.pdf glmerAppendix.pdf
 
 .PHONY:
 
 %.tex: %.Rnw
-	$(RSCRIPT) -e "Sweave(\"$*.Rnw\")"
-## $(RSCRIPT) -e "library(knitr); knit(\"$*.Rnw\")"
+	$(RSCRIPT) -e "library(knitr); knit(\"$*.Rnw\")"
+##	$(RSCRIPT) -e "Sweave(\"$*.Rnw\")"
 
 %.tex: %.txt
 	pandoc -s -o $*.tex $*.txt
@@ -89,6 +89,6 @@ default:
 	$(FC) $(FFLAGS) $*.f $(LDLIBS) -o $*
 
 clean:
-	$(RM) *.o *.tex *.log *.aux *.toc *.blg *.bbl *.out *-???.pdf Rplots.ps
+	$(RM) *.o *.log *.aux *.toc *.blg *.bbl *.out *-???.pdf Rplots.ps
 
 .SECONDARY:
