@@ -17,6 +17,6 @@ Suggests: boot, PKPDmodels, MEMSS, testthat, ggplot2, mlmRev, optimx
         (>= 2013.8.6), plyr, reshape, Rcpp (>= 0.10.1), RcppEigen (>=
         0.3.1.2)
 License: GPL (>= 2)
-MD5sum: 4887b2d1275fa1f5a37bf110106d00d6
+MD5sum: f9cfc08fa25f53a685d7828a123e9e8b
 NeedsCompilation: yes
 
