@@ -1,5 +1,5 @@
 \documentclass[12pt]{article}
-\usepackage{Sweave}
+\usepackage[noae]{Sweave}
 \usepackage{myVignette}
 \usepackage[authoryear,round]{natbib}
 \newcommand{\s}{\textsf{S}}
