@@ -7,28 +7,17 @@
 \format{
   This data frame contains the following columns:
   \describe{
-    \item{obs}{
-      a numeric vector
-    }
+    \item{obs}{a numeric vector }
     \item{Location}{
       an ordered factor with levels
       \code{B} < \code{D} < \code{E} < \code{I} < \code{G} <
       \code{A} < \code{C} < \code{F} < \code{H}
     }
-    \item{Block}{
-      a factor with levels \code{1} to \code{3} 
-    }
-    \item{Trt}{
-      a factor with levels \code{1} to \code{4}
-    }
-    \item{Adj}{
-      a numeric vector
-    }
-    \item{Fe}{
-      a numeric vector
-    }
-    \item{Grp}{
-      an ordered factor with levels
+    \item{Block}{a \code{\link{factor}} with levels \code{1} to \code{3} }
+    \item{Trt}{a factor with levels \code{1} to \code{4} }
+    \item{Adj}{ a numeric vector }
+    \item{Fe}{ a numeric vector }
+    \item{Grp}{ an \code{\link{ordered}} factor with levels
       \code{B/1} < \code{B/2} < \code{B/3} < \code{D/1} <
       \code{D/2} < \code{D/3} < \code{E/1} < \code{E/2} <
       \code{E/3} < \code{I/1} < \code{I/2} < \code{I/3} <
@@ -44,7 +33,7 @@
   R. D. (1996), \emph{SAS System for Mixed Models}, SAS Institute
   (Data Set 2.8.1).
 }
-\examples{
+\examples{%% same is in vignette -- keep in sync ! -- ../vignettes/Usinglmer.Rnw
 str(Multilocation)
 if (require("lme4", quietly = TRUE, character = TRUE)) {
   options(contrasts = c(unordered = "contr.SAS", ordered = "contr.poly"))
@@ -61,12 +50,13 @@ if (require("lme4", quietly = TRUE, character = TRUE)) {
   ### Treating the location as a random effect
   print(fm1MultR <- lmer(Adj ~ Trt + (1|Location/Trt) + (1|Grp), Multilocation))
   print(anova(fm1MultR))
-  print(fm2MultR <- lmer(Adj ~ Trt + (Trt - 1|Location) + (1|Block),
-                         Multilocation))
+  fm2MultR <- lmer(Adj ~ Trt + (Trt - 1|Location) + (1|Block), Multilocation)
+  ## Warning (not error ?!): Convergence failure in 10000 iter %% __FIXME__
+  print(fm2MultR)# does not mention previous conv.failure %% FIXME ??
   print(anova(fm1MultR, fm2MultR))
-\dontrun{
-intervals(fm1MultR)
-}
-}
+ \dontrun{
+  confint(fm1MultR)% was intervals(.)
+ }
+}% if( .. lme4 .. )
 }
 \keyword{datasets}
