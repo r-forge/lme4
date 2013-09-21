@@ -1,14 +1,16 @@
 Package: SASmixed
-Version: 1.0-2
-Date: 2013-06-14
 Title: Data sets from "SAS System for Mixed Models"
-Maintainer: <lme4-authors@R-forge.wu-wien.ac.at>
+Version: 1.0-3
+Date: 2013-09-22
+Maintainer: Steven Walker <steve.walker@utoronto.ca>
+Contact: LME4 Authors <lme4-authors@lists.r-forge.r-project.org>
 Author: Original by Littell, Milliken, Stroup, and Wolfinger,
-  modifications by Douglas Bates <bates@stat.wisc.edu> 
+  modifications by Douglas Bates <bates@stat.wisc.edu>, Martin Maechler,
+  Ben Bolker and Steven Walker
 Description: Data sets and sample lmer analyses corresponding
   to the examples in Littell, Milliken, Stroup and Wolfinger
   (1996), "SAS System for Mixed Models", SAS Institute.
-Depends: R (>= 2.10)
+Depends: R (>= 2.14.0)
 Suggests: lattice, lme4
 LazyData: yes
 License: GPL (>=2)
