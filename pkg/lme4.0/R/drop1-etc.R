@@ -14,6 +14,11 @@ extractAIC.mer <- function(fit, scale = 0, k = 2, ...) {
 ## "Horribly" this is needed for stats::drop.scope() which does not see the S4 terms() method:
 terms.mer <- function(x,...) attr(x@frame,"terms")
 
+## copied from stats:::safe_pchisq
+safe_pchisq <- function (q, df, ...) {
+    df[df <= 0] <- NA
+    pchisq(q = q, df = df, ...)
+}
 
 ## hacked stats:::drop1.default
 ## FIXME: add F test (with specified denom df)?
@@ -61,18 +66,10 @@ drop1.mer <- function(object, scope, scale = 0, test = c("none", "Chisq"),
         dev <- dev - dev[1L] ; dev[1L] <- NA
         nas <- !is.na(dev)
         P <- dev
-        ## BMB: hack to extract safe_pchisq
-        P[nas] <- stats:::safe_pchisq(dev[nas], dfs[nas], lower.tail = FALSE)
+	P[nas] <- safe_pchisq(dev[nas], dfs[nas], lower.tail = FALSE)
         aod[, c("LRT", "Pr(Chi)")] <- list(dev, P)
     } else if (test == "F") {
         stop("F test STUB -- unfinished maybe forever")
-        dev <- ans[, 2L] - k*ans[, 1L]
-        dev <- dev - dev[1L] ; dev[1L] <- NA
-        nas <- !is.na(dev)
-        P <- dev
-        ## BMB: hack to extract safe_pchisq
-        P[nas] <- stats:::safe_pchisq(dev[nas], dfs[nas], lower.tail = FALSE)
-        aod[, c("LRT", "Pr(F)")] <- list(dev, P)
     }
     head <- c("Single term deletions", "\nModel:", deparse(formula(object)),
 	      if(scale > 0) paste("\nscale: ", format(scale), "\n"))
