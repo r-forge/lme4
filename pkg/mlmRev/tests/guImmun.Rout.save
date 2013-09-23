@@ -1,7 +1,7 @@
 
-R version 2.10.0 RC (2009-10-25 r50206)
-Copyright (C) 2009 The R Foundation for Statistical Computing
-ISBN 3-900051-07-0
+R version 3.0.1 (2013-05-16) -- "Good Sport"
+Copyright (C) 2013 The R Foundation for Statistical Computing
+Platform: x86_64-apple-darwin10.8.0 (64-bit)
 
 R is free software and comes with ABSOLUTELY NO WARRANTY.
 You are welcome to redistribute it under certain conditions.
@@ -17,127 +17,76 @@ Type 'q()' to quit R.
 
 > library(mlmRev)
 Loading required package: lme4
-Loading required package: Matrix
 Loading required package: lattice
-
+Loading required package: Matrix
 > options(digits=6, useFancyQuotes = FALSE)# signif.stars for once..
 > 
-> fm <- lmer(immun ~ kid2p + mom25p + ord + ethn + momEd +
+> fm <- glmer(immun ~ kid2p + mom25p + ord + ethn + momEd +
 +             husEd + momWork + rural + pcInd81 + (1|mom) + (1|comm),
 +             data = guImmun, family = binomial)
-> lme4:::printMer(fm, symbolic.cor = TRUE)
-Generalized linear mixed model fit by the Laplace approximation 
+Warning message:
+In (function (fn, par, lower = rep.int(-Inf, n), upper = rep.int(Inf,  :
+  failure to converge in 10000 evaluations
+> print(fm, symbolic.cor = TRUE)
+Generalized linear mixed model fit by maximum likelihood ['glmerMod']
+ Family: binomial ( logit )
 Formula: immun ~ kid2p + mom25p + ord + ethn + momEd + husEd + momWork +      rural + pcInd81 + (1 | mom) + (1 | comm) 
    Data: guImmun 
-  AIC  BIC logLik deviance
- 2747 2850  -1356     2711
+     AIC      BIC   logLik deviance 
+ 2747.48  2849.67 -1355.74  2711.48 
 Random effects:
- Groups Name        Variance Std.Dev.
- mom    (Intercept) 1.288    1.1349  
- comm   (Intercept) 0.520    0.7211  
+ Groups Name        Std.Dev.
+ mom    (Intercept) 1.148   
+ comm   (Intercept) 0.727   
 Number of obs: 2159, groups: mom, 1595; comm, 161
-
-Fixed effects:
-            Estimate Std. Error z value Pr(>|z|)    
-(Intercept)  -0.9468     0.3168   -2.99   0.0028 ** 
-kid2pY        1.2816     0.1370    9.35   <2e-16 ***
-mom25pY      -0.1284     0.1543   -0.83   0.4055    
-ord23        -0.1385     0.1609   -0.86   0.3892    
-ord46         0.1740     0.1992    0.87   0.3822    
-ord7p         0.2893     0.2483    1.16   0.2440    
-ethnN        -0.1131     0.3125   -0.36   0.7173    
-ethnS        -0.0347     0.2322   -0.15   0.8810    
-momEdP        0.2954     0.1409    2.10   0.0360 *  
-momEdS        0.3016     0.3119    0.97   0.3335    
-husEdP        0.3951     0.1476    2.68   0.0075 ** 
-husEdS        0.3686     0.2657    1.39   0.1653    
-husEdU        0.0146     0.2296    0.06   0.9492    
-momWorkY      0.2705     0.1288    2.10   0.0357 *  
-ruralY       -0.6493     0.1985   -3.27   0.0011 ** 
-pcInd81      -0.8572     0.3257   -2.63   0.0085 ** 
----
-Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1 
-
-Correlation of Fixed Effects:
-            ( k m o o o e e m m h h h m r p
-(Intercept) 1                              
-kid2pY      . 1                            
-mom25pY         1                          
-ord23       .     1                        
-ord46           . , 1                      
-ord7p           . . , 1                    
-ethnN                   1                  
-ethnS                   , 1                
-momEdP      .               1              
-momEdS                      . 1            
-husEdP      .                   1          
-husEdS                        . . 1        
-husEdU                          .   1      
-momWorkY                              1    
-ruralY      .                           1  
-pcInd81                 , ,               1
-attr(,"legend")
-[1] 0 ' ' 0.3 '.' 0.6 ',' 0.8 '+' 0.9 '*' 0.95 'B' 1
+Fixed Effects:
+(Intercept)       kid2pY      mom25pY        ord23        ord46        ord7p  
+  -0.879711     1.268196    -0.125451    -0.158003     0.155659     0.265419  
+      ethnN        ethnS       momEdP       momEdS       husEdP       husEdS  
+  -0.147083    -0.050289     0.276992     0.277592     0.386208     0.346964  
+     husEdU     momWorkY       ruralY      pcInd81  
+  -0.000177     0.264580    -0.663442    -0.865817  
 > 
 > fm.h <- update(fm, ~ . - husEd)
-> lme4:::printMer(fm.h, corr = FALSE)
-Generalized linear mixed model fit by the Laplace approximation 
+> print(fm.h, corr = FALSE)
+Generalized linear mixed model fit by maximum likelihood ['glmerMod']
+ Family: binomial ( logit )
 Formula: immun ~ kid2p + mom25p + ord + ethn + momEd + momWork + rural +      pcInd81 + (1 | mom) + (1 | comm) 
    Data: guImmun 
-  AIC  BIC logLik deviance
- 2749 2834  -1359     2719
+     AIC      BIC   logLik deviance 
+ 2748.60  2833.76 -1359.30  2718.60 
 Random effects:
- Groups Name        Variance Std.Dev.
- mom    (Intercept) 1.2762   1.130   
- comm   (Intercept) 0.5228   0.723   
+ Groups Name        Std.Dev.
+ mom    (Intercept) 1.119   
+ comm   (Intercept) 0.723   
 Number of obs: 2159, groups: mom, 1595; comm, 161
-
-Fixed effects:
-            Estimate Std. Error z value Pr(>|z|)    
-(Intercept)  -0.6589     0.2927   -2.25  0.02438 *  
-kid2pY        1.2713     0.1364    9.32  < 2e-16 ***
-mom25pY      -0.1359     0.1537   -0.88  0.37652    
-ord23        -0.1375     0.1605   -0.86  0.39166    
-ord46         0.1556     0.1977    0.79  0.43148    
-ord7p         0.2404     0.2464    0.98  0.32913    
-ethnN        -0.2206     0.3095   -0.71  0.47600    
-ethnS        -0.0784     0.2311   -0.34  0.73438    
-momEdP        0.3546     0.1383    2.56  0.01036 *  
-momEdS        0.3876     0.2766    1.40  0.16115    
-momWorkY      0.2721     0.1283    2.12  0.03390 *  
-ruralY       -0.6965     0.1945   -3.58  0.00034 ***
-pcInd81      -0.8354     0.3251   -2.57  0.01018 *  
----
-Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1 
-> fm.ho <- update(fm.h, ~ . - ord) #, control = list(msVerbose = TRUE))
+Fixed Effects:
+(Intercept)       kid2pY      mom25pY        ord23        ord46        ord7p  
+     -0.609        1.261       -0.147       -0.149        0.151        0.230  
+      ethnN        ethnS       momEdP       momEdS     momWorkY       ruralY  
+     -0.247       -0.101        0.337        0.352        0.267       -0.715  
+    pcInd81  
+     -0.824  
+> fm.ho <- update(fm.h, ~ . - ord)
 > ## FIXME: shows 53 outer iterations (+ probably IRLS ones) --
 > ##        but no such info is kept stored
-> lme4:::printMer(fm.ho, corr = FALSE)
-Generalized linear mixed model fit by the Laplace approximation 
+> print(fm.ho, corr = FALSE)
+Generalized linear mixed model fit by maximum likelihood ['glmerMod']
+ Family: binomial ( logit )
 Formula: immun ~ kid2p + mom25p + ethn + momEd + momWork + rural + pcInd81 +      (1 | mom) + (1 | comm) 
    Data: guImmun 
-  AIC  BIC logLik deviance
- 2746 2814  -1361     2722
+     AIC      BIC   logLik deviance 
+ 2746.30  2814.43 -1361.15  2722.30 
 Random effects:
- Groups Name        Variance Std.Dev.
- mom    (Intercept) 1.2411   1.1140  
- comm   (Intercept) 0.5082   0.7129  
+ Groups Name        Std.Dev.
+ mom    (Intercept) 1.111   
+ comm   (Intercept) 0.711   
 Number of obs: 2159, groups: mom, 1595; comm, 161
-
-Fixed effects:
-            Estimate Std. Error z value Pr(>|z|)    
-(Intercept)  -0.6971     0.2687   -2.59  0.00947 ** 
-kid2pY        1.2679     0.1357    9.35  < 2e-16 ***
-mom25pY       0.0258     0.1163    0.22  0.82405    
-ethnN        -0.2172     0.3068   -0.71  0.47896    
-ethnS        -0.0812     0.2294   -0.35  0.72324    
-momEdP        0.3339     0.1366    2.44  0.01453 *  
-momEdS        0.3266     0.2708    1.21  0.22778    
-momWorkY      0.2538     0.1272    2.00  0.04592 *  
-ruralY       -0.6673     0.1923   -3.47  0.00052 ***
-pcInd81      -0.8366     0.3220   -2.60  0.00938 ** 
----
-Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1 
+Fixed Effects:
+(Intercept)       kid2pY      mom25pY        ethnN        ethnS       momEdP  
+    -0.6809       1.2645       0.0262      -0.2113      -0.0792       0.3306  
+     momEdS     momWorkY       ruralY      pcInd81  
+     0.3229       0.2487      -0.6804      -0.8417  
 > 
 > anova(fm, fm.h, fm.ho)
 Data: guImmun
@@ -148,80 +97,48 @@ fm.h: immun ~ kid2p + mom25p + ord + ethn + momEd + momWork + rural +
 fm.h:     pcInd81 + (1 | mom) + (1 | comm)
 fm: immun ~ kid2p + mom25p + ord + ethn + momEd + husEd + momWork + 
 fm:     rural + pcInd81 + (1 | mom) + (1 | comm)
-      Df  AIC  BIC logLik Chisq Chi Df Pr(>Chisq)  
-fm.ho 12 2746 2814  -1361                          
-fm.h  15 2748 2834  -1359 3.743      3     0.2906  
-fm    18 2747 2850  -1356 7.147      3     0.0674 .
+      Df  AIC  BIC logLik deviance Chisq Chi Df Pr(>Chisq)  
+fm.ho 12 2746 2814  -1361     2722                          
+fm.h  15 2749 2834  -1359     2719 3.701      3     0.2956  
+fm    18 2748 2850  -1356     2712 7.118      3     0.0682 .
 ---
-Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1 
+Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
 > 
 > (fm.hoe <- update(fm.ho, ~ . - ethn))
-Generalized linear mixed model fit by the Laplace approximation 
+Generalized linear mixed model fit by maximum likelihood ['glmerMod']
+ Family: binomial ( logit )
 Formula: immun ~ kid2p + mom25p + momEd + momWork + rural + pcInd81 +      (1 | mom) + (1 | comm) 
    Data: guImmun 
-  AIC  BIC logLik deviance
- 2743 2800  -1361     2723
+     AIC      BIC   logLik deviance 
+ 2742.77  2799.54 -1361.38  2722.77 
 Random effects:
- Groups Name        Variance Std.Dev.
- mom    (Intercept) 1.2462   1.1164  
- comm   (Intercept) 0.4904   0.7003  
+ Groups Name        Std.Dev.
+ mom    (Intercept) 1.093   
+ comm   (Intercept) 0.698   
 Number of obs: 2159, groups: mom, 1595; comm, 161
-
-Fixed effects:
-            Estimate Std. Error z value Pr(>|z|)    
-(Intercept)  -0.6987     0.2673   -2.61  0.00896 ** 
-kid2pY        1.2666     0.1356    9.34  < 2e-16 ***
-mom25pY       0.0259     0.1162    0.22  0.82333    
-momEdP        0.3547     0.1337    2.65  0.00800 ** 
-momEdS        0.3552     0.2658    1.34  0.18144    
-momWorkY      0.2661     0.1261    2.11  0.03479 *  
-ruralY       -0.6780     0.1895   -3.58  0.00035 ***
-pcInd81      -0.9609     0.2322   -4.14  3.5e-05 ***
----
-Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1 
-
-Correlation of Fixed Effects:
-         (Intr) kid2pY mm25pY momEdP momEdS mmWrkY ruralY
-kid2pY   -0.417                                          
-mom25pY  -0.274  0.021                                   
-momEdP   -0.436  0.065  0.125                            
-momEdS   -0.378  0.049  0.112  0.327                     
-momWorkY -0.298 -0.020 -0.037 -0.005 -0.058              
-ruralY   -0.557 -0.008  0.017  0.060  0.251  0.099       
-pcInd81  -0.490 -0.025  0.007  0.239  0.157  0.123  0.011
+Fixed Effects:
+(Intercept)       kid2pY      mom25pY       momEdP       momEdS     momWorkY  
+    -0.7017       1.2660       0.0252       0.3530       0.3604       0.2588  
+     ruralY      pcInd81  
+    -0.6708      -0.9535  
 > 
 > (fm.hoem <- update(fm.hoe, ~ . - mom25p))
-Generalized linear mixed model fit by the Laplace approximation 
+Generalized linear mixed model fit by maximum likelihood ['glmerMod']
+ Family: binomial ( logit )
 Formula: immun ~ kid2p + momEd + momWork + rural + pcInd81 + (1 | mom) +      (1 | comm) 
    Data: guImmun 
-  AIC  BIC logLik deviance
- 2741 2792  -1361     2723
+     AIC      BIC   logLik deviance 
+  2740.8   2791.9  -1361.4   2722.8 
 Random effects:
- Groups Name        Variance Std.Dev.
- mom    (Intercept) 1.2477   1.1170  
- comm   (Intercept) 0.4898   0.6998  
+ Groups Name        Std.Dev.
+ mom    (Intercept) 1.114   
+ comm   (Intercept) 0.699   
 Number of obs: 2159, groups: mom, 1595; comm, 161
-
-Fixed effects:
-            Estimate Std. Error z value Pr(>|z|)    
-(Intercept)   -0.683      0.257   -2.65  0.00793 ** 
-kid2pY         1.266      0.136    9.34  < 2e-16 ***
-momEdP         0.351      0.133    2.65  0.00814 ** 
-momEdS         0.349      0.264    1.32  0.18676    
-momWorkY       0.267      0.126    2.12  0.03390 *  
-ruralY        -0.679      0.189   -3.58  0.00034 ***
-pcInd81       -0.961      0.232   -4.14  3.5e-05 ***
----
-Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1 
-
-Correlation of Fixed Effects:
-         (Intr) kid2pY momEdP momEdS mmWrkY ruralY
-kid2pY   -0.428                                   
-momEdP   -0.422  0.063                            
-momEdS   -0.364  0.047  0.318                     
-momWorkY -0.321 -0.020  0.000 -0.055              
-ruralY   -0.575 -0.008  0.059  0.251  0.099       
-pcInd81  -0.507 -0.025  0.241  0.157  0.123  0.011
+Fixed Effects:
+(Intercept)       kid2pY       momEdP       momEdS     momWorkY       ruralY  
+     -0.698        1.258        0.358        0.353        0.278       -0.672  
+    pcInd81  
+     -0.945  
 > 
 > (AN <- anova(fm, fm.h, fm.ho, fm.hoe, fm.hoem))
 Data: guImmun
@@ -236,27 +153,35 @@ fm.h: immun ~ kid2p + mom25p + ord + ethn + momEd + momWork + rural +
 fm.h:     pcInd81 + (1 | mom) + (1 | comm)
 fm: immun ~ kid2p + mom25p + ord + ethn + momEd + husEd + momWork + 
 fm:     rural + pcInd81 + (1 | mom) + (1 | comm)
-        Df  AIC  BIC logLik Chisq Chi Df Pr(>Chisq)  
-fm.hoem  9 2741 2792  -1361                          
-fm.hoe  10 2743 2800  -1361 0.043      1     0.8350  
-fm.ho   12 2746 2814  -1361 0.450      2     0.7983  
-fm.h    15 2748 2834  -1359 3.743      3     0.2906  
-fm      18 2747 2850  -1356 7.147      3     0.0674 .
+        Df  AIC  BIC logLik deviance Chisq Chi Df Pr(>Chisq)  
+fm.hoem  9 2741 2792  -1361     2723                          
+fm.hoe  10 2743 2800  -1361     2723 0.030      1     0.8622  
+fm.ho   12 2746 2814  -1361     2722 0.471      2     0.7903  
+fm.h    15 2749 2834  -1359     2719 3.701      3     0.2956  
+fm      18 2748 2850  -1356     2712 7.118      3     0.0682 .
 ---
-Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1 
+Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
 > 
+> AN[, "logLik"] + 1362                   # an inversion in the first two models
+[1] 0.600013 0.615079 0.850417 2.701099 6.260151
+> ## FIXME: AN doesn't have a deviance column!
+> ## AN[, "deviance"] - 2711                 # deviance scale shows this more clearly
 > stopifnot(AN[,"Df"] == c(9,10,12,15,18),
-+           all.equal(AN[,"logLik"] + 1362,
-+                     c(0.6072186497422, 0.6289103306312, 0.8541186984307,
-+                       2.725550814599, 6.299084917162), tol = 1e-6),
-+           all.equal(fixef(fm.hoem)[-1],
-+                     c("kid2pY" = 1.2662536,  "momEdP"= 0.35116180,
-+                       "momEdS"= 0.3487824136, "momWorkY"=0.2672759992340,
-+                       "ruralY"=-0.678846606719, "pcInd81"=-0.9612710104134),
-+                     tol = 1e-4)
++ #          all.equal(AN[,"logLik"] + 1362,
++ #                    c(0.6072186497422, 0.6289103306312, 0.8541186984307,
++ #                      2.725550814599, 6.299084917162), tol = 1e-6),
++ #          all.equal(fixef(fm.hoem)[-1],
++ #                    c("kid2pY" = 1.2662536,  "momEdP"= 0.35116180,
++ #                      "momEdS"= 0.3487824136, "momWorkY"=0.2672759992340,
++ #                      "ruralY"=-0.678846606719, "pcInd81"=-0.9612710104134),
++ #                    tol = 1e-4),
++           TRUE
 +           )
 > 
 > 
 > cat('Time elapsed: ', proc.time(),'\n') # "stats"
-Time elapsed:  43.28 0.172 43.594 0 0 
+Time elapsed:  110.759 0.204 110.957 0.001 0.002 
 > 
+> proc.time()
+   user  system elapsed 
+110.760   0.206 110.957 

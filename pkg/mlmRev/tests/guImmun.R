@@ -1,4 +1,3 @@
-if(FALSE){
 library(mlmRev)
 options(digits=6, useFancyQuotes = FALSE)# signif.stars for once..
 fm <- glmer(immun ~ kid2p + mom25p + ord + ethn + momEd +
@@ -38,4 +37,3 @@ stopifnot(AN[,"Df"] == c(9,10,12,15,18),
 
 
 cat('Time elapsed: ', proc.time(),'\n') # "stats"
-}
