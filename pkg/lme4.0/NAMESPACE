@@ -3,6 +3,8 @@ useDynLib(lme4, .registration=TRUE)
 import(Matrix)# including update()
 import(lattice)
 
+importFrom("methods", setClass, representation,
+           setMethod, signature, new)
 ## Generics for which we define new methods:
 importFrom("nlme", fixef, ranef, VarCorr)
 importFrom("graphics", plot)
