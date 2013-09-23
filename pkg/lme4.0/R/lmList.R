@@ -184,7 +184,6 @@ setMethod("confint", signature(object = "lmList"),
 setMethod("plot", signature(x = "lmList.confint"),
           function(x, y, ...)
       {
-          stopifnot(require("lattice"))
           arr <- as(x, "array")
           dd <- dim(arr)
           dn <- dimnames(arr)
