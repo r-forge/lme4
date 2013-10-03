@@ -1,5 +1,5 @@
 Package: lme4
-Version: 1.0-4
+Version: 1.0-5
 Depends: R(>= 2.14.0), lattice, Matrix(>= 1.0), methods, stats
 Imports: graphics, grid, splines, MASS, nlme, minqa(>= 1.1.15)
 LinkingTo: Rcpp, RcppEigen
@@ -7,6 +7,6 @@ Suggests: boot, PKPDmodels, MEMSS, testthat, ggplot2, mlmRev, optimx
         (>= 2013.8.6), plyr, reshape, Rcpp (>= 0.10.1), RcppEigen (>=
         0.3.1.2)
 License: GPL (>= 2)
-MD5sum: b9a1fe042fda51bb65df116f7420fc8b
+MD5sum: 7f5201a0173152b7dc8e404358533ab8
 NeedsCompilation: no
 
