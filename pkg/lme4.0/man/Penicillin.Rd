@@ -43,6 +43,7 @@
 %\references{}
 \examples{
 str(Penicillin)
+require(lattice)
 dotplot(reorder(plate, diameter) ~ diameter, Penicillin, groups = sample,
         ylab = "Plate", xlab = "Diameter of growth inhibition zone (mm)",
         type = c("p", "a"), auto.key = list(columns = 3, lines = TRUE,

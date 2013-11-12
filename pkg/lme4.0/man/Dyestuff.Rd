@@ -53,6 +53,7 @@
 %\references{}
 \examples{
 str(Dyestuff)
+require(lattice)
 dotplot(reorder(Batch, Yield) ~ Yield, Dyestuff,
         ylab = "Batch", jitter.y = TRUE, aspect = 0.3,
         type = c("p", "a"))
