@@ -1,7 +1,13 @@
 useDynLib(lme4, .registration=TRUE)
 
-import(Matrix)# including update()
+importClassesFrom("Matrix", corMatrix, dgCMatrix, dpoMatrix)
+importMethodsFrom("Matrix", "%*%", chol, coerce, crossprod, diag,
+		  head, tail, summary, t, tcrossprod, update)
+importFrom(	  "Matrix", cov2cor, .diag2tT, drop0, fac2sparse,
+	   rankMatrix, rBind, sparseMatrix)
+
 import(lattice)
+##==== (all)
 
 importFrom("methods", setClass, representation,
            setMethod, signature, new)
@@ -32,6 +38,10 @@ importFrom("stats",
 
 ## re-export imported S4 generics
 export(AIC, BIC, logLik)
+## Generics in 'lattice' {we have added own methods}:
+## densityplot, qqmath, xyplot
+
+
 ## and the rest (S3 generics; regular functions):
 export("HPDinterval", "getME",
        "isLMM", "isGLMM", "isNLMM",
@@ -62,7 +72,6 @@ exportMethods(
               "coef",
               "coerce",
               "confint",
-              "densityplot",
               "deviance",
               "expand",
               "fitted",
@@ -76,7 +85,6 @@ exportMethods(
               "model.matrix",
               "plot",
               "print",
-              "qqmath",
               "ranef",
               "refit",
               "resid", "residuals",
@@ -88,8 +96,8 @@ exportMethods(
               "update",
               "vcov",
               "with",
-              "xyplot"
-              )
+    ## Generics in 'lattice':
+    densityplot, qqmath, xyplot)
 
 S3method(terms, mer)# even though we have it S4 method as well
 S3method(drop1, mer)

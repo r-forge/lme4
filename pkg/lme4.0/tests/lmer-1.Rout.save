@@ -1,5 +1,5 @@
 
-R Under development (unstable) (2013-08-08 r63524) -- "Unsuffered Consequences"
+R version 3.0.2 Patched (2013-11-11 r64202) -- "Frisbee Sailing"
 Copyright (C) 2013 The R Foundation for Statistical Computing
 Platform: x86_64-unknown-linux-gnu (64-bit)
 
@@ -256,7 +256,7 @@ wk2TRUE     -0.794  0.063 -0.056
 +     reg <- lmer(y ~ habitat + (1|habitat*lagoon), data = dat) # did seg.fault
 +     ) # now gives error                 ^- should be ":"
 Error in mer_finalize(ans) : 
-  Cholmod error 'invalid xtype' at file:../Cholesky/cholmod_solve.c, line 970
+  Cholmod error 'invalid xtype' at file:../Cholesky/cholmod_solve.c, line 1068
 In addition: Warning message:
 In Ops.factor(habitat, lagoon) : * not meaningful for factors
 > 
@@ -453,7 +453,7 @@ Slot "sigma":
 >     ## discrepancies have occured at digit 140.64x;
 >     ##  digits= doesn't handle it properly since other
 >     ##  elements have smaller magnitudes
->     round(c(unlist(VarCorr(M2.))),2)  
+>     round(c(unlist(VarCorr(M2.))),2)
 group1 group2 group3 group4 
 140.64  -1.42  -1.42   0.01 
 >     options(op)
@@ -640,8 +640,8 @@ m1  4  585.49  599.41 -288.75 450.67      1  < 2.2e-16
 > if(.unsafe.BLAS) rm(identical)
 > 
 > cat('Time elapsed: ', proc.time(),'\n') # for ``statistical reasons''
-Time elapsed:  4.589 0.153 5.227 0 0 
+Time elapsed:  6.273 0.17 6.672 0.004 0.004 
 > 
 > proc.time()
    user  system elapsed 
-  4.589   0.153   5.227 
+  6.277   0.174   6.672 

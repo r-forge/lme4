@@ -55,7 +55,8 @@ lagged_factor <- function(fr, idvar = "id", timevar = "Time", factors = "inst")
                  interaction(frms[[1]][[idvar]], frms[[1]][[timevar]], drop = TRUE))
     frms <- lapply(frms, function(fr) {ans <- fr[ord,]; rownames(ans) <- NULL; ans})
     ans <- list(foo = lapply(frms, function(fr)
-                as(Matrix:::fac2sparse(fr[[factors[1]]], drop=FALSE), "dgTMatrix")))
+		as(fac2sparse(fr[[factors[1]]], drop.unused.levels=FALSE),
+		   "dgTMatrix")))
     names(ans) <- factors
     ans
 }

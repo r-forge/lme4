@@ -43,9 +43,8 @@ xtabs(~ item + resp, VerbAgg)
 xtabs(~ btype + resp, VerbAgg)
 round(100 * ftable(prop.table(xtabs(~ situ + mode + resp, VerbAgg), 1:2), 1))
 person <- unique(subset(VerbAgg, select = c(id, Gender, Anger)))
-if (require(lattice)) {
-    densityplot(~ Anger, person, groups = Gender, auto.key = list(columns = 2),
-                xlab = "Trait Anger score (STAXI)")
-}
+require(lattice)
+densityplot(~ Anger, person, groups = Gender, auto.key = list(columns = 2),
+            xlab = "Trait Anger score (STAXI)")
 }
 \keyword{datasets}
