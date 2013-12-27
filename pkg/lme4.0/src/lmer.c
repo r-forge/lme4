@@ -809,8 +809,9 @@ static double update_L(SEXP x)
 
     d[ldL2_POS] = M_chm_factor_ldetL2(L);
     d[pwrss_POS] = d[usqr_POS] + d[wrss_POS];
-    d[sigmaML_POS] = sqrt(d[pwrss_POS]/
-			  (srwt ? sqr_length(srwt, n) : (double) n));
+    //d[sigmaML_POS] = sqrt(d[pwrss_POS]/
+    // 			  (srwt ? sqr_length(srwt, n) : (double) n));
+    d[sigmaML_POS] = sqrt(d[pwrss_POS]/ ((double) n));
     d[sigmaREML_POS] = (V || muEta) ? NA_REAL :
 	d[sigmaML_POS] * sqrt((((double) n)/((double)(n - p))));
     return d[pwrss_POS];
@@ -906,8 +907,9 @@ static double update_mu(SEXP x)
 				/* store u'u */
     d[usqr_POS] = sqr_length((double*)(cu->x), dims[q_POS]);
     d[pwrss_POS] = d[usqr_POS] + d[wrss_POS];
-    d[sigmaML_POS] = sqrt(d[pwrss_POS]/
-			  (srwt ? sqr_length(srwt, n) : (double) n));
+    //d[sigmaML_POS] = sqrt(d[pwrss_POS]/
+    //		  (srwt ? sqr_length(srwt, n) : (double) n));
+    d[sigmaML_POS] = sqrt(d[pwrss_POS]/ ((double) n));
     d[sigmaREML_POS] = (V || muEta) ? NA_REAL :
 	d[sigmaML_POS] * sqrt((((double) n)/((double)(n - p))));
     return d[pwrss_POS];
@@ -1041,8 +1043,9 @@ static double lmm_update_fixef_u(SEXP x)
 	    dn * (1 + log(d[pwrss_POS]) + log(2 * PI / dn));
 	d[REML_POS] = d[ldL2_POS] + d[ldRX2_POS] +
 	    dnmp * (1. + log(d[pwrss_POS]) + log(2. * PI / dnmp));
-	d[sigmaML_POS] = sqrt(d[pwrss_POS]/
-			      (srwt ? sqr_length(srwt, n) : dn));
+	//d[sigmaML_POS] = sqrt(d[pwrss_POS]/
+	//		      (srwt ? sqr_length(srwt, n) : dn));
+        d[sigmaML_POS] = sqrt(d[pwrss_POS]/ ((double) n));
 	d[sigmaREML_POS] = d[sigmaML_POS] * sqrt(dn/dnmp);
 
 	ans = d[dims[isREML_POS] ? REML_POS : ML_POS];
