@@ -9,6 +9,31 @@ MD5sum: 8c3a5e92a1e94c1e6440c9a269893fc3
 NeedsCompilation: no
 
 Package: lme4
+Version: 1.0-5
+Depends: R(>= 2.14.0), lattice, Matrix(>= 1.0), methods, stats
+Imports: graphics, grid, splines, MASS, nlme, minqa(>= 1.1.15)
+LinkingTo: Rcpp, RcppEigen
+Suggests: boot, PKPDmodels, MEMSS, testthat, ggplot2, mlmRev, optimx
+        (>= 2013.8.6), plyr, reshape, Rcpp (>= 0.10.1), RcppEigen (>=
+        0.3.1.2)
+License: GPL (>= 2)
+MD5sum: 7f5201a0173152b7dc8e404358533ab8
+NeedsCompilation: no
+
+Package: lme4
+Version: 1.1-1
+Depends: R(>= 2.14.0), lattice, Matrix(>= 1.1-0), methods, stats
+Imports: graphics, grid, splines, MASS, nlme, minqa(>= 1.1.15),
+        parallel
+LinkingTo: Rcpp, RcppEigen
+Suggests: boot, PKPDmodels, MEMSS, testthat, ggplot2, mlmRev, optimx
+        (>= 2013.8.6), plyr, reshape, Rcpp (>= 0.10.1), RcppEigen (>=
+        0.3.1.2.3), pbkrtest
+License: GPL (>= 2)
+MD5sum: 5da6704f2aa6dc7bd67febde9a8b6174
+NeedsCompilation: no
+
+Package: lme4
 Version: 1.1-2
 Depends: R (>= 2.14.0), Matrix (>= 1.1), methods, stats
 Imports: graphics, grid, splines, MASS, nlme, minqa (>= 1.1.15),
@@ -19,5 +44,18 @@ Suggests: boot, PKPDmodels, MEMSS, testthat, ggplot2, mlmRev, optimx
         RcppEigen (>= 0.3.1.2.3)
 License: GPL (>= 2)
 MD5sum: 344d091cce0f072cbba2706228623465
+NeedsCompilation: no
+
+Package: lme4
+Version: 1.1-4
+Depends: R (>= 2.14.0), Matrix (>= 1.1.1), methods, stats
+Imports: graphics, grid, splines, parallel, MASS, nlme, lattice, minqa
+        (>= 1.1.15)
+LinkingTo: Rcpp, RcppEigen
+Suggests: boot, PKPDmodels, MEMSS, testthat, ggplot2, mlmRev, optimx
+        (>= 2013.8.6), plyr, reshape, pbkrtest, Rcpp (>= 0.10.1),
+        RcppEigen (>= 0.3.1.2.3)
+License: GPL (>= 2)
+MD5sum: 4fc70ffd36175b601a6c053f28d9c6fe
 NeedsCompilation: no
 
