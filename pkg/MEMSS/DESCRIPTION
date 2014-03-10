@@ -8,7 +8,7 @@ Author: Douglas Bates <bates@stat.wisc.edu>,
 Maintainer: <lme4-authors@R-forge.wu-wien.ac.at>
 Description: Data sets and sample analyses from Pinheiro and Bates,
   "Mixed-effects Models in S and S-PLUS" (Springer, 2000).
-Depends: R(>= 2.12.0), lme4 (>= 0.999375-36)
+Depends: R(>= 2.12.0), lme4 (>= 0.999375-36), lattice
 LazyData: yes
 License: GPL (>=2)
 Packaged: 2011-02-15 21:43:38 UTC; bates
