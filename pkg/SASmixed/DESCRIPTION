@@ -10,8 +10,7 @@ Author: Original by Littell, Milliken, Stroup, and Wolfinger,
 Description: Data sets and sample lmer analyses corresponding
   to the examples in Littell, Milliken, Stroup and Wolfinger
   (1996), "SAS System for Mixed Models", SAS Institute.
-Depends: R (>= 2.14.0)
-Suggests: lattice, lme4
+Depends: R (>= 2.14.0), lme4, lattice
 LazyData: yes
 License: GPL (>=2)
 
