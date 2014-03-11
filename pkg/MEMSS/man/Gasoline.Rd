@@ -58,6 +58,7 @@
     Statistics with S-PLUS (3rd ed)}, Springer, New York.
 }
 \examples{
+require(lattice)
 str(Gasoline)
 xyplot(yield ~ endpoint | Sample, Gasoline, aspect = 'xy',
        main = "Gasoline data", xlab = "Endpoint (degrees F)",

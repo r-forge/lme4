@@ -53,6 +53,7 @@
 }
 \seealso{\code{\link{SSfol}}}
 \examples{
+require(lattice)
 xyplot(conc ~ Time | Subject, Theoph, aspect = 'xy',
      xlab = "Time since drug administration (hr)",
      ylab = "Theophylline concentration (mg/L)")
