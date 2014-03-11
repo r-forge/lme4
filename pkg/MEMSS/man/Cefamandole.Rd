@@ -35,6 +35,7 @@
     Repeated Measurement Data},  Chapman and Hall, London.
 }
 \examples{
+require(lattice)
 str(Cefamandole)
 xyplot(conc ~ Time, Cefamandole, groups = Subject, type = c("g", "b"),
        aspect = 'xy', scales = list(y = list(log = 2)),

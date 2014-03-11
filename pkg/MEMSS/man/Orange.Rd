@@ -32,6 +32,7 @@
     in S and S-PLUS}, Springer.
 }
 \examples{
+require(lattice)
 xyplot(circumference ~ age, Orange, groups = Tree, type = c("g", "b"),
        auto.key = list(space = "right", lines = TRUE), aspect = "xy",
        xlab = "Age (days since 1968/12/31)", ylab = "Circumference (mm)")

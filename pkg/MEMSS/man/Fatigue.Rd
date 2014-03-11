@@ -37,6 +37,7 @@
   \emph{Technometrics}, \bold{35}, 161-174 
 }
 \examples{
+require(lattice)
 str(Fatigue)
 xyplot(relLength ~ cycles | Path, Fatigue, type = c("g", "b"),
        aspect = 'xy', xlab = "Number of test cycles (millions)",

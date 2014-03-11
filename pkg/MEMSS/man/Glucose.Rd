@@ -27,6 +27,7 @@
 	Analysis}, Chapman and Hall, London.
 }
 \examples{
+require(lattice)
 str(Glucose)
 xyplot(conc ~ Time | Meal * Subject, Glucose)
 }
