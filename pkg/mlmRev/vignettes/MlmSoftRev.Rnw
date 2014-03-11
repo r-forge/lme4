@@ -11,6 +11,7 @@
   fontsize=\scriptsize}
 %%\VignetteIndexEntry{Examples from Multilevel Software Reviews}
 %%\VignetteDepends{lme4}
+%%\VignetteDepends{lattice}
 \begin{document}
 \SweaveOpts{engine=R,eps=FALSE,pdf=TRUE,width=5,height=3,strip.white=true,keep.source=TRUE}
 \SweaveOpts{prefix=TRUE,prefix.string=SoftRev,include=TRUE}%             ^^^^^^^^^^^^^^^^
@@ -32,6 +33,7 @@ options(width=80, show.signif.stars = FALSE,
         lattice.theme = function() canonical.theme("pdf", color = FALSE))
 library(mlmRev)
 library(lme4)
+library(lattice)
 set.seed(1234321)
 @
 

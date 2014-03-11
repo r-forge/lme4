@@ -10,6 +10,7 @@ Maintainer: Steve Walker <steve.walker@utoronto.ca>
 Description: Data and examples from a multilevel modelling software review
   as well as other well-known data sets from the multilevel modelling
   literature.
-Depends: lme4, R (>= 2.10), lattice
+Depends: lme4, R (>= 2.10)
+Suggests: lattice
 LazyData: yes
 License: GPL (>= 2)
