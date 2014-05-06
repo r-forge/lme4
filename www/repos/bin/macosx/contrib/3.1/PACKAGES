@@ -1,0 +1,23 @@
+Package: lme4.0
+Version: 0.999999-4
+Depends: R (>= 2.15.0), methods, Matrix (>= 1.1-0), lattice
+Imports: stats, graphics, stats4, nlme
+LinkingTo: Matrix, stats
+Suggests: mlmRev, MEMSS, coda, MASS, sfsmisc, MatrixModels
+License: GPL (>= 2)
+MD5sum: a488e3ab6393e7075f6e99456de43b3f
+NeedsCompilation: no
+
+Package: lme4
+Version: 1.1-7
+Depends: R (>= 2.15.1), Matrix (>= 1.1.1), methods, stats, Rcpp (>=
+        0.10.5)
+Imports: graphics, grid, splines, parallel, MASS, nlme, lattice, minqa
+        (>= 1.1.15), RcppEigen (>= 0.3.2.0)
+LinkingTo: Rcpp, RcppEigen
+Suggests: boot, PKPDmodels, MEMSS, testthat, ggplot2, mlmRev, optimx
+        (>= 2013.8.6), plyr, reshape, pbkrtest
+License: GPL (>= 2)
+MD5sum: d17d26ccfa006763773c1dc268c390f9
+NeedsCompilation: no
+
