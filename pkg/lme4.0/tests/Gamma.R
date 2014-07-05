@@ -48,22 +48,27 @@ mean(coef(gm1)[-1]) ## not too bad
 coef(gm1)[1]
 
 try(gm3 <- glmer(y ~ x + (1|block), d, Gamma,
-             verbose=TRUE))
+                 verbose=TRUE))
+## Error in mer_finalize(ans) : Downdated X'X is not positive definite, 1.
 
 ## correctly specified model with "true" parameters as starting values
 try(gm3 <- glmer(y ~ x + (1|block), d, Gamma,
              start=list(fixef=c(4,3),ST=list(matrix(1))),
              verbose=TRUE))
 ## does even worse (fails on iteration 1 with negative mu (Gauss-Newton/Fisher problem?)
+## FIXME_bug:
+## In addition: Warning message:
+## In sort(names(start)) == sort(names(FL)) :
+##   longer object length is not a multiple of shorter object length
 
 ###
 ## Poisson
 gP1 <- glmer(y ~ x + (1|block), data=dP, family=poisson, verbose=TRUE)
+## works (with Warning about false convergence).
 
-## works just fine.
-
-## so does Gaussian with log link
+try(## Gaussian with log link: no longer works (Downdated X'X is not pos.def....)
 gG1 <- glmer(y ~ x + (1|block), data=dG, family=gaussian(link="log"), verbose=TRUE)
+)
 
 ## Gaussian with inverse link
 gGi1 <- glmer(y ~ x + (1|block), data=dGi, family=gaussian(link="inverse"), verbose=TRUE)
