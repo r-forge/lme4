@@ -1,0 +1,16 @@
+Martin Maechler:
+    Both things I "think about" and things I'm  "convinced about"
+
+* TODO Replace save() / load() *.rda  with  saveRDS() and readRDS()
+* TODO As for the copula book, source("lMMwR-prelim.R") instead of
+     cut'n'paste the same '<<preliminaries ..." in all *.Rnw s.
+** TODO Make sure that the text *does* contain/show most of those preliminaries.
+
+* TODO in ./ChTheory.Rnw much R code (in regular chunks) commented out;
+   This has mostly happened in svn rev 940 with*OUT* any log message --- why ??
+
+* TODO Should we create a small "companion package" with scripts and data sets
+
+* DONE replaced 'lme4a' by 'lme4'
+* DONE replaced all uses of <mod>@re@<comp> and <mod>@resp@<comp>
+       by getME(<mod>, "<comp>")

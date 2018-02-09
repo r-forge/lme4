@@ -11,7 +11,7 @@ library(lattice)
 library(Matrix)
 library(Rcpp)
 library(minqa)
-library(lme4a)
+library(lme4)
 fm03ML <- lmer(diameter ~ 1 + (1|plate) + (1|sample), Penicillin, REML=FALSE)
 fm04 <- lmer(strength ~ 1 + (1|sample) + (1|batch), Pastes, REML=FALSE)
 fm04a <- lmer(strength ~ 1 + (1|sample), Pastes, REML=FALSE)
@@ -37,8 +37,8 @@ if (file.exists("fm05.rda")) {load("fm05.rda")
     save(fm05, file = "fm05.rda")
 }
 if (file.exists("rr4.rda")) {load("rr4.rda")
-} else {                             
-    rr4 <- ranef(fm05, postVar = TRUE, whichel = "dept:service")
+} else {
+    rr4 <- ranef(fm05, condVar = TRUE, whichel = "dept:service")
     save(rr4, file = "rr4.rda")
 }
 if (file.exists("fm05a.rda")) { load("fm05a.rda")
@@ -47,7 +47,7 @@ if (file.exists("fm05a.rda")) { load("fm05a.rda")
     save(fm05a, file = "fm05a.rda")
 }
 if (!file.exists("figs/Multiple-fm05Limage.png")) {
-    ttt <- fm05@re@L
+    ttt <- getME(fm05, "L")
     ttt@x[] <- 1
     trellis.device(png, color = FALSE, file = "figs/Multiple-fm05Limage.png",
                    height=6, width=8, units='in', res=600)
@@ -119,11 +119,11 @@ described as coming from an investigation to
 As with the \code{Dyestuff} data, we examine the structure
 <<strPen>>=
 str(Penicillin)
-@ 
+@
 and a summary
 <<sumPen>>=
 summary(Penicillin)
-@ 
+@
 of the \code{Penicillin} data, then plot it
 \begin{figure}[tbp]
   \centering
@@ -131,7 +131,7 @@ of the \code{Penicillin} data, then plot it
 print(dotplot(reorder(plate, diameter) ~ diameter, Penicillin, groups = sample,
               ylab = "Plate", xlab = "Diameter of growth inhibition zone (mm)",
               type = c("p", "a"), auto.key = list(columns = 3, lines = TRUE)))
-@   
+@
 \caption[Diameter of growth inhibition zone for 6 samples of
 penicillin]{Diameter of the growth inhibition zone (mm) in the
   \emph{B. subtilis} method of assessing the concentration of
@@ -166,7 +166,7 @@ numbers of levels in these factors, we can check it in a
 cross-tabulation
 <<xtabsPenicillin>>=
 xtabs(~ sample + plate, Penicillin)
-@ 
+@
 
 Like the \code{Dyestuff} data, the factors in the \code{Penicillin}
 data are balanced.  That is, there are exactly the same number of
@@ -207,11 +207,11 @@ The prediction intervals on the random effects
 (Fig.~\ref{fig:fm03ranef})
 \begin{figure}[tbp]
   \centering
-<<fm03ranef,fig=TRUE,echo=FALSE,height=5.5>>=  
-qrr2 <- dotplot(ranef(fm03, postVar = TRUE), strip = FALSE)
+<<fm03ranef,fig=TRUE,echo=FALSE,height=5.5>>=
+qrr2 <- dotplot(ranef(fm03, condVar = TRUE), strip = FALSE)
 print(qrr2[[1]], pos = c(0,0,1,0.75), more = TRUE)
 print(qrr2[[2]], pos = c(0,0.65,1,1))
-@ 
+@
 \caption[Random effects prediction intervals for model \code{fm03}]{95\%
   prediction intervals on the random effects for model
   \code{fm03} fit to the \code{Penicillin} data.  The intervals in the
@@ -221,7 +221,7 @@ print(qrr2[[2]], pos = c(0,0.65,1,1))
 \end{figure}
 confirm that the conditional distribution of the random effects for
 \code{plate} has much less variability than does the conditional
-distribution of the random effects for \code{plate}, in the sense that
+distribution of the random effects for \code{sample}, in the sense that
 the dots in the bottom panel have less variability than those in the
 top panel. (Note the different horizontal axes for the two panels.)
 However, the conditional distribution of the random effect for a
@@ -246,8 +246,8 @@ indicators for each factor.
 \begin{figure}[tbp]
   \centering
 <<fm03Ztimage,fig=TRUE,echo=FALSE,height=2.4>>=
-print(image(fm03@re@Zt, sub=NULL,xlab=NULL,ylab=NULL))
-@   
+print(image(getME(fm03, "Zt"), sub=NULL,xlab=NULL,ylab=NULL))
+@
   \caption[Image of the random-effects model matrix for
   \texttt{fm03}]{Image of the transpose of the random-effects model
     matrix, $\vec Z$, for model \code{fm03}.  The non-zero elements,
@@ -258,13 +258,13 @@ print(image(fm03@re@Zt, sub=NULL,xlab=NULL,ylab=NULL))
 \begin{figure}[tbp]
   \centering
 <<fm03LambdaLimage,fig=TRUE,echo=FALSE,height=3,width=8>>=
-print(image(fm03@re@Lambda, sub=NULL,xlab=expression(Lambda),ylab=NULL),
+print(image(getME(fm03, "Lambda"), sub=NULL,xlab=expression(Lambda),ylab=NULL),
       split=c(1,1,3,1), more=TRUE)
-print(image(tcrossprod(fm03@re@Zt),sub=NULL,xlab="Z'Z",ylab=NULL),
+print(image(tcrossprod(getME(fm03, "Zt")),sub=NULL,xlab="Z'Z",ylab=NULL),
       split=c(2,1,3,1), more=TRUE)
-print(image(fm03@re@L, sub=NULL,xlab="L",ylab=NULL,colorkey=FALSE),
+print(image(getME(fm03, "L"), sub=NULL,xlab="L",ylab=NULL,colorkey=FALSE),
       split=c(3,1,3,1))
-@   
+@
 \caption[Images of $\Lambda$, $\vec Z\trans\vec Z$ and $\vec L$ for
 model \texttt{fm03}]{Images of the relative covariance factor,
   $\Lambda$, the cross-product of the random-effects model matrix,
@@ -281,8 +281,8 @@ identity.  The diagonal elements of the two blocks are $\theta_1$ and
 $\theta_2$, respectively.  The numeric values of these parameters can
 be obtained as
 <<fm03verb>>=
-fm03@re@theta
-@ 
+getME(fm03, "theta")
+@
 The first parameter is the relative standard deviation of the random
 effects for \code{plate}, which has the value $0.84671/0.54992=1.53968$ at
 convergence, and the second is the relative standard deviation of the
@@ -307,19 +307,19 @@ model \code{fm03}
   \centering
 <<fm03prplot,fig=TRUE,echo=FALSE,height=3.5>>=
 print(xyplot(pr03, absVal=0, aspect=1.3, layout=c(4,1)))
-@   
+@
   \caption{Profile zeta plot of the parameters in model \code{fm03}.}
   \label{fig:fm03prplot}
 \end{figure}
 leads to conclusions similar to those from Fig.~\ref{fig:fm1prof} for
-model \code{fm1ML} in the previous chapter.  The fixed-effect
+model \code{fm01ML} in the previous chapter.  The fixed-effect
 parameter, $\beta_0$, for the \code{(Intercept)} term has symmetric
 intervals and is over-dispersed relative to the normal distribution.
 The logarithm of $\sigma$ has a good normal approximation but the
 standard deviations of the random effects, $\sigma_1$ and $\sigma_2$,
 are skewed.  The skewness for $\sigma_2$ is worse than that for
 $\sigma_1$, because the estimate of $\sigma_2$ is less precise than
-that of $\sigma_1$, in both absolute and relative senses.  For an 
+that of $\sigma_1$, in both absolute and relative senses.  For an
 absolute comparison we compare the widths of the confidence intervals for
 these parameters.
 <<fm03confint>>=
@@ -329,7 +329,7 @@ In a relative comparison we examine the ratio of the endpoints of
 the interval divided by the estimate.
 <<fm03confintrel>>=
 confint(pr03)[1:2,]/c(0.8455722, 1.770648)
-@ 
+@
 (We have switched from the REML estimates shown in the display of
 \code{fm03} to the ML estimates of the standard deviations.)
 
@@ -348,14 +348,14 @@ The profile pairs plot (Fig.~\ref{fig:fm03prpairs}) shows
   \centering
 <<fm03prpairs,fig=TRUE,echo=FALSE,height=8>>=
 print(splom(pr03))
-@   
+@
   \caption[Profile pairs plot of the parameters in model \code{fm03}.]
   {Profile pairs plot for the parameters in model \code{fm03} fit to
     the \code{Penicillin} data.}
   \label{fig:fm03prpairs}
 \end{figure}
 patterns similar to those in Fig.~\ref{fig:fm1profpair} for pairs of
-parameters in model \code{fm1} fit to the \code{Dyestuff} data.  On
+parameters in model \code{fm01} fit to the \code{Dyestuff} data.  On
 the $\zeta$ scale (panels below the diagonal) the profile traces are
 nearly straight and orthogonal with the exception of the trace of
 $\zeta(\sigma_2)$ on $\zeta(\beta_0)$ (the horizontal trace for the
@@ -383,7 +383,7 @@ $\log(\sigma_2)$ instead (Fig.~\ref{fig:lpr03pairs})
   \centering
 <<fm03lprpairs,fig=TRUE,echo=FALSE,height=8>>=
 print(splom(log(pr03)))
-@   
+@
   \caption[Profile pairs plot for model \code{fm03} (log scale)]
   {Profile pairs plot for the parameters in model \code{fm03} fit to
     the \code{Penicillin} data.  In this plot the parameters
@@ -423,7 +423,7 @@ The structure and summary of the \code{Pastes} data object are
 <<strsumPastes>>=
 str(Pastes)
 summary(Pastes)
-@ 
+@
 
 As stated in the description in
 \begin{figure}[tbp]
@@ -431,7 +431,7 @@ As stated in the description in
 <<imagextabsPastes,fig=TRUE,echo=FALSE,height=3>>=
 print(image(xtabs(~ batch + sample, Pastes, sparse = TRUE),
             sub = NULL, xlab = "sample", ylab = "batch"))
-@   
+@
 \caption[Cross-tabulation image of the \code{batch} and \code{sample}
 factors]{Image of the cross-tabulation of the \code{batch} and
   \code{sample} factors in the \code{Pastes} data.}
@@ -472,7 +472,7 @@ print(dotplot(ss ~ strength | bb, pp, pch = 21,
               scales = list(y = list(relation = "free")),
               ylab = "Sample within batch", type = c("p", "a"),
               xlab = "Paste strength", jitter.y = TRUE))
-@ 
+@
 \caption[Strength of paste preparations by batch and sample]{Strength
   of paste preparations according to the \code{batch} and the
   \code{sample} within the batch.  There were two strength
@@ -497,8 +497,8 @@ undesirable characteristics like increasing variability of the
 response with increasing mean level of the response.
 
 In Fig.~\ref{fig:Pastesplot} we order the samples within each batch
-separately then order the batches according to increasing mean
-strength.  
+separately, then order the batches according to increasing mean
+strength.
 
 Figure~\ref{fig:Pastesplot} shows considerable variability in strength
 between samples relative to the variability within samples.  There is
@@ -527,7 +527,7 @@ factors that are nested.  This is the origin of the terms
 and ``hierarchical'', also invoking the concept of a hierarchy of
 levels.  To be fair, both those references do describe the use of
 models with random effects associated with non-nested
-factors, but such models tend to be treated as a special case.  
+factors, but such models tend to be treated as a special case.
 
 The blurring of mixed-effects models with the concept of multiple,
 hierarchical levels of variation results in an unwarranted emphasis on
@@ -537,15 +537,15 @@ associated with non-nested factors.  The reasons for the emphasis on
 defining random effects with respect to nested factors only are that
 such cases do occur frequently in practice and that some of the
 computational methods for estimating the parameters in the models can
-only be easily applied to nested factors.  
+only be easily applied to nested factors.
 
 This is not the case for the methods used in the \package{lme4}
 package.  Indeed there is nothing special done for models with random
 effects for nested factors.  When random effects are associated with
 multiple factors exactly the same computational methods are used
 whether the factors form a nested sequence or are partially crossed or
-are completely crossed.  
-%% FIXME: This is not true in lme4a.  Should this capability be added?
+are completely crossed.
+%% FIXME: This is not true in lme4.  Should this capability be added?
 % A case of a nested sequence of ``grouping
 % factors'' for the random effects (including the trivial case of only
 % one such factor) is detected but this information does not change the
@@ -584,7 +584,7 @@ Pastes$sample <- with(Pastes, factor(batch:cask))
 or
 <<nested2>>=
 Pastes <- within(Pastes, sample <- factor(batch:cask))
-@ 
+@
 
 In a small data set like \code{Pastes} we can quickly detect a factor
 being implicitly nested within another factor and take appropriate
@@ -605,19 +605,19 @@ for crossed grouping factors.   We include random-effects terms for
 each factor, as in
 <<fm04>>=
 (fm04 <- lmer(strength ~ 1 + (1|sample) + (1|batch), Pastes, REML=FALSE))
-@ 
+@
 
 Not only is the model specification similar for nested and crossed
 \begin{figure}[tbp]
   \centering
 <<fm04LambdaLimage,fig=TRUE,echo=FALSE,height=3.5>>=
-print(image(fm04@re@Lambda, sub=NULL,xlab=expression(Lambda),ylab=NULL),
+print(image(getME(fm04, "Lambda"), sub=NULL,xlab=expression(Lambda),ylab=NULL),
       split=c(1,1,3,1), more=TRUE)
-print(image(tcrossprod(fm04@re@Zt),sub=NULL,xlab="Z'Z",ylab=NULL),
+print(image(tcrossprod(getME(fm04, "Zt")),sub=NULL,xlab="Z'Z",ylab=NULL),
       split=c(2,1,3,1), more=TRUE)
-print(image(fm04@re@L, sub=NULL,xlab="L",ylab=NULL,colorkey=FALSE),
+print(image(getME(fm04, "L"), sub=NULL,xlab="L",ylab=NULL,colorkey=FALSE),
       split=c(3,1,3,1))
-@   
+@
 \caption[Images of $\Lambda$, $\vec Z\trans\vec Z$ and $\vec L$ for
 model \texttt{fm04}]{Images of the relative covariance factor,
   $\Lambda$, the cross-product of the random-effects model matrix,
@@ -656,7 +656,7 @@ f4 <- "%.4f"
 vc3 <- VarCorr(fm04)
 stddev <- unname(c(sapply(vc3, function(el) attr(el, "stddev")),
                    attr(vc3, "sc")))
-@ 
+@
 The parameter estimates are:
 $\widehat{\sigma_1}=$\Sexpr{sprintf(f3,stddev[1])}, the standard
 deviation of the random effects for \code{sample};
@@ -678,11 +678,11 @@ Plots of the prediction intervals of the random effects
 (Fig.~\ref{fig:fm04ranef})
 \begin{figure}[tbp]
   \centering
-<<fm04ranef,fig=TRUE,echo=FALSE,height=6.5,results=hide>>=  
-qrr3 <- dotplot(ranef(fm04, postVar = TRUE), strip = FALSE)
+<<fm04ranef,fig=TRUE,echo=FALSE,height=6.5,results=hide>>=
+qrr3 <- dotplot(ranef(fm04, condVar = TRUE), strip = FALSE)
 print(qrr3[[1]], pos = c(0,0,1,0.75), more = TRUE)
 print(qrr3[[2]], pos = c(0,0.65,1,1))
-@ 
+@
 \caption[Random effects prediction intervals for model \code{fm04}]{95\%
   prediction intervals on the random effects for model
   \code{fm04} fit to the \code{Pastes} data.}
@@ -694,12 +694,12 @@ random effects for \code{batch} contain zero.
   \centering
 <<fm04prplot,fig=TRUE,echo=FALSE,height=3.5>>=
 print(xyplot(pr04, absVal=0, aspect=1.3, layout=c(4,1)))
-@   
+@
   \caption{Profile zeta plots for the parameters in model \code{fm04}.}
   \label{fig:fm04prplot}
 \end{figure}
 Furthermore, the profile zeta plot (Fig.~\ref{fig:fm04prplot})
-shows that the even the 50\% profile-based confidence interval on
+shows that even the 50\% profile-based confidence interval on
 $\sigma_2$ extends to zero.
 
 Because there are several indications that $\sigma_2$ could reasonably
@@ -760,8 +760,8 @@ constraints imposed on the parameters of $H_a$ to produce $H_0$.
 
 The restricted model fit
 <<fm04a>>=
-(fm04a <- lmer(strength ~ 1 + (1|sample), Pastes, REML=FALSE)) 
-@ 
+(fm04a <- lmer(strength ~ 1 + (1|sample), Pastes, REML=FALSE))
+@
 is compared to model \code{fm04} with the \code{anova} function
 <<anovafm04>>=
 anova(fm04a, fm04)
@@ -793,7 +793,7 @@ The profile zeta plots
   \centering
 <<fm04aprplot,fig=TRUE,echo=FALSE,height=3.5>>=
 print(xyplot(pr04a, aspect=1.3, layout=c(3,1)))
-@   
+@
   \caption{Profile zeta plots for the parameters in model \code{fm04a}.}
   \label{fig:fm04aprplot}
 \end{figure}
@@ -814,7 +814,7 @@ the variability due to \code{sample} in \code{fm04a}.
   \centering
 <<fm04aprpairs,fig=TRUE,echo=FALSE,height=6.5>>=
 print(splom(pr04a))
-@   
+@
   \caption[Profile pairs plot of the parameters in model \code{fm04a}.]
   {Profile pairs plot for the parameters in model \code{fm04a} fit to
     the \code{Pastes} data.}
@@ -824,7 +824,7 @@ print(splom(pr04a))
 The patterns in the profile pairs plot (Fig.~\ref{fig:fm04aprpairs})
 for the reduced model \code{fm04a} are similar to those in
 Fig.~\ref{fig:fm1profpair}, the profile pairs plot for model
-\code{fm1}.
+\code{fm01}.
 
 \section{A Model With Partially Crossed Random Effects}
 \label{sec:partially}
@@ -859,7 +859,7 @@ students at the Swiss Federal Institute for Technology--Z\"{u}rich
 professor'' award.  These data have been slightly simplified and
 identifying labels have been removed, so as to preserve anonymity.
 
-The variables 
+The variables
 <<strInstEval, keep.source=FALSE>>=
 ## the default  strict.width is "no" for back-compatibility
 ## instead, we could also *globally* set
@@ -888,7 +888,7 @@ fixed-effects for instructor and department to these data.
 @
 <<fm05,echo=FALSE>>=
 fm05
-@ 
+@
 (Fitting this complex model to a moderately large data set takes less
 than two minutes on a modest laptop computer purchased in 2006.
 Although this is more time than required for earlier model fits, it is
@@ -903,9 +903,9 @@ interaction, less than one-tenth the estimated residual standard
 deviation.
 \begin{figure}[tbp]
   \centering
-<<fm05ranef,fig=TRUE,echo=FALSE,height=5,results=hide>>=  
+<<fm05ranef,fig=TRUE,echo=FALSE,height=5,results=hide>>=
 print(dotplot(rr4, strip = FALSE))
-@ 
+@
 \caption[Random effects prediction intervals for model \code{fm05}]{95\%
   prediction intervals on the random effects for the
   \code{dept:service} factor in model \code{fm05} fit to the
@@ -924,7 +924,7 @@ anova(fm05a,fm05)
 @
 <<LRTfm05,echo=FALSE>>=
 anova(fm05a,fm05)
-@ 
+@
 is highly significant.  That is, we have very strong evidence that we
 should reject $H_0$ in favor of $H_a$.
 
@@ -949,7 +949,7 @@ chapter and follow up on some of these variations there.
 \begin{figure}[tbp]
   \centering
 \includegraphics{figs/Multiple-fm05Limage}
-\caption{Image of the sparse Cholesky factor, $\vec L$, from model \code{fm05}}
+\caption{Image of the sparse Cholesky factor, $\vec L$, from model \code{fm05}.}
   \label{fig:fm05Limage}
 \end{figure}
 
@@ -962,26 +962,26 @@ L$, (Fig.~\ref{fig:fm05Limage}), which is of size $4128\times4128$.
 Even as a sparse matrix this factor requires a considerable amount of
 memory,
 <<fm05Lstats>>=
-object.size(fm05@re@L)
-unclass(round(object.size(fm05@re@L)/2^20, 3))  # size in megabytes
-@ 
+object.size(getME(fm05, "L"))
+unclass(round(object.size(getME(fm05, "L"))/2^20, 3))  # size in megabytes
+@
 but as a triangular dense matrix it would require nearly 10 times as
 much.  There are $(4128\times 4129)/2$ elements on and below the
 diagonal, each of which would require 8 bytes of storage.  A packed
 lower triangular array would require
 <<fm05densestats>>=
 (8 * (4128 * 4129)/2)/2^20   # size in megabytes
-@ 
+@
 megabytes.  The more commonly used full rectangular storage requires
 <<fm05densestats>>=
 (8 * 4128^2)/2^20   # size in megabytes
-@ 
+@
 megabytes of storage.
 
 The number of nonzero elements in this matrix that must be updated for
 each evaluation of the deviance is
 <<nnzero>>=
-nnzero(as(fm05@re@L, "sparseMatrix"))
+nnzero(as(getME(fm05, "L"), "sparseMatrix"))
 @
 Comparing this to \Sexpr{(4128*4129)/2}, the number of elements that
 must be updated in a dense Cholesky factor, we can see why the sparse
@@ -1030,11 +1030,11 @@ For convenience, a model with multiple, nested random-effects terms
 can be specified as
 <<slashform,echo=FALSE>>=
 strength ~ 1 + (1|batch/cask)
-@ 
+@
 which internally is re-expressed as
 <<expandedform,echo=FALSE>>=
 strength ~ 1 + (1|batch) + (1|batch:cask)
-@ 
+@
 We will avoid terms of the form \code{(1|batch/cask)}, preferring
 instead an explicit specification with simple, scalar terms based on
 unambiguous grouping factors.
@@ -1077,11 +1077,11 @@ These exercises use data sets from the \package{MEMSS} package for
 the package
 <<attMEMSS,eval=FALSE>>=
 library(MEMSS)
-@ 
+@
 or load just the one data set
 <<loadergo,eval=FALSE>>=
 data(ergoStool, package = "MEMSS")
-@ 
+@
 
 We begin with exercises using the \code{ergoStool} data from the
 \package{MEMSS} package.  The analysis and graphics in these exercises
@@ -1104,7 +1104,7 @@ completely crossed.  Is this a replicated or an unreplicated design?
   Create a plot, similar to Fig.~\ref{fig:Penicillindot}, showing the
   effort by subject with lines connecting points corresponding to the
   same stool types.  Order the levels of the \code{Subject} factor by
-  increasing average \code{effort}.  
+  increasing average \code{effort}.
 \end{prob}
 \begin{prob}\label{pr:2ergofitre}
   The experimenters are interested in comparing these specific stool
@@ -1146,13 +1146,13 @@ completely crossed.  Is this a replicated or an unreplicated design?
   Create a plot of the 95\% prediction intervals on the random effects
   for \code{Type} using
 <<plotexam,eval=FALSE>>=
-dotplot(ranef(fm, which = "Type", postVar = TRUE), aspect = 0.2,
+dotplot(ranef(fm, which = "Type", condVar = TRUE), aspect = 0.2,
         strip = FALSE)
-@   
+@
 (Substitute the name of your fitted model for \code{fm} in the call to
 \code{ranef}.)  Is there a clear winner among the stool types?
 (Assume that lower numbers on the Borg scale correspond to less
-effort). 
+effort).
 \end{prob}
 \begin{prob}
   Create a plot of the 95\% prediction intervals on the random effects

@@ -102,7 +102,7 @@ print(xyplot(ifelse(use == "Y", 1, 0) ~ age|urban, Contraception,
              auto.key = list(space = "top", points = FALSE,
              lines = TRUE, columns = 4),
              ylab = "Proportion", xlab = "Centered age"))
-@ 
+@
 \caption[Contraception use versus centered age]{Contraception use
   versus centered age for women in the Bangladesh Fertility Survey
   1989.  Panels are determined by whether the woman is in an urban
@@ -152,7 +152,7 @@ our initial fit is generated as
 <<fm10,eval=FALSE>>=
 fm10 <- glmer(use ~ 1+age+I(age^2)+urban+livch+(1|district),
               Contraception, binomial)
-@ 
+@
 \index{fitted models!fm10}
 
 When displaying a fitted model like this that has several
@@ -191,7 +191,7 @@ woman has any children --- in the data
 <<Contrach>>=
 Contraception <- within(Contraception,
                         ch <- factor(livch != 0, labels = c("N", "Y")))
-@ 
+@
 we fit a reduced model, \code{fm11}, with summary
 <<fm11,echo=FALSE>>=
 print(fm11 <- glmer(use ~ age + I(age^2) + urban + ch + (1|district),
@@ -201,7 +201,7 @@ print(fm11 <- glmer(use ~ age + I(age^2) + urban + ch + (1|district),
 Comparing this model to the previous model
 <<anovafm10fm11>>=
 anova(fm11,fm10)
-@ 
+@
 indicates that the reduced model is adequate.
 
 A plot of the smoothed observed proportions versus centered age
@@ -214,7 +214,7 @@ print(xyplot(ifelse(use == "Y", 1, 0) ~ age|urban, Contraception,
              auto.key = list(space = "top", points = FALSE,
              lines = TRUE, columns = 2),
              ylab = "Proportion", xlab = "Centered age"))
-@ 
+@
 \caption[Contraception use versus centered age (children/no
 children)]{Contraception use versus centered age for women in the
   Bangladesh Fertility Survey 1989.  Panels are determined by whether
@@ -236,7 +236,7 @@ print(fm12 <- glmer(use ~ age*ch + I(age^2) + urban + (1|district),
 Comparing this fitted model to the previous one
 <<anovafm11fm12>>=
 anova(fm11, fm12)
-@ 
+@
 confirms the usefulness of this term.
 
 Continuing with the model-building we turn our attention to the random
@@ -248,8 +248,9 @@ before settling on model \code{fm13},
 <<fm13,echo=FALSE>>=
 (fm13 <- glmer(use ~ age*ch + I(age^2) + urban + (1|urban:district),
               Contraception, binomial))
+<<anovafm12fm13>>
 anova(fm12,fm13)
-@ 
+@
 \index{fitted models!fm13}
 
 Notice that although there are 60 distinct districts there are only
@@ -259,7 +260,7 @@ sample and in 3 districts there are no urban women in the sample, as
 shown in
 <<Contraxtab>>=
 xtabs(~ urban + district, Contraception)
-@ 
+@
 
 \section{Link functions and interpreting coefficients}
 \label{sec:GLMMlink}
@@ -296,7 +297,7 @@ probability of the response 1 is $p$ then the probability of 0 must be
 $1-p$.  It is easy to establish that the expected value is also $p$.
 For consistency across distribution families we write this expected
 response as $\mu$ instead of $p$.  We should, however, keep
-in mind that, for this distribution, $\mu$ corresponds to a probability 
+in mind that, for this distribution, $\mu$ corresponds to a probability
 and hence must satisfy $0\le\mu\le 1$.
 
 In general we don't want to have restrictions on the values of the
@@ -321,15 +322,15 @@ The inverse of the logit link function,
   \label{eq:logitinv}
   \mu = \frac{1}{1+\exp(-\eta)}
 \end{equation}
-shown in 
+shown in
 \begin{figure}[tbp]
   \centering
 <<logitinv,fig=TRUE,echo=FALSE,height=3>>=
 eta <- seq(-7, 7, len=701)
-print(xyplot(plogis(eta) ~ eta, type = c("g","l"), 
+print(xyplot(plogis(eta) ~ eta, type = c("g","l"),
              xlab = expression(eta),
              ylab = expression(mu == frac(1,1+exp(-eta)))))
-@ 
+@
 \caption[Inverse of the logit link function]{Inverse of the logit link
   function.  The linear predictor value, $\eta$, which is on an
   unrestricted scale, is mapped to $\mu$ on the probability scale, $[0,1]$.}
@@ -355,11 +356,11 @@ is to consider the logarithm of the probability function (for discrete
 distributions) or the probability density function (for continuous
 distributions).  The probability function for the Bernoulli
 distribution is $\mu$ for $y=1$ and $1-\mu$ for $y=0$.  If we write this
-in a somewhat peculiar way as $\mu^y+(1-\mu)^{1-y}$ for $y\in\{0,1\}$
+in a somewhat peculiar way as $\mu^y\cdot(1-\mu)^{1-y}$ for $y\in\{0,1\}$
 then the logarithm of the probability function becomes
 \begin{equation}
   \label{eq:BernoulliProb}
-  \log\left(\mu^y+(1-\mu)^{1-y}\right) = \log(1-\mu) +
+  \log\left(\mu^y\cdot(1-\mu)^{1-y}\right) = \log(1-\mu) +
   y\,\log\left(\frac{\mu}{1-\mu}\right) .
 \end{equation}
 Notice that the logit link function is the multiple of $y$ in the last term.
@@ -375,7 +376,7 @@ $\frac{e^{-\mu}\mu^y}{y!}$ for $y\in\{0,1,2,\dots\}$ so the log
 probability function is
 \begin{equation}
   \label{eq:PoissonProb}
-  -\log(y!)-\mu+y\log(\mu) .
+  -\log(y!)-\mu+y\log(\mu)
 \end{equation}
 and the canonical link function is $\log(\mu)$.
 
@@ -398,25 +399,25 @@ proportion of childless women with a centered age of
 \Sexpr{sprintf(.f5, fixef(fm13)[[1]])} corresponding to a fitted probability of
 <<probfm13>>=
 plogis(fixef(fm13)[[1]])
-@ 
+@
 or \Sexpr{sprintf(.f1, 100*plogis(fixef(fm13)[[1]]))}\%.
 
-Similarly the predicted log-odds of a childless woman with a centered
+Similarly, the predicted log-odds of a childless woman with a centered
 age of 0 in an urban setting of a typical district using artificial
 contraception is
 <<logoddsUrban>>=
 sum(fixef(fm13)[c("(Intercept)","urbanY")])
-@ 
+@
 corresponding to a probability of
 <<probUrban>>=
 plogis(sum(fixef(fm13)[c("(Intercept)","urbanY")]))
-@ 
+@
 The predicted log-odds and predicted probability for a woman with
 children and at the same age and location are
 <<logoddsUrbanKids>>=
 logodds <- sum(fixef(fm13)[c("(Intercept)","chY","urbanY")])
 c("log-odds"=logodds, "probability"=plogis(logodds))
-@ 
+@
 
 We should also be aware that the random effects are defined on the
 linear predictor scale and not on the probability scale.  A normal
@@ -424,23 +425,23 @@ probability plot of the conditional modes of the random effects for
 model \code{fm13} (Fig.~\ref{fig:fm13predqq})
 \begin{figure}[tbp]
 <<fm13predqq,fig=TRUE,echo=FALSE,results=hide,height=3.5>>=
-print(qqmath(ranef(fm13, postVar=TRUE), strip = FALSE))
-@   
+print(qqmath(ranef(fm13, condVar =TRUE), strip = FALSE))
+@
 \caption{95\% prediction intervals on the random effects in
   \code{fm13} versus quantiles of the standard normal distribution.}
   \label{fig:fm13predqq}
 \end{figure}
-shows that the smallest random effects are approximately -1 and the
-largest are approximately 1.  The numerical values and the identifier
+shows that the smallest random effects are approximately $-1$ and the
+largest are approximately $1$.  The numerical values and the identifier
 of the combination of \code{urban} and \code{district} for these
 extreme values can be obtained as
 <<fm13reLow>>=
 head(sort(ranef(fm13, drop=TRUE)[[1]]), 3)
-@ 
+@
 and
 <<fm13reLow>>=
 tail(sort(ranef(fm13, drop=TRUE)[[1]]), 3)
-@ 
+@
 
 The exponential of the random effect is the relative odds of a woman
 in a particular urban/district combination using artificial birth
@@ -450,7 +451,7 @@ The odds of a rural woman in district 1 (i.e. the \code{N:1} value of the
 \code{urban:district} interaction) using artifical contraception is
 <<N1oddsratio>>=
 exp(ranef(fm13, drop=TRUE)[[1]]["N:1"])
-@ 
+@
 or about 40\% of that of her rural counterpart in a typical district.
 
 Notice that there is considerable variability in the lengths of the

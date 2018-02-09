@@ -13,7 +13,7 @@ library(Matrix)
 library(MatrixModels)
 library(Rcpp)
 library(minqa)
-library(lme4a)
+library(lme4)
 .f2 <- "%.2f"
 .f5 <- "%.5f"
 .f6 <- "%.6f"
@@ -26,7 +26,7 @@ if (file.exists("pr01.rda")) {
     pr01 <- profile(fm01ML, delta = 0.2)
     save(pr01, file = "pr01.rda")
 }
-@ 
+@
 \chapter{A Simple, Linear, Mixed-effects Model}
 \label{chap:ExamLMM}
 
@@ -204,11 +204,11 @@ corresponding to variables and rows to observations. The functions
 another value if we so choose)
 <<headDyestuff>>=
 head(Dyestuff)
-@ 
+@
 or we could ask for a \code{summary} of the data
 <<summaryDyestuff>>=
 summary(Dyestuff)
-@ 
+@
 
 \begin{figure}[tbp]
   \centering
@@ -218,7 +218,7 @@ print(dotplot(reorder(Batch, Yield) ~ Yield, Dyestuff,
               ylab = "Batch", jitter.y = TRUE, pch = 21,
               xlab = "Yield of dyestuff (grams of standard color)",
               type = c("p", "a")))
-@   
+@
 \caption[Yield of dyestuff from 6 batches of an intermediate]{Yield of
   dyestuff (Napthalene Black 12B) for 5 preparations from each of 6
   batches of an intermediate product (H-acid).  The line joins the
@@ -239,7 +239,7 @@ In Fig.~\ref{fig:Dyestuffdot} we can see that there is considerable
 variability in yield, even for preparations from the same batch, but
 there is also noticeable batch-to-batch variability.  For example,
 four of the five preparations from batch F provided lower yields than
-did any of the preparations from batches C and E.  
+did any of the preparations from batches C and E.
 
 This plot, and essentially all the other plots in this book,
 were created using Deepayan Sarkar's \package{lattice} package for
@@ -293,7 +293,7 @@ print(dotplot(reorder(Batch, Yield) ~ Yield, Dyestuff2,
               ylab = "Batch", jitter.y = TRUE, pch = 21,
               xlab = "Simulated response (dimensionless)",
               type = c("p", "a")))
-@   
+@
 \caption[Simulated data similar in structure to the \code{Dyestuff}
 data]{Simulated data presented in
   \citet{box73:_bayes_infer_statis_analy} with a structure similar to
@@ -334,7 +334,7 @@ level of \code{Batch}
 <<fm01>>=
 fm01 <- lmer(Yield ~ 1 + (1|Batch), Dyestuff)
 print(fm01)
-@ 
+@
 In the first line we call the \code{lmer} function to fit a model with formula
 <<fm01formula,echo=FALSE>>=
 Yield ~ 1 + (1|Batch)
@@ -376,7 +376,7 @@ set of parameter estimates, the maximum likelihood estimates (MLEs),
 are obtained by specifying the optional argument \code{REML=FALSE}.
 <<fm01ML>>=
 (fm01ML <- lmer(Yield ~ 1 + (1|Batch), Dyestuff, REML=FALSE))
-@ 
+@
 (Notice that this code fragment also illustrates a way to condense
 the assignment and the display of the fitted model into a single
 step. The redundant set of parentheses surrounding the assignment
@@ -481,7 +481,7 @@ Fitting a similar model to the \code{Dyestuff2} data produces an
 estimate $\widehat{\sigma}_1=0$ in both the REML
 <<fm02>>=
 (fm02 <- lmer(Yield ~ 1 + (1|Batch), Dyestuff2))
-@ 
+@
 and the ML fits.
 <<fm02ML>>=
 (fm02ML <- update(fm02, REML=FALSE))
@@ -514,7 +514,7 @@ To reiterate, the model \code{fm02} corresponds to the linear model
 summary(fm02a <- lm(Yield ~ 1, Dyestuff2))
 @
 because the random effects are inert, in the sense that they have a
-variance of zero, and hence can be removed.  
+variance of zero, and hence can be removed.
 
 Notice that the estimate of $\sigma$ from the linear model (called the
 \code{Residual standard error} in the summary) corresponds to the
@@ -549,9 +549,9 @@ in the next section.
 \section{The Linear Mixed-effects Probability Model}
 \label{sec:Probability}
 
-In explaining some of parameter estimates related to the random
+In explaining some of the parameter estimates related to the random
 effects we have used terms such as ``unconditional distribution'' from
-the theory of probability.  Before proceeding further we 
+the theory of probability.  Before proceeding further we
 clarify the linear mixed-effects probability model and define several
 terms and concepts that will be used throughout the book.  Readers who
 are more interested in practical results than in the statistical
@@ -575,7 +575,7 @@ multivariate Gaussian (or ``normal'') distributions,
   \label{eq:LMMdist}
   \begin{aligned}
     (\bc Y|\bc B=\vec b)&\sim\mathcal{N}(\vec X\vec\beta+\vec Z\vec
-    b,\sigma^2\vec I)\\
+    b,\sigma^2\vec I)\\  % I_n  is used in {eq:condYgiven} in ./ChTheory.Rnw
     \bc{B}&\sim\mathcal{N}(\vec0,\Sigma_\theta) .
   \end{aligned}
 \end{equation}
@@ -622,7 +622,7 @@ triangular $q\times q$ matrix satisfying
   \vec L_\theta\vec L_\theta\trans=
   \Lambda_\theta\trans\vec Z\trans\vec Z\Lambda_\theta+\vec I_q .
 \end{equation}
-where $\vec I_q$ is the $q\times q$ \emph{identity matrix}. 
+where $\vec I_q$ is the $q\times q$ \emph{identity matrix}.
 
 The \emph{deviance} (negative twice the log-likelihood) of the
 parameters, given the data, $\vec y$, is
@@ -658,7 +658,7 @@ deviance is
 Minimizing this expression with respect to $\sigma^2$ produces the
 conditional estimate
 \begin{equation}
-  \widehat{\sigma^2}_\theta=\frac{r^2_\theta}{n} 
+  \widehat{\sigma^2}_\theta=\frac{r^2_\theta}{n}
 \end{equation}
 which provides the \emph{profiled deviance},
 \begin{equation}
@@ -698,12 +698,12 @@ produces output showing the progress of the iterative optimization of
 $\tilde{d}(\vec\theta|\vec y)$.
 <<fm01MLverb>>=
 fm01ML <- lmer(Yield ~ 1|Batch, Dyestuff, REML=FALSE, verbose=1)
-@ 
+@
 The algorithm converges after 17 function evaluations to a profiled
 deviance of \Sexpr{sprintf(.f5, deviance(fm01ML))} at
-$\theta=$\Sexpr{sprintf(.f6, fm01ML@re@theta)}.  In this model the
+$\theta=$\Sexpr{sprintf(.f6, getME(fm01ML, "theta"))}.  In this model the
 scalar parameter $\theta$ is the ratio $\sigma_1/\sigma$.
-  
+
 The actual values of many of the matrices and vectors defined above
 are available as \emph{slots} of the fitted model object.  In general
 the object returned by a model-fitting function from the
@@ -720,16 +720,16 @@ of the slots directly for the purposes of illustration.
 
 For example, $\Lambda_{\widehat{\theta}}$ is stored as
 <<fm01MLLambda>>=
-fm01ML@re@Lambda
-@ 
+getME(fm01ML, "Lambda")
+@
 Often we will show the structure of sparse matrices as an image
 (Fig.~\ref{fig:fm01Lambdaimage}).
 \begin{figure}[tbp]
   \sidecaption[t]
   \setkeys{Gin}{width=1.5in}
 <<fm01Lambdaimage,fig=TRUE,echo=FALSE,width=2.5,height=2.5>>=
-print(image(fm01@re@Lambda, sub=NULL, xlab=NULL, ylab=NULL))
-@   
+print(image(getME(fm01, "Lambda"), sub=NULL, xlab=NULL, ylab=NULL))
+@
 \caption[Image of the $\Lambda$ for model \texttt{fm01ML}]{Image of the
   relative covariance factor, $\Lambda_{\widehat{\theta}}$ for model
   \code{fm01ML}.  The non-zero elements are shown as darkened squares.
@@ -741,8 +741,8 @@ more compactly than does the printed representation.
 \begin{figure}[tbp]
   \centering
 <<fm01Ztimage,fig=TRUE,echo=FALSE,height=2.5>>=
-print(image(fm01@re@Zt, sub=NULL))
-@   
+print(image(getME(fm01, "Zt"), sub=NULL))
+@
 \caption[Image of the random-effects model matrix, $\vec Z\trans$, for
 \texttt{fm01}]{Image of the transpose of the random-effects model
   matrix, $\vec Z$, for model \code{fm01}.  The non-zero elements,
@@ -751,13 +751,13 @@ print(image(fm01@re@Zt, sub=NULL))
   \label{fig:fm01Ztimage}
 \end{figure}
 
-In this simple model $\Lambda=\theta\vec I_6$ is a multiple of the
+In this simple model $\Lambda_\theta=\theta\vec I_6$ is a multiple of the
 identity matrix and the $30\times 6$ model matrix $\vec Z$, whose
 transpose is shown in Fig.~\ref{fig:fm01Ztimage}, consists of the
 indicator columns for \code{Batch}.  Because the data are balanced
 with respect to \code{Batch}, the Cholesky factor, $\vec L$ is also a
-multiple of the identity (use \code{image(fm01ML@re@L)} to check if
-you wish).  The vector $\vec u$ is available in \code{fm01ML@re@u}.  The
+multiple of the identity (use \code{image(getME(fm01ML, "L"))} to check if
+you wish).  The vector $\vec u$ is available in \code{getME(fm01ML, "u")}.  The
 vector $\vec\beta$ and the model matrix $\vec X$ are in
 \code{fm01ML@fe}.
 
@@ -778,7 +778,7 @@ The mixed-effects model fit as \code{fm01} or \code{fm01ML} has three
 parameters for which we obtained estimates.  These parameters are
 $\sigma_1$, the standard deviation of the random effects, $\sigma$,
 the standard deviation of the residual or ``per-observation'' noise
-term and $\beta_0$, the fixed-effects parameter that is labeled as 
+term and $\beta_0$, the fixed-effects parameter that is labeled as
 \code{(Intercept)}.
 
 The \code{profile} function systematically varies the parameters in a
@@ -804,12 +804,12 @@ the original fit is a REML fit.  Thus, there is a slight advantage in
 starting with an ML fit.
 <<pr01,eval=FALSE>>=
 pr01 <- profile(fm01ML)
-@ 
+@
 \begin{figure}[tb]
   \centering
 <<fm01prof,fig=TRUE,echo=FALSE,height=3.5>>=
 print(xyplot(pr01, aspect = 1.3))
-@   
+@
 \caption[Profile zeta plots of the parameters in model \code{fm01ML}]
 {Signed square root, $\zeta$, of the likelihood ratio test statistic
   for each of the parameters in model \code{fm01ML}.  The vertical
@@ -834,7 +834,7 @@ Numerical values of the endpoints are returned by the \code{confint}
 extractor.
 <<confintfm0195>>=
 confint(pr01)
-@ 
+@
 By default the 95\% confidence interval is returned.  The optional
 argument, \code{level}, is used to obtain other confidence levels.
 <<confintfm0199>>=
@@ -847,7 +847,7 @@ instead of $\sigma$, the residual standard deviation.
   \centering
 <<fm01absprof,fig=TRUE,echo=FALSE,height=2.5>>=
 print(xyplot(pr01, absVal = TRUE, aspect = 0.7, strip=FALSE, strip.left = TRUE))
-@   
+@
 \caption[Absolute value profile zeta plots of the parameters in model
 \code{fm01ML}] {Profiled deviance, on the scale $|\zeta|$, the square
   root of the change in the deviance, for each of the parameters in
@@ -909,7 +909,7 @@ print(xyplot(zeta ~ endpts|pnm, fr, type = "h",
                                     exp(pr$x),
                                     exp(pr$x * 2)), pr$y)
              }))
-@   
+@
 \caption[Profile zeta plots comparing $\log(\sigma)$, $\sigma$ and
 $\sigma^2$ in model \code{fm01ML}]{Signed square root, $\zeta$, of the
   likelihood ratio test statistic as a function of $\log(\sigma)$, of
@@ -984,7 +984,7 @@ print(xyplot(zeta ~ endpts|pnm, fr, type = "h",
                                     pr$x,
                                     pr$x^2), pr$y)
              }))
-@   
+@
 \caption[Profile zeta plots comparing $\log(\sigma_1)$, $\sigma_1$ and
 $\sigma_1^2$ in model \code{fm01ML}]{Signed square root, $\zeta$, of the
   likelihood ratio test statistic as a function of $\log(\sigma_1)$,
@@ -1025,12 +1025,12 @@ distribution.  From this we can derive a density.
 This is not quite the same as evaluating the distribution of the
 estimator of the parameter, which for mixed-effects models can be very
 difficult, but it gives us a good indication of what the distribution
-of the estimator would be.  Fig.~\ref{fig:fm01dens}, 
+of the estimator would be.  Fig.~\ref{fig:fm01dens},
 \begin{figure}[tb]
   \centering
 <<fm01dens,fig=TRUE,echo=FALSE,height=3>>=
 print(densityplot(pr01))
-@   
+@
   \caption{Density plot derived from the profile of model \code{fm01ML}}
   \label{fig:fm01dens}
 \end{figure}
@@ -1047,9 +1047,9 @@ variance components instead, we would get Fig.~\ref{fig:fm01vardens}
 \begin{figure}[tb]
   \centering
 <<fm01vardens,fig=TRUE,echo=FALSE,height=3>>=
-print(densityplot(lme4a:::varianceProf(pr01),
+print(densityplot(lme4:::varianceProf(pr01),
                   strip=strip.custom(factor.levels=expression(sigma[1]^2, sigma^2))))
-@   
+@
 \caption[Variance component density plot for model \code{fm01ML}]{%
   Densities of the variance components, $\sigma_1^2$
   and $\sigma^2$ for model \code{fm01ML} derived from the profile, \code{pr01}.}
@@ -1105,7 +1105,7 @@ important part of the formulation of all types of mixed-effects models.
 The \code{ranef} extractor returns the conditional modes.
 <<raneffm01>>=
 ranef(fm01ML)
-@ 
+@
 Applying \code{str} to the result of \code{ranef}
 <<strraneffm01>>=
 str(ranef(fm01ML))
@@ -1147,15 +1147,15 @@ Given the data, $\vec y$, and the parameter estimates, we can evaluate
 a measure of the dispersion of $(\bc B|\bc Y=\vec y)$.  In the case of
 a linear mixed model, this is the conditional standard deviation, from
 which we can obtain a prediction interval.  The \code{ranef} extractor
-takes an optional argument, \code{postVar = TRUE}, which adds these
+takes an optional argument, \code{condVar = TRUE}, which adds these
 dispersion measures as an attribute of the result.  (The name stands
 for ``posterior variance'', which is a misnomer that had become
 established as an argument name before I realized that it wasn't the
 correct term.)
 \begin{figure}[tbp]
 <<fm01preddot,fig=TRUE,echo=FALSE,results=hide,height=2>>=
-print(dotplot(ranef(fm01ML, postVar=TRUE), strip = FALSE))
-@   
+print(dotplot(ranef(fm01ML, condVar =TRUE), strip = FALSE))
+@
 \caption{95\% prediction intervals on the random effects in
   \code{fm01ML}, shown as a dotplot.}
   \label{fig:fm01preddot}
@@ -1163,20 +1163,20 @@ print(dotplot(ranef(fm01ML, postVar=TRUE), strip = FALSE))
 
 We can plot these prediction intervals using
 <<fm01preddotshow,eval=FALSE>>=
-dotplot(ranef(fm01ML, postVar = TRUE))
-@ 
+dotplot(ranef(fm01ML, condVar = TRUE))
+@
 (Fig.~\ref{fig:fm01preddot}), which provides linear spacing
 \begin{figure}[tbp]
 <<fm01predqq,fig=TRUE,echo=FALSE,results=hide,height=2>>=
-print(qqmath(ranef(fm01ML, postVar=TRUE), strip = FALSE))
-@   
+print(qqmath(ranef(fm01ML, condVar =TRUE), strip = FALSE))
+@
 \caption{95\% prediction intervals on the random effects in
   \code{fm01ML} versus quantiles of the standard normal distribution.}
   \label{fig:fm01predqq}
 \end{figure}
 of the levels on the y axis, or using
 <<fm01predqqshow,eval=FALSE>>=
-qqmath(ranef(fm01ML, postVar=TRUE))
+qqmath(ranef(fm01ML, condVar =TRUE))
 @
 (Fig.~\ref{fig:fm01predqq}), where the intervals are plotted with
 spacing determined by quantiles of the standard normal distribution.
@@ -1199,7 +1199,7 @@ effects, which are unobserved random variables, $\bc B$.  In a linear
 mixed model, both the unconditional distribution of $\bc B$ and the
 conditional distribution, $(\bc Y|\bc B=\vec b)$, are multivariate
 Gaussian distributions.  Furthermore, this conditional distribution is
-a spherical Gaussian with mean, $\vec\mu$, determined by the 
+a spherical Gaussian with mean, $\vec\mu$, determined by the
 linear predictor, $\vec Z\vec b+\vec X\vec\beta$.  That is,
 \begin{displaymath}
   (\bc Y|\bc B=\vec b)\sim
@@ -1290,7 +1290,7 @@ of $\Lambda_\theta\trans\vec Z\trans\vec Z\Lambda_\theta$.
 In addition to the parameter vectors already mentioned, we define
 \begin{description}
 \item[$\vec y$] the $n$-dimensional observed response vector
-\item[$\vec\gamma$] the $n$-dimension linear predictor,
+\item[$\vec\gamma$] the $n$-dimensional linear predictor,
   \begin{displaymath}
   \vec\gamma=\vec X\vec\beta+\vec Z\vec b=\vec Z\Lambda_\theta\vec u+\vec X\vec\beta
   \end{displaymath}
@@ -1319,18 +1319,18 @@ print(dotplot(reorder(Rail, travel) ~ travel, Rail,
               ylab = "Rail", pch = 21,
               xlab = "Travel time for an ultrasonic wave (ms.)",
               type = c("p", "a")))
-@   
-\caption{Travel time for an ultrasonic wave test on 6 rails}
+@
+\caption{Travel time for an ultrasonic wave test on 6 rails.}
   \label{fig:Raildot}
 \end{figure}
 either attach the package
 <<attMEMSS,eval=FALSE>>=
 library(MEMSS)
-@ 
+@
 or load just the one data set
 <<loadRail,eval=FALSE>>=
 data(Rail, package = "MEMSS")
-@ 
+@
 \begin{prob}\label{prS1}
   Check the documentation, the structure (\code{str}) and a summary of
   the \code{Rail} data (Fig.~\ref{fig:Raildot}) from the
@@ -1339,7 +1339,7 @@ data(Rail, package = "MEMSS")
   package) then you must use
 <<helpRail,eval=FALSE>>=
 help(Rail, package = "MEMSS")
-@   
+@
 to display the documentation for it.
 \end{prob}
 \begin{prob}

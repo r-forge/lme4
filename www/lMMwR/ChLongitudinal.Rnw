@@ -12,14 +12,14 @@ library(lattice)
 library(Matrix)
 library(Rcpp)
 library(minqa)
-library(lme4a)
-fm07 <- lmer(Reaction ~ Days + (1|Subject) + (0+Days|Subject),
+library(lme4)
+fm17 <- lmer(Reaction ~ Days + (1|Subject) + (0+Days|Subject),
             sleepstudy, REML=FALSE)
-if (file.exists("pr07.rda")) {
-    load("pr07.rda")
+if (file.exists("pr17.rda")) {
+    load("pr17.rda")
 } else {
-    pr07 <- profile(fm07)
-    save(pr07, file = "pr07.rda")
+    pr17 <- profile(fm17)
+    save(pr17, file = "pr17.rda")
 }
 data(Orthodont, package = "MEMSS")
 @
@@ -149,15 +149,14 @@ In cases like this where there are several observations (10) per
 subject and a relatively simple within-subject pattern (more-or-less
 linear) we may want to examine coefficients from within-subject
 fixed-effects fits.  However, because the subjects constitute a sample
-from the population of interest and we wish to drawn conclusions about
+from the population of interest and we wish to draw conclusions about
 typical patterns in the population and the subject-to-subject
 variability of these patterns, we will eventually want to fit mixed
-models and we begin by doing so.  In section~\ref{sec:fm07re} we will
+models and we begin by doing so.  In section~\ref{sec:fm17re} we will
 compare estimates from a mixed-effects model with those from the
 within-subject fixed-effects fits.
 
-\section{Mixed-effects Models For the
-  \texttt{sleepstudy} Data}
+\section{Mixed-effects Models For the \texttt{sleepstudy} Data}
 \label{sec:SleepMixed}
 
 Based on our preliminary graphical exploration of these data, we fit a
@@ -168,7 +167,7 @@ are the deviations in intercept and slope of that subject's time trend
 from the population values.
 
 We will fit two linear mixed models to these data.  One model,
-\code{fm06}, allows for correlation (in the unconditional distribution)
+\code{fm16}, allows for correlation (in the unconditional distribution)
 of the random effects for the same subject.  That is, we allow for the
 possibility that, for example, subjects with higher initial reaction
 times may, on average, be more strongly affected by sleep deprivation.
@@ -179,23 +178,23 @@ distribution) random effects for intercept and slope for each subject.
 \label{sec:correlatedre}
 
 The first model is fit as
-<<fm06>>=
-(fm06 <- lmer(Reaction ~ 1 + Days + (1 + Days|Subject), sleepstudy,
+<<fm16>>=
+(fm16 <- lmer(Reaction ~ 1 + Days + (1 + Days|Subject), sleepstudy,
              REML=FALSE))
-@ 
+@
 From the display we see that this model incorporates both an
 intercept and a slope (with respect to \code{Days}) in the fixed
 effects and in the random effects.  Extracting the conditional modes
 of the random effects
-<<modesfm06>>=
-head(ranef(fm06)[["Subject"]])
-@ 
+<<modesfm16>>=
+head(ranef(fm16)[["Subject"]])
+@
 confirms that these are \emph{vector-valued} random effects.  There
 are a total of $q=36$ random effects, two for each of the 18 subjects.
 
 The random effects section of the model display,
-<<fm06reshow,echo=FALSE>>=
-cat(paste(capture.output(print(fm06))[8:11], collapse = "\n"), "\n")
+<<fm16reshow,echo=FALSE>>=
+cat(paste(capture.output(print(fm16))[8:11], collapse = "\n"), "\n")
 @
 indicates that there will be a random effect for the intercept and a
 random effect for the slope with respect to \code{Days} at each level
@@ -204,23 +203,23 @@ these random effects, $\bc B\sim\mathcal{N}(\vec 0,\Sigma)$, allows
 for correlation of the random effects for the same subject.
 \begin{figure}[tbp]
   \centering
-<<fm06LambdaL,fig=TRUE,echo=FALSE,results=hide,height=3,width=8>>=
-print(image(fm06@re@Lambda, sub = NULL, xlab = expression(Lambda),
+<<fm16LambdaL,fig=TRUE,echo=FALSE,results=hide,height=3,width=8>>=
+print(image(getME(fm16, "Lambda"), sub = NULL, xlab = expression(Lambda),
             ylab = NULL),
       split = c(1,1,3,1), more = TRUE)
-print(image(tcrossprod(fm06@re@Lambda), sub = NULL,
+print(image(tcrossprod(getME(fm16, "Lambda")), sub = NULL,
             xlab = expression(Sigma), ylab = NULL),
       split = c(2,1,3,1), more = TRUE)
-print(image(fm06@re@L, sub = NULL, xlab = "L", ylab = NULL),
+print(image(getME(fm16, "L"), sub = NULL, xlab = "L", ylab = NULL),
       split = c(3,1,3,1))
 @
-  \caption{Images of $\Lambda$, $\Sigma$ and $\vec L$ for model \code{fm06}}
-  \label{fig:fm06LambdaL}
+  \caption{Images of $\Lambda$, $\Sigma$ and $\vec L$ for model \code{fm16}.}
+  \label{fig:fm16LambdaL}
 \end{figure}
 
 We can confirm the potential for correlation of random effects within
 subject in the images of $\Lambda$, $\Sigma$ and $\vec L$ for this
-model (Fig.~\ref{fig:fm06LambdaL}).  The matrix $\Lambda$ has 18
+model (Fig.~\ref{fig:fm16LambdaL}).  The matrix $\Lambda$ has 18
 triangular blocks of size 2 along the diagonal, generating 18 square,
 symmetric blocks of size 2 along the diagonal of $\Sigma$.  The 18
 symmetric blocks on the diagonal of $\Sigma$ are identical.  Overall
@@ -301,7 +300,7 @@ scalar term.  The second has \code{Days} on the left hand side of the
 vertical bar.
 
 It may seem that the model formula we want should be
-<<formulafm07bad,echo=FALSE>>=
+<<formulafm17bad,echo=FALSE>>=
 Reaction ~ 1 + Days + (1|Subject) + (Days|Subject)
 @
 but it is not.  Because the intercept is implicit in linear models,
@@ -314,69 +313,69 @@ term, which we do by writing it as \code{(0+Days|Subject)}, read as
 ``no intercept and \code{Days} by \code{Subject}''.  An alternative
 expression for \code{Days} without an intercept by \code{Subject} is
 \code{(Days - 1 | Subject)}.  Using the first form we have
-<<fm07>>=
-(fm07 <- lmer(Reaction ~ 1 + Days + (1|Subject) + (0+Days|Subject),
+<<fm17>>=
+(fm17 <- lmer(Reaction ~ 1 + Days + (1|Subject) + (0+Days|Subject),
              sleepstudy, REML=FALSE))
-@ 
-As in model \code{fm06}, there are two random effects for each subject
-<<modesfm07>>=
-head(ranef(fm07)[["Subject"]])
-@ 
+@
+As in model \code{fm16}, there are two random effects for each subject
+<<modesfm17>>=
+head(ranef(fm17)[["Subject"]])
+@
 but no correlation has been estimated
-<<fm07reshow,echo=FALSE>>=
-cat(paste(capture.output(print(fm07))[8:11], collapse = "\n"), "\n")
+<<fm17reshow,echo=FALSE>>=
+cat(paste(capture.output(print(fm17))[8:11], collapse = "\n"), "\n")
 @
 The \code{Subject} factor is repeated in the ``Groups'' column because
 there were two distinct terms generating these random effects and
 these two terms had the same grouping factor.
 \begin{figure}[tbp]
   \centering
-<<fm07LambdaL,fig=TRUE,echo=FALSE,results=hide,height=3,width=8>>=
-print(image(fm07@re@Lambda, sub = NULL, xlab = expression(Lambda),
+<<fm17LambdaL,fig=TRUE,echo=FALSE,results=hide,height=3,width=8>>=
+print(image(getME(fm17, "Lambda"), sub = NULL, xlab = expression(Lambda),
             ylab = NULL),
       split = c(1,1,3,1), more = TRUE)
-print(image(tcrossprod(fm07@re@Lambda), sub = NULL,
+print(image(tcrossprod(getME(fm17, "Lambda")), sub = NULL,
             xlab = expression(Sigma), ylab = NULL),
       split = c(2,1,3,1), more = TRUE)
-print(image(fm07@re@L, sub = NULL, xlab = "L", ylab = NULL),
+print(image(getME(fm17, "L"), sub = NULL, xlab = "L", ylab = NULL),
       split = c(3,1,3,1))
 @
 \caption[Images of $\Lambda$, $\Sigma$ and $\vec L$ for model
-\code{fm07}]{Images of $\Lambda$, the relative covariance factor,
+\code{fm17}]{Images of $\Lambda$, the relative covariance factor,
   $\Sigma$, the variance-covariance matrix of the random effects, and
-  $\vec L$, the sparse Cholesky factor, in model \code{fm07}}
-  \label{fig:fm07LambdaL}
+  $\vec L$, the sparse Cholesky factor, in model \code{fm17}.}
+  \label{fig:fm17LambdaL}
 \end{figure}
 
 Images of the matrices $\Lambda$, $\Sigma$ and $\vec L$
-(Fig.~\ref{fig:fm07LambdaL}) show that $\Sigma$ is indeed diagonal.
+(Fig.~\ref{fig:fm17LambdaL}) show that $\Sigma$ is indeed diagonal.
 The order of the random effects in $\Sigma$ and $\Lambda$ for model
-\code{fm07} is different from the order in model \code{fm06}.  In model
-\code{fm06} the two random effects for a particular subject were
-adjacent.  In model \code{fm07} all the intercept random effects occur
+\code{fm17} is different from the order in model \code{fm16}.  In model
+\code{fm16} the two random effects for a particular subject were
+adjacent.  In model \code{fm17} all the intercept random effects occur
 first then all the \code{Days} random effects.  The sparse Cholesky
 decomposition, $\vec L$, has the same form in both models because the
 fill-reducing permutation (described in
-Sect.~\ref{sec:fill-reducingP}) calculated for model \code{fm07}
+Sect.~\ref{sec:fill-reducingP}) calculated for model \code{fm17}
 provides a post-ordering to group random effects with similar
 structure in $\vec Z$.
 \begin{figure}[tbp]
   \centering
-<<fm069Zt,fig=TRUE,echo=FALSE,results=hide,height=4,width=8>>=
-print(image(fm06@re@Zt, sub = NULL, xlab = NULL, ylab = NULL,
+<<fm169Zt,fig=TRUE,echo=FALSE,results=hide,height=4,width=8>>=
+print(image(getME(fm16, "Zt"), sub = NULL, xlab = NULL, ylab = NULL,
             scales = list(x = list(labels = NULL))),
       pos = c(0,0.38,1,1), more = TRUE)
-print(image(fm07@re@Zt, sub = NULL, xlab = NULL, ylab = NULL,
+print(image(getME(fm17, "Zt"), sub = NULL, xlab = NULL, ylab = NULL,
             scales = list(x = list(labels = NULL))),
       pos = c(0,0,1,0.62))
 @
-\caption[Images of $\vec Z\trans$ for models \code{fm06} and
-\code{fm07}]{Images of $\vec Z\trans$ for models \code{fm06} (upper
-  panel) and \code{fm07} (lower panel)}
-\label{fig:fm069Zt}
+\caption[Images of $\vec Z\trans$ for models \code{fm16} and
+\code{fm17}]{Images of $\vec Z\trans$ for models \code{fm16} (upper
+  panel) and \code{fm17} (lower panel).}
+\label{fig:fm169Zt}
 \end{figure}
 
-Images of $\vec Z\trans$ for these two models (Fig.~\ref{fig:fm069Zt})
+Images of $\vec Z\trans$ for these two models (Fig.~\ref{fig:fm169Zt})
 shows that the columns of $\vec Z$ (rows of $\vec Z\trans$) from one
 model are the same those from the other model but in a different
 order.
@@ -385,8 +384,8 @@ order.
 \label{sec:GeneratingZLambda}
 
 Let us consider these columns in more detail, starting with the columns
-of $\vec Z$ for model \code{fm07}.  The first 18 columns (rows in the
-bottom panel of Fig.~\ref{fig:fm069Zt}) are the indicator columns for
+of $\vec Z$ for model \code{fm17}.  The first 18 columns (rows in the
+bottom panel of Fig.~\ref{fig:fm169Zt}) are the indicator columns for
 the \code{Subject} factor, as we would expect from the simple, scalar
 random-effects term \code{(1|Subject)}.  The pattern of zeros and
 non-zeros in the second group of 18 columns is determined by the
@@ -396,8 +395,8 @@ words, these columns are formed by the \emph{interaction} of the
 numeric covariate, \code{Days}, and the categorical covariate,
 \code{Subject}.
 
-The non-zero values in the model matrix $\vec Z$ for model \code{fm06}
-are the same as those for model \code{fm06} but the columns are in a
+The non-zero values in the model matrix $\vec Z$ for model \code{fm16}
+are the same as those for model \code{fm16} but the columns are in a
 different order.  Pairs of columns associated with the same level of
 the grouping factor are adjacent.  One way to think of the process of
 generating these columns is to extend the idea of an interaction
@@ -421,23 +420,23 @@ levels, if any.  The $i$th term generates $s_ik_i$ columns in the
 model matrix, $\vec Z$, and a diagonal block of size $s_ik_i$ in the
 relative covariance factor, $\Lambda$.  The $s_ik_i$ columns in $\vec
 Z$ have the pattern of the interaction of the $s_i$ columns from the
-$i$th \code{expr} with the $k_i$ indicator columns for the $i$th
+$i^{th}$ \code{expr} with the $k_i$ indicator columns for the $i$th
 grouping factor \code{fac}.  The diagonal block in $\Lambda$ is itself
 block diagonal, consisting of $k_i$ blocks, each a lower triangular
 matrix of size $s_i$.  In fact, these inner blocks are repetitions of
-the same lower triangular $s_i\times s_i$ matrix.  The $i$ term
+the same lower triangular $s_i\times s_i$ matrix.  The $i^{th}$ term
 contributes $s_i(s_i+1)/2$ elements to the variance-component
 parameter, $\vec\theta$, and these are the elements in the lower
 triangle of this $s_i\times s_i$ template matrix.
 
 Note that when counting the columns in a model matrix we must take
 into account the implicit intercept term.  For example, we could write
-the formula for model \code{fm06} as
-<<formulafm06,echo=FALSE>>=
+the formula for model \code{fm16} as
+<<formulafm16,echo=FALSE>>=
 Reaction ~ Days + (Days|Subject)
 @
 realizing that the linear model expression, \code{Days}, actually
-generates two columns because of the implicit intercept.  
+generates two columns because of the implicit intercept.
 
 Whether or not to include an explicit intercept term in a model
 formula is a matter of personal taste.  Many people prefer to write
@@ -453,11 +452,11 @@ in the expression.  That is, a simple, scalar random-effects term must
 be written as \code{(1|fac)} because a term like \code{(|fac)} is not
 syntactically correct.  However, we can omit the intercept from the
 fixed-effects part of the model formula if we have any random-effects
-terms.  That is, we could write the formula for model \code{fm1} in
-Chap.~\ref{chap:ExamLMM} as 
+terms.  That is, we could write the formula for model \code{fm01} in
+Chap.~\ref{chap:ExamLMM} as
 <<fm1redux,echo=FALSE>>=
 Yield ~ (1|Batch)
-@ 
+@
 or even
 <<fm1redux,echo=FALSE>>=
 Yield ~ 1|Batch
@@ -469,26 +468,26 @@ of it as its first operand.  It is advisable always to enclose such
 terms in parentheses so the scope of the operands to the \code{|}
 operator is clearly defined.
 
-\subsection{Comparing Models \texttt{fm07} and \texttt{fm06}}
-\label{sec:comparingfm06fm07}
+\subsection{Comparing Models \texttt{fm17} and \texttt{fm16}}
+\label{sec:comparingfm16fm17}
 
-Returning to models \code{fm06} and \code{fm07} for the
+Returning to models \code{fm16} and \code{fm17} for the
 \code{sleepstudy} data, it is easy to see that these are nested models
-because \code{fm06} is reduced to \code{fm07} by constraining the
+because \code{fm16} is reduced to \code{fm17} by constraining the
 within-group correlation of random effects to be zero (which is
 equivalent to constraining the element below the diagonal in the
 $2\times 2$ lower triangular blocks of $\Lambda$ in
-Fig.~\ref{fig:fm06LambdaL} to be zero).
+Fig.~\ref{fig:fm16LambdaL} to be zero).
 
 We can use a likelihood ratio test to compare these fitted models.
-<<anovafm07fm06>>=
-anova(fm07, fm06)
-@ 
+<<anovafm17fm16>>=
+anova(fm17, fm16)
+@
 The value of the $\chi^2$ statistic, $0.0639$, is very small,
 corresponding to a p-value of $0.80$ and indicating that the extra
-parameter in model \code{fm06} relative to \code{fm07} does not produce
+parameter in model \code{fm16} relative to \code{fm17} does not produce
 a significantly better fit.  By the principal of parsimony we prefer
-the reduced model, \code{fm07}.
+the reduced model, \code{fm17}.
 
 This conclusion is consistent with the visual impression provided by
 Fig.~\ref{fig:sleepxyplot}.  There does not appear to be a strong
@@ -498,7 +497,7 @@ to which his or her reaction time is affected by sleep deprivation.
 In this likelihood ratio test the value of the parameter being tested,
 a correlation of zero, is not on the boundary of the parameter space.
 We can be confident that the p-value from the LRT adequately reflects
-the underlying situation.  
+the underlying situation.
 
 (\textbf{Note}: It is possible to extend profiling to the correlation
 parameters and we will do so but that has not been done yet.)
@@ -509,17 +508,18 @@ parameters and we will do so but that has not been done yet.)
 Plots of the profile $\zeta$
 \begin{figure}[tbp]
   \centering
-<<pr07plt,fig=TRUE,echo=FALSE,height=3.5>>=
-print(xyplot(pr07, aspect = 1.3, layout = c(5,1)))
+%% pr17 -- wrong labels?  "Type T2"
+<<pr17plt,fig=TRUE,echo=FALSE,height=3.5>>=
+print(xyplot(pr17, aspect = 1.3, layout = c(5,1)))
 @
 \caption[Profile zeta plots for the parameters in model
-\code{fm07}]{Profile zeta plot for each of the parameters in model
-  \code{fm07}.  The vertical lines are the endpoints of 50\%, 80\%,
+\code{fm17}]{Profile zeta plot for each of the parameters in model
+  \code{fm17}.  The vertical lines are the endpoints of 50\%, 80\%,
   90\%, 95\% and 99\% profile-based confidence intervals for each
   parameter.}
-  \label{fig:pr07plt}
+  \label{fig:pr17plt}
 \end{figure}
-for the parameters in model \code{fm07} (Fig.~\ref{fig:pr07plt}) show
+for the parameters in model \code{fm17} (Fig.~\ref{fig:pr17plt}) show
 that confidence intervals on $\sigma_1$ and $\sigma_2$ will be slightly
 skewed; those for $\log(\sigma)$ will be symmetric and
 well-approximated by methods based on quantiles of the standard normal
@@ -527,23 +527,23 @@ distribution and those for the fixed-effects parameters, $\beta_1$ and
 $\beta_2$ will be symmetric and slightly over-dispersed relative to
 the standard normal.  For example, the 95\% profile-based confidence
 intervals are
-<<confintpr07>>=
-confint(pr07)
+<<confintpr17>>=
+confint(pr17)
 @
 
-The profile pairs plot (Fig.~\ref{fig:pr07pairs})
+The profile pairs plot (Fig.~\ref{fig:pr17pairs})
 \begin{figure}[tbp]
   \centering
-<<pr07pairs,fig=TRUE,echo=FALSE,height=8>>=
-print(splom(pr07))
+<<pr17pairs,fig=TRUE,echo=FALSE,height=8>>=
+print(splom(pr17))
 @
 \caption[Profile pairs plot for the parameters in model
-\code{fm07}]{Profile pairs plot for the parameters in model \code{fm07}.
+\code{fm17}]{Profile pairs plot for the parameters in model \code{fm17}.
   The contour lines correspond to marginal 50\%, 80\%, 90\%, 95\% and
   99\% confidence regions based on the likelihood ratio.  Panels below
   the diagonal represent the $(\zeta_i,\zeta_j)$ parameters; those above
   the diagonal represent the original parameters.}
-  \label{fig:pr07pairs}
+  \label{fig:pr17pairs}
 \end{figure}
 shows, for the most part, the usual patterns.  First, consider the
 panels below the diagonal, which are on the $(\zeta_i,\zeta_j)$
@@ -604,29 +604,30 @@ inferences for the fixed-effects parameters in linear mixed models,
 based on T or F distributions with suitably adjusted degrees of
 freedom, will be completely accurate.  The actual patterns of deviance
 contours are more complex than that.
+%\clearpage << MM's suggestion
 
 \section{Examining the Random Effects and Predictions}
-\label{sec:fm07re}
+\label{sec:fm17re}
 The result of applying \code{ranef} to fitted linear mixed model is a
 list of data frames.  The components of the list correspond to the
 grouping factors in the random-effects terms, not to the terms
-themselves.  Model \code{fm07} is the first model we have fit with more
+themselves.  Model \code{fm17} is the first model we have fit with more
 than one term for the same grouping factor where we can see the
 combination of random effects from more than one term.
 <<rr1>>=
-str(rr1 <- ranef(fm07))
+str(rr1 <- ranef(fm17))
 @
 The \code{plot} method
 \begin{figure}[tbp]
   \centering
-<<ranefcoeffm07,fig=TRUE,echo=FALSE,height=4>>=
+<<ranefcoeffm17,fig=TRUE,echo=FALSE,height=4>>=
 print(plot(rr1, type = c("g","p"), aspect = 1)$Subject,
       split = c(1,1,2,1), more = TRUE)
-print(plot(coef(fm07), type = c("g","p"), aspect = 1)$Subject,
+print(plot(coef(fm17), type = c("g","p"), aspect = 1)$Subject,
       split = c(2,1,2,1))
-@ 
-  \caption{Plot of the conditional modes of the random effects for model \code{fm07} (left panel) and the corresponding subject-specific coefficients (right panel)}
-  \label{fig:ranefcoeffm07}
+@
+  \caption{Plot of the conditional modes of the random effects for model \code{fm17} (left panel) and the corresponding subject-specific coefficients (right panel).}
+  \label{fig:ranefcoeffm17}
 \end{figure}
 for \code{"ranef.mer"} objects produces one plot for each grouping
 factor. For scalar random effects the plot is a normal probability
@@ -634,18 +635,18 @@ plot.  For two-dimensional random effects, including the case of two
 scalar terms for the same grouping factor, as in this model, the plot
 is a scatterplot.  For three or more random effects per level of the
 grouping factor, the plot is a scatterplot matrix.  The left hand
-panel in Fig.~\ref{fig:ranefcoeffm07} was created with
-\code{plot(ranef(fm07))}.
+panel in Fig.~\ref{fig:ranefcoeffm17} was created with
+\code{plot(ranef(fm17))}.
 
 The \code{coef} method for a fitted \code{lmer} model combines the
 fixed-effects estimates and the conditional modes of the random
 effects, whenever the column names of the random effects correspond to
-the names of coefficients.  For model \code{fm07} the fixed-effects
+the names of coefficients.  For model \code{fm17} the fixed-effects
 coefficients are \code{(Intercept)} and \code{Days} and the columns of
 the random effects match these names.  Thus we can calculate some kind
 of per-subject ``estimates'' of the slope and intercept and plot them,
-as in the right hand panel of Fig.~\ref{fig:ranefcoeffm07}.  By comparing
-the two panels in Fig.~\ref{fig:ranefcoeffm07} we can see that the
+as in the right hand panel of Fig.~\ref{fig:ranefcoeffm17}.  By comparing
+the two panels in Fig.~\ref{fig:ranefcoeffm17} we can see that the
 result of the \code{coef} method is simply the conditional modes of
 the random effects shifted by the coefficient estimates.
 
@@ -665,10 +666,10 @@ response for each subject.
 df <- coef(lmList(Reaction ~ Days | Subject, sleepstudy))
 fclow <- subset(df, `(Intercept)` < 251)
 fchigh <- subset(df, `(Intercept)` > 251)
-cc1 <- as.data.frame(coef(fm07)$Subject)
+cc1 <- as.data.frame(coef(fm17)$Subject)
 names(cc1) <- c("A", "B")
 df <- cbind(df, cc1)
-ff <- fixef(fm07)
+ff <- fixef(fm17)
 with(df,
      print(xyplot(`(Intercept)` ~ Days, aspect = 1,
                   x1 = B, y1 = A,
@@ -684,7 +685,7 @@ with(df,
                       lpoints(x1, y1,
                               pch = trellis.par.get("superpose.symbol")$pch[1],
                               col = trellis.par.get("superpose.symbol")$col[1])
-                      lpoints(ff[2], ff[1], 
+                      lpoints(ff[2], ff[1],
                               pch = trellis.par.get("superpose.symbol")$pch[3],
                               col = trellis.par.get("superpose.symbol")$col[3])
                       ltext(fclow[,2], fclow[,1], row.names(fclow),
@@ -699,11 +700,11 @@ with(df,
                   )))
 @ %$
 \caption[Comparison of within-subject estimates and conditional modes
-for \code{fm07}]{Comparison of the within-subject estimates of the
+for \code{fm17}]{Comparison of the within-subject estimates of the
   intercept and slope for each subject and the conditional modes of
   the per-subject intercept and slope.  Each pair of points joined by
   an arrow are the within-subject estimates and conditional modes of
-  the random for a particular subject.  The arrow points from the
+  the random effects for a particular subject.  The arrow points from the
   within-subject estimate to the conditional mode for the
   mixed-effects model.  The subject identifier number is at the tail
   of each arrow.}
@@ -715,7 +716,7 @@ we can determine the within-subject estimates of the slope and
 intercept (that is, the slope and intercept of each of the lines in
 Fig.~\ref{fig:sleepxyplot}).  In Fig.~\ref{fig:shrinkage} we compare
 the within-subject least squares estimates to the per-subject slope
-and intercept calculated from model \code{fm07}.  We see that, in
+and intercept calculated from model \code{fm17}.  We see that, in
 general, the per-subject slopes and intercepts from the mixed-effects
 model are closer to the population estimates than are the
 within-subject least squares estimates.  This pattern is sometimes
@@ -744,7 +745,7 @@ print(xyplot(Reaction ~ Days | Subject, sleepstudy, aspect = "xy",
                               col.line = trellis.par.get("superpose.line")$col[2],
                               lty = trellis.par.get("superpose.line")$lty[2]
                               )
-                 panel.abline(fixef(fm07),
+                 panel.abline(fixef(fm17),
                               col.line = trellis.par.get("superpose.line")$col[4],
                               lty = trellis.par.get("superpose.line")$lty[4]
                               )
@@ -758,15 +759,15 @@ print(xyplot(Reaction ~ Days | Subject, sleepstudy, aspect = "xy",
              lty = trellis.par.get("superpose.line")$lty[c(1:2,4)]))))
 @
 \caption[Comparison of predictions from separate fits and
-\code{fm07}]{Comparison of the predictions from the within-subject fits
+\code{fm17}]{Comparison of the predictions from the within-subject fits
   with those from the conditional modes of the subject-specific
   parameters in the mixed-effects model.}
   \label{fig:shrinkfit}
 \end{figure}
 
-The predictions from model \code{fm07} and from the within-subject
+The predictions from model \code{fm17} and from the within-subject
 least squares fits for each subject are shown in
-Fig.~\ref{fig:shrinkfit}.  In may seem that the shrinkage from the
+Fig.~\ref{fig:shrinkfit}.  It may seem that the shrinkage from the
 per-subject estimates toward the population estimates depends only on
 how far the per-subject estimates (solid lines) are from the
 population estimates (dot-dashed lines). However, careful examination
@@ -820,13 +821,13 @@ mathematical nature of this balance explicit.
 
 We should also examine
 \begin{figure}[tbp]
-%% FIXME: ranef(fm07, postVar = TRUE) currently throws an error.  
+%% FIXME: ranef(fm17, condVar = TRUE) currently throws an error.
   \centering
 <<caterpillar,fig=TRUE,echo=FALSE,results=hide,height=4>>=
-print(dotplot(ranef(fm06,post=TRUE),
+print(dotplot(ranef(fm16,post=TRUE),
               scales = list(x = list(relation = "free")))[[1]])
 @
-  \caption{Prediction intervals on the random effects for model \code{fm07}.}
+  \caption{Prediction intervals on the random effects for model \code{fm17}.}
   \label{fig:caterpillar}
 \end{figure}
 the prediction intervals on the random effects
@@ -836,8 +837,9 @@ plot the subjects are ordered from bottom to top according to
 increasing conditional mode of the random effect for
 \code{(Intercept)}.  The resulting pattern in the conditional modes of
 the random effect for \code{Days} reinforces our conclusion that the
-model \code{fm07}, which does not allow for correlation of the random
+model \code{fm17}, which does not allow for correlation of the random
 effects for \code{(Intercept)} and \code{Days}, is suitable.
+
 
 \section{Chapter Summary}
 

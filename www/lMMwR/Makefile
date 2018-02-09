@@ -38,14 +38,12 @@ all:  $(CHAPTERS:=.tex) $(RNW:=.R) $(RNW:=.tex) lMMwR.pdf lrgprt.pdf
 
 lMMwR.pdf: lMMwR.tex lMMwR.bib lMMwR.ind $(FRONT) $(RNW:=.tex) $(smlGRAPHS)
 
-lrgprt.pdf: lMMwR.pdf
-
-#lrgprt.tex: lMMwR.pdf
-#	@echo "\\documentclass[letterpaper]{article}" > $@
-#	@echo "\\usepackage{pdfpages}" >> $@
-#	@echo "\\begin{document}" >> $@
-#	@echo "\\includepdf[nup=1x1,pages=-,noautoscale=true,scale=1.25,offset=0mm -12mm]{lMMwR}" >> $@
-#	@echo "\\end{document}" >> $@
+lrgprt.tex: lMMwR.pdf
+	@echo "\\documentclass[letterpaper]{article}" > $@
+	@echo "\\usepackage{pdfpages}" >> $@
+	@echo "\\begin{document}" >> $@
+	@echo "\\includepdf[nup=1x1,pages=-,noautoscale=true,scale=1.25,offset=0mm -12mm]{lMMwR}" >> $@
+	@echo "\\end{document}" >> $@
 
 
 lMMwR.ind: lMMwR.idx
@@ -62,7 +60,7 @@ clean:
 	$(RM) -f Rplots.*
 
 realclean: clean
-	$(RM) -f *~ $(RNW:=.tex) $(RNW:=.Rout) *.pdf *.rda lrgprt.tex figs/*.pdf figs/*.png
+	$(RM) -f *~ $(RNW:=.tex) $(RNW:=.Rout) $(RNW:=.R) *.out *.pdf *.rda lrgprt.tex figs/*.pdf figs/*.png
 
 ## TODO?  Use 'dist: clean' or 'dist: realclean'  and maybe *some* extra?
 dist:

@@ -13,7 +13,7 @@ library(Matrix)
 library(MatrixModels)
 library(Rcpp)
 library(minqa)
-library(lme4a)
+library(lme4)
 .f2 <- "%.2f"
 .f5 <- "%.5f"
 .f6 <- "%.6f"
@@ -25,7 +25,7 @@ if (file.exists("pr01.rda")) {
     pr01 <- profile(fm01ML, delta = 0.2)
     save(pr01, file = "pr01.rda")
 }
-@ 
+@
 \chapter{Examining likelihood contour projections}
 \label{chap:ProfPairs}
 
@@ -46,7 +46,7 @@ influenced by each other.
   \centering
 <<fm01profpair,fig=TRUE,echo=FALSE,height=8>>=
 print(splom(pr01))
-@   
+@
 \caption[Profile pairs plot for the parameters in model
 \code{fm01}]{Profile pairs plot for the parameters in model \code{fm01}.
   The contour lines correspond to two-dimensional 50\%, 80\%, 90\%,
@@ -85,7 +85,7 @@ In addition to the contour lines in this panel, there are two other
 lines, which are the profile traces of $\sigma_1$ on $\beta_0$ and of
 $\beta_0$ on $\sigma_1$.  The profile trace of $\beta_0$ on $\sigma_1$
 is a straight horizontal line, indicating that the conditional estimate
-of $\beta_0$, given a value of $\sigma_1$, is constant.  Again, this is 
+of $\beta_0$, given a value of $\sigma_1$, is constant.  Again, this is
 a consequence of the simple model form and the balanced data set.  The
 other line in this panel, which is the profile trace of $\sigma_1$ on
 $\beta_0$, is curved.  That is, the conditional estimate of $\sigma_1$
