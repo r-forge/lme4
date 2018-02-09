@@ -2,12 +2,12 @@
 \usepackage{mathptmx,helvet,courier}
 \usepackage{type1cm}
 
-
 \usepackage{makeidx}         % allows index generation
 \usepackage{graphicx}        % standard LaTeX graphics tool
                              % when including figure files
 \usepackage{multicol}        % used for the two-column index
 \usepackage[bottom]{footmisc}% places footnotes at page bottom
+%\usepackage{float}
 % see the list of further useful packages
 % in the Reference Guide
 \usepackage{amsmath,amsfonts,bm,url,Sweave,paralist}
@@ -29,13 +29,14 @@ dedication%
 %,foreword
 ,preface%
 %,acknow,
-,acronym%
-,ChIntro%
-,ChMultiple%
-,ChLongitudinal%
-,ChCovariates%
-,ChTheory%
-,ChGLMMBinomial%
+,acronym%           using models fm<n> :
+%           Chapt.,           <n>
+,ChIntro%        1  -- models 01 02
+,ChMultiple%     2  -- models 03 04 05
+,ChLongitudinal% 3  -- model  16 (was "06") 17(was "07")
+,ChCovariates%   4  -- models 06 07 09 7
+,ChTheory%       5  -- model  08
+,ChGLMMBinomial% 6  -- model  10 11 12 13
 }
 \DeclareMathOperator{\logit}{logit}
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -79,3 +80,8 @@ dedication%
 
 
 
+
+%%% Local Variables:
+%%% mode: latex
+%%% TeX-master: t
+%%% End:

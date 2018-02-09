@@ -12,7 +12,7 @@ library(lattice)
 library(Matrix)
 library(Rcpp)
 library(minqa)
-library(lme4a)
+library(lme4)
 @
 
 \chapter{Computational Methods for Mixed Models}
@@ -204,13 +204,13 @@ $\vec y$ to be fixed at $\vec y_{\text{obs}}$ and the
 parameters, $\vec\theta$, $\vec\beta$ and $\sigma$, as varying.
 
 The natural approach for evaluating the likelihood is to determine the
-marginal distribution of $\bc Y$, which in this case amounts to
-determining the marginal density of $\bc Y$, and evaluate that density
-at $\vec y_{\text{obs}}$.  To follow this course we would first
-determine the joint density of $\bc U$ and $\bc Y$, written $f_{\bc
-  U,\bc Y}(\vec u,\vec y)$, then integrate this density with respect
-$\vec u$ to create the marginal density, $f_{\bc Y}(\vec y)$, and
-finally evaluate this marginal density at $\vec y_{\text{obs}}$.
+marginal distribution of $\bc Y$, which in this case amounts to determining
+the marginal density of $\bc Y$, and evaluate that density at $\vec
+y_{\text{obs}}$.  To follow this course we would first determine the joint
+density of $\bc U$ and $\bc Y$, written $f_{\bc U,\bc Y}(\vec u,\vec y)$,
+then integrate this density with respect to $\vec u$ to create the marginal
+density, $f_{\bc Y}(\vec y)$, and finally evaluate this marginal density at
+$\vec y_{\text{obs}}$.
 
 To allow for later generalizations we will change the order of these
 steps slightly.  We evaluate the joint density function, $f_{\bc U,\bc
@@ -241,7 +241,7 @@ $h(\vec u)$ then integrating with respect to $\vec u$, as opposed to
 first integrating the joint density then evaluating at $\vec
 y_{\text{obs}}$, is not terribly important.  For other mixed models
 this distinction can be important.  In particular, generalized linear
-mixed models, described in Sect.~\ref{sec:GLMM}, are often used to
+mixed models, described in Sect.~\ref{sec:general}, are often used to
 model a discrete response, such as a binary response or a count,
 leading to a joint distribution for $\bc Y$ and $\bc U$ that is
 discrete with respect to one variable, $\vec y$, and continuous with
@@ -270,7 +270,7 @@ Cholesky factor, $\vec L_\theta$, and the conditional mode,
   \label{eq:condMode}
   \tilde{\vec u}=\arg\max_{\vec u} f_{\bc U|\bc Y}(\vec u|\vec y_{\text{obs}})=
   \arg\max_{\vec u} h(\vec u) = \arg\max_{\vec u}
-  f_{\bc Y|\bc U}(\vec y_{\text{obs}}|\vec u)\,f_{\bc U}(\vec u)
+  f_{\bc Y|\bc U}(\vec y_{\text{obs}}|\vec u)\,f_{\bc U}(\vec u).
 \end{equation}
 The notation $\arg\max_{\vec u}$ means that $\tilde{\vec u}$ is the
 value of $\vec u$ that maximizes the expression that follows.
@@ -389,7 +389,7 @@ with a solution that satisfies
   \label{eq:LMMPLSsol}
   \left(\Lambda_\theta\trans\vec Z\trans\vec Z\Lambda_\theta+\vec
     I_q\right)\tilde{\vec u}
-  =\Lambda_\theta\trans\vec Z\trans\left(\vec y_{\text{obs}}-\vec X\vec\beta\right)
+  =\Lambda_\theta\trans\vec Z\trans\left(\vec y_{\text{obs}}-\vec X\vec\beta\right).
 \end{equation}
 
 To evaluate $\tilde{\vec u}$ we form the \emph{sparse Cholesky
@@ -400,7 +400,7 @@ matrix that satisfies
   \vec L_\theta\vec L_\theta\trans=
   \Lambda_\theta\trans\vec Z\trans\vec Z\Lambda_\theta+\vec I_q .
 \end{equation}
-The actual evaluation of sparse Cholesky factor, $\vec L_\theta$,
+The actual evaluation of the sparse Cholesky factor, $\vec L_\theta$,
 often incorporates a \emph{fill-reducing permutation}, which we
 describe next.
 
@@ -619,7 +619,8 @@ $\widehat{\vec\theta}$.  The MLEs for the other parameters,
 $\widehat{\vec\beta}$ and $\widehat{\sigma}$, are the corresponding
 conditional estimates evaluated at $\widehat{\vec\theta}$.
 
-\subsection{Determining $r^2_\theta$ and $\widehat{\vec\beta}_\theta$}
+%% LaTeX FIXME \widehat{\vec\beta} failing inside \subsection{..}
+\subsection{Determining $r^2_\theta$ and $\hat{\vec\beta}_\theta$}% FIXME?
 \label{sec:betahat}
 
 To determine $\tilde{\vec u}$ and $\widehat{\vec\beta}_\theta$
@@ -662,8 +663,8 @@ the solutions to
   \end{bmatrix}=
   \begin{bmatrix}
     \vec P\Lambda_\theta\trans\vec Z\trans\vec y_{\text{obs}}\\
-    \vec X\trans\vec y_{\text{obs}} .
-  \end{bmatrix}
+    \vec X\trans\vec y_{\text{obs}}
+  \end{bmatrix}.
 \end{equation}
 To evaluate these solutions we decompose the system
 matrix as
@@ -698,7 +699,7 @@ matrix, satisfy
 and
 \begin{equation}
   \label{eq:RXdef}
-  \vec R_X\trans\vec R_X=\vec X\trans\vec X-\vec R_{ZX}\trans\vec R_{ZX}
+  \vec R_X\trans\vec R_X=\vec X\trans\vec X-\vec R_{ZX}\trans\vec R_{ZX}.
 \end{equation}
 
 Those familiar with standard ways of writing a Cholesky decomposition
@@ -780,7 +781,7 @@ Furthermore, this property of unbiasedness of variance estimators does
 not generalize from the linear regression model to linear mixed
 models.  This is all to say that the distinction between REML and ML
 estimates of variances and variance components is probably less
-important that many people believe.
+important than many people believe.
 
 Nevertheless it is worthwhile seeing how the computational techniques
 described in this chapter apply to the REML criterion because the REML
@@ -828,7 +829,7 @@ criterion
   \label{eq:24}
   \tilde{d}_R(\vec\theta|\vec y_{\text{obs}})=
   2\log\left(|\vec L_\theta||\vec R_X|\right)+(n-p)
-  \left[1+\log\left(\frac{2\pi r^2_\theta}{n-p}\right)\right]
+  \left[1+\log\left(\frac{2\pi r^2_\theta}{n-p}\right)\right].
 \end{equation}
 
 The REML estimate of $\vec\theta$ is
@@ -856,7 +857,7 @@ An object returned by \code{lmer} is an S4-classed
 object~\citep{R:Chambers:2008} of class \code{"merMod"}.  A special
 utility function, \code{mkdevfun}, creates a function to evaluate the
 deviance from such an object.  Because the deviance evaluation
-function many be called many, many times for different values of the
+function may be called many, many times for different values of the
 model parameters and may need to handle large data structures very
 efficiently, the default deviance evaluator uses compiled code, that
 is written in C++ using the facilities of the \package{Rcpp} package~\citep{Rcpp}.
@@ -864,28 +865,29 @@ As such, this function is not very illuminating
 <<mkdevfun1>>=
 fm08 <- lmer(Reaction ~ 1 + Days + (1+Days|Subject),
              sleepstudy, REML=FALSE)
-(df1 <- mkdevfun(fm08))
+(df1 <- as(fm08, "function"))# calls hidden mkdevfun() -->  =?= mkdevfun(fm08)
 @
-unless you are willing to go digging in to the source code for the
+unless you are willing to go digging into the source code for the
 compiled function called \code{merDeviance}.
 
 However, if we set the optional argument \code{compDev=FALSE} and
-suppress the compiled deviance evaluation then the deviance function 
+suppress the compiled deviance evaluation then the deviance function
 follows the deviance evaluation in more easily understood \R{}
 constructions.
 <<mkdevfun2>>=
-df2 <- mkdevfun(fm08, compDev=FALSE)
+df2 <- as.function(fm08, control=list(compDev=FALSE))## needs lme4-devel (>= 2018-02-08)
+   ## or mkLmerDevfun(fr, ... ???) ## was mkdevfun(fm08, compDev=FALSE)
 head(df2)
-@ 
+@
 
 Providing for an \R{}-based evaluation of the deviance, in addition to
 the compiled code, allows us to check for consistent results.  For
 example, suppose that we wished to check that the compiled and
 \R{}-based deviance functions agreed at the initial values of the
-parameter $\vec\theta=[1,0,1]\trans$ 
+parameter $\vec\theta=[1,0,1]\trans$
 <<df12eval>>=
 all.equal(df1(c(1,0,1)), df2(c(1,0,1)))
-@ 
+@
 
 Without going into detail let us just point out that, because the
 function \code{df2} is created within another function,
@@ -902,10 +904,10 @@ we will ignore it.
 The function, with line numbers, is
 <<df2full,echo=FALSE>>=
 head(df2, 45)
-@ 
+@
 
 Lines 3 to 9 create local versions of $\Lambda$ and $\vec L$ from
-the information in the \code{re} slot and the argument \code{th}.  
+the information in the \code{re} slot and the argument \code{th}.
 
 In lines 3 to 5 the argument \code{th} is checked for correct mode and
 length and whether it violates the lower bounds stored in the
@@ -923,7 +925,7 @@ variable \code{Ut}.  Then line 9 evaluates the sparse Cholesky factor,
 argument, \code{mult=1}, to the \code{update} method is the multiple
 of the identity matrix to add to the \code{tcrossprod} of the second
 argument.  This produces the factor $\vec L_\theta$ defined in
-eqn.~\ref{eq:sparseCholeskyP}.
+(\ref{eq:sparseCholeskyP}).
 
 Lines 10 to 14 produce $\vec Z\trans\vec y$, $\vec X\trans\vec y$ and
 $\vec Z\trans\vec X$, taking into account possible weights, from the
@@ -946,9 +948,9 @@ structure slot, called \code{re}, of the model object.  The
 in \code{Lambda}
 <<theta>>=
 theta <- c(1, 0, 1)
-Lambda <- fm08@re @ Lambda
-Lambda@x <- theta[fm08@re @ Lind] 
-@ 
+Lambda <- getME(fm08, "Lambda")
+Lambda@x <- getME(fm08, "Lind")
+@
 
 object~\citep{R:Chambers:2008} containing a set of well-defined
 ``slots''.  For evaluation of the devai
@@ -964,14 +966,14 @@ Consider our model \code{fm08}, fit as
 <<fm08reduxshow,eval=FALSE>>=
 fm08 <- lmer(Reaction ~ 1 + Days + (1 + Days|Subject), sleepstudy,
             REML=FALSE, verbose=1)
-@ 
+@
 <<fm08redux,echo=FALSE>>=
 cat(paste(capture.output(fm08 <- lmer(Reaction ~ 1 + Days + (1 + Days|Subject),
                                      sleepstudy, REML = 0,
                                      verbose = TRUE))[1:4],
           collapse = "\n"), "\n...\n")
 @
-          
+
 The environment of the model contains the converged parameter
 vector, $\vec\theta$ (\code{theta}), the relative covariance factor,
 $\Lambda_\theta$ (\code{Lambda}), the sparse Cholesky factor, $\vec
@@ -988,10 +990,13 @@ these fixed values are precomputed and stored separately under the
 names \code{XtX} ($\vec X\trans\vec X$), \code{Xty}, \code{ZtX}
 and \code{Zty}.
 
+%% FIXME: Change this section to use the mkdevfun(obj, compDev = TRUE) result instead
 To provide easy access to the objects in the environment of \code{fm08} we
 attach it to the search path.
+%% was  attach(env(fm08))
 <<attachrho>>=
-#attach(env(fm08))
+attach(as.environment(fm08@pp), name="fm08@pp")
+attach(as.environment(fm08@resp), name="fm08@resp")
 @
 Please note that this is done here for illustration only.  The
 practice of attaching a list or a data frame or, less commonly, an
@@ -1002,7 +1007,7 @@ function to gain access by name to components of such composite
 objects.  For this section of code, however, using \code{with} or
 \code{within} would quickly become very tedious and we use
 \code{attach} instead.
-%% FIXME: Change this section to use the mkdevfun(obj, compDev = TRUE) result instead
+%% end(FIXME)
 
 To update the matrix $\Lambda_\theta$ to a new value of $\vec\theta$
 we need to know which of the non-zeros in $\Lambda$ are updated from
@@ -1017,25 +1022,29 @@ the initial value of $\vec\theta=(1,0,1)$.  We begin by updating
 $\Lambda_\theta$ and forming the product
 $\vec U\trans=\Lambda_\theta\trans\vec Z\trans$
 <<updateLambda>>=
-str(fm08@re@Lambda)
-str(fm08@re@Lind)
-fm08@re@Lambda@x[] <- c(1,0,1)[fm08@re@Lind]
-str(fm08@re@Lambda@x)
-Ut <- crossprod(fm08@re@Lambda, fm08@re@Zt)
+str(getME(fm08, "Lambda"))
+str(getME(fm08, "Lind"))
+##_FIXME __ TODO __ of course, cannot use getME() in   LHS <- ...
+##_F getME(fm08, "Lambda")@x[] <- c(1,0,1)[getME(fm08, "Lind")]
+##_F str(getME(fm08, "Lambda")@x)
+Ut <- crossprod(getME(fm08, "Lambda"), getME(fm08, "Zt"))
 @
 The Cholesky factor object, \code{L}, can be updated from \code{Ut}
 without forming $\vec U\trans\vec U+\vec I$ explicitly.  The optional
 argument \code{mult} to the \code{update} method specifies a multiple
 of the identity to be added to $\vec U\trans\vec U$
 <<updateL>>=
-L <- update(fm08@re@L, Ut, mult = 1)
-@ 
+L <- update(getME(fm08, "L"), Ut, mult = 1)
+@
 Then we evaluate \code{RZX} and \code{RX} according to (\ref{eq:RZXdef}) and
 (\ref{eq:RXdef})
 <<RZXandRX>>=
-RZX <- solve(L, solve(L, crossprod(fm08@re@Lambda, fm08@re@Zt %*% fm08@fe@X), sys = "P"), sys = "L")
-#RX <- chol(crossprod(fm08@fe@X) - crossprod(RZX))
-@ 
+RZX <- solve(L, solve(L, crossprod(getME(fm08, "Lambda"),
+                                   getME(fm08, "Zt") %*% getME(fm08, "X")),
+                      sys = "P"),
+             sys = "L")
+#RX <- chol(crossprod(getME(fm08, "X")) - crossprod(RZX))
+@
 
 Solving (\ref{eq:bigPLS}) for $\tilde{\vec u}$ and
 $\widehat{\vec\beta}_\theta$ is done in stages.  Writing $\vec c_u$ and $\vec c_\beta$ for the intermediate results that satisfy
@@ -1055,9 +1064,9 @@ $\widehat{\vec\beta}_\theta$ is done in stages.  Writing $\vec c_u$ and $\vec c_
 \end{equation}
 we evaluate
 <<cu>>=
-#cu <- solve(L, solve(L, crossprod(fm08@re@Lambda, fm08@resp@Utr), sys = "P"), sys = "L")
-#cbeta <- solve(t(RX), fm08@resp@Vtr - crossprod(RZX, cu))
-@ 
+#cu <- solve(L, solve(L, crossprod(getME(fm08, "Lambda"), getME(fm08, "Utr")), sys = "P"), sys = "L")
+#cbeta <- solve(t(RX), getME(fm08, "Vtr") - crossprod(RZX, cu))
+@
 
 The next set of equations to solve is
 \begin{equation}
@@ -1072,19 +1081,19 @@ The next set of equations to solve is
   \end{bmatrix}=
   \begin{bmatrix}
     \vec c_U\\\vec c_\beta
-  \end{bmatrix}
+  \end{bmatrix}.
 \end{equation}
 <<stage2>>=
 #fixef <- as.vector(solve(RX, cbeta))
 #u <- solve(L, solve(L, cu - RZX %*% fixef, sys = "Lt"), sys = "Pt")
-@ 
+@
 We can now create the conditional mean, \code{mu}, the penalized
 residual sum of squares, \code{prss}, the logarithm of the square
 of the determinant of $\vec L$, \code{ldL2}, and the profiled
 deviance, which, fortuitously, equals the value shown earlier.
 <<wrapup>>=
-#mu <- gamma <- as.vector(crossprod(Ut, u) + fm08@fe@X %*% fixef)
-#prss <- sum(c(fm08@resp@y - mu, as.vector(u))^2)
+#mu <- gamma <- as.vector(crossprod(Ut, u) + getME(fm08, "X") %*% fixef)
+#prss <- sum(c(getME(fm08, "y") - mu, as.vector(u))^2)
 #ldL2 <- 2 * as.vector(determinant(L)$mod)
 #nobs <- length(mu)
 #(deviance <- ldL2 + nobs * (1 + log(2 * pi * prss/nobs)))
@@ -1093,16 +1102,17 @@ deviance, which, fortuitously, equals the value shown earlier.
 The last step is detach the environment of \code{fm08} from the search list
 <<detachenv>>=
 #detach()
-@ 
+@
 to avoid later name clashes.
 <<cleanup,echo=FALSE,results=hide>>=
 #rm(deviance, fixef, gamma, L, ldL2, mu, prss, RX, RZX, u, Ut)
-@ 
+@
 
 In terms of the calculations performed, these steps describe exactly
 the evaluation of the profiled deviance in \code{lmer}.  The actual
 function for evaluating the deviance, accessible as
-\code{fm08@setPars}, is a slightly modified version of what is shown
+\code{fm08@setPars}, ---FIXME--- %% <<<<<<<<<<<<<<<<
+is a slightly modified version of what is shown
 above.  However, the modifications are only to avoid creating copies
 of potentially large objects and to allow for cases where the model
 matrix, $\vec X$, is sparse.  In practice, unless the optional
@@ -1137,7 +1147,7 @@ are \emph{conditionally independent}, given $\bc U=\vec u$.
 Furthermore, $\vec u$ affects the distribution only through the
 conditional mean, which we will continue to write as $\vec\mu$, and it
 affects the conditional mean only through the linear predictor,
-$\vec\gamma=\vec Z\Lambda_\theta\vec u+\vec X\vec\beta$.  
+$\vec\gamma=\vec Z\Lambda_\theta\vec u+\vec X\vec\beta$.
 
 Typically we do not have $\vec\mu=\vec\gamma$, however.  The elements
 of the linear predictor, $\vec\gamma$, can be positive or negative or
@@ -1147,7 +1157,7 @@ on the value of the mean.  For example, the mean of a Bernoulli random
 variable, modeling a binary response, must be in the range $0<\mu<1$
 and the mean of a Poisson random variable, modeling a count, must be
 positive.  To achieve these constraints we write the conditional mean,
-$\vec\mu$ as a transformation of the unbounded predictor, written
+$\vec\mu$, as a transformation of the unbounded predictor, written
 $\vec\eta$.  For historical, and some theoretical, reasons the inverse
 of this transformation is called the \emph{link function}, written
 \begin{equation}
@@ -1155,7 +1165,7 @@ of this transformation is called the \emph{link function}, written
   \vec\eta=\vec g(\vec\mu) ,
 \end{equation}
 and the transformation we want is called the \emph{inverse link},
-writted $\vec g^{-1}$.
+written $\vec g^{-1}$.
 
 Both $\vec g$ and $\vec g^{-1}$ are determined by scalar functions,
 $g$ and $g^{-1}$, respectively, applied to the individual components
@@ -1206,7 +1216,7 @@ For all these types of mixed models, the conditional distribution,
 $(\bc U|\bc Y=\vec y_{\text{obs}})$, is a continuous distribution for
 which we can determine the unscaled conditional density, $h(\vec u)$.
 As for linear mixed models, we define the conditional mode,
-$\tilde{\vec u}$ as the value that maximizes the unscaled condtional
+$\tilde{\vec u}$, as the value that maximizes the unscaled conditional
 density.
 
 
@@ -1251,7 +1261,7 @@ L_\theta^{(0)}$, satisfying
 to determine this increment.  The next iteration begins at
 \begin{equation}
   \label{eq:u1}
-  \vec u^{(1)} = \vec u^{(0)} + k \vec\delta^{(1)} 
+  \vec u^{(1)} = \vec u^{(0)} + k \vec\delta^{(1)}
 \end{equation}
 where $k$ is the step factor chosen, perhaps by
 step-halving~\citep[Sect.~2.2.1]{bateswatts88:_nonlin}, to ensure that
@@ -1280,25 +1290,25 @@ The definitions and the computational results for maximum likelihood
 estimation of the parameters in linear mixed models were summarized in
 Sect.~\ref{sec:definitions}.  A key computation is evaluation of the
 sparse Cholesky factor, $\Lambda_\theta$, satisfying
-eqn.~\ref{eq:sparseCholeskyP},
+(\ref{eq:sparseCholeskyP}),
 \begin{displaymath}
     \vec L_\theta\vec L_\theta\trans
    = \vec P\left(\Lambda_\theta\trans\vec Z\trans\vec Z\Lambda_\theta
-   +\vec I_q\right)\vec P\trans.
+   +\vec I_q\right)\vec P\trans,
 \end{displaymath}
 where $\vec P$ represents the fill-reducing permutation determined
 during the symbolic phase of the sparse Cholesky decomposition.
 
-An extended decomposition (eqn.~\ref{eq:bigdecomp}) provides the
+An extended decomposition (\ref{eq:bigdecomp}) provides the
 $q\times p$ matrix $\vec R_{ZX}$ and the $p\times p$ upper triangular
 $\vec R_X$ that are used to determine the conditional mode
 $\tilde{\vec u}_\theta$, the conditional estimate
-$\widehat{\vec\beta}_\theta$ and the minimum penalized residual sum of
-squares, $r^2_\theta$ from which the profiled deviance 
+$\widehat{\vec\beta}_\theta$, and the minimum penalized residual sum of
+squares, $r^2_\theta$, from which the profiled deviance
 \begin{displaymath}
   \tilde{d}(\vec\theta|\vec y_{\text{obs}})
   =2\log|\vec L_\theta|+n\left[1 +
-    \log\left(\frac{2 \pi r^2_\theta}{n}\right)\right].
+    \log\left(\frac{2 \pi r^2_\theta}{n}\right)\right]
 \end{displaymath}
 or the profile REML criterion
 \begin{displaymath}
@@ -1366,7 +1376,7 @@ computational results.
     \end{bmatrix}
     \begin{bmatrix}\vec u\\\vec\beta\end{bmatrix}=\vec0 .
   \end{displaymath}
-  Use this result and (\ref{eq:bigdecomp}) to show that 
+  Use this result and (\ref{eq:bigdecomp}) to show that
   \begin{displaymath}
     \begin{bmatrix}
       \vec L_\theta & \vec 0\\
