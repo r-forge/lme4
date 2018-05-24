@@ -13,10 +13,11 @@
   Martin M\"achler\\ETH Zurich
 }
 \Plainauthor{Steve Walker, Rune Haubo Bojesen Christensen, Douglas Bates, Martin M\"achler, Ben Bolker}
-\title{Fitting generalized liner mixed-effects models using \pkg{lme4}}
+\title{Fitting generalized linear mixed-effects models using \pkg{lme4}}
 \Plaintitle{Fitting generalized linear mixed models using lme4}
 \Shorttitle{GLMMs with lme4}
 \Abstract{%
+
 \bmb{abstract goes here}
 }
 \Keywords{%
@@ -72,8 +73,10 @@
 options(width=69, show.signif.stars=FALSE, str=strOptions(strict.width="cut"))
 library(knitr)
 library(lme4)
+library(lattice)
 opts_chunk$set(engine='R',dev='pdf',fig.width=10,
-               fig.height=6.5,strip.white=all,
+               error=FALSE, ## stop on error
+               fig.height=6.5,strip.white=TRUE,
                cache=TRUE,tidy=FALSE,prompt=TRUE,comment=NA)
 @ % $ <- for emacs ESS
 \setkeys{Gin}{width=\textwidth}
@@ -145,7 +148,7 @@ logarithm.
 
 The form of the distribution determines the conditional variance,
 $\Var(\mc Y|\mc U=\bm u)$, as a function of the conditional mean and,
-possibly, a separate scale factor. (In most cases the conditional
+possibly, a separate scale factor. (In the most common cases the conditional
 variance is completely determined by the conditional mean.)
 
 The likelihood of the parameters, given the observed data, is now
@@ -195,7 +198,7 @@ As for linear mixed models, we simplify evaluation of the integral
 When the conditional density, $\mc U|\mc Y=\yobs$, is multivariate
 Gaussian, this conditional mode will also be the conditional mean.
 However, for most families used in GLMMs, the mode and the mean need
-not coincide so use the more general term and call $\tilde{\bm
+not coincide so we use a more general term and call $\tilde{\bm
   u}_{\beta,\theta}$ the \emph{conditional mode}.  We first describe
 the numerical methods
 for determining the conditional mode using the Penalized Iteratively
@@ -206,7 +209,7 @@ of evaluating the integral (\ref{eq:GLMMlike}).
 \label{sec:conditionalMode}
 
 The iteratively reweighted least squares (IRLS) algorithm is an
-incredibly efficient method of determining the maximum likelihood
+efficient method of determining the maximum likelihood
 estimates of the coefficients in a generalized linear model.  We
 extend it to a \emph{penalized iteratively reweighted least squares}
 (PIRLS) algorithm for determining the conditional mode, $\tilde{\bm
